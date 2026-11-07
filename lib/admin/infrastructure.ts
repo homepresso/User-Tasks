@@ -10,10 +10,11 @@ import { runDoctor, type CheckStatus, type DoctorCheck, type DoctorReport } from
 import { canViewInfrastructure, INSTANCE_ADMINS_SETTING, type InfrastructureViewer } from './instance-admins'
 import { rpcHousekeeping, type HousekeepingStatus } from './housekeeping'
 import { recordView, type SwitchRecordView } from './infrastructure-switching'
-import { backgroundRuntime, type BackgroundRuntime, type SwitchingGate } from './switch-runtime'
+import { areaActionStates, backgroundRuntime, type AreaActionStates, type BackgroundRuntime, type SwitchAccess, type SwitchingGate } from './switch-runtime'
 import { hasSwitchLog, listRecords, switchRunning } from './switch/log'
-import type { SwitchRecordRow } from './switch/types'
 import { uiSwitchingGateFor } from './switch/gate'
+import { serviceSqlClient } from './ops/service-sql'
+import { providerFields } from '@/lib/config/provider-forms'
 
 /**
  * Server side of Settings → Infrastructure: the provider per area with
@@ -34,6 +35,8 @@ export interface InfrastructureArea {
   health: CheckStatus
   checks: DoctorCheck[]
   docs: string
+  /** Change… / Settings: always shown; disabled ones say why and what to do. */
+  actions: AreaActionStates
 }
 
 export interface InfrastructureView {
@@ -46,8 +49,10 @@ export interface InfrastructureView {
   switching: {
     gate: SwitchingGate
     runtime: BackgroundRuntime
-    /** A direct connection (DATABASE_URL): the page's switching needs one. */
-    hasDb: boolean
+    /** direct: DATABASE_URL; api: the Supabase service-role API (config-only changes); none: neither. */
+    access: SwitchAccess
+    /** The direct connection is configured but failed (the page fell back to the API, or nothing). */
+    directError: string | null
     /** A switch is queued or running now. */
     busy: boolean
     /** Area of a provider switch made in the last 7 days (the page shows the rollback-window note). */
@@ -89,13 +94,9 @@ export async function viewerCanSeeInfrastructure(user: InfrastructureViewer | nu
   })
 }
 
-/**
- * Why Change… / Settings are off without DATABASE_URL. Not a fault: the
- * health checks above run through the Supabase API; only switching (backups,
- * the switch lock, transactional config changes) needs a direct connection.
- */
+/** No DATABASE_URL and no service-role key: nothing on the page can read or change the instance settings. */
 export const NO_DIRECT_CONNECTION_REASON =
-  'Provider changes run with usertasks-admin switch on this deployment: changing them from this page uses a direct PostgreSQL connection (DATABASE_URL), which the Supabase provider does not otherwise need. The health checks run through the Supabase API.'
+  'This deployment has neither DATABASE_URL nor the Supabase service-role key (SUPABASE_SERVICE_ROLE_KEY), so provider changes cannot be made from this page: add one to the app environment and redeploy.'
 
 /** Why there is no service database client: the postgres provider needs DATABASE_URL, Supabase its service-role key. */
 function noServiceDbReason(): string {
@@ -141,11 +142,33 @@ export function clearInfrastructureHealthCache(): void {
   cachedHealth = null
 }
 
-async function recentSwitches(): Promise<{ rows: SwitchRecordView[]; error: string | null; busy: boolean; gate: SwitchingGate }> {
+interface SwitchesState {
+  rows: SwitchRecordView[]
+  error: string | null
+  busy: boolean
+  gate: SwitchingGate
+  access: SwitchAccess
+  directError: string | null
+}
+
+async function switchesFrom(client: Parameters<typeof uiSwitchingGateFor>[0], access: SwitchAccess, directError: string | null): Promise<SwitchesState> {
+  const gate = await uiSwitchingGateFor(client)
+  if (!(await hasSwitchLog(client))) return { rows: [], error: 'migration 20261107000000 not applied', busy: false, gate, access, directError }
+  const running = await switchRunning(client)
+  const rows = (await listRecords(client, 10)).map((r) => recordView(r, running))
+  return { rows, error: null, busy: running || rows.some((r) => r.status === 'queued'), gate, access, directError }
+}
+
+/**
+ * The switch log, the gate and how the page reaches the instance: over
+ * DATABASE_URL when set (it also tells whether a switch runs: the switch
+ * lock), else through the Supabase service-role API (no DATABASE_URL, or it
+ * failed): config-only changes then run over the API too.
+ */
+async function recentSwitches(): Promise<SwitchesState> {
   const url = databaseUrl()
-  let gate: SwitchingGate = { enabled: false, reason: NO_DIRECT_CONNECTION_REASON }
+  let directError: string | null = null
   if (url) {
-    // A direct connection also tells whether a switch is running (the switch lock).
     let client: pg.Client | null = null
     let connected = false
     try {
@@ -153,29 +176,27 @@ async function recentSwitches(): Promise<{ rows: SwitchRecordView[]; error: stri
       client.on('error', () => undefined)
       await client.connect()
       connected = true
-      const gate = await uiSwitchingGateFor(client)
-      if (!(await hasSwitchLog(client))) return { rows: [], error: 'migration 20261107000000 not applied', busy: false, gate }
-      const running = await switchRunning(client)
-      const rows = (await listRecords(client, 10)).map((r) => recordView(r, running))
-      return { rows, error: null, busy: running || rows.some((r) => r.status === 'queued'), gate }
+      return await switchesFrom(client, 'direct', null)
     } catch (error) {
       const failure = (error as Error).message
-      if (connected || activeDbProvider() === 'postgres') return { rows: [], error: failure, busy: false, gate: { enabled: false, reason: failure } }
-      // DATABASE_URL set but unreachable: say so, and read the log through the Supabase API below.
-      gate = { enabled: false, reason: `Changing providers from this page uses the direct connection (DATABASE_URL), which failed: ${failure}` }
+      const gate: SwitchingGate = { enabled: false, reason: `The direct connection (DATABASE_URL) failed: ${failure}`, code: 'unavailable' }
+      if (connected || activeDbProvider() === 'postgres') return { rows: [], error: failure, busy: false, gate, access: 'direct', directError: failure }
+      // DATABASE_URL set but unreachable: read through the Supabase API below. Changes use DATABASE_URL, so they stay off.
+      directError = failure
     } finally {
       await client?.end().catch(() => undefined)
     }
   }
-  if (!hasServiceDb()) return { rows: [], error: noServiceDbReason(), busy: false, gate }
-  const { data, error } = await getServiceDb()
-    .from('instance_provider_switches')
-    .select('id, kind, area, from_provider, to_provider, status, steps, actor, error, started_at, finished_at, env_changes, config_before, config_after')
-    .order('started_at', { ascending: false })
-    .limit(10)
-  if (error) return { rows: [], error: error.message, busy: false, gate }
-  const rows = ((data ?? []) as unknown as SwitchRecordRow[]).map((row) => recordView({ ...row, started_at: String(row.started_at) }, false))
-  return { error: null, rows, busy: rows.some((r) => r.status === 'queued' || r.status === 'running'), gate }
+  const noAccess: SwitchingGate = { enabled: false, reason: NO_DIRECT_CONNECTION_REASON, code: 'unavailable' }
+  if (activeDbProvider() !== 'supabase' || !hasServiceDb()) return { rows: [], error: noServiceDbReason(), busy: false, gate: noAccess, access: 'none', directError }
+  try {
+    const state = await switchesFrom(serviceSqlClient(getServiceDb()), 'api', directError)
+    // Actions would use the failing DATABASE_URL: say so instead of offering them.
+    if (directError) return { ...state, gate: { enabled: false, reason: `Changes from this page use DATABASE_URL, which failed: ${directError}`, code: 'unavailable' } }
+    return state
+  } catch (error) {
+    return { rows: [], error: (error as Error).message, busy: false, gate: { enabled: false, reason: (error as Error).message, code: 'unavailable' }, access: 'api', directError }
+  }
 }
 
 async function housekeepingStatus(): Promise<{ status: HousekeepingStatus | null; error: string | null }> {
@@ -205,13 +226,17 @@ export async function loadInfrastructureView(options: { refresh?: boolean } = {}
         health: report.areas[area],
         checks: report.checks.filter((c) => c.area === area),
         docs: `/docs/self-hosting/infrastructure#${entry?.docs ?? area}`,
+        actions: areaActionStates({
+          area, label: AREA_LABELS[area], providerLabel: entry?.label ?? provider.id, hasSettings: providerFields(area, provider.id).length > 0,
+          gate: switches.gate, access: switches.access,
+        }),
       }
     }),
     checkedAt: report.checkedAt,
     switches: switches.rows,
     switchLogError: switches.error,
     switching: {
-      gate: switches.gate, runtime: backgroundRuntime(), hasDb: Boolean(databaseUrl()), busy: switches.busy,
+      gate: switches.gate, runtime: backgroundRuntime(), access: switches.access, directError: switches.directError, busy: switches.busy,
       recentSwitchArea: switches.rows.find((s) => s.kind === 'switch' && s.status === 'succeeded' && Date.now() - new Date(s.startedAt).getTime() < 7 * 86_400_000)?.area ?? null,
     },
     housekeeping: housekeeping.status,

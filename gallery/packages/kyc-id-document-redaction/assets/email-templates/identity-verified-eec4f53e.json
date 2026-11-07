@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "eec4f53e-3b6d-51c5-9292-132722ac2000",
+  "asset": {
+    "id": "eec4f53e-3b6d-51c5-9292-132722ac2000",
+    "name": "Identity verified",
+    "description": "Sent when the reviewer verifies the identity.",
+    "subject": "Your identity is verified",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">You are verified</h2><p>Hi {{form.full_name}},</p><p>Thanks: we have verified your identity. We keep only the details we need, with your document number masked.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Reference {{kyc_ref}}</p></div>",
+    "text_body": "Your identity is verified.",
+    "is_default": false
+  }
+}

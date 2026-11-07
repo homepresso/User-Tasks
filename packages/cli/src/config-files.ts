@@ -41,8 +41,8 @@ export const CONFIG_SECTIONS: ReadonlyArray<{ section: string; dir: string; alia
 
 const SECTION_DIRS = new Set(CONFIG_SECTIONS.map((s) => s.dir))
 /** Singleton files at the folder root (one object per workspace, no id). */
-const SINGLETON_FILES = /^workspace-theme\.(json|ya?ml)$/
-const SINGLETON_TYPES = new Set(['workspace_theme'])
+const SINGLETON_FILES = /^(workspace-theme|document-ocr)\.(json|ya?ml)$/
+const SINGLETON_TYPES = new Set(['workspace_theme', 'document_ocr'])
 const CONFIG_EXT = new Set(['.json', '.yaml', '.yml'])
 
 export interface UploadFile {

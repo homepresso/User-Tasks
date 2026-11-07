@@ -1,0 +1,48 @@
+{
+  "name": "@usertasks/form-control",
+  "version": "0.1.0",
+  "description": "Build UserTasks custom form controls: the contract types, a vanilla base element and a Lit mixin",
+  "keywords": [
+    "usertasks",
+    "web-components",
+    "custom-elements",
+    "lit",
+    "forms"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/homepresso/User-Tasks.git",
+    "directory": "packages/form-control"
+  },
+  "homepage": "https://github.com/homepresso/User-Tasks/tree/main/packages/form-control#readme",
+  "bugs": {
+    "url": "https://github.com/homepresso/User-Tasks/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.1",
+    "typescript": "^5"
+  }
+}

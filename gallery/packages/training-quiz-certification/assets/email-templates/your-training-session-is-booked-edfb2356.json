@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "edfb2356-c3e0-5a7c-a922-3e603dfcad7c",
+  "asset": {
+    "id": "edfb2356-c3e0-5a7c-a922-3e603dfcad7c",
+    "name": "Your training session is booked",
+    "description": "Sent to the learner after the training coordinator books a session for a failed quiz.",
+    "subject": "Training session booked: {{course_title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#13202B\">\n  <h2 style=\"margin:0 0 12px\">Your training session</h2>\n  <p>Hi {{form.learner_name}},</p>\n  <p>You scored {{score_pct}}% on the {{course_title}} quiz (pass mark {{pass_mark}}%). {{actioned_by_name}} has booked you onto a session:</p>\n  <p><strong>{{task_data.session_date}}</strong> · {{task_data.session_type}}</p>\n  <p>{{task_data.coordinator_note}}</p>\n  <p style=\"color:#5B6B7A;font-size:13px\">Reference {{result_ref}}</p>\n</div>",
+    "text_body": "Your training session\n\nHi {{form.learner_name}},\nYou scored {{score_pct}}% on the {{course_title}} quiz (pass mark {{pass_mark}}%). {{actioned_by_name}} has booked you onto a session: {{task_data.session_date}} ({{task_data.session_type}}).\n{{task_data.coordinator_note}}\n\nReference {{result_ref}}",
+    "is_default": false
+  }
+}

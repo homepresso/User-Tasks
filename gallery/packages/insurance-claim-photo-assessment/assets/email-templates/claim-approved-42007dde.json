@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "42007dde-7c93-51b4-9bf0-29069e3a4241",
+  "asset": {
+    "id": "42007dde-7c93-51b4-9bf0-29069e3a4241",
+    "name": "Claim approved",
+    "description": "Approval letter to the claimant (PDF attached).",
+    "subject": "Your claim {{claim_ref}} is approved",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Claim approved</h2><p>Hi {{form.claimant_name}},</p><p>Your repair is approved up to {{task_data.approved_amount}}. {{task_data.repairer_item.name}} will contact you to book it. The letter is attached.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Claim {{claim_ref}} · policy {{form.policy_number}}</p></div>",
+    "text_body": "Claim {{claim_ref}} approved up to {{task_data.approved_amount}}.",
+    "is_default": false
+  }
+}

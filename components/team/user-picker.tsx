@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useTenantUsers } from '@/hooks/use-tenant-users'
-import { Input } from '@/components/ui/input'
-import { getInitials } from '@/lib/utils'
+import { SearchInput } from '@/components/ui/input'
+import { Avatar } from '@/components/ui/avatar'
+import { floatingSurfaceClass, menuItemClass } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
 interface UserPickerProps {
   onSelect: (userId: string) => void
@@ -11,7 +13,7 @@ interface UserPickerProps {
   placeholder?: string
 }
 
-export function UserPicker({ onSelect, excludeIds = [], placeholder = 'Search users...' }: UserPickerProps) {
+export function UserPicker({ onSelect, excludeIds = [], placeholder = 'Search users…' }: UserPickerProps) {
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -33,26 +35,27 @@ export function UserPicker({ onSelect, excludeIds = [], placeholder = 'Search us
 
   return (
     <div ref={ref} className="relative">
-      <Input
+      <SearchInput
         value={search}
-        onChange={(e) => { setSearch(e.target.value); setOpen(true) }}
+        onValueChange={(v) => { setSearch(v); setOpen(true) }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
+        aria-label={placeholder.replace(/…$/, '')}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 max-h-48 overflow-y-auto">
+        <div className={cn(floatingSurfaceClass, 'absolute z-10 mt-1 max-h-48 w-full overflow-y-auto p-1')} role="listbox">
           {filtered.map(user => (
             <button
               key={user.id}
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+              role="option"
+              aria-selected={false}
+              className={cn(menuItemClass, 'w-full cursor-pointer text-left hover:bg-subtle')}
               onClick={() => { onSelect(user.id); setSearch(''); setOpen(false) }}
             >
-              <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-[10px] font-bold">
-                {getInitials(user.display_name)}
-              </span>
-              <span className="font-medium text-gray-900 dark:text-white">{user.display_name}</span>
-              <span className="text-gray-400 text-xs">{user.email}</span>
+              <Avatar name={user.display_name} size="sm" />
+              <span className="truncate font-medium">{user.display_name}</span>
+              <span className="truncate text-xs text-fg-muted">{user.email}</span>
             </button>
           ))}
         </div>

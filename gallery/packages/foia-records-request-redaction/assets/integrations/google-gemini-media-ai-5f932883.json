@@ -1,0 +1,29 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+  "asset": {
+    "id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+    "name": "Google Gemini (media AI)",
+    "type": "google_gemini",
+    "description": "Media AI provider for transcription, image and video analysis and finding what to redact. Paste your Gemini API key on install (aistudio.google.com). To use OpenAI, Azure AI or AWS instead, point the media steps at that integration.",
+    "config": {
+      "base_url": "https://generativelanguage.googleapis.com",
+      "auth_type": "api_key",
+      "auth_config": {
+        "key_name": "x-goog-api-key",
+        "key_value": "__SECRET__",
+        "add_to": "header"
+      },
+      "template_vars": {
+        "default_model": "gemini-3.8-flash",
+        "model": "gemini-3.8-flash"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "ai",
+      "media"
+    ]
+  }
+}

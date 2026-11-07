@@ -265,7 +265,29 @@
             }
           ]
         }
-      ]
+      ],
+      "submitted_page": {
+        "enabled": true,
+        "icon": "calendar_check",
+        "icon_color": "primary",
+        "heading": "You're registered, {{name}}",
+        "subheading": "Your reference is REG-{{submission_id}}. We have emailed your confirmation (or your waitlist place, if the event is full) to {{email}}.",
+        "summary_fields": [
+          "event",
+          "event_date",
+          "event_time",
+          "event_venue"
+        ],
+        "note": "Need to change something? Reply to the confirmation email and quote your reference.",
+        "submit_another": {
+          "enabled": true,
+          "label": "Register someone else"
+        },
+        "close": {
+          "enabled": true,
+          "label": "Close form"
+        }
+      }
     },
     "theme": {
       "source": "custom",
@@ -293,16 +315,7 @@
         "id": "submit",
         "label": "Register",
         "kind": "submit",
-        "style": "primary",
-        "actions": [
-          {
-            "type": "success_screen",
-            "title": "You are registered, {{name}}",
-            "screen_button": "submit_another",
-            "text": "Your reference is REG-{{submission_id}}. We have emailed your confirmation (or your waitlist place, if the event is full) to {{email}}.",
-            "screen_button_label": "Register someone else"
-          }
-        ]
+        "style": "primary"
       },
       {
         "id": "cancel",

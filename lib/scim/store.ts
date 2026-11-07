@@ -9,6 +9,8 @@ import {
 import { looksLikeEmail } from '@/lib/directory-sync/types'
 import { ScimError } from './errors'
 import { planManagerChanges } from '@/lib/directory-sync/managers'
+import { syncDirectoryOrg } from '@/lib/directory-sync/profiles'
+import { profileValue, type DirectoryProfile } from '@/lib/directory-sync/types'
 import { CORE_GROUP_SCHEMA, CORE_USER_SCHEMA, ENTERPRISE_USER_SCHEMA, getProp, indexableEquality, matchesFilter, parseFilter, type ScimFilter } from './filter'
 import { applyPatch, memberChanges, type PatchOperation } from './patch'
 import { DEFAULT_PAGE_SIZE, MAX_FILTER_RESULTS } from './schemas'
@@ -40,6 +42,10 @@ export interface ScimRequestContext {
   baseUrl: string
   autoProvision: boolean
   syncGroups: boolean
+  /** Org units from the enterprise extension's organization / division / department (default off when absent). */
+  importOrgUnits?: boolean
+  /** Job title, department, location, employee number, cost centre → the member's attributes. */
+  importProfiles?: boolean
 }
 
 export type ResourceType = 'User' | 'Group'
@@ -459,7 +465,46 @@ async function reconcileUser(ctx: ScimRequestContext, row: ResourceRow, previous
   }
   await upsertLink(ctx, 'user', row.id, localId, displayName || null)
   await syncScimManager(ctx, row, localId)
+  await syncScimOrg(ctx, row, localId)
   return row
+}
+
+/**
+ * A SCIM user's org attributes (the stored resource, i.e. after PATCH):
+ * core `title`, the work (else primary, else first) address's `locality`,
+ * and the enterprise extension's department, division, organization,
+ * costCenter and employeeNumber. Keys whose container is missing (no
+ * enterprise extension, no addresses) are left out: the IdP said nothing.
+ */
+export function scimProfile(attributes: Record<string, any>): DirectoryProfile {
+  const profile: DirectoryProfile = { job_title: profileValue(getProp(attributes, 'title')) }
+  const addresses = getProp(attributes, 'addresses')
+  if (Array.isArray(addresses)) {
+    const list = addresses.filter((a) => a && typeof a === 'object')
+    const address = list.find((a) => getProp(a, 'type') === 'work') ?? list.find((a) => getProp(a, 'primary') === true) ?? list[0]
+    profile.location = profileValue(address ? getProp(address, 'locality') : null)
+  }
+  const enterprise = getProp(attributes, ENTERPRISE_USER_SCHEMA)
+  if (enterprise && typeof enterprise === 'object' && !Array.isArray(enterprise)) {
+    profile.department = profileValue(getProp(enterprise, 'department'))
+    profile.division = profileValue(getProp(enterprise, 'division'))
+    profile.company = profileValue(getProp(enterprise, 'organization'))
+    profile.cost_center = profileValue(getProp(enterprise, 'costCenter'))
+    profile.employee_id = profileValue(getProp(enterprise, 'employeeNumber'))
+  }
+  return profile
+}
+
+/** Attributes and org units for one pushed user (lib/directory-sync/profiles.ts rules); best-effort. */
+async function syncScimOrg(ctx: ScimRequestContext, row: ResourceRow, localId: string): Promise<void> {
+  if (!ctx.importOrgUnits && !ctx.importProfiles) return
+  try {
+    await syncDirectoryOrg(ctx.db, ctx.tenantId, 'scim', [{
+      externalId: row.id, displayName: '', email: null, active: true, profile: scimProfile(row.attributes ?? {}),
+    }], { importOrgUnits: Boolean(ctx.importOrgUnits), importProfiles: Boolean(ctx.importProfiles) }, { localIdByExternalId: new Map([[row.id, localId]]) })
+  } catch (error) {
+    console.warn('[scim] org structure sync failed:', error instanceof Error ? error.message : error)
+  }
 }
 
 /**

@@ -7,7 +7,17 @@ import { Ban, CheckCircle2, Clock, Download, Layers, Loader2, RotateCcw, XCircle
 import { listMyJobsAction } from '@/app/actions/user-jobs'
 import { unwrapAction } from '@/lib/action-result'
 import { usePermissions } from '@/lib/permissions-context'
-import { formatRelativeDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { plural } from '@/lib/format/plural'
+import { CountBadge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { IconButton } from '@/components/ui/icon-button'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip } from '@/components/ui/tooltip'
+import { floatingSurfaceClass } from '@/components/ui/dropdown-menu'
 import { isActiveJobStatus, type UserJobView } from '@/lib/user-jobs/types'
 import { downloadJobFile, formatBytes, useJobs } from './jobs-provider'
 
@@ -17,12 +27,12 @@ import { downloadJobFile, formatBytes, useJobs } from './jobs-provider'
  * (settings.edit) can switch to every job of the workspace.
  */
 
-const STATUS_STYLE: Record<UserJobView['status'], { label: string; color: string; Icon: typeof Clock }> = {
-  queued: { label: 'Queued', color: 'var(--theme-muted-text)', Icon: Clock },
-  running: { label: 'Running', color: 'var(--theme-primary-text)', Icon: Loader2 },
-  succeeded: { label: 'Done', color: 'var(--theme-success)', Icon: CheckCircle2 },
-  failed: { label: 'Failed', color: 'var(--theme-danger)', Icon: XCircle },
-  cancelled: { label: 'Cancelled', color: 'var(--theme-muted-text)', Icon: Ban },
+const STATUS_STYLE: Record<UserJobView['status'], { label: string; text: string; Icon: typeof Clock }> = {
+  queued: { label: 'Queued', text: 'text-fg-muted', Icon: Clock },
+  running: { label: 'Running', text: 'text-info', Icon: Loader2 },
+  succeeded: { label: 'Done', text: 'text-success', Icon: CheckCircle2 },
+  failed: { label: 'Failed', text: 'text-danger', Icon: XCircle },
+  cancelled: { label: 'Cancelled', text: 'text-fg-muted', Icon: Ban },
 }
 
 export function JobsIndicator() {
@@ -70,56 +80,51 @@ export function JobsIndicator() {
 
   return (
     <div className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={() => setPanelOpen(!panelOpen)}
-        className="relative flex items-center gap-1.5 rounded-lg p-2 transition-colors hover:opacity-80"
-        style={{ color: 'var(--theme-topbar-text)' }}
-        aria-label={activeCount ? `${activeCount} background job${activeCount === 1 ? '' : 's'} running` : 'Background jobs'}
-        aria-expanded={panelOpen}
-        data-testid="jobs-indicator"
-      >
-        {activeCount > 0 ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <Layers size={18} aria-hidden />}
-        {activeCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}>
-            {activeCount > 9 ? '9+' : activeCount}
-          </span>
-        )}
-      </button>
+      <Tooltip content="Background jobs" enabled={!panelOpen}>
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => setPanelOpen(!panelOpen)}
+          className="relative inline-flex size-8 items-center justify-center rounded-md text-fg-muted transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle hover:text-fg aria-expanded:bg-subtle aria-expanded:text-fg"
+          aria-label={activeCount ? `Background jobs, ${plural(activeCount, 'job')} running` : 'Background jobs'}
+          aria-expanded={panelOpen}
+          aria-haspopup="dialog"
+          data-testid="jobs-indicator"
+        >
+          {activeCount > 0 ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Layers className="size-4" aria-hidden />}
+          {activeCount > 0 && (
+            <CountBadge count={activeCount} max={9} tone="brand" aria-hidden className="absolute -right-1 -top-1 h-4 min-w-4 px-0.5" />
+          )}
+        </button>
+      </Tooltip>
 
       {panelOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={panelRef}
-          className="fixed w-[min(26rem,calc(100vw-1rem))] overflow-hidden rounded-xl border shadow-xl"
-          style={{ top: position.top, right: position.right, zIndex: 1000, backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+          className={cn('ds-pop fixed z-[1000] flex max-h-[min(560px,calc(100vh-80px))] w-[min(400px,calc(100vw-16px))] flex-col overflow-hidden', floatingSurfaceClass)}
+          data-state="open"
+          style={{ top: position.top, right: position.right }}
           role="dialog"
           aria-label="Background jobs"
           data-testid="jobs-panel"
         >
-          <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <h3 className="text-sm font-semibold">Background jobs</h3>
+          <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border-subtle pl-4 pr-2">
+            <h2 className="text-sm font-semibold text-fg">Background jobs</h2>
             {can('settings.edit') && (
-              <div className="flex gap-1 text-[11px]">
-                {(['mine', 'tenant'] as const).map((value) => (
-                  <button key={value} type="button" onClick={() => setScope(value)} className="rounded-md px-2 py-0.5 font-medium"
-                    style={{ backgroundColor: scope === value ? 'var(--theme-primary-light)' : 'transparent', color: scope === value ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}>
-                    {value === 'mine' ? 'Mine' : 'Workspace'}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl aria-label="Whose jobs" size="sm" value={scope} onValueChange={(v) => setScope(v as 'mine' | 'tenant')}
+                options={[{ value: 'mine', text: 'Mine' }, { value: 'tenant', text: 'Workspace' }]} />
             )}
           </div>
-          <div className="max-h-[480px] overflow-y-auto divide-y" style={{ borderColor: 'var(--theme-surface-border)' }}>
+          <div className="min-h-0 flex-1 divide-y divide-border-subtle overflow-y-auto scrollbar-thin">
             {list.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-                {scope === 'tenant' && tenantJobs.isLoading ? 'Loading…' : 'No background jobs yet. Exports, imports and bulk actions show up here.'}
-              </p>
+              scope === 'tenant' && tenantJobs.isLoading
+                ? <div className="space-y-2 p-4">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+                : <EmptyState size="sm" icon={Layers} title="No background jobs yet" description="Exports, imports and bulk actions show up here." />
             ) : list.map((job) => (
               <JobRow key={job.id} job={job} mine={scope === 'mine'} onCancel={() => void cancel(job.id)} onRetry={() => void retry(job.id)} />
             ))}
           </div>
-          <p className="border-t px-4 py-2 text-[10px]" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
+          <p className="shrink-0 border-t border-border-subtle px-4 py-2 text-2xs text-fg-muted">
             Finished jobs and their files are kept for 7 days.
           </p>
         </div>,
@@ -134,34 +139,32 @@ function JobRow({ job, mine, onCancel, onRetry }: { job: UserJobView; mine: bool
   const active = isActiveJobStatus(job.status)
   const detail = job.status === 'failed' ? job.error : job.status === 'succeeded' ? job.result?.summary : job.message
   return (
-    <div className="px-4 py-3" style={{ borderColor: 'var(--theme-surface-border)' }} data-testid="jobs-panel-row" data-status={job.status}>
-      <div className="flex items-start gap-2">
-        <style.Icon size={14} className={`mt-0.5 shrink-0 ${job.status === 'running' ? 'animate-spin' : ''}`} style={{ color: style.color }} aria-hidden />
+    <div className="px-4 py-3" data-testid="jobs-panel-row" data-status={job.status}>
+      <div className="flex items-start gap-2.5">
+        <style.Icon className={cn('mt-0.5 size-4 shrink-0', style.text, job.status === 'running' && 'animate-spin')} aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium" title={job.title}>{job.title}</p>
-          <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-            <span style={{ color: style.color }}>{style.label}</span>
-            {' · '}{formatRelativeDate(job.created_at)}
-            {job.result?.file ? ` · ${formatBytes(job.result.file.size)}` : ''}
+          <p className="truncate text-ui font-medium text-fg">{job.title}</p>
+          <p className="text-xs text-fg-muted">
+            <span className={style.text}>{style.label}</span>
+            {' · '}<Tooltip content={formatAbsolute(job.created_at)}><time dateTime={job.created_at}>{formatRelative(job.created_at)}</time></Tooltip>
+            {job.result?.file ? <span className="num">{` · ${formatBytes(job.result.file.size)}`}</span> : ''}
           </p>
-          {detail && <p className="mt-0.5 line-clamp-2 text-xs" style={{ color: job.status === 'failed' ? 'var(--theme-danger)' : 'var(--theme-muted-text)' }}>{detail}</p>}
+          {detail && <p className={cn('mt-0.5 line-clamp-2 text-xs', job.status === 'failed' ? 'text-danger' : 'text-fg-muted')}>{detail}</p>}
           {active && (
-            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--theme-surface-border)' }}>
-              <div className={`h-full rounded-full transition-all ${job.status === 'queued' || job.progress === 0 ? 'w-1/4 animate-pulse' : ''}`} style={{ width: job.progress > 0 ? `${job.progress}%` : undefined, backgroundColor: 'var(--theme-primary)' }} />
-            </div>
+            job.progress > 0
+              ? <ProgressBar className="mt-1.5" size="sm" value={job.progress} label={`${job.title} progress`} />
+              : <Skeleton className="mt-1.5 h-1 w-full rounded-full" aria-label="Waiting to start" />
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           {mine && job.downloadable && (
-            <button type="button" onClick={() => downloadJobFile(job)} className="rounded-md p-1.5 hover:opacity-80" style={{ color: 'var(--theme-primary-text)' }} title="Download" aria-label={`Download ${job.result?.file?.filename ?? 'file'}`} data-testid="jobs-panel-download">
-              <Download size={14} />
-            </button>
+            <IconButton size="sm" icon={<Download />} label={`Download ${job.result?.file?.filename ?? 'file'}`} onClick={() => downloadJobFile(job)} data-testid="jobs-panel-download" />
           )}
           {mine && job.retryable && (
-            <button type="button" onClick={onRetry} className="rounded-md p-1.5 hover:opacity-80" title="Retry" aria-label="Retry" data-testid="jobs-panel-retry"><RotateCcw size={14} /></button>
+            <IconButton size="sm" icon={<RotateCcw />} label="Retry" onClick={onRetry} data-testid="jobs-panel-retry" />
           )}
           {job.cancellable && (
-            <button type="button" onClick={onCancel} className="rounded-md p-1.5 hover:opacity-80" style={{ color: 'var(--theme-danger)' }} title="Cancel" aria-label="Cancel" data-testid="jobs-panel-cancel"><Ban size={14} /></button>
+            <IconButton size="sm" variant="danger-ghost" icon={<Ban />} label="Cancel" onClick={onCancel} data-testid="jobs-panel-cancel" />
           )}
         </div>
       </div>

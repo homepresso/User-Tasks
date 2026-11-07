@@ -1,0 +1,28 @@
+{
+  "id": "03865824-a38f-466c-9c22-debdba1720e4",
+  "asset_id": "c212b3d4-fa0d-498a-9a5b-cdad73c65088",
+  "slug": "rating",
+  "title": "Rating",
+  "kind": "input",
+  "summary": "Star, heart or circle rating from 1 to 10 with optional labels such as Poor to Excellent, for satisfaction scores and quality checks.",
+  "description": "A rating control for any form: customer satisfaction on a support request, a supplier score on a review, a quality grade on an inspection. Pick 2 to 10 stars, hearts or circles, give each value a label (Poor, Fair, Good, Very good, Excellent) and choose whether people can clear their rating.\n\nIt behaves like a native radio group: one Tab stop, the arrow keys change the rating, Home and End jump to the ends and Delete clears it. Screen readers announce each symbol as \"4 of 5: Very good\". The value is a whole number, so workflows can branch on it directly (a Condition on rating < 3 opens a follow-up).",
+  "icon": "star",
+  "tags": ["rating", "stars", "satisfaction", "survey", "feedback"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: max can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: a number." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Customer satisfaction at the end of a support request",
+    "Supplier or candidate scoring on a review step",
+    "Quality grade on an inspection checklist"
+  ],
+  "setup": [
+    "Install the package: the control appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Rating onto a form, then set the number of symbols, the symbol and the labels in the properties panel."
+  ],
+  "preview": {
+    "props": { "max": 5, "labels": ["Poor", "Fair", "Good", "Very good", "Excellent"] },
+    "value": 4,
+    "label": "How was your visit?",
+    "height": 60
+  }
+}

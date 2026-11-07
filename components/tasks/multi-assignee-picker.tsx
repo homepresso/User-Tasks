@@ -7,6 +7,8 @@ import { serverRead } from '@/lib/server-read'
 import { getInitials } from '@/lib/utils'
 import { X, Users, User, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { plural } from '@/lib/format/plural'
 
 interface MultiAssigneePickerProps {
   selectedIds: string[]
@@ -65,7 +67,7 @@ export function MultiAssigneePicker({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="block text-sm font-medium text-fg">
         Assign to
       </label>
 
@@ -76,14 +78,12 @@ export function MultiAssigneePicker({
             const user = users?.find((u: any) => u.id === id)
             if (!user) return null
             return (
-              <span key={id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"
-                style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
-                  style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}>
+              <span key={id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary-wash text-primary-text">
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-2xs font-bold bg-primary text-primary-fg">
                   {getInitials((user as any).display_name || (user as any).email)}
                 </span>
                 {(user as any).display_name || (user as any).email}
-                <button onClick={() => toggleUser(id)} className="hover:opacity-70"><X size={10} /></button>
+                <button type="button" onClick={() => toggleUser(id)} aria-label={`Remove ${(user as any).display_name || (user as any).email}`} className="rounded-sm hover:bg-primary-wash"><X size={12} /></button>
               </span>
             )
           })}
@@ -91,48 +91,37 @@ export function MultiAssigneePicker({
       )}
 
       {selectedTeamId && (
-        <div className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg"
-          style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+        <div className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-md bg-primary-wash text-primary-text">
           <Users size={12} />
           <span className="font-medium">{teams?.find((t: any) => t.id === selectedTeamId)?.name ?? 'Team'}</span>
-          {teamMembers && <span>({teamMembers.length} members)</span>}
-          <button onClick={() => { onChangeTeam(null); onChangeIds([]) }} className="ml-auto hover:opacity-70"><X size={10} /></button>
+          {teamMembers && <span className="num">({plural(teamMembers.length, "member")})</span>}
+          <button type="button" onClick={() => { onChangeTeam(null); onChangeIds([]) }} aria-label="Clear team" className="ml-auto rounded-sm"><X size={12} /></button>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--theme-surface-border)' }}>
-        <button onClick={() => setTab('users')} className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 transition-colors"
-          style={{ backgroundColor: tab === 'users' ? 'var(--theme-primary)' : 'var(--theme-surface)', color: tab === 'users' ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}>
-          <User size={12} /> Users
-        </button>
-        <button onClick={() => setTab('team')} className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 transition-colors"
-          style={{ backgroundColor: tab === 'team' ? 'var(--theme-primary)' : 'var(--theme-surface)', color: tab === 'team' ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}>
-          <Users size={12} /> Team
-        </button>
-      </div>
+      <SegmentedControl aria-label="Assign to" className="w-full [&>button]:flex-1" value={tab} onValueChange={(v) => setTab(v as typeof tab)}
+        options={[{ value: "users", text: "Users", icon: <User /> }, { value: "team", text: "Team", icon: <Users /> }]} />
 
       {tab === 'users' && (
         <>
           <div className="relative">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users..."
-              className="w-full rounded-lg border pl-7 pr-3 py-1.5 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }} />
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users…" aria-label="Search users"
+              className="h-8 w-full rounded-md border border-input-border bg-input pl-7 pr-3 text-ui text-fg" />
           </div>
-          <div className="max-h-40 overflow-y-auto space-y-0.5 rounded-lg border p-1" style={{ borderColor: 'var(--theme-surface-border)' }}>
+          <div className="max-h-40 overflow-y-auto space-y-0.5 rounded-lg border p-1 border-border">
             {filteredUsers.map((user: any) => {
               const isSelected = selectedIds.includes(user.id)
               return (
-                <label key={user.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:opacity-80">
+                <label key={user.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-subtle">
                   <input type="checkbox" checked={isSelected} onChange={() => toggleUser(user.id)}
-                    className="rounded border-gray-300 text-[color:var(--theme-card-text)] w-3.5 h-3.5" />
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0"
-                    style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                    className="size-3.5 rounded-sm accent-[color:var(--theme-primary)]" />
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-2xs font-bold shrink-0 bg-subtle text-fg-muted">
                     {getInitials(user.display_name || user.email)}
                   </span>
                   <span className="text-xs flex-1 truncate">{user.display_name || user.email}</span>
-                  {isSelected && <span className="text-[9px]" style={{ color: 'var(--theme-primary-text)' }}>Selected</span>}
+                  {isSelected && <span className="text-2xs text-primary-text">Selected</span>}
                 </label>
               )
             })}
@@ -141,19 +130,18 @@ export function MultiAssigneePicker({
       )}
 
       {tab === 'team' && (
-        <div className="space-y-1 max-h-40 overflow-y-auto rounded-lg border p-1" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="space-y-1 max-h-40 overflow-y-auto rounded-lg border p-1 border-border">
           {teams?.map((team: any) => (
-            <button key={team.id} onClick={() => selectTeam(team.id)}
-              className={cn("flex items-center gap-2 w-full text-left px-2 py-2 rounded text-xs transition-colors",
-                selectedTeamId === team.id ? "" : "hover:opacity-80"
-              )}
-              style={{ backgroundColor: selectedTeamId === team.id ? 'var(--theme-primary-light)' : 'transparent' }}>
-              <Users size={12} style={{ color: selectedTeamId === team.id ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }} />
+            <button key={team.id} type="button" onClick={() => selectTeam(team.id)} aria-pressed={selectedTeamId === team.id}
+              className={cn("flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-ui transition-colors",
+                selectedTeamId === team.id ? "bg-primary-wash" : "hover:bg-subtle"
+              )}>
+              <Users size={12} className={selectedTeamId === team.id ? "text-primary-text" : "text-fg-muted"} />
               <span className="font-medium">{team.name}</span>
             </button>
           ))}
           {!teams?.length && (
-            <p className="text-xs py-2 text-center" style={{ color: 'var(--theme-muted-text)' }}>No teams created yet</p>
+            <p className="text-xs py-2 text-center text-fg-muted">No teams created yet</p>
           )}
         </div>
       )}
@@ -161,27 +149,19 @@ export function MultiAssigneePicker({
       {/* Assignment mode */}
       {(selectedIds.length > 1 || selectedTeamId) && (
         <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--theme-muted-text)' }}>
-            Assignment Mode
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">
+            Assignment mode
           </label>
-          <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <button onClick={() => onChangeMode('individual')}
-              className="flex-1 text-xs font-medium py-2 px-3 transition-colors text-left"
-              style={{
-                backgroundColor: effectiveMode === 'individual' ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: effectiveMode === 'individual' ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Assignment mode">
+            <button type="button" role="radio" aria-checked={effectiveMode === 'individual'} onClick={() => onChangeMode('individual')}
+              className={cn("rounded-md border px-3 py-2 text-left text-ui transition-colors", effectiveMode === 'individual' ? "border-primary bg-primary-wash text-fg" : "border-border text-fg hover:bg-subtle")}>
               <p className="font-semibold">Individual</p>
-              <p className="text-[9px] opacity-80 mt-0.5">Separate copy per person</p>
+              <p className="mt-0.5 text-xs text-fg-muted">Separate copy per person</p>
             </button>
-            <button onClick={() => onChangeMode('collaborative')}
-              className="flex-1 text-xs font-medium py-2 px-3 transition-colors text-left"
-              style={{
-                backgroundColor: effectiveMode === 'collaborative' ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: effectiveMode === 'collaborative' ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}>
+            <button type="button" role="radio" aria-checked={effectiveMode === 'collaborative'} onClick={() => onChangeMode('collaborative')}
+              className={cn("rounded-md border px-3 py-2 text-left text-ui transition-colors", effectiveMode === 'collaborative' ? "border-primary bg-primary-wash text-fg" : "border-border text-fg hover:bg-subtle")}>
               <p className="font-semibold">Collaborative</p>
-              <p className="text-[9px] opacity-80 mt-0.5">All work on same task</p>
+              <p className="mt-0.5 text-xs text-fg-muted">All work on same task</p>
             </button>
           </div>
         </div>

@@ -19,7 +19,7 @@
 
 import { CARD_SHADOWS, DEFAULT_COMPONENTS, THEMES, THEME_PRESETS, PLATFORM_DEFAULT_THEME_ID, themeToCSS, type Theme, type ThemeComponents } from '@/lib/themes'
 import { CHART_PALETTES } from '@/lib/report-sources'
-import { isDarkColor, withAlpha } from './colors'
+import { isDarkColor } from './colors'
 import { legiblePalette } from './legibility'
 import {
   WORKSPACE_THEME_SCHEMA_VERSION, WorkspaceThemeSchema,
@@ -59,11 +59,29 @@ export const DEFAULT_SHADOWS: WorkspaceTheme['shadows'] = {
   card: CARD_SHADOWS.sm,
 }
 
+/**
+ * Platform default families: Inter (UI), Fraunces (display, public brand
+ * moments only), JetBrains Mono (code). Before the UI foundations pass the
+ * defaults were DM Sans / Space Mono — LEGACY_DEFAULT_TYPOGRAPHY, which the
+ * stored-theme migration (supabase/migrations/20261221000000_theme_defaults_refresh.sql)
+ * recognises as "never customised".
+ */
+export const DEFAULT_TYPOGRAPHY = {
+  sans: { source: 'google', family: 'Inter' },
+  display: { source: 'google', family: 'Fraunces' },
+  mono: { source: 'google', family: 'JetBrains Mono' },
+} as const satisfies Record<'sans' | 'display' | 'mono', WorkspaceTheme['typography']['sans']>
+
+export const LEGACY_DEFAULT_TYPOGRAPHY = {
+  sans: { source: 'google', family: 'DM Sans' },
+  mono: { source: 'google', family: 'Space Mono' },
+} as const
+
 export const DEFAULT_CHART_COLORS: string[] = [...CHART_PALETTES[0].colors]
 export const DEFAULT_OVERLAY = 'rgba(0,0,0,0.5)'
 
 interface PresetExtras {
-  sidebar?: { gradient: Gradient; dots?: { color: string; size: number } }
+  sidebar?: { gradient: Gradient }
   glows?: [glow1: string, glow2: string, hoverBg: string, brandColor: string]
   decorations?: SidebarChrome['decorations']
   decorationColor?: string
@@ -77,8 +95,6 @@ interface PresetExtras {
 const g3 = (angle: number, a: string, b: string, c: string, mid = 50): Gradient => ({
   angle, stops: [{ color: a, at: 0 }, { color: b, at: mid }, { color: c, at: 100 }],
 })
-/** Legacy ::before dot overlay (hex colour at an opacity, 32px grid). */
-const dots = (hex: string, opacity: number) => ({ color: withAlpha(hex, opacity), size: 32 })
 
 const NAVY = g3(135, '#0F172A', '#1B2A4A', '#0F172A')
 const TEAL_LIGHT = g3(135, '#FFFFFF', '#F0FDFA', '#FFFFFF')
@@ -88,98 +104,93 @@ const MINIMAL_GLOWS: PresetExtras['glows'] = [NONE, NONE, 'rgba(255,255,255,0.06
 const TEAL_ROWS: [string, string] = ['rgba(20,184,166,0.08)', 'rgba(20,184,166,0.14)']
 const TEAL_ROWS_STRONG: [string, string] = ['rgba(20,184,166,0.10)', 'rgba(20,184,166,0.18)']
 const rows = (rgb: string): [string, string] => [`rgba(${rgb},0.08)`, `rgba(${rgb},0.14)`]
-const BRAND_CANVAS = { color: 'rgba(27,25,22,0.045)', size: 28 }
-
+// The brand trio (Gallery / Atelier / Noir) used to carry a sidebar gradient,
+// a dot texture on the sidebar and canvas, and Fraunces page titles. Since the
+// UI foundations pass (docs/design/ui-polish-spec.md §2.1, §4.1) they are solid
+// and calm: Inter headings, no textures. The schema still supports all three,
+// so a custom theme that sets them keeps them.
 export const PRESET_EXTRAS: Record<string, PresetExtras> = {
-  basecamp: {
-    sidebar: { gradient: g3(180, '#1B1815', '#161411', '#121110', 55), dots: { color: 'rgba(233,228,216,0.055)', size: 26 } },
-    canvasDots: BRAND_CANVAS, displayHeadings: true,
-  },
-  trailside: {
-    sidebar: { gradient: g3(180, '#322C24', '#2B261F', '#241F19', 55), dots: { color: 'rgba(233,224,206,0.06)', size: 26 } },
-    canvasDots: BRAND_CANVAS, displayHeadings: true,
-  },
+  basecamp: {},
+  trailside: {},
   'night-drive': {
-    sidebar: { gradient: g3(180, '#171512', '#121110', '#0E0D0C', 60), dots: { color: 'rgba(217,210,194,0.05)', size: 26 } },
-    canvasDots: { color: 'rgba(242,239,231,0.035)', size: 28 }, displayHeadings: true,
     rows: ['rgba(242,239,231,0.05)', 'rgba(242,239,231,0.10)'], status: NOIR_STATUS,
   },
-  default: { sidebar: { gradient: NAVY, dots: dots('#FFFFFF', 0.04) }, decorations: 'on', rows: TEAL_ROWS },
+  default: { sidebar: { gradient: NAVY }, decorations: 'on', rows: TEAL_ROWS },
   dawn: {
-    sidebar: { gradient: NAVY, dots: dots('#FFFFFF', 0.04) }, decorations: 'on', rows: TEAL_ROWS,
+    sidebar: { gradient: NAVY }, decorations: 'on', rows: TEAL_ROWS,
     glows: ['rgba(20,184,166,0.15)', 'rgba(99,102,241,0.08)', W08, '#FFFFFF'], decorationPreset: 'dawn',
   },
   nebula: {
-    sidebar: { gradient: NAVY, dots: dots('#FFFFFF', 0.04) }, decorations: 'on', rows: TEAL_ROWS_STRONG,
+    sidebar: { gradient: NAVY }, decorations: 'on', rows: TEAL_ROWS_STRONG,
     glows: ['rgba(20,184,166,0.15)', 'rgba(99,102,241,0.08)', W08, '#FFFFFF'], decorationPreset: 'nebula',
   },
   aurora: {
-    sidebar: { gradient: TEAL_LIGHT, dots: dots('#0F172A', 0.05) }, decorations: 'light', decorationColor: '#0D9488', rows: TEAL_ROWS,
+    sidebar: { gradient: TEAL_LIGHT }, decorations: 'light', decorationColor: '#0D9488', rows: TEAL_ROWS,
     glows: ['rgba(20,184,166,0.20)', 'rgba(13,148,136,0.10)', 'rgba(15,23,42,0.06)', '#0F172A'],
   },
   eclipse: {
-    sidebar: { gradient: TEAL_LIGHT, dots: dots('#0F172A', 0.05) }, decorations: 'light', decorationColor: '#0D9488', rows: TEAL_ROWS_STRONG,
+    sidebar: { gradient: TEAL_LIGHT }, decorations: 'light', decorationColor: '#0D9488', rows: TEAL_ROWS_STRONG,
     glows: ['rgba(20,184,166,0.20)', 'rgba(13,148,136,0.10)', 'rgba(15,23,42,0.06)', '#0F172A'],
   },
   ultraviolet: {
-    sidebar: { gradient: g3(135, '#13102B', '#241B4A', '#13102B'), dots: dots('#C4B5FD', 0.06) },
+    sidebar: { gradient: g3(135, '#13102B', '#241B4A', '#13102B') },
     glows: ['rgba(167,139,250,0.22)', 'rgba(232,121,249,0.12)', W08, '#FFFFFF'],
   },
   abyss: {
-    sidebar: { gradient: g3(160, '#020D1C', '#07305C', '#020D1C', 55), dots: dots('#67E8F9', 0.05) },
+    sidebar: { gradient: g3(160, '#020D1C', '#07305C', '#020D1C', 55) },
     glows: ['rgba(34,211,238,0.20)', 'rgba(56,189,248,0.10)', W08, '#FFFFFF'],
   },
   aurum: {
-    sidebar: { gradient: g3(135, '#141210', '#2A2118', '#141210'), dots: dots('#FACC15', 0.05) },
+    sidebar: { gradient: g3(135, '#141210', '#2A2118', '#141210') },
     glows: ['rgba(202,138,4,0.20)', 'rgba(250,204,21,0.08)', W08, '#FFFFFF'],
   },
   sakura: {
-    sidebar: { gradient: g3(150, '#2B0A1C', '#4A1230', '#2B0A1C'), dots: dots('#F9A8D4', 0.06) },
+    sidebar: { gradient: g3(150, '#2B0A1C', '#4A1230', '#2B0A1C') },
     glows: ['rgba(236,72,153,0.20)', 'rgba(190,24,93,0.10)', W08, '#FFFFFF'],
   },
   ember: {
-    sidebar: { gradient: g3(135, '#1C1917', '#2D1F1A', '#1C1917'), dots: dots('#FED7AA', 0.05) }, decorations: 'on',
+    sidebar: { gradient: g3(135, '#1C1917', '#2D1F1A', '#1C1917') }, decorations: 'on',
     glows: ['rgba(249,115,22,0.18)', 'rgba(234,88,12,0.10)', W08, '#FFFFFF'], rows: rows('249,115,22'),
   },
   'ember-minimal': { glows: MINIMAL_GLOWS, rows: rows('249,115,22') },
   'ember-dawn': {
-    sidebar: { gradient: g3(135, '#FFFFFF', '#FFF7ED', '#FFFFFF'), dots: dots('#7C2D12', 0.05) }, decorations: 'light', decorationColor: '#EA580C',
+    sidebar: { gradient: g3(135, '#FFFFFF', '#FFF7ED', '#FFFFFF') }, decorations: 'light', decorationColor: '#EA580C',
     glows: ['rgba(249,115,22,0.22)', 'rgba(234,88,12,0.12)', 'rgba(28,25,23,0.05)', '#1C1917'], rows: rows('249,115,22'),
   },
   sage: {
-    sidebar: { gradient: g3(135, '#0F1B17', '#152A21', '#0F1B17'), dots: dots('#A7F3D0', 0.05) }, decorations: 'on',
+    sidebar: { gradient: g3(135, '#0F1B17', '#152A21', '#0F1B17') }, decorations: 'on',
     glows: ['rgba(5,150,105,0.20)', 'rgba(4,120,87,0.10)', W08, '#FFFFFF'], rows: rows('5,150,105'),
   },
   'sage-minimal': { glows: MINIMAL_GLOWS, rows: rows('5,150,105') },
   'sage-dawn': {
-    sidebar: { gradient: g3(135, '#FFFFFF', '#ECFDF5', '#FFFFFF'), dots: dots('#065F46', 0.05) }, decorations: 'light', decorationColor: '#047857',
+    sidebar: { gradient: g3(135, '#FFFFFF', '#ECFDF5', '#FFFFFF') }, decorations: 'light', decorationColor: '#047857',
     glows: ['rgba(5,150,105,0.22)', 'rgba(4,120,87,0.12)', 'rgba(15,27,23,0.05)', '#0F1B17'], rows: rows('5,150,105'),
   },
   lagoon: {
-    sidebar: { gradient: g3(135, '#0B1724', '#0F2333', '#0B1724'), dots: dots('#5EEAD4', 0.05) }, decorations: 'on',
+    sidebar: { gradient: g3(135, '#0B1724', '#0F2333', '#0B1724') }, decorations: 'on',
     glows: ['rgba(13,148,136,0.22)', 'rgba(15,118,110,0.10)', W08, '#FFFFFF'], rows: rows('13,148,136'),
   },
   'lagoon-minimal': { glows: MINIMAL_GLOWS, rows: rows('13,148,136') },
   'lagoon-dawn': {
-    sidebar: { gradient: TEAL_LIGHT, dots: dots('#115E59', 0.05) }, decorations: 'light', decorationColor: '#0F766E',
+    sidebar: { gradient: TEAL_LIGHT }, decorations: 'light', decorationColor: '#0F766E',
     glows: ['rgba(13,148,136,0.22)', 'rgba(15,118,110,0.12)', 'rgba(11,23,36,0.05)', '#0B1724'], rows: rows('13,148,136'),
   },
   silver: {
-    sidebar: { gradient: g3(135, '#1E293B', '#2A3A52', '#1E293B'), dots: dots('#CBD5E1', 0.05) }, decorations: 'on',
+    sidebar: { gradient: g3(135, '#1E293B', '#2A3A52', '#1E293B') }, decorations: 'on',
     glows: ['rgba(148,163,184,0.18)', 'rgba(100,116,139,0.10)', W08, '#FFFFFF'], rows: rows('71,85,105'),
   },
   'silver-minimal': { glows: MINIMAL_GLOWS, rows: rows('71,85,105') },
   'silver-dawn': {
-    sidebar: { gradient: g3(135, '#FFFFFF', '#F1F5F9', '#FFFFFF'), dots: dots('#475569', 0.05) }, decorations: 'light', decorationColor: '#475569',
+    sidebar: { gradient: g3(135, '#FFFFFF', '#F1F5F9', '#FFFFFF') }, decorations: 'light', decorationColor: '#475569',
     glows: ['rgba(148,163,184,0.22)', 'rgba(71,85,105,0.12)', 'rgba(15,23,42,0.05)', '#0F172A'], rows: rows('71,85,105'),
   },
   onyx: {
-    sidebar: { gradient: g3(135, '#0A0A0A', '#18181B', '#0A0A0A'), dots: dots('#D4D4D8', 0.04) }, decorations: 'on',
+    sidebar: { gradient: g3(135, '#0A0A0A', '#18181B', '#0A0A0A') }, decorations: 'on',
     glows: ['rgba(212,212,216,0.14)', 'rgba(161,161,170,0.08)', W08, '#FFFFFF'], rows: rows('55,65,81'),
   },
   'onyx-minimal': { glows: MINIMAL_GLOWS, rows: rows('55,65,81') },
   'onyx-dawn': {
-    sidebar: { gradient: g3(135, '#FAFAFA', '#F4F4F5', '#FAFAFA'), dots: dots('#0A0A0A', 0.05) }, decorations: 'light', decorationColor: '#18181B',
+    sidebar: { gradient: g3(135, '#FAFAFA', '#F4F4F5', '#FAFAFA') }, decorations: 'light', decorationColor: '#18181B',
     glows: ['rgba(161,161,170,0.18)', 'rgba(113,113,122,0.10)', 'rgba(10,10,10,0.05)', '#0A0A0A'], rows: rows('55,65,81'),
   },
 }
@@ -191,12 +202,14 @@ const FONT_SCALE_PX: Record<string, number> = { sm: 15, base: 16, lg: 17 }
 
 function paletteFromLegacy(theme: Theme, dark: boolean, extras: PresetExtras): ThemePalette {
   const css = themeToCSS(theme, dark && Boolean(theme.dark))
+  const onPrimary = dark ? theme.dark?.onPrimary : undefined
   const status = extras.status ?? (isDarkColor(css['--theme-card-bg']) ? NOIR_STATUS : DEFAULT_STATUS)
   const [rowHighlight, rowHighlightStrong] = extras.rows ?? ROOT_ROWS
   return {
     primary: css['--theme-primary'],
     primaryHover: css['--theme-primary-hover'],
     primaryLight: css['--theme-primary-light'],
+    ...(onPrimary ? { onPrimary } : {}),
     accent: css['--theme-accent'],
     accentLight: css['--theme-accent-light'],
     sidebar: css['--theme-sidebar'],
@@ -226,12 +239,12 @@ function legacyToWorkspaceTheme(theme: Theme, extras: PresetExtras, basePreset?:
   const comp: ThemeComponents = { ...DEFAULT_COMPONENTS, ...(theme.components ?? {}) }
   const px = (v: string) => Math.min(9999, Math.max(0, parseInt(v, 10) || 0))
   const [glow1, glow2, hoverBg, brandColor] = extras.glows ?? ROOT_GLOWS
-  const sidebarDots = extras.sidebar?.dots
+  // Dot textures are no longer part of any built-in look (calm canvas, §4.1);
+  // the decorated presets keep their sidebar gradients.
   const chrome: WorkspaceTheme['chrome'] = {
     sidebar: {
-      style: extras.sidebar ? (sidebarDots ? 'texture' : 'gradient') : 'solid',
+      style: extras.sidebar ? 'gradient' : 'solid',
       ...(extras.sidebar ? { gradient: extras.sidebar.gradient } : {}),
-      ...(sidebarDots ? { texture: { pattern: 'dots' as const, color: sidebarDots.color, size: sidebarDots.size } } : {}),
       glow1, glow2, hoverBg, brandColor,
       decorations: extras.decorations ?? 'off',
       ...(extras.decorationColor ? { decorationColor: extras.decorationColor } : {}),
@@ -252,9 +265,9 @@ function legacyToWorkspaceTheme(theme: Theme, extras: PresetExtras, basePreset?:
       dark: legiblePalette(paletteFromLegacy(theme, true, extras), chrome),
     },
     typography: {
-      sans: { source: 'google', family: 'DM Sans' },
-      display: { source: 'google', family: 'Fraunces' },
-      mono: { source: 'google', family: 'Space Mono' },
+      sans: { ...DEFAULT_TYPOGRAPHY.sans },
+      display: { ...DEFAULT_TYPOGRAPHY.display },
+      mono: { ...DEFAULT_TYPOGRAPHY.mono },
       weights: { normal: 400, medium: 500, semibold: 600, bold: 700 },
       baseSize: FONT_SCALE_PX[comp.fontSize] ?? 16,
       headingFont: extras.displayHeadings ? 'display' : 'sans',
@@ -266,10 +279,10 @@ function legacyToWorkspaceTheme(theme: Theme, extras: PresetExtras, basePreset?:
       buttonRadius: px(comp.buttonRadius),
       inputRadius: px(comp.inputRadius),
       badgeRadius: 4,
-      dialogRadius: 16,
+      dialogRadius: Math.max(12, px(comp.borderRadius)),
     },
     shadows: { ...DEFAULT_SHADOWS, card: CARD_SHADOWS[comp.cardShadow] ?? CARD_SHADOWS.sm },
-    layout: { density: 'comfortable', sidebarWidth: px(comp.sidebarWidth) || 256, topbarHeight: 56 },
+    layout: { density: 'comfortable', sidebarWidth: px(comp.sidebarWidth) || 240, topbarHeight: 48 },
     chrome,
     branding: {},
   }

@@ -6,15 +6,12 @@ import {
   attachmentsCountKey, normalizeAttachmentsConfig, type AttachmentTypePreset, type AttachmentsConfig,
 } from '@/lib/forms/attachments'
 import type { DesignerField } from '@/lib/forms/designer-state'
+import { cn } from '@/lib/utils'
+import { designerInputClass as inputClass } from './designer-controls'
 
-const inputClass = 'h-8 w-full rounded-md border px-2 text-xs outline-none focus-visible:ring-2'
-const inputStyle: React.CSSProperties = {
-  borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-topbar)', color: 'var(--theme-topbar-text)',
-  ['--tw-ring-color' as string]: 'var(--theme-primary)',
-}
 
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
-  return <label htmlFor={htmlFor} className="mb-0.5 block text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{children}</label>
+  return <label htmlFor={htmlFor} className="mb-0.5 block text-2xs font-medium text-fg-muted">{children}</label>
 }
 
 function num(value: string): number | undefined {
@@ -47,27 +44,27 @@ export function AttachmentsProperties({ field, onPatch }: { field: DesignerField
   const problem = attachmentsConfigProblem(config)
 
   return (
-    <fieldset className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--theme-surface-border)' }} data-attachments-properties>
-      <legend className="pr-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Files</legend>
+    <fieldset className="space-y-2 border-t pt-3 border-border" data-attachments-properties>
+      <legend className="pr-2 text-2xs font-semibold text-fg-muted">Files</legend>
       <div className="grid grid-cols-2 gap-1">
         <div>
           <Label htmlFor={id('min')}>At least (files)</Label>
-          <input id={id('min')} type="number" min={0} max={ATTACHMENT_LIMITS.maxFiles} className={inputClass} style={inputStyle} placeholder={field.required ? '1' : '0'}
+          <input id={id('min')} type="number" min={0} max={ATTACHMENT_LIMITS.maxFiles} className={inputClass} placeholder={field.required ? '1' : '0'}
             value={config.min_files ?? ''} onChange={(e) => set({ min_files: num(e.target.value) }, `amin-${field._id}`)} />
         </div>
         <div>
           <Label htmlFor={id('max')}>At most (files)</Label>
-          <input id={id('max')} type="number" min={1} max={ATTACHMENT_LIMITS.maxFiles} className={inputClass} style={inputStyle} placeholder={String(ATTACHMENT_DEFAULTS.max_files)}
+          <input id={id('max')} type="number" min={1} max={ATTACHMENT_LIMITS.maxFiles} className={inputClass} placeholder={String(ATTACHMENT_DEFAULTS.max_files)}
             value={config.max_files ?? ''} onChange={(e) => set({ max_files: num(e.target.value) }, `amax-${field._id}`)} />
         </div>
         <div>
           <Label htmlFor={id('size')}>Max size per file (MB)</Label>
-          <input id={id('size')} type="number" min={0.1} step={0.5} max={ATTACHMENT_LIMITS.maxFileMb} className={inputClass} style={inputStyle} placeholder={String(ATTACHMENT_DEFAULTS.max_file_mb)}
+          <input id={id('size')} type="number" min={0.1} step={0.5} max={ATTACHMENT_LIMITS.maxFileMb} className={inputClass} placeholder={String(ATTACHMENT_DEFAULTS.max_file_mb)}
             value={config.max_file_mb ?? ''} onChange={(e) => set({ max_file_mb: num(e.target.value) }, `asize-${field._id}`)} />
         </div>
         <div>
           <Label htmlFor={id('total')}>Max total (MB)</Label>
-          <input id={id('total')} type="number" min={0.1} step={1} max={ATTACHMENT_LIMITS.maxTotalMb} className={inputClass} style={inputStyle} placeholder="files × size"
+          <input id={id('total')} type="number" min={0.1} step={1} max={ATTACHMENT_LIMITS.maxTotalMb} className={inputClass} placeholder="files × size"
             value={config.max_total_mb ?? ''} onChange={(e) => set({ max_total_mb: num(e.target.value) }, `atotal-${field._id}`)} />
         </div>
       </div>
@@ -78,10 +75,8 @@ export function AttachmentsProperties({ field, onPatch }: { field: DesignerField
             const on = types.includes(preset)
             return (
               <button key={preset} type="button" role="checkbox" aria-checked={on} onClick={() => toggleType(preset)}
-                className="rounded-full border px-2.5 py-1 text-[10px] font-medium"
-                style={on
-                  ? { backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }
-                  : { borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+                className={cn('rounded-full border px-2.5 py-1 text-2xs font-medium', on ? 'border-primary' : 'border-border', on ? 'bg-primary-wash' : '', on ? 'text-primary-text' : 'text-fg')}
+               >
                 {ATTACHMENT_TYPE_PRESET_LABELS[preset]}
               </button>
             )
@@ -90,7 +85,7 @@ export function AttachmentsProperties({ field, onPatch }: { field: DesignerField
       </div>
       <div>
         <Label htmlFor={id('custom')}>Also allow (extensions or MIME types)</Label>
-        <input id={id('custom')} className={`${inputClass} font-mono`} style={inputStyle} placeholder=".dwg, application/zip, image/*" value={customText}
+        <input id={id('custom')} className={`${inputClass} font-mono`} placeholder=".dwg, application/zip, image/*" value={customText}
           onChange={(e) => setCustomText(e.target.value)}
           onBlur={() => {
             const normalized = normalizeAttachmentsConfig({ custom_types: customText.split(/[\s,;]+/) }).custom_types
@@ -99,13 +94,13 @@ export function AttachmentsProperties({ field, onPatch }: { field: DesignerField
           }} />
       </div>
       {allowsImages(config) && (
-        <label className="flex items-center gap-1.5 text-[11px]">
-          <input type="checkbox" checked={config.camera === true} onChange={(e) => set({ camera: e.target.checked || undefined })} style={{ accentColor: 'var(--theme-primary)' }} />
+        <label className="flex items-center gap-1.5 text-2xs">
+          <input className="accent-primary" type="checkbox" checked={config.camera === true} onChange={(e) => set({ camera: e.target.checked || undefined })} />
           Offer the camera on phones
         </label>
       )}
-      <p className="text-[10px]" style={{ color: problem ? 'var(--status-blocked)' : 'var(--theme-muted-text)' }}>
-        {problem ?? <>Programs, scripts and web pages are always refused; content is checked on upload. Downstream: a list of files, and <code style={{ color: 'var(--theme-primary-text)' }}>{`{{task_data.${attachmentsCountKey(field.key)}}}`}</code>.</>}
+      <p className={cn('text-2xs', problem ? 'text-danger' : 'text-fg-muted')}>
+        {problem ?? <>Programs, scripts and web pages are always refused; content is checked on upload. Downstream: a list of files, and <code className="text-primary-text">{`{{task_data.${attachmentsCountKey(field.key)}}}`}</code>.</>}
       </p>
     </fieldset>
   )

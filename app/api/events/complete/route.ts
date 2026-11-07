@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient()
 
+  // An agent step's event resumes when the agent finishes.
+  const { isAgentManagedEvent, AGENT_EVENT_MESSAGE } = await import("@/lib/agents/approval")
+  if (isAgentManagedEvent(String(event_id))) return NextResponse.json({ error: AGENT_EVENT_MESSAGE }, { status: 409 })
+  const { isMediaManagedEvent, MEDIA_EVENT_MESSAGE } = await import("@/lib/media/jobs")
+  if (isMediaManagedEvent(String(event_id))) return NextResponse.json({ error: MEDIA_EVENT_MESSAGE }, { status: 409 })
+  const { isEsignManagedEvent, ESIGN_EVENT_MESSAGE } = await import("@/lib/esign/waits")
+  if (isEsignManagedEvent(String(event_id))) return NextResponse.json({ error: ESIGN_EVENT_MESSAGE }, { status: 409 })
+
   // A user task's event completes through the task (assignee rule).
   if (tenantScope) {
     const userTaskId = await findOpenWorkflowTaskForEvent(supabase, tenantScope, String(event_id))

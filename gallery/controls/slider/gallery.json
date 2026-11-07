@@ -1,0 +1,28 @@
+{
+  "id": "1c8ea46a-8ac9-46e4-8ab4-89f868755c3c",
+  "asset_id": "54607252-eb7f-4f16-a253-eb4e15bb09fe",
+  "slug": "slider",
+  "title": "Slider",
+  "kind": "input",
+  "summary": "A range slider for numbers with a value bubble, mark labels such as Low, Medium and High, a unit or currency prefix and an optional exact-entry box.",
+  "description": "A slider for any number that sits on a scale: a confidence or risk score from 0 to 100, a budget from $0 to $5,000, a discount percentage, a priority from 1 to 10. Set the minimum, maximum and step, add a prefix ($) or suffix (%, kg), and spread labels such as Low, Medium and High under the track. A small number box beside the slider lets people type an exact value when dragging is too coarse.\n\nIt is a native range input underneath, so keyboards and screen readers work as people expect: the arrow keys move one step, Page Up and Page Down move further, Home and End jump to the ends, and the value is announced with its unit and mark (\"100%, High\"). The thumb and track are large enough for touch.\n\nA starting position can be shown without storing it: the field stays empty (and a Required field stays unanswered) until the person moves the slider or presses Enter to accept the start, so you can tell a deliberate answer from an untouched default.",
+  "icon": "sliders",
+  "tags": ["slider", "range", "number", "score", "percentage", "budget"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: min, max can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: a number." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Confidence or risk score from 0 to 100 on an assessment",
+    "Budget or spend limit from $0 to $5,000 on a request form",
+    "Discount or completion percentage on an approval step"
+  ],
+  "setup": [
+    "Install the package: the control appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Slider onto a form, then set the minimum, maximum and step, the prefix or suffix, and (optionally) the mark labels and starting position in the properties panel."
+  ],
+  "preview": {
+    "props": { "min": 0, "max": 100, "step": 5, "value_suffix": "%", "marks": ["Low", "Medium", "High"], "show_input": true, "default_value": 50 },
+    "value": 70,
+    "label": "How confident are you?",
+    "height": 90
+  }
+}

@@ -2,34 +2,62 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
-import { Bell, Check, CheckCheck, Square, CheckSquare, Trash2, MailOpen, Mail } from "lucide-react"
+import {
+  AlarmClock, Bell, BellOff, CheckCheck, CheckCircle2, ClipboardList, Mail, MailOpen, Package, Square, CheckSquare, Trash2, TriangleAlert,
+  TrendingUp, UsersRound, type LucideIcon,
+} from "lucide-react"
 import { useNotifications } from "@/hooks/use-notifications"
 import { deleteNotifications, markAllNotificationsRead, setNotificationsRead } from "@/app/actions/notifications"
 import { useQueryClient } from "@tanstack/react-query"
-import { formatRelativeDate, cn } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+import { formatAbsolute, formatRelative, toDate } from "@/lib/format/date"
+import { plural } from "@/lib/format/plural"
 import { useRouter } from "next/navigation"
 import { InlineNotice } from "@/components/ui/inline-notice"
+import { IconButton } from "@/components/ui/icon-button"
+import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Tooltip } from "@/components/ui/tooltip"
+import { floatingSurfaceClass } from "@/components/ui/dropdown-menu"
 import { OPEN_JOBS_PANEL_EVENT } from "@/components/jobs/jobs-provider"
 
-const typeIcons: Record<string, string> = {
-  task_assigned: "📋",
-  task_completed: "✅",
-  task_due_soon: "⏰",
-  task_escalated: "🔺",
-  team_invite: "👥",
-  job_succeeded: "📦",
-  job_failed: "⚠️",
+/** The fields of a notification row this panel reads. */
+interface Note { id: string; type: string; title: string; body?: string | null; is_read: boolean; created_at: string; task_id?: string | null; job_id?: string | null }
+
+const TYPE_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
+  task_assigned: { icon: ClipboardList, className: "text-fg-muted" },
+  task_completed: { icon: CheckCircle2, className: "text-success" },
+  task_due_soon: { icon: AlarmClock, className: "text-warning" },
+  task_escalated: { icon: TrendingUp, className: "text-danger" },
+  team_invite: { icon: UsersRound, className: "text-fg-muted" },
+  job_succeeded: { icon: Package, className: "text-success" },
+  job_failed: { icon: TriangleAlert, className: "text-danger" },
 }
 
 /**
  * Resolve a notification to its navigation target. Tasks link to the
  * task detail; everything else has no navigation and stays as a plain item.
  */
-function resolveHref(n: any): string | null {
+function resolveHref(n: Note): string | null {
   if (n.task_id) return `/tasks/${n.task_id}`
   return null
 }
 
+/** "Today" / "Earlier" groups (newest first, as listed). */
+export function groupNotificationsByDay<T extends { created_at: string }>(items: readonly T[], now = new Date()): Array<{ label: string; items: T[] }> {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  const today: T[] = []
+  const earlier: T[] = []
+  for (const n of items) (new Date(n.created_at) >= start ? today : earlier).push(n)
+  return [{ label: "Today", items: today }, { label: "Earlier", items: earlier }].filter((g) => g.items.length > 0)
+}
+
+/**
+ * The notifications bell (docs/design/ui-polish-spec.md §4.2): an IconButton
+ * with a dot for unread (no red "9+" bubble) and a 400px panel grouped into
+ * Today / Earlier. Select mode for bulk read / unread / delete.
+ */
 export function NotificationBell() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -39,25 +67,22 @@ export function NotificationBell() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [actionError, setActionError] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { data: notifications, unreadCount } = useNotifications()
   const queryClient = useQueryClient()
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- portal target exists after mount
   useEffect(() => { setMounted(true) }, [])
 
-  // Compute the dropdown's fixed position from the trigger button's
-  // bounding rect. Using fixed + portal so the dropdown escapes the
-  // dashboard shell's overflow-hidden clipping — previously it would
-  // render "under" the first dashboard metric card because the flex
-  // column it lived in clipped anything extending past its bottom.
+  // Fixed + portal so the panel escapes the shell's overflow clipping.
   useLayoutEffect(() => {
     if (!open || !ref.current) return
     function updatePosition() {
       const rect = ref.current!.getBoundingClientRect()
-      setPosition({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      })
+      // Keep the whole panel on screen: on phones it spans the width less 8px each side.
+      const width = Math.min(400, window.innerWidth - 16)
+      setPosition({ top: rect.bottom + 8, right: Math.max(8, Math.min(window.innerWidth - rect.right, window.innerWidth - width - 8)) })
     }
     updatePosition()
     window.addEventListener('resize', updatePosition)
@@ -69,22 +94,28 @@ export function NotificationBell() {
   }, [open])
 
   useEffect(() => {
+    if (!open) return
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node
-      if (
-        ref.current && !ref.current.contains(target) &&
-        dropdownRef.current && !dropdownRef.current.contains(target)
-      ) {
-        setOpen(false)
-      }
+      if (ref.current && !ref.current.contains(target) && dropdownRef.current && !dropdownRef.current.contains(target)) setOpen(false)
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setOpen(false); triggerRef.current?.focus() }
     }
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    document.addEventListener("keydown", handleKey)
+    // Focus moves into the panel so the keyboard can reach its actions.
+    dropdownRef.current?.focus({ preventScroll: true })
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleKey)
+    }
+  }, [open])
 
-  // Reset selection state when the dropdown closes so next open starts fresh.
+  // Reset selection state when the panel closes so next open starts fresh.
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on close
       setSelectionMode(false)
       setSelectedIds(new Set())
       setActionError(null)
@@ -93,8 +124,7 @@ export function NotificationBell() {
 
   async function markAsRead(ids: string[]) {
     if (ids.length === 0) return
-    // One server action for read and unread (mark_notifications_read only
-    // covers read), limited to the user's own notifications.
+    // One server action for read and unread, limited to the user's own notifications.
     const result = await setNotificationsRead(ids, true)
     setActionError(result.ok ? null : `Could not mark as read: ${result.error}`)
     queryClient.invalidateQueries({ queryKey: ["notifications"] })
@@ -109,7 +139,7 @@ export function NotificationBell() {
 
   async function deleteSelected() {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} notification${selectedIds.size !== 1 ? 's' : ''}?`)) return
+    if (!confirm(`Delete ${plural(selectedIds.size, 'notification')}?`)) return
     const ids = [...selectedIds]
     // RLS filters a delete silently (0 rows, no error), so the action returns
     // the deleted ids — a short list is a failure too.
@@ -136,7 +166,7 @@ export function NotificationBell() {
   }
 
   async function markAllRead() {
-    if (!(notifications ?? []).some((n: any) => !n.is_read)) return
+    if (!((notifications ?? []) as Note[]).some((n: Note) => !n.is_read)) return
     // Every unread notification of the user, not only the 30 listed.
     const result = await markAllNotificationsRead()
     setActionError(result.ok ? null : `Could not mark as read: ${result.error}`)
@@ -152,39 +182,19 @@ export function NotificationBell() {
     })
   }
 
-  function selectAll() {
-    setSelectedIds(new Set((notifications ?? []).map((n: any) => n.id)))
-  }
-
-  function clearSelection() {
-    setSelectedIds(new Set())
-  }
-
-  // Derived counts for the bulk-action bar
   const allSelected = useMemo(
     () => (notifications?.length ?? 0) > 0 && selectedIds.size === notifications?.length,
     [notifications, selectedIds],
   )
-  const selectedHasRead = useMemo(
-    () => (notifications ?? []).some((n: any) => selectedIds.has(n.id) && n.is_read),
-    [notifications, selectedIds],
-  )
-  const selectedHasUnread = useMemo(
-    () => (notifications ?? []).some((n: any) => selectedIds.has(n.id) && !n.is_read),
-    [notifications, selectedIds],
-  )
+  const selectedHasRead = useMemo(() => ((notifications ?? []) as Note[]).some((n: Note) => selectedIds.has(n.id) && n.is_read), [notifications, selectedIds])
+  const selectedHasUnread = useMemo(() => ((notifications ?? []) as Note[]).some((n: Note) => selectedIds.has(n.id) && !n.is_read), [notifications, selectedIds])
+  const groups = useMemo(() => groupNotificationsByDay((notifications ?? []) as Note[]), [notifications])
 
-  // When a notification row is clicked in NORMAL mode (not selection
-  // mode), we mark it read and navigate. In selection mode, the click
-  // instead toggles selection — matches email-app conventions.
-  function handleRowClick(n: any) {
-    if (selectionMode) {
-      toggleSelect(n.id)
-      return
-    }
+  // Normal mode: a row click marks it read and opens it. Selection mode: toggles.
+  function handleRowClick(n: Note) {
+    if (selectionMode) { toggleSelect(n.id); return }
     if (!n.is_read) markAsRead([n.id])
-    // Background job results (exports, imports, bulk actions): the Jobs panel
-    // has the download / retry.
+    // Background job results (exports, imports, bulk actions): the Jobs panel has the download / retry.
     if (n.job_id) {
       window.dispatchEvent(new Event(OPEN_JOBS_PANEL_EVENT))
       setOpen(false)
@@ -197,230 +207,133 @@ export function NotificationBell() {
     }
   }
 
+  const label = unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
+
   return (
     <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="relative rounded-lg p-2 transition-colors hover:opacity-80"
-        style={{ color: "var(--theme-topbar-text)" }}
-      >
-        <Bell size={18} />
-        {unreadCount > 0 && (
-          <span
-            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-[color:var(--theme-on-danger)]"
-            style={{ backgroundColor: "var(--theme-danger)" }}
-          >
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
+      <Tooltip content="Notifications" enabled={!open}>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-label={label}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          className="relative inline-flex size-[max(2rem,var(--ds-touch-min))] items-center justify-center rounded-md text-fg-muted transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle hover:text-fg aria-expanded:bg-subtle aria-expanded:text-fg"
+          data-notifications-trigger
+        >
+          <Bell className="size-4" aria-hidden />
+          {unreadCount > 0 && (
+            <span aria-hidden className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-[color:var(--theme-topbar)]" data-unread-dot />
+          )}
+        </button>
+      </Tooltip>
 
       {open && mounted && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed w-[min(24rem,calc(100vw-1rem))] rounded-xl border shadow-xl overflow-hidden"
-          style={{
-            top: `${position.top}px`,
-            right: `${position.right}px`,
-            zIndex: 1000,
-            backgroundColor: "var(--theme-card-bg)",
-            borderColor: "var(--theme-surface-border)",
-          }}
+          role="dialog"
+          aria-label="Notifications"
+          tabIndex={-1}
+          className={cn("ds-pop fixed z-[1000] flex max-h-[min(560px,calc(100dvh-80px))] max-sm:max-h-[calc(100dvh-var(--theme-topbar-height)-5rem-env(safe-area-inset-bottom))] w-[min(400px,calc(100vw-16px))] flex-col overflow-hidden outline-none", floatingSurfaceClass)}
+          style={{ top: position.top, right: position.right }}
+          data-state="open"
         >
-          {/* Header */}
-          <div
-            className="flex items-center justify-between border-b px-4 py-3"
-            style={{ borderColor: "var(--theme-surface-border)" }}
-          >
-            <h3 className="text-sm font-semibold" style={{ color: "var(--theme-card-text)" }}>
-              Notifications
-              {unreadCount > 0 && (
-                <span
-                  className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                  style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </h3>
-            <div className="flex items-center gap-2">
-              {!selectionMode && unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
-                  style={{ color: "var(--theme-primary-text)" }}
-                  title="Mark all as read"
-                >
-                  <CheckCheck size={12} />
-                  Mark all read
-                </button>
-              )}
-              {(notifications?.length ?? 0) > 0 && (
-                <button
-                  onClick={() => {
-                    setSelectionMode(v => !v)
-                    setSelectedIds(new Set())
-                  }}
-                  className="text-[11px] font-medium transition-colors hover:opacity-80"
-                  style={{ color: selectionMode ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-                  title={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
-                >
-                  {selectionMode ? 'Done' : 'Select'}
-                </button>
-              )}
-            </div>
+          <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border-subtle pl-4 pr-2">
+            <h2 className="flex-1 text-sm font-semibold text-fg">Notifications</h2>
+            {!selectionMode && unreadCount > 0 && (
+              <Button variant="ghost" size="sm" leadingIcon={<CheckCheck />} onClick={markAllRead}>Mark all read</Button>
+            )}
+            {(notifications?.length ?? 0) > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => { setSelectionMode(v => !v); setSelectedIds(new Set()) }} aria-pressed={selectionMode}>
+                {selectionMode ? "Done" : "Select"}
+              </Button>
+            )}
           </div>
 
-          {/* Bulk action bar — only rendered in selection mode */}
           {selectionMode && (
-            <div
-              className="flex items-center justify-between border-b px-4 py-2 gap-2 flex-wrap"
-              style={{ borderColor: "var(--theme-surface-border)", backgroundColor: 'var(--theme-surface)' }}
-            >
-              <button
-                onClick={allSelected ? clearSelection : selectAll}
-                className="flex items-center gap-1.5 text-[11px] font-medium hover:opacity-80"
-                style={{ color: 'var(--theme-card-text)' }}
-              >
-                {allSelected ? <CheckSquare size={12} /> : <Square size={12} />}
-                {allSelected ? 'Clear all' : 'Select all'}
-              </button>
-              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                {selectedIds.size} selected
-              </span>
-              <div className="flex items-center gap-1 ml-auto">
-                {selectedHasUnread && (
-                  <button
-                    onClick={() => markAsRead([...selectedIds])}
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-medium hover:opacity-80"
-                    style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
-                    title="Mark selected as read"
-                  >
-                    <MailOpen size={10} /> Read
-                  </button>
-                )}
-                {selectedHasRead && (
-                  <button
-                    onClick={() => markAsUnread([...selectedIds])}
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-medium hover:opacity-80"
-                    style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)', border: '1px solid var(--theme-surface-border)' }}
-                    title="Mark selected as unread"
-                  >
-                    <Mail size={10} /> Unread
-                  </button>
-                )}
-                {selectedIds.size > 0 && (
-                  <button
-                    onClick={deleteSelected}
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-medium hover:opacity-80"
-                    style={{ backgroundColor: 'var(--status-error-bg)', color: 'var(--status-error)' }}
-                    title="Delete selected"
-                  >
-                    <Trash2 size={10} /> Delete
-                  </button>
-                )}
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle bg-subtle px-3 py-1.5">
+              <Button variant="ghost" size="sm" leadingIcon={allSelected ? <CheckSquare /> : <Square />}
+                onClick={allSelected ? () => setSelectedIds(new Set()) : () => setSelectedIds(new Set(((notifications ?? []) as Note[]).map((n: Note) => n.id)))}>
+                {allSelected ? "Clear all" : "Select all"}
+              </Button>
+              <span className="num text-xs text-fg-muted">{selectedIds.size} selected</span>
+              <div className="ml-auto flex items-center gap-1">
+                {selectedHasUnread && <IconButton size="sm" label="Mark selected as read" icon={<MailOpen />} onClick={() => markAsRead([...selectedIds])} />}
+                {selectedHasRead && <IconButton size="sm" label="Mark selected as unread" icon={<Mail />} onClick={() => markAsUnread([...selectedIds])} />}
+                {selectedIds.size > 0 && <IconButton size="sm" variant="danger-ghost" label="Delete selected" icon={<Trash2 />} onClick={deleteSelected} />}
               </div>
             </div>
           )}
 
           {actionError && (
-            <InlineNotice
-              tone="error"
-              message={actionError}
-              onDismiss={() => setActionError(null)}
-              className="m-2"
-            />
+            <InlineNotice tone="danger" message={actionError} onDismiss={() => setActionError(null)} className="m-2" />
           )}
 
-          {/* List */}
-          <div className="max-h-[480px] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
             {!notifications?.length ? (
-              <p
-                className="px-4 py-8 text-center text-sm"
-                style={{ color: "var(--theme-muted-text)" }}
-              >
-                No notifications yet
-              </p>
-            ) : (
-              notifications.map((n: any) => {
-                const isSelected = selectedIds.has(n.id)
-                return (
-                  <div
-                    key={n.id}
-                    className={cn(
-                      "flex gap-3 px-4 py-3 transition-colors cursor-pointer border-b",
-                      "hover:bg-[var(--theme-row-highlight)]",
-                    )}
-                    style={{
-                      backgroundColor: isSelected
-                        ? 'var(--theme-primary-light)'
-                        : n.is_read
-                          ? undefined
-                          : "color-mix(in srgb, var(--theme-primary) 6%, transparent)",
-                      borderColor: 'var(--theme-surface-border)',
-                    }}
-                    onClick={() => handleRowClick(n)}
-                  >
-                    {/* Selection checkbox — only rendered in selection mode */}
-                    {selectionMode && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleSelect(n.id) }}
-                        className="shrink-0 mt-0.5"
-                        style={{ color: isSelected ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
+              <EmptyState size="sm" icon={BellOff} title="You're all caught up" description="Task assignments, due dates and finished jobs show up here." />
+            ) : groups.map((group) => (
+              <section key={group.label} aria-label={group.label}>
+                <h3 className="sticky top-0 z-[1] bg-elevated px-4 pb-1 pt-3 text-2xs font-medium text-fg-muted">{group.label}</h3>
+                <ul>
+                  {group.items.map((n) => {
+                    const isSelected = selectedIds.has(n.id)
+                    const type = TYPE_ICONS[n.type] ?? { icon: Bell, className: "text-fg-muted" }
+                    const Icon = type.icon
+                    const created = toDate(n.created_at)
+                    return (
+                      <li
+                        key={n.id}
+                        className={cn(
+                          "group/note relative flex cursor-pointer gap-3 px-4 py-2.5 transition-colors hover:bg-subtle",
+                          isSelected && "bg-primary-wash hover:bg-primary-wash",
+                        )}
+                        onClick={() => handleRowClick(n)}
+                        data-unread={!n.is_read || undefined}
                       >
-                        {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
-                      </button>
-                    )}
-                    <span className="text-base shrink-0 mt-0.5">
-                      {typeIcons[n.type] ?? "📌"}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-sm font-medium truncate"
-                        style={{ color: "var(--theme-card-text)" }}
-                      >
-                        {n.title}
-                      </p>
-                      {n.body && (
-                        <p
-                          className="text-xs mt-0.5 truncate"
-                          style={{ color: "var(--theme-muted-text)" }}
-                        >
-                          {n.body}
-                        </p>
-                      )}
-                      <p
-                        className="text-[10px] mt-1"
-                        style={{ color: "var(--theme-muted-text)" }}
-                      >
-                        {formatRelativeDate(n.created_at)}
-                      </p>
-                    </div>
-                    {!n.is_read && !selectionMode && (
-                      <span
-                        className="mt-1.5 h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: "var(--theme-primary)" }}
-                      />
-                    )}
-                    {/* Per-row quick toggle for mark-read / mark-unread */}
-                    {!selectionMode && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (n.is_read) markAsUnread([n.id])
-                          else markAsRead([n.id])
-                        }}
-                        className="p-1 rounded hover:bg-[var(--theme-surface)] shrink-0 opacity-40 hover:opacity-100 transition-opacity"
-                        style={{ color: 'var(--theme-muted-text)' }}
-                        title={n.is_read ? 'Mark as unread' : 'Mark as read'}
-                      >
-                        {n.is_read ? <Mail size={11} /> : <MailOpen size={11} />}
-                      </button>
-                    )}
-                  </div>
-                )
-              })
-            )}
+                        {selectionMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(n.id) }}
+                            className={cn("mt-0.5 shrink-0", isSelected ? "text-primary-text" : "text-fg-muted")}
+                            aria-label={isSelected ? `Deselect ${n.title}` : `Select ${n.title}`}
+                            aria-pressed={isSelected}
+                          >
+                            {isSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
+                          </button>
+                        )}
+                        <Icon className={cn("mt-0.5 size-4 shrink-0", type.className)} aria-hidden />
+                        <div className="min-w-0 flex-1">
+                          {/* The row is clickable; this button is its keyboard / screen-reader way in. */}
+                          <button type="button" className="block w-full truncate text-left text-ui font-medium text-fg" onClick={(e) => { e.stopPropagation(); handleRowClick(n) }}>
+                            {n.title}
+                          </button>
+                          {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{n.body}</p>}
+                          {created && (
+                            <Tooltip content={formatAbsolute(created)}>
+                              <time dateTime={created.toISOString()} className="mt-1 block w-fit text-xs text-fg-subtle">{formatRelative(created)}</time>
+                            </Tooltip>
+                          )}
+                        </div>
+                        {!selectionMode && (
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            {!n.is_read && <span className="mt-1.5 size-2 rounded-full bg-primary" aria-label="Unread" />}
+                            <IconButton
+                              size="sm"
+                              label={n.is_read ? "Mark as unread" : "Mark as read"}
+                              icon={n.is_read ? <Mail /> : <MailOpen />}
+                              onClick={(e) => { e.stopPropagation(); if (n.is_read) markAsUnread([n.id]); else markAsRead([n.id]) }}
+                              className="opacity-0 focus-visible:opacity-100 group-hover/note:opacity-100 pointer-coarse:opacity-100"
+                            />
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            ))}
           </div>
         </div>,
         document.body

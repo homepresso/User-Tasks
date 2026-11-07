@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-type ReviewTargetType = 'data_table' | 'data_row' | 'role'
+type ReviewTargetType = 'data_table' | 'data_row' | 'role' | 'form'
 
 export interface DueRetentionReview {
   tenant_id: string
@@ -28,6 +28,9 @@ export interface DueRetentionExecution {
   applied_at?: string | null
   created_at?: string | null
 }
+
+/** A form's retention policy (PostgREST embed). */
+const FORM_POLICY = 'retention_policy:retention_policies(id, name, policy_mode, duration_value, duration_unit, exact_date)'
 
 function addInterval(baseAt: Date, value: number, unit: 'days' | 'months' | 'years') {
   const dueAt = new Date(baseAt)
@@ -77,7 +80,7 @@ export async function listDueRetentionReviews(supabase: SupabaseClient, tenantId
 
   const tenantFilter = tenantId ? { tenant_id: tenantId } : null
 
-  const [tables, rows, roles] = await Promise.all([
+  const [tables, rows, roles, forms] = await Promise.all([
     (supabase as any)
       .from('custom_tables')
       .select('id, tenant_id, name, created_at, retention_applied_at, retention_policy:retention_policies(id, name, policy_mode, duration_value, duration_unit, exact_date)')
@@ -91,6 +94,11 @@ export async function listDueRetentionReviews(supabase: SupabaseClient, tenantId
     (supabase as any)
       .from('roles')
       .select('id, tenant_id, name, created_at, retention_applied_at, retention_policy:retention_policies(id, name, policy_mode, duration_value, duration_unit, exact_date)')
+      .not('retention_policy_id', 'is', null)
+      .match(tenantFilter ?? {}),
+    (supabase as any)
+      .from('forms')
+      .select(`id, tenant_id, name, created_at, retention_applied_at, ${FORM_POLICY}`)
       .not('retention_policy_id', 'is', null)
       .match(tenantFilter ?? {}),
   ])
@@ -125,7 +133,71 @@ export async function listDueRetentionReviews(supabase: SupabaseClient, tenantId
     append('data_row', record, rowName)
   }
   for (const record of (roles.data ?? [])) append('role', record, record.name || `Role ${record.id}`)
+  // A form's review is of the form and its submissions, due from when the policy was applied.
+  for (const record of (forms.data ?? [])) append('form', { ...record, created_at: record.retention_applied_at ?? record.created_at }, record.name || `Form ${record.id}`)
 
+  return due
+}
+
+/**
+ * A form whose retention policy purges submissions: every submission created
+ * before `cutoff` is due. purge_on: the policy's duration back from today
+ * (each submission ages on its own); purge_on_exact_date: once the date has
+ * come, everything submitted before it.
+ */
+export interface DueFormSubmissionPurge {
+  tenant_id: string
+  form_id: string
+  form_name: string
+  retention_policy_id: string
+  retention_policy_name: string
+  policy_mode: 'purge_on' | 'purge_on_exact_date'
+  /** ISO timestamp: submissions created before it are purged. */
+  cutoff: string
+  /** The form is on legal hold: listed so the job can report it, never purged. */
+  legal_hold: boolean
+}
+
+/** `now` minus the interval, in UTC (the server's time zone and DST never shift the cut-off). */
+function subtractInterval(now: Date, value: number, unit: 'days' | 'months' | 'years') {
+  const at = new Date(now)
+  if (unit === 'days') at.setUTCDate(at.getUTCDate() - value)
+  else if (unit === 'months') at.setUTCMonth(at.getUTCMonth() - value)
+  else at.setUTCFullYear(at.getUTCFullYear() - value)
+  return at
+}
+
+export function formSubmissionCutoff(policy: any, now = new Date()): string | null {
+  if (policy?.policy_mode === 'purge_on_exact_date') {
+    const exact = String(policy?.exact_date ?? '').trim()
+    if (!exact) return null
+    const at = new Date(exact)
+    if (Number.isNaN(at.getTime()) || !sameOrPastDay(isoDay(at), now)) return null
+    return at.toISOString()
+  }
+  if (policy?.policy_mode !== 'purge_on' || !policy?.duration_value || !policy?.duration_unit) return null
+  return subtractInterval(now, Number(policy.duration_value), policy.duration_unit).toISOString()
+}
+
+export async function listDueFormSubmissionPurges(supabase: SupabaseClient, tenantId?: string, now = new Date()): Promise<DueFormSubmissionPurge[]> {
+  const { data, error } = await (supabase as any)
+    .from('forms')
+    .select(`id, tenant_id, name, legal_hold, ${FORM_POLICY}`)
+    .not('retention_policy_id', 'is', null)
+    .match(tenantId ? { tenant_id: tenantId } : {})
+  if (error) throw new Error(`Could not list forms under retention: ${error.message}`)
+  const due: DueFormSubmissionPurge[] = []
+  for (const form of (data ?? []) as any[]) {
+    const policy = form.retention_policy
+    if (!policy || !['purge_on', 'purge_on_exact_date'].includes(String(policy.policy_mode ?? ''))) continue
+    const cutoff = formSubmissionCutoff(policy, now)
+    if (!cutoff) continue
+    due.push({
+      tenant_id: form.tenant_id, form_id: form.id, form_name: form.name || `Form ${form.id}`,
+      retention_policy_id: policy.id, retention_policy_name: policy.name, policy_mode: policy.policy_mode,
+      cutoff, legal_hold: Boolean(form.legal_hold),
+    })
+  }
   return due
 }
 
@@ -208,7 +280,7 @@ export async function ensureRetentionReviewEvent(supabase: SupabaseClient, revie
   return data
 }
 
-export async function createRetentionExecutionEvent(supabase: SupabaseClient, execution: DueRetentionExecution) {
+export async function createRetentionExecutionEvent(supabase: SupabaseClient, execution: DueRetentionExecution, extra: Record<string, unknown> = {}) {
   const { data, error } = await (supabase as any)
     .from('retention_execution_events')
     .insert({
@@ -226,6 +298,7 @@ export async function createRetentionExecutionEvent(supabase: SupabaseClient, ex
         execution_date: execution.execution_date,
         applied_at: execution.applied_at ?? null,
         created_at: execution.created_at ?? null,
+        ...extra,
       },
     })
     .select('*')

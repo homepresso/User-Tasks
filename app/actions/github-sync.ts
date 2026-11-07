@@ -167,7 +167,7 @@ export async function connectGitHubSync(input: {
   mode: GitHubSyncMode
   pathPrefix?: string
 }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, user, tenantId } = await requireTenant()
 
   const token = input.token.trim()
@@ -218,7 +218,7 @@ export async function connectGitHubSync(input: {
 }
 
 export async function listGitHubRepos(input?: { token?: string }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, tenantId } = await requireTenant()
 
   let token = String(input?.token ?? '').trim()
@@ -237,7 +237,7 @@ export async function listGitHubRepos(input?: { token?: string }) {
 }
 
 export async function listGitHubBranches(input: { owner: string; repo: string; token?: string }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, tenantId } = await requireTenant()
 
   let token = String(input.token ?? '').trim()
@@ -256,7 +256,7 @@ export async function listGitHubBranches(input: { owner: string; repo: string; t
 }
 
 export async function setGitHubSyncMode(mode: GitHubSyncMode) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, tenantId } = await requireTenant()
 
   const connection = await getGitHubSyncConnection(supabase, tenantId)
@@ -275,7 +275,7 @@ export async function setGitHubSyncMode(mode: GitHubSyncMode) {
 }
 
 export async function disconnectGitHub() {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, user, tenantId } = await requireTenant()
 
   const connection = await getGitHubSyncConnection(supabase, tenantId)
@@ -375,12 +375,12 @@ async function startSyncRun(
 }
 
 export async function commitPendingChanges(input?: { message?: string }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   return startSyncRun('commit', input?.message)
 }
 
 export async function pushEverything() {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   return startSyncRun('full_resync')
 }
 
@@ -449,7 +449,7 @@ export async function saveGitHubSyncTemplate(input: {
   assets: Array<{ section: string; id: string; name?: string }>
   schedule: GitHubSyncSchedule | null
 }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, user, tenantId } = await requireTenant()
 
   const name = input.name.trim()
@@ -505,7 +505,7 @@ export async function saveGitHubSyncTemplate(input: {
 }
 
 export async function deleteGitHubSyncTemplate(templateId: string) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, user, tenantId } = await requireTenant()
   const { data: template } = await (supabase as any)
     .from('github_sync_templates')
@@ -527,7 +527,7 @@ export async function deleteGitHubSyncTemplate(templateId: string) {
 }
 
 export async function runGitHubSyncTemplate(templateId: string) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, tenantId } = await requireTenant()
   const { data: template, error } = await (supabase as any)
     .from('github_sync_templates')
@@ -551,7 +551,7 @@ export async function pushSelection(input: {
   assets: Array<{ section: string; id: string; name?: string }>
   message?: string
 }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const validSections = new Set(SYNC_SECTION_CATALOG.map((s) => s.section))
   const scope: SyncScope = {
     asset_types: (input.assetTypes ?? []).filter((s) => validSections.has(s)),
@@ -566,7 +566,7 @@ export async function pushSelection(input: {
 // ── Schedule ─────────────────────────────────────────────────────────────────
 
 export async function setGitHubSyncSchedule(schedule: GitHubSyncSchedule | null) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.manage')
   const { supabase, user, tenantId } = await requireTenant()
 
   const connection = await getGitHubSyncConnection(supabase, tenantId)
@@ -596,7 +596,7 @@ export async function setGitHubSyncSchedule(schedule: GitHubSyncSchedule | null)
 // ── Deploy ───────────────────────────────────────────────────────────────────
 
 export async function deployFromGitHub(input?: { ref?: string; dryRun?: boolean }) {
-  await requirePermission('settings.edit')
+  await requirePermission('sync.deploy')
   const { supabase, user, tenantId } = await requireTenant()
 
   const connection = await getGitHubSyncConnection(supabase, tenantId, { includeToken: true })

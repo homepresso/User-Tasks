@@ -8,6 +8,11 @@ export const awsS3Connector: ConnectorDefinition = {
   icon: 'Cloud',
   color: '#FF9900',
   docsUrl: 'https://docs.aws.amazon.com/AmazonS3/latest/API',
+  recommendedPermissions: {
+    title: 'Recommended IAM policy actions',
+    items: ['s3:ListBucket (on the bucket)', 's3:GetObject', 's3:PutObject', 's3:DeleteObject (on arn:aws:s3:::bucket/*)'],
+    note: 'Scope the policy to the bucket(s) this connector uses. Copy also needs s3:GetObject on the source bucket.',
+  },
   fields: [
     {
       key: 'region',
@@ -86,30 +91,38 @@ export const awsS3Connector: ConnectorDefinition = {
       required: true,
       helpText: 'IAM Secret Access Key',
     },
+    {
+      key: 'session_token',
+      label: 'Session Token (optional)',
+      type: 'password',
+      required: false,
+      helpText: 'Only for temporary (STS) credentials. Leave empty for an IAM user access key.',
+    },
   ],
   referenceTemplates: [
     {
       key: 'put_object',
       name: 'Upload Object',
-      description: 'Upload a file or data to an S3 bucket',
+      description: 'Upload a file or data to an S3 bucket (single PUT, up to 50 MB through this connector)',
       method: 'PUT',
       pathTemplate: '/{{key}}',
       bodyTemplate: '{{content}}',
       inputs: [
-        { name: 'bucket', type: 'string', required: false, description: 'Bucket name (uses default if empty)' },
+        { name: 'bucket', type: 'string', required: false, description: 'Bucket name (uses the connector default if empty)' },
         { name: 'key', type: 'string', required: true, description: 'Object key / file path (e.g. uploads/file.pdf)' },
-        { name: 'content', type: 'string', required: true, description: 'File content or base64 data' },
+        { name: 'content', type: 'string', required: true, description: 'File content: text, base64, an https URL to copy from, or a form attachment' },
         { name: 'content_type', type: 'string', required: false, description: 'MIME type', defaultValue: 'application/octet-stream' },
       ],
       outputs: [
         { name: 'etag', type: 'string' },
         { name: 'url', type: 'string' },
+        { name: 'version_id', type: 'string' },
       ],
     },
     {
       key: 'get_object',
       name: 'Download Object',
-      description: 'Download a file from an S3 bucket',
+      description: 'Download a file from an S3 bucket. Text up to 1 MB is returned as body; anything else is stored as a workflow file.',
       method: 'GET',
       pathTemplate: '/{{key}}',
       inputs: [
@@ -120,23 +133,30 @@ export const awsS3Connector: ConnectorDefinition = {
         { name: 'body', type: 'string' },
         { name: 'content_type', type: 'string' },
         { name: 'content_length', type: 'number' },
+        { name: 'url', type: 'string' },
+        { name: 'name', type: 'string' },
       ],
     },
     {
       key: 'list_objects',
       name: 'List Objects',
-      description: 'List files in an S3 bucket with optional prefix filter',
+      description: 'List objects (ListObjectsV2) with an optional prefix. Pass next_continuation_token back as continuation_token for the next page.',
       method: 'GET',
-      pathTemplate: '/?list-type=2&prefix={{prefix}}&max-keys={{max_keys}}',
+      pathTemplate: '/?list-type=2&prefix={{prefix}}&delimiter={{delimiter}}&max-keys={{max_keys}}&continuation-token={{continuation_token}}&start-after={{start_after}}',
       inputs: [
         { name: 'bucket', type: 'string', required: false, description: 'Bucket name' },
         { name: 'prefix', type: 'string', required: false, description: 'Filter by key prefix (folder path)' },
-        { name: 'max_keys', type: 'number', required: false, description: 'Max results', defaultValue: '100' },
+        { name: 'delimiter', type: 'string', required: false, description: 'Group keys by this character (use / to list one folder level)' },
+        { name: 'max_keys', type: 'number', required: false, description: 'Max results per page (1-1000)', defaultValue: '100' },
+        { name: 'continuation_token', type: 'string', required: false, description: 'next_continuation_token from the previous page' },
+        { name: 'start_after', type: 'string', required: false, description: 'Start listing after this key' },
       ],
       outputs: [
         { name: 'contents', type: 'array' },
+        { name: 'common_prefixes', type: 'array' },
         { name: 'key_count', type: 'number' },
         { name: 'is_truncated', type: 'boolean' },
+        { name: 'next_continuation_token', type: 'string' },
       ],
     },
     {
@@ -150,7 +170,7 @@ export const awsS3Connector: ConnectorDefinition = {
         { name: 'key', type: 'string', required: true, description: 'Object key / file path to delete' },
       ],
       outputs: [
-        { name: 'status', type: 'number' },
+        { name: 'success', type: 'boolean' },
       ],
     },
     {
@@ -174,19 +194,36 @@ export const awsS3Connector: ConnectorDefinition = {
     {
       key: 'copy_object',
       name: 'Copy Object',
-      description: 'Copy an object within S3 (same or different bucket)',
+      description: 'Copy an object within S3 (same or different bucket, up to 5 GB)',
       method: 'PUT',
-      pathTemplate: '/{{destination_key}}',
-      headers: { 'x-amz-copy-source': '/{{source_bucket}}/{{source_key}}' },
+      pathTemplate: '/{{destination_key}}?x-ut-copy-source-bucket={{source_bucket}}&x-ut-copy-source-key={{source_key}}',
       inputs: [
         { name: 'bucket', type: 'string', required: false, description: 'Destination bucket (uses default if empty)' },
         { name: 'destination_key', type: 'string', required: true, description: 'Destination object key' },
-        { name: 'source_bucket', type: 'string', required: false, description: 'Source bucket (uses default if empty)' },
+        { name: 'source_bucket', type: 'string', required: false, description: 'Source bucket (uses the destination bucket if empty)' },
         { name: 'source_key', type: 'string', required: true, description: 'Source object key to copy from' },
       ],
       outputs: [
         { name: 'etag', type: 'string' },
         { name: 'last_modified', type: 'string' },
+      ],
+    },
+    {
+      key: 'presign_url',
+      name: 'Create Presigned URL',
+      description: 'Create a time-limited URL to download (GET) or upload (PUT) an object without credentials. No request is sent to S3.',
+      method: 'GET',
+      pathTemplate: '/{{key}}?x-ut-presign-expires={{expires_in}}&x-ut-presign-method={{presign_method}}',
+      inputs: [
+        { name: 'bucket', type: 'string', required: false, description: 'Bucket name' },
+        { name: 'key', type: 'string', required: true, description: 'Object key / file path' },
+        { name: 'expires_in', type: 'number', required: false, description: 'Lifetime in seconds (1-604800)', defaultValue: '3600' },
+        { name: 'presign_method', type: 'string', required: false, description: 'GET (download) or PUT (upload)', defaultValue: 'GET' },
+      ],
+      outputs: [
+        { name: 'url', type: 'string' },
+        { name: 'method', type: 'string' },
+        { name: 'expires_at', type: 'string' },
       ],
     },
   ],
@@ -200,6 +237,7 @@ export const awsS3Connector: ConnectorDefinition = {
       secret_access_key: credentials.secret_access_key,
       region: config.region || 'us-east-1',
       bucket: config.bucket,
+      ...(credentials.session_token ? { session_token: credentials.session_token } : {}),
     },
   }),
 }

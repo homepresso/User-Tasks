@@ -166,8 +166,8 @@ export function validateCommunityPackage(bytes: Uint8Array, listing: Pick<Commun
   const unknownSections = Object.keys(assets).filter((section) => !(PACKAGE_SECTIONS as readonly string[]).includes(section))
   for (const section of unknownSections) issues.push({ path: 'package', message: `section "${section}" cannot travel in a package` })
   if (!(assets.workflows ?? []).length) issues.push({ path: 'package', message: 'a gallery package needs at least one workflow' })
-  if ((assets.mcp_servers ?? []).length || (assets.log_destinations ?? []).length || (assets.workflow_activities ?? []).length) {
-    issues.push({ path: 'package', message: 'community packages may not contain MCP servers, log destinations or custom code steps (custom activities)' })
+  if ((assets.mcp_servers ?? []).length || (assets.log_destinations ?? []).length || (assets.workflow_activities ?? []).length || (assets.form_controls ?? []).length) {
+    issues.push({ path: 'package', message: 'community packages may not contain MCP servers, log destinations or custom code (custom activities, custom form controls)' })
   }
   const entry = deriveEntryWorkflow(assets)
   const trigger = triggerKindOf(entry)
@@ -183,7 +183,7 @@ export function validateCommunityPackage(bytes: Uint8Array, listing: Pick<Commun
   } as unknown as GalleryMeta
   const source: GallerySource = {
     dir: '', slug: slug || 'package', meta, readme: String(header?.readme ?? ''), files: [],
-    manifest: { ...assets, ...(tableRows.length ? { table_rows: tableRows } : {}) }, paths: {}, errors: [],
+    manifest: { ...assets, ...(tableRows.length ? { table_rows: tableRows } : {}) }, paths: {}, controls: [], errors: [],
   }
   for (const issue of validateGallerySource(source, { community: true })) issues.push({ path: issue.path.replace(/^[^/]*\/assets\//, '').replace(/^[^/]*\/gallery\.json$/, 'listing'), message: issue.message })
 

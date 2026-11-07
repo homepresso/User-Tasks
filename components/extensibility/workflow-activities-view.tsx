@@ -1,17 +1,36 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useQueryClient } from '@tanstack/react-query'
-import { Blocks, Check, ChevronDown, ChevronUp, Code2, FileDown, FileUp, List, Pencil, Plus, Puzzle, Search, Trash2, X } from 'lucide-react'
+import { BadgeCheck, Blocks, Code2, FileDown, FileUp, LayoutGrid, List, MoreHorizontal, Pencil, Plus, Puzzle, Search, Settings2, Trash2, Upload } from 'lucide-react'
+import { ActionManageDialog } from './action-manage-dialog'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Field } from '@/components/ui/field'
+import { Card } from '@/components/ui/card'
+import { Badge, StatusPill, Tag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Table, THead, TBody, TR, TH, TD, TDActions } from '@/components/ui/table'
+import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
+import { formatCount } from '@/lib/format/number'
+import { plural } from '@/lib/format/plural'
 import { bulkDeleteWithJob, useJobs } from '@/components/jobs/jobs-provider'
 import {
   deleteWorkflowActivity,
   exportWorkflowActivity,
   importWorkflowActivity,
   saveWorkflowActivity,
+  uploadWorkflowAction,
 } from '@/app/actions/extensibility'
 import {
   getWorkflowActivityDisplayName,
@@ -137,12 +156,17 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
   const queryClient = useQueryClient()
   const jobs = useJobs()
   const [localItems, setLocalItems] = useState<any[]>(items)
-  const [search, setSearch] = useState('')
+  // ?q= (header search box) filters the list.
+  const searchParams = useSearchParams()
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '')
+  useEffect(() => { const q = searchParams.get('q'); if (q !== null) setSearch(q) }, [searchParams])
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [importText, setImportText] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  // Synchronous guard: two clicks in one frame both see saving === false.
+  const saveGuard = useSubmitGuard()
   const [importing, setImporting] = useState(false)
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [layout, setLayout] = useState<'grid' | 'list'>('grid')
@@ -151,6 +175,30 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
   const [sortBy, setSortBy] = useState<'updated' | 'name' | 'key'>('updated')
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleteNotice, setBulkDeleteNotice] = useState<DeleteNotice | null>(null)
+  const [manageId, setManageId] = useState<string | null>(() => searchParams.get('action'))
+  const [uploadNotice, setUploadNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const uploadRef = useRef<HTMLInputElement>(null)
+
+  async function handleUpload(files: FileList | null) {
+    const list = Array.from(files ?? [])
+    const pkg = list.find((f) => /\.(zip|m?js)$/i.test(f.name))
+    if (!pkg) return
+    const form = new FormData()
+    form.set('file', pkg)
+    const manifest = list.find((f) => /manifest\.json$/i.test(f.name))
+    if (manifest) form.set('manifest', manifest)
+    setUploading(true)
+    const res = await uploadWorkflowAction(form)
+    setUploading(false)
+    if (uploadRef.current) uploadRef.current.value = ''
+    if (!res.ok) { setUploadNotice({ kind: 'error', text: res.error }); return }
+    const { workflow_activity: saved, outcome, version, warnings } = res.data
+    setUploadNotice({ kind: 'ok', text: `${outcome === 'created' ? 'Added' : outcome === 'unchanged' ? 'Already installed:' : 'Added version'} ${saved.name} ${version}${warnings.length ? ` — ${warnings.join('; ')}` : ''}` })
+    setLocalItems((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)])
+    await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
+    if (outcome === 'created') setManageId(saved.id)
+  }
 
   useEffect(() => {
     setSelected(new Set())
@@ -200,32 +248,34 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
   }, [editor, editorPreview])
 
   async function handleSave() {
-    if (!editor) return
-    setSaving(true)
-    try {
-      await saveWorkflowActivity({
-        id: editor.id,
-        name: editor.name,
-        description: editor.description,
-        key: editor.key,
-        status: editor.status,
-        sourceKind: editor.sourceKind,
-        version: editor.version,
-        iconName: editor.iconName,
-        color: editor.color,
-        sourceCode: editor.sourceCode,
-        manifest: buildWorkflowActivityManifestFromEditor(editor),
-        demoInputs: safeParseJson(editor.demoInputsText, {}),
-        tags: parseTags(editor.tagsText),
-        sourceFilename: editor.sourceFilename,
-      })
-      await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
-      setEditor(null)
-    } catch (error: any) {
-      alert(error?.message ?? 'Failed to save workflow activity')
-    } finally {
-      setSaving(false)
-    }
+    await saveGuard.run(async () => {
+      if (!editor) return
+      setSaving(true)
+      try {
+        await saveWorkflowActivity({
+          id: editor.id,
+          name: editor.name,
+          description: editor.description,
+          key: editor.key,
+          status: editor.status,
+          sourceKind: editor.sourceKind,
+          version: editor.version,
+          iconName: editor.iconName,
+          color: editor.color,
+          sourceCode: editor.sourceCode,
+          manifest: buildWorkflowActivityManifestFromEditor(editor),
+          demoInputs: safeParseJson(editor.demoInputsText, {}),
+          tags: parseTags(editor.tagsText),
+          sourceFilename: editor.sourceFilename,
+        })
+        await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
+        setEditor(null)
+      } catch (error: any) {
+        alert(error?.message ?? 'Failed to save workflow activity')
+      } finally {
+        setSaving(false)
+      }
+    })
   }
 
   async function handleDelete() {
@@ -240,7 +290,8 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
         return next
       })
       setDeleteId(null)
-      await deleteWorkflowActivity(currentDeleteId)
+      const res = await deleteWorkflowActivity(currentDeleteId)
+      if (!res.ok) throw new Error(res.error)
       await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
     } catch (error: any) {
       setLocalItems(previousItems)
@@ -261,17 +312,19 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
   }
 
   async function handleImport() {
-    setImporting(true)
-    try {
-      await importWorkflowActivity(importText)
-      await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
-      setImportText('')
-      setImportOpen(false)
-    } catch (error: any) {
-      alert(error?.message ?? 'Failed to import workflow activity')
-    } finally {
-      setImporting(false)
-    }
+    await saveGuard.run(async () => {
+      setImporting(true)
+      try {
+        await importWorkflowActivity(importText)
+        await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
+        setImportText('')
+        setImportOpen(false)
+      } catch (error: any) {
+        alert(error?.message ?? 'Failed to import workflow activity')
+      } finally {
+        setImporting(false)
+      }
+    })
   }
 
   async function handleBulkDelete() {
@@ -320,120 +373,148 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
     })
   }
 
-  const SortIcon = ({ field }: { field: 'updated' | 'name' | 'key' }) => {
-    if (sortBy !== field || field === 'updated') return null
-    return <Check size={10} />
+  const allVisibleSelected = filtered.length > 0 && filtered.every((item) => selected.has(item.id))
+  const someVisibleSelected = filtered.some((item) => selected.has(item.id)) && !allVisibleSelected
+  const canManage = can('extensibility.create') || can('extensibility.edit')
+
+  // The action's own colour (user-chosen data) tints its icon tile.
+  const tint = (color: string | null | undefined) => {
+    const c = color || 'var(--theme-chart-3)'
+    return { backgroundColor: `color-mix(in srgb, ${c} 12%, transparent)`, color: c }
   }
+
+  const rowActions = (item: any) => (
+    <>
+      {can('extensibility.view') && <IconButton size="sm" label={`Manage ${item.name}`} icon={<Settings2 />} onClick={() => setManageId(item.id)} />}
+      {can('extensibility.view') && <IconButton size="sm" label="Export" icon={<FileDown />} onClick={() => handleExport(item)} disabled={exportingId === item.id} />}
+      {can('extensibility.edit') && item.runtime !== 'module' && <IconButton size="sm" label="Edit" icon={<Pencil />} onClick={() => setEditor(toEditorState(item))} />}
+      {can('extensibility.delete') && <IconButton size="sm" variant="danger-ghost" label="Delete" icon={<Trash2 />} onClick={() => setDeleteId(item.id)} />}
+    </>
+  )
+
+  const revealClass = 'transition-opacity opacity-0 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100'
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="rounded-xl p-2" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, transparent)', color: 'var(--theme-primary-text)' }}>
-              <Puzzle size={16} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Custom Workflow Activities</p>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-                Upload or paste code-backed workflow steps with typed inputs and outputs that appear like native activities in the builder.
-              </p>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button type="button" onClick={() => setLayout('grid')} className="rounded-lg border px-2 py-1 text-xs" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: layout === 'grid' ? 'var(--theme-primary-light)' : 'var(--theme-card-bg)', color: layout === 'grid' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}>
-              <Blocks size={12} className="inline mr-1" /> Grid
-            </button>
-            <button type="button" onClick={() => setLayout('list')} className="rounded-lg border px-2 py-1 text-xs" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: layout === 'list' ? 'var(--theme-primary-light)' : 'var(--theme-card-bg)', color: layout === 'list' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}>
-              <List size={12} className="inline mr-1" /> List
-            </button>
-            <Button asChild variant="outline" size="sm">
-              <a href="/downloads/workflow-activity-template.zip" download>
-                <FileDown size={14} className="mr-1" />
-                Sample Zip
-              </a>
-            </Button>
-            {can('extensibility.create') && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} title="Paste an activity JSON export"><FileUp size={14} className="mr-1" />Import</Button>}
-            {can('extensibility.create') && <ImportConfigButton label="Import file" onImported={() => void queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })} />}
-            {can('extensibility.create') && <Button size="sm" onClick={() => setEditor(createEmptyState())}><Plus size={14} className="mr-1" />New Activity</Button>}
-          </div>
-        </div>
-
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search activities by name, key, description, or tags..." className="pl-9" />
-        </div>
-
-        {selected.size > 0 && (
-          <div className="flex items-center gap-3 rounded-lg border px-4 py-2" style={{ backgroundColor: 'var(--theme-primary-light)', borderColor: 'var(--theme-primary)' }}>
-            <span className="text-sm font-medium" style={{ color: 'var(--theme-primary-text)' }}>{selected.size} selected</span>
-            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} className="!h-7 !text-xs">Clear</Button>
-            <div className="flex-1" />
-            {can('extensibility.delete') && (
-              <Button size="sm" onClick={() => setBulkDeleteOpen(true)} className="!h-7 !text-xs !bg-red-600 hover:!bg-red-700 !text-white">
-                <Trash2 size={12} className="mr-1" /> Delete {selected.size}
-              </Button>
-            )}
-          </div>
-        )}
-
-        {bulkDeleteNotice && (
-          <InlineNotice
-            tone={bulkDeleteNotice.tone}
-            message={bulkDeleteNotice.message}
-            onDismiss={() => setBulkDeleteNotice(null)}
-          />
-        )}
-
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <input
-              type="checkbox"
-              checked={filtered.length > 0 && filtered.every((item) => selected.has(item.id))}
-              ref={(el) => {
-                if (el) el.indeterminate = filtered.some((item) => selected.has(item.id)) && !filtered.every((item) => selected.has(item.id))
-              }}
-              onChange={toggleSelectAllVisible}
-              className="h-4 w-4 rounded border-gray-300 accent-[color:var(--theme-primary)]"
-            />
-            Select all
-          </label>
-
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'all' | WorkflowActivityStatus)}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-          </select>
-
-          <select
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value as 'updated' | 'name' | 'key')}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            <option value="updated">Recently updated</option>
-            <option value="name">Name A-Z</option>
-            <option value="key">Key A-Z</option>
-          </select>
+      <div className="flex flex-wrap items-start gap-3">
+        <p className="min-w-[240px] flex-1 text-sm text-fg-muted">
+          Custom workflow steps with typed inputs and outputs. They run in a WebAssembly sandbox with only the hosts, tables and secrets you approve.
+        </p>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {canManage && (
+            <>
+              <input ref={uploadRef} type="file" accept=".zip,.js,.mjs,.json" multiple className="hidden" aria-hidden="true" tabIndex={-1} onChange={(e) => void handleUpload(e.target.files)} data-testid="action-upload-input" />
+              <Button variant="secondary" size="sm" leadingIcon={<Upload />} disabled={uploading} loading={uploading} onClick={() => uploadRef.current?.click()}>Upload action</Button>
+            </>
+          )}
+          {can('extensibility.create') && <ImportConfigButton label="Import file" onImported={() => void queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })} />}
+          {can('extensibility.create') && <Button size="sm" leadingIcon={<Plus />} onClick={() => setEditor(createEmptyState())}>New script activity</Button>}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <IconButton variant="secondary" size="sm" label="More actions" icon={<MoreHorizontal />} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {can('packages.install') && (
+                <DropdownMenuItem asChild>
+                  <a href="/packages?gallery=workflow-actions" data-testid="actions-browse-gallery"><LayoutGrid className="size-4 text-fg-muted" aria-hidden="true" />Browse gallery</a>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <a href="/downloads/action-starter.zip" download><FileDown className="size-4 text-fg-muted" aria-hidden="true" />Starter kit</a>
+              </DropdownMenuItem>
+              {can('extensibility.create') && <DropdownMenuItem icon={<FileUp />} onSelect={() => setImportOpen(true)}>Import from JSON…</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl border p-8 text-center" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          <Puzzle size={18} className="mx-auto mb-3" style={{ color: 'var(--theme-muted-text)' }} />
-          <p className="text-sm font-medium">No custom workflow activities yet</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-            Start with one reusable code step, publish it as active, and it will become available in the workflow palette.
-          </p>
+      {uploadNotice && <InlineNotice tone={uploadNotice.kind === 'ok' ? 'success' : 'error'} message={uploadNotice.text} onDismiss={() => setUploadNotice(null)} />}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search actions by name, key, description, or tags…"
+          aria-label="Search workflow actions"
+          leading={<Search />}
+          className="min-w-[220px] flex-1"
+        />
+        <Select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as 'all' | WorkflowActivityStatus)}
+          aria-label="Filter by status"
+          wrapperClassName="w-auto min-w-[140px]"
+        >
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+        </Select>
+        <Select
+          value={sortBy}
+          onChange={(event) => setSortBy(event.target.value as 'updated' | 'name' | 'key')}
+          aria-label="Sort by"
+          wrapperClassName="w-auto min-w-[160px]"
+        >
+          <option value="updated">Recently updated</option>
+          <option value="name">Name A–Z</option>
+          <option value="key">Key A–Z</option>
+        </Select>
+        <SegmentedControl
+          aria-label="Layout"
+          size="sm"
+          value={layout}
+          onValueChange={setLayout}
+          options={[
+            { value: 'grid', icon: <Blocks />, text: 'Grid' },
+            { value: 'list', icon: <List />, text: 'List' },
+          ]}
+        />
+      </div>
+
+      <div className="flex min-h-7 items-center gap-3">
+        <Checkbox
+          label="Select all"
+          checked={allVisibleSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = someVisibleSelected
+          }}
+          onChange={toggleSelectAllVisible}
+        />
+        <span className="num text-xs text-fg-muted">{plural(filtered.length, 'action')}</span>
+      </div>
+
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg bg-primary-wash px-4 py-2">
+          <span className="num text-ui font-medium text-primary-text">{formatCount(selected.size)} selected</span>
+          <Button size="sm" variant="link" onClick={() => setSelected(new Set())}>Clear</Button>
+          <div className="flex-1" />
+          {can('extensibility.delete') && (
+            <Button size="sm" variant="danger" leadingIcon={<Trash2 />} onClick={() => setBulkDeleteOpen(true)}>
+              Delete {selected.size}
+            </Button>
+          )}
         </div>
+      )}
+
+      {bulkDeleteNotice && (
+        <InlineNotice
+          tone={bulkDeleteNotice.tone}
+          message={bulkDeleteNotice.message}
+          onDismiss={() => setBulkDeleteNotice(null)}
+        />
+      )}
+
+      {filtered.length === 0 ? (
+        <Card padding="none">
+          <EmptyState
+            icon={Puzzle}
+            title="No custom workflow activities yet"
+            description="Start with one reusable code step, publish it as active, and it will become available in the workflow palette."
+          />
+        </Card>
       ) : layout === 'grid' ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => {
             const manifest = normalizeWorkflowActivityManifest(item.manifest ?? {})
             const displayName = getWorkflowActivityDisplayName(item.manifest ?? {}, item.name) ?? item.name
@@ -444,190 +525,187 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
               name: item.name,
               key: item.key,
             })
+            const isSelected = selected.has(item.id)
+            const operations: { id: string; label?: string }[] = Array.isArray(item.manifest?.operations) ? item.manifest.operations : []
             return (
-              <div key={item.id} className="rounded-2xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ backgroundColor: `${item.color ?? '#0EA5E9'}18`, color: item.color ?? '#0EA5E9' }}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(item.id)}
-                        onChange={() => toggleSelect(item.id)}
-                        className="h-3.5 w-3.5 rounded border-gray-300 accent-[color:var(--theme-primary)]"
-                      />
-                      <Puzzle size={11} />
-                      {item.status}
-                    </div>
-                    <p className="mt-2 text-sm font-semibold truncate">{displayName}</p>
-                    <p className="text-[11px] font-mono" style={{ color: 'var(--theme-muted-text)' }}>{item.key}</p>
+              <Card
+                key={item.id}
+                padding="md"
+                data-selected={isSelected || undefined}
+                className={cn('group/card space-y-3 transition-colors hover:border-border-strong', isSelected && 'border-primary bg-primary-wash')}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative shrink-0">
+                    <span className={cn('inline-flex size-8 items-center justify-center rounded-md', isSelected ? 'opacity-0' : 'group-hover/card:opacity-0 group-focus-within/card:opacity-0')} style={tint(item.color)} aria-hidden="true">
+                      <Puzzle size={16} />
+                    </span>
+                    <span className={cn('absolute inset-0 flex items-center justify-center', !isSelected && 'opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100 [@media(pointer:coarse)]:opacity-100')}>
+                      <Checkbox checked={isSelected} onChange={() => toggleSelect(item.id)} aria-label={`Select ${item.name}`} />
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {can('extensibility.view') && <Button variant="ghost" size="sm" onClick={() => handleExport(item)} disabled={exportingId === item.id} className="!h-7 !px-2"><FileDown size={12} /></Button>}
-                    {can('extensibility.edit') && <Button variant="ghost" size="sm" onClick={() => setEditor(toEditorState(item))} className="!h-7 !px-2"><Pencil size={12} /></Button>}
-                    {can('extensibility.delete') && <Button variant="ghost" size="sm" onClick={() => setDeleteId(item.id)} className="!h-7 !px-2 !text-red-500"><Trash2 size={12} /></Button>}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-fg">{item.runtime === 'module' ? item.name : displayName}</p>
+                    <p className="truncate font-mono text-2xs text-fg-muted">{item.key} · v{item.version}</p>
                   </div>
+                  <div className="flex shrink-0 items-center">{rowActions(item)}</div>
                 </div>
-                <p className="text-xs line-clamp-3" style={{ color: 'var(--theme-muted-text)' }}>
+                <div className="flex flex-wrap items-center gap-1">
+                  <StatusPill status={item.status} />
+                  {item.enabled === false && <Badge tone="warning">Disabled</Badge>}
+                  {item.signature?.verified && <Badge tone="success"><BadgeCheck size={12} aria-hidden="true" className="-ml-0.5 mr-1 inline" />{item.signature.via === 'package' ? 'Signed package' : 'Signed'}</Badge>}
+                  {item.runtime === 'module' && Array.isArray(item.manifest?.operations) && <Tag>{plural(item.manifest.operations.length, 'function')}</Tag>}
+                </div>
+                <p className="line-clamp-3 text-xs text-fg-muted">
                   {presentation.purpose || summary || item.description || 'No description yet.'}
                 </p>
-                <div className="flex flex-wrap gap-2 text-[10px]">
-                  <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{manifest.inputs.length} inputs</span>
-                  <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{manifest.outputs.length} outputs</span>
-                  <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{item.version ?? '1.0.0'}</span>
-                  <span
-                    className="rounded-full px-2 py-1"
-                    style={{
-                      backgroundColor: readiness.ready ? 'rgba(34, 197, 94, 0.12)' : 'rgba(249, 115, 22, 0.12)',
-                      color: readiness.ready ? '#15803D' : '#C2410C',
-                    }}
-                  >
-                    {readiness.score}/5 ready
-                  </span>
-                  {presentation.recommendedFor && (
-                    <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                      {presentation.recommendedFor}
-                    </span>
-                  )}
-                </div>
-              </div>
+                {item.runtime === 'module' ? (
+                  <div className="flex flex-wrap gap-1">
+                    {operations.slice(0, 6).map((op) => (
+                      <Tag key={op.id}>{op.label ?? op.id}</Tag>
+                    ))}
+                    {operations.length > 6 && <span className="px-1 text-xs text-fg-muted">+{operations.length - 6} more</span>}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    <Tag>{plural(manifest.inputs.length, 'input')}</Tag>
+                    <Tag>{plural(manifest.outputs.length, 'output')}</Tag>
+                    <Tag mono>{item.version ?? '1.0.0'}</Tag>
+                    <Badge tone={readiness.ready ? 'success' : 'warning'}>{readiness.score}/5 ready</Badge>
+                    {presentation.recommendedFor && <Tag>{presentation.recommendedFor}</Tag>}
+                  </div>
+                )}
+              </Card>
             )
           })}
         </div>
       ) : (
-        <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          {filtered.map((item, index) => {
-            const manifest = normalizeWorkflowActivityManifest(item.manifest ?? {})
-            const displayName = getWorkflowActivityDisplayName(item.manifest ?? {}, item.name) ?? item.name
-            const summary = getWorkflowActivitySummary(item.manifest ?? {})
-            const readiness = getWorkflowActivityReadiness({
-              manifest: item.manifest ?? {},
-              name: item.name,
-              key: item.key,
-            })
-            return (
-              <div key={item.id} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: index === 0 ? 'none' : '1px solid var(--theme-surface-border)' }}>
-                <input
-                  type="checkbox"
-                  checked={selected.has(item.id)}
-                  onChange={() => toggleSelect(item.id)}
-                  className="h-4 w-4 rounded border-gray-300 accent-[color:var(--theme-primary)]"
-                />
-                <div className="rounded-xl p-2" style={{ backgroundColor: `${item.color ?? '#0EA5E9'}18`, color: item.color ?? '#0EA5E9' }}>
-                  <Code2 size={14} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{displayName}</p>
-                  <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>{summary || `${item.key} · ${manifest.inputs.length} inputs · ${manifest.outputs.length} outputs`}</p>
-                </div>
-                <span
-                  className="rounded-full px-2 py-1 text-[10px] font-semibold"
-                  style={{
-                    backgroundColor: readiness.ready ? 'rgba(34, 197, 94, 0.12)' : 'rgba(249, 115, 22, 0.12)',
-                    color: readiness.ready ? '#15803D' : '#C2410C',
-                  }}
-                >
-                  {readiness.score}/5
-                </span>
-                <div className="flex items-center gap-1">
-                  {can('extensibility.view') && <Button variant="ghost" size="sm" onClick={() => handleExport(item)} disabled={exportingId === item.id} className="!h-7 !px-2"><FileDown size={12} /></Button>}
-                  {can('extensibility.edit') && <Button variant="ghost" size="sm" onClick={() => setEditor(toEditorState(item))} className="!h-7 !px-2"><Pencil size={12} /></Button>}
-                  {can('extensibility.delete') && <Button variant="ghost" size="sm" onClick={() => setDeleteId(item.id)} className="!h-7 !px-2 !text-red-500"><Trash2 size={12} /></Button>}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <Table>
+          <THead>
+            <tr>
+              <TH className="w-10"><span className="sr-only">Select</span></TH>
+              <TH>Action</TH>
+              <TH className="w-28">Status</TH>
+              <TH numeric className="w-24">Readiness</TH>
+              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+            </tr>
+          </THead>
+          <TBody>
+            {filtered.map((item) => {
+              const manifest = normalizeWorkflowActivityManifest(item.manifest ?? {})
+              const displayName = getWorkflowActivityDisplayName(item.manifest ?? {}, item.name) ?? item.name
+              const summary = getWorkflowActivitySummary(item.manifest ?? {})
+              const readiness = getWorkflowActivityReadiness({
+                manifest: item.manifest ?? {},
+                name: item.name,
+                key: item.key,
+              })
+              const isSelected = selected.has(item.id)
+              return (
+                <TR key={item.id} selected={isSelected}>
+                  <TD className="w-10">
+                    <Checkbox
+                      checked={isSelected}
+                      onChange={() => toggleSelect(item.id)}
+                      aria-label={`Select ${item.name}`}
+                      className={cn(!isSelected && cn(revealClass, 'group-hover/row:opacity-100'))}
+                    />
+                  </TD>
+                  <TD className="max-w-0 py-2">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md" style={tint(item.color)} aria-hidden="true">
+                        <Code2 size={14} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-fg">{displayName}</p>
+                        <p className="truncate text-xs text-fg-muted">{summary || `${item.key} · ${plural(manifest.inputs.length, 'input')} · ${plural(manifest.outputs.length, 'output')}`}</p>
+                      </div>
+                    </div>
+                  </TD>
+                  <TD><StatusPill status={item.status} /></TD>
+                  <TD numeric>
+                    <Badge tone={readiness.ready ? 'success' : 'warning'} className="num">{readiness.score}/5</Badge>
+                  </TD>
+                  <TDActions>{rowActions(item)}</TDActions>
+                </TR>
+              )
+            })}
+          </TBody>
+        </Table>
       )}
 
-      <Dialog.Root open={!!editor} onOpenChange={(open) => !open && !saving && setEditor(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(980px,92vw)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border p-5 shadow-2xl" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            {editor && (
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Dialog.Title className="text-lg font-semibold">{editor.id ? 'Edit Workflow Activity' : 'Create Workflow Activity'}</Dialog.Title>
-                    <Dialog.Description className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                      Write code that returns output values from mapped workflow inputs. The workflow engine executes this code as a reusable custom activity.
-                    </Dialog.Description>
-                  </div>
-                  <Dialog.Close asChild>
-                    <button type="button" className="rounded-lg p-2 hover:opacity-80"><X size={16} /></button>
-                  </Dialog.Close>
-                </div>
+      <ActionManageDialog activityId={manageId} canEdit={can('extensibility.edit')} onClose={() => {
+        setManageId(null)
+        if (searchParams.get('action')) {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('action')
+          window.history.replaceState(null, '', url)
+        }
+      }} />
 
+      <Dialog open={!!editor} onOpenChange={(open) => !open && !saving && setEditor(null)}>
+        <DialogContent
+          size="xl"
+          title={editor?.id ? 'Edit workflow activity' : 'Create workflow activity'}
+          description="Write code that returns output values from mapped workflow inputs. The workflow engine executes this code as a reusable custom activity."
+          className="max-h-[90vh]"
+        >
+          {editor && (
+            <>
+              <DialogBody className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Name</label>
+                  <Field label="Name">
                     <Input value={editor.name} onChange={(event) => setEditor((state) => state ? { ...state, name: event.target.value } : state)} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Key</label>
+                  </Field>
+                  <Field label="Key">
                     <Input value={editor.key} onChange={(event) => setEditor((state) => state ? { ...state, key: event.target.value } : state)} placeholder="customer_score_card" className="font-mono" />
-                  </div>
+                  </Field>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Description</label>
-                  <textarea value={editor.description} onChange={(event) => setEditor((state) => state ? { ...state, description: event.target.value } : state)} rows={3} className="w-full rounded-xl border px-3 py-2 text-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-                </div>
+                <Field label="Description">
+                  <Textarea value={editor.description} onChange={(event) => setEditor((state) => state ? { ...state, description: event.target.value } : state)} rows={3} />
+                </Field>
 
-                <div className="rounded-2xl border p-4 space-y-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+                <Card variant="inset" padding="md" className="space-y-4">
                   <div>
-                    <p className="text-sm font-semibold">Friendly Presentation</p>
-                    <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="text-base font-semibold text-fg">Friendly presentation</p>
+                    <p className="mt-1 text-xs text-fg-muted">
                       These fields shape how the activity appears to non-technical workflow designers across Extensibility, the workflow picker, and the node configuration panel.
                     </p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium">Display Name</label>
-                      <Input value={editor.displayName} onChange={(event) => setEditor((state) => state ? { ...state, displayName: event.target.value } : state)} placeholder="Score Customer Risk" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium">Recommended For</label>
+                    <Field label="Display name">
+                      <Input value={editor.displayName} onChange={(event) => setEditor((state) => state ? { ...state, displayName: event.target.value } : state)} placeholder="Score customer risk" />
+                    </Field>
+                    <Field label="Recommended for">
                       <Input value={editor.recommendedFor} onChange={(event) => setEditor((state) => state ? { ...state, recommendedFor: event.target.value } : state)} placeholder="Operations managers, HR coordinators" />
-                    </div>
+                    </Field>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">One-Line Purpose</label>
+                  <Field label="One-line purpose">
                     <Input value={editor.purpose} onChange={(event) => setEditor((state) => state ? { ...state, purpose: event.target.value } : state)} placeholder="Turn raw inputs into a friendly workflow decision or result." />
-                  </div>
+                  </Field>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Summary Shown In Workflow</label>
-                    <textarea value={editor.summaryText} onChange={(event) => setEditor((state) => state ? { ...state, summaryText: event.target.value } : state)} rows={2} className="w-full rounded-xl border px-3 py-2 text-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-                  </div>
+                  <Field label="Summary shown in workflow">
+                    <Textarea value={editor.summaryText} onChange={(event) => setEditor((state) => state ? { ...state, summaryText: event.target.value } : state)} rows={2} />
+                  </Field>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Setup Notes</label>
-                    <textarea value={editor.setupNotesText} onChange={(event) => setEditor((state) => state ? { ...state, setupNotesText: event.target.value } : state)} rows={4} className="w-full rounded-xl border px-3 py-2 text-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-                    <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                      Enter one note per line. These appear in simple mode to guide first-time workflow designers.
-                    </p>
-                  </div>
+                  <Field label="Setup notes" description="Enter one note per line. These appear in simple mode to guide first-time workflow designers.">
+                    <Textarea value={editor.setupNotesText} onChange={(event) => setEditor((state) => state ? { ...state, setupNotesText: event.target.value } : state)} rows={4} />
+                  </Field>
 
                   {editorQuality && (
-                    <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                    <div className="space-y-3 border-t border-border-subtle pt-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold">Designer Readiness</p>
-                          <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                          <p className="text-sm font-semibold text-fg">Designer readiness</p>
+                          <p className="mt-1 text-xs text-fg-muted">
                             Helpful nudges to make this activity easier for non-technical workflow designers to understand.
                           </p>
                         </div>
-                        <span
-                          className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
-                          style={{
-                            backgroundColor: editorQuality.score >= 4 ? 'rgba(34, 197, 94, 0.12)' : 'rgba(249, 115, 22, 0.12)',
-                            color: editorQuality.score >= 4 ? '#15803D' : '#C2410C',
-                          }}
-                        >
+                        <Badge tone={editorQuality.score >= 4 ? 'success' : 'warning'} className="num">
                           {editorQuality.score}/5 ready
-                        </span>
+                        </Badge>
                       </div>
 
                       {editorQuality.findings.length === 0 ? (
@@ -643,25 +721,25 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
                   )}
 
                   {editorPreview && (
-                    <div className="rounded-2xl border p-4 space-y-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                    <div className="space-y-3 border-t border-border-subtle pt-4">
                       <div>
-                        <p className="text-sm font-semibold">Live Designer Preview</p>
-                        <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                        <p className="text-sm font-semibold text-fg">Live designer preview</p>
+                        <p className="mt-1 text-xs text-fg-muted">
                           This is how the activity will read to workflow designers in the picker, on the canvas, and in simple mode.
                         </p>
                       </div>
 
                       <div className="grid gap-4 lg:grid-cols-3">
-                        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                          <p className="text-[11px] font-semibold" style={{ color: 'var(--theme-muted-text)' }}>Palette</p>
-                          <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-fg-muted">Palette</p>
+                          <div className="rounded-md border border-border bg-panel px-3 py-2">
                             <div className="flex items-start gap-2">
-                              <div className="rounded-md p-1.5 shrink-0" style={{ backgroundColor: `${editor.color || '#0EA5E9'}18`, color: editor.color || '#0EA5E9' }}>
+                              <div className="shrink-0 rounded-md p-1.5" style={tint(editor.color)}>
                                 <Puzzle size={12} />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-medium truncate">{editorPreview.displayName}</p>
-                                <p className="text-[10px] leading-tight line-clamp-3" style={{ color: 'var(--theme-muted-text)' }}>
+                                <p className="truncate text-xs font-medium text-fg">{editorPreview.displayName}</p>
+                                <p className="line-clamp-3 text-2xs leading-tight text-fg-muted">
                                   {editorPreview.presentation.purpose || editorPreview.summary || editor.description || 'No helper text yet.'}
                                 </p>
                               </div>
@@ -669,46 +747,52 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
                           </div>
                         </div>
 
-                        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                          <p className="text-[11px] font-semibold" style={{ color: 'var(--theme-muted-text)' }}>Canvas Node</p>
-                          <div className="overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-                            <div className="flex items-center gap-2 px-3 py-2 text-white" style={{ background: `linear-gradient(135deg, ${editor.color || '#0EA5E9'}, ${(editor.color || '#0EA5E9')}DD)` }}>
-                              <Puzzle size={13} />
-                              <span className="text-xs font-medium truncate">{editorPreview.displayName}</span>
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-fg-muted">Canvas node</p>
+                          <div className="overflow-hidden rounded-lg border border-border bg-panel">
+                            <div
+                              className="flex items-center gap-2 px-3 py-2"
+                              style={{
+                                background: `linear-gradient(135deg, ${editor.color || 'var(--theme-chart-3)'}, color-mix(in srgb, ${editor.color || 'var(--theme-chart-3)'} 87%, transparent))`,
+                                color: 'white',
+                              }}
+                            >
+                              <Puzzle size={14} />
+                              <span className="truncate text-xs font-medium">{editorPreview.displayName}</span>
                             </div>
-                            <div className="px-3 py-2.5 space-y-1.5">
-                              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                            <div className="space-y-1.5 px-3 py-2.5">
+                              <p className="text-2xs text-fg-muted">
                                 {editor.description || editorPreview.summary || 'No activity description yet.'}
                               </p>
-                              <p className="text-[9px] font-mono leading-tight" style={{ color: 'var(--theme-card-text)', opacity: 0.85 }}>
+                              <p className="font-mono text-2xs leading-tight text-fg">
                                 {editorPreview.summary}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                          <p className="text-[11px] font-semibold" style={{ color: 'var(--theme-muted-text)' }}>Simple Mode</p>
-                          <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-                            <p className="text-xs font-semibold">{editorPreview.displayName} · Simple Mode</p>
-                            <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-fg-muted">Simple mode</p>
+                          <div className="space-y-2 rounded-md border border-border bg-panel p-3">
+                            <p className="text-xs font-semibold text-fg">{editorPreview.displayName} · Simple mode</p>
+                            <p className="text-2xs text-fg-muted">
                               {editorPreview.summary}
                             </p>
                             {editorPreview.presentation.recommendedFor && (
-                              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                                Recommended for: <span style={{ color: 'var(--theme-card-text)' }}>{editorPreview.presentation.recommendedFor}</span>
+                              <p className="text-2xs text-fg-muted">
+                                Recommended for: <span className="text-fg">{editorPreview.presentation.recommendedFor}</span>
                               </p>
                             )}
                             {editorPreview.presentation.setupNotes.length > 0 ? (
                               <div className="space-y-1">
                                 {editorPreview.presentation.setupNotes.slice(0, 2).map((note: string, index: number) => (
-                                  <p key={`preview-note-${index}`} className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                                  <p key={`preview-note-${index}`} className="text-2xs text-fg-muted">
                                     {index + 1}. {note}
                                   </p>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                              <p className="text-2xs text-fg-muted">
                                 Add setup notes to guide first-time designers here.
                               </p>
                             )}
@@ -717,136 +801,92 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
                       </div>
                     </div>
                   )}
-                </div>
+                </Card>
 
                 <div className="grid gap-4 md:grid-cols-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Status</label>
-                    <select value={editor.status} onChange={(event) => setEditor((state) => state ? { ...state, status: event.target.value as WorkflowActivityStatus } : state)} className="w-full rounded-xl border px-3 py-2 text-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}>
+                  <Field label="Status">
+                    <Select value={editor.status} onChange={(event) => setEditor((state) => state ? { ...state, status: event.target.value as WorkflowActivityStatus } : state)}>
                       <option value="draft">Draft</option>
                       <option value="active">Active</option>
                       <option value="archived">Archived</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Version</label>
-                    <Input value={editor.version} onChange={(event) => setEditor((state) => state ? { ...state, version: event.target.value } : state)} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Icon Name</label>
+                    </Select>
+                  </Field>
+                  <Field label="Version">
+                    <Input value={editor.version} onChange={(event) => setEditor((state) => state ? { ...state, version: event.target.value } : state)} className="font-mono" />
+                  </Field>
+                  <Field label="Icon name">
                     <Input value={editor.iconName} onChange={(event) => setEditor((state) => state ? { ...state, iconName: event.target.value } : state)} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Color</label>
-                    <Input value={editor.color} onChange={(event) => setEditor((state) => state ? { ...state, color: event.target.value } : state)} />
-                  </div>
+                  </Field>
+                  <Field label="Colour">
+                    <Input value={editor.color} onChange={(event) => setEditor((state) => state ? { ...state, color: event.target.value } : state)} className="font-mono" />
+                  </Field>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Source Code</label>
-                  <textarea value={editor.sourceCode} onChange={(event) => setEditor((state) => state ? { ...state, sourceCode: event.target.value } : state)} rows={16} className="w-full rounded-xl border px-3 py-2 text-xs font-mono" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    Available runtime variables: <code>inputs</code>, <code>context</code>, <code>helpers</code>. Return either <code>{'{ outputs: { ... } }'}</code> or a plain object of output values.
-                  </p>
+                <Field
+                  label="Source code"
+                  description={<>Available runtime variables: <code className="font-mono">inputs</code>, <code className="font-mono">context</code>, <code className="font-mono">helpers</code>. Return either <code className="font-mono">{'{ outputs: { ... } }'}</code> or a plain object of output values.</>}
+                >
+                  <Textarea value={editor.sourceCode} onChange={(event) => setEditor((state) => state ? { ...state, sourceCode: event.target.value } : state)} rows={16} className="font-mono text-xs" />
+                </Field>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Manifest">
+                    <Textarea value={editor.manifestText} onChange={(event) => setEditor((state) => state ? { ...state, manifestText: event.target.value } : state)} rows={12} className="font-mono text-xs" />
+                  </Field>
+                  <Field label="Demo inputs">
+                    <Textarea value={editor.demoInputsText} onChange={(event) => setEditor((state) => state ? { ...state, demoInputsText: event.target.value } : state)} rows={12} className="font-mono text-xs" />
+                  </Field>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Manifest</label>
-                    <textarea value={editor.manifestText} onChange={(event) => setEditor((state) => state ? { ...state, manifestText: event.target.value } : state)} rows={12} className="w-full rounded-xl border px-3 py-2 text-xs font-mono" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Demo Inputs</label>
-                    <textarea value={editor.demoInputsText} onChange={(event) => setEditor((state) => state ? { ...state, demoInputsText: event.target.value } : state)} rows={12} className="w-full rounded-xl border px-3 py-2 text-xs font-mono" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Tags</label>
+                  <Field label="Tags">
                     <Input value={editor.tagsText} onChange={(event) => setEditor((state) => state ? { ...state, tagsText: event.target.value } : state)} placeholder="scoring, enrichment, custom" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Source Filename</label>
+                  </Field>
+                  <Field label="Source filename">
                     <Input value={editor.sourceFilename} onChange={(event) => setEditor((state) => state ? { ...state, sourceFilename: event.target.value } : state)} />
-                  </div>
+                  </Field>
                 </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setEditor(null)} disabled={saving}>Cancel</Button>
+                <Button onClick={handleSave} disabled={saving} loading={saving}>{editor.id ? 'Save changes' : 'Create activity'}</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setEditor(null)} disabled={saving}>Cancel</Button>
-                  <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : editor.id ? 'Save Changes' : 'Create Activity'}</Button>
-                </div>
-              </div>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Dialog open={importOpen} onOpenChange={(open) => !importing && setImportOpen(open)}>
+        <DialogContent size="lg" title="Import workflow activity" description="Paste a workflow activity export JSON to recreate it in this tenant.">
+          <DialogBody>
+            <Textarea value={importText} onChange={(event) => setImportText(event.target.value)} rows={16} aria-label="Workflow activity JSON" className="bg-subtle font-mono text-xs" />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setImportOpen(false)} disabled={importing}>Cancel</Button>
+            <Button onClick={handleImport} disabled={importing || !importText.trim()} loading={importing}>Import activity</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <Dialog.Root open={importOpen} onOpenChange={(open) => !importing && setImportOpen(open)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(720px,92vw)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border p-5 shadow-2xl" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Dialog.Title className="text-lg font-semibold">Import Workflow Activity</Dialog.Title>
-                  <Dialog.Description className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                    Paste a workflow activity export JSON to recreate it in this tenant.
-                  </Dialog.Description>
-                </div>
-                <Dialog.Close asChild>
-                  <button type="button" className="rounded-lg p-2 hover:opacity-80"><X size={16} /></button>
-                </Dialog.Close>
-              </div>
-              <textarea value={importText} onChange={(event) => setImportText(event.target.value)} rows={16} className="w-full rounded-xl border px-3 py-2 text-xs font-mono" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>Cancel</Button>
-                <Button onClick={handleImport} disabled={importing || !importText.trim()}>{importing ? 'Importing...' : 'Import Activity'}</Button>
-              </div>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null) }}
+        title="Delete workflow activity"
+        description="This will remove the activity from Extensibility. Existing workflow nodes that reference it will need to be reconfigured."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleDelete}
+      />
 
-      <Dialog.Root open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-5 shadow-2xl" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            <div className="space-y-4">
-              <div>
-                <Dialog.Title className="text-lg font-semibold">Delete Workflow Activity</Dialog.Title>
-                <Dialog.Description className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                  This will remove the activity from Extensibility. Existing workflow nodes that reference it will need to be reconfigured.
-                </Dialog.Description>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
-                <Button variant="destructive" onClick={handleDelete}>Delete</Button>
-              </div>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      <Dialog.Root open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(420px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-5 shadow-2xl" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            <div className="space-y-4">
-              <div>
-                <Dialog.Title className="text-lg font-semibold">Delete Workflow Activities</Dialog.Title>
-                <Dialog.Description className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                  This will remove {selected.size} selected workflow activit{selected.size === 1 ? 'y' : 'ies'} from Extensibility.
-                </Dialog.Description>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Cancel</Button>
-                <Button variant="destructive" onClick={handleBulkDelete}>Delete {selected.size}</Button>
-              </div>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`Delete ${plural(selected.size, 'workflow activity', 'workflow activities')}`}
+        description={`This will remove ${plural(selected.size, 'selected workflow activity', 'selected workflow activities')} from Extensibility.`}
+        confirmLabel={`Delete ${selected.size}`}
+        destructive
+        onConfirm={handleBulkDelete}
+      />
     </div>
   )
 }

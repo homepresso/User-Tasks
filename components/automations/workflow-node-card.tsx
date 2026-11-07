@@ -2,13 +2,13 @@
 
 import { NodeBrandIcon } from '@/lib/connectors/connector-brand'
 import { useState } from "react"
-import { NODE_CATALOG, type PortSide, type WorkflowNode } from "@/lib/workflow-schema"
+import { NODE_CATALOG, nodeColorCategory, nodeColorTextVar, nodeColorVar, type NodeColorCategory, type PortSide, type WorkflowNode } from "@/lib/workflow-schema"
 import { getBranchLabels } from "@/lib/workflow-branches"
 import { branchChipMaxWidth, branchPortOffsets, CHIP_HEIGHT, CHIP_OFFSET, COLLAPSED_NODE_WIDTH, DEFAULT_NODE_WIDTH } from "@/lib/workflow-edge-routing"
 import { validateNode } from "@/lib/workflow-validation"
 import { getNodeConfigSummary, type SummaryLookups } from "@/lib/workflow-utils"
 import { getWorkflowActivityDisplayName, getWorkflowActivitySummary } from "@/lib/extensibility"
-import { formatRunDuration, RUN_STATUS_LABEL, RUN_STATUS_TOKENS, type NodeRunOverlay } from "@/lib/workflow-run-overlay"
+import { formatRunDuration, joinWaitingLabel, RUN_STATUS_LABEL, RUN_STATUS_TOKENS, type NodeRunOverlay } from "@/lib/workflow-run-overlay"
 import { formatErrorRate, heatColor, heatSummary, type NodeHeat } from "@/lib/workflow-heat-overlay"
 import { VariableText } from "./variable-text"
 import { useWorkflowLookups } from "./workflow-lookups"
@@ -21,12 +21,19 @@ import {
   MessageSquareDashed, Radio, CornerDownRight, GitFork, Users, Braces, Brackets, Search, Tag,
   FileSpreadsheet, Sheet, XCircle, AlertTriangle, Presentation, Scale, Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore, Briefcase, FilePen, Milestone, Gauge,
   Loader2, CircleSlash, Check, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
+  Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard,
+  Signature, FileSignature, Hourglass, FileCheck,
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { readableFill } from "@/lib/theme/legibility"
+
+import { BRANCH_COLORS as EDGE_BRANCH_COLORS } from "./edge-renderer"
 import { resolveStorageUrl } from "@/lib/storage/refs"
 
-export const BRANCH_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316", "#6B7280"]
+/** The canvas-coloured gap between a runtime card and its status / heat ring. */
+const RING_GAP = "0 0 0 2px var(--theme-surface)"
+
+/** Branch chip dots: the same theme chart colours as the branch connectors. */
+export const BRANCH_COLORS = EDGE_BRANCH_COLORS
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- lucide icon components
 export const NODE_ICON_MAP: Record<string, any> = {
@@ -42,15 +49,20 @@ export const NODE_ICON_MAP: Record<string, any> = {
   Gauge,
   Briefcase, FilePen, Milestone, Link: Link2,
   FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
+  Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard,
+  Signature, FileSignature, Hourglass, FileCheck,
 }
 
 /** Everything a card shows, derived from the node alone — identical for the designer and every viewer. */
 export interface NodeCardModel {
   label: string
   iconName: string
+  /** Colour category (theme token) of the step; `null` when the step carries its own `node_color`. */
+  colorCategory: NodeColorCategory | null
+  /** The step's accent colour as CSS: its colour category's theme token, or its own `node_color`. */
   color: string
-  /** Header fill (the colour darkened until white text reads at 5.2:1). */
-  headerColor: string
+  /** Text-legible accent (icon on the header wash). */
+  textColor: string
   description: string
   summary: string | null
   branchLabels: string[]
@@ -64,26 +76,32 @@ export interface NodeCardModel {
 export function nodeCardModel(node: WorkflowNode, lookups: SummaryLookups = {}): NodeCardModel {
   const catalog = NODE_CATALOG.find((n) => n.type === node.type)
   const config = node.config ?? {}
+  const safe = config.__safe === true
   const manifest = config.manifest ?? { inputs: [], outputs: [] }
-  const description = node.type === "custom_activity"
-    ? (String(config.activity_description ?? '').trim() || getWorkflowActivitySummary(manifest) || catalog?.description || node.type)
+  const description = safe ? (catalog?.description ?? node.type) : node.type === "custom_activity"
+    ? ([config.operation_label || (config.operation ? String(config.operation).replace(/_/g, ' ').replace(/^\w/, (ch: string) => ch.toUpperCase()) : null), String(config.activity_name ?? '').trim() !== node.label ? config.activity_name : null].filter(Boolean).join(' · ')
+      || String(config.activity_description ?? '').trim() || getWorkflowActivitySummary(manifest) || catalog?.description || node.type)
     : (catalog?.description ?? node.type)
   const label = node.type === "custom_activity"
     ? (getWorkflowActivityDisplayName(manifest, node.label) ?? node.label)
     : node.label
-  const color = (config.node_color as string | undefined) ?? catalog?.color ?? "#6B7280"
+  const override = typeof config.node_color === "string" && config.node_color ? config.node_color as string : null
+  const colorCategory = override ? null : nodeColorCategory(node.type)
   return {
     label,
     iconName: catalog?.icon ?? "Plus",
-    color,
-    headerColor: readableFill(color, "#FFFFFF", 5.2),
+    colorCategory,
+    color: colorCategory ? nodeColorVar(colorCategory) : override!,
+    // A custom colour is darkened until it reads on the card (AA); theme categories have a text slot.
+    textColor: colorCategory ? nodeColorTextVar(colorCategory) : `color-mix(in srgb, ${override} 78%, var(--theme-card-text))`,
     description,
-    summary: getNodeConfigSummary(node, lookups),
+    // Submitter-safe nodes (Home's progress view) have no config to summarise or validate.
+    summary: safe ? null : getNodeConfigSummary(node, lookups),
     branchLabels: getBranchLabels(node),
     showIfBadge: node.type === "condition" || node.type === "switch_case",
     width: node.collapsed ? COLLAPSED_NODE_WIDTH : DEFAULT_NODE_WIDTH,
     collapsed: !!node.collapsed,
-    validationErrors: validateNode(node),
+    validationErrors: safe ? [] : validateNode(node),
     customIcon: {
       svg: (config.node_icon_svg as string | undefined) ?? null,
       url: resolveStorageUrl((config.node_icon_url as string | undefined) ?? null),
@@ -170,10 +188,13 @@ export function WorkflowNodeCard({
   }
 
   const heatTone = heat ? heatColor(heat) : null
+  // The status / heat ring sits OUTSIDE the card, past a 2px gap in the
+  // canvas colour: flush against the card it framed the coloured header, so
+  // the bar no longer looked edge to edge as it does in the designer.
   const overlayShadow = ringed && tokens
-    ? `0 0 0 2px ${tokens.fill}, 0 0 18px color-mix(in srgb, ${tokens.fill} 28%, transparent)`
+    ? `${RING_GAP}, 0 0 0 4px ${tokens.fill}`
     : heat && heat.count > 0 && heatTone
-      ? `0 0 0 ${heat.ratio > 0.66 ? 3 : 2}px ${heatTone}, 0 0 ${Math.round(8 + heat.ratio * 18)}px color-mix(in srgb, ${heatTone} ${Math.round(15 + heat.ratio * 30)}%, transparent)`
+      ? `${RING_GAP}, 0 0 0 ${heat.ratio > 0.66 ? 5 : 4}px ${heatTone}, 0 0 ${Math.round(8 + heat.ratio * 18)}px color-mix(in srgb, ${heatTone} ${Math.round(15 + heat.ratio * 30)}%, transparent)`
       : undefined
 
   return (
@@ -190,14 +211,15 @@ export function WorkflowNodeCard({
       data-heat={heat ? String(Math.round(heat.ratio * 100)) : undefined}
       data-node-id={node.id}
       data-node-card=""
+      data-node-color={m.colorCategory ?? "custom"}
       data-run-status={run?.status}
       data-emphasis={emphasis}
       className={cn(
-        "rounded-2xl select-none group",
+        "rounded-lg border bg-panel select-none group transition-[box-shadow,border-color] duration-[var(--ds-dur-fast)]",
         m.collapsed ? "w-40" : "w-56",
-        dragging && "cursor-grabbing",
-        !dragging && selected && "shadow-lg",
-        !dragging && !selected && "shadow-sm hover:shadow-md",
+        hasErrors ? "border-warning" : selected ? "border-primary" : "border-border hover:border-border-strong",
+        dragging && "cursor-grabbing shadow-elev-2",
+        !dragging && selected && "shadow-elev-1 outline outline-2 outline-offset-1 outline-primary",
         rootProps?.className,
       )}
       onMouseEnter={(e) => { setHovered(true); rootProps?.onMouseEnter?.(e) }}
@@ -205,7 +227,7 @@ export function WorkflowNodeCard({
     >
       {/* Current step: a soft pulse around the card (motion-safe). */}
       {run?.current && tokens && (
-        <span aria-hidden="true" className="absolute -inset-1 rounded-[1.2rem] pointer-events-none motion-safe:animate-pulse"
+        <span aria-hidden="true" className="absolute -inset-1.5 rounded-xl pointer-events-none motion-safe:animate-pulse"
           style={{ boxShadow: `0 0 0 3px color-mix(in srgb, ${tokens.fill} 45%, transparent)` }} />
       )}
 
@@ -213,16 +235,16 @@ export function WorkflowNodeCard({
       {run && tokens && (
         <span
           data-run-badge=""
-          className="absolute -top-2.5 right-2 z-30 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold shadow-sm border"
-          style={{ backgroundColor: tokens.fill, color: tokens.on, borderColor: 'var(--theme-card-bg)' }}
-          title={[RUN_STATUS_LABEL[run.status], run.durationMs != null ? formatRunDuration(run.durationMs) : null, run.visits && run.visits > 1 ? `${run.visits} visits` : null, run.error].filter(Boolean).join(' · ')}
+          className="absolute -top-2.5 right-2 z-30 inline-flex items-center gap-1 rounded-full border border-panel px-1.5 py-px text-2xs font-semibold shadow-elev-1 num"
+          style={{ backgroundColor: tokens.fill, color: tokens.on }}
+          title={[run.joinWaiting ? `${joinWaitingLabel(run.joinWaiting)}${run.joinWaiting.waitingFor.length ? ` (${run.joinWaiting.waitingFor.join(', ')})` : ''}` : RUN_STATUS_LABEL[run.status], run.durationMs != null ? formatRunDuration(run.durationMs) : null, run.visits && run.visits > 1 ? `${run.visits} visits` : null, run.error].filter(Boolean).join(' · ')}
         >
-          {run.status === 'running' ? <Loader2 size={9} className="motion-safe:animate-spin" aria-hidden="true" />
-            : run.status === 'waiting' ? <Clock size={9} aria-hidden="true" />
-            : run.status === 'failed' ? <XCircle size={9} aria-hidden="true" />
-            : run.status === 'completed' ? <CheckCircle size={9} aria-hidden="true" />
-            : <CircleSlash size={9} aria-hidden="true" />}
-          <span>{RUN_STATUS_LABEL[run.status]}</span>
+          {run.status === 'running' ? <Loader2 size={12} className="motion-safe:animate-spin" aria-hidden="true" />
+            : run.status === 'waiting' ? <Clock size={12} aria-hidden="true" />
+            : run.status === 'failed' ? <XCircle size={12} aria-hidden="true" />
+            : run.status === 'completed' ? <CheckCircle size={12} aria-hidden="true" />
+            : <CircleSlash size={12} aria-hidden="true" />}
+          <span>{run.joinWaiting ? joinWaitingLabel(run.joinWaiting) : RUN_STATUS_LABEL[run.status]}</span>
           {run.durationMs != null && <span className="font-normal">{formatRunDuration(run.durationMs)}</span>}
           {run.visits != null && run.visits > 1 && <span className="font-normal">×{run.visits}</span>}
         </span>
@@ -232,96 +254,97 @@ export function WorkflowNodeCard({
       {heat && heatTone && (
         <span
           data-heat-badge=""
-          className="absolute -top-2.5 right-2 z-30 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold shadow-sm border tabular-nums"
-          style={{
-            backgroundColor: heat.count > 0 ? 'var(--theme-card-bg)' : 'var(--theme-surface)',
-            color: heat.count > 0 ? 'var(--theme-card-text)' : 'var(--theme-muted-text)',
-            borderColor: heat.count > 0 ? heatTone : 'var(--theme-surface-border)',
-          }}
+          className={cn(
+            "absolute -top-2.5 right-2 z-30 inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-2xs font-semibold shadow-elev-1 num",
+            heat.count > 0 ? "bg-panel text-fg" : "bg-subtle text-fg-muted border-border",
+          )}
+          style={heat.count > 0 ? { borderColor: heatTone } : undefined}
           title={heat.count > 0 ? heatSummary(heat, formatRunDuration) : 'No traffic yet'}
         >
           <span>{heat.count > 0 ? `${heat.count}×` : 'No traffic'}</span>
           {heat.avgDurationMs != null && heat.count > 0 && <span className="font-normal">avg {formatRunDuration(heat.avgDurationMs)}</span>}
           {heat.errors > 0 && (
-            <span className="inline-flex items-center gap-0.5" style={{ color: 'var(--theme-danger)' }}>
-              <XCircle size={9} aria-hidden="true" />{formatErrorRate(heat.errorRate)}
+            <span className="inline-flex items-center gap-0.5 text-danger">
+              <XCircle size={12} aria-hidden="true" />{formatErrorRate(heat.errorRate)}
             </span>
           )}
         </span>
       )}
 
-      {/* Input port (top) — always visible */}
+      {/* Input handle (top): 8px with a panel ring; grows into a target while connecting. */}
       <div
-        className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full z-20 transition-all"
+        className={cn(
+          "absolute -top-1 left-1/2 z-20 size-2 rounded-full ring-2 ring-panel transition-transform duration-[var(--ds-dur-fast)]",
+          !isDropTarget && "bg-border-strong",
+        )}
         style={{
-          backgroundColor: isDropTarget ? nodeColor : "var(--theme-surface-border)",
-          border: "2px solid var(--theme-card-bg)",
-          boxShadow: isDropTarget ? `0 0 8px ${nodeColor}80` : undefined,
-          transform: `translateX(-50%) ${isDropTarget ? "scale(1.5)" : "scale(1)"}`,
+          backgroundColor: isDropTarget ? nodeColor : undefined,
+          transform: `translateX(-50%) ${isDropTarget ? "scale(1.75)" : "scale(1)"}`,
         }}
       />
 
       {/* Drop target indicator (top) */}
       {isDropTarget && (
         <div
-          className="absolute -top-6 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full animate-bounce flex items-center justify-center z-30"
-          style={{ backgroundColor: nodeColor, border: "2px solid var(--theme-card-bg)" }}
+          className="absolute -top-6 left-1/2 -translate-x-1/2 z-30 flex size-5 items-center justify-center rounded-full bg-panel ring-2 motion-safe:animate-bounce"
+          style={{ color: m.textColor, ['--tw-ring-color' as string]: nodeColor } as React.CSSProperties}
         >
-          <Plus size={10} className="text-white" />
+          <Plus size={12} />
         </div>
       )}
 
-      {/* Header — the designer's drag handle */}
+      {/* Header — the designer's drag handle. A wash of the step's colour category. */}
       <div
         className={cn(
-          "flex items-center gap-2 px-3 text-white text-xs font-medium relative overflow-hidden",
-          m.collapsed ? "py-2 rounded-2xl" : "py-2.5 rounded-t-2xl",
+          "relative flex items-center gap-2 px-3 text-xs font-semibold text-fg",
+          m.collapsed ? "py-1.5 rounded-[inherit]" : "py-2 rounded-t-[inherit] border-b border-border-subtle",
           interactive && (dragging ? "cursor-grabbing" : "cursor-grab"),
         )}
-        style={{
-          background: `linear-gradient(135deg, ${m.headerColor}, ${m.headerColor}DD)`,
-          boxShadow: selected ? `0 0 0 2px ${nodeColor}, 0 0 12px ${nodeColor}30` : undefined,
-        }}
+        style={{ backgroundColor: `color-mix(in srgb, ${nodeColor} 16%, var(--theme-card-bg))` }}
         title={m.collapsed ? [m.label, m.description, m.summary].filter(Boolean).join(' — ') : undefined}
         {...headerProps}
       >
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.05) 100%)" }} />
-        {m.customIcon.svg ? (
-          <span
-            className="shrink-0 relative z-10 inline-flex h-3.5 w-3.5 items-center justify-center [&_svg]:h-3.5 [&_svg]:w-3.5 [&_svg]:fill-current"
-            dangerouslySetInnerHTML={{ __html: m.customIcon.svg }}
-          />
-        ) : m.customIcon.url || m.customIcon.lucide ? (
-          <NodeBrandIcon url={m.customIcon.url} lucide={m.customIcon.lucide}
-            color={m.customIcon.color || nodeColor} size={11}
-            chipClass="shrink-0 relative z-10 inline-flex h-4 w-4 items-center justify-center rounded-sm bg-white/90 p-0.5" />
-        ) : (
-          <Icon size={14} className="shrink-0 relative z-10" data-card-icon={m.iconName} />
-        )}
-        <span className="flex-1 truncate relative z-10" data-card-label="">{m.label}</span>
+        <span
+          className="inline-flex size-5 shrink-0 items-center justify-center rounded-md"
+          style={{ backgroundColor: `color-mix(in srgb, ${nodeColor} 30%, var(--theme-card-bg))`, color: m.textColor }}
+        >
+          {m.customIcon.svg ? (
+            <span
+              className="inline-flex size-3.5 items-center justify-center [&_svg]:size-3.5 [&_svg]:fill-current"
+              dangerouslySetInnerHTML={{ __html: m.customIcon.svg }}
+            />
+          ) : m.customIcon.url || m.customIcon.lucide ? (
+            <NodeBrandIcon url={m.customIcon.url} lucide={m.customIcon.lucide}
+              color={m.customIcon.color || m.textColor} size={12}
+              chipClass="inline-flex size-4 items-center justify-center rounded-sm bg-panel p-0.5" />
+          ) : (
+            <Icon size={14} data-card-icon={m.iconName} />
+          )}
+        </span>
+        <span className="flex-1 truncate" data-card-label="">{m.label}</span>
 
         {workflowActive && (
-          <span className="w-2 h-2 rounded-full shrink-0 relative z-10"
-            style={{ backgroundColor: "#22C55E", boxShadow: "0 0 6px #22C55E80" }} />
+          <span className="size-2 shrink-0 rounded-full bg-success ring-2 ring-success-wash" aria-hidden="true" />
         )}
 
         {m.showIfBadge && (
-          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full relative z-10" style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>
-            IF
+          <span className="rounded bg-muted px-1 text-2xs font-semibold text-fg-muted">
+            If
           </span>
         )}
 
         {onDelete && (
           <button
+            type="button"
+            aria-label={confirmDelete ? `Confirm delete ${m.label}` : `Delete ${m.label}`}
             onClick={handleDeleteClick}
             onPointerDown={(e) => e.stopPropagation()}
             className={cn(
-              "rounded-md p-0.5 transition-all relative z-10",
-              confirmDelete ? "bg-white/30 opacity-100" : "opacity-0 group-hover:opacity-70 hover:opacity-100",
+              "rounded-md p-0.5 transition-opacity",
+              confirmDelete ? "bg-danger text-danger-fg opacity-100" : "text-fg-muted opacity-0 hover:bg-muted hover:text-fg group-hover:opacity-100 focus-visible:opacity-100",
             )}
           >
-            {confirmDelete ? <span className="text-[9px] font-bold px-1">DELETE?</span> : <X size={12} />}
+            {confirmDelete ? <span className="px-1 text-2xs font-semibold">Delete?</span> : <X size={12} />}
           </button>
         )}
       </div>
@@ -329,26 +352,19 @@ export function WorkflowNodeCard({
       {/* Body — hidden when collapsed */}
       {!m.collapsed && (
         <div
-          className="px-3 py-2.5 text-[10px] rounded-b-2xl"
-          style={{
-            backgroundColor: isDropTarget ? `${nodeColor}15` : "var(--theme-card-bg)",
-            borderTop: `1px solid ${selected ? `${nodeColor}40` : "var(--theme-surface-border)"}`,
-            borderLeft: `2px solid ${hasErrors ? 'color-mix(in srgb, var(--theme-warning) 25%, transparent)' : selected ? nodeColor : "transparent"}`,
-            borderRight: `2px solid ${hasErrors ? 'color-mix(in srgb, var(--theme-warning) 25%, transparent)' : selected ? nodeColor : "transparent"}`,
-            borderBottom: `2px solid ${hasErrors ? 'color-mix(in srgb, var(--theme-warning) 25%, transparent)' : selected ? nodeColor : "transparent"}`,
-            borderRadius: "0 0 1rem 1rem",
-          }}
+          className="rounded-b-[inherit] px-3 py-2 text-2xs"
+          style={isDropTarget ? { backgroundColor: `color-mix(in srgb, ${nodeColor} 8%, var(--theme-card-bg))` } : undefined}
         >
-          <p style={{ color: "var(--theme-muted-text)" }} data-card-description="">{m.description}</p>
+          <p className="text-fg-muted" data-card-description="">{m.description}</p>
           {m.summary && (
-            <div className="mt-1.5 font-mono truncate leading-tight" style={{ color: "var(--theme-card-text)", fontSize: "9px" }} title={m.summary} data-card-summary="">
+            <div className="mt-1.5 truncate font-mono text-2xs leading-tight text-fg" title={m.summary} data-card-summary="">
               <VariableText text={m.summary} maxLength={80} />
             </div>
           )}
           {hasErrors && (
-            <div className="mt-1.5 flex items-start gap-1">
-              <span className="shrink-0 w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold" style={{ backgroundColor: 'var(--theme-warning)', color: 'var(--theme-card-bg)' }}>!</span>
-              <p className="text-[9px] leading-tight" style={{ color: 'var(--theme-warning)' }}>
+            <div className="mt-1.5 flex items-start gap-1 text-warning">
+              <AlertTriangle size={12} className="mt-px shrink-0" aria-hidden="true" />
+              <p className="text-2xs leading-tight">
                 {m.validationErrors[0]}{m.validationErrors.length > 1 ? ` (+${m.validationErrors.length - 1})` : ''}
               </p>
             </div>
@@ -362,15 +378,17 @@ export function WorkflowNodeCard({
           {(['left', 'right'] as const).map((side) => (
             <button
               key={side}
+              type="button"
+              aria-label={`Connect from the ${side}`}
               className={cn(
-                "absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center text-white z-20 transition-all hover:scale-125 opacity-60 hover:opacity-100",
-                side === 'left' ? "-left-3" : "-right-3",
+                "absolute top-1/2 z-20 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border bg-panel shadow-elev-1 opacity-70 transition-[opacity,transform] hover:scale-110 hover:opacity-100",
+                side === 'left' ? "-left-2.5" : "-right-2.5",
               )}
-              style={{ backgroundColor: nodeColor, borderColor: "var(--theme-card-bg)", boxShadow: `0 1px 3px rgba(0,0,0,0.2)` }}
+              style={{ borderColor: nodeColor, color: m.textColor }}
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); startOrFinish(undefined, side) }}
             >
-              <Link2 size={8} />
+              <Link2 size={12} />
             </button>
           ))}
         </>
@@ -386,6 +404,7 @@ export function WorkflowNodeCard({
           onClick={(e) => { if (interactive) e.stopPropagation() }}>
           {m.branchLabels.map((label, i) => {
             const wasTaken = taken.has(label.toLowerCase())
+            const branchColor = BRANCH_COLORS[i % BRANCH_COLORS.length]
             return (
               <div
                 key={`${label}-${i}`}
@@ -396,21 +415,16 @@ export function WorkflowNodeCard({
                 data-branch-chip={label}
                 data-branch-taken={wasTaken ? "" : undefined}
                 className={cn(
-                  "absolute top-0 flex items-center justify-center gap-0.5 px-1.5 rounded-full border text-[8px] font-semibold transition-all select-none",
-                  interactive && "cursor-pointer hover:scale-110 hover:shadow-lg active:scale-95",
-                  isConnecting && connectingSource === node.id && "animate-pulse",
+                  "absolute top-0 flex items-center justify-center gap-1 rounded-full border bg-panel px-1.5 text-2xs font-medium text-fg shadow-elev-1 transition-[transform,box-shadow] select-none",
+                  wasTaken ? "border-success ring-1 ring-success" : "border-border",
+                  interactive && "cursor-pointer hover:scale-105 hover:border-border-strong",
+                  isConnecting && connectingSource === node.id && "motion-safe:animate-pulse",
                 )}
                 style={{
                   left: portOffsets[i],
                   transform: "translateX(-50%)",
                   height: CHIP_HEIGHT,
                   maxWidth: chipMaxWidth,
-                  backgroundColor: readableFill(BRANCH_COLORS[i % BRANCH_COLORS.length]),
-                  borderColor: "var(--theme-card-bg)",
-                  color: "white",
-                  boxShadow: wasTaken
-                    ? `0 0 0 2px var(--theme-success), 0 2px 6px rgba(0,0,0,0.35)`
-                    : `0 2px 6px rgba(0,0,0,0.35)`,
                 }}
                 onKeyDown={interactive ? (e) => {
                   if (e.key !== "Enter" && e.key !== " ") return
@@ -421,7 +435,9 @@ export function WorkflowNodeCard({
                 onPointerDown={interactive ? (e) => { e.stopPropagation(); e.preventDefault() } : undefined}
                 onClick={interactive ? (e) => { e.stopPropagation(); e.preventDefault(); startOrFinish(label) } : undefined}
               >
-                {wasTaken ? <Check size={7} className="shrink-0" strokeWidth={3} /> : <Link2 size={7} className="shrink-0" />}
+                {wasTaken
+                  ? <Check size={12} className="shrink-0 text-success" strokeWidth={3} />
+                  : <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: branchColor }} />}
                 <span className="truncate">{label}</span>
               </div>
             )
@@ -429,31 +445,31 @@ export function WorkflowNodeCard({
         </div>
       ) : interactive ? (
         <button
+          type="button"
+          aria-label={`Connect from ${m.label}`}
           className={cn(
-            "absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full border-2",
-            "flex items-center justify-center text-white z-20 transition-all",
-            "hover:scale-110",
-            isConnecting && connectingSource === node.id && "scale-125 animate-pulse",
+            "group/handle absolute -bottom-3.5 left-1/2 z-20 flex size-7 -translate-x-1/2 items-center justify-center rounded-full",
           )}
-          style={{
-            backgroundColor: nodeColor,
-            borderColor: "var(--theme-card-bg)",
-            boxShadow: hovered || selected
-              ? `0 0 12px ${nodeColor}60, 0 0 4px ${nodeColor}30`
-              : `0 1px 4px rgba(0,0,0,0.2), 0 0 6px ${nodeColor}20`,
-          }}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); startOrFinish(undefined, 'bottom') }}
         >
-          <Link2 size={11} />
+          <span
+            className={cn(
+              "flex items-center justify-center rounded-full border bg-panel transition-all duration-[var(--ds-dur-fast)]",
+              hovered || selected || (isConnecting && connectingSource === node.id) ? "size-5 shadow-elev-1" : "size-2.5",
+              isConnecting && connectingSource === node.id && "motion-safe:animate-pulse",
+            )}
+            style={{ borderColor: nodeColor, color: m.textColor, borderWidth: hovered || selected ? 1.5 : 2 }}
+          >
+            {(hovered || selected || (isConnecting && connectingSource === node.id)) && <Link2 size={12} />}
+          </span>
         </button>
       ) : (
         <span
           aria-hidden="true"
-          className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full border-2 flex items-center justify-center text-white z-20"
-          style={{ backgroundColor: nodeColor, borderColor: "var(--theme-card-bg)", boxShadow: `0 1px 4px rgba(0,0,0,0.2), 0 0 6px ${nodeColor}20` }}
+          className="absolute -bottom-3.5 left-1/2 z-20 flex size-7 -translate-x-1/2 items-center justify-center"
         >
-          <Link2 size={11} />
+          <span className="size-2.5 rounded-full border-2 bg-panel" style={{ borderColor: nodeColor }} />
         </span>
       )}
     </div>

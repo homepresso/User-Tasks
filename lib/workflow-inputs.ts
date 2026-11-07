@@ -25,6 +25,9 @@
  * dialog and its tests.
  */
 
+import { coerceCustomValue, customValueError, normalizeCustomControlConfig, type CustomControlFieldConfig } from '@/lib/forms/custom-controls/field'
+import { customOutputEntries, customOutputError, nativeCustomValue } from '@/lib/forms/custom-controls/output'
+import type { FormLayout } from '@/lib/forms/layout'
 import { normalizeAttachmentsConfig, normalizeAttachmentValue, type AttachmentsConfig } from '@/lib/forms/attachments'
 
 export const WORKFLOW_INPUT_TYPES = ['text', 'number', 'boolean', 'date', 'datetime', 'json', 'select', 'email', 'url', 'attachments'] as const
@@ -47,6 +50,8 @@ export interface WorkflowInputField {
   options: WorkflowInputOption[] | null
   /** `attachments` fields: counts, sizes and types (lib/forms/attachments.ts). */
   attachments?: AttachmentsConfig
+  /** Custom form control inputs (`format: 'custom'`): the control and the value contract the server enforces. */
+  custom?: CustomControlFieldConfig
 }
 
 export interface WorkflowInputSchema {
@@ -63,9 +68,10 @@ export interface WorkflowInputSchema {
   /**
    * The start form's grid and resolved mini theme (form designer; the
    * trigger node's `start_form`), or null for the plain one-column form.
-   * Layout cells reference field keys.
+   * Layout cells reference field keys; a steps / tabs start form has
+   * `mode` + `pages` (each with its rows) and empty top-level rows.
    */
-  start_form?: { layout: { rows: Array<{ columns: number; cells: Array<{ field_key: string; span: number }> }> } | null; theme: Record<string, unknown> | null } | null
+  start_form?: { layout: FormLayout | null; theme: Record<string, unknown> | null } | null
 }
 
 export interface WorkflowInputError {
@@ -150,6 +156,7 @@ export function deriveInputFields(userVariables: unknown): WorkflowInputField[] 
     fields.push({
       key, label, type, required: isTrue((variable as any).required), default: type === 'attachments' ? null : defaultOf(variable, type), description, options,
       ...(type === 'attachments' ? { attachments: normalizeAttachmentsConfig((variable as any).attachments) } : {}),
+      ...(String((variable as any).format ?? '') === 'custom' && normalizeCustomControlConfig((variable as any).custom) ? { custom: normalizeCustomControlConfig((variable as any).custom)! } : {}),
     })
   }
   return fields
@@ -264,16 +271,32 @@ export function validateWorkflowInputs(fields: readonly WorkflowInputField[], su
       values[field.key] = ''
       continue
     }
+    if (field.custom) {
+      // A custom form control: typed and checked against its manifest's value contract; with an
+      // output, the variable is the main output and the value stays under `<key>_raw` (+ extras).
+      const typed = coerceCustomValue(field.custom, nativeCustomValue(field.custom, field.key, input))
+      const problem = customValueError(field.label, field.custom, typed) ?? customOutputError(field.label, field.custom, typed)
+      if (problem) errors.push({ field: field.key, message: problem })
+      else Object.assign(values, customOutputEntries(field.key, field.custom, typed))
+      continue
+    }
     const coerced = coerceValue(field.type, raw, field.options)
     if (coerced.ok) values[field.key] = coerced.value
     else errors.push({ field: field.key, message: `${field.label} ${coerced.message}` })
   }
 
+  // Outputs of custom controls (`<key>_raw`, extras): the server's, never overwritten by what was sent.
+  const outputKeys = new Set<string>()
+  for (const field of fields) {
+    if (!field.custom?.output) continue
+    outputKeys.add(`${field.key}_raw`)
+    for (const suffix of Object.keys(field.custom.output.extras ?? {})) outputKeys.add(`${field.key}_${suffix}`)
+  }
   if (fields.length > 0) {
-    const unknown = Object.keys(input).filter((key) => !declared.has(key) && !key.startsWith('_'))
+    const unknown = Object.keys(input).filter((key) => !declared.has(key) && !outputKeys.has(key) && !key.startsWith('_'))
     if (unknown.length) warnings.push(`Not declared as workflow inputs (passed through unchanged): ${unknown.join(', ')}`)
   }
-  for (const [key, value] of Object.entries(input)) if (!declared.has(key)) values[key] = value
+  for (const [key, value] of Object.entries(input)) if (!declared.has(key) && !outputKeys.has(key)) values[key] = value
 
   return { ok: errors.length === 0, values, errors, warnings }
 }

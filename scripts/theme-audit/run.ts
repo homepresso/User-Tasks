@@ -57,7 +57,7 @@ async function selectLabelledEdge(page: Page) {
 const ALL_SCENARIOS: Array<{ id: string; path: string; act?: (page: Page) => Promise<void>; shot?: boolean }> = [
   { id: 'tasks', path: '/tasks', shot: true },
   { id: 'task-detail', path: `/tasks/${state.task_id}` },
-  { id: 'queue', path: '/tasks/queue' },
+  { id: 'queue', path: '/tasks?status=queued' },
   { id: 'automations', path: '/automations' },
   { id: 'designer', path: `/automations/${state.workflow_id}`, shot: true },
   { id: 'designer-config', path: `/automations/${state.workflow_id}`, act: async (p) => { await p.locator('[data-canvas-node="true"]').nth(1).click({ timeout: 5000 }); await p.waitForTimeout(700) }, shot: true },

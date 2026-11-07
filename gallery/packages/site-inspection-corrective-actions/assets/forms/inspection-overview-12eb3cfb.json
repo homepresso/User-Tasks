@@ -1,0 +1,506 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "12eb3cfb-46be-5bea-ae66-a794315b547a",
+  "asset": {
+    "id": "12eb3cfb-46be-5bea-ae66-a794315b547a",
+    "name": "Inspection overview",
+    "description": "The safety manager's page: open corrective actions by severity and by site from the Corrective actions table, failures by severity per site and the open corrective action tasks as saved reports, and a button that emails a digest of the open actions.",
+    "tags": [
+      "inspection",
+      "dashboard",
+      "health and safety"
+    ],
+    "fields": [
+      {
+        "key": "about",
+        "type": "custom",
+        "label": "About this page",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "info",
+            "card_title": "Corrective actions at a glance",
+            "body": "Every failed checklist item is a corrective action. High severity actions are due in 2 days, medium in 7 and low in 14. The charts show the actions still open; the table lists the open tasks with their due dates.",
+            "layout": "callout",
+            "format": "auto",
+            "show_icon": true
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "by_severity",
+        "type": "custom",
+        "label": "Open actions by severity",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Open actions by severity",
+            "chart_type": "doughnut",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "severity",
+            "value_field": "sla_days",
+            "aggregate": "count",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#B91C1C",
+              "#D97706",
+              "#65A30D"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "search_columns": [
+            "severity"
+          ],
+          "display_columns": [
+            "severity",
+            "site_name",
+            "sla_days"
+          ],
+          "value_column": "action_ref",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Open"
+            }
+          ],
+          "sort": {
+            "column": "severity",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "by_site",
+        "type": "custom",
+        "label": "Open actions by site",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Open actions by site",
+            "chart_type": "horizontal-bar",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "site_name",
+            "value_field": "sla_days",
+            "aggregate": "count",
+            "show_legend": false,
+            "stacked": false,
+            "colors": [
+              "#CA8A04"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "search_columns": [
+            "site_name"
+          ],
+          "display_columns": [
+            "site_name",
+            "severity",
+            "sla_days"
+          ],
+          "value_column": "action_ref",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Open"
+            }
+          ],
+          "sort": {
+            "column": "site_name",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "severity_report",
+        "type": "custom",
+        "label": "Failed checks by severity and site",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "50829d17-7a35-5554-b6df-14d12faefc54",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "open_report",
+        "type": "custom",
+        "label": "Open corrective actions",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "e6d92646-1347-54b8-a428-f2fab5ecfa8e",
+            "view": "table",
+            "page_size": 8,
+            "max_rows": 100,
+            "height": 320,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "include",
+        "label": "Email me a digest of",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "All open actions",
+          "Overdue actions only"
+        ],
+        "default": "All open actions",
+        "display": "radio"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "by_severity",
+              "span": 1
+            },
+            {
+              "field_key": "by_site",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "severity_report",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "open_report",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "include",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#CA8A04",
+            "background": "#FFFFFF",
+            "text": "#1C1917",
+            "page": "#FEF9E7",
+            "page_to": "#FFFDF5"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Email me the digest",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Digest on its way",
+            "screen_button": "submit_another",
+            "text": "The open corrective actions digest is being emailed to you.",
+            "screen_button_label": "Back to the overview"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Inspection overview",
+      "align": "left",
+      "subtitle": "Open corrective actions by severity and site, failures per site, and the open tasks."
+    }
+  }
+}

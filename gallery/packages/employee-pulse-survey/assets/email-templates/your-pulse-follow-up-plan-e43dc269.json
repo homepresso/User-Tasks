@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e43dc269-bc2b-56f8-adb4-2310653242ac",
+  "asset": {
+    "id": "e43dc269-bc2b-56f8-adb4-2310653242ac",
+    "name": "Your pulse follow-up plan",
+    "description": "Sent to the employee after their manager records the agreed action plan.",
+    "subject": "What we agreed after your pulse survey ({{response_ref}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your follow-up plan</h2>\n  <p>Hi {{submitted_by_name}},</p>\n  <p>{{actioned_by_name}} recorded the plan you agreed after the {{round}} pulse survey:</p>\n  <p style=\"border-left:3px solid #BE185D;margin:12px 0;padding:4px 12px;color:#33302A\">{{plan_summary}}</p>\n  <p>Notes: {{task_data.conversation_notes_text}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Engagement {{engagement_score}} / 100 · Wellbeing {{wellbeing_score}} · Manager &amp; team {{manager_team_score}} · Growth {{growth_score}} · Workload {{workload_score}}</p>\n</div>",
+    "text_body": "Your follow-up plan\n\nHi {{submitted_by_name}},\n{{actioned_by_name}} recorded the plan you agreed after the {{round}} pulse survey:\n\n{{plan_summary}}\n\nNotes: {{task_data.conversation_notes_text}}\n\nEngagement {{engagement_score}} / 100",
+    "is_default": false
+  }
+}

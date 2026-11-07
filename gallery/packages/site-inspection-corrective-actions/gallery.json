@@ -1,0 +1,191 @@
+{
+  "title": "Site inspection with corrective actions",
+  "category": "surveys-assessments",
+  "summary": "A four-step inspection page with a checklist table, star rating, photos and signature; a decision table sets the outcome band and every failed item becomes a signed-off corrective action.",
+  "description": "Site inspection with corrective actions turns a safety walk-round into tracked, evidenced fixes using only UserTasks features and the official form controls. The Site safety inspection page has four numbered steps and a review step: a site lookup that fills the site manager, address and risk class from the Sites table; a Table control holding the checklist, pre-filled with eight standard items, where each row is marked Pass, Fail or N/A with an area, a severity and notes; a star Rating for the overall site condition, photo uploads and Rich text observations; and an Info card summary with the inspector's Signature.\n\nThe Site inspection workflow counts the failures with FILTER_WHERE and COUNT, works out the pass rate and the worst severity, and an outcome band decision table chooses Compliant, Minor actions, Major actions or Stop work with a close-out SLA in days. The inspection is saved to the Inspections table, the site's last result is updated, the site manager is emailed the report with the photos, and a Stop work result sends a stop-work alert straight away.\n\nEvery failed item is logged as an Open row in the Corrective actions table with a due date from a second decision table (high 2 days, medium 7, low 14), then becomes a corrective action task for the inspector with a reminder and manager escalation. The task shows the failed check on an Info card and a Progress bar of the actions closed so far, and records the fix, the root cause, photo evidence and a Signature sign-off; the site manager is emailed the evidence. When the last action is done the safety manager (the person who installed the package) gets a review task with an Info card summary, a Progress ring of the actions closed and a confidence Rating.\n\nThe Inspection overview page is the safety manager's dashboard: Chart controls of the open actions by severity and by site from the Corrective actions table, Saved report controls for failures by severity per site (workflow variables) and the open corrective action tasks, and a button that emails a digest of the open or overdue actions.",
+  "trigger": "form",
+  "entry_workflow": "6993d232-4c0b-59d1-b34c-4e02a56aaa7e",
+  "entry_form": "d255e70b-9ea0-5d64-a2a6-c429ba3f40a5",
+  "start": "Starts from a form page: inspectors open Forms → Site safety inspection (or its /f/ link on a phone or tablet) and submit it at the end of the walk-round.",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "health and safety",
+    "inspections",
+    "checklist",
+    "corrective actions",
+    "form controls",
+    "no integrations"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "Uses the 1.1.0 form controls: no visible loading, and the observations reach the workflow and the report email as text (<key> is HTML, <key>_text plain text)."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open Forms → Site safety inspection (share its /f/ link with your inspectors) and Forms → Inspection overview.",
+    "The Table, Rating, Rich text, Info card, Signature, Progress, Chart and Saved report controls install with the package (Extensibility → Form controls).",
+    "Replace the sample rows in Sites with your own sites and site managers; delete the sample Inspections and Corrective actions rows when you go live.",
+    "Edit the checklist's starting rows on the form (the Checklist field's Starting rows) for your site types, and the two decision tables for the outcome bands and the days to fix.",
+    "Corrective actions go to the inspector who submitted the form and the review to the person who installed the package: change the assignees in the designer if your safety team works differently.",
+    "Optional: apply the \"Inspections: 7 years\" retention policy, and set EMAIL_PROVIDER so the report, stop-work and digest emails are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Inspect",
+      "body": "Pick the site (manager, address and risk class fill in), mark the eight-item checklist table Pass / Fail / N/A with severities, rate the site, add photos and observations, and sign."
+    },
+    {
+      "title": "Score",
+      "body": "Failures, the pass rate and the worst severity are counted; a decision table chooses Compliant, Minor actions, Major actions or Stop work and the close-out SLA."
+    },
+    {
+      "title": "Report",
+      "body": "The inspection is saved, the site manager gets the report with the photos, and a Stop work result sends a stop-work alert."
+    },
+    {
+      "title": "Fix",
+      "body": "Each failed item is logged in Corrective actions and becomes a task with a due date by severity, a progress bar, photo evidence and a signature sign-off."
+    },
+    {
+      "title": "Review",
+      "body": "The safety manager reviews the closed and escalated actions and closes the inspection or asks for a re-inspection; the Inspection overview page charts what is still open."
+    }
+  ],
+  "sample_input": {
+    "site": "AKL-DC",
+    "site_name": "Auckland distribution centre",
+    "site_address": "48 Freight Drive, Auckland",
+    "site_manager": "Jordan Sample",
+    "site_manager_email": "jordan.sample@example.com",
+    "risk_class": "High",
+    "inspection_date": "2026-10-30",
+    "inspection_type": "Routine",
+    "checklist": [
+      {
+        "item": "Fire exits and escape routes clear and signed",
+        "area": "Fire safety",
+        "status": "Fail",
+        "severity": "High",
+        "notes": "Pallets stacked in front of the bay 3 fire exit."
+      },
+      {
+        "item": "Fire extinguishers in place, tagged and in date",
+        "area": "Fire safety",
+        "status": "Pass",
+        "severity": "",
+        "notes": ""
+      },
+      {
+        "item": "Walkways and stairs free of trip hazards",
+        "area": "Housekeeping",
+        "status": "Pass",
+        "severity": "",
+        "notes": ""
+      },
+      {
+        "item": "Electrical leads and equipment tested and tagged",
+        "area": "Electrical",
+        "status": "Fail",
+        "severity": "Medium",
+        "notes": "Extension lead at the packing bench has a cracked plug."
+      },
+      {
+        "item": "Machine guards fitted and working",
+        "area": "Equipment",
+        "status": "N/A",
+        "severity": "",
+        "notes": "No machinery at this site."
+      },
+      {
+        "item": "Required PPE available and worn",
+        "area": "PPE",
+        "status": "Pass",
+        "severity": "",
+        "notes": ""
+      },
+      {
+        "item": "Chemicals labelled, safety data sheets on hand",
+        "area": "Hazardous substances",
+        "status": "Pass",
+        "severity": "",
+        "notes": ""
+      },
+      {
+        "item": "First aid kit stocked, first aiders listed",
+        "area": "First aid",
+        "status": "Pass",
+        "severity": "",
+        "notes": ""
+      }
+    ],
+    "site_condition": 3,
+    "observations": {
+      "html": "<p>Busy dispatch day. Staff were wearing hi-vis and the new racking labels are in place.</p>",
+      "text": "Busy dispatch day. Staff were wearing hi-vis and the new racking labels are in place."
+    },
+    "declaration": true
+  },
+  "expect": "waiting",
+  "icon": "hard-hat",
+  "verify_mocks": {
+    "uploads": {
+      "photos": [
+        "scene-photo.png"
+      ],
+      "inspector_signature": [
+        "signature.png"
+      ]
+    },
+    "tasks": [
+      {
+        "outcome": "Fixed",
+        "button": "fixed",
+        "values": {
+          "fix_description": "Pallets moved to bay 5 and the exit marked with yellow floor tape.",
+          "root_cause": "Housekeeping",
+          "fixed_on": "2026-10-31"
+        },
+        "uploads": {
+          "evidence": [
+            "scene-photo.png"
+          ],
+          "signoff": [
+            "signature.png"
+          ]
+        }
+      },
+      {
+        "outcome": "Fixed",
+        "button": "fixed",
+        "values": {
+          "fix_description": "Lead taken out of service and replaced with a tested one.",
+          "root_cause": "Maintenance overdue",
+          "fixed_on": "2026-10-31"
+        },
+        "uploads": {
+          "evidence": [
+            "scene-photo.png"
+          ],
+          "signoff": [
+            "signature.png"
+          ]
+        }
+      }
+    ]
+  },
+  "id": "159ae591-32f3-5214-a185-534c8695c680",
+  "slug": "site-inspection-corrective-actions"
+}

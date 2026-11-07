@@ -1,9 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export const RETENTION_APPLIES_TO = ['data_tables', 'data_rows', 'roles'] as const
+/**
+ * Retention scopes (retention_policies.applies_to). `forms`: the policy can be
+ * assigned to a reusable form and governs its submissions (purge modes delete
+ * due submissions and their stored files; review modes open a review of the
+ * form). A submission's retention follows its form, so there is no separate
+ * per-submission scope.
+ */
+export const RETENTION_APPLIES_TO = ['data_tables', 'data_rows', 'roles', 'forms'] as const
 export const RETENTION_POLICY_MODES = ['review', 'review_on_exact_date', 'purge_on', 'purge_on_exact_date', 'keep_forever'] as const
 export const RETENTION_DURATION_UNITS = ['days', 'months', 'years'] as const
-export const RETENTION_ASSIGNMENT_TARGETS = ['data_table', 'data_row', 'role'] as const
+export const RETENTION_ASSIGNMENT_TARGETS = ['data_table', 'data_row', 'role', 'form'] as const
 
 export type RetentionAppliesTo = typeof RETENTION_APPLIES_TO[number]
 export type RetentionPolicyMode = typeof RETENTION_POLICY_MODES[number]
@@ -92,16 +99,19 @@ export async function getRetentionPolicyUsageSummary(supabase: SupabaseClient, t
     { count: tableCount },
     { count: rowCount },
     { count: roleCount },
+    { count: formCount },
   ] = await Promise.all([
     (supabase as any).from('custom_tables').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
     (supabase as any).from('custom_table_rows').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
     (supabase as any).from('roles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
+    (supabase as any).from('forms').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
   ])
 
   return {
     data_tables: Number(tableCount ?? 0),
     data_rows: Number(rowCount ?? 0),
     roles: Number(roleCount ?? 0),
+    forms: Number(formCount ?? 0),
   }
 }
 
@@ -133,4 +143,16 @@ export const RETENTION_ASSIGNMENT_TABLE_MAP: Record<RetentionAssignmentTarget, {
   data_table: { table: 'custom_tables', scope: 'data_tables' },
   data_row: { table: 'custom_table_rows', scope: 'data_rows' },
   role: { table: 'roles', scope: 'roles' },
+  form: { table: 'forms', scope: 'forms' },
+}
+
+/** Retention-policy modes that delete data (refused on roles, which support review only). */
+export const PURGE_MODES: ReadonlySet<string> = new Set(['purge_on', 'purge_on_exact_date'])
+
+/** Human label of a retention scope (UI chips, messages). */
+export const RETENTION_SCOPE_LABELS: Record<RetentionAppliesTo, string> = {
+  data_tables: 'Tables / Lists',
+  data_rows: 'Rows',
+  roles: 'Roles',
+  forms: 'Forms (submissions)',
 }

@@ -398,7 +398,7 @@ This guide is maintained with the code (\`docs/self-hosting.md\` in the reposito
 
 | | \`self_hosted\` (default) | \`cloud\` |
 |---|---|---|
-| \`/\` | Redirects to \`/tasks\` or \`/login\` | Product site |
+| \`/\` | Redirects to \`/home\` or \`/login\` | Product site |
 | Marketing pages, \`/contact\` | 404 | Served |
 | Self-signup | Disabled; use \`npm run bootstrap\` and invitations | Enabled |
 | \`robots.txt\` / sitemap | Disallow all / empty | Normal |
@@ -540,17 +540,6 @@ export const PROJECT_PAGES: DocPageDef[] = [
 > These numbers were measured on **one laptop with everything local** (app, Postgres and Supabase services in Docker, loopback network, warm caches). Read them as before/after ratios, not as production latencies. The harness is \`scripts/bench/\` in the repository (local stack only).
 
 ::include docs/perf/results.md
-`,
-  },
-  {
-    slug: 'changelog',
-    title: 'Changelog',
-    description: 'Release notes: packages, performance, log export and live event streaming, and the CLI and API surface.',
-    tocDepth: 2,
-    body: `
-Release notes are kept in \`docs/changes/\` in the repository and rendered here. Apply the listed migrations before deploying a release.
-
-::changelog
 `,
   },
 ]

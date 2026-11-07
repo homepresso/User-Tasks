@@ -1,0 +1,101 @@
+{
+  "id": "c0753421-cd8a-428f-a284-d7a414110b81",
+  "asset_id": "d2776a1f-4f91-4019-a36c-ad5ebf8d7423",
+  "slug": "validation-formatting",
+  "title": "Validation & formatting",
+  "summary": "Validate IBAN, BIC, cards, emails, phones, postcodes and national IDs with check digits; format and parse numbers, money and phone numbers by locale.",
+  "description": "Validation & formatting checks identifiers before they reach your finance, HR or CRM systems. It validates IBANs (country length and mod-97 check digits), BIC / SWIFT codes, payment card numbers (Luhn and issuer), email syntax, phone numbers (normalised to E.164 with a default country), postcodes for 26 countries and 13 national ID and tax number schemes such as the US SSN, UK National Insurance number, NZ IRD and NHI numbers, German Steuer-ID, French NIR and Indian Aadhaar. Each result has a valid flag, the normalised value to store and a plain-language reason when it fails; Validate many checks a whole form in one step.\n\nThe formatting side shows numbers the way each audience reads them: grouping and decimals per locale, percentages, compact numbers and currencies with their usual decimals, symbols or codes, and accounting brackets for negatives. Parse number reads amounts typed in any locale (\"1.234,56 €\" in German is 1234.56) and Format phone writes numbers as E.164, international or national. All checks run in the sandbox with no network access; they prove a value is well-formed, not that an account exists.",
+  "icon": "badge-check",
+  "tags": [
+    "validation",
+    "iban",
+    "credit card",
+    "phone",
+    "postcode",
+    "currency"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Check a supplier's IBAN, BIC and tax number before creating them in the ERP",
+    "Normalise customer phone numbers to E.164 for SMS and CRM sync",
+    "Show amounts in the customer's currency and locale in emails and documents"
+  ],
+  "setup": [
+    "Install the package: the action appears in Extensibility → Workflow actions and in the workflow designer's palette under Custom actions.",
+    "Drag Validation & formatting onto a workflow after a form or API step, choose Validate (or Validate many for several fields) and map the values.",
+    "Branch on {{check_valid}} or {{check_all_valid}} with a Branch by Condition step, and store {{check_normalized}} instead of the typed value.",
+    "Try the included \"Supplier bank details check (sample)\" workflow from the API or its start form: it validates an IBAN, BIC, email and phone and formats the first payment amount."
+  ],
+  "examples": [
+    {
+      "operation": "validate",
+      "title": "UK IBAN",
+      "inputs": {
+        "type": "iban",
+        "value": "GB82 WEST 1234 5698 7654 32"
+      }
+    },
+    {
+      "operation": "validate",
+      "title": "Card number with issuer",
+      "inputs": {
+        "type": "card",
+        "value": "4111 1111 1111 1111"
+      }
+    },
+    {
+      "operation": "validate_many",
+      "title": "Onboarding form fields",
+      "inputs": {
+        "items": [
+          {
+            "name": "Email",
+            "type": "email",
+            "value": "ap@example.co.nz"
+          },
+          {
+            "name": "Bank",
+            "type": "iban",
+            "value": "DE89 3704 0044 0532 0130 00"
+          },
+          {
+            "name": "Phone",
+            "type": "phone",
+            "value": "021 123 4567",
+            "country": "NZ"
+          },
+          {
+            "name": "Postcode",
+            "type": "postcode",
+            "value": "sw1a1aa",
+            "country": "GB"
+          }
+        ]
+      }
+    },
+    {
+      "operation": "parse_number",
+      "title": "German amount to a number",
+      "inputs": {
+        "text": "1.234,56 €",
+        "locale": "de-DE"
+      }
+    },
+    {
+      "operation": "format_currency",
+      "title": "Yen without decimals",
+      "inputs": {
+        "value": 1234567.8,
+        "currency": "JPY",
+        "locale": "ja-JP"
+      }
+    }
+  ]
+}

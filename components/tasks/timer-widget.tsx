@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { logTimerEntry } from '@/app/actions/task-effort'
 import { Button } from '@/components/ui/button'
-import { Play, Pause, Square, Clock } from 'lucide-react'
+import { IconButton } from '@/components/ui/icon-button'
+import { Tooltip } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+import { Play, Pause, Square } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface TimerWidgetProps {
@@ -16,6 +20,8 @@ export function TimerWidget({ taskId }: TimerWidgetProps) {
   const [elapsed, setElapsed] = useState(0) // seconds
   const [startTime, setStartTime] = useState<Date | null>(null)
   const [saving, setSaving] = useState(false)
+  // Synchronous guard: a double click on Stop would log the time twice.
+  const stopGuard = useSubmitGuard()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -48,27 +54,29 @@ export function TimerWidget({ taskId }: TimerWidgetProps) {
   }
 
   async function handleStop() {
-    setRunning(false)
-    if (elapsed < 5) return // Don't save less than 5 seconds
+    await stopGuard.run(async () => {
+      setRunning(false)
+      if (elapsed < 5) return // Don't save less than 5 seconds
 
-    setSaving(true)
-    // Records the timer entry, adds it to the task's actual effort and logs
-    // it on the activity timeline (lib/services/task-effort).
-    const result = await logTimerEntry(taskId, { elapsedSeconds: elapsed, startedAt: startTime?.toISOString() ?? null })
-    if (!result.ok) {
+      setSaving(true)
+      // Records the timer entry, adds it to the task's actual effort and logs
+      // it on the activity timeline (lib/services/task-effort).
+      const result = await logTimerEntry(taskId, { elapsedSeconds: elapsed, startedAt: startTime?.toISOString() ?? null })
+      if (!result.ok) {
+        setSaving(false)
+        setError(result.error)
+        return
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['task-tree', taskId] })
+      queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] })
+      queryClient.invalidateQueries({ queryKey: ['effort-entries', taskId] })
       setSaving(false)
-      setError(result.error)
-      return
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['task-tree', taskId] })
-    queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] })
-    queryClient.invalidateQueries({ queryKey: ['effort-entries', taskId] })
-    setSaving(false)
-    setSaved(true)
-    setElapsed(0)
-    setStartTime(null)
-    setTimeout(() => setSaved(false), 3000)
+      setSaved(true)
+      setElapsed(0)
+      setStartTime(null)
+      setTimeout(() => setSaved(false), 3000)
+    })
   }
 
   function formatTime(secs: number): string {
@@ -81,57 +89,31 @@ export function TimerWidget({ taskId }: TimerWidgetProps) {
 
   const isActive = running || elapsed > 0
 
+  // Lives in the Effort card header: "Start timer", then the elapsed time with pause / resume and stop.
   return (
-    <div
-      className="fixed bottom-6 right-6 z-40 rounded-2xl shadow-2xl border overflow-hidden"
-      style={{
-        backgroundColor: 'var(--theme-card-bg)',
-        borderColor: running ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-        boxShadow: running ? `0 0 20px var(--theme-primary)30` : undefined,
-      }}
-    >
-      <div className="px-4 py-3 flex items-center gap-3">
-        {/* Timer display */}
-        <div className="flex items-center gap-2">
-          <Clock size={16} style={{ color: running ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-            className={running ? 'animate-pulse' : ''} />
-          <span className="text-lg font-mono font-bold tabular-nums" style={{ minWidth: '60px' }}>
-            {formatTime(elapsed)}
-          </span>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-1">
-          {!isActive && (
-            <Button size="sm" onClick={handleStart} className="!rounded-full !w-8 !h-8 !p-0">
-              <Play size={14} />
-            </Button>
-          )}
-          {running && (
-            <Button size="sm" variant="outline" onClick={handlePause} className="!rounded-full !w-8 !h-8 !p-0">
-              <Pause size={14} />
-            </Button>
-          )}
-          {!running && elapsed > 0 && (
-            <Button size="sm" onClick={handleResume} className="!rounded-full !w-8 !h-8 !p-0">
-              <Play size={14} />
-            </Button>
-          )}
-          {elapsed > 0 && (
-            <Button size="sm" variant="outline" onClick={handleStop} disabled={saving}
-              className="!rounded-full !w-8 !h-8 !p-0" style={{ color: 'var(--theme-danger)' }}>
-              <Square size={12} />
-            </Button>
-          )}
-        </div>
-
-        {saved && (
-          <span className="text-[10px] font-medium" style={{ color: 'var(--theme-success)' }}>Saved!</span>
-        )}
-        {error && (
-          <span className="text-[10px] font-medium max-w-[160px] truncate" title={error} style={{ color: 'var(--theme-danger)' }}>{error}</span>
-        )}
-      </div>
+    <div className="flex items-center gap-1" data-task-timer data-running={running || undefined}>
+      {isActive && (
+        <span className={cn('num mr-1 inline-flex items-center gap-1.5 font-mono text-ui font-medium', running ? 'text-fg' : 'text-fg-muted')} aria-live="off">
+          <span aria-hidden className={cn('size-1.5 rounded-full', running ? 'animate-pulse bg-primary' : 'bg-fg-subtle')} />
+          {formatTime(elapsed)}
+        </span>
+      )}
+      {!isActive && (
+        <Button size="sm" variant="secondary" onClick={handleStart} leadingIcon={<Play />} data-timer-start>
+          Start timer
+        </Button>
+      )}
+      {running && <IconButton size="sm" variant="secondary" label="Pause timer" icon={<Pause />} onClick={handlePause} />}
+      {!running && elapsed > 0 && <IconButton size="sm" variant="secondary" label="Resume timer" icon={<Play />} onClick={handleResume} />}
+      {elapsed > 0 && (
+        <IconButton size="sm" variant="secondary" label="Stop and log time" icon={<Square />} onClick={handleStop} loading={saving} className="text-danger" />
+      )}
+      {saved && <span className="text-xs font-medium text-success" role="status">Time logged</span>}
+      {error && (
+        <Tooltip content={error}>
+          <span className="max-w-[160px] truncate text-xs font-medium text-danger" role="alert" tabIndex={0}>{error}</span>
+        </Tooltip>
+      )}
     </div>
   )
 }

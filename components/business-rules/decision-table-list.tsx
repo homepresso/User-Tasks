@@ -4,17 +4,25 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import * as Dialog from '@radix-ui/react-dialog'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card } from '@/components/ui/card'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Tooltip } from '@/components/ui/tooltip'
+import { Pagination } from '@/components/ui/list-controls'
+import { Table, THead, TBody, TR, TH, TD, TDActions } from '@/components/ui/table'
+import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
-import {
-  Search, GitBranch, Trash2, ChevronUp, ChevronDown, LayoutGrid, List,
-  CheckSquare, Square, AlertTriangle,
-} from 'lucide-react'
+import { Search, GitBranch, Trash2, ChevronUp, ChevronDown, LayoutGrid, List } from 'lucide-react'
 import { deleteDecisionTable } from '@/app/actions/business-rules'
 import { bulkDeleteWithJob, useJobs } from '@/components/jobs/jobs-provider'
-import { formatRelativeDate, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { formatCount } from '@/lib/format/number'
+import { plural } from '@/lib/format/plural'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ExportAssetButton } from '@/components/shared/config-transfer'
@@ -26,6 +34,7 @@ type FilterMode = 'all' | 'ready' | 'needs_rules' | 'needs_structure'
 type ViewMode = 'cards' | 'list'
 
 const DEFAULT_PAGE_SIZE = 25
+const PAGE_SIZE_OPTIONS = [12, 25, 50, 100] as const
 
 export function DecisionTableList({ tables }: { tables: any[] }) {
   const router = useRouter()
@@ -169,7 +178,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
 
   function SortIcon({ field }: { field: SortField }) {
     if (sortBy !== field) return null
-    return sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+    return sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
   }
 
   return (
@@ -185,7 +194,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
-        title="Delete Business Rule"
+        title="Delete business rule"
         description={`Delete business rule "${deleteTarget?.name ?? 'this rule'}"?`}
         confirmLabel="Delete"
         destructive
@@ -197,330 +206,260 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
       />
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search business rules…"
-            className="pl-9"
-          />
-        </div>
-        <select
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search business rules…"
+          aria-label="Search business rules"
+          leading={<Search />}
+          className="min-w-[200px] flex-1"
+        />
+        <Select
           value={filterMode}
           onChange={(e) => setFilterMode(e.target.value as FilterMode)}
-          className="rounded-lg border px-3 py-2 text-xs min-w-[160px]"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+          aria-label="Filter business rules"
+          wrapperClassName="w-auto min-w-[160px]"
         >
           <option value="all">All rules</option>
           <option value="ready">Ready to use</option>
           <option value="needs_rules">Needs rules</option>
           <option value="needs_structure">Needs inputs/outputs</option>
-        </select>
-        <div className="flex items-center gap-1">
+        </Select>
+        <div className="flex items-center gap-0.5" role="group" aria-label="Sort by">
           {(['name', 'inputs', 'outputs', 'updated_at'] as SortField[]).map((field) => (
-            <button
+            <Button
               key={field}
+              size="sm"
+              variant="ghost"
               onClick={() => toggleSort(field)}
-              className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-1 rounded transition-colors"
-              style={{
-                backgroundColor: sortBy === field ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                color: sortBy === field ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-              }}
+              aria-pressed={sortBy === field}
+              className={cn('gap-0.5', sortBy === field ? 'bg-muted text-fg' : 'text-fg-muted')}
             >
-              {field === 'updated_at' ? 'Updated' : field.charAt(0).toUpperCase() + field.slice(1)}
+              {SORT_LABELS[field]}
               <SortIcon field={field} />
-            </button>
+            </Button>
           ))}
         </div>
-        <div className="flex items-center gap-1 rounded-lg p-1" style={{ backgroundColor: 'var(--theme-surface)' }}>
-          <button
-            onClick={() => setViewMode('list')}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium"
-            style={{
-              backgroundColor: viewMode === 'list' ? 'var(--theme-card-bg)' : 'transparent',
-              color: viewMode === 'list' ? 'var(--theme-card-text)' : 'var(--theme-muted-text)',
-            }}
-          >
-            <List size={12} /> List
-          </button>
-          <button
-            onClick={() => setViewMode('cards')}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium"
-            style={{
-              backgroundColor: viewMode === 'cards' ? 'var(--theme-card-bg)' : 'transparent',
-              color: viewMode === 'cards' ? 'var(--theme-card-text)' : 'var(--theme-muted-text)',
-            }}
-          >
-            <LayoutGrid size={12} /> Cards
-          </button>
-        </div>
+        <SegmentedControl
+          aria-label="View"
+          size="sm"
+          value={viewMode}
+          onValueChange={setViewMode}
+          options={[
+            { value: 'list', icon: <List />, text: 'List' },
+            { value: 'cards', icon: <LayoutGrid />, text: 'Cards' },
+          ]}
+        />
       </div>
 
       {/* Selection toolbar — only visible once something is ticked.
           Matches the template list pattern so bulk actions feel
           consistent across the app. */}
       {selected.size > 0 && (
-        <div
-          className="flex items-center gap-3 rounded-lg px-4 py-2 border"
-          style={{ backgroundColor: 'var(--theme-primary-light)', borderColor: 'var(--theme-primary)' }}
-        >
-          <span className="text-sm font-medium" style={{ color: 'var(--theme-primary-text)' }}>
-            {selected.size} selected
+        <div className="flex items-center gap-3 rounded-lg bg-primary-wash px-4 py-2">
+          <span className="num text-ui font-medium text-primary-text">
+            {formatCount(selected.size)} selected
           </span>
-          <button
-            onClick={() => setSelected(new Set())}
-            className="text-[11px] hover:underline"
-            style={{ color: 'var(--theme-primary-text)' }}
-          >
+          <Button variant="link" size="sm" onClick={() => setSelected(new Set())}>
             Clear
-          </button>
+          </Button>
           <div className="flex-1" />
-          <ExportAssetButton ids={[...selected]} name={`${selected.size} business rule${selected.size === 1 ? '' : 's'}`} className="!h-7 !text-[11px]" />
+          <ExportAssetButton ids={[...selected]} name={plural(selected.size, 'business rule')} />
           <Button
             size="sm"
+            variant="danger"
+            leadingIcon={<Trash2 />}
             onClick={() => setShowBulkDelete(true)}
-            className="!bg-red-600 hover:!bg-red-700 !text-white h-7 text-[11px]"
           >
-            <Trash2 size={12} className="mr-1" /> Delete {selected.size}
+            Delete {selected.size}
           </Button>
         </div>
       )}
 
-      <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="num text-xs text-fg-muted">
         {sorted.length === tables.length
-          ? `${tables.length} business rule${tables.length !== 1 ? 's' : ''}`
-          : `${sorted.length} of ${tables.length} business rules match`}
+          ? plural(tables.length, 'business rule')
+          : `${formatCount(sorted.length)} of ${plural(tables.length, 'business rule')} match`}
       </p>
 
       {sorted.length === 0 ? (
         <EmptyState
           icon={GitBranch}
+          variant={search || filterMode !== 'all' ? 'no-results' : 'first-run'}
           title={search || filterMode !== 'all' ? 'No business rules found' : 'No business rules yet'}
           description={search || filterMode !== 'all' ? 'Try a different search term or filter.' : 'Create your first decision table to model approvals, routing logic, and policy rules.'}
         />
       ) : viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {pageRows.map((table) => {
             const isSelected = selected.has(table.id)
             return (
-              <div
+              <Card
                 key={table.id}
-                className={cn('rounded-xl border p-4 space-y-3 relative', isSelected && 'ring-2')}
-                style={{
-                  borderColor: isSelected ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-                  backgroundColor: 'var(--theme-card-bg)',
-                  ...(isSelected ? { boxShadow: '0 0 0 2px var(--theme-primary-light)' } : {}),
-                }}
+                padding="md"
+                data-selected={isSelected || undefined}
+                className={cn('group/card relative space-y-3 transition-colors hover:border-border-strong', isSelected && 'border-primary bg-primary-wash')}
               >
-                <button
-                  onClick={() => toggleSelect(table.id)}
-                  className="absolute top-3 left-3 z-10"
-                  title={isSelected ? 'Deselect' : 'Select'}
-                  style={{ color: isSelected ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-                >
-                  {isSelected ? <CheckSquare size={15} /> : <Square size={15} />}
-                </button>
-                <div className="flex items-start justify-between gap-3 pl-7">
-                  <div className="min-w-0">
-                    <Link href={`/automations/rules/${table.id}`} className="text-sm font-semibold hover:underline" style={{ color: 'var(--theme-card-text)' }}>
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => toggleSelect(table.id)}
+                    aria-label={isSelected ? 'Deselect' : 'Select'}
+                    className={cn('mt-0.5 transition-opacity', !isSelected && 'opacity-0 focus-visible:opacity-100 group-hover/card:opacity-100 [@media(pointer:coarse)]:opacity-100')}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/automations/rules/${table.id}`} className="block truncate text-sm font-semibold text-fg hover:underline">
                       {table.name}
                     </Link>
-                    <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="mt-1 line-clamp-2 text-xs text-fg-muted">
                       {table.description || 'No description yet.'}
                     </p>
                   </div>
-                  <ExportAssetButton ids={[table.id]} name={table.name} iconOnly variant="ghost" className="!h-auto !p-1.5" style={{ color: 'var(--theme-muted-text)' }} />
-                  <button
-                    onClick={() => handleDelete(table.id, table.name)}
-                    className="p-1.5 rounded hover:bg-red-50 transition-colors"
-                    title="Delete business rule"
-                  >
-                    <Trash2 size={13} className="text-red-400" />
-                  </button>
+                  <div className="flex shrink-0 items-center">
+                    <ExportAssetButton ids={[table.id]} name={table.name} iconOnly variant="ghost" size="icon" className="size-7 text-fg-muted" />
+                    <IconButton
+                      size="sm"
+                      variant="danger-ghost"
+                      label="Delete business rule"
+                      icon={<Trash2 />}
+                      onClick={() => handleDelete(table.id, table.name)}
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <MetricCard label="Inputs" value={table.inputs?.length ?? 0} />
-                  <MetricCard label="Outputs" value={table.outputs?.length ?? 0} />
-                  <MetricCard label="Rules" value={table.rules?.length ?? 0} />
-                </div>
+                <Card variant="inset" padding="sm" className="grid grid-cols-3 gap-2 text-center">
+                  <Metric label="Inputs" value={table.inputs?.length ?? 0} />
+                  <Metric label="Outputs" value={table.outputs?.length ?? 0} />
+                  <Metric label="Rules" value={table.rules?.length ?? 0} />
+                </Card>
 
-                <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-                  <span>Updated {formatRelativeDate(table.updated_at ?? table.created_at)}</span>
-                  <Button asChild size="sm" className="h-7 text-[11px] px-2.5">
+                <div className="flex items-center justify-between text-xs text-fg-muted">
+                  <span>Updated <UpdatedAt value={table.updated_at ?? table.created_at} /></span>
+                  <Button asChild size="sm" variant="secondary">
                     <Link href={`/automations/rules/${table.id}`}>Open</Link>
                   </Button>
                 </div>
-              </div>
+              </Card>
             )
           })}
         </div>
       ) : (
-        <div className="rounded-xl border overflow-hidden max-lg:overflow-x-auto" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          <div
-            className="max-lg:min-w-[760px] grid grid-cols-[32px_minmax(0,2.3fr)_110px_110px_100px_150px_124px] gap-3 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-          >
-            <button
-              onClick={toggleSelectPage}
-              title={allPageSelected ? 'Deselect all on page' : 'Select all on page'}
-              style={{ color: allPageSelected ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-            >
-              {allPageSelected ? <CheckSquare size={13} /> : <Square size={13} />}
-            </button>
-            <div>Business Rule</div>
-            <div>Inputs</div>
-            <div>Outputs</div>
-            <div>Rules</div>
-            <div>Updated</div>
-            <div>Actions</div>
-          </div>
-          {pageRows.map((table) => {
-            const isSelected = selected.has(table.id)
-            return (
-              <div
-                key={table.id}
-                className="max-lg:min-w-[760px] grid grid-cols-[32px_minmax(0,2.3fr)_110px_110px_100px_150px_124px] gap-3 px-4 py-3 items-center border-t"
-                style={{
-                  borderColor: 'var(--theme-surface-border)',
-                  backgroundColor: isSelected ? 'var(--theme-primary-light)' : undefined,
-                }}
-              >
-                <button
-                  onClick={() => toggleSelect(table.id)}
-                  title={isSelected ? 'Deselect' : 'Select'}
-                  style={{ color: isSelected ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-                >
-                  {isSelected ? <CheckSquare size={13} /> : <Square size={13} />}
-                </button>
-                <div className="min-w-0">
-                  <Link href={`/automations/rules/${table.id}`} className="text-sm font-semibold hover:underline" style={{ color: 'var(--theme-card-text)' }}>
-                    {table.name}
-                  </Link>
-                  <p className="text-xs mt-1 truncate" style={{ color: 'var(--theme-muted-text)' }}>
-                    {table.description || 'No description yet.'}
-                  </p>
-                </div>
-                <div className="text-sm" style={{ color: 'var(--theme-card-text)' }}>{table.inputs?.length ?? 0}</div>
-                <div className="text-sm" style={{ color: 'var(--theme-card-text)' }}>{table.outputs?.length ?? 0}</div>
-                <div className="text-sm" style={{ color: 'var(--theme-card-text)' }}>{table.rules?.length ?? 0}</div>
-                <div className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                  {formatRelativeDate(table.updated_at ?? table.created_at)}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button asChild size="sm" variant="outline" className="h-7 text-[11px] px-2.5">
-                    <Link href={`/automations/rules/${table.id}`}>Open</Link>
-                  </Button>
-                  <ExportAssetButton ids={[table.id]} name={table.name} iconOnly variant="ghost" className="!h-auto !p-1.5" style={{ color: 'var(--theme-muted-text)' }} />
-                  <button
-                    onClick={() => handleDelete(table.id, table.name)}
-                    className="p-1.5 rounded hover:bg-red-50 transition-colors"
-                    title="Delete business rule"
-                  >
-                    <Trash2 size={13} className="text-red-400" />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <Table className="min-w-[760px]">
+          <THead>
+            <tr>
+              <TH className="w-10">
+                <Checkbox
+                  checked={allPageSelected}
+                  onChange={toggleSelectPage}
+                  aria-label={allPageSelected ? 'Deselect all on page' : 'Select all on page'}
+                />
+              </TH>
+              <TH>Business rule</TH>
+              <TH numeric className="w-24">Inputs</TH>
+              <TH numeric className="w-24">Outputs</TH>
+              <TH numeric className="w-24">Rules</TH>
+              <TH className="w-36">Updated</TH>
+              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+            </tr>
+          </THead>
+          <TBody>
+            {pageRows.map((table) => {
+              const isSelected = selected.has(table.id)
+              return (
+                <TR key={table.id} selected={isSelected}>
+                  <TD className="w-10">
+                    <Checkbox
+                      checked={isSelected}
+                      onChange={() => toggleSelect(table.id)}
+                      aria-label={isSelected ? 'Deselect' : 'Select'}
+                      className={cn('transition-opacity', !isSelected && 'opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100 [@media(pointer:coarse)]:opacity-100')}
+                    />
+                  </TD>
+                  <TD className="max-w-0 py-2">
+                    <Link href={`/automations/rules/${table.id}`} className="block truncate font-medium text-fg hover:underline">
+                      {table.name}
+                    </Link>
+                    <p className="truncate text-xs text-fg-muted">
+                      {table.description || 'No description yet.'}
+                    </p>
+                  </TD>
+                  <TD numeric>{table.inputs?.length ?? 0}</TD>
+                  <TD numeric>{table.outputs?.length ?? 0}</TD>
+                  <TD numeric>{table.rules?.length ?? 0}</TD>
+                  <TD className="text-xs text-fg-muted">
+                    <UpdatedAt value={table.updated_at ?? table.created_at} />
+                  </TD>
+                  <TDActions>
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/automations/rules/${table.id}`}>Open</Link>
+                    </Button>
+                    <ExportAssetButton ids={[table.id]} name={table.name} iconOnly variant="ghost" size="icon" className="size-7 text-fg-muted" />
+                    <IconButton
+                      size="sm"
+                      variant="danger-ghost"
+                      label="Delete business rule"
+                      icon={<Trash2 />}
+                      onClick={() => handleDelete(table.id, table.name)}
+                    />
+                  </TDActions>
+                </TR>
+              )
+            })}
+          </TBody>
+        </Table>
       )}
 
-      {/* Pagination footer */}
       {sorted.length > 0 && (
-        <div
-          className="flex items-center justify-between px-3 py-2 rounded-lg border text-[11px]"
-          style={{
-            borderColor: 'var(--theme-surface-border)',
-            backgroundColor: 'var(--theme-card-bg)',
-            color: 'var(--theme-muted-text)',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span>
-              Showing {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sorted.length)} of {sorted.length}
-            </span>
-            <span>·</span>
-            <label className="flex items-center gap-1">
-              Rows per page
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded border px-1.5 py-0.5 text-[11px]"
-                style={{
-                  borderColor: 'var(--theme-surface-border)',
-                  backgroundColor: 'var(--theme-card-bg)',
-                  color: 'var(--theme-card-text)',
-                }}
-              >
-                {[12, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </label>
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={safePage === 1}
-                className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-              >‹ Prev</button>
-              <span className="px-2">Page {safePage} of {totalPages}</span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safePage === totalPages}
-                className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-              >Next ›</button>
-            </div>
-          )}
-        </div>
+        <Pagination
+          page={safePage}
+          pageSize={pageSize}
+          total={sorted.length}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          showPageNumbers
+          noun="business rules"
+        />
       )}
 
       {/* Bulk delete confirmation */}
-      <Dialog.Root open={showBulkDelete} onOpenChange={(open) => { if (!open) { setShowBulkDelete(false) } }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50 dialog-overlay" />
-          <Dialog.Content
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(24rem,92vw)] rounded-xl p-6 shadow-xl dialog-content"
-            style={{ backgroundColor: 'var(--theme-card-bg)' }}
-          >
-            <Dialog.Title className="text-lg font-semibold mb-2" style={{ color: 'var(--theme-card-text)' }}>
-              Delete {selected.size} Business Rule{selected.size !== 1 ? 's' : ''}
-            </Dialog.Title>
-            <p className="text-sm mb-1" style={{ color: 'var(--theme-muted-text)' }}>
-              Are you sure you want to delete {selected.size} selected business rule{selected.size !== 1 ? 's' : ''}?
-            </p>
-            <p className="text-xs mb-4" style={{ color: 'var(--theme-danger, #DC2626)' }}>
-              <AlertTriangle size={11} className="inline mr-1" /> This will permanently delete the decision tables and all their rules.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setShowBulkDelete(false) }}
-              >Cancel</Button>
-              <Button
-                size="sm"
-                onClick={handleBulkDelete}
-                disabled={bulkDeleting}
-                className="!bg-red-600 hover:!bg-red-700 !text-white"
-              >
-                {bulkDeleting ? `Deleting (${selected.size})...` : `Delete ${selected.size}`}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Dialog open={showBulkDelete} onOpenChange={(open) => { if (!open) { setShowBulkDelete(false) } }}>
+        <DialogContent
+          size="sm"
+          title={`Delete ${plural(selected.size, 'business rule')}`}
+          description={`Are you sure you want to delete ${plural(selected.size, 'selected business rule')}?`}
+        >
+          <DialogBody>
+            <InlineNotice tone="danger" message="This will permanently delete the decision tables and all their rules." />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setShowBulkDelete(false) }}>Cancel</Button>
+            <Button variant="danger" onClick={handleBulkDelete} disabled={bulkDeleting} loading={bulkDeleting}>
+              Delete {selected.size}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+const SORT_LABELS: Record<SortField, string> = { name: 'Name', inputs: 'Inputs', outputs: 'Outputs', updated_at: 'Updated' }
+
+function UpdatedAt({ value }: { value: string }) {
   return (
-    <div className="rounded-lg px-2 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-      <p className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>{value}</p>
-      <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{label}</p>
+    <Tooltip content={formatAbsolute(value)}>
+      <span className="num">{formatRelative(value)}</span>
+    </Tooltip>
+  )
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="num text-sm font-semibold text-fg">{value}</p>
+      <p className="text-2xs text-fg-muted">{label}</p>
     </div>
   )
 }

@@ -1,0 +1,43 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "d512ef42-9771-54e5-aa14-5206ea17ed96",
+  "asset": {
+    "id": "d512ef42-9771-54e5-aa14-5206ea17ed96",
+    "name": "Survey responses by month",
+    "description": "Responses and average rating per month from the survey runs (workflow variables).",
+    "category": "Customer satisfaction",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "a6531735-7719-5383-bd5f-ca58cc2ef247"
+      },
+      "columns": [
+        "vars.month",
+        "AVG_vars.form.overall",
+        "AVG_vars.nps_points",
+        "_count"
+      ],
+      "group_by": [
+        "vars.month"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.form.overall"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.nps_points"
+        }
+      ],
+      "sort": {
+        "field": "vars.month",
+        "direction": "asc"
+      },
+      "visualization": "line"
+    }
+  }
+}

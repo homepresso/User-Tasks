@@ -16,3 +16,11 @@ export function isCiphertext(value: unknown): boolean {
 export function containsCiphertext(text: string): boolean {
   return /enc:v\d+:/.test(text)
 }
+
+/** The placeholder edit UIs receive instead of a stored secret ('__SECRET__'). */
+export const MASKED_SECRET = '__SECRET__'
+
+/** A stored secret the browser cannot read (ciphertext or the '__SECRET__' mask) — never validate its format. */
+export function isMaskedSecret(value: unknown): boolean {
+  return value === MASKED_SECRET || isCiphertext(value)
+}

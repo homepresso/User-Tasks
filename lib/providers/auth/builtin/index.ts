@@ -5,7 +5,7 @@ import { getProviderConfig } from '@/lib/config'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
 import type { ProviderId } from '@/lib/config/schema'
 import { rateLimit as countHit } from '@/lib/rate-limit'
-import { authCookieOptions, SESSION_COOKIE_NAMES, sessionCookieName, ssoFlowCookieName } from '../cookies'
+import { authCookieOptions, requestCookieDomain, SESSION_COOKIE_NAMES, sessionCookieName, ssoFlowCookieName } from '../cookies'
 import { dbIdentityFor, mintSupabaseAccessToken } from '../db-identity'
 import { authSettings, type AuthSettings } from '../options'
 import { onUserCreated } from '../provisioning'
@@ -70,22 +70,32 @@ async function cookieStore() {
   return cookies()
 }
 
+/**
+ * Set the session cookie: shared across the workspace subdomains when the
+ * request is on the base domain (`__Secure-ut_session; Domain=<base>`), else
+ * host-only (lib/providers/auth/cookies.ts). The other spellings are cleared.
+ */
 async function setSessionCookie(token: string, expiresAt: Date): Promise<void> {
   const store = await cookieStore()
-  const name = sessionCookieName()
-  for (const other of SESSION_COOKIE_NAMES) if (other !== name) store.delete(other)
-  store.set(name, token, authCookieOptions((expiresAt.getTime() - Date.now()) / 1000))
+  const domain = await requestCookieDomain()
+  const name = sessionCookieName(undefined, Boolean(domain))
+  for (const other of SESSION_COOKIE_NAMES) if (other !== name) clearOne(store, other, other === '__Secure-ut_session' ? domain : undefined)
+  store.set(name, token, authCookieOptions((expiresAt.getTime() - Date.now()) / 1000, name === '__Secure-ut_session' ? domain : undefined))
 }
 
+function clearOne(store: Awaited<ReturnType<typeof cookieStore>>, name: string, domain: string | undefined) {
+  try {
+    store.set(name, '', { ...authCookieOptions(0, domain), secure: name.startsWith('__') || authCookieOptions().secure })
+  } catch {
+    // Server Component render: cookies are read-only there.
+  }
+}
+
+/** Clear every spelling: the shared cookie (on its Domain, so every subdomain is signed out) and the host-only ones. */
 async function clearSessionCookie(): Promise<void> {
   const store = await cookieStore()
-  for (const name of SESSION_COOKIE_NAMES) {
-    try {
-      store.set(name, '', { ...authCookieOptions(0), secure: name.startsWith('__Host-') || authCookieOptions().secure })
-    } catch {
-      // Server Component render: cookies are read-only there.
-    }
-  }
+  const domain = await requestCookieDomain()
+  for (const name of SESSION_COOKIE_NAMES) clearOne(store, name, name === '__Secure-ut_session' ? domain : undefined)
 }
 
 async function sessionToken(): Promise<string | null> {

@@ -15,6 +15,7 @@ export type NodeType =
   | 'middleware_received'
   | 'schedule'
   | 'webhook_received'
+  | 'esign_event'
   // Logic & Flow
   | 'condition'
   | 'switch_case'
@@ -52,6 +53,7 @@ export type NodeType =
   | 'call_reference'
   | 'custom_activity'
   | 'create_subtask'
+  | 'add_task_attachment'
   | 'auto_action'
   | 'http_request'
   | 'log'
@@ -75,6 +77,19 @@ export type NodeType =
   | 'doc_extract'
   | 'doc_redact'
   | 'doc_inspect'
+  // Media (images, audio, video)
+  | 'media_transcribe'
+  | 'media_analyze_image'
+  | 'media_analyze_video'
+  | 'media_redact_image'
+  | 'media_redact_video'
+  | 'media_generate_image'
+  | 'media_tts'
+  | 'media_tools'
+  // E-signature
+  | 'esign_send'
+  | 'esign_envelope'
+  | 'esign_wait'
   // Sub-workflow
   | 'call_sub_workflow'
   | 'decision_table'
@@ -146,11 +161,11 @@ export const NODE_CATALOG: {
 }[] = [
   // ─── Triggers ───
   { type: 'task_created', label: 'Task Created', icon: 'Plus', category: 'trigger', color: '#22C55E', description: 'When a new task is created' },
-  { type: 'task_received', label: 'Task Received', icon: 'Inbox', category: 'trigger', color: '#22C55E', description: 'When a task lands in the queue' },
+  { type: 'task_received', label: 'Task Received', icon: 'Inbox', category: 'trigger', color: '#22C55E', description: 'When a task is assigned (queued or added)' },
   { type: 'task_submitted', label: 'Task Submitted', icon: 'Send', category: 'trigger', color: '#22C55E', description: 'When a task is accepted' },
   { type: 'task_updated', label: 'Task Updated', icon: 'RefreshCw', category: 'trigger', color: '#22C55E', description: 'When a task is modified' },
   { type: 'task_completed', label: 'Task Completed', icon: 'CheckCircle', category: 'trigger', color: '#22C55E', description: 'When a task is completed' },
-  { type: 'task_rejected', label: 'Task Rejected', icon: 'XCircle', category: 'trigger', color: '#EF4444', description: 'When a task is rejected from the queue' },
+  { type: 'task_rejected', label: 'Task Rejected', icon: 'XCircle', category: 'trigger', color: '#EF4444', description: 'When an assignee declines a queued task' },
   { type: 'workflow_error', label: 'Workflow Error', icon: 'AlertTriangle', category: 'trigger', color: '#EF4444', description: 'When any workflow fails with an error' },
   { type: 'workflow_sla', label: 'Workflow SLA', icon: 'Siren', category: 'trigger', color: '#F59E0B', description: 'When a workflow SLA is nearing or breached' },
   { type: 'retention_policy_review', label: 'Policy Review', icon: 'Archive', category: 'trigger', color: '#22C55E', description: 'When a retention policy review becomes due' },
@@ -160,6 +175,7 @@ export const NODE_CATALOG: {
   { type: 'middleware_received', label: 'Middleware', icon: 'Globe', category: 'trigger', color: '#22C55E', description: 'Receive a webhook and return a workflow response synchronously' },
   { type: 'schedule', label: 'Schedule', icon: 'Clock', category: 'trigger', color: '#22C55E', description: 'Run on a schedule' },
   { type: 'webhook_received', label: 'Webhook', icon: 'Globe', category: 'trigger', color: '#22C55E', description: 'Triggered by an incoming webhook' },
+  { type: 'esign_event', label: 'E-signature Event', icon: 'Signature', category: 'trigger', color: '#22C55E', description: 'When an envelope is completed, signed by a recipient, declined, voided or expires (DocuSign, Adobe Acrobat Sign, Dropbox Sign …)' },
   // ─── Logic & Flow ───
   { type: 'condition', label: 'Branch by Condition', icon: 'GitBranch', category: 'logic', color: '#F59E0B', description: 'If/else if/else branching' },
   { type: 'switch_case', label: 'Branch by Value', icon: 'GitMerge', category: 'logic', color: '#F59E0B', description: 'Multi-way branch on a value' },
@@ -196,8 +212,9 @@ export const NODE_CATALOG: {
   { type: 'update_data_table', label: 'Data', icon: 'Database', category: 'action', color: '#3B82F6', description: 'Query, insert, update, or delete data store rows' },
   { type: 'retention_policies', label: 'Retention Policies', icon: 'ArchiveRestore', category: 'action', color: '#3B82F6', description: 'Create, assign, and inspect retention policies and their assets' },
   { type: 'call_reference', label: 'Call API / Reference', icon: 'Globe', category: 'action', color: '#3B82F6', description: 'Execute an API reference' },
-  { type: 'custom_activity', label: 'Custom Activity', icon: 'Puzzle', category: 'action', color: '#0EA5E9', description: 'Run uploaded custom workflow code with typed inputs and outputs' },
+  { type: 'custom_activity', label: 'Custom Action', icon: 'Puzzle', category: 'action', color: '#0EA5E9', description: 'Run a custom workflow action (sandboxed code with typed inputs and outputs) from Extensibility' },
   { type: 'create_subtask', label: 'Create Subtask', icon: 'ListPlus', category: 'action', color: '#3B82F6', description: 'Add a subtask' },
+  { type: 'add_task_attachment', label: 'Add Task Attachment', icon: 'FileUp', category: 'action', color: '#3B82F6', description: "Attach a generated or downloaded file to a task's Attachments tab" },
   { type: 'auto_action', label: 'Auto Action', icon: 'Zap', category: 'action', color: '#3B82F6', description: 'Set status, outcome, acceptance' },
   { type: 'http_request', label: 'HTTP Request', icon: 'Send', category: 'action', color: '#3B82F6', description: 'Make HTTP call' },
   { type: 'log', label: 'Log', icon: 'FileText', category: 'action', color: '#3B82F6', description: 'Write audit log' },
@@ -219,8 +236,21 @@ export const NODE_CATALOG: {
   { type: 'doc_convert', label: 'Convert Document', icon: 'FileOutput', category: 'operation', color: '#0F766E', description: 'Convert between PDF, Word, HTML, Markdown, text, CSV, Excel and JSON' },
   { type: 'doc_pdf', label: 'PDF Tools', icon: 'FileStack', category: 'operation', color: '#B91C1C', description: 'Merge, split, extract pages, watermark, rotate, fill or read PDF forms' },
   { type: 'doc_extract', label: 'Extract from Document', icon: 'ScanText', category: 'operation', color: '#0F766E', description: 'Tables, key values, emails, dates and amounts — optionally into a data table' },
-  { type: 'doc_redact', label: 'Redact Document', icon: 'EyeOff', category: 'operation', color: '#0F766E', description: 'Remove emails, phone and card numbers, IBANs and custom terms from a copy' },
+  { type: 'doc_redact', label: 'Redact Document', icon: 'EyeOff', category: 'operation', color: '#0F766E', description: 'Find or remove sensitive information (IDs, dates of birth, card and bank numbers…) and custom terms' },
   { type: 'doc_inspect', label: 'Inspect Document', icon: 'FileScan', category: 'operation', color: '#0F766E', description: 'File type, checksum, word counts and search with context' },
+  // ─── Media (images, audio, video) ───
+  { type: 'media_transcribe', label: 'Transcribe Audio / Video', icon: 'Captions', category: 'operation', color: '#C026D3', description: 'Speech to text with timestamps, speakers and SRT / VTT files (your AI provider)' },
+  { type: 'media_analyze_image', label: 'Analyze Image', icon: 'ScanEye', category: 'operation', color: '#C026D3', description: 'Describe, label, read text, find faces and check safety in an image' },
+  { type: 'media_analyze_video', label: 'Analyze Video', icon: 'Film', category: 'operation', color: '#C026D3', description: 'Summary, scenes with timestamps, labels, on-screen text and key frames' },
+  { type: 'media_redact_image', label: 'Redact Image', icon: 'ScanFace', category: 'operation', color: '#C026D3', description: 'Blur, pixelate or box faces, license plates and sensitive text in an image' },
+  { type: 'media_redact_video', label: 'Redact Video', icon: 'VideoOff', category: 'operation', color: '#C026D3', description: 'Blur faces, plates and text over time; bleep or mute sensitive speech' },
+  { type: 'media_generate_image', label: 'Generate / Edit Image', icon: 'ImagePlus', category: 'operation', color: '#C026D3', description: 'Create an image from a prompt, or edit one with a mask' },
+  { type: 'media_tts', label: 'Text to Speech', icon: 'AudioLines', category: 'operation', color: '#C026D3', description: 'Turn text into an audio file in a chosen voice' },
+  { type: 'media_tools', label: 'Media Utilities', icon: 'Clapperboard', category: 'operation', color: '#C026D3', description: 'Media info, extract audio or frames, thumbnail, trim, convert, compress, burn in subtitles' },
+  // ─── E-signature ───
+  { type: 'esign_send', label: 'Send for Signature', icon: 'FileSignature', category: 'action', color: '#7C3AED', description: 'Send documents or a provider template for e-signature (DocuSign, Adobe Acrobat Sign, Dropbox Sign, PandaDoc, SignNow, BoldSign)' },
+  { type: 'esign_wait', label: 'Wait for Signature', icon: 'Hourglass', category: 'action', color: '#7C3AED', description: 'Pause until the envelope is completed, declined, voided or expires; store the signed PDF' },
+  { type: 'esign_envelope', label: 'E-signature Envelope', icon: 'FileCheck', category: 'action', color: '#7C3AED', description: 'Envelope status, download signed document / certificate, void, embedded signing URL, list templates' },
   // ─── Sub-workflow ───
   { type: 'call_sub_workflow', label: 'Call Sub Workflow', icon: 'GitMerge', category: 'action', color: '#6366F1', description: 'Execute another workflow as a sub-process' },
   { type: 'decision_table', label: 'Decision Table', icon: 'Scale', category: 'action', color: '#0EA5E9', description: 'Evaluate a business rule / decision table and return outputs' },
@@ -242,6 +272,56 @@ export const NODE_CATALOG: {
   { type: 'section_group', label: 'Section', icon: 'FolderOpen', category: 'section', color: '#6366F1', description: 'Group activities into a collapsible section' },
   { type: 'live_reference', label: 'Live Reference', icon: 'RefreshCw', category: 'section', color: '#10B981', description: 'Fetch fresh data on demand when variables are referenced' },
 ]
+
+// ─── Node colour category (design system, docs/design/ui-polish-spec.md §5.5) ───
+// The catalog's `color` stays as the legacy fallback (MCP descriptions, tests,
+// stored `node_color` overrides). Cards, palette and minimap take their colour
+// from the node's colour category instead, which resolves to a theme token so
+// every workspace theme (light and dark) recolours the canvas.
+
+/** Colour category of a step: what kind of work it does, not where it sits in the palette. */
+export type NodeColorCategory = 'trigger' | 'action' | 'logic' | 'human' | 'ai' | 'data' | 'end'
+
+export const NODE_COLOR_CATEGORIES: readonly NodeColorCategory[] = ['trigger', 'action', 'logic', 'human', 'ai', 'data', 'end']
+
+/**
+ * Theme chart slot behind each category (`--theme-chart-N`, from the theme's
+ * chart palette). The six spec categories take slots 1–6; `data` (value,
+ * collection, file and document operations) takes slot 7.
+ */
+export const NODE_COLOR_CHART_SLOT: Record<NodeColorCategory, number> = {
+  human: 1, trigger: 2, action: 3, end: 4, logic: 5, ai: 6, data: 7,
+}
+
+const HUMAN_TYPES = new Set<string>(['user_task', 'esign_send', 'esign_wait', 'esign_envelope'])
+const LOGIC_ACTION_TYPES = new Set<string>(['decision_table'])
+
+/** The colour category of a node type (unknown types read as actions). */
+export function nodeColorCategory(type: string): NodeColorCategory {
+  if (type === 'end_workflow') return 'end'
+  if (HUMAN_TYPES.has(type)) return 'human'
+  if (type === 'run_agent' || type.startsWith('media_')) return 'ai'
+  if (LOGIC_ACTION_TYPES.has(type)) return 'logic'
+  const category = NODE_CATALOG.find((n) => n.type === type)?.category
+  switch (category) {
+    case 'trigger': return 'trigger'
+    case 'logic': return 'logic'
+    case 'operation':
+    case 'collection': return 'data'
+    case 'section': return type === 'section_group' ? 'logic' : 'data'
+    default: return 'action'
+  }
+}
+
+/** CSS colour of a category: `--ds-node-<category>`, falling back to its theme chart slot. */
+export function nodeColorVar(category: NodeColorCategory): string {
+  return `var(--ds-node-${category}, var(--theme-chart-${NODE_COLOR_CHART_SLOT[category]}))`
+}
+
+/** Text-legible variant of a category's colour (AA on the card background). */
+export function nodeColorTextVar(category: NodeColorCategory): string {
+  return `var(--ds-node-${category}-text, var(--theme-chart-${NODE_COLOR_CHART_SLOT[category]}-text))`
+}
 
 export function createDefaultNode(type: NodeType, x: number = 250, y: number = 100): WorkflowNode {
   const catalog = NODE_CATALOG.find(n => n.type === type)

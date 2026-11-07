@@ -1,0 +1,664 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "33312887-82dc-5aa8-92e5-5e123fca005c",
+  "asset": {
+    "id": "33312887-82dc-5aa8-92e5-5e123fca005c",
+    "name": "Training feedback and quiz",
+    "description": "The learner gives feedback on the course (trainer and content ratings, a Likert matrix on course quality), answers a six-question quiz and signs an attestation. Each submission starts the Quiz submitted workflow.",
+    "tags": [
+      "training",
+      "quiz",
+      "learning"
+    ],
+    "fields": [
+      {
+        "key": "course",
+        "label": "Course",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by code or title.",
+        "lookup": {
+          "source": "table",
+          "table_id": "b763c481-c305-51cd-b2ff-ecebd67f8608",
+          "search_columns": [
+            "course_code",
+            "title",
+            "topic"
+          ],
+          "display_columns": [
+            "title",
+            "course_code",
+            "trainer"
+          ],
+          "value_column": "course_code",
+          "fill": [
+            {
+              "from": "title",
+              "to": "course_title"
+            },
+            {
+              "from": "trainer",
+              "to": "trainer"
+            },
+            {
+              "from": "pass_mark",
+              "to": "pass_mark"
+            },
+            {
+              "from": "validity_months",
+              "to": "validity_months"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "course_code",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "course_title",
+        "label": "Course title",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "trainer",
+        "label": "Trainer",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "pass_mark",
+        "label": "Pass mark (%)",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "validity_months",
+        "label": "Certificate valid for (months)",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "learner_name",
+        "label": "Your name (as it should appear on the certificate)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "completed_on",
+        "label": "Training completed on",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "trainer_rating",
+        "type": "custom",
+        "label": "How would you rate the trainer?",
+        "custom": {
+          "tag": "ut-rating",
+          "version": "1.1.0",
+          "name": "Rating",
+          "value_type": "number",
+          "icon": "star",
+          "value_schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "props": {
+            "max": 5,
+            "symbol": "star",
+            "size": "large",
+            "labels": [
+              "Poor",
+              "Fair",
+              "Good",
+              "Very good",
+              "Excellent"
+            ],
+            "allow_clear": true
+          },
+          "display": {
+            "template": "{{value}} of {{props.max}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 52,
+            "min_height": 36,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The rating (1 to the maximum)"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "content_rating",
+        "type": "custom",
+        "label": "How would you rate the course content?",
+        "custom": {
+          "tag": "ut-rating",
+          "version": "1.1.0",
+          "name": "Rating",
+          "value_type": "number",
+          "icon": "star",
+          "value_schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "props": {
+            "max": 5,
+            "symbol": "star",
+            "size": "large",
+            "labels": [
+              "Poor",
+              "Fair",
+              "Good",
+              "Very good",
+              "Excellent"
+            ],
+            "allow_clear": true
+          },
+          "display": {
+            "template": "{{value}} of {{props.max}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 52,
+            "min_height": 36,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The rating (1 to the maximum)"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "quality",
+        "type": "custom",
+        "label": "About the course",
+        "custom": {
+          "tag": "ut-likert",
+          "version": "1.1.0",
+          "name": "Likert scale",
+          "value_type": "json",
+          "icon": "list-checks",
+          "value_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "props": {
+            "statements": [
+              "The course objectives were clear",
+              "The content is relevant to my job",
+              "The pace was about right",
+              "I can apply what I learned straight away"
+            ],
+            "scale": "agree5",
+            "show_na": false,
+            "all_required": true
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 246,
+            "min_height": 80,
+            "max_height": 2000,
+            "full_width": true
+          },
+          "output": {
+            "type": "object",
+            "description": "One number per statement (0 = N/A), keyed by the statement"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "feedback",
+        "label": "Anything we should improve?",
+        "type": "textarea"
+      },
+      {
+        "key": "quiz_intro",
+        "label": "Information security basics: six questions",
+        "type": "heading",
+        "help_text": "Pick one answer for each question. The pass mark is shown on the first step."
+      },
+      {
+        "key": "q1",
+        "label": "An email that looks like it is from IT asks you to confirm your password through a link. What do you do?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Click the link and confirm it",
+          "Reply with your password",
+          "Report it as phishing and delete it",
+          "Forward it to colleagues to check"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "q2",
+        "label": "Which of these is the strongest password?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Summer2026!",
+          "P@ssw0rd1",
+          "A long passphrase of four or more random words",
+          "Your pet name and birth year"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "q3",
+        "label": "You find a USB stick in the car park. What do you do?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Plug it in to find the owner",
+          "Hand it to IT or security without plugging it in",
+          "Keep it for your own files",
+          "Plug it into a spare laptop"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "q4",
+        "label": "When should you lock your computer screen?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Only at the end of the day",
+          "Whenever you leave your desk",
+          "Only when working in public",
+          "Never, it slows you down"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "q5",
+        "label": "Your phone asks you to approve a sign-in (MFA) that you did not start. What do you do?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Approve it to stop the prompts",
+          "Deny it and report it to IT or security",
+          "Ignore it",
+          "Turn off multi-factor authentication"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "q6",
+        "label": "Where may you store customer data?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "In personal cloud storage",
+          "Only in approved company systems",
+          "On a USB stick",
+          "In your personal email"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "attest",
+        "label": "I completed this training and the quiz myself, without help from anyone else",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "signature",
+        "type": "custom",
+        "label": "Your signature",
+        "custom": {
+          "tag": "ut-signature",
+          "version": "1.1.0",
+          "name": "Signature",
+          "value_type": "files",
+          "icon": "signature",
+          "value_schema": {
+            "type": "array",
+            "maxItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "type": {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          "props": {
+            "background": "white",
+            "height": 160,
+            "allow_typed": true,
+            "prompt": "Sign above to confirm"
+          },
+          "display": {
+            "format": "list"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the drawing area and the buttons. Keyboard users choose \"Type your name instead\", type their name and press Enter (or \"Use this signature\"). Undo removes the last stroke, Clear empties the pad, \"Sign again\" replaces a saved signature.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 222,
+            "min_height": 140,
+            "max_height": 640,
+            "full_width": true
+          },
+          "capabilities": [
+            "files"
+          ],
+          "output": {
+            "type": "array",
+            "description": "The signature image as an uploaded file (a list of one, like Attachments)"
+          }
+        },
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "page_1",
+          "title": "Course",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "course",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "course_title",
+                  "span": 1
+                },
+                {
+                  "field_key": "trainer",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "pass_mark",
+                  "span": 1
+                },
+                {
+                  "field_key": "validity_months",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "learner_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "completed_on",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "file-text",
+          "description": "Pick the course you completed."
+        },
+        {
+          "id": "page_2",
+          "title": "Feedback",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "trainer_rating",
+                  "span": 1
+                },
+                {
+                  "field_key": "content_rating",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "quality",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "feedback",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "star"
+        },
+        {
+          "id": "page_3",
+          "title": "Quiz",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "quiz_intro",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "q1",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "q2",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "q3",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "q4",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "q5",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "q6",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "list",
+          "description": "Six multiple-choice questions."
+        },
+        {
+          "id": "page_4",
+          "title": "Attestation",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "attest",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "signature",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "shield"
+        }
+      ],
+      "page_settings": {
+        "indicator": "numbered",
+        "review": true,
+        "review_title": "Check your answers",
+        "next_label": "Next",
+        "resume": true
+      }
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#1D4ED8",
+            "background": "#FFFFFF",
+            "text": "#13202B",
+            "page": "#E8EEFC",
+            "page_to": "#F7F9FF"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit my quiz",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Quiz submitted",
+            "screen_button": "submit_another",
+            "text": "Thanks {{learner_name}}. Your result is on its way by email.",
+            "screen_button_label": "Take another quiz"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Training feedback and quiz",
+      "align": "left",
+      "subtitle": "Tell us about the course, answer six questions and sign. Pass and your certificate is emailed to you straight away."
+    }
+  }
+}

@@ -1,0 +1,58 @@
+/*
+ * Marketing token block (ui-polish-spec §5.16): the public site's one palette.
+ *
+ * Public pages (landing, product pages, use cases, gallery, docs) use these
+ * through Tailwind's CSS-variable shorthand — `text-(color:--mkt-ink)`,
+ * `bg-(color:--mkt-paper)/90`, `border-(color:--mkt-ink)/[0.08]` — instead of
+ * hex literals. Every public root carries `className="mkt"`. The values are
+ * the Gallery preset's neutrals and brand colours (cream paper, ink, bronze),
+ * so the public site and the default workspace theme read as one brand.
+ */
+.mkt {
+  /* Ink and text, strongest to faintest */
+  --mkt-ink: #1B1916;
+  --mkt-ink-soft: #33302A;
+  --mkt-prose: #3D3932;
+  --mkt-text: #4A463E;
+  --mkt-muted-strong: #5C564C;
+  --mkt-muted: #6E6759;
+  --mkt-subtle: #857D6D;
+  --mkt-subtle-2: #A79B82;
+  --mkt-faint: #B9B2A3;
+
+  /* Primary (near-black) action */
+  --mkt-primary: #17150F;
+  --mkt-primary-hover: #2E2A24;
+
+  /* Brand: bronze text, gold accent */
+  --mkt-bronze: #8A6D45;
+  --mkt-gold: #B08A54;
+  --mkt-gold-deep: #A0804F;
+  --mkt-gold-light: #E2C9A0;
+
+  /* Signals */
+  --mkt-green: #4F7A5B;
+  --mkt-green-light: #7FA98A;
+  --mkt-coral: #D07A6A;
+  --mkt-red: #B23A2E;
+
+  /* Surfaces and hairlines */
+  --mkt-white: #FFFFFF;
+  --mkt-paper: #FAF8F3;
+  --mkt-canvas: #F5F2EA;
+  --mkt-sand: #F1EDE3;
+  --mkt-line: #E6E1D5;
+  --mkt-line-strong: #D8D1C2;
+
+  /* Code wells */
+  --mkt-code-bg: #1C1A16;
+  --mkt-code-text: #EDE8DC;
+}
+
+/* Marketing body copy: 17px / 28px, the one place above 16px (§5.16). */
+@layer utilities {
+  .mkt-body {
+    font-size: 17px;
+    line-height: 28px;
+  }
+}

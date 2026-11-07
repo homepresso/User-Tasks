@@ -1,14 +1,25 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useQuery } from '@tanstack/react-query'
 import { Play, X, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight, Copy, ClipboardCheck, Loader2, Zap, Plus, Trash2, PlayCircle, ListChecks, TriangleAlert, Maximize2, Minimize2, SlidersHorizontal, PauseCircle } from 'lucide-react'
 import { validateWorkflow } from '@/lib/workflow-validation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Badge, StatusPill } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { overlayClass } from '@/components/ui/dialog'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { formatCount } from '@/lib/format/number'
+import { formatDurationMs } from '@/lib/format/duration'
+import { plural } from '@/lib/format/plural'
 import { logStepId, RuntimeCanvas, StepChip } from './runtime-canvas'
 import { computeRunOverlay } from '@/lib/workflow-run-overlay'
 import { TaskFields } from '@/components/tasks/task-fields'
+import { FormBarRegistration } from '@/components/forms/form-shell'
+import { stripFormState } from '@/lib/forms/form-state'
 import { FormLookupProvider } from '@/components/forms/lookup-field'
 import { FormAttachmentsProvider } from '@/components/forms/attachments-field'
 import { normalizeFormLayout, type FormLayout } from '@/lib/forms/layout'
@@ -22,6 +33,7 @@ import { rememberTaskValues, runAllPauseDecision, savedTaskValuesFor, type CaseT
 import { serverRead } from '@/lib/server-read'
 import { formStartGate, NEEDS_FORM_INPUT, rememberSubmission, runAllCaseDecision, runSelectedDecision, TEST_START_LABEL } from '@/lib/automations/test-form-start'
 import type { FormButton } from '@/lib/forms/buttons'
+import { formCardWidth } from '@/lib/forms/form-width'
 import {
   caseFormValues as caseFormValuesOf, copyCaseInputs, fieldText, formDefaultValues, parseFieldText, plainFieldKeys, startFormKind, valueChips, withCaseFormValue,
   type StartFormCase, type WorkflowStartForm,
@@ -118,6 +130,8 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
 
   // Execution state
   const [running, setRunning] = useState(false)
+  // Synchronous guard: two clicks in one frame would start two test runs.
+  const runGuard = useSubmitGuard()
   const [runningAll, setRunningAll] = useState(false)
   const [done, setDone] = useState(false)
   const [finalStatus, setFinalStatus] = useState<string | null>(null)
@@ -240,6 +254,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
     setSelectedCaseId(tc.id)
     setTestCases(prev => prev.map(c => c.id === tc.id ? { ...c, status: 'running' } : c))
     setNodeResults({}); nodeResultsRef.current = {}
+    setAgentLive({})
     logsRef.current = []; finalStatusRef.current = null; pausedNodeIdRef.current = null; pausedEventIdRef.current = null; doneRef.current = false
     setActiveNodeId(null)
     setPausedNodeId(null)
@@ -442,9 +457,28 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
     return current === 'completed' ? 'completed' : 'failed'
   }
 
+  /** Action the test task with an outcome (its buttons, or an in-form Submit). */
+  async function actionTestTask(outcome: string) {
+    if (!testTaskPrompt) return
+    const fieldErrors = validateTaskFieldValues(testTaskPrompt.fields, testTaskValues, { layout: testTaskPrompt.layout })
+    if (Object.keys(fieldErrors).length > 0) {
+      setTestTaskErrors(fieldErrors)
+      return
+    }
+    // Remembered for this case: Run All can complete this task with them.
+    const caseId = currentCaseIdRef.current
+    const nodeId = testTaskPrompt.nodeId
+    if (caseId) setTestCases(prev => prev.map(c => c.id === caseId ? { ...c, taskValues: rememberTaskValues(c.taskValues, nodeId, outcome, testTaskValues) } : c))
+    const status = await resumeTestTask(testTaskPrompt, outcome, testTaskValues)
+    if (resumeResolveRef.current) {
+      resumeResolveRef.current(status)
+      resumeResolveRef.current = null
+    }
+  }
+
   /** Resume the paused test run from its User Task with an outcome and values; returns the run's status. */
   async function resumeTestTask(prompt: { eventId: string; title: string; fields: TaskFieldDef[] }, outcome: string, values: Record<string, unknown>, options: { log?: boolean } = {}): Promise<string | undefined> {
-    const taskData = { ...values, ...coerceTaskFieldValues(prompt.fields, values) }
+    const taskData = { ...stripFormState(values), ...coerceTaskFieldValues(prompt.fields, values) }
     setResuming(true)
     setTestTaskPrompt(null)
     pausePromptRef.current = null
@@ -481,6 +515,8 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   // Refs that mirror state for synchronous snapshot capture
   const nodeResultsRef = useRef<Record<string, any>>({})
   const logsRef = useRef<any[]>([])
+  /** Run Agent steps' streamed replies (Save & Test streams the model's tokens). */
+  const [agentLive, setAgentLive] = useState<Record<string, { text: string; streaming: boolean }>>({})
   const finalStatusRef = useRef<string | null>(null)
   const pausedNodeIdRef = useRef<string | null>(null)
   const pausedEventIdRef = useRef<string | null>(null)
@@ -495,13 +531,15 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   }
 
   async function runSingle(buttonId?: string) {
-    setFormPrompt(null)
-    setRunning(true)
-    // Cleanup previous runs
-    await cleanupAllRuns()
-    setTestCases(prev => prev.map(c => ({ ...c, status: null })))
-    await executeSingleCase(selectedCase, buttonId)
-    setRunning(false)
+    await runGuard.run(async () => {
+      setFormPrompt(null)
+      setRunning(true)
+      // Cleanup previous runs
+      await cleanupAllRuns()
+      setTestCases(prev => prev.map(c => ({ ...c, status: null })))
+      await executeSingleCase(selectedCase, buttonId)
+      setRunning(false)
+    })
   }
 
   /**
@@ -533,7 +571,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
       return
     }
     const fields = formSpec.kind === 'form' ? formSpec.form.fields : formSpec.fields
-    const errors = validateTaskFieldValues(fields, caseFormValues(selectedCase))
+    const errors = validateTaskFieldValues(fields, caseFormValues(selectedCase), { layout: formSpec.kind === 'form' ? formSpec.form.layout : formSpec.layout })
     if (Object.keys(errors).length) { setFormErrors(errors); return }
     setFormErrors({})
     if (formSpec.kind === 'form') setTestCases(prev => prev.map(c => c.id === selectedCase.id ? { ...c, buttonId: button.id } : c))
@@ -542,33 +580,35 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   }
 
   async function runAll() {
-    setRunning(true)
-    setRunningAll(true)
-    runningAllRef.current = true
-    abortRef.current = false
-    // Cleanup previous runs
-    await cleanupAllRuns()
-    setTestCases(prev => prev.map(c => ({ ...c, status: null, skippedReason: undefined })))
-    setFormPrompt(null)
+    await runGuard.run(async () => {
+      setRunning(true)
+      setRunningAll(true)
+      runningAllRef.current = true
+      abortRef.current = false
+      // Cleanup previous runs
+      await cleanupAllRuns()
+      setTestCases(prev => prev.map(c => ({ ...c, status: null, skippedReason: undefined })))
+      setFormPrompt(null)
 
-    for (const tc of testCasesRef.current) {
-      if (abortRef.current) break
-      // A form start reruns the case's last submission; never submitted → skipped.
-      const decision = runAllCaseDecision(gate, tc)
-      if (decision.action === 'skip') {
-        const log = { level: 'warn', message: `── Test Case: ${tc.name} ── ${decision.label}${decision.label === NEEDS_FORM_INPUT ? ': select the case, fill in the form and press its button (Run All then reruns that submission)' : ''}` }
-        setTestCases(prev => prev.map(c => c.id === tc.id ? { ...c, status: 'skipped', skippedReason: decision.label } : c))
-        caseSnapshotsRef.current[tc.id] = { nodeResults: {}, logs: [log], finalStatus: null, pausedNodeId: null, pausedEventId: null, pausedRunId: null, done: true }
-        continue
+      for (const tc of testCasesRef.current) {
+        if (abortRef.current) break
+        // A form start reruns the case's last submission; never submitted → skipped.
+        const decision = runAllCaseDecision(gate, tc)
+        if (decision.action === 'skip') {
+          const log = { level: 'warn', message: `── Test Case: ${tc.name} ── ${decision.label}${decision.label === NEEDS_FORM_INPUT ? ': select the case, fill in the form and press its button (Run All then reruns that submission)' : ''}` }
+          setTestCases(prev => prev.map(c => c.id === tc.id ? { ...c, status: 'skipped', skippedReason: decision.label } : c))
+          caseSnapshotsRef.current[tc.id] = { nodeResults: {}, logs: [log], finalStatus: null, pausedNodeId: null, pausedEventId: null, pausedRunId: null, done: true }
+          continue
+        }
+        await executeSingleCase({ ...tc, ...decision.inputs })
+        // Brief pause between cases for visual clarity
+        await new Promise(r => setTimeout(r, 600))
       }
-      await executeSingleCase({ ...tc, ...decision.inputs })
-      // Brief pause between cases for visual clarity
-      await new Promise(r => setTimeout(r, 600))
-    }
 
-    runningAllRef.current = false
-    setRunning(false)
-    setRunningAll(false)
+      runningAllRef.current = false
+      setRunning(false)
+      setRunningAll(false)
+    })
   }
 
   function handleSSEEvent(event: any) {
@@ -623,6 +663,33 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
         setActiveNodeId(null)
         break
       case 'log':
+        // A Run Agent step streaming its reply: shown live on the step, not as log lines.
+        if (event.node_id && (event.data?.type === 'delta' || event.data?.type === 'delta_reset' || event.data?.type === 'tool_call_delta')) {
+          const nodeId = String(event.node_id)
+          if (event.data.type === 'tool_call_delta') break
+          setAgentLive(prev => {
+            const current = prev[nodeId]?.text ?? ''
+            const text = event.data.type === 'delta_reset' ? '' : current + String(event.data.text ?? '')
+            return { ...prev, [nodeId]: { text, streaming: true } }
+          })
+          break
+        }
+        if (event.node_id && event.data?.type === 'tool_call') {
+          // The model moved on to a tool call: what it streamed so far stays, the next reply starts below it.
+          setAgentLive(prev => prev[String(event.node_id)] ? { ...prev, [String(event.node_id)]: { text: `${prev[String(event.node_id)].text}\n→ ${event.data.toolCall?.toolName ?? 'tool'}\n`, streaming: true } } : prev)
+        }
+        // Agent loop events (Run Agent steps) carry no message: describe them.
+        if (event.data && !event.data.message && typeof event.data.type === 'string') {
+          const d = event.data
+          const message = d.type === 'iteration' ? `Agent: model call ${d.iteration ?? ''}`.trim()
+            : d.type === 'tool_call' ? `Agent: calling ${d.toolCall?.toolName ?? 'a tool'}`
+            : d.type === 'tool_result' ? `Agent: ${d.toolCall?.toolName ?? 'tool'} returned${d.toolCall?.status && d.toolCall.status !== 'ok' ? ` (${d.toolCall.status})` : ''}`
+            : d.type === 'complete' ? `Agent: finished (${d.usage?.total_tokens ?? 0} tokens)`
+            : d.type === 'approval_required' ? `Agent: ${d.toolCall?.toolName ?? 'a tool call'} needs approval`
+            : d.type === 'error' ? `Agent: ${d.error ?? 'error'}`
+            : null
+          if (message) { appendLog({ level: d.type === 'error' ? 'warn' : 'info', message, node_id: event.node_id }); break }
+        }
         appendLog(event.data)
         break
       case 'done':
@@ -785,7 +852,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   const startBlocked = runsBlocked || gate.kind === 'loading'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--theme-overlay)' }}>
+    <div className={`${overlayClass} flex items-center justify-center`}>
       <div
         data-test-runner=""
         data-maximised={maximised ? '' : undefined}
@@ -794,86 +861,58 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
           // Resizable from the bottom-right corner.
           : { resize: 'both', overflow: 'auto', minWidth: 'min(500px, 95vw)', minHeight: '400px', width: '90vw', maxWidth: '98vw', height: '90vh', maxHeight: '98vh' }}
       >
-        <div
-          className="flex flex-col rounded-2xl border shadow-2xl overflow-hidden w-full h-full"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-          }}
-        >
+        <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-elevated text-fg shadow-elev-3">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-          <div className="flex items-center gap-2">
-            <Play size={16} style={{ color: 'var(--theme-primary-text)' }} />
-            <span className="text-sm font-semibold">Test Workflow</span>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle px-5 py-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Play size={16} className="shrink-0 text-primary-text" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-fg">Test workflow</h2>
             {running && (
-              <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full animate-pulse"
-                style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 8%, transparent)', color: 'var(--status-info)' }}>
-                <Loader2 size={10} className="animate-spin" />
+              <Badge pill tone="info" className="gap-1">
+                <Loader2 size={12} className="animate-spin" aria-hidden="true" />
                 {runningAll ? `Running ${testCases.findIndex(c => c.status === 'running') + 1}/${testCases.length}` : 'Running'}
-              </span>
+              </Badge>
             )}
             {!running && skippedCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full" data-test-skipped-count
-                style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 8%, transparent)', color: 'var(--theme-warning)' }}>
-                <TriangleAlert size={10} /> {skippedCount} need{skippedCount === 1 ? 's' : ''} form input
-              </span>
+              <Badge pill tone="warning" className="gap-1" data-test-skipped-count>
+                <TriangleAlert size={12} aria-hidden="true" /> {skippedCount} need{skippedCount === 1 ? 's' : ''} form input
+              </Badge>
             )}
             {done && !running && (completedCount > 0 || failedCount > 0 || pausedCount > 0 || finalStatus === 'waiting_for_event') && (
               <div className="flex items-center gap-1.5">
                 {finalStatus === 'waiting_for_event' && pausedCount === 0 && (
-                  <span className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full animate-pulse"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 8%, transparent)', color: 'var(--theme-warning)' }}>
-                    <Clock size={10} /> Awaiting Action
-                  </span>
+                  <StatusPill status="waiting_for_event" label="Awaiting action" />
                 )}
                 {completedCount > 0 && (
-                  <span className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 8%, transparent)', color: 'var(--theme-success)' }}>
-                    <CheckCircle size={10} /> {completedCount} passed
-                  </span>
+                  <StatusPill status="completed" label={`${formatCount(completedCount)} passed`} />
                 )}
                 {failedCount > 0 && (
-                  <span className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--theme-danger) 8%, transparent)', color: 'var(--theme-danger)' }}>
-                    <XCircle size={10} /> {failedCount} failed
-                  </span>
+                  <StatusPill status="failed" label={`${formatCount(failedCount)} failed`} />
                 )}
                 {pausedCount > 0 && (
-                  <span className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 8%, transparent)', color: 'var(--theme-warning)' }}>
-                    <PauseCircle size={10} /> {pausedCount} paused
-                  </span>
+                  <StatusPill status="paused" label={`${formatCount(pausedCount)} paused`} />
                 )}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setMaximised((m) => !m)} className="p-1 rounded hover:opacity-70"
-              style={{ color: 'var(--theme-muted-text)' }} aria-pressed={maximised}
-              aria-label={maximised ? 'Restore dialog size' : 'Expand to the full window'} title={maximised ? 'Restore' : 'Expand'}>
-              {maximised ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-            <button type="button" onClick={handleClose} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }} aria-label="Close test runner">
-              <X size={18} />
-            </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <IconButton size="sm" onClick={() => setMaximised((m) => !m)} aria-pressed={maximised}
+              label={maximised ? 'Restore dialog size' : 'Expand to the full window'}
+              icon={maximised ? <Minimize2 /> : <Maximize2 />} />
+            <IconButton size="sm" onClick={handleClose} label="Close test runner" icon={<X />} />
           </div>
         </div>
 
         {/* Main body: sidebar + content */}
-        <div className="flex flex-1 flex-col sm:flex-row overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden sm:flex-row">
           {/* Left: Test Cases List (a strip above the form on phones) */}
-          <div className="w-full sm:w-64 max-h-[30vh] sm:max-h-none shrink-0 flex flex-col overflow-hidden border-b sm:border-b-0 sm:border-r" style={{ borderColor: 'var(--theme-surface-border)' }}>
+          <div className="flex max-h-[30vh] w-full shrink-0 flex-col overflow-hidden border-b border-border-subtle sm:max-h-none sm:w-64 sm:border-b-0 sm:border-r">
             {/* Test case list header */}
-            <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
-                Test Cases ({testCases.length})
+            <div className="flex items-center justify-between border-b border-border-subtle py-1.5 pl-3 pr-1.5">
+              <span className="text-xs font-medium text-fg-muted">
+                Test cases <span className="num">({formatCount(testCases.length)})</span>
               </span>
-              <button onClick={addTestCase} disabled={running}
-                className="p-1 rounded hover:opacity-70 disabled:opacity-30"
-                style={{ color: 'var(--theme-primary-text)' }}>
-                <Plus size={14} />
-              </button>
+              <IconButton size="sm" onClick={addTestCase} disabled={running} label="Add test case" icon={<Plus />} />
             </div>
 
             {/* Test case items */}
@@ -907,26 +946,23 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                       setTestServerEvent(null)
                     }
                   }}
-                  className="px-3 py-2 cursor-pointer transition-colors group"
-                  style={{
-                    backgroundColor: selectedCaseId === tc.id ? 'var(--theme-primary-light)' : 'transparent',
-                    borderBottom: '1px solid var(--theme-surface-border)',
-                  }}
+                  className={`group relative flex min-h-8 cursor-pointer flex-col justify-center border-b border-border-subtle px-3 py-1.5 transition-colors ${selectedCaseId === tc.id ? 'bg-primary-wash' : 'hover:bg-subtle'}`}
                 >
+                  {selectedCaseId === tc.id && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-primary" />}
                   <div className="flex items-center gap-2">
                     {/* Status indicator */}
                     {tc.status === 'running' ? (
-                      <Loader2 size={12} className="shrink-0 animate-spin" style={{ color: 'var(--status-info)' }} />
+                      <Loader2 size={14} className="shrink-0 animate-spin text-info" />
                     ) : tc.status === 'completed' ? (
-                      <CheckCircle size={12} className="shrink-0" style={{ color: 'var(--theme-success)' }} />
+                      <CheckCircle size={14} className="shrink-0 text-success" />
                     ) : tc.status === 'failed' ? (
-                      <XCircle size={12} className="shrink-0" style={{ color: 'var(--theme-danger)' }} />
+                      <XCircle size={14} className="shrink-0 text-danger" />
                     ) : tc.status === 'paused' ? (
-                      <PauseCircle size={12} className="shrink-0" style={{ color: 'var(--theme-warning)' }} aria-label={tc.pausedAt ?? 'Paused'} />
+                      <PauseCircle size={14} className="shrink-0 text-warning" aria-label={tc.pausedAt ?? 'Paused'} />
                     ) : tc.status === 'skipped' ? (
-                      <TriangleAlert size={12} className="shrink-0" style={{ color: 'var(--theme-warning)' }} aria-label={tc.skippedReason ?? 'Skipped'} />
+                      <TriangleAlert size={14} className="shrink-0 text-warning" aria-label={tc.skippedReason ?? 'Skipped'} />
                     ) : (
-                      <Clock size={12} className="shrink-0" style={{ color: 'var(--theme-muted-text)', opacity: 0.4 }} />
+                      <Clock size={14} className="shrink-0 text-fg-subtle" />
                     )}
 
                     <input
@@ -934,26 +970,27 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                       onChange={e => updateCaseName(tc.id, e.target.value)}
                       onClick={e => e.stopPropagation()}
                       disabled={running}
-                      className="flex-1 text-xs font-medium bg-transparent border-none outline-none truncate disabled:cursor-pointer"
-                      style={{ color: selectedCaseId === tc.id ? 'var(--theme-primary-text)' : 'var(--theme-card-text)' }}
+                      aria-label="Test case name"
+                      className={`min-w-0 flex-1 truncate rounded-sm border-none bg-transparent text-ui font-medium disabled:cursor-pointer ${selectedCaseId === tc.id ? 'text-primary-text' : 'text-fg'}`}
                     />
 
                     {testCases.length > 1 && !running && (
-                      <button
+                      <IconButton
+                        size="sm"
+                        variant="danger-ghost"
                         onClick={e => { e.stopPropagation(); removeTestCase(tc.id) }}
-                        className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:text-[color:var(--theme-danger)] transition-opacity"
-                        style={{ color: 'var(--theme-muted-text)' }}
-                      >
-                        <Trash2 size={11} />
-                      </button>
+                        label="Remove test case"
+                        icon={<Trash2 />}
+                        className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100"
+                      />
                     )}
                   </div>
 
                   {tc.status === 'skipped' && tc.skippedReason && (
-                    <p className="mt-0.5 text-[10px] truncate" style={{ color: 'var(--theme-warning)' }} title={tc.skippedReason} data-test-case-skipped>{tc.skippedReason}</p>
+                    <p className="mt-0.5 truncate text-2xs text-warning" title={tc.skippedReason} data-test-case-skipped>{tc.skippedReason}</p>
                   )}
                   {tc.status === 'paused' && tc.pausedAt && (
-                    <p className="mt-0.5 text-[10px] truncate" style={{ color: 'var(--theme-warning)' }} title={tc.pausedAt}>{tc.pausedAt}</p>
+                    <p className="mt-0.5 truncate text-2xs text-warning" title={tc.pausedAt}>{tc.pausedAt}</p>
                   )}
 
                   {/* Preview of the form's values */}
@@ -962,9 +999,9 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                     return (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {chips.map((chip) => (
-                          <span key={chip} className="text-[9px] px-1 py-0.5 rounded font-mono truncate max-w-[80px]" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{chip}</span>
+                          <span key={chip} className="max-w-[80px] truncate rounded-sm bg-subtle px-1 font-mono text-2xs text-fg-muted">{chip}</span>
                         ))}
-                        {more > 0 && <span className="text-[9px] px-1 py-0.5" style={{ color: 'var(--theme-muted-text)' }}>+{more}</span>}
+                        {more > 0 && <span className="num px-1 text-2xs text-fg-muted">+{more}</span>}
                       </div>
                     )
                   })()}
@@ -972,13 +1009,12 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                   {userVariables.length > 0 && formSpec?.kind !== 'form' && (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {userVariables.slice(0, 3).map(v => (
-                        <span key={v.name} className="text-[9px] px-1 py-0.5 rounded font-mono truncate max-w-[80px]"
-                          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                        <span key={v.name} className="max-w-[80px] truncate rounded-sm bg-subtle px-1 font-mono text-2xs text-fg-muted">
                           {v.name}={tc.values[v.name] || '""'}
                         </span>
                       ))}
                       {userVariables.length > 3 && (
-                        <span className="text-[9px] px-1 py-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+                        <span className="num px-1 text-2xs text-fg-muted">
                           +{userVariables.length - 3}
                         </span>
                       )}
@@ -989,31 +1025,32 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
             </div>
 
             {/* Bottom actions */}
-            <div className="px-3 py-2 space-y-1.5 shrink-0" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
-              <Button size="sm" onClick={addTestCase} variant="outline" disabled={running} className="w-full !text-xs !h-7 gap-1">
-                <Plus size={12} /> Add Test Case
+            <div className="shrink-0 space-y-1.5 border-t border-border-subtle px-3 py-2">
+              <Button size="sm" onClick={addTestCase} variant="secondary" disabled={running} className="w-full" leadingIcon={<Plus />}>
+                Add test case
               </Button>
               {selectedCase && !running && (
-                <Button size="sm" onClick={() => duplicateTestCase(selectedCase)} variant="outline" className="w-full !text-xs !h-7 gap-1">
-                  <Copy size={12} /> Duplicate Selected
+                <Button size="sm" onClick={() => duplicateTestCase(selectedCase)} variant="secondary" className="w-full" leadingIcon={<Copy />}>
+                  Duplicate selected
                 </Button>
               )}
             </div>
           </div>
 
           {/* Right: Variables + Canvas/Logs */}
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* The start form, as its users see it */}
             {formSpec && view === 'form' && showInputs && (
-              <div ref={formPanelRef} className={`px-4 py-3 ${showCanvas ? 'shrink-0 max-h-[55%]' : 'flex-1 min-h-0'} overflow-auto`} data-test-start-form={formSpec.kind}
-                style={{ borderBottom: '1px solid var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+              <div ref={formPanelRef} className={`border-b border-border-subtle bg-subtle px-4 py-3 ${showCanvas ? 'shrink-0 max-h-[55%]' : 'flex-1 min-h-0'} overflow-auto`} data-test-start-form={formSpec.kind}>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-xs font-medium text-fg-muted">
                     {formSpec.kind === 'form' ? `Form “${formSpec.form.name}”` : 'Start form'} — {selectedCase.name}
                   </p>
                   <ViewToggle view={view} onChange={setView} />
                 </div>
-                <div className="mx-auto max-w-3xl">
+                {/* Form width (lib/forms/form-width.ts): the panel is the available width. */}
+                {(() => { const w = formCardWidth(formSpec.kind === 'form' ? formSpec.form.theme_overrides : formSpec.theme_overrides, formSpec.kind === 'form' ? formSpec.form.fields : formSpec.fields); return (
+                <div className={`mx-auto ${w.className}`} style={w.style as React.CSSProperties} data-form-width-mode={w.width}>
                   <FormAttachmentsProvider source={formSpec.kind === 'start_form' ? { kind: 'test', workflowId } : null}>
                   <WorkflowStartFormView
                     spec={formSpec}
@@ -1029,9 +1066,9 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                     note={
                       <>
                       {formPrompt && (
-                        <p className="mt-3 text-xs font-medium" role="status" style={{ color: 'var(--theme-primary-text)' }} data-test-form-prompt>{formPrompt}</p>
+                        <p className="mt-3 text-xs font-medium text-primary-text" role="status" data-test-form-prompt>{formPrompt}</p>
                       )}
-                      <p className="mt-3 text-[11px]" style={{ color: 'var(--theme-muted-text)' }} data-test-submission-note>
+                      <p className="mt-3 text-2xs text-fg-muted" data-test-submission-note>
                         {formSpec.kind === 'form'
                           ? 'Test submission: the run starts with what this form would send. Nothing is stored, no other workflow is triggered and the button’s actions only show in the Logs.'
                           : 'Test run: starts this workflow’s draft with these inputs.'}
@@ -1042,62 +1079,66 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                   />
                   </FormAttachmentsProvider>
                 </div>
+                ) })()}
               </div>
             )}
 
             {/* The form's values as plain inputs (power users) */}
             {formSpec?.kind === 'form' && view === 'fields' && showInputs && (
-              <div className="px-5 py-3 shrink-0 space-y-2 max-h-[45%] overflow-auto" style={{ borderBottom: '1px solid var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+              <div className="max-h-[45%] shrink-0 space-y-2 overflow-auto border-b border-border-subtle bg-subtle px-5 py-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-xs font-medium text-fg-muted">
                     Form values — {selectedCase.name}
                   </p>
                   <ViewToggle view={view} onChange={setView} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {plainKeys.map(k => (
                     <div key={k.key}>
-                      <label htmlFor={`tf-plain-${k.key}`} className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--theme-muted-text)' }}>
-                        form.{k.key}<span className="ml-1 opacity-60">({k.type})</span>
+                      <label htmlFor={`tf-plain-${k.key}`} className="mb-1 block font-mono text-xs font-medium text-fg">
+                        form.{k.key}<span className="ml-1 font-sans font-normal text-fg-muted">({k.type})</span>
                       </label>
                       <Input
                         id={`tf-plain-${k.key}`}
+                        size="sm"
                         value={fieldText(caseFormValues(selectedCase)[k.key])}
                         onChange={e => updateCaseForm(selectedCase.id, k.key, parseFieldText(e.target.value))}
                         placeholder={k.label}
-                        className="!text-xs !h-7 font-mono"
+                        className="font-mono"
                         disabled={running}
                         aria-invalid={formErrors[k.key] ? true : undefined}
                       />
-                      {formErrors[k.key] && <p className="mt-0.5 text-[10px]" style={{ color: 'var(--theme-danger)' }}>{formErrors[k.key]}</p>}
+                      {formErrors[k.key] && <p className="mt-0.5 text-xs text-danger">{formErrors[k.key]}</p>}
                     </div>
                   ))}
                 </div>
-                {formFailure && <p className="text-[11px]" role="alert" style={{ color: 'var(--theme-danger)' }}>{formFailure}</p>}
+                {formFailure && <p className="text-xs text-danger" role="alert">{formFailure}</p>}
               </div>
             )}
 
             {/* Variable inputs for selected case */}
             {userVariables.length > 0 && showInputs && (!formSpec || (formSpec.kind === 'start_form' && view === 'fields')) && (
-              <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderBottom: '1px solid var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+              <div className="shrink-0 space-y-2 border-b border-border-subtle bg-subtle px-5 py-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-xs font-medium text-fg-muted">
                     Variables — {selectedCase.name}
                   </p>
                   {formSpec && <ViewToggle view={view} onChange={setView} />}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {userVariables.map(v => (
                     <div key={v.name}>
-                      <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--theme-muted-text)' }}>
+                      <label htmlFor={`tr-var-${v.name}`} className="mb-1 block font-mono text-xs font-medium text-fg">
                         {v.name}
-                        <span className="ml-1 opacity-60">({v.type})</span>
+                        <span className="ml-1 font-sans font-normal text-fg-muted">({v.type})</span>
                       </label>
                       <Input
+                        id={`tr-var-${v.name}`}
+                        size="sm"
                         value={selectedCase.values[v.name] ?? ''}
                         onChange={e => updateCaseValue(selectedCase.id, v.name, e.target.value)}
                         placeholder={v.description || v.defaultValue || v.name}
-                        className="!text-xs !h-7 font-mono"
+                        className="font-mono"
                         disabled={running}
                       />
                     </div>
@@ -1108,25 +1149,24 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
 
             {/* Pre-run validation — same checks that gate publishing */}
             {!validation.valid && (
-              <div className="px-5 py-2 shrink-0 space-y-1" style={{ borderBottom: '1px solid color-mix(in srgb, var(--theme-warning) 35%, var(--theme-surface-border))', backgroundColor: 'color-mix(in srgb, var(--theme-warning) 8%, var(--theme-card-bg))' }}>
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'var(--theme-warning)' }}>
-                  <TriangleAlert size={12} />
-                  {validation.totalErrors} configuration issue{validation.totalErrors === 1 ? '' : 's'} found — fix before testing
+              <div className="shrink-0 space-y-1 border-b border-border-subtle bg-warning-wash px-5 py-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-warning">
+                  <TriangleAlert size={14} aria-hidden="true" />
+                  {plural(validation.totalErrors, 'configuration issue')} found — fix before testing
                 </div>
                 {validation.nodeErrors.slice(0, 4).map((nodeError) => (
-                  <p key={nodeError.nodeId} className="text-[10px]" style={{ color: 'var(--theme-card-text)' }}>
+                  <p key={nodeError.nodeId} className="text-xs text-fg">
                     {nodeError.nodeLabel}: {nodeError.errors.join(', ')}
                   </p>
                 ))}
                 {validation.nodeErrors.length > 4 && (
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>…and {validation.nodeErrors.length - 4} more</p>
+                  <p className="text-xs text-fg-muted">…and {validation.nodeErrors.length - 4} more</p>
                 )}
                 {!validationOverride && (
                   <button
                     type="button"
                     onClick={() => setValidationOverride(true)}
-                    className="text-[10px] font-medium hover:opacity-80"
-                    style={{ color: 'var(--theme-warning)' }}
+                    className="text-xs font-medium text-warning hover:underline"
                   >
                     Run anyway — I know what I&apos;m doing
                   </button>
@@ -1135,15 +1175,15 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
             )}
 
             {/* Action bar */}
-            <div className="flex items-center gap-2 px-5 py-2 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-              <Button size="sm" onClick={onRunSelected} disabled={running || startBlocked} className="gap-1.5" data-test-run-selected
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle px-5 py-2">
+              <Button size="sm" onClick={onRunSelected} disabled={running || startBlocked} data-test-run-selected
+                leadingIcon={running && !runningAll ? <Loader2 className="animate-spin" /> : <PlayCircle />}
                 title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : gate.kind === 'loading' ? 'Loading the start form…' : formStart && view === 'form' ? 'Opens this case’s form: the test starts when you press its button' : undefined}>
-                {running && !runningAll ? <Loader2 size={14} className="animate-spin" /> : <PlayCircle size={14} />}
-                {running && !runningAll ? 'Running...' : 'Run Selected'}
+                {running && !runningAll ? 'Running…' : 'Run selected'}
               </Button>
 
               {testCases.length > 1 && (
-                <label className="flex items-center gap-1.5 text-[11px] select-none" style={{ color: 'var(--theme-muted-text)' }}
+                <label className="flex select-none items-center gap-1.5 text-xs text-fg-muted"
                   title="Run All never waits at a User Task: with this on, a task this case has completed before is completed again with the same outcome and values; otherwise the case is reported as paused and the next one runs">
                   <input type="checkbox" checked={autoCompleteTasks} disabled={running}
                     onChange={(e) => { setAutoCompleteTasks(e.target.checked); autoCompleteRef.current = e.target.checked }} />
@@ -1152,55 +1192,52 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
               )}
 
               {testCases.length > 1 && (
-                <Button size="sm" variant="outline" onClick={runAll} disabled={running || startBlocked} className="gap-1.5" data-test-run-all
+                <Button size="sm" variant="secondary" onClick={runAll} disabled={running || startBlocked} data-test-run-all
+                  leadingIcon={runningAll ? <Loader2 className="animate-spin" /> : <ListChecks />}
                   title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : formStart ? 'Reruns each case with the values its form last submitted; cases never submitted are skipped (needs form input)' : undefined}>
-                  {runningAll ? <Loader2 size={14} className="animate-spin" /> : <ListChecks size={14} />}
-                  {runningAll ? `Running ${testCases.findIndex(c => c.status === 'running') + 1}/${testCases.length}...` : formStart ? 'Run All (saved values)' : 'Run All'}
+                  {runningAll ? `Running ${testCases.findIndex(c => c.status === 'running') + 1}/${testCases.length}…` : formStart ? 'Run all (saved values)' : 'Run all'}
                 </Button>
               )}
 
               {(userVariables.length > 0 || formSpec) && (
-                <Button size="sm" variant="ghost" onClick={() => setShowInputs((v) => !v)} className="gap-1.5" aria-pressed={!showInputs}
+                <Button size="sm" variant="ghost" onClick={() => setShowInputs((v) => !v)} aria-pressed={!showInputs} leadingIcon={<SlidersHorizontal />}
                   title={showInputs ? 'Hide the inputs (more room for the canvas)' : 'Show the inputs'}>
-                  <SlidersHorizontal size={14} /> {formSpec && view === 'form' ? (showInputs ? 'Hide form' : 'Show form') : (showInputs ? 'Hide inputs' : 'Show inputs')}
+                  {formSpec && view === 'form' ? (showInputs ? 'Hide form' : 'Show form') : (showInputs ? 'Hide inputs' : 'Show inputs')}
                 </Button>
               )}
 
               {showCanvas && (
-                <div className="flex ml-4 border rounded-lg overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                  {(['canvas', 'logs'] as const).map(t => (
-                    <button key={t} onClick={() => setTab(t)}
-                      className="px-3 py-1 text-[11px] font-medium transition-colors"
-                      style={{
-                        backgroundColor: tab === t ? 'var(--theme-primary-light)' : 'transparent',
-                        color: tab === t ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                      }}>
-                      {t === 'canvas' ? 'Process View' : `Logs (${logCount})`}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  aria-label="Test result view"
+                  size="sm"
+                  className="ml-auto"
+                  value={tab}
+                  onValueChange={setTab}
+                  options={[
+                    { value: 'canvas', text: 'Process view' },
+                    { value: 'logs', text: <>Logs <span className="num">({formatCount(logCount)})</span></> },
+                  ]}
+                />
               )}
             </div>
 
             {formPrompt && !(formSpec && view === 'form' && showInputs) && (
-              <p className="px-5 py-2 text-xs font-medium shrink-0" role="status" style={{ color: 'var(--theme-warning)', borderBottom: '1px solid var(--theme-surface-border)' }} data-test-form-prompt>{formPrompt}</p>
+              <p className="shrink-0 border-b border-border-subtle px-5 py-2 text-xs font-medium text-warning" role="status" data-test-form-prompt>{formPrompt}</p>
             )}
 
             {/* Test-mode User Task Action Panel */}
             {testTaskPrompt && !resuming && (
-              <div className="mx-4 mb-2 rounded-lg border-2 p-4 animate-in fade-in"
-                style={{ borderColor: 'var(--theme-warning)', backgroundColor: 'color-mix(in srgb, var(--theme-warning) 3%, transparent)' }}>
+              <div className="mx-4 my-2 rounded-lg border border-warning bg-warning-wash p-4 animate-in fade-in">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 12%, transparent)' }}>
-                    <Clock size={16} style={{ color: 'var(--theme-warning)' }} />
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-panel text-warning">
+                    <Clock size={16} aria-hidden="true" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold">{testTaskPrompt.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-fg">{testTaskPrompt.title}</p>
                     {testTaskPrompt.description && (
-                      <TaskDescription value={testTaskPrompt.description} className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }} />
+                      <TaskDescription value={testTaskPrompt.description} className="mt-0.5 text-xs text-fg-muted" />
                     )}
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--theme-warning)' }}>
+                    <p className="mt-1 text-xs text-warning">
                       Test mode — action this task to continue the workflow
                     </p>
                     {testTaskPrompt.fields.length > 0 && (
@@ -1215,32 +1252,17 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                           values={testTaskValues}
                           errors={testTaskErrors}
                           onChange={(key, value) => setTestTaskValues(prev => ({ ...prev, [key]: value }))}
+                          footer={<FormBarRegistration buttons={testTaskPrompt.outcomes.map((o) => ({ id: o.toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^[^a-z0-9]+/, '') || 'outcome', label: o, kind: 'outcome' as const, style: 'primary' as const, outcome: o }))} onClick={(b) => void actionTestTask(b.outcome ?? testTaskPrompt.outcomes[0])} />}
                         />
                         </FormAttachmentsProvider>
                         </FormLookupProvider>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 mt-3">
-                      {testTaskPrompt.outcomes.map(outcome => (
-                        <Button key={outcome} size="sm" disabled={resuming}
-                        onClick={async () => {
-                          const fieldErrors = validateTaskFieldValues(testTaskPrompt.fields, testTaskValues)
-                          if (Object.keys(fieldErrors).length > 0) {
-                            setTestTaskErrors(fieldErrors)
-                            return
-                          }
-                          // Remembered for this case: Run All can complete this task with them.
-                          const caseId = currentCaseIdRef.current
-                          const nodeId = testTaskPrompt.nodeId
-                          if (caseId) setTestCases(prev => prev.map(c => c.id === caseId ? { ...c, taskValues: rememberTaskValues(c.taskValues, nodeId, outcome, testTaskValues) } : c))
-                          const status = await resumeTestTask(testTaskPrompt, outcome, testTaskValues)
-                          if (resumeResolveRef.current) {
-                            resumeResolveRef.current(status)
-                            resumeResolveRef.current = null
-                          }
-                        }}
-                          style={{ backgroundColor: 'var(--theme-warning)', borderColor: 'var(--theme-warning)', color: 'var(--theme-on-warning)' }}>
-                          {resuming ? 'Resuming...' : outcome.charAt(0).toUpperCase() + outcome.slice(1)}
+                    <div className="mt-3 flex items-center gap-2">
+                      {testTaskPrompt.outcomes.map((outcome, i) => (
+                        <Button key={outcome} size="sm" variant={i === 0 ? 'primary' : 'secondary'} disabled={resuming}
+                          onClick={() => void actionTestTask(outcome)}>
+                          {resuming ? 'Resuming…' : outcome.charAt(0).toUpperCase() + outcome.slice(1)}
                         </Button>
                       ))}
                     </div>
@@ -1251,19 +1273,17 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
 
             {/* Test-mode Server Event Action Panel */}
             {testServerEvent && !resuming && (
-              <div className="mx-4 mb-2 rounded-lg border-2 p-4 animate-in fade-in"
-                style={{ borderColor: 'var(--status-info)', backgroundColor: 'color-mix(in srgb, var(--status-info) 3%, transparent)' }}>
+              <div className="mx-4 my-2 rounded-lg border border-info bg-info-wash p-4 animate-in fade-in">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 12%, transparent)' }}>
-                    <Clock size={16} style={{ color: 'var(--status-info)' }} />
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-panel text-info">
+                    <Clock size={16} aria-hidden="true" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold">Waiting for: {testServerEvent.eventName}</p>
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--status-info)' }}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-fg">Waiting for: {testServerEvent.eventName}</p>
+                    <p className="mt-1 text-xs text-info">
                       Test mode — resume this server event to continue the workflow
                     </p>
-                    <div className="flex items-center gap-2 mt-3">
+                    <div className="mt-3 flex items-center gap-2">
                       <Button size="sm" disabled={resuming}
                         onClick={async () => {
                           setResuming(true)
@@ -1300,9 +1320,8 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                             }
                           }
                           setResuming(false)
-                        }}
-                        style={{ backgroundColor: 'var(--status-info)', borderColor: 'var(--status-info)', color: 'var(--theme-on-info)' }}>
-                        {resuming ? 'Resuming...' : 'Resume Event'}
+                        }}>
+                        {resuming ? 'Resuming…' : 'Resume event'}
                       </Button>
                     </div>
                   </div>
@@ -1313,20 +1332,30 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
             {/* Content area: the run canvas fills it (its zoom controls stay inside the dialog). */}
             <div className={`${!showCanvas && formSpec && view === 'form' && showInputs ? 'hidden' : 'flex-1'} min-h-0 flex flex-col ${showCanvas && tab === 'canvas' ? 'overflow-hidden p-3' : 'overflow-auto'}`}>
               {!showCanvas && !(formSpec && view === 'form' && showInputs) && (
-                <div className="flex flex-col items-center justify-center h-full py-16">
-                  <Zap size={40} style={{ color: 'var(--theme-muted-text)', opacity: 0.3 }} />
-                  <p className="text-sm mt-3" style={{ color: 'var(--theme-muted-text)' }}>
-                    {gate.kind === 'unavailable'
-                      ? gate.reason
-                      : formSpec
-                      ? 'Fill in the form and press its button to start the test (Run All reruns each case’s last submission)'
-                      : userVariables.length > 0
-                      ? 'Configure test cases on the left, then Run Selected or Run All'
-                      : 'Click Run Selected to execute the workflow'}
-                  </p>
-                </div>
+                <EmptyState
+                  icon={Zap}
+                  className="h-full"
+                  title={gate.kind === 'unavailable' ? 'Test can’t start' : 'No test run yet'}
+                  description={gate.kind === 'unavailable'
+                    ? gate.reason
+                    : formSpec
+                    ? 'Fill in the form and press its button to start the test (Run all reruns each case’s last submission)'
+                    : userVariables.length > 0
+                    ? 'Configure test cases on the left, then Run selected or Run all'
+                    : 'Click Run selected to execute the workflow'}
+                />
               )}
 
+              {showCanvas && tab === 'canvas' && Object.entries(agentLive).filter(([, v]) => v.text).map(([nodeId, v]) => {
+                const label = nodes.find((n) => n.id === nodeId)?.label ?? 'Run Agent'
+                const streaming = activeNodeId === nodeId
+                return (
+                  <div key={nodeId} className="mb-2 shrink-0 space-y-1 rounded-lg border border-border bg-panel p-3" data-testid="test-runner-agent-stream" aria-live="polite">
+                    <span className="text-xs font-medium text-primary-text">{label} · agent reply{streaming ? ' (streaming)' : ''}</span>
+                    <p className="max-h-32 overflow-auto whitespace-pre-wrap text-xs text-fg">{v.text}</p>
+                  </div>
+                )
+              })}
               {showCanvas && tab === 'canvas' && (
                 <RuntimeCanvas
                   nodes={nodes}
@@ -1346,31 +1375,26 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                     const nodeEventId = nr?.output?.event_id ?? (isWaiting ? pausedEventId : null)
                     if (!nodeEventId || !(isWaiting || nr?.status === 'waiting')) return null
                     return (
-                      <div className="mx-3 mb-2 rounded-xl border p-3 space-y-2"
-                        style={{ borderColor: 'color-mix(in srgb, var(--theme-warning) 25%, transparent)', backgroundColor: 'var(--theme-card-bg)' }}>
-                        <span className="text-[10px] font-semibold" style={{ color: 'var(--theme-warning)' }}>Server Event ID</span>
+                      <div className="mx-3 mb-2 space-y-2 rounded-lg border border-border bg-panel p-3">
+                        <span className="text-xs font-medium text-warning">Server event ID</span>
                         <div className="flex items-center gap-1.5">
-                          <code className="flex-1 text-[10px] font-mono px-2 py-1.5 rounded-lg select-all break-all"
-                            style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}>
+                          <code className="flex-1 select-all break-all rounded-md bg-subtle px-2 py-1.5 font-mono text-2xs text-fg">
                             {nodeEventId}
                           </code>
-                          <button
-                            type="button"
+                          <IconButton
+                            size="sm"
                             onClick={() => {
                               navigator.clipboard.writeText(nodeEventId)
                               setCopiedEventId(true)
                               setTimeout(() => setCopiedEventId(false), 2000)
                             }}
-                            className="shrink-0 p-1.5 rounded-lg transition-colors hover:opacity-80"
-                            style={{ backgroundColor: 'var(--theme-surface)', color: copiedEventId ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}
-                            title="Copy event ID"
-                            aria-label="Copy event ID"
-                          >
-                            {copiedEventId ? <ClipboardCheck size={12} /> : <Copy size={12} />}
-                          </button>
+                            className={copiedEventId ? 'text-success' : undefined}
+                            label="Copy event ID"
+                            icon={copiedEventId ? <ClipboardCheck /> : <Copy />}
+                          />
                         </div>
-                        <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>Use this ID to complete the event via the API:</p>
-                        <code className="block text-[9px] font-mono px-2 py-1.5 rounded-lg select-all" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                        <p className="text-2xs text-fg-muted">Use this ID to complete the event via the API:</p>
+                        <code className="block select-all rounded-md bg-subtle px-2 py-1.5 font-mono text-2xs text-fg-muted">
                           POST /api/v1/workflows/events/{nodeEventId}/complete
                         </code>
                       </div>
@@ -1383,50 +1407,48 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                 <div className="overflow-auto">
                   {logCount === 0 ? (
                     <div className="flex flex-col items-center py-8">
-                      {running && <Loader2 size={20} className="animate-spin mb-2" style={{ color: 'var(--theme-primary-text)' }} />}
-                      <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                        {running ? 'Waiting for logs...' : 'No logs'}
+                      {running && <Loader2 size={20} className="mb-2 animate-spin text-primary-text" />}
+                      <p className="text-xs text-fg-muted">
+                        {running ? 'Waiting for logs…' : 'No logs'}
                       </p>
                     </div>
                   ) : (
                     <>
-                      <div className="flex justify-end px-4 py-2" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-                        <button onClick={copyAllLogs}
-                          className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg hover:opacity-80"
-                          style={{ backgroundColor: copiedAll ? 'color-mix(in srgb, var(--theme-success) 8%, transparent)' : 'var(--theme-surface)', color: copiedAll ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}>
-                          {copiedAll ? <ClipboardCheck size={12} /> : <Copy size={12} />}
-                          {copiedAll ? 'Copied!' : 'Copy All'}
-                        </button>
+                      <div className="flex justify-end border-b border-border-subtle px-4 py-1.5">
+                        <Button size="sm" variant="ghost" onClick={copyAllLogs} className={copiedAll ? 'text-success' : undefined}
+                          leadingIcon={copiedAll ? <ClipboardCheck /> : <Copy />}>
+                          {copiedAll ? 'Copied' : 'Copy all'}
+                        </Button>
                       </div>
-                      <div className="divide-y" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                      <div className="divide-y divide-border-subtle">
                         {logs.map((log: any, idx: number) => {
                           const isExpanded = expandedLog === idx
-                          const colors: Record<string, string> = { info: 'var(--status-info)', warn: 'var(--theme-warning)', error: 'var(--theme-danger)', debug: 'var(--theme-muted-text)' }
-                          const color = colors[log.level] ?? 'var(--theme-muted-text)'
+                          const tone = LOG_LEVEL_TONE[log.level] ?? LOG_LEVEL_TONE.debug
                           return (
-                            <div key={idx} className="px-4 py-2 cursor-pointer hover:opacity-90 group animate-in fade-in slide-in-from-bottom-1 duration-200"
+                            <div key={idx} className="group cursor-pointer px-4 py-2 animate-in fade-in slide-in-from-bottom-1 duration-200 hover:bg-subtle"
                               onClick={() => setExpandedLog(isExpanded ? null : idx)}>
                               <div className="flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                <span className="text-[10px] font-mono w-10 shrink-0 uppercase" style={{ color }}>{log.level}</span>
+                                <span className={`size-1.5 shrink-0 rounded-full ${tone.dot}`} />
+                                <span className={`w-10 shrink-0 font-mono text-2xs ${tone.text}`}>{log.level}</span>
                                 {log.node_label && (() => {
                                   const stepId = logStepId(log, nodes)
                                   return <StepChip label={log.node_label} onFocus={stepId ? () => focusStep(stepId) : undefined} />
                                 })()}
-                                <span className="text-xs flex-1 truncate">{log.message}</span>
+                                <span className="flex-1 truncate text-xs text-fg">{log.message}</span>
                                 {log.duration_ms != null && (
-                                  <span className="text-[10px] font-mono shrink-0" style={{ color: 'var(--theme-muted-text)' }}>{log.duration_ms}ms</span>
+                                  <span className="num shrink-0 font-mono text-2xs text-fg-muted">{formatDurationMs(log.duration_ms)}</span>
                                 )}
-                                <button onClick={e => copyLog(e, idx)}
-                                  className="shrink-0 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                  style={{ color: copiedIdx === idx ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}>
-                                  {copiedIdx === idx ? <ClipboardCheck size={12} /> : <Copy size={12} />}
-                                </button>
-                                {log.metadata && (isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />)}
+                                <IconButton
+                                  size="sm"
+                                  onClick={e => copyLog(e, idx)}
+                                  label="Copy log entry"
+                                  icon={copiedIdx === idx ? <ClipboardCheck /> : <Copy />}
+                                  className={`opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 ${copiedIdx === idx ? 'text-success' : ''}`}
+                                />
+                                {log.metadata && (isExpanded ? <ChevronDown size={12} className="shrink-0 text-fg-muted" /> : <ChevronRight size={12} className="shrink-0 text-fg-muted" />)}
                               </div>
                               {isExpanded && log.metadata && (
-                                <pre className="mt-1 text-[10px] font-mono p-2 rounded overflow-x-auto"
-                                  style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                                <pre className="mt-1 overflow-x-auto rounded-md bg-subtle p-2 font-mono text-2xs text-fg-muted">
                                   {JSON.stringify(log.metadata, null, 2)}
                                 </pre>
                               )}
@@ -1448,13 +1470,20 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   )
 }
 
+/** Log level → dot and text colour. */
+const LOG_LEVEL_TONE: Record<string, { dot: string; text: string }> = {
+  info: { dot: 'bg-info', text: 'text-info' },
+  warn: { dot: 'bg-warning', text: 'text-warning' },
+  error: { dot: 'bg-danger', text: 'text-danger' },
+  debug: { dot: 'bg-fg-subtle', text: 'text-fg-muted' },
+}
+
 /** "Show as form" / "Show as fields" (power users: the raw values). */
 function ViewToggle({ view, onChange }: { view: 'form' | 'fields'; onChange: (view: 'form' | 'fields') => void }) {
   return (
-    <button type="button" onClick={() => onChange(view === 'form' ? 'fields' : 'form')}
-      className="text-[11px] font-medium rounded px-2 py-0.5 hover:opacity-80" data-test-form-view={view}
-      style={{ color: 'var(--theme-primary-text)', backgroundColor: 'var(--theme-primary-light)' }}>
+    <Button type="button" size="sm" variant="ghost" onClick={() => onChange(view === 'form' ? 'fields' : 'form')}
+      className="text-primary-text" data-test-form-view={view}>
       {view === 'form' ? 'Show as fields' : 'Show as form'}
-    </button>
+    </Button>
   )
 }

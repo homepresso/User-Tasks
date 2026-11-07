@@ -1,0 +1,2382 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "538851e8-fed6-5871-8c91-90ba3e1dd519",
+  "asset": {
+    "id": "538851e8-fed6-5871-8c91-90ba3e1dd519",
+    "name": "Public records request",
+    "description": "A public records request (FOIA, OIA, state public records acts) from its form to release: statutory deadline and SLA, acknowledgement, records gathering, automated redaction of video, photos, audio and documents, an exemptions log, legal approval, and a release package with cover letter, or a denial, no-records or extension letter.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Request submitted",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "5125fbfd-ec4d-5703-a854-ca155966f4dc",
+          "form_name": "Public records request"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "reference",
+          "expression": "PRR-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "received",
+        "type": "set_variable",
+        "label": "Received date",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "name": "received_date",
+          "expression": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "range",
+        "type": "set_variable",
+        "label": "Date range",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "name": "date_range",
+          "expression": "{{form.date_from}} to {{form.date_to}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "title": "{{reference}} · {{form.requester_name}} · {{form.jurisdiction}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Deadline and exemption defaults",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "decision_table_id": "0513ba8a-381a-5c4a-8ff8-9f45ccef05b4",
+          "decision_table_name": "Records request rules (examples)",
+          "input_mappings": {
+            "jurisdiction": "{{form.jurisdiction}}"
+          }
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Due date",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(received_date, calendar_days), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Statutory SLA",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "sla_label": "Records response ({{deadline_days}} {{day_type}})",
+          "mode": "exact",
+          "due_at": "{{due_date}}T17:00:00Z",
+          "warning_amount": 5,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "log_in",
+        "type": "update_data_table",
+        "label": "Add to requests register",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "insert",
+          "output_row_id_var": "register_row_id",
+          "column_values": {
+            "reference": "{{reference}}",
+            "requester_name": "{{form.requester_name}}",
+            "requester_email": "{{form.requester_email}}",
+            "jurisdiction": "{{form.jurisdiction}}",
+            "records_sought": "{{form.records_sought}}",
+            "date_range": "{{date_range}}",
+            "delivery": "{{form.delivery_preference}}",
+            "received_date": "{{received_date}}",
+            "due_date": "{{due_date}}",
+            "status": "Searching"
+          }
+        }
+      },
+      {
+        "id": "retain",
+        "type": "retention_policies",
+        "label": "Apply 7-year retention",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "operation": "assign_policy",
+          "retention_policy_id": "a51c89b4-3902-5d32-bde4-4be953e5a327",
+          "target_type": "data_row",
+          "target_id": "{{register_row_id}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "a_received",
+        "type": "update_data_table",
+        "label": "Audit: received",
+        "position": {
+          "x": 600,
+          "y": 1460
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Received",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "{{form.jurisdiction}} · due {{due_date}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ack",
+        "type": "send_email",
+        "label": "Acknowledge with deadline",
+        "position": {
+          "x": 600,
+          "y": 1600
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "40c978be-15e4-5012-8577-e0acad6f19d7"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "gather",
+        "type": "user_task",
+        "label": "Gather responsive records",
+        "position": {
+          "x": 600,
+          "y": 1760
+        },
+        "config": {
+          "task_title": "Gather records: {{reference}} (due {{due_date}})",
+          "task_description": "<p><strong>{{form.requester_name}}</strong> &lt;{{form.requester_email}}&gt; asks under <strong>{{form.jurisdiction}}</strong> for:</p><blockquote>{{form.records_sought}}</blockquote><p>Dates {{date_range}} · location {{form.location}} · incident {{form.incident_ref}}</p><p>Search your systems and attach every responsive record: body-worn camera or CCTV video, photos, interview audio and documents. Attached originals stay restricted to this request; only redacted copies can be released.</p><p>Deadline <strong>{{due_date}}</strong> ({{deadline_days}} {{day_type}}; {{legal_basis}}).</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Records gathered",
+            "No records",
+            "Extend deadline"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "852a78ad-d6c8-59b5-b920-333ec4700b1a",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "bodycam_video",
+              "label": "Body-worn camera / CCTV video",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 1,
+                "max_file_mb": 40,
+                "custom_types": [
+                  ".mp4",
+                  ".mov",
+                  ".m4v"
+                ]
+              },
+              "help_text": "One clip per request (MP4 or MOV)."
+            },
+            {
+              "key": "photos",
+              "label": "Photos",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 10,
+                "max_file_mb": 20,
+                "types": [
+                  "images"
+                ]
+              }
+            },
+            {
+              "key": "interview_audio",
+              "label": "Interview audio",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 1,
+                "max_file_mb": 40,
+                "custom_types": [
+                  ".mp3",
+                  ".wav"
+                ]
+              }
+            },
+            {
+              "key": "documents",
+              "label": "Documents (statement, report)",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 1,
+                "max_file_mb": 40,
+                "types": [
+                  "documents"
+                ]
+              },
+              "help_text": "Word, PDF or text: personal information is found for review and redacted after approval."
+            },
+            {
+              "key": "search_notes",
+              "label": "Search notes (systems searched, reasons for an extension)",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "bodycam_video",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "photos",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "interview_audio",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "documents",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "search_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "gathered",
+              "label": "Records gathered",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Records gathered"
+            },
+            {
+              "id": "none",
+              "label": "No records",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "No records"
+            },
+            {
+              "id": "extend",
+              "label": "Extend deadline",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Extend deadline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Gather records: {{reference}}",
+            "align": "left",
+            "subtitle": "{{form.jurisdiction}} · due {{due_date}}"
+          }
+        }
+      },
+      {
+        "id": "nr_text",
+        "type": "text_template",
+        "label": "No-records letter",
+        "position": {
+          "x": 1000,
+          "y": 1940
+        },
+        "config": {
+          "output_var": "no_records_letter",
+          "template": "NO RECORDS LETTER\n\nReference: {{reference}}\nTo: {{form.requester_name}} <{{form.requester_email}}>\nDate: {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}\n\nYou asked under {{form.jurisdiction}} for: {{form.records_sought}} ({{date_range}}).\n\nWe searched the systems listed below and found no records that match your request.\n\nSearch notes: {{task_data.search_notes}}\n\nYou may be able to ask for this response to be reviewed under {{form.jurisdiction}}."
+        }
+      },
+      {
+        "id": "nr_pdf",
+        "type": "doc_convert",
+        "label": "Letter to PDF",
+        "position": {
+          "x": 1000,
+          "y": 2080
+        },
+        "config": {
+          "source": "{{no_records_letter}}",
+          "target": "pdf",
+          "title": "No records letter",
+          "output_name": "{{reference}}-no-records-letter",
+          "output_var": "no_records_pdf",
+          "page_size": "A4"
+        }
+      },
+      {
+        "id": "nr_mail",
+        "type": "send_email",
+        "label": "Email: no records",
+        "position": {
+          "x": 1000,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "1e33e67e-8eff-5f39-a9dc-f3061f431f72",
+          "attachments": "{{no_records_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "nr_reg",
+        "type": "update_data_table",
+        "label": "Close: no records",
+        "position": {
+          "x": 1000,
+          "y": 2360
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Closed",
+            "decision": "No records",
+            "closed_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "nr_audit",
+        "type": "update_data_table",
+        "label": "Audit: no records",
+        "position": {
+          "x": 1000,
+          "y": 2500
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Closed: no records",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "{{task_data.search_notes}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "nr_end",
+        "type": "end_workflow",
+        "label": "Closed: no records",
+        "position": {
+          "x": 1000,
+          "y": 2640
+        },
+        "config": {
+          "reason": "{{reference}}: no responsive records"
+        }
+      },
+      {
+        "id": "ext_due",
+        "type": "set_variable",
+        "label": "Extend due date",
+        "position": {
+          "x": 1400,
+          "y": 1940
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(due_date, extension_days), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "ext_sla",
+        "type": "set_sla",
+        "label": "Extended SLA",
+        "position": {
+          "x": 1400,
+          "y": 2080
+        },
+        "config": {
+          "sla_label": "Records response (extended)",
+          "mode": "exact",
+          "due_at": "{{due_date}}T17:00:00Z",
+          "warning_amount": 5,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "ext_reg",
+        "type": "update_data_table",
+        "label": "Register: extended",
+        "position": {
+          "x": 1400,
+          "y": 2220
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "due_date": "{{due_date}}",
+            "status": "Extended"
+          }
+        }
+      },
+      {
+        "id": "ext_mail",
+        "type": "send_email",
+        "label": "Email: extension notice",
+        "position": {
+          "x": 1400,
+          "y": 2360
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "b49c588c-d237-5cec-b02f-82f99984e3e1"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ext_audit",
+        "type": "update_data_table",
+        "label": "Audit: extended",
+        "position": {
+          "x": 1400,
+          "y": 2500
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Deadline extended",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "New due date {{due_date}}: {{task_data.search_notes}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ext_back",
+        "type": "goto_activity",
+        "label": "Back to gathering",
+        "position": {
+          "x": 1400,
+          "y": 2640
+        },
+        "config": {
+          "target_node_id": "gather",
+          "target_node_label": "Gather responsive records"
+        }
+      },
+      {
+        "id": "keep",
+        "type": "set_variable",
+        "label": "Keep the evidence list",
+        "position": {
+          "x": 600,
+          "y": 1940
+        },
+        "config": {
+          "name": "evidence",
+          "expression": "{{task_data}}"
+        }
+      },
+      {
+        "id": "st_redact",
+        "type": "update_data_table",
+        "label": "Register: redacting",
+        "position": {
+          "x": 600,
+          "y": 2080
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Redacting"
+          }
+        }
+      },
+      {
+        "id": "a_gathered",
+        "type": "update_data_table",
+        "label": "Audit: records attached",
+        "position": {
+          "x": 600,
+          "y": 2220
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Records attached",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "{{=COUNT(evidence.photos)}} photos; video, audio and document as attached"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "has_video",
+        "type": "condition",
+        "label": "Video attached?",
+        "position": {
+          "x": 600,
+          "y": 2360
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Video",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{evidence.bodycam_video}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "redact_video",
+        "type": "media_redact_video",
+        "label": "Redact Video: faces, plates, text, speech",
+        "position": {
+          "x": 600,
+          "y": 2500
+        },
+        "config": {
+          "integration_id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+          "provider_label": "Google Gemini",
+          "source": "{{evidence.bodycam_video}}",
+          "targets": [
+            "faces",
+            "plates",
+            "text_pii"
+          ],
+          "info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "min_confidence": "medium",
+          "style": "blur",
+          "padding": 15,
+          "sample_interval": 1,
+          "audio": "bleep",
+          "audio_info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "transcribe_integration_id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+          "output_format": "mp4",
+          "output_var": "redacted_video",
+          "output_name": "{{reference}}-video-redacted",
+          "run_mode": "background"
+        }
+      },
+      {
+        "id": "log_video",
+        "type": "update_data_table",
+        "label": "Exemptions log: video",
+        "position": {
+          "x": 600,
+          "y": 2640
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{reference}}-video",
+            "request_ref": "{{reference}}",
+            "item": "{{evidence.bodycam_video[0].name}}",
+            "media_type": "video",
+            "redactions": "{{redacted_video_count}} regions blurred (faces, plates, text); {{=COUNT(redacted_video.audio_segments)}} speech segment(s) bleeped",
+            "exemption_code": "{{law_enforcement_exemption}}",
+            "status": "Proposed",
+            "logged_at": "{{received_date}}"
+          }
+        }
+      },
+      {
+        "id": "has_photos",
+        "type": "condition",
+        "label": "Photos attached?",
+        "position": {
+          "x": 600,
+          "y": 2780
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Photos",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{evidence.photos}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "each_photo",
+        "type": "loop",
+        "label": "Each photo",
+        "position": {
+          "x": 600,
+          "y": 2920
+        },
+        "config": {
+          "items": "{{evidence.photos}}",
+          "item_var": "photo"
+        }
+      },
+      {
+        "id": "redact_photo",
+        "type": "media_redact_image",
+        "label": "Redact Image: faces, plates, text",
+        "position": {
+          "x": 240,
+          "y": 3060
+        },
+        "config": {
+          "integration_id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+          "provider_label": "Google Gemini",
+          "source": "{{photo}}",
+          "targets": [
+            "faces",
+            "plates",
+            "text_pii"
+          ],
+          "info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "min_confidence": "medium",
+          "style": "blur",
+          "padding": 12,
+          "output_format": "same",
+          "output_var": "redacted_photo",
+          "output_name": "{{reference}}-photo-redacted"
+        }
+      },
+      {
+        "id": "add_photo",
+        "type": "json_add_to_array",
+        "label": "Collect redacted photo",
+        "position": {
+          "x": 240,
+          "y": 3200
+        },
+        "config": {
+          "array_var": "redacted_photos",
+          "fields": [
+            {
+              "key": "name",
+              "value": "{{photo.name}}"
+            },
+            {
+              "key": "original_url",
+              "value": "{{photo.url}}"
+            },
+            {
+              "key": "regions",
+              "value": "{{redacted_photo_count}}"
+            },
+            {
+              "key": "file",
+              "value": "{{redacted_photo_file}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "log_photos",
+        "type": "update_data_table",
+        "label": "Exemptions log: photos",
+        "position": {
+          "x": 600,
+          "y": 3060
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{reference}}-photos",
+            "request_ref": "{{reference}}",
+            "item": "{{=COUNT(redacted_photos)}} photo(s)",
+            "media_type": "image",
+            "redactions": "{{=SUM(PLUCK(redacted_photos, \"regions\"))}} regions blurred (faces, plates, text)",
+            "exemption_code": "{{privacy_exemption}}",
+            "status": "Proposed",
+            "logged_at": "{{received_date}}"
+          }
+        }
+      },
+      {
+        "id": "has_audio",
+        "type": "condition",
+        "label": "Interview audio attached?",
+        "position": {
+          "x": 600,
+          "y": 3340
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Audio",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{evidence.interview_audio}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "transcribe",
+        "type": "media_transcribe",
+        "label": "Transcribe interview",
+        "position": {
+          "x": 600,
+          "y": 3480
+        },
+        "config": {
+          "integration_id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+          "provider_label": "Google Gemini",
+          "source": "{{evidence.interview_audio}}",
+          "diarize": true,
+          "max_speakers": 4,
+          "formats": [
+            "srt",
+            "txt"
+          ],
+          "prompt": "Recorded interview for a public records request",
+          "output_var": "interview",
+          "run_mode": "auto"
+        }
+      },
+      {
+        "id": "bleep_audio",
+        "type": "media_redact_video",
+        "label": "Bleep personal details in the audio",
+        "position": {
+          "x": 600,
+          "y": 3620
+        },
+        "config": {
+          "transcribe_integration_id": "5f932883-a7e8-5e4e-afe9-9f7692ebdb04",
+          "provider_label": "Google Gemini",
+          "source": "{{evidence.interview_audio}}",
+          "targets": [],
+          "audio": "bleep",
+          "audio_info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "transcript": "{{interview}}",
+          "output_var": "redacted_audio",
+          "output_name": "{{reference}}-interview-redacted",
+          "run_mode": "auto"
+        }
+      },
+      {
+        "id": "redact_transcript",
+        "type": "doc_redact",
+        "label": "Redact the transcript",
+        "position": {
+          "x": 600,
+          "y": 3760
+        },
+        "config": {
+          "source": "{{interview_text}}",
+          "info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "output_var": "redacted_transcript",
+          "output_name": "{{reference}}-interview-transcript-redacted"
+        }
+      },
+      {
+        "id": "log_audio",
+        "type": "update_data_table",
+        "label": "Exemptions log: audio",
+        "position": {
+          "x": 600,
+          "y": 3900
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{reference}}-audio",
+            "request_ref": "{{reference}}",
+            "item": "{{evidence.interview_audio[0].name}} and transcript",
+            "media_type": "audio",
+            "redactions": "{{=COUNT(redacted_audio.audio_segments)}} speech segment(s) bleeped; {{redacted_transcript_count}} transcript redaction(s)",
+            "exemption_code": "{{privacy_exemption}}",
+            "status": "Proposed",
+            "logged_at": "{{received_date}}"
+          }
+        }
+      },
+      {
+        "id": "has_doc",
+        "type": "condition",
+        "label": "Document attached?",
+        "position": {
+          "x": 600,
+          "y": 4040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Document",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{evidence.documents}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "doc_findings",
+        "type": "doc_redact",
+        "label": "Find personal information (review only)",
+        "position": {
+          "x": 600,
+          "y": 4180
+        },
+        "config": {
+          "source": "{{evidence.documents}}",
+          "mode": "detect_only",
+          "info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email",
+            "person_name",
+            "postal_address"
+          ],
+          "output_var": "doc_findings"
+        }
+      },
+      {
+        "id": "log_doc",
+        "type": "update_data_table",
+        "label": "Exemptions log: document",
+        "position": {
+          "x": 600,
+          "y": 4320
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{reference}}-document",
+            "request_ref": "{{reference}}",
+            "item": "{{evidence.documents[0].name}}",
+            "media_type": "document",
+            "redactions": "{{doc_findings_count}} items of personal information found (redacted on approval)",
+            "exemption_code": "{{privacy_exemption}}",
+            "status": "Proposed",
+            "logged_at": "{{received_date}}"
+          }
+        }
+      },
+      {
+        "id": "st_review",
+        "type": "update_data_table",
+        "label": "Register: legal review",
+        "position": {
+          "x": 600,
+          "y": 4460
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Legal review"
+          }
+        }
+      },
+      {
+        "id": "a_redacted",
+        "type": "update_data_table",
+        "label": "Audit: redacted",
+        "position": {
+          "x": 600,
+          "y": 4600
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Redacted for review",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "Video {{redacted_video_count}} regions · photos {{=COUNT(redacted_photos)}} · audio {{=COUNT(redacted_audio.audio_segments)}} bleeps · document {{doc_findings_count}} findings"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "legal",
+        "type": "user_task",
+        "label": "Legal review and release decision",
+        "position": {
+          "x": 600,
+          "y": 4760
+        },
+        "config": {
+          "task_title": "Legal review: {{reference}} (due {{due_date}})",
+          "task_description": "<p><strong>{{form.jurisdiction}}</strong> request from {{form.requester_name}} for: <em>{{form.records_sought}}</em></p><p>Automated redaction is an aid, not a decision: compare each redacted copy with the original before you approve. Restricted: originals open only for people with access to this request; they are never attached to emails or released.</p><ul><li><strong>Video</strong>: original <a href=\"{{evidence.bodycam_video[0].url}}\">{{evidence.bodycam_video[0].name}}</a> → redacted <a href=\"{{redacted_video_file.url}}\">{{redacted_video_file.name}}</a> ({{redacted_video_count}} regions blurred, {{=COUNT(redacted_video.audio_segments)}} speech segment(s) bleeped)</li><li><strong>Photos</strong>: {{=COUNT(redacted_photos)}} redacted, {{=SUM(PLUCK(redacted_photos, \"regions\"))}} regions; first: original <a href=\"{{evidence.photos[0].url}}\">{{evidence.photos[0].name}}</a> → redacted <a href=\"{{redacted_photos[0].file.url}}\">{{redacted_photos[0].file.name}}</a></li><li><strong>Interview audio</strong>: original <a href=\"{{evidence.interview_audio[0].url}}\">{{evidence.interview_audio[0].name}}</a> → bleeped <a href=\"{{redacted_audio_file.url}}\">{{redacted_audio_file.name}}</a>; redacted transcript <a href=\"{{redacted_transcript_file.url}}\">{{redacted_transcript_file.name}}</a></li><li><strong>Document</strong>: <a href=\"{{evidence.documents[0].url}}\">{{evidence.documents[0].name}}</a>: {{doc_findings_count}} items of personal information found (redacted when you approve)</li></ul><p>Proposed exemptions: {{privacy_exemption}} (privacy), {{law_enforcement_exemption}} (law enforcement). Deadline {{due_date}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve release",
+            "Partial release",
+            "Deny",
+            "Send back"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "ee90916e-1758-5fa6-ab1a-c88b1970637a",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "video_exemption",
+              "label": "Video exemption",
+              "type": "lookup",
+              "default": "{{law_enforcement_exemption}}",
+              "lookup": {
+                "source": "table",
+                "table_id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+                "search_columns": [
+                  "code",
+                  "title"
+                ],
+                "display_columns": [
+                  "code",
+                  "title",
+                  "jurisdiction"
+                ],
+                "value_column": "code",
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "photo_exemption",
+              "label": "Photos exemption",
+              "type": "lookup",
+              "default": "{{privacy_exemption}}",
+              "lookup": {
+                "source": "table",
+                "table_id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+                "search_columns": [
+                  "code",
+                  "title"
+                ],
+                "display_columns": [
+                  "code",
+                  "title",
+                  "jurisdiction"
+                ],
+                "value_column": "code",
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "audio_exemption",
+              "label": "Audio exemption",
+              "type": "lookup",
+              "default": "{{privacy_exemption}}",
+              "lookup": {
+                "source": "table",
+                "table_id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+                "search_columns": [
+                  "code",
+                  "title"
+                ],
+                "display_columns": [
+                  "code",
+                  "title",
+                  "jurisdiction"
+                ],
+                "value_column": "code",
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "document_exemption",
+              "label": "Document exemption",
+              "type": "lookup",
+              "default": "{{privacy_exemption}}",
+              "lookup": {
+                "source": "table",
+                "table_id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+                "search_columns": [
+                  "code",
+                  "title"
+                ],
+                "display_columns": [
+                  "code",
+                  "title",
+                  "jurisdiction"
+                ],
+                "value_column": "code",
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "withheld",
+              "label": "Withheld in full (for a partial release)",
+              "type": "textarea",
+              "placeholder": "Items or parts withheld and why"
+            },
+            {
+              "key": "decision_note",
+              "label": "Reasons (used in the letter)",
+              "type": "textarea",
+              "required": true,
+              "default": "Personal information of people other than the requester has been redacted to protect their privacy."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "video_exemption",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "photo_exemption",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "audio_exemption",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "document_exemption",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "withheld",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "decision_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve release",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve release"
+            },
+            {
+              "id": "partial",
+              "label": "Partial release",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Partial release"
+            },
+            {
+              "id": "deny",
+              "label": "Deny",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Deny"
+            },
+            {
+              "id": "back",
+              "label": "Send back",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Send back"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Release decision: {{reference}}",
+            "align": "left",
+            "subtitle": "Compare originals and redacted copies · due {{due_date}}"
+          }
+        }
+      },
+      {
+        "id": "back_audit",
+        "type": "update_data_table",
+        "label": "Audit: sent back",
+        "position": {
+          "x": 1800,
+          "y": 4940
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Sent back to records officer",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "{{task_data.decision_note}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to gathering",
+        "position": {
+          "x": 1800,
+          "y": 5080
+        },
+        "config": {
+          "target_node_id": "gather",
+          "target_node_label": "Gather responsive records"
+        }
+      },
+      {
+        "id": "deny_text",
+        "type": "text_template",
+        "label": "Decision letter",
+        "position": {
+          "x": 1400,
+          "y": 4940
+        },
+        "config": {
+          "output_var": "denial_letter",
+          "template": "DECISION TO WITHHOLD\n\nReference: {{reference}}\nTo: {{form.requester_name}} <{{form.requester_email}}>\nDate: {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}\n\nYou asked under {{form.jurisdiction}} for: {{form.records_sought}} ({{date_range}}).\n\nWe have decided to withhold these records.\n\nGrounds: {{task_data.decision_note}}\nExemptions: {{task_data.video_exemption}} {{task_data.photo_exemption}} {{task_data.audio_exemption}} {{task_data.document_exemption}}\n\nYou may be able to ask for this decision to be reviewed (for example by an internal review, an ombudsman or a court, depending on {{form.jurisdiction}})."
+        }
+      },
+      {
+        "id": "deny_pdf",
+        "type": "doc_convert",
+        "label": "Letter to PDF",
+        "position": {
+          "x": 1400,
+          "y": 5080
+        },
+        "config": {
+          "source": "{{denial_letter}}",
+          "target": "pdf",
+          "title": "Decision letter",
+          "output_name": "{{reference}}-decision-letter",
+          "output_var": "denial_pdf",
+          "page_size": "A4"
+        }
+      },
+      {
+        "id": "deny_mail",
+        "type": "send_email",
+        "label": "Email: decision to withhold",
+        "position": {
+          "x": 1400,
+          "y": 5220
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "7eac7a66-7b7a-5247-b0db-7e23c4f46e17",
+          "attachments": "{{denial_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "deny_reg",
+        "type": "update_data_table",
+        "label": "Close: denied",
+        "position": {
+          "x": 1400,
+          "y": 5360
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Closed",
+            "decision": "Denied",
+            "closed_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "deny_audit",
+        "type": "update_data_table",
+        "label": "Audit: denied",
+        "position": {
+          "x": 1400,
+          "y": 5500
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Denied",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "{{task_data.decision_note}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "deny_end",
+        "type": "end_workflow",
+        "label": "Closed: denied",
+        "position": {
+          "x": 1400,
+          "y": 5640
+        },
+        "config": {
+          "reason": "{{reference}} denied"
+        }
+      },
+      {
+        "id": "decision",
+        "type": "set_variable",
+        "label": "Decision",
+        "position": {
+          "x": 600,
+          "y": 4940
+        },
+        "config": {
+          "name": "decision",
+          "expression": "{{outcome}}"
+        }
+      },
+      {
+        "id": "approval",
+        "type": "set_variable",
+        "label": "Approved exemptions",
+        "position": {
+          "x": 600,
+          "y": 5080
+        },
+        "config": {
+          "name": "approval",
+          "expression": "{{task_data}}"
+        }
+      },
+      {
+        "id": "fin_video",
+        "type": "update_data_table",
+        "label": "Exemptions log: approve video",
+        "position": {
+          "x": 600,
+          "y": 5220
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "update",
+          "match_column": "item_key",
+          "match_value": "{{reference}}-video",
+          "column_values": {
+            "exemption_code": "{{approval.video_exemption}}",
+            "status": "Approved",
+            "approved_by": "{{actioned_by_name}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "fin_photos",
+        "type": "update_data_table",
+        "label": "Exemptions log: approve photos",
+        "position": {
+          "x": 600,
+          "y": 5360
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "update",
+          "match_column": "item_key",
+          "match_value": "{{reference}}-photos",
+          "column_values": {
+            "exemption_code": "{{approval.photo_exemption}}",
+            "status": "Approved",
+            "approved_by": "{{actioned_by_name}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "fin_audio",
+        "type": "update_data_table",
+        "label": "Exemptions log: approve audio",
+        "position": {
+          "x": 600,
+          "y": 5500
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "update",
+          "match_column": "item_key",
+          "match_value": "{{reference}}-audio",
+          "column_values": {
+            "exemption_code": "{{approval.audio_exemption}}",
+            "status": "Approved",
+            "approved_by": "{{actioned_by_name}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "fin_doc",
+        "type": "update_data_table",
+        "label": "Exemptions log: approve document",
+        "position": {
+          "x": 600,
+          "y": 5640
+        },
+        "config": {
+          "table_id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+          "table_name": "Exemptions log",
+          "operation": "update",
+          "match_column": "item_key",
+          "match_value": "{{reference}}-document",
+          "column_values": {
+            "exemption_code": "{{approval.document_exemption}}",
+            "status": "Approved",
+            "approved_by": "{{actioned_by_name}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "cover_text",
+        "type": "text_template",
+        "label": "Cover letter",
+        "position": {
+          "x": 600,
+          "y": 5780
+        },
+        "config": {
+          "output_var": "cover_letter",
+          "template": "COVER LETTER: RELEASE OF RECORDS\n\nReference: {{reference}}\nTo: {{form.requester_name}} <{{form.requester_email}}>\nDate: {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}\n\nYou asked under {{form.jurisdiction}} for: {{form.records_sought}} ({{date_range}}).\n\nDecision: {{decision}}.\n\n{{approval.decision_note}}\n\n{{=IF(decision == \"Partial release\", CONCAT(\"Withheld: \", approval.withheld), \"\")}}\n\nThe enclosed exemption log lists each item, what was redacted and the exemption applied. Faces, licence plates and personal details of other people were found with automated tools and every redaction was checked by a reviewer before release.\n\nYou may be able to ask for this decision to be reviewed under {{form.jurisdiction}}."
+        }
+      },
+      {
+        "id": "cover_pdf",
+        "type": "doc_convert",
+        "label": "Cover letter to PDF",
+        "position": {
+          "x": 600,
+          "y": 5920
+        },
+        "config": {
+          "source": "{{cover_letter}}",
+          "target": "pdf",
+          "title": "Cover letter",
+          "output_name": "{{reference}}-cover-letter",
+          "output_var": "cover_letter_pdf",
+          "page_size": "A4"
+        }
+      },
+      {
+        "id": "log_text",
+        "type": "text_template",
+        "label": "Exemption log",
+        "position": {
+          "x": 600,
+          "y": 6060
+        },
+        "config": {
+          "output_var": "exemption_log",
+          "template": "EXEMPTION LOG\n\nReference: {{reference}} · {{form.jurisdiction}} · decision: {{decision}} · approved by {{actioned_by_name}}\n\n{{=IF(IS_EMPTY(evidence.bodycam_video), \"\", CONCAT(\"1. Video \", evidence.bodycam_video[0].name, \": \", redacted_video_count, \" regions blurred, \", COUNT(redacted_video.audio_segments), \" speech segment(s) bleeped. Exemption \", approval.video_exemption, \".\"))}}\n{{=IF(IS_EMPTY(evidence.photos), \"\", CONCAT(\"2. Photos (\", COUNT(redacted_photos), \"): \", SUM(PLUCK(redacted_photos, \"regions\")), \" regions blurred. Exemption \", approval.photo_exemption, \".\"))}}\n{{=IF(IS_EMPTY(evidence.interview_audio), \"\", CONCAT(\"3. Interview audio and transcript: \", COUNT(redacted_audio.audio_segments), \" speech segment(s) bleeped, \", redacted_transcript_count, \" transcript redaction(s). Exemption \", approval.audio_exemption, \".\"))}}\n{{=IF(IS_EMPTY(evidence.documents), \"\", CONCAT(\"4. Document \", evidence.documents[0].name, \": personal information redacted. Exemption \", approval.document_exemption, \".\"))}}\n\nWithheld in full: {{approval.withheld}}"
+        }
+      },
+      {
+        "id": "log_pdf",
+        "type": "doc_convert",
+        "label": "Exemption log to PDF",
+        "position": {
+          "x": 600,
+          "y": 6200
+        },
+        "config": {
+          "source": "{{exemption_log}}",
+          "target": "pdf",
+          "title": "Exemption log",
+          "output_name": "{{reference}}-exemption-log",
+          "output_var": "exemption_log_pdf",
+          "page_size": "A4"
+        }
+      },
+      {
+        "id": "parts",
+        "type": "json_build_array",
+        "label": "Release parts",
+        "position": {
+          "x": 600,
+          "y": 6340
+        },
+        "config": {
+          "output_var": "release_parts",
+          "items": [
+            {
+              "value": "{{cover_letter_pdf}}"
+            },
+            {
+              "value": "{{exemption_log_pdf}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "has_doc2",
+        "type": "condition",
+        "label": "Document to release?",
+        "position": {
+          "x": 600,
+          "y": 6480
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Document",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{evidence.documents}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "redact_doc",
+        "type": "doc_redact",
+        "label": "Redact the document",
+        "position": {
+          "x": 240,
+          "y": 6620
+        },
+        "config": {
+          "source": "{{evidence.documents}}",
+          "info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email",
+            "person_name",
+            "postal_address"
+          ],
+          "output_var": "redacted_doc",
+          "output_name": "{{reference}}-document-redacted"
+        }
+      },
+      {
+        "id": "doc_pdf",
+        "type": "doc_convert",
+        "label": "Redacted document to PDF",
+        "position": {
+          "x": 240,
+          "y": 6760
+        },
+        "config": {
+          "source": "{{redacted_doc_file}}",
+          "target": "pdf",
+          "output_var": "redacted_doc_pdf",
+          "output_name": "{{reference}}-document-redacted"
+        }
+      },
+      {
+        "id": "add_doc",
+        "type": "json_add_to_array",
+        "label": "Add to release",
+        "position": {
+          "x": 240,
+          "y": 6900
+        },
+        "config": {
+          "array_var": "release_parts",
+          "value": "{{redacted_doc_pdf}}"
+        }
+      },
+      {
+        "id": "merge",
+        "type": "doc_pdf",
+        "label": "Release package PDF",
+        "position": {
+          "x": 600,
+          "y": 7040
+        },
+        "config": {
+          "operation": "merge",
+          "sources": "{{release_parts}}",
+          "output_var": "release_pdf",
+          "output_name": "{{reference}}-release-package"
+        }
+      },
+      {
+        "id": "files",
+        "type": "json_build_array",
+        "label": "Released files",
+        "position": {
+          "x": 600,
+          "y": 7180
+        },
+        "config": {
+          "output_var": "release_files",
+          "items": [
+            {
+              "value": "{{release_pdf}}"
+            },
+            {
+              "value": "{{redacted_video_file}}"
+            },
+            {
+              "value": "{{=PLUCK(redacted_photos, \"file\")}}"
+            },
+            {
+              "value": "{{redacted_audio_file}}"
+            },
+            {
+              "value": "{{redacted_transcript_file}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "publish",
+        "type": "call_reference",
+        "label": "Create release link",
+        "position": {
+          "x": 600,
+          "y": 7320
+        },
+        "config": {
+          "reference_id": "2c6ce065-c27b-5af2-abcf-3b47352c8317",
+          "reference_name": "Create release link",
+          "reference_method": "POST",
+          "input_mappings": {
+            "reference": "{{reference}}",
+            "requester_email": "{{form.requester_email}}",
+            "files": "{{=PLUCK(release_files, \"name\")}}",
+            "expires_in_days": "30"
+          },
+          "output_mappings": {
+            "release_url": {
+              "enabled": true,
+              "variableName": "release_url"
+            },
+            "release_id": {
+              "enabled": true,
+              "variableName": "release_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "sentence",
+        "type": "set_variable",
+        "label": "Letter wording",
+        "position": {
+          "x": 600,
+          "y": 7460
+        },
+        "config": {
+          "name": "release_sentence",
+          "expression": "{{=IF(decision == \"Partial release\", \"We are releasing some of the records you asked for. Some parts are redacted and some are withheld, as the cover letter explains.\", \"We are releasing the records you asked for. Personal details of other people are redacted, as the cover letter explains.\")}}"
+        }
+      },
+      {
+        "id": "by_link",
+        "type": "condition",
+        "label": "Delivery",
+        "position": {
+          "x": 600,
+          "y": 7600
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Download link",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.delivery_preference}}",
+                  "operator": "equals",
+                  "value": "Secure download link"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "link_text",
+        "type": "set_variable",
+        "label": "Link wording",
+        "position": {
+          "x": 240,
+          "y": 7740
+        },
+        "config": {
+          "name": "delivery_sentence",
+          "expression": "Download the release package here: {{release_url}} (the link expires in 30 days). The cover letter is attached."
+        }
+      },
+      {
+        "id": "mail_link",
+        "type": "send_email",
+        "label": "Email: release link",
+        "position": {
+          "x": 240,
+          "y": 7880
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "5e38ec45-f439-5d34-8f03-1328271ad64a",
+          "attachments": "{{cover_letter_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "attach_text",
+        "type": "set_variable",
+        "label": "Attachment wording",
+        "position": {
+          "x": 960,
+          "y": 7740
+        },
+        "config": {
+          "name": "delivery_sentence",
+          "expression": "The release package PDF and the redacted recordings and photos are attached."
+        }
+      },
+      {
+        "id": "mail_files",
+        "type": "send_email",
+        "label": "Email: release package",
+        "position": {
+          "x": 960,
+          "y": 7880
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "5e38ec45-f439-5d34-8f03-1328271ad64a",
+          "attachments": "{{release_files}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "rel_reg",
+        "type": "update_data_table",
+        "label": "Register: released",
+        "position": {
+          "x": 600,
+          "y": 8020
+        },
+        "config": {
+          "table_id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+          "table_name": "Records requests",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Released",
+            "decision": "{{decision}}",
+            "release_url": "{{release_url}}",
+            "closed_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "rel_audit",
+        "type": "update_data_table",
+        "label": "Audit: released",
+        "position": {
+          "x": 600,
+          "y": 8160
+        },
+        "config": {
+          "table_id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+          "table_name": "Request activity",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "event": "Released",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "detail": "{{decision}} · {{=COUNT(release_files)}} files · {{release_url}}"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Released",
+        "position": {
+          "x": 600,
+          "y": 8300
+        },
+        "config": {
+          "reason": "{{reference}}: {{decision}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-received",
+        "source": "ref",
+        "target": "received"
+      },
+      {
+        "id": "e-received-range",
+        "source": "received",
+        "target": "range"
+      },
+      {
+        "id": "e-range-title",
+        "source": "range",
+        "target": "title"
+      },
+      {
+        "id": "e-title-rules",
+        "source": "title",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-due",
+        "source": "rules",
+        "target": "due"
+      },
+      {
+        "id": "e-due-sla",
+        "source": "due",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-log_in",
+        "source": "sla",
+        "target": "log_in"
+      },
+      {
+        "id": "e-log_in-retain",
+        "source": "log_in",
+        "target": "retain"
+      },
+      {
+        "id": "e-retain-a_received",
+        "source": "retain",
+        "target": "a_received"
+      },
+      {
+        "id": "e-a_received-ack",
+        "source": "a_received",
+        "target": "ack"
+      },
+      {
+        "id": "e-ack-gather",
+        "source": "ack",
+        "target": "gather"
+      },
+      {
+        "id": "e-gather-keep-records-gathered",
+        "source": "gather",
+        "target": "keep",
+        "label": "Records gathered"
+      },
+      {
+        "id": "e-gather-nr_text-no-records",
+        "source": "gather",
+        "target": "nr_text",
+        "label": "No records"
+      },
+      {
+        "id": "e-gather-ext_due-extend-deadline",
+        "source": "gather",
+        "target": "ext_due",
+        "label": "Extend deadline"
+      },
+      {
+        "id": "e-nr_text-nr_pdf",
+        "source": "nr_text",
+        "target": "nr_pdf"
+      },
+      {
+        "id": "e-nr_pdf-nr_mail",
+        "source": "nr_pdf",
+        "target": "nr_mail"
+      },
+      {
+        "id": "e-nr_mail-nr_reg",
+        "source": "nr_mail",
+        "target": "nr_reg"
+      },
+      {
+        "id": "e-nr_reg-nr_audit",
+        "source": "nr_reg",
+        "target": "nr_audit"
+      },
+      {
+        "id": "e-nr_audit-nr_end",
+        "source": "nr_audit",
+        "target": "nr_end"
+      },
+      {
+        "id": "e-ext_due-ext_sla",
+        "source": "ext_due",
+        "target": "ext_sla"
+      },
+      {
+        "id": "e-ext_sla-ext_reg",
+        "source": "ext_sla",
+        "target": "ext_reg"
+      },
+      {
+        "id": "e-ext_reg-ext_mail",
+        "source": "ext_reg",
+        "target": "ext_mail"
+      },
+      {
+        "id": "e-ext_mail-ext_audit",
+        "source": "ext_mail",
+        "target": "ext_audit"
+      },
+      {
+        "id": "e-ext_audit-ext_back",
+        "source": "ext_audit",
+        "target": "ext_back"
+      },
+      {
+        "id": "e-keep-st_redact",
+        "source": "keep",
+        "target": "st_redact"
+      },
+      {
+        "id": "e-st_redact-a_gathered",
+        "source": "st_redact",
+        "target": "a_gathered"
+      },
+      {
+        "id": "e-a_gathered-has_video",
+        "source": "a_gathered",
+        "target": "has_video"
+      },
+      {
+        "id": "e-has_video-redact_video-video",
+        "source": "has_video",
+        "target": "redact_video",
+        "label": "Video"
+      },
+      {
+        "id": "e-has_video-has_photos-else",
+        "source": "has_video",
+        "target": "has_photos",
+        "label": "Else"
+      },
+      {
+        "id": "e-redact_video-log_video",
+        "source": "redact_video",
+        "target": "log_video"
+      },
+      {
+        "id": "e-log_video-has_photos",
+        "source": "log_video",
+        "target": "has_photos"
+      },
+      {
+        "id": "e-has_photos-each_photo-photos",
+        "source": "has_photos",
+        "target": "each_photo",
+        "label": "Photos"
+      },
+      {
+        "id": "e-has_photos-has_audio-else",
+        "source": "has_photos",
+        "target": "has_audio",
+        "label": "Else"
+      },
+      {
+        "id": "e-each_photo-redact_photo-each-item",
+        "source": "each_photo",
+        "target": "redact_photo",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-redact_photo-add_photo",
+        "source": "redact_photo",
+        "target": "add_photo"
+      },
+      {
+        "id": "e-each_photo-log_photos-done",
+        "source": "each_photo",
+        "target": "log_photos",
+        "label": "Done"
+      },
+      {
+        "id": "e-log_photos-has_audio",
+        "source": "log_photos",
+        "target": "has_audio"
+      },
+      {
+        "id": "e-has_audio-transcribe-audio",
+        "source": "has_audio",
+        "target": "transcribe",
+        "label": "Audio"
+      },
+      {
+        "id": "e-has_audio-has_doc-else",
+        "source": "has_audio",
+        "target": "has_doc",
+        "label": "Else"
+      },
+      {
+        "id": "e-transcribe-bleep_audio",
+        "source": "transcribe",
+        "target": "bleep_audio"
+      },
+      {
+        "id": "e-bleep_audio-redact_transcript",
+        "source": "bleep_audio",
+        "target": "redact_transcript"
+      },
+      {
+        "id": "e-redact_transcript-log_audio",
+        "source": "redact_transcript",
+        "target": "log_audio"
+      },
+      {
+        "id": "e-log_audio-has_doc",
+        "source": "log_audio",
+        "target": "has_doc"
+      },
+      {
+        "id": "e-has_doc-doc_findings-document",
+        "source": "has_doc",
+        "target": "doc_findings",
+        "label": "Document"
+      },
+      {
+        "id": "e-has_doc-st_review-else",
+        "source": "has_doc",
+        "target": "st_review",
+        "label": "Else"
+      },
+      {
+        "id": "e-doc_findings-log_doc",
+        "source": "doc_findings",
+        "target": "log_doc"
+      },
+      {
+        "id": "e-log_doc-st_review",
+        "source": "log_doc",
+        "target": "st_review"
+      },
+      {
+        "id": "e-st_review-a_redacted",
+        "source": "st_review",
+        "target": "a_redacted"
+      },
+      {
+        "id": "e-a_redacted-legal",
+        "source": "a_redacted",
+        "target": "legal"
+      },
+      {
+        "id": "e-legal-decision-approve-release",
+        "source": "legal",
+        "target": "decision",
+        "label": "Approve release"
+      },
+      {
+        "id": "e-legal-decision-partial-release",
+        "source": "legal",
+        "target": "decision",
+        "label": "Partial release"
+      },
+      {
+        "id": "e-legal-deny_text-deny",
+        "source": "legal",
+        "target": "deny_text",
+        "label": "Deny"
+      },
+      {
+        "id": "e-legal-back_audit-send-back",
+        "source": "legal",
+        "target": "back_audit",
+        "label": "Send back"
+      },
+      {
+        "id": "e-back_audit-back",
+        "source": "back_audit",
+        "target": "back"
+      },
+      {
+        "id": "e-deny_text-deny_pdf",
+        "source": "deny_text",
+        "target": "deny_pdf"
+      },
+      {
+        "id": "e-deny_pdf-deny_mail",
+        "source": "deny_pdf",
+        "target": "deny_mail"
+      },
+      {
+        "id": "e-deny_mail-deny_reg",
+        "source": "deny_mail",
+        "target": "deny_reg"
+      },
+      {
+        "id": "e-deny_reg-deny_audit",
+        "source": "deny_reg",
+        "target": "deny_audit"
+      },
+      {
+        "id": "e-deny_audit-deny_end",
+        "source": "deny_audit",
+        "target": "deny_end"
+      },
+      {
+        "id": "e-decision-approval",
+        "source": "decision",
+        "target": "approval"
+      },
+      {
+        "id": "e-approval-fin_video",
+        "source": "approval",
+        "target": "fin_video"
+      },
+      {
+        "id": "e-fin_video-fin_photos",
+        "source": "fin_video",
+        "target": "fin_photos"
+      },
+      {
+        "id": "e-fin_photos-fin_audio",
+        "source": "fin_photos",
+        "target": "fin_audio"
+      },
+      {
+        "id": "e-fin_audio-fin_doc",
+        "source": "fin_audio",
+        "target": "fin_doc"
+      },
+      {
+        "id": "e-fin_doc-cover_text",
+        "source": "fin_doc",
+        "target": "cover_text"
+      },
+      {
+        "id": "e-cover_text-cover_pdf",
+        "source": "cover_text",
+        "target": "cover_pdf"
+      },
+      {
+        "id": "e-cover_pdf-log_text",
+        "source": "cover_pdf",
+        "target": "log_text"
+      },
+      {
+        "id": "e-log_text-log_pdf",
+        "source": "log_text",
+        "target": "log_pdf"
+      },
+      {
+        "id": "e-log_pdf-parts",
+        "source": "log_pdf",
+        "target": "parts"
+      },
+      {
+        "id": "e-parts-has_doc2",
+        "source": "parts",
+        "target": "has_doc2"
+      },
+      {
+        "id": "e-has_doc2-redact_doc-document",
+        "source": "has_doc2",
+        "target": "redact_doc",
+        "label": "Document"
+      },
+      {
+        "id": "e-has_doc2-merge-else",
+        "source": "has_doc2",
+        "target": "merge",
+        "label": "Else"
+      },
+      {
+        "id": "e-redact_doc-doc_pdf",
+        "source": "redact_doc",
+        "target": "doc_pdf"
+      },
+      {
+        "id": "e-doc_pdf-add_doc",
+        "source": "doc_pdf",
+        "target": "add_doc"
+      },
+      {
+        "id": "e-add_doc-merge",
+        "source": "add_doc",
+        "target": "merge"
+      },
+      {
+        "id": "e-merge-files",
+        "source": "merge",
+        "target": "files"
+      },
+      {
+        "id": "e-files-publish",
+        "source": "files",
+        "target": "publish"
+      },
+      {
+        "id": "e-publish-sentence",
+        "source": "publish",
+        "target": "sentence"
+      },
+      {
+        "id": "e-sentence-by_link",
+        "source": "sentence",
+        "target": "by_link"
+      },
+      {
+        "id": "e-by_link-link_text-download-link",
+        "source": "by_link",
+        "target": "link_text",
+        "label": "Download link"
+      },
+      {
+        "id": "e-by_link-attach_text-else",
+        "source": "by_link",
+        "target": "attach_text",
+        "label": "Else"
+      },
+      {
+        "id": "e-link_text-mail_link",
+        "source": "link_text",
+        "target": "mail_link"
+      },
+      {
+        "id": "e-attach_text-mail_files",
+        "source": "attach_text",
+        "target": "mail_files"
+      },
+      {
+        "id": "e-mail_link-rel_reg",
+        "source": "mail_link",
+        "target": "rel_reg"
+      },
+      {
+        "id": "e-mail_files-rel_reg",
+        "source": "mail_files",
+        "target": "rel_reg"
+      },
+      {
+        "id": "e-rel_reg-rel_audit",
+        "source": "rel_reg",
+        "target": "rel_audit"
+      },
+      {
+        "id": "e-rel_audit-done",
+        "source": "rel_audit",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

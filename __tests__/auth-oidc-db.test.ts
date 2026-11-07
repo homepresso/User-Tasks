@@ -234,7 +234,7 @@ describe.skipIf(!DB_URL)('OIDC sign-in (mock IdP, local stack)', () => {
       const started = await startSsoAction({ provider: 'mock', redirect })
       expect(started.ok).toBe(true)
       const callback = await authorizeAtMockIdp((started as { url: string }).url)
-      expect(await flow.completeOidcCallback('mock', new Request(callback.toString()), {})).toBe('/tasks')
+      expect(await flow.completeOidcCallback('mock', new Request(callback.toString()), {})).toBe('/home')
     }
   })
 

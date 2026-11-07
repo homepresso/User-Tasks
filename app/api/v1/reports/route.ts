@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err, parsePagination } from '@/lib/api-auth'
 import { normalizeReportConfig } from '@/lib/report-config'
+import { reportShareDenied, scopeReportRead } from '@/lib/reports-access'
 
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request)
@@ -14,10 +15,10 @@ export async function GET(request: NextRequest) {
   const shared = params.get('shared')
   const category = params.get('category')
 
-  let query = (supabase as any)
+  let query = scopeReportRead((supabase as any)
     .from('reports')
     .select('id, name, description, category, is_shared, config, created_at, updated_at', { count: 'exact' })
-    .eq('tenant_id', tenantId)
+    .eq('tenant_id', tenantId), auth.actingUserId)
     .order('updated_at', { ascending: false })
 
   if (shared === 'true') query = query.eq('is_shared', true)

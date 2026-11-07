@@ -212,6 +212,7 @@ const installPlanResponse = z.looseObject({
 const summaryResponse = z.looseObject({
   package: looseObject, verification, size_bytes: z.number().int(), assets: z.array(looseObject),
   data: z.array(looseObject), requirements: z.array(requirement), dependencies: z.array(looseObject),
+  network_controls: z.array(z.object({ tag: z.string(), name: z.string(), hosts: z.array(z.string()) })).describe('Form controls that need network access: their hosts stay blocked until an admin approves them').optional(),
 })
 
 const tags = ['Packages']

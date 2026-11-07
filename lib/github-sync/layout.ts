@@ -94,6 +94,8 @@ export const SECTION_TO_DIR: ReadonlyArray<{ section: string; dir: string }> = [
   { section: 'connectors', dir: 'connectors' },
   { section: 'log_destinations', dir: 'log-destinations' },
   { section: 'form_themes', dir: 'form-themes' },
+  // Custom form controls (web components): every version with its ES module.
+  { section: 'form_controls', dir: 'form-controls' },
   { section: 'forms', dir: 'forms' },
   // Opt-in data-table rows (config export include_rows; packages): one file
   // per table, the asset id is the table id. Never pushed by GitHub sync.
@@ -107,6 +109,7 @@ export const SECTION_TO_DIR: ReadonlyArray<{ section: string; dir: string }> = [
  */
 export const SINGLETON_SECTIONS: ReadonlyArray<{ section: string; file: string }> = [
   { section: 'workspace_theme', file: 'workspace-theme.json' },
+  { section: 'document_ocr', file: 'document-ocr.json' },
 ]
 /** Envelope / index id of a singleton (it has no asset id of its own). */
 export const SINGLETON_ID = 'workspace'

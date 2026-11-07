@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import type { Permission } from './permissions'
+import { expandPermissions, type Permission } from './permissions'
 
 /** Server-side: fetch user permissions (cached per request via React cache()) */
 export const getUserPermissions = cache(async (): Promise<Set<string>> => {
@@ -10,7 +10,7 @@ export const getUserPermissions = cache(async (): Promise<Set<string>> => {
     console.error('[permissions] Failed to fetch user permissions:', error.message)
     return new Set()
   }
-  return new Set((data as string[] | null) ?? [])
+  return new Set(expandPermissions((data as string[] | null) ?? []))
 })
 
 /** Server action guard — throws if the user lacks the required permission */

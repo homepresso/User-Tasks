@@ -51,7 +51,7 @@ describe('WorkspaceTheme schema', () => {
   it('rejects CSS injection through colours, gradients and textures', () => {
     expect(valid(withPatch((t) => { t.colors.light.primary = 'red;}*{display:none' }))).toBe(false)
     expect(valid(withPatch((t) => { t.colors.dark.chart[0] = 'url(javascript:alert(1))' }))).toBe(false)
-    expect(valid(withPatch((t) => { t.chrome.sidebar.gradient!.stops[0].color = 'var(--x)' }))).toBe(false)
+    expect(valid(withPatch((t) => { t.chrome.sidebar.gradient = { angle: 0, stops: [{ color: 'var(--x)', at: 0 }, { color: '#000000', at: 100 }] } }))).toBe(false)
     expect(valid(withPatch((t) => { t.chrome.canvas.texture = { pattern: 'dots', color: '#000);background:url(x)', size: 20 } }))).toBe(false)
   })
 
@@ -137,16 +137,25 @@ describe('built-in presets', () => {
     }
   })
 
-  it('keeps the id-keyed looks: brand trio texture + display headings, decorated sidebars, Noir status', () => {
+  it('keeps the id-keyed looks: calm brand trio (solid, Inter headings), decorated sidebars, Noir status', () => {
     const gallery = presetToWorkspaceTheme('basecamp')!
-    expect(gallery.chrome.sidebar).toMatchObject({ style: 'texture', decorations: 'off' })
-    expect(gallery.typography.headingFont).toBe('display')
-    expect(themeVars(gallery, 'light')['--theme-sidebar-image']).toBe('radial-gradient(circle at 1px 1px, rgba(233,228,216,0.055) 1px, transparent 0), linear-gradient(180deg, #1B1815 0%, #161411 55%, #121110 100%)')
-    expect(themeVars(gallery, 'light')['--theme-canvas-image']).toContain('rgba(27,25,22,0.045)')
+    expect(gallery.chrome.sidebar).toMatchObject({ style: 'solid', decorations: 'off' })
+    expect(gallery.typography.headingFont).toBe('sans')
+    expect(gallery.typography.sans).toEqual({ source: 'google', family: 'Inter' })
+    expect(gallery.typography.mono).toEqual({ source: 'google', family: 'JetBrains Mono' })
+    expect(gallery.shape).toEqual({ cardRadius: 8, buttonRadius: 6, inputRadius: 6, badgeRadius: 4, dialogRadius: 12 })
+    expect(themeVars(gallery, 'light')['--theme-sidebar-image']).toBe('none')
+    expect(themeVars(gallery, 'light')['--theme-canvas-image']).toBe('none')
+    // No built-in look carries a dot texture any more.
+    for (const t of THEME_TEMPLATES) {
+      const wt = presetToWorkspaceTheme(t.id)!
+      expect(wt.chrome.sidebar.texture, t.id).toBeUndefined()
+      expect(wt.chrome.canvas.texture, t.id).toBeUndefined()
+    }
     expect(presetToWorkspaceTheme('night-drive')!.colors.light.status.todo).toBe('#A29A89')
     expect(presetToWorkspaceTheme('aurora')!.chrome.sidebar).toMatchObject({ decorations: 'light', decorationColor: '#0D9488' })
     expect(presetToWorkspaceTheme('dawn')!.meta.decorationPreset).toBe('dawn')
-    expect(themeVars(presetToWorkspaceTheme('ultraviolet')!, 'light')['--theme-sidebar-image']).toContain('rgba(196,181,253,0.06)')
+    expect(themeVars(presetToWorkspaceTheme('ultraviolet')!, 'light')['--theme-sidebar-image']).toBe('linear-gradient(135deg, #13102B 0%, #241B4A 50%, #13102B 100%)')
     expect(presetToWorkspaceTheme('studio')!.chrome.sidebar.style).toBe('solid')
     expect(themeVars(presetToWorkspaceTheme('studio')!, 'light')['--theme-sidebar-image']).toBe('none')
   })
@@ -225,10 +234,14 @@ describe('CSS generation', () => {
   })
 
   it('loads non-bundled Google fonts only', () => {
+    // Inter, JetBrains Mono and Fraunces ship with the app.
     expect(themeFontsHref(defaultWorkspaceTheme())).toBeNull()
-    const t = withPatch((x) => { x.typography.sans = { source: 'google', family: 'Inter' }; x.typography.mono = { source: 'google', family: 'Space Mono' } }) as WorkspaceTheme
-    expect(themeFontsHref(t)).toBe('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap')
-    expect(themeVars(t, 'light')['--theme-font-sans']).toBe("'Inter', var(--font-sans), ui-sans-serif, system-ui, sans-serif")
+    expect(themeVars(defaultWorkspaceTheme(), 'light')['--theme-font-sans']).toBe('var(--font-sans), ui-sans-serif, system-ui, sans-serif')
+    expect(themeVars(defaultWorkspaceTheme(), 'light')['--theme-font-mono']).toBe('var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace')
+    // The pre-foundations defaults are ordinary curated Google fonts now.
+    const t = withPatch((x) => { x.typography.sans = { source: 'google', family: 'DM Sans' }; x.typography.mono = { source: 'google', family: 'Space Mono' } }) as WorkspaceTheme
+    expect(themeFontsHref(t)).toBe('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap')
+    expect(themeVars(t, 'light')['--theme-font-sans']).toBe("'DM Sans', var(--font-sans), ui-sans-serif, system-ui, sans-serif")
     // Weights snap to what the family has (Google rejects a request for a missing weight).
     expect(googleFontsHref([{ family: 'Atkinson Hyperlegible', weights: [400, 500, 600, 700] }])).toBe('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap')
     expect(CURATED_FONTS.length).toBeGreaterThanOrEqual(40)
@@ -254,10 +267,10 @@ describe('contrast checks', () => {
       // ~4:1 status text: below AA, not invisible.
       expect.objectContaining({ mode: 'light', pair: 'status.todo/cardBg', level: 'warn', required: 4.5 }),
     ]))
-    // The dark sidebar text also fails against every sidebar gradient stop and the active wash.
+    // The dark sidebar text also fails against the active wash.
     expect(new Set(blockingContrastIssues(t).map((i) => `${i.mode}:${i.pair}`))).toEqual(new Set([
       'light:onPrimary/primary', 'light:onPrimary/primaryHover', 'light:mutedText/cardBg', 'light:mutedText/surface',
-      'dark:sidebarText/sidebar', 'dark:sidebarText/sidebarActive', 'dark:sidebarText/sidebar gradient',
+      'dark:sidebarText/sidebar', 'dark:sidebarText/sidebarActive',
     ]))
   })
 
@@ -265,6 +278,7 @@ describe('contrast checks', () => {
     const t = defaultWorkspaceTheme()
     t.chrome.topbar = { style: 'gradient', gradient: { angle: 90, stops: [{ color: '#FFFFFF', at: 0 }, { color: '#EDE9FE', at: 100 }] } }
     t.colors.dark.topbarText = '#F3F4F6'
+    t.chrome.sidebar.style = 'gradient'
     t.chrome.sidebar.gradient = { angle: 180, stops: [{ color: '#161411', at: 0 }, { color: '#F0F0F0', at: 100 }] }
     const issues = checkThemeContrast(t)
     expect(issues).toEqual(expect.arrayContaining([
@@ -295,8 +309,12 @@ describe('provider resolution', () => {
   it('follows the OS unless the theme forces a mode; data-theme-mode follows the canvas', () => {
     const gallery = presetToWorkspaceTheme('basecamp')!
     expect(resolvePaletteMode(gallery, true)).toBe('dark')
+    // Gallery has a dark palette: Follow device turns the canvas dark.
+    expect(canvasMode(gallery, true)).toBe('dark')
+    expect(canvasMode(gallery, false)).toBe('light')
+    expect(canvasMode(presetToWorkspaceTheme('trailside')!, true)).toBe('dark')
     // Light presets without a dark variant keep a light canvas in dark OS mode (as before).
-    expect(canvasMode(gallery, true)).toBe('light')
+    expect(canvasMode(presetToWorkspaceTheme('corporate-blue')!, true)).toBe('light')
     expect(canvasMode(presetToWorkspaceTheme('midnight')!, true)).toBe('dark')
     expect(canvasMode(presetToWorkspaceTheme('night-drive')!, false)).toBe('dark')
     const forced = presetToWorkspaceTheme('midnight')!
@@ -310,7 +328,7 @@ describe('provider resolution', () => {
       'data-theme': 'nebula',
       'data-theme-mode': 'dark',
       'data-theme-decoration': 'nebula',
-      'data-sidebar-style': 'texture',
+      'data-sidebar-style': 'gradient',
       'data-density': 'comfortable',
       'data-theme-headings': 'sans',
     })

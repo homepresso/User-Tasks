@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowRight, KeyRound, LogIn, Shield, CheckCircle2 } from "lucide-react"
+import { ArrowRight, KeyRound } from "lucide-react"
+import { Field } from "@/components/ui/field"
+import { InlineNotice } from "@/components/ui/inline-notice"
+import { BusyBar } from "@/components/ui/busy-bar"
 import { PERMISSION_PAYLOAD_VERSION } from "@/lib/permissions"
 import { getMySession } from "@/app/actions/session"
 import { signInAction, startSsoAction } from "@/app/actions/auth"
@@ -27,10 +30,10 @@ const ERROR_MESSAGES: Record<string, string> = {
  * session cookies; the browser never sees a token. Sign-in options come from
  * the configured auth provider (names and buttons only).
  */
-export function LoginForm({ options }: { options: LoginOptions }) {
+export function LoginForm({ options, defaultOrg = "" }: { options: LoginOptions; defaultOrg?: string }) {
   const searchParams = useSearchParams()
   const redirectTo = sanitizeRedirect(searchParams.get("redirect"))
-  const orgParam = searchParams.get("org") ?? ""
+  const orgParam = searchParams.get("org") ?? defaultOrg
   const inviteToken = searchParams.get("invite") ?? ""
 
   const [tenant, setTenant] = useState(orgParam)
@@ -50,7 +53,7 @@ export function LoginForm({ options }: { options: LoginOptions }) {
     setLoading(true)
     const slug = tenant.trim().toLowerCase()
 
-    setStep("Signing in...")
+    setStep("Signing in…")
     const result = await signInAction({ org: slug, email, password, inviteToken: inviteToken || null, redirect: redirectTo })
 
     if (!result.ok) {
@@ -96,118 +99,77 @@ export function LoginForm({ options }: { options: LoginOptions }) {
 
   const ssoOptions = options.sso
   const showPassword = options.password
+  const orgField = (
+    <Field
+      label="Organisation"
+      optional={!showPassword}
+      description={showPassword ? "The organisation name provided by your administrator." : undefined}
+    >
+      <Input id="tenant" size="lg" value={tenant} onChange={e => setTenant(e.target.value)} placeholder="your-organisation"
+        required={showPassword} readOnly={!!orgParam && !!inviteToken} autoComplete="organization" />
+    </Field>
+  )
 
   return (
     <div>
       {inviteToken && (
-        <div className="mb-6 rounded-lg border p-3" style={{ backgroundColor: 'rgba(23,21,15,0.10)', borderColor: 'rgba(23,21,15,0.30)' }}>
-          <p className="text-sm font-medium" style={{ color: '#7C623E' }}>
-            You've been invited to join <strong>{orgParam}</strong>
-          </p>
-        </div>
+        <InlineNotice tone="info" className="mb-6" message={<>You&apos;ve been invited to join <strong>{orgParam}</strong>.</>} />
       )}
 
       <div className="mb-8">
-        <h2 className="text-2xl font-bold" style={{ color: '#1B1916' }}>Sign in</h2>
-        <p className="text-sm mt-1" style={{ color: '#7E623A' }}>
-          Enter your organisation, email and password. New users with an invitation will be set up automatically.
+        <h1 className="font-display text-2xl font-semibold text-fg">Sign in</h1>
+        <p className="mt-1 text-sm text-fg-muted">
+          Enter your organisation, email and password. New users with an invitation are set up automatically.
         </p>
       </div>
 
-      {error && (
-        <div className="mb-5 rounded-lg border border-rose-400/25 bg-rose-500/10 p-3 text-sm text-rose-300">
-          {error}
-        </div>
-      )}
+      {error && <InlineNotice tone="danger" className="mb-5" message={error} />}
 
-      {/* Loading state */}
-      {loading && (
-        <div className="mb-6 rounded-xl border p-6 text-center space-y-4" style={{ backgroundColor: '#F1EDE3', borderColor: 'rgba(67,62,60,0.09)' }}>
-          <div className="relative mx-auto w-12 h-12">
-            <div className="absolute inset-0 rounded-full border-2 border-[#1B1916]/10" />
-            <div className="absolute inset-0 rounded-full border-2 border-t-[#17150F] animate-spin" style={{ animationDuration: '0.8s' }} />
-          </div>
-          <p className="text-sm font-medium" style={{ color: '#1B1916' }}>{step}</p>
-          <div className="flex justify-center gap-8 pt-1">
-            {[
-              { icon: LogIn, label: 'Authenticate', active: step === 'Signing in...' || step === 'Signing you in...' },
-              { icon: Shield, label: 'Verify', active: step === 'Verifying access...' || step === 'Checking invitation...' || step === 'Setting up your workspace...' || step === 'Creating your account...' },
-              { icon: CheckCircle2, label: 'Ready', active: step === 'Welcome back!' || step === 'Welcome!' },
-            ].map((s, i) => {
-              const isPast = (i === 0 && s.label === 'Authenticate' && step !== 'Signing in...' && step !== '' && step !== 'Signing you in...') ||
-                             (i === 1 && (step === 'Welcome back!' || step === 'Welcome!' || step === 'Signing you in...'))
-              const isActive = s.active
-              const color = isActive || isPast ? '#17150F' : '#52708A'
-              return (
-                <div key={i} className="flex flex-col items-center gap-1.5">
-                  <s.icon size={18} style={{ color, transition: 'color 0.3s' }} />
-                  <span className="text-[10px] font-medium" style={{ color, transition: 'color 0.3s' }}>{s.label}</span>
-                </div>
-              )
-            })}
-          </div>
+      {loading ? (
+        <div className="space-y-3 rounded-lg border border-border bg-panel p-5" role="status" aria-live="polite">
+          <p className="text-sm font-medium text-fg">{step || "Signing in…"}</p>
+          <BusyBar />
         </div>
-      )}
-
-      {/* Form — hidden during loading */}
-      {!loading && (
+      ) : (
         <>
           {showPassword ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="tenant" className="mb-1.5 block text-sm font-medium" style={{ color: '#6B5331' }}>Organisation</label>
-              <Input id="tenant" value={tenant} onChange={e => setTenant(e.target.value)} placeholder="your-organisation" required
-                readOnly={!!orgParam} className={`h-11 text-base ${orgParam ? 'bg-gray-50' : ''}`} />
-              <p className="text-[11px] mt-1" style={{ color: '#7E623A' }}>The organisation name provided by your administrator.</p>
-            </div>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium" style={{ color: '#6B5331' }}>Email address</label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required className="h-11 text-base" />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="text-sm font-medium" style={{ color: '#6B5331' }}>Password</label>
-                <Link href="/forgot-password" className="text-xs" style={{ color: '#17150F' }}>Forgot password?</Link>
-              </div>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required className="h-11 text-base" />
-            </div>
-            <Button type="submit" className="w-full h-11 text-sm font-medium mt-2">
-              Sign in <ArrowRight size={15} className="ml-1.5" />
-            </Button>
-          </form>
-          ) : (
-            <div>
-              <label htmlFor="tenant" className="mb-1.5 block text-sm font-medium" style={{ color: '#6B5331' }}>Organisation <span className="font-normal">(optional)</span></label>
-              <Input id="tenant" value={tenant} onChange={e => setTenant(e.target.value)} placeholder="your-organisation"
-                readOnly={!!orgParam} className={`h-11 text-base ${orgParam ? 'bg-gray-50' : ''}`} />
-            </div>
-          )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {orgField}
+              <Field label="Email address">
+                <Input id="email" type="email" size="lg" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required autoComplete="email" />
+              </Field>
+              <Field label="Password" labelAside={<Link href="/forgot-password" className="text-xs font-medium text-primary-text hover:underline">Forgot password?</Link>}>
+                <Input id="password" type="password" size="lg" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required autoComplete="current-password" />
+              </Field>
+              <Button type="submit" size="lg" className="mt-2 w-full" trailingIcon={<ArrowRight />}>
+                Sign in
+              </Button>
+            </form>
+          ) : orgField}
 
           {ssoOptions.length > 0 && (
-          <>
-          {showPassword && (
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1" style={{ backgroundColor: 'rgba(67,62,60,0.09)' }} />
-            <span className="text-xs" style={{ color: '#7E623A' }}>or continue with</span>
-            <div className="h-px flex-1" style={{ backgroundColor: 'rgba(67,62,60,0.09)' }} />
-          </div>
-          )}
-
-          <div className={`${ssoOptions.length > 1 ? "grid grid-cols-2 gap-2" : ""} ${showPassword ? "" : "mt-6"}`}>
-            {ssoOptions.map((option) => (
-              <Button key={option.id} variant="outline" className="w-full h-11" onClick={() => handleSso(option)}>
-                <SsoIcon kind={option.kind} />
-                {option.name}
-              </Button>
-            ))}
-          </div>
-          </>
+            <>
+              {showPassword && (
+                <div className="my-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border-subtle" />
+                  <span className="text-xs text-fg-muted">or continue with</span>
+                  <div className="h-px flex-1 bg-border-subtle" />
+                </div>
+              )}
+              <div className={`space-y-2 ${showPassword ? "" : "mt-6"}`}>
+                {ssoOptions.map((option) => (
+                  <Button key={option.id} variant="secondary" size="lg" className="w-full" leadingIcon={<SsoIcon kind={option.kind} />} onClick={() => handleSso(option)}>
+                    {option.name}
+                  </Button>
+                ))}
+              </div>
+            </>
           )}
 
           {showPassword && (
-          <p className="mt-8 text-center text-xs" style={{ color: '#7E623A' }}>
-            New here? Just enter your details above. If you have an invitation, your account will be created automatically.
-          </p>
+            <p className="mt-8 text-center text-xs text-fg-muted">
+              New here? Enter your details above. If you have an invitation, your account is created automatically.
+            </p>
           )}
         </>
       )}
@@ -218,7 +180,7 @@ export function LoginForm({ options }: { options: LoginOptions }) {
 function SsoIcon({ kind }: { kind: SsoOption["kind"] }) {
   if (kind === "google") {
     return (
-      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+      <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -228,7 +190,7 @@ function SsoIcon({ kind }: { kind: SsoOption["kind"] }) {
   }
   if (kind === "microsoft") {
     return (
-      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+      <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M2 2h9.5v9.5H2z" fill="#F25022" />
         <path d="M12.5 2H22v9.5h-9.5z" fill="#7FBA00" />
         <path d="M2 12.5h9.5V22H2z" fill="#00A4EF" />
@@ -236,5 +198,5 @@ function SsoIcon({ kind }: { kind: SsoOption["kind"] }) {
       </svg>
     )
   }
-  return <KeyRound className="h-4 w-4 mr-2" />
+  return <KeyRound className="size-4" aria-hidden />
 }

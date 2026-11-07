@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b763c481-c305-51cd-b2ff-ecebd67f8608",
+  "asset": {
+    "id": "b763c481-c305-51cd-b2ff-ecebd67f8608",
+    "name": "Courses",
+    "description": "The course catalogue: code, title, topic, the pass mark (%) for its quiz, how many months a certificate stays valid, the trainer and duration. The quiz form looks courses up here.",
+    "columns": [
+      {
+        "id": "5e396b30-35ef-5079-a4ff-9d1d7525e404",
+        "required": true,
+        "key": "course_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "24e1213d-4681-5d75-b207-77c00fe2a3fd",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "ef67ee51-274f-577d-9dac-9e428dfbb645",
+        "required": false,
+        "key": "topic",
+        "name": "Topic",
+        "type": "text"
+      },
+      {
+        "id": "dc6a0e4e-eb71-5484-8691-21a1c2abe226",
+        "required": false,
+        "key": "pass_mark",
+        "name": "Pass mark (%)",
+        "type": "number"
+      },
+      {
+        "id": "3d3cd184-ade1-5a9e-a1f3-4be583ca6ea7",
+        "required": false,
+        "key": "validity_months",
+        "name": "Certificate valid (months)",
+        "type": "number"
+      },
+      {
+        "id": "c2ceffcc-a080-5e8b-9f7e-e94aa2e5d973",
+        "required": false,
+        "key": "trainer",
+        "name": "Trainer",
+        "type": "text"
+      },
+      {
+        "id": "be04affa-b4bc-5225-b178-7d396f218cfa",
+        "required": false,
+        "key": "duration_hours",
+        "name": "Duration (hours)",
+        "type": "number"
+      },
+      {
+        "id": "e2896404-ccb6-5d93-aa46-38957d43d6e8",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "b49c588c-d237-5cec-b02f-82f99984e3e1",
+  "asset": {
+    "id": "b49c588c-d237-5cec-b02f-82f99984e3e1",
+    "name": "Records request extension",
+    "description": "Sent when the deadline is extended.",
+    "subject": "Your records request {{reference}}: new response date {{due_date}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">We need more time</h2><p>Dear {{form.requester_name}},</p><p>We are extending the time to respond to your request {{reference}} to <strong>{{due_date}}</strong>.</p><p>Reason: {{task_data.search_notes}}</p><p>You may be able to ask for this decision to be reviewed: see the review rights for {{form.jurisdiction}}.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Reference {{reference}} · sent by the public records workflow</p></div>",
+    "text_body": "New response date for {{reference}}: {{due_date}}. Reason: {{task_data.search_notes}}",
+    "is_default": false
+  }
+}

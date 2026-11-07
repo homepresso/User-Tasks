@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "2a5dc0fb-5128-5f51-b648-e756d28a81c3",
+  "asset": {
+    "id": "2a5dc0fb-5128-5f51-b648-e756d28a81c3",
+    "name": "Call review outcome",
+    "description": "Sent to the agent after a supervisor review.",
+    "subject": "Call review: {{call_id}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Call review</h2><p>Hi {{agent_name}},</p><p>Your call {{call_id}} on {{call_date}} was reviewed by {{actioned_by_name}}: <strong>{{outcome}}</strong>.</p><p style=\"white-space:pre-line\">{{task_data.feedback}}</p></div>",
+    "text_body": "Call {{call_id}} reviewed: {{outcome}}\n{{task_data.feedback}}",
+    "is_default": false
+  }
+}

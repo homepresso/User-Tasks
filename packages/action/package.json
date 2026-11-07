@@ -1,0 +1,60 @@
+{
+  "name": "@usertasks/action",
+  "version": "0.1.0",
+  "description": "Build UserTasks custom workflow actions: the contract types, defineAction and a local test runner (the same QuickJS sandbox the app uses)",
+  "keywords": [
+    "usertasks",
+    "workflow",
+    "custom-action",
+    "sandbox",
+    "quickjs"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/homepresso/User-Tasks.git",
+    "directory": "packages/action"
+  },
+  "homepage": "https://github.com/homepresso/User-Tasks/tree/main/packages/action#readme",
+  "bugs": {
+    "url": "https://github.com/homepresso/User-Tasks/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "peerDependencies": {
+    "@jitl/quickjs-singlefile-cjs-release-sync": "0.32.0",
+    "quickjs-emscripten-core": "0.32.0"
+  },
+  "peerDependenciesMeta": {
+    "@jitl/quickjs-singlefile-cjs-release-sync": { "optional": true },
+    "quickjs-emscripten-core": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.1",
+    "typescript": "^5"
+  }
+}

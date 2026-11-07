@@ -30,7 +30,7 @@ import {
 import { LdapForm } from './ldap-form'
 import { useJobs } from '@/components/jobs/jobs-provider'
 import { GoogleConnectCard, ScimCard } from './google-scim'
-import { errText, OptionCheckbox, PROVIDER_META, providerLabel, SummaryItem, unwrap } from './shared'
+import { errText, OptionCheckbox, OrgImportOptions, PROVIDER_META, providerLabel, SummaryItem, unwrap } from './shared'
 
 type DirectoryStatus = Awaited<ReturnType<typeof getDirectorySyncStatus>>
 type Connection = DirectoryStatus['connections'][number]
@@ -62,7 +62,7 @@ export default function SsoDirectoryPage() {
   })
 
   if (!canView) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
   if (isLoading && !data) {
     return <PageSkeleton variant="settings" />
@@ -83,7 +83,7 @@ export default function SsoDirectoryPage() {
           <KeyRound size={22} />
           SSO &amp; Directory
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-sm mt-1 text-fg-muted">
           Sync users and groups from Microsoft Entra ID, Okta, LDAP / Active Directory or Google Workspace, or let your identity provider push them with SCIM.
         </p>
       </div>
@@ -129,12 +129,12 @@ export default function SsoDirectoryPage() {
           <ShieldCheck size={14} style={{ color: 'var(--theme-primary-text)' }} />
           Single sign-on
         </h3>
-        <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs text-fg-muted">
           Sign-in is handled by the instance&apos;s auth provider (Supabase Auth, or built-in auth with OIDC / SAML
           identity providers). Directory sync here handles provisioning — synced users sign in with their work
           account, and with built-in auth an LDAP connection can also let them sign in with their directory password.
         </p>
-        <p className="text-xs mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs mt-2 text-fg-muted">
           Microsoft note: on the app registration used for <em>sign-in</em>, add the <code>email</code> and{' '}
           <code>xms_edov</code> optional claims so Microsoft reports verified emails — that is what links a
           sign-in to the account provisioned by directory sync instead of creating a duplicate.
@@ -161,13 +161,12 @@ function ActiveSyncBar({ run }: { run: SyncRun }) {
   const percent = runPercent(run)
   return (
     <div
-      className="rounded-xl border p-4"
-      style={{ borderColor: 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' }}
+      className="rounded-xl border p-4 border-primary bg-primary-wash"
     >
       <div className="flex items-center gap-2 mb-2">
-        <CloudDownload size={15} className="animate-pulse" style={{ color: 'var(--theme-primary-text)' }} />
+        <CloudDownload size={15} className="animate-pulse text-primary-text" />
         <p className="text-sm font-medium">Syncing from {providerLabel(run.provider)}</p>
-        <span className="ml-auto text-xs tabular-nums font-medium" style={{ color: 'var(--theme-primary-text)' }}>
+        <span className="ml-auto text-xs tabular-nums font-medium text-primary-text">
           {percent}%
         </span>
       </div>
@@ -191,7 +190,7 @@ function ActiveSyncBar({ run }: { run: SyncRun }) {
           }}
         />
       </div>
-      <p className="text-xs mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mt-2 text-fg-muted">
         {run.progress?.message ?? 'Waiting for the sync worker to pick this up…'}
         {' '}You can leave this page — the sync continues in the background.
       </p>
@@ -210,7 +209,7 @@ function DisconnectedNotice({ provider }: { provider: Provider }) {
         <Icon size={14} style={{ color: 'var(--theme-primary-text)' }} />
         {PROVIDER_META[provider].label}
       </h3>
-      <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-sm text-fg-muted">
         {PROVIDER_META[provider].label} is not connected. Ask an administrator with edit access to connect the directory.
       </p>
     </Card>
@@ -261,7 +260,7 @@ function EntraConnectCard({ onConnected }: { onConnected: () => void }) {
         <Building2 size={14} style={{ color: 'var(--theme-primary-text)' }} />
         Connect Microsoft Entra ID
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Create an app registration in Entra with admin-consented Application permissions{' '}
         <code>User.Read.All</code> and <code>GroupMember.Read.All</code>, then paste its credentials.
       </p>
@@ -349,7 +348,7 @@ function OktaConnectCard({ onConnected }: { onConnected: () => void }) {
         <Globe size={14} style={{ color: 'var(--theme-primary-text)' }} />
         Connect Okta
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Create an API token in Okta Admin → Security → API, then paste it here along with your org URL.
       </p>
 
@@ -426,7 +425,7 @@ function ConnectedProviderCard({
   const Icon = meta.icon
 
   const optionsMutation = useMutation({
-    mutationFn: (options: { syncGroups?: boolean; autoProvision?: boolean }) =>
+    mutationFn: (options: { syncGroups?: boolean; autoProvision?: boolean; importOrgUnits?: boolean; importProfiles?: boolean }) =>
       unwrap(updateDirectoryOptions(provider, options)),
     onMutate: () => setError(null),
     onSuccess: onChanged,
@@ -469,7 +468,7 @@ function ConnectedProviderCard({
             <Icon size={14} style={{ color: 'var(--theme-primary-text)' }} />
             {meta.label}
           </h3>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-0.5 text-fg-muted">
             Users and groups are synced from this directory into the workspace.
           </p>
         </div>
@@ -521,7 +520,7 @@ function ConnectedProviderCard({
       </div>
 
       {provider === 'ldap' && connection.settings?.bind_login === true && (
-        <p className="text-xs mb-3" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs mb-3 text-fg-muted">
           Directory password sign-in is on for this organisation (built-in auth).
         </p>
       )}
@@ -540,6 +539,12 @@ function ConnectedProviderCard({
           onChange={(checked) => optionsMutation.mutate({ autoProvision: checked })}
         />
       </div>
+      <OrgImportOptions
+        importOrgUnits={connection.importOrgUnits}
+        importProfiles={connection.importProfiles}
+        disabled={!canEdit || optionsMutation.isPending}
+        onChange={(options) => optionsMutation.mutate(options)}
+      />
 
       <ConfirmDialog
         open={confirmDisconnect}
@@ -583,6 +588,9 @@ function runStats(stats: Record<string, number> | null): string | null {
   if (memberships > 0) {
     parts.push(`${memberships} membership${memberships === 1 ? '' : 's'}`)
   }
+  if (stats.profiles_updated) parts.push(`${stats.profiles_updated} profile${stats.profiles_updated === 1 ? '' : 's'} updated`)
+  const units = (stats.org_units_created ?? 0) + (stats.org_units_updated ?? 0)
+  if (units > 0) parts.push(`${units} org unit${units === 1 ? '' : 's'}${stats.org_units_created ? ` (${stats.org_units_created} new)` : ''}`)
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
@@ -590,12 +598,12 @@ function SyncHistoryCard({ runs }: { runs: SyncRun[] }) {
   return (
     <Card>
       <h3 className="text-sm font-semibold mb-1">Sync history</h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Recent directory sync runs, most recent first.
       </p>
 
       {runs.length === 0 ? (
-        <p className="text-sm py-3" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-sm py-3 text-fg-muted">
           No syncs yet — connect a directory and run the first sync to see it here.
         </p>
       ) : (
@@ -610,7 +618,7 @@ function SyncHistoryCard({ runs }: { runs: SyncRun[] }) {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase"
+                    className="inline-block rounded px-1.5 py-0.5 text-2xs font-medium uppercase"
                     style={DEPLOY_STATUS_STYLES[run.status]}
                   >
                     {run.status}
@@ -618,19 +626,19 @@ function SyncHistoryCard({ runs }: { runs: SyncRun[] }) {
                   <span className="text-xs font-medium min-w-0 truncate">
                     {providerLabel(run.provider)}{run.mode === 'delta' ? ' · changes only' : ''}
                   </span>
-                  <span className="ml-auto text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                  <span className="ml-auto text-xs text-fg-muted">
                     {formatRelativeDate(run.created_at)}
                     {run.completed_at ? ` · finished ${formatRelativeDate(run.completed_at)}` : ''}
                   </span>
                 </div>
                 {stats && (
-                  <p className="text-xs mt-1.5" style={{ color: 'var(--theme-muted-text)' }}>{stats}</p>
+                  <p className="text-xs mt-1.5 text-fg-muted">{stats}</p>
                 )}
                 {isRunActive(run) && run.progress?.message && (
-                  <p className="text-xs mt-1.5" style={{ color: 'var(--theme-muted-text)' }}>{run.progress.message}</p>
+                  <p className="text-xs mt-1.5 text-fg-muted">{run.progress.message}</p>
                 )}
                 {run.status === 'failed' && run.error && (
-                  <p className="text-xs text-red-500 mt-1.5">{run.error}</p>
+                  <p className="text-xs text-danger mt-1.5">{run.error}</p>
                 )}
               </div>
             )

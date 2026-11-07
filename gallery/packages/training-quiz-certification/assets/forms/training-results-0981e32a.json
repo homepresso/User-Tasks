@@ -1,0 +1,547 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "0981e32a-923f-5726-b7ea-46aa3eb46dee",
+  "asset": {
+    "id": "0981e32a-923f-5726-b7ea-46aa3eb46dee",
+    "name": "Training results",
+    "description": "The training dashboard: average score by course and the pass / retake / fail split from the Quiz results table, pass rate and average scores as saved reports, open retakes and sessions, and a button that emails a summary and reminds learners whose certificates expire soon.",
+    "tags": [
+      "training",
+      "dashboard"
+    ],
+    "fields": [
+      {
+        "key": "about",
+        "type": "custom",
+        "label": "About these results",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "info",
+            "card_title": "Pass, retake or session",
+            "body": "A score at or above the course pass mark passes and gets a PDF certificate. Up to 20 points below means a retake; more than that and the training coordinator books a session.",
+            "layout": "callout",
+            "format": "auto",
+            "show_icon": true
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "score_chart",
+        "type": "custom",
+        "label": "Average score by course",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Average quiz score by course (%)",
+            "chart_type": "bar",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "course_code",
+            "value_field": "score_pct",
+            "aggregate": "average",
+            "show_legend": false,
+            "stacked": false,
+            "colors": [
+              "#1D4ED8"
+            ],
+            "height": 300,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "search_columns": [
+            "course_code",
+            "learner_name"
+          ],
+          "display_columns": [
+            "course_code",
+            "score_pct"
+          ],
+          "value_column": "result_ref",
+          "sort": {
+            "column": "completed_on",
+            "direction": "desc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        },
+        "help_text": "The latest 50 results in Quiz results."
+      },
+      {
+        "key": "band_chart",
+        "type": "custom",
+        "label": "Results by band",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Pass, retake and fail",
+            "chart_type": "doughnut",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "band",
+            "value_field": "score_pct",
+            "aggregate": "count",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#15803D",
+              "#A16207",
+              "#B91C1C"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "search_columns": [
+            "band"
+          ],
+          "display_columns": [
+            "band",
+            "score_pct"
+          ],
+          "value_column": "result_ref",
+          "sort": {
+            "column": "band",
+            "direction": "desc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "pass_report",
+        "type": "custom",
+        "label": "Pass rate by course",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "45727be4-b591-5d37-9008-07e7d75d285b",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "avg_report",
+        "type": "custom",
+        "label": "Average scores and ratings",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "7958a800-b143-5c7c-80f0-fc0fbd6830ae",
+            "view": "table",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "open_report",
+        "type": "custom",
+        "label": "Open retakes and sessions",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "42ff20e9-7ef7-5db4-8d04-df38eddbb2bf",
+            "view": "table",
+            "page_size": 5,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "days_ahead",
+        "label": "Certificates expiring within (days)",
+        "type": "number",
+        "required": true,
+        "default": 60,
+        "min": 1,
+        "max": 365
+      },
+      {
+        "key": "remind_learners",
+        "label": "Email a reminder to each of those learners",
+        "type": "boolean",
+        "default": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "score_chart",
+              "span": 1
+            },
+            {
+              "field_key": "band_chart",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "pass_report",
+              "span": 1
+            },
+            {
+              "field_key": "avg_report",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "open_report",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "days_ahead",
+              "span": 1
+            },
+            {
+              "field_key": "remind_learners",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#1D4ED8",
+            "background": "#FFFFFF",
+            "text": "#13202B",
+            "page": "#E8EEFC",
+            "page_to": "#F7F9FF"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Email me the summary",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Summary on its way",
+            "screen_button": "submit_another",
+            "text": "The training summary is being emailed to you.",
+            "screen_button_label": "Back to the results"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Training results",
+      "align": "left",
+      "subtitle": "Scores, pass rates and feedback by course, plus certificates that expire soon."
+    }
+  }
+}

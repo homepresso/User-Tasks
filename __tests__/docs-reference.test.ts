@@ -108,7 +108,7 @@ describe('docs pages', () => {
   it('redirect every retired slug to a page that exists', () => {
     for (const [from, to] of Object.entries(LEGACY_DOC_REDIRECTS)) {
       expect(getDocPage(from)).toBeUndefined()
-      expect(getDocPage(to.replace(/^\/docs\//, ''))).toBeDefined()
+      if (to !== '/docs') expect(getDocPage(to.replace(/^\/docs\//, '')), from).toBeDefined()
     }
     for (const kept of ['workflows', 'integrations', 'tasks', 'decision-tables', 'agents', 'api', 'cli', 'observability', 'governance']) {
       expect(getDocPage(kept), kept).toBeDefined()

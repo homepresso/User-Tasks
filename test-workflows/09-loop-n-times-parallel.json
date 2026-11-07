@@ -34,7 +34,7 @@
       "type": "parallel",
       "label": "Parallel Tasks",
       "position": { "x": 400, "y": 640 },
-      "config": { "branches": ["Branch A", "Branch B", "Branch C"], "mode": "parallel" }
+      "config": { "branches": [{ "label": "Branch A", "order": 0 }, { "label": "Branch B", "order": 1 }, { "label": "Branch C", "order": 2 }], "mode": "parallel" }
     },
     {
       "id": "n5",
@@ -48,7 +48,7 @@
       "type": "delay",
       "label": "Wait 1s",
       "position": { "x": 400, "y": 820 },
-      "config": { "seconds": "1" }
+      "config": { "duration": 1, "unit": "seconds" }
     },
     {
       "id": "n7",

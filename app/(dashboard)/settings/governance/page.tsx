@@ -19,7 +19,7 @@ export default function GovernancePage() {
   })
 
   if (!can('team.change_roles')) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
 
   if (!tenantId) {

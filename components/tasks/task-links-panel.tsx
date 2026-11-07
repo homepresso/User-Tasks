@@ -3,9 +3,16 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link2, Lock, Plus, X } from 'lucide-react'
+import { Lock, Plus, X } from 'lucide-react'
 import { serverQuery, serverRead } from '@/lib/server-read'
 import { addTaskDependency, removeTaskDependency } from '@/app/actions/task-dependencies'
+import { Badge, StatusPill } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader } from '@/components/ui/card'
+import { IconButton } from '@/components/ui/icon-button'
+import { InlineNotice } from '@/components/ui/inline-notice'
+import { SearchInput } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 /**
  * Task detail panel: blocking dependencies in both directions. "Blocked" is
@@ -35,65 +42,64 @@ export function TaskLinksPanel({ taskId }: { taskId: string }) {
   const hasAnything = (deps?.blockedBy?.length ?? 0) > 0 || (deps?.blocks?.length ?? 0) > 0
 
   return (
-    <div className="rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-          <Link2 size={14} style={{ color: 'var(--theme-primary-text)' }} /> Dependencies
-          {openBlockers.length > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              style={{ backgroundColor: 'var(--status-blocked-bg)', color: 'var(--status-blocked)' }}>
-              <Lock size={10} /> Blocked by {openBlockers.length}
-            </span>
-          )}
-        </h3>
-        <div className="flex items-center gap-1">
-          <button onClick={() => { setDepPickerFor(depPickerFor === 'blockedBy' ? null : 'blockedBy') }}
-            className="rounded-lg border px-2 py-1 text-[11px] font-medium hover:opacity-80"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
-            <Plus size={11} className="mr-1 inline" /> Blocked by
-          </button>
-          <button onClick={() => { setDepPickerFor(depPickerFor === 'blocks' ? null : 'blocks') }}
-            className="rounded-lg border px-2 py-1 text-[11px] font-medium hover:opacity-80"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
-            <Plus size={11} className="mr-1 inline" /> Blocks
-          </button>
+    <Card padding="none" data-task-dependencies>
+      <CardHeader
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            Dependencies
+            {openBlockers.length > 0 && (
+              <Badge tone="danger"><Lock className="size-3" aria-hidden /> Blocked by {openBlockers.length}</Badge>
+            )}
+          </span>
+        }
+      />
+      <div className="space-y-3 px-4 pb-4">
+        <div className="flex flex-wrap items-center gap-1">
+          <Button size="sm" variant="secondary" leadingIcon={<Plus />} aria-pressed={depPickerFor === 'blockedBy'}
+            onClick={() => { setDepPickerFor(depPickerFor === 'blockedBy' ? null : 'blockedBy') }}>
+            Blocked by
+          </Button>
+          <Button size="sm" variant="secondary" leadingIcon={<Plus />} aria-pressed={depPickerFor === 'blocks'}
+            onClick={() => { setDepPickerFor(depPickerFor === 'blocks' ? null : 'blocks') }}>
+            Blocks
+          </Button>
         </div>
+
+        {error && <InlineNotice tone="danger">{error}</InlineNotice>}
+
+        {depPickerFor && (
+          <TaskPicker
+            excludeTaskId={taskId}
+            onPick={async (id) => {
+              if (depPickerFor === 'blockedBy') await run(() => addTaskDependency(taskId, id))
+              else await run(() => addTaskDependency(id, taskId))
+              setDepPickerFor(null)
+            }}
+          />
+        )}
+
+        {!hasAnything && !depPickerFor && (
+          <p className="text-ui text-fg-muted">
+            Standalone task — add blocking dependencies if it waits on other work.
+          </p>
+        )}
+
+        {(deps?.blockedBy?.length ?? 0) > 0 && (
+          <DepList
+            label="Blocked by"
+            items={deps!.blockedBy}
+            onRemove={(id) => run(() => removeTaskDependency(taskId, id))}
+          />
+        )}
+        {(deps?.blocks?.length ?? 0) > 0 && (
+          <DepList
+            label="Blocks"
+            items={deps!.blocks}
+            onRemove={(id) => run(() => removeTaskDependency(id, taskId))}
+          />
+        )}
       </div>
-
-      {error && <p className="mt-2 text-xs" style={{ color: 'var(--status-blocked)' }}>{error}</p>}
-
-      {depPickerFor && (
-        <TaskPicker
-          excludeTaskId={taskId}
-          onPick={async (id) => {
-            if (depPickerFor === 'blockedBy') await run(() => addTaskDependency(taskId, id))
-            else await run(() => addTaskDependency(id, taskId))
-            setDepPickerFor(null)
-          }}
-        />
-      )}
-
-      {!hasAnything && !depPickerFor && (
-        <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-          Standalone task — add blocking dependencies if it waits on other work.
-        </p>
-      )}
-
-      {(deps?.blockedBy?.length ?? 0) > 0 && (
-        <DepList
-          label="Blocked by"
-          items={deps!.blockedBy}
-          onRemove={(id) => run(() => removeTaskDependency(taskId, id))}
-        />
-      )}
-      {(deps?.blocks?.length ?? 0) > 0 && (
-        <DepList
-          label="Blocks"
-          items={deps!.blocks}
-          onRemove={(id) => run(() => removeTaskDependency(id, taskId))}
-        />
-      )}
-    </div>
+    </Card>
   )
 }
 
@@ -103,26 +109,22 @@ function DepList({ label, items, onRemove }: {
   onRemove: (id: string) => void
 }) {
   return (
-    <div className="mt-3">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>{label}</p>
-      <div className="space-y-1">
+    <div>
+      <p className="mb-1 text-xs font-medium text-fg-muted">{label}</p>
+      <ul className="space-y-0.5">
         {items.map((t) => {
           const done = ['completed', 'cancelled'].includes(t.status)
           return (
-            <div key={t.id} className="flex items-center gap-2 text-xs">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: done ? 'var(--status-done)' : 'var(--status-blocked)' }} />
-              <Link href={`/tasks/${t.id}`} className={`min-w-0 flex-1 truncate hover:underline ${done ? 'line-through opacity-60' : ''}`}
-                style={{ color: 'var(--theme-card-text)' }}>
+            <li key={t.id} className="group/dep flex min-h-8 items-center gap-2 text-ui">
+              <Link href={`/tasks/${t.id}`} className={cn('min-w-0 flex-1 truncate text-fg hover:underline', done && 'text-fg-muted line-through')}>
                 {t.title}
               </Link>
-              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{t.status}</span>
-              <button onClick={() => onRemove(t.id)} className="rounded p-0.5 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }} title="Remove link">
-                <X size={11} />
-              </button>
-            </div>
+              <StatusPill status={t.status} />
+              <IconButton size="sm" label="Remove link" icon={<X />} onClick={() => onRemove(t.id)} />
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }
@@ -140,26 +142,18 @@ function TaskPicker({ excludeTaskId, onPick }: {
   })
 
   return (
-    <div className="mt-3 rounded-lg border p-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-      <input
-        autoFocus
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search tasks…"
-        className="mb-1 w-full rounded-lg border px-3 py-1.5 text-sm outline-none"
-        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-      />
+    <Card variant="inset" padding="sm">
+      <SearchInput autoFocus value={search} onValueChange={setSearch} placeholder="Search tasks…" aria-label="Search tasks" className="mb-1" />
       <div className="max-h-40 space-y-0.5 overflow-y-auto">
         {results.map((r: any) => (
-          <button key={r.id} disabled={busy}
+          <button key={r.id} type="button" disabled={busy}
             onClick={async () => { setBusy(true); try { await onPick(r.id) } finally { setBusy(false) } }}
-            className="block w-full truncate rounded-md px-2 py-1.5 text-left text-xs hover:bg-[var(--theme-row-highlight)] disabled:opacity-50"
-            style={{ color: 'var(--theme-card-text)' }}>
+            className="block w-full truncate rounded-md px-2 py-1.5 text-left text-ui text-fg hover:bg-muted disabled:opacity-50">
             {r.label}
           </button>
         ))}
-        {results.length === 0 && <p className="px-2 py-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>No matches.</p>}
+        {results.length === 0 && <p className="px-2 py-1 text-ui text-fg-muted">No matches</p>}
       </div>
-    </div>
+    </Card>
   )
 }

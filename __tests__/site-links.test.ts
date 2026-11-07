@@ -19,12 +19,14 @@ import Home from '@/app/page'
 import DocsHome from '@/app/docs/page'
 import DocPage from '@/app/docs/[...slug]/page'
 import OpenSourcePage from '@/app/(marketing)/open-source/page'
-import { ALL_DOC_PAGES } from '@/lib/docs/registry'
+import FormsMarketingPage from '@/app/(marketing)/forms/page'
+import { ALL_DOC_PAGES, getDocPage } from '@/lib/docs/registry'
+import { pageBlocks } from '@/lib/docs/render'
 import { repositoryUrl, SOURCE_RELEASE_NOTE } from '@/lib/site-links'
 
 const PRIVATE_REPO = /github\.com\/homepresso\/UserTasks(?![-\w])/i
 const PUBLIC_REPO = 'https://github.com/usertasks-example/usertasks'
-const DOC_SAMPLE = ['cli', 'sdk', 'quickstart/self-host', 'self-hosting/environment', 'changelog']
+const DOC_SAMPLE = ['cli', 'sdk', 'quickstart/self-host', 'self-hosting/environment', 'performance']
 
 async function renderHome(): Promise<string> {
   return renderToStaticMarkup((await Home()) as ReactElement)
@@ -40,8 +42,7 @@ function jsonLd(html: string): { '@graph': Array<Record<string, unknown>> } {
   return JSON.parse(match[1])
 }
 
-// Renders the landing page and whole docs pages (the changelog parses every
-// release note): seconds of CPU, so a loaded machine needs more than 5 s.
+// Renders the landing page and whole docs pages: seconds of CPU, so a loaded machine needs more than 5 s.
 describe('repository link', { timeout: 30_000 }, () => {
   beforeEach(() => {
     vi.stubEnv('DEPLOYMENT_MODE', 'cloud')
@@ -105,5 +106,43 @@ describe('repository link', { timeout: 30_000 }, () => {
     for (const file of ['README.md', 'SECURITY.md', 'CONTRIBUTING.md', '.env.example']) files.push(path.join(process.cwd(), file))
     const offenders = files.filter((file) => PRIVATE_REPO.test(readFileSync(file, 'utf8')))
     expect(offenders.map((file) => path.relative(process.cwd(), file))).toEqual([])
+  })
+})
+
+// The landing page, the /forms page and the docs home deep-link into docs
+// pages and their headings; a renamed heading or a retired page (such as the
+// old /docs/changelog) must not leave a dangling link behind.
+describe('public pages link only to docs pages and anchors that exist', { timeout: 30_000 }, () => {
+  beforeEach(() => {
+    vi.stubEnv('DEPLOYMENT_MODE', 'cloud')
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '')
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('on the landing page, /forms and the docs home', async () => {
+    const pages = { home: await renderHome(), forms: renderToStaticMarkup(FormsMarketingPage()), docs: renderToStaticMarkup(DocsHome()) }
+    const problems: string[] = []
+    let checked = 0
+    for (const [name, html] of Object.entries(pages)) {
+      expect(html, name).not.toContain('/docs/changelog')
+      for (const [, href] of html.matchAll(/href="(\/docs\/[^"]*)"/g)) {
+        if (href.startsWith('/docs/api-explorer')) continue
+        checked++
+        const [pathname, hash] = href.split('#')
+        const page = getDocPage(pathname.replace(/^\/docs\//, ''))
+        if (!page) { problems.push(`${name}: ${href} (no page)`); continue }
+        if (hash && !pageBlocks(page).some((block) => block.kind === 'heading' && (block as { id: string }).id === hash)) problems.push(`${name}: ${href} (no anchor)`)
+      }
+    }
+    expect(checked).toBeGreaterThan(30)
+    expect(problems).toEqual([])
+  })
+
+  it('no longer show the refocus banner on the landing page', async () => {
+    const home = await renderHome()
+    expect(home).not.toMatch(/What changed and why/)
+    expect(home).toContain('id="forms-and-tasks"')
   })
 })

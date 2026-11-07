@@ -1,0 +1,103 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+  "asset": {
+    "id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+    "name": "Records requests",
+    "description": "Every public records request: requester, regime, statutory due date, status and outcome.",
+    "columns": [
+      {
+        "id": "aac6ecc4-bcaa-5432-9307-6dc0fd343ee0",
+        "required": true,
+        "key": "reference",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "314fa5b3-efd7-59a2-be58-e4bb25610e6e",
+        "required": false,
+        "key": "requester_name",
+        "name": "Requester",
+        "type": "text"
+      },
+      {
+        "id": "854d3259-0049-50b6-991f-afd4baa57857",
+        "required": false,
+        "key": "requester_email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "b9c8eebb-4c6a-5507-8cd5-d39070b2a30b",
+        "required": false,
+        "key": "jurisdiction",
+        "name": "Regime",
+        "type": "text"
+      },
+      {
+        "id": "332f26e6-52d9-5d2b-a28f-9a8528858b46",
+        "required": false,
+        "key": "records_sought",
+        "name": "Records sought",
+        "type": "text"
+      },
+      {
+        "id": "180f3051-4cbf-5935-a1ef-abe96cca7227",
+        "required": false,
+        "key": "date_range",
+        "name": "Date range",
+        "type": "text"
+      },
+      {
+        "id": "d7f50fa3-b4b9-5216-974f-70342e5542ec",
+        "required": false,
+        "key": "delivery",
+        "name": "Delivery",
+        "type": "text"
+      },
+      {
+        "id": "1680e712-b76b-5c93-a87e-44ea3a583ce2",
+        "required": false,
+        "key": "received_date",
+        "name": "Received",
+        "type": "date"
+      },
+      {
+        "id": "f8805f4d-385f-51ac-92ba-6d71d5ff2d57",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "date"
+      },
+      {
+        "id": "5ba08d2a-61df-5181-8497-a62703becf1f",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "6be28eeb-9d8c-5ec5-88c2-07283b77c9fa",
+        "required": false,
+        "key": "decision",
+        "name": "Decision",
+        "type": "text"
+      },
+      {
+        "id": "c7fcff67-dd6d-597b-a297-56ce36b3996b",
+        "required": false,
+        "key": "release_url",
+        "name": "Release link",
+        "type": "text"
+      },
+      {
+        "id": "76473bb2-826e-54d8-b1f7-97ec2451ff87",
+        "required": false,
+        "key": "closed_at",
+        "name": "Closed",
+        "type": "date"
+      }
+    ]
+  }
+}

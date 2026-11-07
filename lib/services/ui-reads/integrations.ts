@@ -1,3 +1,4 @@
+import { maskSecrets } from '@/lib/services/_shared'
 import { z } from 'zod'
 import { getDb } from '../context'
 import { defineRead, id, NO_ARGS, type UiRead } from './define'
@@ -14,7 +15,8 @@ export const reads = {
     perm: 'integrations.view',
     run: async (ctx) => {
       const { data } = await (getDb(ctx) as any).from('integrations').select('*').order('name')
-      return (data ?? []) as any[]
+      // Credentials never reach the browser (edit forms send '__SECRET__' back to keep them).
+      return ((data ?? []) as any[]).map((row) => ({ ...row, config: maskSecrets(row.config ?? {}) }))
     },
   }),
 
@@ -34,7 +36,7 @@ export const reads = {
     perm: 'integrations.view',
     run: async (ctx) => {
       const { data } = await (getDb(ctx) as any).from('tenant_connectors').select('*').order('created_at', { ascending: false })
-      return (data ?? []) as any[]
+      return ((data ?? []) as any[]).map((row) => ({ ...row, config: maskSecrets(row.config ?? {}), credentials: maskSecrets(row.credentials ?? {}) }))
     },
   }),
 
@@ -51,7 +53,7 @@ export const reads = {
     args: NO_ARGS,
     perm: 'integrations.view',
     run: async (ctx) => {
-      const { data } = await (getDb(ctx) as any).from('mcp_servers').select('*').order('created_at', { ascending: false })
+      const { data } = await (getDb(ctx) as any).from('mcp_servers').select('id, tenant_id, name, description, url, auth_type, is_active, tools_cache, tools_cached_at, created_by, created_at, updated_at').order('created_at', { ascending: false })
       return (data ?? []) as any[]
     },
   }),
@@ -75,6 +77,36 @@ export const reads = {
         .eq('integration_id', integrationId)
         .order('name')
       return (data ?? []) as any[]
+    },
+  }),
+
+  /** What a custom reference can be built from (operations, catalogue, stored OpenAPI operations, settings by name). */
+  'integrations.customReferenceSources': defineRead({
+    args: z.object({ integrationId: id }),
+    perm: 'integrations.view',
+    run: async (ctx, { integrationId }) => {
+      const { customReferenceSources } = await import('@/lib/services/custom-references')
+      return customReferenceSources(ctx, integrationId)
+    },
+  }),
+
+  /** Custom reference Execute: the database's procedures and functions. */
+  'integrations.customReferenceRoutines': defineRead({
+    args: z.object({ integrationId: id }),
+    perm: 'integrations.manage_references',
+    run: async (ctx, { integrationId }) => {
+      const { customReferenceRoutines } = await import('@/lib/services/custom-references')
+      return customReferenceRoutines(ctx, integrationId)
+    },
+  }),
+
+  /** Custom reference Execute: one procedure's / function's parameters. */
+  'integrations.customReferenceRoutineParams': defineRead({
+    args: z.object({ integrationId: id, schema: z.string().max(128), name: z.string().min(1).max(128) }),
+    perm: 'integrations.manage_references',
+    run: async (ctx, { integrationId, schema, name }) => {
+      const { customReferenceRoutineParams } = await import('@/lib/services/custom-references')
+      return customReferenceRoutineParams(ctx, integrationId, schema, name)
     },
   }),
 

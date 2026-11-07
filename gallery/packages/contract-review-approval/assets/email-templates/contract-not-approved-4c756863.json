@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "4c756863-835a-5180-9929-c47453bea174",
+  "asset": {
+    "id": "4c756863-835a-5180-9929-c47453bea174",
+    "name": "Contract not approved",
+    "description": "Sent to the contract owner when legal, finance or the general counsel rejects the contract.",
+    "subject": "Not approved: {{form.title}} ({{contract_ref}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#0F766E;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Your contract was not approved</h2>\n  <p style=\"margin:0 0 12px\">Hi {{submitted_by_name}},</p>\n  <p style=\"margin:0 0 12px\"><strong>{{form.title}}</strong> with {{form.counterparty}} was not approved by {{actioned_by_name}}.</p>\n  <p style=\"margin:0 0 12px\">Reason: {{rejection_reason}}</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the contract review workflow</p>\n</div>",
+    "text_body": "Hi {{submitted_by_name}},\n\"{{form.title}}\" with {{form.counterparty}} was not approved by {{actioned_by_name}}.\nReason: {{rejection_reason}}",
+    "is_default": false
+  }
+}

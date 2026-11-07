@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "c0c65d9e-2139-5ae3-8117-0db5a9069685",
+  "asset": {
+    "id": "c0c65d9e-2139-5ae3-8117-0db5a9069685",
+    "name": "Pulse round summary",
+    "description": "The round summary someone asks for from the Pulse results page.",
+    "subject": "Pulse survey {{form.summary_round}}: engagement {{avg_engagement}} / 100",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Pulse survey, {{form.summary_round}}</h2>\n  <p style=\"font-size:30px;margin:8px 0\"><strong>Engagement {{avg_engagement}} / 100</strong> · eNPS {{enps_score}}</p>\n  <p>{{response_count}} answers ({{anonymous_count}} anonymous). Thriving {{thriving}}, okay {{okay}}, at risk {{at_risk}}.</p>\n  <p>Section averages (1-5): wellbeing {{avg_wellbeing}}, manager &amp; team {{avg_manager}}, growth {{avg_growth}}, workload {{avg_workload}}.</p>\n  <p>Follow-ups still open: {{open_follow_ups}}.</p>\n  <p style=\"color:#6E6759;font-size:13px\">eNPS = % who answered 9-10 minus % who answered 0-6.</p>\n</div>",
+    "text_body": "Pulse survey, {{form.summary_round}}\nEngagement {{avg_engagement}} / 100 · eNPS {{enps_score}}\n{{response_count}} answers ({{anonymous_count}} anonymous). Thriving {{thriving}}, okay {{okay}}, at risk {{at_risk}}.\nSection averages (1-5): wellbeing {{avg_wellbeing}}, manager & team {{avg_manager}}, growth {{avg_growth}}, workload {{avg_workload}}.\nFollow-ups still open: {{open_follow_ups}}.",
+    "is_default": false
+  }
+}

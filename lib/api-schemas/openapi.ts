@@ -63,6 +63,7 @@ function buildOperation(endpoint: EndpointDef) {
     : dataSchema
 
   const isPublic = endpoint.auth === 'none'
+  const isInstanceAdmin = endpoint.auth === 'instance_admin'
   const responses: Record<string, unknown> = {
     [status]: endpoint.stream
       ? { description: 'Event stream', content: { 'text/event-stream': { schema: { type: 'string' } } } }
@@ -78,11 +79,16 @@ function buildOperation(endpoint: EndpointDef) {
     }
   }
   if (endpoint.body || endpoint.query || endpoint.params) responses['400'] = errorResponse('Validation failed')
-  if (!isPublic) {
+  if (isInstanceAdmin) {
+    responses['401'] = errorResponse('No bearer token')
+    responses['403'] = errorResponse('Not the instance admin token (workspace API keys and OAuth tokens are refused)')
+    responses['404'] = errorResponse(endpoint.params ? 'Not found, or the instance admin API is off (INSTANCE_ADMIN_TOKEN unset)' : 'The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)')
+    responses['429'] = errorResponse('Rate limited')
+  } else if (!isPublic) {
     responses['401'] = errorResponse('Missing, invalid or expired credential')
     responses['403'] = errorResponse('Credential lacks the required permission or resource scope')
   }
-  if (endpoint.params) responses['404'] = errorResponse('Not found')
+  if (endpoint.params && !isInstanceAdmin) responses['404'] = errorResponse('Not found')
 
   const parameters: Array<Record<string, unknown>> = [...toParameters(endpoint.params, 'path'), ...toParameters(endpoint.query, 'query')]
   if (endpoint.async) {
@@ -97,7 +103,7 @@ function buildOperation(endpoint: EndpointDef) {
     summary: endpoint.summary,
     ...(describe(endpoint) ? { description: describe(endpoint) } : {}),
     tags: endpoint.tags,
-    ...(isPublic ? { security: [] } : {}),
+    ...(isPublic ? { security: [] } : isInstanceAdmin ? { security: [{ instanceAdminToken: [] }] } : {}),
     ...(parameters.length ? { parameters } : {}),
     ...(endpoint.body
       ? { requestBody: { required: true, content: requestContent(endpoint) } }
@@ -163,6 +169,11 @@ export function buildOpenApiDocument() {
           type: 'http',
           scheme: 'bearer',
           description: 'An API key, or an OAuth access token (uoa_…) issued by /api/oauth/token.',
+        },
+        instanceAdminToken: {
+          type: 'http',
+          scheme: 'bearer',
+          description: 'The instance admin token (the server\'s INSTANCE_ADMIN_TOKEN): /admin/* operations only.',
         },
       },
       schemas: {

@@ -2,12 +2,17 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, GitCompare, Shuffle, Workflow as WorkflowIcon } from 'lucide-react'
+import { Shuffle, Workflow as WorkflowIcon } from 'lucide-react'
 import { serverQuery } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Field } from '@/components/ui/field'
+import { Select } from '@/components/ui/select'
+import { PageHeader } from '@/components/ui/page-header'
+import { cn } from '@/lib/utils'
 import { average, parseJsonField, runEdgeTraversals, runNodeVisits } from '@/lib/report-flow-stats'
 import { formatDuration } from '@/lib/format'
 
@@ -94,74 +99,46 @@ export default function WorkflowComparePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/reports/workflows" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-          <ArrowLeft size={18} />
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <GitCompare size={18} style={{ color: 'var(--theme-primary-text)' }} />
-            <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Compare Workflows</h1>
-          </div>
-          <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-            Side-by-side definition and operational comparison for two workflows.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Workflows', href: '/reports/workflows' }, { label: 'Compare' }]}
+        title="Compare workflows"
+        description="Side-by-side runs, duration, node visits, edge traversals and definition shape for two workflows."
+        className="mb-0"
+      />
 
-      <Card className="!p-4">
-        <form action="/reports/workflows/compare" className="grid gap-3 md:grid-cols-[1fr_1fr_auto] items-end">
-          <div>
-            <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--theme-muted-text)' }}>Workflow A</label>
-            <select
-              name="a"
-              defaultValue={workflowAId ?? ''}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-            >
-              <option value="">Select workflow…</option>
-              {(workflowOptions ?? []).map((workflow: any) => (
-                <option key={workflow.id} value={workflow.id}>{workflow.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--theme-muted-text)' }}>Workflow B</label>
-            <select
-              name="b"
-              defaultValue={workflowBId ?? ''}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-            >
-              <option value="">Select workflow…</option>
-              {(workflowOptions ?? []).map((workflow: any) => (
-                <option key={workflow.id} value={workflow.id}>{workflow.name}</option>
-              ))}
-            </select>
-          </div>
-          <Button type="submit" size="sm">Compare</Button>
+      <Card padding="md">
+        <form action="/reports/workflows/compare" className="grid items-end gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <Field label="Workflow A">
+            <Select name="a" defaultValue={workflowAId ?? ''} placeholder="Select workflow…"
+              options={(workflowOptions ?? []).map((workflow: any) => ({ value: workflow.id, label: workflow.name }))} />
+          </Field>
+          <Field label="Workflow B">
+            <Select name="b" defaultValue={workflowBId ?? ''} placeholder="Select workflow…"
+              options={(workflowOptions ?? []).map((workflow: any) => ({ value: workflow.id, label: workflow.name }))} />
+          </Field>
+          <Button type="submit">Compare</Button>
         </form>
       </Card>
 
       {(!workflowAId || !workflowBId) && (
-        <Card className="!p-6">
-          <p className="text-sm" style={{ color: 'var(--theme-card-text)' }}>
+        <Card padding="lg">
+          <p className="text-sm text-fg">
             {workflowAOption
               ? `Choose a second workflow to compare against ${workflowAOption.name}.`
               : 'Choose two workflows above to open a side-by-side comparison.'}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-1 text-fg-muted">
             This compares operational metrics like runs, duration, visits, and traversals, along with definition shape like trigger, nodes, sections, and edges.
           </p>
           {workflowAOption && suggestedComparisons.length > 0 && (
             <div className="mt-4 space-y-2">
-              <div className="text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Quick compare suggestions</div>
+              <div className="text-xs font-medium text-fg-muted">Quick compare suggestions</div>
               <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {suggestedComparisons.map((workflow: any) => (
                   <Link key={workflow.id} href={`/reports/workflows/compare?a=${workflowAOption.id}&b=${workflow.id}`}>
-                    <div className="rounded-lg border px-3 py-3 transition-colors hover:bg-[var(--theme-surface)]" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                      <div className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{workflow.name}</div>
-                      <div className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                    <div className="rounded-md border border-border px-3 py-2.5 transition-colors hover:border-border-strong hover:bg-subtle">
+                      <div className="text-sm font-medium text-fg">{workflow.name}</div>
+                      <div className="text-2xs mt-1 text-fg-muted">
                         Compare against {workflowAOption.name}
                       </div>
                     </div>
@@ -174,17 +151,17 @@ export default function WorkflowComparePage() {
       )}
 
       {workflowAId && workflowBId && workflowAId === workflowBId && (
-        <Card className="!p-4">
-          <p className="text-sm" style={{ color: 'var(--theme-card-text)' }}>Pick two different workflows to compare.</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+        <Card padding="md">
+          <p className="text-sm text-fg">Pick two different workflows to compare.</p>
+          <p className="text-xs mt-1 text-fg-muted">
             Comparing the same workflow on both sides won’t surface any meaningful differences.
           </p>
         </Card>
       )}
 
       {workflowAId && workflowBId && workflowAId !== workflowBId && isLoading && (
-        <Card className="!p-6">
-          <p className="text-sm" style={{ color: 'var(--theme-card-text)' }}>Loading workflow comparison…</p>
+        <Card padding="lg">
+          <p className="text-sm text-fg">Loading workflow comparison…</p>
         </Card>
       )}
 
@@ -284,111 +261,98 @@ export default function WorkflowComparePage() {
       ]
       return (
           <>
-            <Card className="!p-4">
+            <Card padding="md">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Comparison Snapshot</h3>
-                  <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                  <h3 className="text-sm font-semibold text-fg">Comparison snapshot</h3>
+                  <p className="text-xs mt-1 text-fg-muted">
                     Compare operational behavior and definition shape side-by-side, then jump into either workflow report for deeper investigation.
                   </p>
                 </div>
-                <Link href={`/reports/workflows/compare?a=${data.workflowB.id}&b=${data.workflowA.id}`}>
-                  <Button size="sm" variant="outline">
-                    <Shuffle size={13} className="mr-1" />
-                    Swap sides
-                  </Button>
-                </Link>
+                <Button asChild size="sm" variant="secondary" leadingIcon={<Shuffle />}>
+                  <Link href={`/reports/workflows/compare?a=${data.workflowB.id}&b=${data.workflowA.id}`}>Swap sides</Link>
+                </Button>
               </div>
             </Card>
 
             <div className="grid gap-4 xl:grid-cols-2">
               {[{ workflow: data.workflowA, summary: summaryA }, { workflow: data.workflowB, summary: summaryB }].map(({ workflow, summary }) => (
-                <Card key={workflow.id} className="!p-4 space-y-4">
+                <Card key={workflow.id} padding="md" className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <WorkflowIcon size={16} style={{ color: 'var(--theme-primary-text)' }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>{workflow.name}</h2>
+                        <WorkflowIcon className="size-4 text-fg-muted" aria-hidden />
+                        <h2 className="text-base font-semibold text-fg">{workflow.name}</h2>
                       </div>
                       {workflow.description && (
-                        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>{workflow.description}</p>
+                        <p className="text-xs mt-1 text-fg-muted">{workflow.description}</p>
                       )}
                     </div>
-                    <Link href={`/reports/workflows/${workflow.id}`} className="text-[10px] font-medium hover:underline" style={{ color: 'var(--theme-primary-text)' }}>
+                    <Link href={`/reports/workflows/${workflow.id}`} className="shrink-0 text-xs font-medium text-primary-text hover:underline">
                       Open report
                     </Link>
                   </div>
 
                   <ReportMetricRow
                     metrics={[
-                      { label: 'Total Runs', value: summary.totalRuns },
+                      { label: 'Runs', value: summary.totalRuns },
                       { label: 'Active', value: summary.activeRuns },
-                      { label: 'Errors', value: summary.errors },
-                      { label: 'Avg Duration', value: formatDuration(summary.avgDurationMs) },
-                      { label: 'Avg Node Visits', value: summary.avgNodeVisits },
-                      { label: 'Avg Traversals', value: summary.avgEdgeTraversals },
+                      { label: 'Errors', value: summary.errors, tone: summary.errors > 0 ? 'danger' : undefined },
+                      { label: 'Avg duration', value: formatDuration(summary.avgDurationMs) },
+                      { label: 'Avg node visits', value: summary.avgNodeVisits, subtitle: 'per run' },
+                      { label: 'Avg edge traversals', value: summary.avgEdgeTraversals, subtitle: 'per run' },
                     ]}
                   />
 
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 border-t border-border-subtle pt-3 md:grid-cols-3">
                     <DefinitionStat label="Trigger" value={String(summary.triggerType).replace(/_/g, ' ')} />
                     <DefinitionStat label="Status" value={summary.isActive ? 'Active' : 'Inactive'} />
                     <DefinitionStat label="Variables" value={summary.variableCount} />
                     <DefinitionStat label="Nodes" value={summary.nodeCount} />
                     <DefinitionStat label="Sections" value={summary.sectionCount} />
                     <DefinitionStat label="Edges" value={summary.edgeCount} />
-                  </div>
+                  </dl>
 
                   <div>
-                    <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--theme-card-text)' }}>Hot Path Snapshot</h3>
-                    <div className="space-y-2">
-                      {summary.hotNodes.length === 0 ? (
-                        <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>No node traffic yet.</p>
-                      ) : (
-                        summary.hotNodes.map((node) => (
-                          <div key={node.id} className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                            <div>
-                              <div className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{node.label}</div>
-                              <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{node.type}</div>
+                    <h3 className="mb-2 text-sm font-semibold text-fg">Hot path</h3>
+                    {summary.hotNodes.length === 0 ? (
+                      <p className="text-xs text-fg-muted">No node traffic yet.</p>
+                    ) : (
+                      <ul className="divide-y divide-border-subtle rounded-md border border-border">
+                        {summary.hotNodes.map((node) => (
+                          <li key={node.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                            <div className="min-w-0">
+                              <div className="truncate text-ui font-medium text-fg">{node.label}</div>
+                              <div className="text-xs text-fg-muted">{node.type}</div>
                             </div>
-                            <span className="rounded-full px-2 py-1 text-[10px]" style={{ backgroundColor: 'rgba(59,130,246,0.10)', color: '#1D4ED8' }}>
-                              {node.visits} visits
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                            <Badge className="num shrink-0">{node.visits} visits</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </Card>
               ))}
             </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
-              <Card className="!p-4">
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--theme-card-text)' }}>Operational Comparison</h3>
-                <div className="space-y-3">
+              <Card padding="md">
+                <h3 className="mb-3 text-sm font-semibold text-fg">Operational comparison</h3>
+                <div className="divide-y divide-border-subtle">
                   {comparisonRows.map((row) => {
                     const format = row.format ?? ((value: number) => String(value))
                     return (
-                      <div key={row.label} className="rounded-lg border px-3 py-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+                      <div key={row.label} className="py-3 first:pt-0 last:pb-0">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{row.label}</div>
-                            <div className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{row.description}</div>
+                            <div className="text-sm font-medium text-fg">{row.label}</div>
+                            <div className="mt-0.5 text-xs text-fg-muted">{row.description}</div>
                           </div>
-                          <span
-                            className="rounded-full px-2 py-1 text-[10px] font-medium"
-                            style={{
-                              backgroundColor: row.winner === 'equal' ? 'rgba(148,163,184,0.14)' : 'rgba(59,130,246,0.10)',
-                              color: row.winner === 'equal' ? 'var(--theme-muted-text)' : '#1D4ED8',
-                            }}
-                          >
-                            {row.delta}
-                          </span>
+                          <Badge tone={row.winner === 'equal' ? 'neutral' : 'info'} className="num shrink-0">{row.delta}</Badge>
                         </div>
                         <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-sm">
                           <ValuePill label={data.workflowA.name} value={format(row.a)} active={row.winner === 'a'} />
-                          <div className="text-[10px] uppercase tracking-wide text-center" style={{ color: 'var(--theme-muted-text)' }}>vs</div>
+                          <div className="text-center text-xs text-fg-muted">vs</div>
                           <ValuePill label={data.workflowB.name} value={format(row.b)} active={row.winner === 'b'} />
                         </div>
                       </div>
@@ -397,13 +361,13 @@ export default function WorkflowComparePage() {
                 </div>
               </Card>
 
-              <Card className="!p-4">
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--theme-card-text)' }}>Definition Comparison</h3>
-                <div className="space-y-3">
+              <Card padding="md">
+                <h3 className="mb-3 text-sm font-semibold text-fg">Definition comparison</h3>
+                <div className="divide-y divide-border-subtle">
                   {definitionRows.map((row) => (
-                    <div key={row.label} className="rounded-lg border px-3 py-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                      <div className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{row.label}</div>
-                      <div className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{row.description}</div>
+                    <div key={row.label} className="py-3 first:pt-0 last:pb-0">
+                      <div className="text-sm font-medium text-fg">{row.label}</div>
+                      <div className="mt-0.5 text-xs text-fg-muted">{row.description}</div>
                       <div className="mt-3 grid gap-2 md:grid-cols-2">
                         <ValuePill label={data.workflowA.name} value={String(row.a)} active={row.a !== row.b} />
                         <ValuePill label={data.workflowB.name} value={String(row.b)} active={row.a !== row.b} />
@@ -422,24 +386,18 @@ export default function WorkflowComparePage() {
 
 function DefinitionStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border px-3 py-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-      <div className="text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{label}</div>
-      <div className="mt-1 text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>{value}</div>
+    <div className="min-w-0">
+      <dt className="text-xs text-fg-muted">{label}</dt>
+      <dd className="num truncate text-ui font-medium capitalize text-fg">{value}</dd>
     </div>
   )
 }
 
 function ValuePill({ label, value, active }: { label: string; value: string; active?: boolean }) {
   return (
-    <div
-      className="rounded-lg border px-3 py-2"
-      style={{
-        borderColor: active ? 'rgba(59,130,246,0.30)' : 'var(--theme-surface-border)',
-        backgroundColor: active ? 'rgba(59,130,246,0.06)' : 'var(--theme-card-bg)',
-      }}
-    >
-      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>{label}</div>
-      <div className="mt-1 text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>{value}</div>
+    <div className={cn('min-w-0 rounded-md border px-3 py-2', active ? 'border-border-strong bg-subtle' : 'border-border bg-panel')}>
+      <div className="truncate text-xs text-fg-muted">{label}</div>
+      <div className="num mt-0.5 text-sm font-semibold text-fg">{value}</div>
     </div>
   )
 }

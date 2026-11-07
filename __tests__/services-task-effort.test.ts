@@ -25,14 +25,18 @@ import { createMemorySupabase } from './fixtures/supabase-memory'
 function seed() {
   return createMemorySupabase({
     tasks: [
-      { id: 'task-a', tenant_id: 'tenant-a', title: 'Root', status: 'todo', actual_effort: 30, metadata: { keep: true }, deleted_at: null, is_workflow_task: false, event_id: null },
+      { id: 'task-a', tenant_id: 'tenant-a', title: 'Root', status: 'todo', assignee_id: 'user-1', actual_effort: 30, metadata: { keep: true }, deleted_at: null, is_workflow_task: false, event_id: null },
       { id: 'sub-a', tenant_id: 'tenant-a', title: 'Child', status: 'todo', parent_task_id: 'task-a', deleted_at: null },
-      { id: 'wf-task', tenant_id: 'tenant-a', title: 'Step', status: 'todo', deleted_at: null, is_workflow_task: true, event_id: 'evt-1' },
+      { id: 'wf-task', tenant_id: 'tenant-a', title: 'Step', status: 'todo', assignee_id: 'user-1', deleted_at: null, is_workflow_task: true, event_id: 'evt-1' },
       { id: 'gone', tenant_id: 'tenant-a', title: 'Deleted', status: 'todo', deleted_at: '2026-01-01T00:00:00Z' },
       { id: 'task-b', tenant_id: 'tenant-b', title: 'Foreign', status: 'todo', actual_effort: 0, deleted_at: null },
+      { id: 'others', tenant_id: 'tenant-a', title: 'Not mine', status: 'todo', assignee_id: 'user-2', assigner_id: 'user-3', deleted_at: null, is_workflow_task: false, event_id: null },
     ],
     effort_records: [],
     lifecycle_events: [],
+    task_assignees: [],
+    user_teams: [],
+    user_memberships: [],
   })
 }
 type Db = ReturnType<typeof seed>
@@ -197,5 +201,24 @@ describe('session contexts for a task\'s workspace', () => {
     await expect(fromSessionForTask('missing')).rejects.toMatchObject({ code: 'not_found' })
     session.user = null
     await expect(fromSession({ tenantId: 'tenant-a' })).rejects.toMatchObject({ code: 'unauthorized' })
+  })
+})
+
+describe('task reach (governance audit 2026-11)', () => {
+  it('refuses tasks the person neither assigned nor can see, as not found', async () => {
+    await expect(tasks.reopenTask(ctx(db), 'others')).rejects.toMatchObject({ code: 'not_found' })
+    await expect(tasks.addTaskComment(ctx(db), 'others', 'hi')).rejects.toMatchObject({ code: 'not_found' })
+    await expect(effort.logManualEffort(ctx(db), 'others', { hours: 1, minutes: 0, notes: '', logDate: '2026-10-20', entryAt: '2026-10-20T09:00:00.000Z' })).rejects.toMatchObject({ code: 'not_found' })
+    expect(row(db, 'others').status).toBe('todo')
+  })
+
+  it('allows the assigner, task oversight (tasks.view_all) and subtasks of a reachable task', async () => {
+    await expect(tasks.reopenTask(ctx(db, ['tasks.complete'], { actorId: 'user-3' }), 'others')).resolves.toEqual({ status: 'todo' })
+    await expect(tasks.reopenTask(ctx(db, ['tasks.complete', 'tasks.view_all']), 'others')).resolves.toEqual({ status: 'todo' })
+    await expect(tasks.setSubtaskCompleted(ctx(db), 'sub-a', true)).resolves.toEqual({ status: 'completed' })
+  })
+
+  it('getTaskTree returns null for a task out of reach', async () => {
+    expect(await tasks.getTaskTree(ctx(db, ['tasks.complete', 'tasks.view_own']), 'others')).toBeNull()
   })
 })

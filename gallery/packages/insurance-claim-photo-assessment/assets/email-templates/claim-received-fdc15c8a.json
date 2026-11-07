@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "fdc15c8a-9588-54a2-ba6e-d5451f93534f",
+  "asset": {
+    "id": "fdc15c8a-9588-54a2-ba6e-d5451f93534f",
+    "name": "Claim received",
+    "description": "Sent to the claimant when the photos arrive.",
+    "subject": "We received your claim {{claim_ref}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Claim received</h2><p>Hi {{form.claimant_name}},</p><p>Thanks for the photos. An adjuster will review your claim and contact you within {{sla_days}} working day(s).</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Claim {{claim_ref}} · policy {{form.policy_number}}</p></div>",
+    "text_body": "Claim {{claim_ref}} received. An adjuster will contact you within {{sla_days}} working day(s).",
+    "is_default": false
+  }
+}

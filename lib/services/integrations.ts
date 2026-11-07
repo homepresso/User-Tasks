@@ -10,8 +10,8 @@
  */
 
 import { parseApiSpec } from '@/lib/api-spec-parser'
+import { connectorFetch } from '@/lib/integrations/http'
 import { applyAuthHeaders } from '@/lib/integrations/attach-auth'
-import { assertSafeEgressUrl } from '@/lib/egress-guard'
 import { processDeletionQueueBatch } from '@/lib/deletion-queue'
 import { decryptSensitiveFields, encryptSensitiveFields } from '@/lib/secret-fields'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
@@ -170,6 +170,39 @@ export async function createIntegrationWithReferences(
   return { integration, references_created: references.length, references: created }
 }
 
+/** Cap on the stored operation catalogue (JSON size). */
+const API_OPERATIONS_MAX_BYTES = 400 * 1024
+
+/**
+ * The imported API's operations, stored on the integration
+ * (config.api_operations) so custom references can be built from any of
+ * them later — even when "Start empty" or a selection created no references.
+ * Response models are kept while they fit (samples dropped).
+ */
+export function compactApiOperations(operations: Array<{ name: string; description?: string; method: string; pathTemplate: string; bodyTemplate?: string; headers?: Record<string, string>; inputs?: any[]; responseSchema?: unknown }>) {
+  const used = new Set<string>()
+  const out = operations.slice(0, MAX_REFERENCES_PER_IMPORT).map((op) => {
+    let key = `${String(op.method).toUpperCase()} ${op.pathTemplate}`.slice(0, 200)
+    for (let n = 2; used.has(key); n++) key = `${key.replace(/ #\d+$/, '')} #${n}`
+    used.add(key)
+    const schema = op.responseSchema && typeof op.responseSchema === 'object' ? { ...(op.responseSchema as Record<string, any>) } : null
+    if (schema) delete schema.sample
+    return {
+      key,
+      name: String(op.name ?? key).slice(0, 160),
+      method: String(op.method ?? 'GET').toUpperCase(),
+      path_template: String(op.pathTemplate ?? ''),
+      ...(op.bodyTemplate ? { body_template: String(op.bodyTemplate).slice(0, 20000) } : {}),
+      ...(op.headers && Object.keys(op.headers).length ? { headers: op.headers } : {}),
+      inputs: (op.inputs ?? []).slice(0, 80),
+      ...(schema ? { response_schema: schema } : {}),
+    }
+  })
+  if (JSON.stringify(out).length > API_OPERATIONS_MAX_BYTES) for (const op of out) delete (op as any).response_schema
+  while (out.length && JSON.stringify(out).length > API_OPERATIONS_MAX_BYTES) out.pop()
+  return out
+}
+
 export interface ImportOpenApiInput {
   /** Raw OpenAPI 2/3 or Postman document (JSON/YAML string, or an already-parsed object). */
   spec: string | Record<string, unknown>
@@ -203,6 +236,7 @@ export async function importOpenApi(ctx: ServiceContext, input: ImportOpenApiInp
       auth_type: authType,
       auth_config: input.auth_config ?? parsed.authConfig ?? {},
       headers: {},
+      api_operations: compactApiOperations(parsed.references),
     },
     tags: input.tags ?? null,
     references: operations.map((op) => ({
@@ -294,10 +328,15 @@ export async function testIntegration(ctx: ServiceContext, integrationId: string
   }).eq('id', integrationId).eq('tenant_id', ctx.tenantId)
 
   try {
-    const headers: Record<string, string> = { ...(config.headers ?? {}) }
-    await applyAuthHeaders(config, headers, { supabase: ctx.supabase, integrationId })
-    await assertSafeEgressUrl(config.base_url)
-    const resp = await fetch(config.base_url, { headers, signal: AbortSignal.timeout(10000) })
+    const headers: Record<string, string> = {}
+    for (const [k, v] of Object.entries(config.headers ?? {})) if (!k.startsWith('_') && typeof v === 'string') headers[k] = v
+    const query: Record<string, string> = {}
+    await applyAuthHeaders(config, headers, { supabase: ctx.supabase, integrationId, tenantId: ctx.tenantId }, query)
+    const target = new URL(config.base_url)
+    for (const [k, v] of Object.entries(query)) target.searchParams.set(k, v)
+    // Egress-guarded on every redirect hop.
+    const resp = await connectorFetch(target.toString(), { headers }, { timeoutMs: 10_000, maxAttempts: 1 })
+    await resp.body?.cancel().catch(() => {})
     const status = resp.ok ? 'success' : 'error'
     const message = resp.ok ? `${resp.status} OK` : `${resp.status} ${resp.statusText}`
     await record(status, message)

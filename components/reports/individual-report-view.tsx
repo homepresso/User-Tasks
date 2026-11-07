@@ -24,11 +24,13 @@ import {
   Tooltip,
   Cell,
 } from 'recharts'
+import { AXIS_TICK, BAR_MAX, BASE_AXIS, CURSOR_FILL, ChartTooltip, GRID_PROPS, VALUE_AXIS, useSeriesColors } from '@/components/reports/chart-kit'
 import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { formatRelativeDate } from '@/lib/utils'
 import { PersonalActivityTimeline } from '@/components/reports/personal-activity-timeline'
-import { useWorkspaceTheme, useThemeChartColors } from '@/components/providers/theme-provider'
+import { useWorkspaceTheme } from '@/components/providers/theme-provider'
 import type { ThemePalette } from '@/lib/theme/schema'
 
 interface Props {
@@ -91,7 +93,7 @@ function formatFullDateTime(date: string | Date) {
 export function IndividualReportView({ assignedTasks, completedTasks, escalations, lifecycleEvents }: Props) {
   const now = Date.now()
   const { palette } = useWorkspaceTheme()
-  const chartColors = useThemeChartColors()
+  const chartColors = useSeriesColors(5)
 
   const completedTaskMap = useMemo(
     () => new Map((completedTasks ?? []).map((task) => [task.id, task])),
@@ -277,22 +279,22 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
         metrics={[
           { label: 'Outstanding', value: analytics.outstandingCount, subtitle: analytics.overdueCount > 0 ? `${analytics.overdueCount} overdue` : 'on your plate now' },
           { label: 'Completed (30d)', value: analytics.completed30dCount, subtitle: 'tasks you closed recently' },
-          { label: 'Workflow Tasks', value: analytics.workflowTaskCount, subtitle: 'workflow-driven work items' },
-          { label: 'Open Escalations', value: analytics.openEscalationsCount, subtitle: analytics.openEscalationsCount > 0 ? 'need attention' : 'nothing waiting' },
-          { label: 'Avg Cycle Time', value: formatDuration(analytics.avgCompletionMs), subtitle: analytics.onTimeRate > 0 ? `${analytics.onTimeRate}% on time` : 'builds as due dates are used' },
+          { label: 'Workflow tasks', value: analytics.workflowTaskCount, subtitle: 'workflow-driven work items' },
+          { label: 'Open escalations', value: analytics.openEscalationsCount, subtitle: analytics.openEscalationsCount > 0 ? 'need attention' : 'nothing waiting' },
+          { label: 'Avg cycle time', value: formatDuration(analytics.avgCompletionMs), subtitle: analytics.onTimeRate > 0 ? `${analytics.onTimeRate}% on time` : 'builds as due dates are used' },
         ]}
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="!p-4 xl:col-span-2">
+        <Card padding="md" className="xl:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Throughput Trend</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Throughput trend</h3>
+              <p className="text-2xs text-fg-muted">
                 Created versus completed work across the last 12 weeks.
               </p>
             </div>
-            <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+            <span className="text-2xs px-2 py-1 rounded-full bg-bg text-fg-muted">
               12 week view
             </span>
           </div>
@@ -308,54 +310,38 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
                   <stop offset="100%" stopColor={chartColors[1]} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  backgroundColor: 'var(--theme-card-bg)',
-                  border: '1px solid var(--theme-surface-border)',
-                  color: 'var(--theme-card-text)',
-                }}
-              />
+              <CartesianGrid {...GRID_PROPS} />
+              <XAxis dataKey="label" tick={AXIS_TICK} {...BASE_AXIS} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} {...VALUE_AXIS} />
+              <Tooltip cursor={CURSOR_FILL} content={<ChartTooltip />} />
               <Area type="monotone" dataKey="created" stroke={chartColors[0]} strokeWidth={2} fill="url(#individualCreatedGradient)" />
               <Area type="monotone" dataKey="completed" stroke={chartColors[1]} strokeWidth={2} fill="url(#individualCompletedGradient)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card className="!p-4">
+        <Card padding="md">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Current Workload</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Current workload</h3>
+              <p className="text-2xs text-fg-muted">
                 Your currently assigned tasks by status.
               </p>
             </div>
-            <Activity size={15} style={{ color: 'var(--theme-primary-text)' }} />
+            <Activity size={15} className="text-primary-text" />
           </div>
           {analytics.statusRows.length === 0 ? (
-            <p className="text-xs py-16 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs py-16 text-center text-fg-muted">
               No assigned tasks yet.
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={analytics.statusRows} layout="vertical" margin={{ left: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    backgroundColor: 'var(--theme-card-bg)',
-                    border: '1px solid var(--theme-surface-border)',
-                    color: 'var(--theme-card-text)',
-                  }}
-                />
-                <Bar dataKey="value" radius={[0, 5, 5, 0]}>
+                <CartesianGrid {...GRID_PROPS} />
+                <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} {...VALUE_AXIS} />
+                <YAxis type="category" dataKey="name" width={90} tick={AXIS_TICK} {...BASE_AXIS} />
+                <Tooltip cursor={CURSOR_FILL} content={<ChartTooltip />} />
+                <Bar maxBarSize={BAR_MAX} dataKey="value" radius={[0, 5, 5, 0]}>
                   {analytics.statusRows.map((row, index) => (
                     <Cell key={index} fill={row.fill} />
                   ))}
@@ -367,36 +353,36 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="!p-4 xl:col-span-2">
+        <Card padding="md" className="xl:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Workflows You’re Involved In</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Workflows you’re involved in</h3>
+              <p className="text-2xs text-fg-muted">
                 Workflow-generated tasks you’ve touched, grouped by source.
               </p>
             </div>
-            <Workflow size={15} style={{ color: 'var(--theme-primary-text)' }} />
+            <Workflow size={15} className="text-primary-text" />
           </div>
           {analytics.workflowRows.length === 0 ? (
-            <p className="text-xs py-10 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs py-10 text-center text-fg-muted">
               No workflow-driven tasks have involved you yet.
             </p>
           ) : (
             <div className="space-y-3">
               {analytics.workflowRows.map((row) => (
-                <div key={row.name} className="rounded-lg border p-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+                <div key={row.name} className="rounded-lg border p-3 border-border bg-bg">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate">{row.name}</p>
-                      <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p className="text-2xs text-fg-muted">
                         {row.total} tasks touched
                       </p>
                     </div>
-                    <div className="flex gap-2 text-[10px]">
-                      <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 12%, transparent)', color: 'var(--status-info)' }}>
+                    <div className="flex gap-2 text-2xs">
+                      <span className="rounded-full bg-info-wash px-2 py-1 text-info">
                         {row.active} active
                       </span>
-                      <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--theme-accent-light)', color: 'var(--theme-primary-text)' }}>
+                      <span className="px-2 py-1 rounded-full bg-accent-wash text-primary-text">
                         {row.completed} completed
                       </span>
                     </div>
@@ -407,33 +393,33 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
           )}
         </Card>
 
-        <Card className="!p-4">
+        <Card padding="md">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Performance Signals</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Performance signals</h3>
+              <p className="text-2xs text-fg-muted">
                 Timing and reliability indicators from your completed work.
               </p>
             </div>
-            <TimerReset size={15} style={{ color: 'var(--theme-primary-text)' }} />
+            <TimerReset size={15} className="text-primary-text" />
           </div>
           <div className="space-y-3">
-            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>On-time rate</p>
+            <div className="rounded-lg border p-3 border-border bg-bg">
+              <p className="text-xs text-fg-muted">On-time rate</p>
               <p className="text-2xl font-semibold mt-1">{analytics.onTimeRate}%</p>
-              <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>Based on completed tasks that had due dates.</p>
+              <p className="text-2xs mt-1 text-fg-muted">Based on completed tasks that had due dates.</p>
             </div>
-            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Due soon</p>
+            <div className="rounded-lg border p-3 border-border bg-bg">
+              <p className="text-xs text-fg-muted">Due soon</p>
               <p className="text-2xl font-semibold mt-1">{analytics.dueSoonCount}</p>
-              <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>Outstanding tasks due in the next 3 days.</p>
+              <p className="text-2xs mt-1 text-fg-muted">Outstanding tasks due in the next 3 days.</p>
             </div>
-            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Effort variance</p>
+            <div className="rounded-lg border p-3 border-border bg-bg">
+              <p className="text-xs text-fg-muted">Effort variance</p>
               <p className="text-2xl font-semibold mt-1">
                 {analytics.avgEffortVariancePct == null ? '—' : `${analytics.avgEffortVariancePct}%`}
               </p>
-              <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-2xs mt-1 text-fg-muted">
                 Average difference between estimate and actual effort when both exist.
               </p>
             </div>
@@ -442,40 +428,32 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="!p-4 xl:col-span-2">
+        <Card padding="md" className="xl:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Personal Activity Map</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Personal activity map</h3>
+              <p className="text-2xs text-fg-muted">
                 A daily map of the work events recorded against your activity.
               </p>
             </div>
-            <Clock3 size={15} style={{ color: 'var(--theme-primary-text)' }} />
+            <Clock3 size={15} className="text-primary-text" />
           </div>
           {analytics.timelineChart.every((row) => row.total === 0) ? (
-            <p className="text-xs py-16 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs py-16 text-center text-fg-muted">
               No personal activity events recorded yet.
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={analytics.timelineChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    backgroundColor: 'var(--theme-card-bg)',
-                    border: '1px solid var(--theme-surface-border)',
-                    color: 'var(--theme-card-text)',
-                  }}
-                />
-                <Bar dataKey="completed" stackId="activity" fill={chartColors[0]} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="started" stackId="activity" fill={chartColors[1]} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="escalated" stackId="activity" fill={chartColors[2]} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="redirected" stackId="activity" fill={chartColors[3]} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="commented" stackId="activity" fill={chartColors[4]} radius={[4, 4, 0, 0]} />
+                <CartesianGrid {...GRID_PROPS} />
+                <XAxis dataKey="label" tick={AXIS_TICK} {...BASE_AXIS} />
+                <YAxis allowDecimals={false} tick={AXIS_TICK} {...VALUE_AXIS} />
+                <Tooltip cursor={CURSOR_FILL} content={<ChartTooltip />} />
+                <Bar maxBarSize={BAR_MAX} dataKey="completed" stackId="activity" fill={chartColors[0]} radius={[0, 0, 0, 0]} />
+                <Bar maxBarSize={BAR_MAX} dataKey="started" stackId="activity" fill={chartColors[1]} radius={[0, 0, 0, 0]} />
+                <Bar maxBarSize={BAR_MAX} dataKey="escalated" stackId="activity" fill={chartColors[2]} radius={[0, 0, 0, 0]} />
+                <Bar maxBarSize={BAR_MAX} dataKey="redirected" stackId="activity" fill={chartColors[3]} radius={[0, 0, 0, 0]} />
+                <Bar maxBarSize={BAR_MAX} dataKey="commented" stackId="activity" fill={chartColors[4]} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -484,18 +462,18 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card className="!p-4">
+        <Card padding="md">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Needs Attention</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Needs attention</h3>
+              <p className="text-2xs text-fg-muted">
                 Highest urgency work currently assigned to you.
               </p>
             </div>
-            <AlertTriangle size={15} style={{ color: 'var(--theme-warning)' }} />
+            <AlertTriangle size={15} className="text-warning" />
           </div>
           {analytics.attentionTasks.length === 0 ? (
-            <p className="text-xs py-10 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs py-10 text-center text-fg-muted">
               Nothing urgent right now.
             </p>
           ) : (
@@ -506,32 +484,27 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
                   <Link
                     key={task.id}
                     href={`/tasks/${task.id}`}
-                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-[var(--theme-row-highlight)]"
-                    style={{ borderColor: 'var(--theme-surface-border)' }}
+                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-subtle border-border"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{task.title}</p>
-                      <div className="flex flex-wrap gap-2 mt-1 text-[10px]">
-                        <span className="px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                      <div className="flex flex-wrap gap-2 mt-1 text-2xs">
+                        <span className="px-1.5 py-0.5 rounded-full bg-bg text-fg-muted">
                           {task.priority}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                        <span className="px-1.5 py-0.5 rounded-full bg-bg text-fg-muted">
                           {task.status.replace(/_/g, ' ')}
                         </span>
                         {task.due_date && (
                           <span
-                            className="px-1.5 py-0.5 rounded-full"
-                            style={{
-                              backgroundColor: overdue ? 'color-mix(in srgb, var(--theme-danger) 12%, transparent)' : 'color-mix(in srgb, var(--status-info) 12%, transparent)',
-                              color: overdue ? 'var(--theme-danger)' : 'var(--status-info)',
-                            }}
+                            className={cn("px-1.5 py-0.5 rounded-full", overdue ? "bg-danger-wash text-danger" : "bg-info-wash text-info")}
                           >
                             {overdue ? 'Overdue' : `Due ${formatRelativeDate(task.due_date)}`}
                           </span>
                         )}
                       </div>
                     </div>
-                    <ArrowRight size={14} style={{ color: 'var(--theme-muted-text)' }} />
+                    <ArrowRight size={14} className="text-fg-muted" />
                   </Link>
                 )
               })}
@@ -539,18 +512,18 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
           )}
         </Card>
 
-        <Card className="!p-4">
+        <Card padding="md">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-semibold">Recent Completions</h3>
-              <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <h3 className="text-sm font-semibold text-fg">Recent completions</h3>
+              <p className="text-2xs text-fg-muted">
                 Recently completed tasks attributed to you.
               </p>
             </div>
-            <CheckCircle2 size={15} style={{ color: 'var(--theme-success)' }} />
+            <CheckCircle2 size={15} className="text-success" />
           </div>
           {analytics.recentCompleted.length === 0 ? (
-            <p className="text-xs py-10 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs py-10 text-center text-fg-muted">
               No completions recorded yet.
             </p>
           ) : (
@@ -559,12 +532,11 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
                 <Link
                   key={task.id}
                   href={`/tasks/${task.id}`}
-                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-[var(--theme-row-highlight)]"
-                  style={{ borderColor: 'var(--theme-surface-border)' }}
+                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-subtle border-border"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{task.title}</p>
-                    <div className="flex flex-wrap gap-2 mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <div className="flex flex-wrap gap-2 mt-1 text-2xs text-fg-muted">
                       <span>{task.completed_at ? `Completed ${formatRelativeDate(task.completed_at)}` : 'Completed'}</span>
                       <span>{formatDuration(
                         task.completed_at
@@ -574,7 +546,7 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
                       {task.outcome && <span>Outcome: {task.outcome}</span>}
                     </div>
                   </div>
-                  <ArrowRight size={14} style={{ color: 'var(--theme-muted-text)' }} />
+                  <ArrowRight size={14} className="text-fg-muted" />
                 </Link>
               ))}
             </div>
@@ -582,7 +554,7 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
         </Card>
       </div>
 
-      <Card className="!p-4">
+      <Card padding="md">
         <PersonalActivityTimeline
           events={analytics.timelineEvents}
           mode="report"
@@ -591,18 +563,18 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
         />
       </Card>
 
-      <Card className="!p-4">
+      <Card padding="md">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-semibold">Escalations Targeting You</h3>
-            <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <h3 className="text-sm font-semibold text-fg">Escalations targeting you</h3>
+            <p className="text-2xs text-fg-muted">
               Workflow escalations configured to route work to you.
             </p>
           </div>
-          <GitBranch size={15} style={{ color: 'var(--theme-primary-text)' }} />
+          <GitBranch size={15} className="text-primary-text" />
         </div>
         {analytics.openEscalations.length === 0 ? (
-          <p className="text-xs py-8 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs py-8 text-center text-fg-muted">
             No escalations are currently targeting you.
           </p>
         ) : (
@@ -611,27 +583,22 @@ export function IndividualReportView({ assignedTasks, completedTasks, escalation
               <Link
                 key={entry.id}
                 href={entry.task?.id ? `/tasks/${entry.task.id}` : '/tasks'}
-                className="rounded-lg border p-3 transition-colors hover:bg-[var(--theme-row-highlight)]"
-                style={{ borderColor: 'var(--theme-surface-border)' }}
+                className="rounded-lg border p-3 transition-colors hover:bg-subtle border-border"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{entry.task?.title ?? 'Escalated task'}</p>
-                    <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="text-2xs mt-1 text-fg-muted">
                       {entry.escalation_type} escalation · after {entry.escalate_after_minutes} min
                     </p>
                   </div>
                   <span
-                    className="px-2 py-1 rounded-full text-[10px]"
-                    style={{
-                      backgroundColor: entry.is_escalated ? 'color-mix(in srgb, var(--theme-danger) 12%, transparent)' : 'color-mix(in srgb, var(--status-info) 12%, transparent)',
-                      color: entry.is_escalated ? 'var(--theme-danger)' : 'var(--status-info)',
-                    }}
+                    className={cn("px-2 py-1 rounded-full text-2xs", entry.is_escalated ? "bg-danger-wash text-danger" : "bg-info-wash text-info")}
                   >
                     {entry.is_escalated ? 'Escalated' : 'Watching'}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-3 mt-2 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <div className="flex flex-wrap gap-3 mt-2 text-2xs text-fg-muted">
                   {entry.task?.priority && <span>Priority: {entry.task.priority}</span>}
                   {entry.task?.status && <span>Status: {entry.task.status.replace(/_/g, ' ')}</span>}
                   <span>{formatRelativeDate(entry.escalated_at ?? entry.created_at)}</span>

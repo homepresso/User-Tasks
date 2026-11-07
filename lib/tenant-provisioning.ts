@@ -23,26 +23,43 @@ import type { AuthAdmin } from '@/lib/providers/auth/types'
 
 // ── system-role permission sets ──
 const ALL: Permission[] = [...PERMISSION_KEYS]
+// Completing anyone's workflow task on their behalf (note required, audited):
+// Owner and Admin (SQL seed_tenant_roles, 20261227000000). Manager and below
+// act on behalf only through reporting lines or a workflow Edit grant.
+const ADMIN: Permission[] = [...ALL]
+// Viewer: a read-only consumer — works the tasks assigned to them, submits the
+// forms they are given, reads data and reports, sees the people directory. No
+// build, design or admin areas (governance audit 2026-11: workflows.view and
+// forms.view removed — they opened the Build menu and full workflow / form
+// definitions to every Viewer).
 const VIEWER: Permission[] = [
   'tasks.view_own', 'tasks.complete',
-  'workflows.view', 'forms.view', 'forms.submit', 'data.view', 'reports.view',
-  'team.view_members',
+  'forms.submit', 'data.view', 'reports.view',
+  'team.view_members', 'org.view', 'projects.view',
 ]
+// Member: does work — creates and assigns tasks, edits data rows, builds own
+// reports, and sees the workflow queue items they are involved in. The form
+// wizard (forms.wizard, 20261229000000) lets them make their own forms,
+// surveys and approvals: the server creates exactly the wizard's objects,
+// owned by them — no general build access (forms.edit, workflows.create…).
 const MEMBER: Permission[] = [
   ...VIEWER,
   'tasks.create', 'tasks.assign',
   'data.manage_rows',
   'reports.create', 'reports.edit_own',
+  'workflows.view_queue',
+  'forms.wizard',
 ]
-const MANAGER: Permission[] = ALL.filter((p) =>
+const MANAGER: Permission[] = ADMIN.filter((p) =>
+  p !== 'tasks.complete_any' &&
   !p.startsWith('settings.manage_') &&
-  p !== 'team.change_roles' && p !== 'team.remove' && p !== 'settings.edit' &&
+  p !== 'team.change_roles' && p !== 'team.remove' && p !== 'settings.edit' && p !== 'org.manage' &&
   p !== 'observability.view',
 )
 
 export const SYSTEM_ROLES: { slug: string; name: string; description: string; permissions: Permission[] }[] = [
   { slug: 'owner', name: 'Owner', description: 'Full access to everything, including billing and API keys', permissions: ALL },
-  { slug: 'admin', name: 'Admin', description: 'Full administrative access', permissions: ALL },
+  { slug: 'admin', name: 'Admin', description: 'Full administrative access', permissions: ADMIN },
   { slug: 'manager', name: 'Manager', description: 'Builds and manages work; no org administration', permissions: MANAGER },
   { slug: 'member', name: 'Member', description: 'Works tasks, data, and reports', permissions: MEMBER },
   { slug: 'viewer', name: 'Viewer', description: 'Read-only access', permissions: VIEWER },
@@ -53,6 +70,12 @@ export interface ProvisionTenantInput {
   email: string
   password: string
   company: string
+  /**
+   * Exact workspace slug (the instance admin API): used as is, and a taken
+   * slug fails with reason `slug_taken`. Omitted: derived from `company`,
+   * with a random suffix when taken.
+   */
+  slug?: string
   /** Mark onboarding done (beta signup) or leave it for /onboarding (self-hosted bootstrap). */
   onboardingCompleted: boolean
   settings?: Record<string, unknown>
@@ -61,7 +84,7 @@ export interface ProvisionTenantInput {
 
 export type ProvisionTenantResult =
   | { ok: true; tenantId: string; slug: string; userId: string }
-  | { ok: false; reason: 'user_exists' | 'auth_failed' | 'provision_failed'; error: string }
+  | { ok: false; reason: 'user_exists' | 'auth_failed' | 'provision_failed' | 'slug_taken'; error: string }
 
 /** Supabase Auth's admin API on a service-role client (the default, and scripts/bootstrap-tenant.ts). */
 export function supabaseAuthAdmin(supabase: Pick<SupabaseClient, 'auth'>): Pick<AuthAdmin, 'createUser' | 'deleteUser'> {
@@ -86,11 +109,19 @@ export async function provisionTenant(
   const { fullName, email, password, company } = input
   const db = supabase as any
 
-  // Unique slug from the company name.
-  let slug = toUrlSlug(company, 50) || 'team'
-  const { data: taken } = await db.from('tenants').select('slug').ilike('slug', `${slug}%`).is('deleted_at', null)
-  if ((taken ?? []).some((t: any) => t.slug === slug)) {
-    slug = `${slug}-${Math.random().toString(36).slice(2, 7)}`
+  let slug: string
+  if (input.slug) {
+    // Exact slug: never altered (slugs are unique across live and deleted workspaces).
+    slug = input.slug
+    const { data: existing } = await db.from('tenants').select('id').eq('slug', slug).limit(1)
+    if ((existing ?? []).length) return { ok: false, reason: 'slug_taken', error: `The slug "${slug}" is taken` }
+  } else {
+    // Unique slug from the company name.
+    slug = toUrlSlug(company, 50) || 'team'
+    const { data: taken } = await db.from('tenants').select('slug').ilike('slug', `${slug}%`).is('deleted_at', null)
+    if ((taken ?? []).some((t: any) => t.slug === slug)) {
+      slug = `${slug}-${Math.random().toString(36).slice(2, 7)}`
+    }
   }
 
   // 1. Auth user (auto-confirmed — no email round-trip).

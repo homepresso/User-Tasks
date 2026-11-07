@@ -1,0 +1,48 @@
+{
+  "$comment": "npm test runs each operation's manifest sample, then these cases. expect: outputs that must match (deep equal per key); expect_error: an error code (timeout, memory, capability, action, invalid, host) or true; mocks: http / data / files / secrets as in @usertasks/action/testing.",
+  "cases": [
+    {
+      "name": "15% on 100",
+      "operation": "calculate",
+      "inputs": { "amount": 100, "rate_percent": 15 },
+      "expect": { "net": 100, "tax": 15, "gross": 115 }
+    },
+    {
+      "name": "tax-inclusive price",
+      "operation": "calculate",
+      "inputs": { "amount": 115, "rate_percent": 15, "prices_include_tax": true },
+      "expect": { "net": 100, "tax": 15, "gross": 115 }
+    },
+    {
+      "name": "half-even rounding",
+      "operation": "calculate",
+      "inputs": { "amount": 0.5, "rate_percent": 5, "rounding": "half_even" },
+      "expect": { "tax": 0.02 }
+    },
+    {
+      "name": "a rate over 100% fails the step",
+      "operation": "calculate",
+      "inputs": { "amount": 10, "rate_percent": 150 },
+      "expect_error": "action"
+    },
+    {
+      "name": "invoice totals",
+      "operation": "invoice_totals",
+      "inputs": {
+        "lines": [
+          { "description": "Consulting", "quantity": 4, "unit_price": 150 },
+          { "description": "Licence", "quantity": 1, "unit_price": 99.99, "tax_rate_percent": 0 }
+        ],
+        "currency": "NZD",
+        "locale": "en-NZ"
+      },
+      "expect": { "subtotal": 699.99, "tax_total": 90, "total": 789.99, "total_formatted": "$789.99" }
+    },
+    {
+      "name": "an empty invoice fails the step",
+      "operation": "invoice_totals",
+      "inputs": { "lines": [] },
+      "expect_error": "action"
+    }
+  ]
+}

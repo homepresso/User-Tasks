@@ -43,7 +43,7 @@ export function apiError(message: string, status: number, code?: string, details
   )
 }
 
-function validationError(where: string, error: z.ZodError) {
+export function validationError(where: string, error: z.ZodError) {
   const details = error.issues.map((issue) => ({
     path: [where, ...issue.path.map(String)].join('.'),
     message: issue.message,

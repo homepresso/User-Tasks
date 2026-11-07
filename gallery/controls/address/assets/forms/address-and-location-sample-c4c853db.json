@@ -1,0 +1,300 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "c4c853db-0ab7-4fad-a593-cd49cddfd040",
+  "asset": {
+    "id": "c4c853db-0ab7-4fad-a593-cd49cddfd040",
+    "name": "Address and location (sample)",
+    "description": "A sample form for the Address and Map controls: search an address with Google Places (key kept on the server) and see it on a map.",
+    "tags": [
+      "maps",
+      "addresses",
+      "sample"
+    ],
+    "fields": [
+      {
+        "key": "location_heading",
+        "label": "Where is it?",
+        "type": "heading",
+        "help_text": "Search for the address; the map below shows where it is."
+      },
+      {
+        "key": "address",
+        "type": "custom",
+        "label": "Address",
+        "required": true,
+        "help_text": "Start typing and choose the address from the list.",
+        "custom": {
+          "tag": "ut-address",
+          "version": "1.1.0",
+          "name": "Address",
+          "value_type": "json",
+          "icon": "map-pin",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "formatted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "street": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "city": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "region": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "postcode": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "country": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "country_code": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 3
+              },
+              "lat": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": -90,
+                "maximum": 90
+              },
+              "lng": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": -180,
+                "maximum": 180
+              },
+              "place_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "formatted"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "placeholder": "Start typing an address",
+            "min_chars": 3,
+            "debounce_ms": 350,
+            "allow_manual": true,
+            "show_details": false
+          },
+          "display": {
+            "template": "{{value.formatted}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "combobox",
+            "keyboard": "Type at least three characters to search. Down / Up move through the suggestions, Enter chooses one, Escape closes the list (a second Escape clears the field). \"Enter the address manually\" shows separate inputs.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 84,
+            "min_height": 48,
+            "max_height": 520,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup"
+          ],
+          "output": {
+            "type": "string",
+            "primary": "formatted",
+            "extras": {
+              "parts": ""
+            },
+            "description": "The formatted address; <key>_parts has street, city, region, postcode, country and coordinates"
+          }
+        },
+        "lookup": {
+          "source": "reference",
+          "integration_id": "665fd837-6f7d-46b8-a4fe-697b144b7c88",
+          "reference_id": "22867b48-18ff-4d08-a9c5-28144e03085f",
+          "input_mappings": {
+            "query": "{{search}}"
+          },
+          "results_path": "places",
+          "display_fields": [
+            "formattedAddress",
+            "addressComponents",
+            "location"
+          ],
+          "value_field": "id",
+          "min_chars": 3,
+          "debounce_ms": 400,
+          "max_results": 5,
+          "cache_ttl_s": 300
+        }
+      },
+      {
+        "key": "location",
+        "type": "custom",
+        "label": "Location",
+        "help_text": "Follows the address above.",
+        "custom": {
+          "tag": "ut-map",
+          "version": "1.1.0",
+          "name": "Map",
+          "value_type": "json",
+          "icon": "map",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "lng": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              }
+            },
+            "required": [
+              "lat",
+              "lng"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "tiles": "auto",
+            "zoom": 15,
+            "height": 320,
+            "pick": false,
+            "show_coordinates": true
+          },
+          "context_map": {
+            "location": "address"
+          },
+          "display": {
+            "template": "{{value.lat}}, {{value.lng}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "application",
+            "keyboard": "Tab to the map: arrow keys pan, + / - zoom. With pin dropping on, Enter or Space drops the pin at the centre (a crosshair marks it). The Latitude and Longitude inputs set the pin exactly; Clear removes it.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 357,
+            "min_height": 200,
+            "max_height": 960,
+            "full_width": true
+          },
+          "capabilities": [
+            "network"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.lat}},{{value.lng}}",
+            "extras": {
+              "lat": "lat",
+              "lng": "lng"
+            },
+            "description": "The location as \"lat,lng\"; <key>_lat and <key>_lng are numbers"
+          }
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "location_heading",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "address",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "location",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thanks",
+            "text": "We have {{address.formatted}}.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Address and location",
+      "align": "left",
+      "subtitle": "Search for an address and check it on the map."
+    }
+  }
+}

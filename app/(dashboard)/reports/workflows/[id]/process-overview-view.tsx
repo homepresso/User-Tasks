@@ -3,17 +3,30 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft, Search, Workflow as WorkflowIcon, Play, Pencil, ExternalLink,
-  CheckCircle, XCircle, Clock, Pause, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown,
+  Workflow as WorkflowIcon, Play, Pencil, ExternalLink,
+  CheckCircle, Clock, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
+} from 'recharts'
+import { SearchInput } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
+import { PageHeader } from '@/components/ui/page-header'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Badge, StatusPill, Tag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/list-controls'
+import { Table, THead, TBody, TR, TH, TD, TableEmpty } from '@/components/ui/table'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import {
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
-} from 'recharts'
-import { formatRelativeDate } from '@/lib/utils'
+  AXIS_TICK, BAND_GAP, BAR_MAX, BASE_AXIS, CURSOR_FILL, ChartFrame, ChartTooltip, GRID_PROPS, LEGEND_PROPS, VALUE_AXIS, useSeriesColors,
+} from '@/components/reports/chart-kit'
+import { formatRelative } from '@/lib/format/date'
+import { formatCount } from '@/lib/format/number'
+import { plural } from '@/lib/format/plural'
+import { cn } from '@/lib/utils'
 import type { WorkflowEdge, WorkflowNode } from '@/lib/workflow-schema'
 import { normalizeDataTableNodes } from '@/lib/workflow-table-refs'
 import { computeHeatOverlay } from '@/lib/workflow-heat-overlay'
@@ -35,6 +48,16 @@ interface Props {
   taskById: Record<string, any>
   agentRunsByRunId: Record<string, any[]>
   agentNameById: Record<string, string>
+  /** Stored run variables by run id (only with workflows.view). */
+  variablesByRunId?: Record<string, Record<string, unknown>>
+}
+
+/** A stored variable value as table text. */
+function variableText(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (Array.isArray(value)) return value.join(', ')
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
 }
 
 type StatusFilter = 'all' | 'active' | 'completed' | 'failed' | 'paused' | 'spiking' | 'duration_spike' | 'traversal_spike'
@@ -42,16 +65,6 @@ type SortField = 'id' | 'originator' | 'workers' | 'status' | 'started' | 'finis
 type SortDir = 'asc' | 'desc'
 type ChartPeriod = 'day' | 'week' | 'month'
 
-const STATUS_COLORS: Record<string, string> = {
-  completed: 'var(--status-done)',
-  failed: 'var(--status-blocked)',
-  running: 'var(--status-info)',
-  pending: 'var(--status-info)',
-  waiting_for_event: 'var(--status-progress)',
-  paused: 'var(--status-todo)',
-  cancelled: 'var(--status-todo)',
-  migrated: 'var(--status-info)',
-}
 
 /** Real colour strings for Recharts (which can't resolve CSS variables). */
 function statusFill(status: string, palette: ThemePalette): string {
@@ -81,25 +94,10 @@ function statusLabel(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] ?? 'var(--theme-muted-text)'
-  const Icon = status === 'completed' ? CheckCircle
-    : status === 'failed' ? XCircle
-    : status === 'paused' || status === 'waiting_for_event' ? Pause
-    : status === 'running' || status === 'pending' ? Play
-    : Clock
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
-      style={{ backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`, color }}
-    >
-      <Icon size={9} /> {statusLabel(status)}
-    </span>
-  )
-}
 
-export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, taskById, agentRunsByRunId, agentNameById }: Props) {
+export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, taskById, agentRunsByRunId, agentNameById, variablesByRunId }: Props) {
   const { palette } = useWorkspaceTheme()
+  const [seriesA, seriesB] = useSeriesColors(2)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('day')
@@ -109,6 +107,9 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
   const pageSize = 25
 
   const variableDefs: { name: string; type: string; defaultValue?: any }[] = Array.isArray(workflow.user_variables) ? workflow.user_variables : []
+  // Up to three declared inputs shown on each instance (values stored when
+  // the run completed, failed or paused).
+  const shownVariables = variablesByRunId ? variableDefs.map((v) => v.name).filter(Boolean).slice(0, 3) : []
 
   // KPI tiles
   const tiles = useMemo(() => {
@@ -129,7 +130,7 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
       : 0
 
     const lastActivity = runs[0]?.started_at ?? null
-    const lastActivityText = lastActivity ? formatRelativeDate(lastActivity) : '—'
+    const lastActivityText = lastActivity ? formatRelative(lastActivity) : '—'
 
     return {
       total,
@@ -335,6 +336,7 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
           ? (runEdgeTraversals(r) / anomalyInsights.baselineTraversalAvg)
           : 0,
         error: r.error,
+        variables: variablesByRunId?.[r.id] ?? null,
       }
     })
 
@@ -384,7 +386,6 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
   }, [agentRunsByRunId, runs])
 
   const paginatedRows = tableRows.slice((page - 1) * pageSize, page * pageSize)
-  const totalPages = Math.max(1, Math.ceil(tableRows.length / pageSize))
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
@@ -396,304 +397,175 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
     setPage(1)
   }
 
+  const durationSpiking = anomalyInsights.durationSpikeRatio >= 1.25
+  const traversalSpiking = anomalyInsights.traversalSpikeRatio >= 1.25
+
   return (
     <div className="space-y-6">
-      {/* Header with breadcrumb */}
-      <div>
-        <div className="flex items-center gap-1.5 text-[11px] mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          <Link href="/reports" className="hover:underline">Reports</Link>
-          <span>›</span>
-          <Link href="/reports/workflows" className="hover:underline">Workflow Processes</Link>
-          <span>›</span>
-          <span style={{ color: 'var(--theme-card-text)' }}>{workflow.name}</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/reports/workflows" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-              <ArrowLeft size={18} />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <WorkflowIcon size={18} style={{ color: 'var(--theme-primary-text)' }} />
-                <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>{workflow.name}</h1>
-                {!workflow.is_active && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                    inactive
-                  </span>
-                )}
-              </div>
-              {workflow.description && (
-                <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>{workflow.description}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href={`/reports/workflows/compare?a=${workflow.id}`}>
-              <Button size="sm" variant="outline">Compare with another workflow</Button>
-            </Link>
-            <Link href={`/automations/${workflow.id}`}>
-              <Button size="sm" variant="outline"><Pencil size={13} className="mr-1" /> Open in builder</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Workflows', href: '/reports/workflows' }, { label: workflow.name }]}
+        icon={<WorkflowIcon />}
+        title={workflow.name}
+        badge={!workflow.is_active ? <StatusPill status="inactive" /> : undefined}
+        description={workflow.description || undefined}
+        className="mb-0"
+        actions={
+          <>
+            <Button asChild variant="secondary">
+              <Link href={`/reports/workflows/compare?a=${workflow.id}`}>Compare</Link>
+            </Button>
+            <Button asChild variant="secondary" leadingIcon={<Pencil />}>
+              <Link href={`/automations/${workflow.id}`}>Open in builder</Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* KPI tiles */}
       <ReportMetricRow
         metrics={[
-          { label: 'Total Instances', value: tiles.total },
-          { label: 'Active Instances', value: tiles.active, subtitle: 'running or queued' },
-          { label: 'Instances in Error', value: tiles.errors, subtitle: tiles.errors > 0 ? 'needs attention' : 'healthy' },
-          { label: 'Paused / Waiting', value: tiles.paused },
-          { label: 'Avg Duration', value: tiles.avgDuration },
-          { label: 'Avg Node Visits', value: tiles.avgNodeVisits, subtitle: 'per instance' },
-          { label: 'Avg Edge Traversals', value: tiles.avgEdgeTraversals, subtitle: 'per instance' },
-          { label: 'Last Activity', value: tiles.lastActivity },
+          { label: 'Instances', value: tiles.total },
+          { label: 'Active', value: tiles.active, subtitle: 'running or queued' },
+          { label: 'In error', value: tiles.errors, subtitle: tiles.errors > 0 ? 'need attention' : 'healthy', tone: tiles.errors > 0 ? 'danger' : undefined },
+          { label: 'Avg duration', value: tiles.avgDuration, subtitle: `${tiles.paused} paused or waiting · last activity ${tiles.lastActivity}` },
         ]}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="!p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Duration Spike</h3>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                Recent runs compared with the immediately prior window for this workflow.
-              </p>
-            </div>
-            <span
-              className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-danger) 10%, transparent)', color: 'var(--theme-danger)' }}
-            >
-              {anomalyInsights.durationSpikeRatio >= 1.25 ? `${anomalyInsights.durationSpikeRatio.toFixed(1)}x slower` : 'stable'}
-            </span>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
-            <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div style={{ color: 'var(--theme-muted-text)' }}>Recent avg</div>
-              <div style={{ color: 'var(--theme-card-text)' }}>{formatDuration(anomalyInsights.recentDurationAvg)}</div>
-            </div>
-            <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div style={{ color: 'var(--theme-muted-text)' }}>Baseline avg</div>
-              <div style={{ color: 'var(--theme-card-text)' }}>{formatDuration(anomalyInsights.baselineDurationAvg)}</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="!p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Traversal Spike</h3>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                Recent traversal complexity compared with the prior window.
-              </p>
-            </div>
-            <span
-              className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}
-            >
-              {anomalyInsights.traversalSpikeRatio >= 1.25 ? `${anomalyInsights.traversalSpikeRatio.toFixed(1)}x traversals` : 'stable'}
-            </span>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
-            <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div style={{ color: 'var(--theme-muted-text)' }}>Recent avg</div>
-              <div style={{ color: 'var(--theme-card-text)' }}>{anomalyInsights.recentTraversalAvg.toFixed(1)}</div>
-            </div>
-            <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <div style={{ color: 'var(--theme-muted-text)' }}>Baseline avg</div>
-              <div style={{ color: 'var(--theme-card-text)' }}>{anomalyInsights.baselineTraversalAvg.toFixed(1)}</div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Spike Trend</h3>
-            <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-              Average duration and traversal complexity over time to show whether the anomaly is a burst or a sustained pattern.
-            </p>
-          </div>
-          <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            grouped by {chartPeriod}
-          </span>
+      {durationSpiking || traversalSpiking ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {durationSpiking && (
+            <SpikeCard
+              title="Duration spike"
+              subtitle="Recent runs compared with the prior window"
+              metric={`${anomalyInsights.durationSpikeRatio.toFixed(1)}× slower`}
+              tone="danger"
+              stats={[['Recent avg', formatDuration(anomalyInsights.recentDurationAvg)], ['Baseline avg', formatDuration(anomalyInsights.baselineDurationAvg)]]}
+            />
+          )}
+          {traversalSpiking && (
+            <SpikeCard
+              title="Traversal spike"
+              subtitle="Recent traversal complexity compared with the prior window"
+              metric={`${anomalyInsights.traversalSpikeRatio.toFixed(1)}× traversals`}
+              tone="warning"
+              stats={[['Recent avg', anomalyInsights.recentTraversalAvg.toFixed(1)], ['Baseline avg', anomalyInsights.baselineTraversalAvg.toFixed(1)]]}
+            />
+          )}
         </div>
-        {spikeTrendData.length === 0 ? (
-          <p className="text-xs py-12 text-center" style={{ color: 'var(--theme-muted-text)' }}>Not enough runs yet to chart anomaly trends.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={spikeTrendData}>
-              <defs>
-                <linearGradient id="wfDurationTrend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={palette.danger} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={palette.danger} stopOpacity={0.04} />
-                </linearGradient>
-                <linearGradient id="wfTraversalTrend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={palette.warning} stopOpacity={0.22} />
-                  <stop offset="100%" stopColor={palette.warning} stopOpacity={0.03} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-              <YAxis
-                yAxisId="duration"
-                tick={{ fontSize: 10, fill: palette.danger }}
-                tickFormatter={(value) => formatDuration(Number(value))}
-              />
-              <YAxis
-                yAxisId="traversals"
-                orientation="right"
-                tick={{ fontSize: 10, fill: palette.warning }}
-              />
-              <Tooltip
-                formatter={(value: string | number | readonly (string | number)[] | undefined, name: string | number | undefined) => {
-                  const rawValue = Array.isArray(value) ? value[0] : value
-                  const numericValue = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0)
-                  if (name === 'avgDurationMs') return [formatDuration(numericValue), 'Avg duration']
-                  return [numericValue, 'Avg traversals']
-                }}
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  backgroundColor: 'var(--theme-card-bg)',
-                  border: '1px solid var(--theme-surface-border)',
-                  color: 'var(--theme-card-text)',
-                }}
-              />
-              <Area
-                yAxisId="duration"
-                type="monotone"
-                dataKey="avgDurationMs"
-                name="avgDurationMs"
-                stroke={palette.danger}
-                strokeWidth={2}
-                fill="url(#wfDurationTrend)"
-              />
-              <Area
-                yAxisId="traversals"
-                type="monotone"
-                dataKey="avgTraversals"
-                name="avgTraversals"
-                stroke={palette.warning}
-                strokeWidth={2}
-                fill="url(#wfTraversalTrend)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </Card>
-
-      {/* Workflow variables display — only rendered if the workflow defines
-          any user variables. Shows the schema (name + type) as a chip row
-          and is a visual reminder for the reader of what inputs this
-          workflow expects. Individual run values are shown in the detail
-          view (ProcessViewer variables tab). */}
-      {variableDefs.length > 0 && (
-        <Card className="!p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Workflow Variables</h3>
-            <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-              {variableDefs.length} defined — open an instance to see values
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {variableDefs.map((v, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-mono"
-                style={{ backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-surface-border)' }}
-              >
-                <span style={{ color: 'var(--theme-card-text)' }}>{v.name}</span>
-                <span className="text-[9px] px-1 rounded" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-                  {v.type ?? 'text'}
-                </span>
-                {v.defaultValue != null && v.defaultValue !== '' && (
-                  <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    = {String(v.defaultValue).slice(0, 20)}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
-        </Card>
+      ) : (
+        <p className="flex items-center gap-2 text-ui text-fg-muted" data-testid="no-anomalies">
+          <CheckCircle className="size-4 text-success" aria-hidden />
+          No anomalies: recent runs take as long and travel as far as the prior window
+        </p>
       )}
 
       {/* Trend + status charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="!p-4 lg:col-span-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Instances Started</h3>
-            <select
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <ChartFrame
+          className="lg:col-span-2"
+          title="Instances started"
+          actions={
+            <SegmentedControl
+              aria-label="Group by"
+              size="sm"
               value={chartPeriod}
-              onChange={e => setChartPeriod(e.target.value as ChartPeriod)}
-              className="rounded border px-2 py-0.5 text-[10px]"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-            >
-              <option value="day">Day</option>
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-            </select>
-          </div>
+              onValueChange={(v) => setChartPeriod(v as ChartPeriod)}
+              options={[{ value: 'day', text: 'Day' }, { value: 'week', text: 'Week' }, { value: 'month', text: 'Month' }]}
+            />
+          }
+          table={{ caption: `Instances started per ${chartPeriod}`, columns: [chartPeriod === 'day' ? 'Day' : chartPeriod === 'week' ? 'Week' : 'Month', 'Instances'], rows: trendData.map((d: { name: string; runs: number }) => [d.name, formatCount(d.runs)]) }}
+        >
           {trendData.length === 0 ? (
-            <p className="text-xs py-12 text-center" style={{ color: 'var(--theme-muted-text)' }}>No runs yet</p>
+            <EmptyState size="sm" variant="no-results" icon={Play} title="No runs yet" description="Runs appear here once the workflow starts." />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="wfOverviewGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={palette.primary} stopOpacity={0.4} />
-                    <stop offset="100%" stopColor={palette.primary} stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12, borderRadius: 8,
-                    backgroundColor: 'var(--theme-card-bg)',
-                    border: '1px solid var(--theme-surface-border)',
-                    color: 'var(--theme-card-text)',
-                  }}
-                />
-                <Area type="monotone" dataKey="runs" stroke={palette.primary} strokeWidth={2} fill="url(#wfOverviewGradient)" />
+              <AreaChart data={trendData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                <CartesianGrid {...GRID_PROPS} />
+                <XAxis dataKey="name" tick={AXIS_TICK} interval="preserveStartEnd" minTickGap={16} {...BASE_AXIS} />
+                <YAxis tick={AXIS_TICK} allowDecimals={false} width={36} {...VALUE_AXIS} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--ds-border)' }} />
+                <Area type="monotone" dataKey="runs" name="instances started" stroke={seriesA} strokeWidth={2} fill={seriesA} fillOpacity={0.12} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           )}
-        </Card>
+        </ChartFrame>
 
-        <Card className="!p-4">
-          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--theme-card-text)' }}>Status Distribution</h3>
+        <ChartFrame
+          title="Status distribution"
+          table={{ caption: 'Instances by status', columns: ['Status', 'Instances'], rows: statusDistribution.map((d: { name: string; value: number }) => [d.name, formatCount(d.value)]) }}
+        >
           {statusDistribution.length === 0 ? (
-            <p className="text-xs py-12 text-center" style={{ color: 'var(--theme-muted-text)' }}>No runs yet</p>
+            <EmptyState size="sm" variant="no-results" icon={Clock} title="No runs yet" />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={statusDistribution} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-                <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} width={90} />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 12, borderRadius: 8,
-                    backgroundColor: 'var(--theme-card-bg)',
-                    border: '1px solid var(--theme-surface-border)',
-                    color: 'var(--theme-card-text)',
-                  }}
-                  cursor={{ fill: 'var(--theme-surface)' }}
-                />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {statusDistribution.map((entry, i) => (
+              <BarChart data={statusDistribution} layout="vertical" margin={{ top: 4, right: 16, bottom: 0, left: 8 }} barCategoryGap={BAND_GAP}>
+                <CartesianGrid {...GRID_PROPS} />
+                <XAxis type="number" tick={AXIS_TICK} allowDecimals={false} {...VALUE_AXIS} />
+                <YAxis type="category" dataKey="name" tick={AXIS_TICK} width={90} {...BASE_AXIS} />
+                <Tooltip content={<ChartTooltip />} cursor={CURSOR_FILL} />
+                <Bar dataKey="value" name="instances" radius={[0, 4, 4, 0]} maxBarSize={BAR_MAX} isAnimationActive={false}>
+                  {statusDistribution.map((entry: { fill: string }, i: number) => (
                     <Cell key={i} fill={entry.fill} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
-        </Card>
+        </ChartFrame>
       </div>
+
+      <ChartFrame
+        title="Spike trend"
+        description={`Average duration and traversals per ${chartPeriod}: whether a spike is a burst or a sustained pattern`}
+        table={{ caption: `Average duration and traversals per ${chartPeriod}`, columns: ['Period', 'Avg duration', 'Avg traversals'], rows: spikeTrendData.map((d: { name: string; avgDurationMs: number; avgTraversals: number }) => [d.name, formatDuration(d.avgDurationMs), d.avgTraversals.toFixed(1)]) }}
+      >
+        {spikeTrendData.length === 0 ? (
+          <EmptyState size="sm" variant="no-results" icon={Clock} title="Not enough runs to chart a trend yet" />
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={spikeTrendData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid {...GRID_PROPS} />
+              <XAxis dataKey="name" tick={AXIS_TICK} interval="preserveStartEnd" minTickGap={16} {...BASE_AXIS} />
+              <YAxis yAxisId="duration" tick={AXIS_TICK} width={56} tickFormatter={(value) => formatDuration(Number(value))} {...VALUE_AXIS} />
+              <YAxis yAxisId="traversals" orientation="right" tick={AXIS_TICK} width={36} {...VALUE_AXIS} />
+              <Tooltip
+                content={<ChartTooltip />}
+                formatter={(value: unknown, name: unknown) => (name === 'Avg duration' ? formatDuration(Number(value)) : Number(value).toFixed(1))}
+                cursor={{ stroke: 'var(--ds-border)' }}
+              />
+              <Legend {...LEGEND_PROPS} />
+              <Line yAxisId="duration" type="monotone" dataKey="avgDurationMs" name="Avg duration" stroke={seriesA} strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line yAxisId="traversals" type="monotone" dataKey="avgTraversals" name="Avg traversals" stroke={seriesB} strokeWidth={2} dot={false} isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </ChartFrame>
+
+      {/* The workflow's variables (name + type): what inputs it expects. Run values are in the table below. */}
+      {variableDefs.length > 0 && (
+        <Card padding="md">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-fg">Workflow variables</h3>
+            <span className="text-xs text-fg-muted">
+              {plural(variableDefs.length, 'variable')} ·{' '}
+              <Link href={`/reports/builder?source=workflow_runs&workflow_id=${encodeURIComponent(workflow.id)}`} className="text-primary-text hover:underline">
+                report on their values
+              </Link>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {variableDefs.map((v: { name: string; type?: string; defaultValue?: unknown }, i: number) => (
+              <Tag key={i} mono>
+                {v.name}
+                <span className="text-fg-muted">: {v.type ?? 'text'}</span>
+                {v.defaultValue != null && v.defaultValue !== '' && (
+                  <span className="text-fg-muted"> = {String(v.defaultValue).slice(0, 20)}</span>
+                )}
+              </Tag>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <AggregateProcessMap
         workflow={workflow}
@@ -703,175 +575,148 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
         agentNameById={agentNameById}
       />
 
-      {/* All Instances table */}
-      <Card className="!p-0 overflow-hidden">
-        <div className="flex items-center gap-2 p-3 border-b" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <div className="relative flex-1 max-w-md">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <Input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1) }}
-              placeholder="Search by instance ID, title, originator, agent, or error…"
-              className="pl-8 !h-8 !text-xs"
-            />
-          </div>
-          <select
+      {/* All instances */}
+      <section className="space-y-3" aria-label="All instances">
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onValueChange={(v) => { setSearch(v); setPage(1) }}
+            placeholder="Search by instance ID, title, originator, agent, or error…"
+            className="w-full max-w-md"
+          />
+          <Select
+            aria-label="Status"
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value as StatusFilter); setPage(1) }}
-            className="rounded-lg border px-2 py-1 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="failed">Failed</option>
-            <option value="paused">Paused / Waiting</option>
-            <option value="spiking">Any spike</option>
-            <option value="duration_spike">Duration spike</option>
-            <option value="traversal_spike">Traversal spike</option>
-          </select>
-          <span className="text-[10px] ml-auto" style={{ color: 'var(--theme-muted-text)' }}>
-            {tableRows.length} of {runs.length}
+            options={[
+              { value: 'all', label: 'All statuses' },
+              { value: 'active', label: 'Active' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'failed', label: 'Failed' },
+              { value: 'paused', label: 'Paused / waiting' },
+              { value: 'spiking', label: 'Any spike' },
+              { value: 'duration_spike', label: 'Duration spike' },
+              { value: 'traversal_spike', label: 'Traversal spike' },
+            ]}
+            wrapperClassName="w-40"
+          />
+          <span className="num ml-auto text-xs text-fg-muted">
+            {formatCount(tableRows.length)} of {formatCount(runs.length)}
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                <SortableHeader label="ID" field="id" sortField={sortField} sortDir={sortDir} onClick={toggleSort} className="pl-4" />
-                <th className="text-left py-2 font-medium uppercase text-[10px] tracking-wider">Title</th>
-                <SortableHeader label="Originator" field="originator" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Work Done By" field="workers" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Status" field="status" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Started" field="started" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Finished" field="finished" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Duration" field="duration" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <SortableHeader label="Duration Spike" field="durationSpike" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <SortableHeader label="Traversal Spike" field="traversalSpike" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <th className="text-right pr-4 py-2 font-medium uppercase text-[10px] tracking-wider">View</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedRows.length === 0 ? (
-                <tr><td colSpan={11} className="text-center py-12" style={{ color: 'var(--theme-muted-text)' }}>
-                  {search || statusFilter !== 'all' ? 'No instances match your filters.' : 'No instances yet.'}
-                </td></tr>
-              ) : (
-                paginatedRows.map(row => (
-                  <tr
-                    key={row.id}
-                    className="border-t transition-colors hover:bg-[var(--theme-row-highlight)]"
-                    style={{ borderColor: 'var(--theme-surface-border)' }}
-                  >
-                    <td className="pl-4 py-2.5">
-                      <Link
-                        href={`/automations/runs/${row.id}`}
-                        className="font-mono text-[10px] hover:underline"
-                        style={{ color: 'var(--theme-primary-text)' }}
-                        title={row.id}
-                      >
-                        {row.shortId}
-                      </Link>
-                    </td>
-                    <td className="py-2.5 max-w-[240px]" style={{ color: 'var(--theme-card-text)' }}>
-                      <div className="truncate" title={row.title}>{row.title}</div>
-                      <div className="text-[10px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-                        {row.nodeVisits} visits · {row.edgeTraversals} traversals
+        <Table>
+          <THead>
+            <tr>
+              <SortableHeader label="ID" field="id" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <TH>Title</TH>
+              <SortableHeader label="Originator" field="originator" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Work done by" field="workers" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Status" field="status" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Started" field="started" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Finished" field="finished" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Duration" field="duration" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <SortableHeader label="Duration spike" field="durationSpike" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <SortableHeader label="Traversal spike" field="traversalSpike" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <TH><span className="sr-only">View</span></TH>
+            </tr>
+          </THead>
+          <TBody>
+            {paginatedRows.length === 0 ? (
+              <TableEmpty
+                colSpan={11}
+                variant={search || statusFilter !== 'all' ? 'no-results' : 'first-run'}
+                icon={Play}
+                title={search || statusFilter !== 'all' ? 'No instances match your filters' : 'No instances yet'}
+              />
+            ) : (
+              paginatedRows.map(row => (
+                <TR key={row.id}>
+                  <TD>
+                    <Link href={`/automations/runs/${row.id}`} className="font-mono text-xs text-fg-muted hover:text-fg hover:underline" title={row.id}>
+                      {row.shortId}
+                    </Link>
+                  </TD>
+                  <TD className="max-w-[280px] py-2">
+                    <div className="truncate text-fg" title={row.title}>{row.title}</div>
+                    <div className="num mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
+                      <span>{formatCount(row.nodeVisits)} visits · {formatCount(row.edgeTraversals)} traversals</span>
+                      {row.durationSpikeRatio >= 1.25 && <Badge tone="danger">{row.durationSpikeRatio.toFixed(1)}× duration</Badge>}
+                      {row.traversalSpikeRatio >= 1.25 && <Badge tone="warning">{row.traversalSpikeRatio.toFixed(1)}× traversals</Badge>}
+                    </div>
+                    {shownVariables.length > 0 && row.variables && (
+                      <div className="mt-1 flex flex-wrap gap-1" data-testid="run-variables">
+                        {shownVariables.map((name) => (
+                          <Tag key={name} mono className="max-w-[160px] truncate" title={`${name}: ${variableText(row.variables?.[name])}`}>
+                            {name}: <span className="text-fg">{variableText(row.variables?.[name])}</span>
+                          </Tag>
+                        ))}
                       </div>
-                      {(row.durationSpikeRatio >= 1.25 || row.traversalSpikeRatio >= 1.25) && (
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          {row.durationSpikeRatio >= 1.25 && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]"
-                              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-danger) 10%, transparent)', color: 'var(--theme-danger)' }}
-                            >
-                              {row.durationSpikeRatio.toFixed(1)}x duration
-                            </span>
-                          )}
-                          {row.traversalSpikeRatio >= 1.25 && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]"
-                              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}
-                            >
-                              {row.traversalSpikeRatio.toFixed(1)}x traversals
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {row.error && (
-                        <div className="truncate text-[10px] mt-0.5" style={{ color: 'var(--theme-danger)' }} title={row.error}>
-                          <AlertTriangle size={8} className="inline mr-1" />
-                          {row.error.slice(0, 60)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-2.5" style={{ color: 'var(--theme-muted-text)' }}>{row.originator}</td>
-                    <td className="py-2.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      <div className="max-w-[220px] truncate" title={row.workers}>{row.workers}</div>
-                      {row.workerCount > 0 && (
-                        <div className="text-[10px] mt-0.5" style={{ color: 'var(--theme-primary-text)' }}>
-                          {row.workerCount === 1 ? '1 agent execution' : `${row.workerCount} agent executions`}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-2.5"><StatusBadge status={row.status} /></td>
-                    <td className="py-2.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      {row.startedAt ? formatRelativeDate(row.startedAt) : '—'}
-                    </td>
-                    <td className="py-2.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      {row.completedAt ? formatRelativeDate(row.completedAt) : '—'}
-                    </td>
-                    <td className="text-right py-2.5 font-mono text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-                      {row.durationMs != null ? formatDuration(row.durationMs) : '—'}
-                    </td>
-                    <td className="text-right py-2.5 font-mono text-[11px]" style={{ color: row.durationSpikeRatio >= 1.25 ? 'var(--theme-danger)' : 'var(--theme-card-text)' }}>
-                      {row.durationSpikeRatio > 0 ? `${row.durationSpikeRatio.toFixed(1)}x` : '—'}
-                    </td>
-                    <td className="text-right py-2.5 font-mono text-[11px]" style={{ color: row.traversalSpikeRatio >= 1.25 ? 'var(--theme-warning)' : 'var(--theme-card-text)' }}>
-                      {row.traversalSpikeRatio > 0 ? `${row.traversalSpikeRatio.toFixed(1)}x` : '—'}
-                    </td>
-                    <td className="pr-4 py-2.5 text-right">
-                      <Link
-                        href={`/automations/runs/${row.id}${row.durationSpikeRatio >= 1.25 ? '?focus=duration' : row.traversalSpikeRatio >= 1.25 ? '?focus=traversal' : ''}`}
-                        className="inline-flex items-center gap-1 text-[10px] hover:underline"
-                        style={{ color: 'var(--theme-primary-text)' }}
-                      >
-                        View / Compare Run <ExternalLink size={9} />
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    )}
+                    {row.error && (
+                      <div className="mt-0.5 flex items-center gap-1 truncate text-xs text-danger" title={row.error}>
+                        <AlertTriangle className="size-3 shrink-0" aria-hidden />
+                        {row.error.slice(0, 60)}
+                      </div>
+                    )}
+                  </TD>
+                  <TD className="text-fg-muted">{row.originator}</TD>
+                  <TD className="text-fg-muted">
+                    <div className="max-w-[220px] truncate" title={row.workers}>{row.workers}</div>
+                    {row.workerCount > 0 && (
+                      <div className="mt-0.5 text-xs text-fg-muted">{plural(row.workerCount, 'agent execution')}</div>
+                    )}
+                  </TD>
+                  <TD><StatusPill status={row.status} /></TD>
+                  <TD className="num whitespace-nowrap text-fg-muted">{row.startedAt ? formatRelative(row.startedAt) : '—'}</TD>
+                  <TD className="num whitespace-nowrap text-fg-muted">{row.completedAt ? formatRelative(row.completedAt) : '—'}</TD>
+                  <TD numeric>{row.durationMs != null ? formatDuration(row.durationMs) : '—'}</TD>
+                  <TD numeric className={row.durationSpikeRatio >= 1.25 ? 'text-danger' : undefined}>
+                    {row.durationSpikeRatio > 0 ? `${row.durationSpikeRatio.toFixed(1)}×` : '—'}
+                  </TD>
+                  <TD numeric className={row.traversalSpikeRatio >= 1.25 ? 'text-warning' : undefined}>
+                    {row.traversalSpikeRatio > 0 ? `${row.traversalSpikeRatio.toFixed(1)}×` : '—'}
+                  </TD>
+                  <TD className="text-right">
+                    <Link
+                      href={`/automations/runs/${row.id}${row.durationSpikeRatio >= 1.25 ? '?focus=duration' : row.traversalSpikeRatio >= 1.25 ? '?focus=traversal' : ''}`}
+                      className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-primary-text hover:underline"
+                    >
+                      View run <ExternalLink className="size-3" aria-hidden />
+                    </Link>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
 
-        {/* Pagination */}
-        {tableRows.length > pageSize && (
-          <div className="flex items-center justify-between p-3 border-t text-[11px]" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
-            <span>Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, tableRows.length)} of {tableRows.length}</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-              >
-                ← Prev
-              </button>
-              <span>Page {page} of {totalPages}</span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
+        <Pagination page={page} pageSize={pageSize} total={tableRows.length} onPageChange={setPage} noun="instances" />
+      </section>
     </div>
+  )
+}
+
+/** A spike that is happening: title, the ratio in a toned badge, recent vs baseline. */
+function SpikeCard({ title, subtitle, metric, tone, stats }: { title: string; subtitle: string; metric: string; tone: 'danger' | 'warning'; stats: Array<[string, string]> }) {
+  return (
+    <Card padding="md">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-fg">{title}</h3>
+          <p className="mt-0.5 text-xs text-fg-muted">{subtitle}</p>
+        </div>
+        <Badge tone={tone} className="num shrink-0">{metric}</Badge>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 border-t border-border-subtle pt-3 text-xs">
+        {stats.map(([k, v]) => (
+          <div key={k} className="flex items-baseline justify-between gap-2">
+            <dt className="text-fg-muted">{k}</dt>
+            <dd className="num text-fg">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   )
 }
 
@@ -899,30 +744,20 @@ function AggregateProcessMap({
   const heat = useMemo(() => computeHeatOverlay(aggregateFlow, nodes.map((n) => n.id)), [aggregateFlow, nodes])
 
   return (
-    <Card className="!p-4 space-y-4 overflow-hidden">
-      <div className="flex items-start justify-between gap-4">
+    <Card padding="md" className="space-y-4 overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Process Flow Overview</h3>
-          <p className="text-[11px] mt-1 max-w-2xl" style={{ color: 'var(--theme-muted-text)' }}>
+          <h3 className="text-sm font-semibold text-fg">Process flow overview</h3>
+          <p className="mt-0.5 max-w-2xl text-xs text-fg-muted">
             This view aggregates all workflow instances and highlights where most runs travel. Thicker, brighter connections indicate the most common paths; each step shows its visits, average duration and error rate.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-[10px]">
-          <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-            {runs.length} total runs
-          </span>
-          <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 12%, transparent)', color: 'var(--theme-warning)' }}>
-            {agentExecutionSummary.totalExecutions} agent executions
-          </span>
-          <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 12%, transparent)', color: 'var(--status-info)' }}>
-            {agentExecutionSummary.runsWithAgents} runs with agents
-          </span>
-          <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--theme-accent-light)', color: 'var(--theme-primary-text)' }}>
-            max edge volume {aggregateFlow.maxEdgeCount}
-          </span>
-          <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 12%, transparent)', color: 'var(--status-info)' }}>
-            max node visits {aggregateFlow.maxNodeCount}
-          </span>
+        <div className="flex flex-wrap gap-1.5">
+          <Tag className="num">{plural(runs.length, 'run')}</Tag>
+          <Tag className="num">{plural(agentExecutionSummary.totalExecutions, 'agent execution')}</Tag>
+          <Tag className="num">{plural(agentExecutionSummary.runsWithAgents, 'run')} with agents</Tag>
+          <Tag className="num">max edge volume {formatCount(aggregateFlow.maxEdgeCount)}</Tag>
+          <Tag className="num">max node visits {formatCount(aggregateFlow.maxNodeCount)}</Tag>
         </div>
       </div>
 
@@ -941,26 +776,22 @@ function AggregateProcessMap({
 }
 
 function SortableHeader({
-  label, field, sortField, sortDir, onClick, align = 'left', className = '',
+  label, field, sortField, sortDir, onClick, numeric = false,
 }: {
   label: string
   field: SortField
   sortField: SortField
   sortDir: SortDir
   onClick: (f: SortField) => void
-  align?: 'left' | 'right'
-  className?: string
+  numeric?: boolean
 }) {
   const active = sortField === field
   return (
-    <th
-      className={`py-2 font-medium uppercase text-[10px] tracking-wider cursor-pointer select-none hover:text-[var(--theme-card-text)] ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}
-      onClick={() => onClick(field)}
-    >
-      <span className="inline-flex items-center gap-1">
+    <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      <button type="button" onClick={() => onClick(field)} className={cn('inline-flex items-center gap-1 whitespace-nowrap hover:text-fg', numeric && 'flex-row-reverse')}>
         {label}
-        {active ? (sortDir === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />) : <ArrowUpDown size={10} className="opacity-40" />}
-      </span>
-    </th>
+        {active ? (sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />) : <ArrowUpDown className="size-3 opacity-40" />}
+      </button>
+    </TH>
   )
 }

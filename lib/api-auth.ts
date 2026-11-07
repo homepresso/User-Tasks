@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServiceDb } from '@/lib/providers/db'
 import bcrypt from 'bcryptjs'
-import { PERMISSION_KEYS } from './permissions'
+import { PERMISSION_KEYS, expandPermissions, holdsPermission } from './permissions'
 import { lookupOAuthToken } from './oauth/tokens'
 import { expandScopes } from './oauth/scopes'
 import { rateLimit } from './rate-limit'
@@ -260,6 +260,11 @@ async function validateRawApiKey(supabase: SupabaseClient, token: string): Promi
   touchLastUsed(supabase, 'api_keys', validKey.id)
 
   const permissions = await resolveKeyPermissions(supabase, validKey)
+  // A user key whose user is gone, left the workspace or holds no role there
+  // is dead (not a key with an empty ceiling that still reaches ungated routes).
+  if (validKey.key_type === 'user' && permissions.length === 0) {
+    return { success: false, response: err('API key no longer authorized for this workspace', 401) }
+  }
 
   return {
     success: true,
@@ -277,34 +282,69 @@ async function validateRawApiKey(supabase: SupabaseClient, token: string): Promi
 }
 
 /**
- * Resolve the permission set for an API key.
- *  - Explicit `permissions` column set → that array is the ceiling (least-privilege key).
- *  - User-context key → the bound user's role permissions (user_roles → roles.permissions).
- *  - Legacy tenant key with no explicit permissions → full admin (backward compatible).
+ * The user's LIVE role permissions in a workspace, and whether they are still
+ * an active member there (an active user_memberships row, or the workspace
+ * being their home tenant: single-workspace users may lack membership rows).
+ * Shared by user-context API keys and user-delegated OAuth tokens.
  */
-async function resolveKeyPermissions(supabase: SupabaseClient, key: any): Promise<string[]> {
-  if (Array.isArray(key.permissions)) {
-    return Array.from(new Set(key.permissions.map((p: unknown) => String(p ?? '').trim()).filter(Boolean)))
-  }
-
-  if (key.key_type === 'user' && key.user_id) {
-    const { data } = await supabase
+async function liveUserAccess(supabase: SupabaseClient, tenantId: string, userId: string): Promise<{ member: boolean; permissions: Set<string> }> {
+  const [{ data: roleRows }, { data: membership }, { data: userRow }] = await Promise.all([
+    (supabase as any)
       .from('user_roles')
       .select('role:roles(permissions)')
-      .eq('tenant_id', key.tenant_id)
-      .eq('user_id', key.user_id)
-    const set = new Set<string>()
-    for (const ur of (data ?? []) as any[]) {
-      // PostgREST may return the embed as an object or a one-element array
-      // depending on how the FK relationship is detected — accept both, else
-      // user keys silently resolve to an empty (fully locked-out) set.
-      const roles = Array.isArray(ur?.role) ? ur.role : ur?.role ? [ur.role] : []
-      for (const role of roles) {
-        for (const p of (role?.permissions ?? [])) set.add(String(p))
-      }
-    }
-    return [...set]
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId),
+    (supabase as any)
+      .from('user_memberships')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle(),
+    (supabase as any)
+      .from('users')
+      .select('id, tenant_id')
+      .eq('id', userId)
+      .maybeSingle(),
+  ])
+  const permissions = new Set<string>()
+  for (const ur of (roleRows ?? []) as any[]) {
+    // PostgREST may return the embed as an object or a one-element array
+    // depending on how the FK relationship is detected — accept both.
+    const roles = Array.isArray(ur?.role) ? ur.role : ur?.role ? [ur.role] : []
+    for (const role of roles) for (const p of (role?.permissions ?? [])) permissions.add(String(p))
   }
+  const member = Boolean(membership) || Boolean(userRow && String((userRow as any).tenant_id) === String(tenantId))
+  return { member, permissions: new Set(expandPermissions(permissions)) }
+}
+
+/**
+ * Resolve the permission set for an API key.
+ *  - User-context key → the bound user's LIVE role permissions in the key's
+ *    workspace, intersected with the key's explicit `permissions` list when it
+ *    has one. A key whose user is gone (user_id nulled by ON DELETE SET NULL)
+ *    or is no longer an active member resolves to NO permissions — it never
+ *    falls through to the legacy full-admin branch, and a demoted user's key
+ *    shrinks with them (governance audit 2026-11).
+ *  - Tenant key with an explicit `permissions` list → that list is the ceiling.
+ *  - Legacy tenant key with no explicit permissions → full admin (backward compatible).
+ * Implied permissions (lib/permissions IMPLIED_PERMISSIONS) are added.
+ */
+export async function resolveKeyPermissions(supabase: SupabaseClient, key: any): Promise<string[]> {
+  const explicit: string[] | null = Array.isArray(key.permissions)
+    ? Array.from(new Set(key.permissions.map((p: unknown) => String(p ?? '').trim()).filter(Boolean))) as string[]
+    : null
+
+  if (key.key_type === 'user') {
+    if (!key.user_id) return []
+    const access = await liveUserAccess(supabase, key.tenant_id, key.user_id)
+    if (!access.member) return []
+    const ceiling = explicit ? expandPermissions(explicit) : [...access.permissions]
+    return ceiling.filter((p) => access.permissions.has(p))
+  }
+
+  if (explicit) return expandPermissions(explicit)
 
   // Legacy tenant-wide key: full admin for backward compatibility.
   return [...PERMISSION_KEYS]
@@ -343,43 +383,15 @@ async function validateOAuthAccessToken(supabase: SupabaseClient, token: string)
     return { success: false, response: err('Invalid or revoked access token', 401) }
   }
 
-  let permissions = expandScopes(row.scopes ?? [])
+  let permissions = expandPermissions(expandScopes(row.scopes ?? []))
 
   if (row.user_id) {
     // User-delegated token: intersect scope permissions with the user's LIVE
     // role permissions in the token's frozen tenant, and require an active
     // membership. Empty intersection or lost membership = hard 401.
-    const [{ data: roleRows }, { data: membership }, { data: userRow }] = await Promise.all([
-      (supabase as any)
-        .from('user_roles')
-        .select('role:roles(permissions)')
-        .eq('tenant_id', row.tenant_id)
-        .eq('user_id', row.user_id),
-      (supabase as any)
-        .from('user_memberships')
-        .select('id')
-        .eq('user_id', row.user_id)
-        .eq('tenant_id', row.tenant_id)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle(),
-      (supabase as any)
-        .from('users')
-        .select('id, tenant_id')
-        .eq('id', row.user_id)
-        .maybeSingle(),
-    ])
-
-    const userPermissions = new Set<string>()
-    for (const ur of (roleRows ?? []) as any[]) {
-      const roles = Array.isArray(ur?.role) ? ur.role : ur?.role ? [ur.role] : []
-      for (const role of roles) for (const p of (role?.permissions ?? [])) userPermissions.add(String(p))
-    }
-
-    // Membership: an active user_memberships row OR the token tenant being
-    // the user's home tenant (single-workspace users may lack membership rows).
-    const isMember = Boolean(membership) || (userRow && String((userRow as any).tenant_id) === String(row.tenant_id))
-    if (!isMember || userPermissions.size === 0) {
+    const access = await liveUserAccess(supabase, row.tenant_id, row.user_id)
+    const userPermissions = access.permissions
+    if (!access.member || userPermissions.size === 0) {
       return { success: false, response: err('Access token no longer authorized for this workspace', 401) }
     }
     permissions = permissions.filter((p) => userPermissions.has(p))
@@ -426,7 +438,7 @@ export function err(message: string, status = 400) {
  * compatible for them.
  */
 export function requireApiPermission(auth: ApiKeySuccessResult, permission: string): NextResponse | null {
-  if (auth.permissions.includes(permission)) return null
+  if (holdsPermission(new Set(auth.permissions), permission)) return null
   return err(`Forbidden: this API key lacks the '${permission}' permission`, 403)
 }
 

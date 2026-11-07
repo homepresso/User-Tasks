@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +32,8 @@ interface WizardStep3Props {
 export function WizardStep3References({ integration, selectedItems, existingReferences, onBack }: WizardStep3Props) {
   const [references, setReferences] = useState<ReferenceToCreate[]>(() => generateReferences(selectedItems))
   const [creating, setCreating] = useState(false)
+  // Synchronous guard: two clicks in one frame both create the references.
+  const createGuard = useSubmitGuard()
   const [createdCount, setCreatedCount] = useState(0)
   const router = useRouter()
 
@@ -186,52 +189,54 @@ export function WizardStep3References({ integration, selectedItems, existingRefe
   }
 
   async function createAllReferences() {
-    setCreating(true)
+    await createGuard.run(async () => {
+      setCreating(true)
 
-    let count = 0
-    for (let i = 0; i < references.length; i++) {
-      const ref = references[i]
-      if (ref.created) continue
+      let count = 0
+      for (let i = 0; i < references.length; i++) {
+        const ref = references[i]
+        if (ref.created) continue
 
-      // Check if already exists
-      const exists = existingReferences.some(
-        (er: any) => er.name === ref.name && er.integration_id === integration.id
-      )
-      if (exists) {
-        setReferences(prev => prev.map((r, j) => j === i ? { ...r, created: true } : r))
-        count++
-        continue
+        // Check if already exists
+        const exists = existingReferences.some(
+          (er: any) => er.name === ref.name && er.integration_id === integration.id
+        )
+        if (exists) {
+          setReferences(prev => prev.map((r, j) => j === i ? { ...r, created: true } : r))
+          count++
+          continue
+        }
+
+        // integrations.manage_references; audited and queued for GitHub sync.
+        const result = await createIntegrationReference(integration.id, {
+          name: ref.name,
+          description: ref.description,
+          inputs: ref.inputs.map((inp) => ({
+            id: crypto.randomUUID(),
+            ...inp,
+            source: inp.default_value ? 'static' : 'variable',
+          })),
+          outputs: ref.outputs.map(out => ({
+            id: crypto.randomUUID(),
+            ...out,
+          })),
+          request_config: {
+            method: ref.operation === 'execute' ? 'EXEC' : ref.operation === 'list' ? 'QUERY' : ref.operation === 'read' ? 'QUERY' : ref.operation === 'insert' ? 'INSERT' : 'QUERY',
+            path_template: ref.queryTemplate,
+          },
+        })
+
+        if (result.ok) {
+          setReferences(prev => prev.map((r, j) => j === i ? { ...r, created: true } : r))
+          count++
+        }
+
+        setCreatedCount(count)
       }
 
-      // integrations.manage_references; audited and queued for GitHub sync.
-      const result = await createIntegrationReference(integration.id, {
-        name: ref.name,
-        description: ref.description,
-        inputs: ref.inputs.map((inp) => ({
-          id: crypto.randomUUID(),
-          ...inp,
-          source: inp.default_value ? 'static' : 'variable',
-        })),
-        outputs: ref.outputs.map(out => ({
-          id: crypto.randomUUID(),
-          ...out,
-        })),
-        request_config: {
-          method: ref.operation === 'execute' ? 'EXEC' : ref.operation === 'list' ? 'QUERY' : ref.operation === 'read' ? 'QUERY' : ref.operation === 'insert' ? 'INSERT' : 'QUERY',
-          path_template: ref.queryTemplate,
-        },
-      })
-
-      if (result.ok) {
-        setReferences(prev => prev.map((r, j) => j === i ? { ...r, created: true } : r))
-        count++
-      }
-
-      setCreatedCount(count)
-    }
-
-    setCreating(false)
-    router.refresh()
+      setCreating(false)
+      router.refresh()
+    })
   }
 
   const allCreated = references.every(r => r.created)
@@ -245,7 +250,7 @@ export function WizardStep3References({ integration, selectedItems, existingRefe
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold">References to Create</h3>
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs text-fg-muted">
               {references.length} references from {selectedItems.length} selected objects.
               Edit names, inputs, or remove any you don't need.
             </p>
@@ -276,7 +281,7 @@ export function WizardStep3References({ integration, selectedItems, existingRefe
                   <span>{opIcons[ref.operation] ?? '\u{1F4CC}'}</span>
                   {ref.created ? (
                     <div className="flex items-center gap-1">
-                      <Check size={14} style={{ color: 'var(--theme-primary-text)' }} />
+                      <Check size={14} className="text-primary-text" />
                       <span className="text-sm font-medium">{ref.name}</span>
                     </div>
                   ) : (
@@ -288,28 +293,28 @@ export function WizardStep3References({ integration, selectedItems, existingRefe
                   )}
                 </div>
                 {!ref.created && (
-                  <button onClick={() => removeReference(i)} className="shrink-0 p-1 hover:text-red-500" style={{ color: 'var(--theme-muted-text)' }}>
+                  <button onClick={() => removeReference(i)} className="shrink-0 p-1 hover:text-red-500 text-fg-muted">
                     <Trash2 size={14} />
                   </button>
                 )}
               </div>
 
-              <p className="text-[10px] mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-2xs mb-2 text-fg-muted">
                 {ref.description}
               </p>
 
               {/* Query preview */}
-              <div className="text-[10px] font-mono px-2 py-1.5 rounded mb-2 overflow-x-auto" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+              <div className="text-2xs font-mono px-2 py-1.5 rounded mb-2 overflow-x-auto bg-bg text-fg-muted">
                 {ref.queryTemplate}
               </div>
 
               {/* Inputs summary */}
               {ref.inputs.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  <span className="text-[9px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Inputs:</span>
+                  <span className="text-2xs font-medium text-fg-muted">Inputs:</span>
                   {ref.inputs.map((inp, j) => (
-                    <span key={j} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-primary-text)' }}>
-                      @{inp.name} <span style={{ color: 'var(--theme-muted-text)' }}>({inp.type})</span>
+                    <span key={j} className="text-2xs px-1.5 py-0.5 rounded-full bg-bg text-primary-text">
+                      @{inp.name} <span className="text-fg-muted">({inp.type})</span>
                     </span>
                   ))}
                 </div>
@@ -318,14 +323,14 @@ export function WizardStep3References({ integration, selectedItems, existingRefe
               {/* Outputs summary */}
               {ref.outputs.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
-                  <span className="text-[9px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Outputs:</span>
+                  <span className="text-2xs font-medium text-fg-muted">Outputs:</span>
                   {ref.outputs.slice(0, 5).map((out, j) => (
-                    <span key={j} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}>
+                    <span key={j} className="text-2xs px-1.5 py-0.5 rounded-full bg-bg text-fg">
                       {out.name}
                     </span>
                   ))}
                   {ref.outputs.length > 5 && (
-                    <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>+{ref.outputs.length - 5} more</span>
+                    <span className="text-2xs text-fg-muted">+{ref.outputs.length - 5} more</span>
                   )}
                 </div>
               )}
@@ -334,12 +339,12 @@ export function WizardStep3References({ integration, selectedItems, existingRefe
         </div>
 
         {allCreated && references.length > 0 && (
-          <div className="mt-4 rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--theme-primary-light)' }}>
-            <Check size={24} className="mx-auto mb-2" style={{ color: 'var(--theme-primary-text)' }} />
-            <p className="text-sm font-semibold" style={{ color: 'var(--theme-primary-text)' }}>
+          <div className="mt-4 rounded-lg p-4 text-center bg-primary-wash">
+            <Check size={24} className="mx-auto mb-2 text-primary-text" />
+            <p className="text-sm font-semibold text-primary-text">
               All {references.length} references created!
             </p>
-            <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs mt-1 text-fg-muted">
               You can edit them in the References section below.
             </p>
           </div>

@@ -1,0 +1,668 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "8d13afbe-59bf-5758-a8d7-3c9d58f63c9d",
+  "asset": {
+    "id": "8d13afbe-59bf-5758-a8d7-3c9d58f63c9d",
+    "name": "Identity document check",
+    "description": "An ID photo and a selfie from the form: the document is read (text and face boxes, no face recognition), checked against the form by rules, the ID number is blacked out for storage and a reviewer compares the photos and decides.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "ID submitted",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "42109ff1-2d9f-507e-94cf-576c57e3e465",
+          "form_name": "Verify your identity"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "kyc_ref",
+          "expression": "KYC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "title": "{{kyc_ref}} · {{form.full_name}} · {{form.document_type}}"
+        }
+      },
+      {
+        "id": "read",
+        "type": "media_analyze_image",
+        "label": "Read the ID (text, face boxes)",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "integration_id": "cecd5993-c51d-5d33-a72d-bb93edf33c99",
+          "provider_label": "Google Gemini",
+          "source": "{{form.id_photo}}",
+          "features": [
+            "text",
+            "faces"
+          ],
+          "prompt": "Read the fields printed on this identity document exactly as printed. Dates as YYYY-MM-DD. Do not identify or describe the person.",
+          "fields": [
+            {
+              "name": "full_name",
+              "type": "string",
+              "description": "Holder name"
+            },
+            {
+              "name": "date_of_birth",
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            {
+              "name": "document_number",
+              "type": "string",
+              "description": "Document / ID number"
+            },
+            {
+              "name": "expiry_date",
+              "type": "string",
+              "description": "YYYY-MM-DD or empty"
+            },
+            {
+              "name": "issuing_region",
+              "type": "string",
+              "description": "Issuing state or country"
+            }
+          ],
+          "output_var": "id_scan"
+        }
+      },
+      {
+        "id": "fields",
+        "type": "set_variable",
+        "label": "Extracted fields",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "id_fields",
+          "expression": "{{id_scan_answer}}"
+        }
+      },
+      {
+        "id": "selfie",
+        "type": "media_analyze_image",
+        "label": "Check the selfie (faces only)",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "integration_id": "cecd5993-c51d-5d33-a72d-bb93edf33c99",
+          "provider_label": "Google Gemini",
+          "source": "{{form.selfie}}",
+          "features": [
+            "faces"
+          ],
+          "output_var": "selfie_scan"
+        }
+      },
+      {
+        "id": "fmt",
+        "type": "regex",
+        "label": "Number format",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "input": "{{id_fields.document_number}}",
+          "pattern": "^[A-Z0-9][A-Z0-9 -]{4,18}[A-Z0-9]$",
+          "flags": "i",
+          "operation": "test",
+          "output_var": "number_format_ok"
+        }
+      },
+      {
+        "id": "name_eq",
+        "type": "condition",
+        "label": "Name matches the form?",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Match",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{=LOWER(TRIM(id_fields.full_name))}}",
+                  "operator": "equals",
+                  "value": "{{=LOWER(TRIM(form.full_name))}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "name_yes",
+        "type": "set_variable",
+        "label": "Name match",
+        "position": {
+          "x": 300,
+          "y": 1180
+        },
+        "config": {
+          "name": "name_match",
+          "expression": "true"
+        }
+      },
+      {
+        "id": "name_no",
+        "type": "set_variable",
+        "label": "Name differs",
+        "position": {
+          "x": 900,
+          "y": 1180
+        },
+        "config": {
+          "name": "name_match",
+          "expression": "false"
+        }
+      },
+      {
+        "id": "dob_eq",
+        "type": "condition",
+        "label": "Date of birth matches?",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Match",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{id_fields.date_of_birth}}",
+                  "operator": "equals",
+                  "value": "{{form.date_of_birth}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "dob_yes",
+        "type": "set_variable",
+        "label": "Date of birth match",
+        "position": {
+          "x": 300,
+          "y": 1460
+        },
+        "config": {
+          "name": "dob_match",
+          "expression": "true"
+        }
+      },
+      {
+        "id": "dob_no",
+        "type": "set_variable",
+        "label": "Date of birth differs",
+        "position": {
+          "x": 900,
+          "y": 1460
+        },
+        "config": {
+          "name": "dob_match",
+          "expression": "false"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "ID document checks",
+        "position": {
+          "x": 600,
+          "y": 1600
+        },
+        "config": {
+          "decision_table_id": "91155954-6231-5726-9ab1-73654bd885f7",
+          "decision_table_name": "ID document checks",
+          "input_mappings": {
+            "fields_complete": "{{=IF(AND(id_fields.full_name, id_fields.date_of_birth, id_fields.document_number), \"true\", \"false\")}}",
+            "name_match": "{{name_match}}",
+            "dob_match": "{{dob_match}}",
+            "number_format": "{{=TO_STRING(number_format_ok)}}",
+            "days_to_expiry": "{{=DAY_DIFF(TODAY(), COALESCE(id_fields.expiry_date, \"2999-12-31\"))}}",
+            "id_faces": "{{id_scan.face_count}}",
+            "selfie_faces": "{{selfie_scan.face_count}}"
+          }
+        }
+      },
+      {
+        "id": "redact",
+        "type": "media_redact_image",
+        "label": "Redact the ID number for storage",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "integration_id": "cecd5993-c51d-5d33-a72d-bb93edf33c99",
+          "provider_label": "Google Gemini",
+          "source": "{{form.id_photo}}",
+          "targets": [
+            "text_pii"
+          ],
+          "info_types": [
+            "@high"
+          ],
+          "style": "box",
+          "color": "#111111",
+          "padding": 8,
+          "output_format": "png",
+          "output_var": "redacted_id",
+          "output_name": "{{kyc_ref}}-id-redacted"
+        }
+      },
+      {
+        "id": "mask",
+        "type": "set_variable",
+        "label": "Masked number",
+        "position": {
+          "x": 600,
+          "y": 1880
+        },
+        "config": {
+          "name": "number_masked",
+          "expression": "{{=CONCAT(\"•••••\", RIGHT(id_fields.document_number, 4))}}"
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Review the identity",
+        "position": {
+          "x": 600,
+          "y": 2040
+        },
+        "config": {
+          "task_title": "KYC {{kyc_ref}}: {{result}} ({{form.full_name}})",
+          "task_description": "<p><strong>{{flag}}</strong></p><table><tr><th></th><th>Form</th><th>Document (read automatically)</th></tr><tr><td>Name</td><td>{{form.full_name}}</td><td>{{id_fields.full_name}}</td></tr><tr><td>Date of birth</td><td>{{form.date_of_birth}}</td><td>{{id_fields.date_of_birth}}</td></tr><tr><td>Number</td><td></td><td>{{number_masked}}</td></tr><tr><td>Expires</td><td></td><td>{{id_fields.expiry_date}}</td></tr><tr><td>Issued by</td><td></td><td>{{id_fields.issuing_region}}</td></tr></table><p>Faces found: {{id_scan.face_count}} on the ID, {{selfie_scan.face_count}} in the selfie. <strong>UserTasks does not compare faces or recognise people</strong>: open the <a href=\"{{form.id_photo[0].url}}\">ID photo</a> and the <a href=\"{{form.selfie[0].url}}\">selfie</a> (restricted) and compare them yourself.</p><p>Only this <a href=\"{{redacted_id_file.url}}\">redacted copy</a> (number blacked out) and the masked fields are kept after you decide.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Verified",
+            "Request new documents",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "6b985c59-2878-5197-a87e-695fe3dbc944",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "fields": [
+            {
+              "key": "faces_compared",
+              "label": "I compared the selfie with the ID photo myself",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "message",
+              "label": "Message to the customer (for a new request or rejection)",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "faces_compared",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "message",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "ok",
+              "label": "Verified",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Verified"
+            },
+            {
+              "id": "again",
+              "label": "Request new documents",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request new documents"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Identity check: {{form.full_name}}",
+            "align": "left",
+            "subtitle": "{{form.document_type}} · {{result}}"
+          }
+        }
+      },
+      {
+        "id": "store",
+        "type": "update_data_table",
+        "label": "Keep masked fields and redacted copy",
+        "position": {
+          "x": 180,
+          "y": 2220
+        },
+        "config": {
+          "table_id": "ee4e4f79-4f45-57b6-8add-38dcbf4ff4d0",
+          "table_name": "Verified identities",
+          "operation": "insert",
+          "output_row_id_var": "identity_row_id",
+          "column_values": {
+            "kyc_ref": "{{kyc_ref}}",
+            "full_name": "{{form.full_name}}",
+            "email": "{{form.email}}",
+            "date_of_birth": "{{form.date_of_birth}}",
+            "document_type": "{{form.document_type}}",
+            "number_masked": "{{number_masked}}",
+            "expiry_date": "{{id_fields.expiry_date}}",
+            "issuing_region": "{{id_fields.issuing_region}}",
+            "redacted_copy": "{{redacted_id_file.url}}",
+            "result": "Verified",
+            "decided_by": "{{actioned_by_name}}",
+            "decided_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "retain",
+        "type": "retention_policies",
+        "label": "Apply 5-year retention",
+        "position": {
+          "x": 180,
+          "y": 2360
+        },
+        "config": {
+          "operation": "assign_policy",
+          "retention_policy_id": "1b806c9a-2e1b-5dfa-b8ca-aadc0603fb13",
+          "target_type": "data_row",
+          "target_id": "{{identity_row_id}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ok_mail",
+        "type": "send_email",
+        "label": "Email: verified",
+        "position": {
+          "x": 180,
+          "y": 2500
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "eec4f53e-3b6d-51c5-9292-132722ac2000"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ok_end",
+        "type": "end_workflow",
+        "label": "Verified",
+        "position": {
+          "x": 180,
+          "y": 2640
+        },
+        "config": {
+          "reason": "{{kyc_ref}} verified"
+        }
+      },
+      {
+        "id": "again_mail",
+        "type": "send_email",
+        "label": "Email: new documents",
+        "position": {
+          "x": 600,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "da90a39b-7bc7-5fdb-986a-566c16d60098"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "again_end",
+        "type": "end_workflow",
+        "label": "New documents requested",
+        "position": {
+          "x": 600,
+          "y": 2360
+        },
+        "config": {
+          "reason": "{{kyc_ref}}: new documents requested"
+        }
+      },
+      {
+        "id": "no_mail",
+        "type": "send_email",
+        "label": "Email: not verified",
+        "position": {
+          "x": 1020,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "b51e2f17-2475-5d70-961b-6e50557a2d4a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "no_end",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 1020,
+          "y": 2360
+        },
+        "config": {
+          "reason": "{{kyc_ref}} rejected"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-read",
+        "source": "title",
+        "target": "read"
+      },
+      {
+        "id": "e-read-fields",
+        "source": "read",
+        "target": "fields"
+      },
+      {
+        "id": "e-fields-selfie",
+        "source": "fields",
+        "target": "selfie"
+      },
+      {
+        "id": "e-selfie-fmt",
+        "source": "selfie",
+        "target": "fmt"
+      },
+      {
+        "id": "e-fmt-name_eq",
+        "source": "fmt",
+        "target": "name_eq"
+      },
+      {
+        "id": "e-name_eq-name_yes-match",
+        "source": "name_eq",
+        "target": "name_yes",
+        "label": "Match"
+      },
+      {
+        "id": "e-name_eq-name_no-else",
+        "source": "name_eq",
+        "target": "name_no",
+        "label": "Else"
+      },
+      {
+        "id": "e-name_yes-dob_eq",
+        "source": "name_yes",
+        "target": "dob_eq"
+      },
+      {
+        "id": "e-name_no-dob_eq",
+        "source": "name_no",
+        "target": "dob_eq"
+      },
+      {
+        "id": "e-dob_eq-dob_yes-match",
+        "source": "dob_eq",
+        "target": "dob_yes",
+        "label": "Match"
+      },
+      {
+        "id": "e-dob_eq-dob_no-else",
+        "source": "dob_eq",
+        "target": "dob_no",
+        "label": "Else"
+      },
+      {
+        "id": "e-dob_yes-rules",
+        "source": "dob_yes",
+        "target": "rules"
+      },
+      {
+        "id": "e-dob_no-rules",
+        "source": "dob_no",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-redact",
+        "source": "rules",
+        "target": "redact"
+      },
+      {
+        "id": "e-redact-mask",
+        "source": "redact",
+        "target": "mask"
+      },
+      {
+        "id": "e-mask-review",
+        "source": "mask",
+        "target": "review"
+      },
+      {
+        "id": "e-review-store-verified",
+        "source": "review",
+        "target": "store",
+        "label": "Verified"
+      },
+      {
+        "id": "e-store-retain",
+        "source": "store",
+        "target": "retain"
+      },
+      {
+        "id": "e-retain-ok_mail",
+        "source": "retain",
+        "target": "ok_mail"
+      },
+      {
+        "id": "e-ok_mail-ok_end",
+        "source": "ok_mail",
+        "target": "ok_end"
+      },
+      {
+        "id": "e-review-again_mail-request-new-documents",
+        "source": "review",
+        "target": "again_mail",
+        "label": "Request new documents"
+      },
+      {
+        "id": "e-again_mail-again_end",
+        "source": "again_mail",
+        "target": "again_end"
+      },
+      {
+        "id": "e-review-no_mail-reject",
+        "source": "review",
+        "target": "no_mail",
+        "label": "Reject"
+      },
+      {
+        "id": "e-no_mail-no_end",
+        "source": "no_mail",
+        "target": "no_end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

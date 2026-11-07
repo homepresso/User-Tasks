@@ -14,8 +14,11 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { FileValueContext } from '@/lib/services/form-files'
-import { coerceTaskFieldValues, mergeTaskFieldValues, normalizeTaskFields } from '@/lib/task-field-schema'
+import { coerceTaskFieldValues, holdsFiles, mergeTaskFieldValues, normalizeTaskFields } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
+import { CONTROLS_KEY, FORM_PARAMS_KEY, FORM_VARS_KEY, hasFormContext, includedFormContext, serverFormContext, stripFormContext } from './form-params'
+import { serverControlEntries } from './rule-variables'
+import { readsTableRows } from './label-field'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- user_memberships is read untyped */
 
@@ -39,23 +42,93 @@ function lookupFillTargets(fields: ReturnType<typeof normalizeTaskFields>, fills
   return out
 }
 
+export interface CheckOptions {
+  partial?: boolean
+  taskId?: string | null
+  task?: Record<string, unknown> | null
+  /** Where attachment uploads must come from (default: the task `taskId`). */
+  files?: FileValueContext | null
+  /** The submitter, for Data table checks (their read access applies; without it, a tenant-scoped read bounded by the field's base filter). */
+  ctx?: import('@/lib/services/context').ServiceContext | null
+  actorId?: string | null
+  /**
+   * Parameters come from the values' reserved key (a reusable form's submission, already
+   * re-validated by the caller). Default: a task's — what its workflow passed when it
+   * created the task (`metadata.form_params`), never the client's.
+   */
+  contextFromValues?: boolean
+  /**
+   * The bar buttons the submission counts as (the pressed one): a
+   * Before-submit rule aimed at another button does not apply. Absent: every
+   * rule applies.
+   */
+  buttonIds?: readonly string[] | null
+}
+
 export async function mergeTaskFieldValuesChecked(
   supabase: SupabaseClient<any, any, any>,
   tenantId: string,
   metadata: Record<string, unknown> | null | undefined,
   values: Record<string, unknown> | null | undefined,
-  options: {
-    partial?: boolean
-    taskId?: string | null
-    task?: Record<string, unknown> | null
-    /** Where attachment uploads must come from (default: the task `taskId`). */
-    files?: FileValueContext | null
-  } = {},
+  options: CheckOptions = {},
 ): Promise<{ errors: Record<string, string>; templateValues: Record<string, unknown> }> {
-  const merged = mergeTaskFieldValues(metadata, values, options)
+  // Parameters / variables (lib/forms/form-params.ts): re-validated against the saved layout; the
+  // ones marked "Include in submission" are stored beside the fields under their names.
+  const layout = metadata?.form_layout
+  let included: Record<string, unknown> = {}
+  // {{control.*}}: the controls' state rebuilt from the values (declared controls and columns only).
+  const controls = values ? serverControlEntries(layout, normalizeTaskFields(metadata?.fields), values) : {}
+  if (hasFormContext(layout) && values) {
+    const stored = isPlainObject(metadata?.form_params) ? metadata!.form_params : {}
+    const context = serverFormContext(layout, { values }, { storedParams: options.contextFromValues ? null : stored })
+    values = { ...stripFormContext(values), ...context.entries, ...controls }
+    included = includedFormContext(layout, context, normalizeTaskFields(metadata?.fields).map((f) => f.key))
+  } else if (values) {
+    values = { ...stripFormContext(values), ...controls }
+  }
+  // Dynamic properties (lib/forms/dynamic-values.ts): options, bounds and required re-resolved on the
+  // server for this submission's context — what is judged is the server's list, never the browser's.
+  let dynamicErrors: Record<string, string> = {}
+  if (!options.partial && values) {
+    const fields = normalizeTaskFields(metadata?.fields)
+    const { needsDynamicValidation, resolveDynamicFields } = await import('@/lib/services/form-dynamic-values')
+    if (needsDynamicValidation(fields)) {
+      const existing = isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : {}
+      const resolved = await resolveDynamicFields(options.ctx ?? null, tenantId, fields, { ...existing, ...values }, { actorId: options.actorId ?? options.ctx?.actorId ?? null, task: options.task ?? null })
+      metadata = { ...(metadata ?? {}), fields: resolved.fields }
+      dynamicErrors = resolved.errors
+    }
+  }
+  const checked = await checkedValues(supabase, tenantId, metadata, values, options)
+  const result = Object.keys(dynamicErrors).length ? { errors: { ...checked.errors, ...dynamicErrors }, templateValues: checked.templateValues } : checked
+  return Object.keys(included).length ? { errors: result.errors, templateValues: { ...result.templateValues, ...included } } : result
+}
+
+async function checkedValues(
+  supabase: SupabaseClient<any, any, any>,
+  tenantId: string,
+  metadata: Record<string, unknown> | null | undefined,
+  values: Record<string, unknown> | null | undefined,
+  options: CheckOptions,
+): Promise<{ errors: Record<string, string>; templateValues: Record<string, unknown> }> {
+  // Labels stored with the submission that add up a table's rows: the server reads those rows itself (lib/forms/label-field.ts).
+  const allFields = normalizeTaskFields(metadata?.fields)
+  const rowTables = options.partial || !values ? [] : [...new Set(allFields.filter((f) => f.type === 'label' && f.label_config?.include && f.label_config.expression).flatMap((f) => readsTableRows(f)))]
+  let labelRows: Record<string, Array<Record<string, unknown>>> | undefined
+  if (rowTables.length) {
+    const { serverLabelRows } = await import('@/lib/services/form-data-table')
+    const read = await serverLabelRows(options.ctx ?? null, tenantId, allFields, rowTables, values ?? {}, options.actorId ?? options.ctx?.actorId ?? null)
+    if (Object.keys(read.errors).length) return { errors: read.errors, templateValues: {} }
+    labelRows = read.rows
+  }
+  const merged = mergeTaskFieldValues(metadata, values, { ...options, labelRows })
   if (Object.keys(merged.errors).length > 0) return merged
-  const fields = normalizeTaskFields(metadata?.fields)
+  const fields = allFields
   const errors: Record<string, string> = {}
+  // {{param.x}} / {{var.x}} in lookup filters and Data table base filters: the server-validated
+  // parameters / variables the caller put into the values (serverFormContext) — never stored.
+  const context: Record<string, unknown> = {}
+  for (const key of [FORM_PARAMS_KEY, FORM_VARS_KEY, CONTROLS_KEY]) if (values && Object.prototype.hasOwnProperty.call(values, key)) context[key] = values[key]
 
   // Lookups: confirm the values, store `<key>_item`. On drafts only the
   // submitted lookups are resolved; completion checks every lookup.
@@ -68,7 +141,7 @@ export async function mergeTaskFieldValuesChecked(
     const { resolveLookupSelections } = await import('@/lib/services/form-lookup')
     const { createServiceClient } = await import('@/lib/cron-auth')
     const existing = isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : {}
-    const resolved = await resolveLookupSelections(createServiceClient(), tenantId, fields, merged.templateValues, {
+    const resolved = await resolveLookupSelections(createServiceClient(), tenantId, fields, { ...merged.templateValues, ...context }, {
       strict: !options.partial,
       taskId: options.taskId ?? null,
       task: options.task ?? null,
@@ -78,9 +151,22 @@ export async function mergeTaskFieldValuesChecked(
     Object.assign(errors, resolved.errors)
     templateValues = { ...templateValues, ...resolved.items, ...lookupFillTargets(fields, resolved.fills ?? {}) }
   }
-  // Attachments: the files are re-read from the upload records (this
-  // task's, or this submitter's uploads to this form); `<key>_count` added.
-  const attachments = fields.filter((f) => f.type === 'attachments' && !f.read_only)
+  // Data tables: selections re-read from the source, change sets validated
+  // and their `before` re-read (lib/services/form-data-table.ts).
+  const tables = fields.filter((f) => f.type === 'data_table' && f.data_table && f.data_table.mode !== 'display' && !f.read_only)
+  const tableKeys = options.partial
+    ? tables.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key)
+    : tables.map((f) => f.key)
+  if (tableKeys.length) {
+    const { resolveDataTableValues } = await import('@/lib/services/form-data-table')
+    const resolved = await resolveDataTableValues(options.ctx ?? null, tenantId, fields, { ...templateValues, ...context }, { keys: tableKeys, strict: !options.partial, actorId: options.actorId ?? options.ctx?.actorId ?? null })
+    Object.assign(errors, resolved.errors)
+    templateValues = { ...templateValues, ...resolved.values }
+  }
+  // Attachments and file-valued custom controls (signature, PDF viewer
+  // uploads): the files are re-read from the upload records (this task's,
+  // or this submitter's uploads to this form); `<key>_count` added.
+  const attachments = fields.filter((f) => holdsFiles(f) && !f.read_only)
   const attachmentKeys = options.partial
     ? attachments.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key)
     : attachments.map((f) => f.key)

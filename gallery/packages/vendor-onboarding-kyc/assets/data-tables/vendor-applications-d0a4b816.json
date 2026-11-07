@@ -1,0 +1,141 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+  "asset": {
+    "id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+    "name": "Vendor applications",
+    "description": "Every vendor application with its screening result, status and ERP vendor id. The Vendor onboarding workflow adds a row per application and keeps its status up to date; the Vendor applications page lists them.",
+    "columns": [
+      {
+        "id": "1192b975-a3b2-5f2a-933e-26ea2fd7e698",
+        "required": true,
+        "key": "application_ref",
+        "name": "Application",
+        "type": "text"
+      },
+      {
+        "id": "fe6925a7-95be-500a-b9da-02eb9fc3862c",
+        "required": false,
+        "key": "submitted_on",
+        "name": "Submitted",
+        "type": "date"
+      },
+      {
+        "id": "37bc395f-011f-5f9a-adb8-2299c2950b7b",
+        "required": false,
+        "key": "legal_name",
+        "name": "Legal name",
+        "type": "text"
+      },
+      {
+        "id": "fe27cf63-0513-53a5-8247-61e7eb7a3f1f",
+        "required": false,
+        "key": "registration_number",
+        "name": "Registration number",
+        "type": "text"
+      },
+      {
+        "id": "ba3bdb33-3435-5b6a-a5ca-543dc0d7645a",
+        "required": false,
+        "key": "country",
+        "name": "Country",
+        "type": "text"
+      },
+      {
+        "id": "4a9d5b4d-eaad-592d-9935-cbcfa9058068",
+        "required": false,
+        "key": "spend_category",
+        "name": "Spend category",
+        "type": "select",
+        "options": [
+          "Logistics",
+          "IT hardware",
+          "Software",
+          "Professional services",
+          "Facilities",
+          "Marketing",
+          "Raw materials"
+        ]
+      },
+      {
+        "id": "62f86b1b-8da2-5c64-90d6-3599b0f8edb2",
+        "required": false,
+        "key": "expected_annual_spend",
+        "name": "Expected annual spend",
+        "type": "number"
+      },
+      {
+        "id": "3c67757d-b4bd-5a01-aa88-e4ccde3239fc",
+        "required": false,
+        "key": "contact_email",
+        "name": "Vendor contact",
+        "type": "email"
+      },
+      {
+        "id": "d76cf44d-9417-5bef-8d0e-e678d2ef3ae2",
+        "required": false,
+        "key": "requester_email",
+        "name": "Requested by",
+        "type": "email"
+      },
+      {
+        "id": "d6d9dcfe-cd96-5a8d-baaa-99695cdfe530",
+        "required": false,
+        "key": "risk_tier",
+        "name": "Risk tier",
+        "type": "select",
+        "options": [
+          "pending",
+          "low",
+          "medium",
+          "high",
+          "blocked"
+        ]
+      },
+      {
+        "id": "3c55b5c6-e7a9-53c1-81f0-07b2b338ec08",
+        "required": false,
+        "key": "risk_score",
+        "name": "Risk score",
+        "type": "number"
+      },
+      {
+        "id": "287bf6b7-2d82-5d4d-8035-a4dc7e1cd3d5",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Submitted",
+          "Screening",
+          "Compliance review",
+          "Bank verification",
+          "Approved",
+          "Declined"
+        ]
+      },
+      {
+        "id": "c4c94d75-f5df-5d5a-a4fc-c0b54c8d7e18",
+        "required": false,
+        "key": "vendor_id",
+        "name": "ERP vendor id",
+        "type": "text"
+      },
+      {
+        "id": "d9775fca-d91b-518a-9f75-2f6835eb5496",
+        "required": false,
+        "key": "next_review_date",
+        "name": "Next re-screen",
+        "type": "date"
+      },
+      {
+        "id": "49790b16-a254-56fa-9a8d-45f9b79db6b8",
+        "required": false,
+        "key": "decision_notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

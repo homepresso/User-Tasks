@@ -13,11 +13,23 @@ export interface AgentTool {
   workflowId?: string
   mcpServerId?: string
   mcpToolName?: string
-  inputSchema?: { name: string; type: string; description: string; required?: boolean }[]
+  inputSchema?: { name: string; type: string; description: string; required?: boolean; items?: Record<string, unknown> }[]
   outputMapping?: Record<string, string>
+  /** This tool call waits for a person's approval (a task) before it runs. */
+  requiresApproval?: boolean
 }
 
-export type BuiltinToolCategory = 'core' | 'data' | 'workflow' | 'documents' | 'http' | 'files' | 'multi_agent'
+/**
+ * Built-in tools that only read (never change data or reach the outside
+ * world). They never need approval and run for real in evaluations; every
+ * other tool is "side-effecting".
+ */
+export const READ_ONLY_BUILTIN_TOOLS = new Set([
+  'calculate', 'current_datetime', 'read_shared_facts', 'query_data_table', 'get_task_status',
+  'get_workflow_run_status', 'read_attached_file', 'search_knowledge', 'read_knowledge_document',
+])
+
+export type BuiltinToolCategory = 'core' | 'data' | 'workflow' | 'documents' | 'http' | 'files' | 'knowledge' | 'media' | 'multi_agent'
 
 export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[] = [
   // Core
@@ -59,6 +71,15 @@ export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[
       { name: 'filter_column', type: 'string', description: 'Column to match', required: true },
       { name: 'filter_value', type: 'string', description: 'Value to match', required: true },
       { name: 'updates', type: 'object', description: 'JSON object with column updates', required: true },
+    ],
+  },
+  {
+    id: 'builtin_delete_data', type: 'builtin', name: 'delete_data_rows', category: 'data',
+    description: 'Delete rows in a data table matching a filter (at most 100 per call).',
+    inputSchema: [
+      { name: 'table_name', type: 'string', description: 'Name of the data table', required: true },
+      { name: 'filter_column', type: 'string', description: 'Column to match', required: true },
+      { name: 'filter_value', type: 'string', description: 'Value to match', required: true },
     ],
   },
   {
@@ -140,20 +161,13 @@ export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[
 
   // Documents
   {
-    id: 'builtin_gen_word', type: 'builtin', name: 'generate_word_document', category: 'documents',
-    description: 'Generate a Word document from a template with find/replace placeholders.',
-    inputSchema: [
-      { name: 'template_url', type: 'string', description: 'URL of the Word template (.docx)', required: true },
-      { name: 'replacements', type: 'object', description: 'JSON object of placeholder→value pairs', required: true },
-    ],
-  },
-  {
     id: 'builtin_gen_excel', type: 'builtin', name: 'generate_excel', category: 'documents',
-    description: 'Generate an Excel spreadsheet from data rows.',
+    description: 'Generate an Excel workbook from data rows. Returns the stored file (name, url) — it is also listed in the run\'s generated files.',
     inputSchema: [
       { name: 'sheet_name', type: 'string', description: 'Sheet name (default "Sheet1")' },
-      { name: 'headers', type: 'array', description: 'Array of column header names', required: true },
-      { name: 'rows', type: 'array', description: 'Array of arrays (each inner array is a row)', required: true },
+      { name: 'headers', type: 'array', description: 'Array of column header names', required: true, items: { type: 'string' } },
+      { name: 'rows', type: 'array', description: 'Array of arrays (each inner array is a row)', required: true, items: { type: 'array', items: { type: 'string' } } },
+      { name: 'file_name', type: 'string', description: 'File name for the workbook (default "export.xlsx")' },
     ],
   },
   {
@@ -204,6 +218,45 @@ export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[
     description: 'Read the text content of a file from storage.',
     inputSchema: [
       { name: 'file_path', type: 'string', description: 'Path or URL to the file', required: true },
+    ],
+  },
+
+  // Media (the workspace's AI media provider; output_config.media_access)
+  {
+    id: 'builtin_transcribe_media', type: 'builtin', name: 'transcribe_media', category: 'media',
+    description: 'Transcribe an audio or video file to text with timestamps (and speakers when the provider supports it). Pass the id (or name) of a file given to this agent step, or a public URL. The file is sent to the workspace\'s AI media provider.',
+    inputSchema: [
+      { name: 'file_id', type: 'string', description: 'The file id (or name) of a file given to this step' },
+      { name: 'url', type: 'string', description: 'Or: a public http(s) URL of the media' },
+      { name: 'language', type: 'string', description: 'Language code (e.g. en); empty = detect' },
+      { name: 'diarize', type: 'boolean', description: 'Label speakers (where supported)' },
+    ],
+  },
+  {
+    id: 'builtin_analyze_image', type: 'builtin', name: 'analyze_image', category: 'media',
+    description: 'Analyze an image: description, labels, the text in it (OCR), face count (never identity), safety flags, or the answer to a question. Pass the id (or name) of a file given to this agent step, or a public URL. The image is sent to the workspace\'s AI media provider.',
+    inputSchema: [
+      { name: 'file_id', type: 'string', description: 'The file id (or name) of an image given to this step' },
+      { name: 'url', type: 'string', description: 'Or: a public http(s) URL of the image' },
+      { name: 'prompt', type: 'string', description: 'A question about the image (optional)' },
+      { name: 'features', type: 'array', description: 'Any of description, labels, objects, text, faces, safety (default description, labels, text)', items: { type: 'string' } },
+    ],
+  },
+
+  // Knowledge
+  {
+    id: 'builtin_search_knowledge', type: 'builtin', name: 'search_knowledge', category: 'knowledge',
+    description: 'Search this agent\'s knowledge sources (attached documents and data tables) by keywords. Returns the most relevant passages with their source. Use it before answering questions the sources may cover.',
+    inputSchema: [
+      { name: 'query', type: 'string', description: 'What to look for (keywords or a question)', required: true },
+      { name: 'limit', type: 'number', description: 'Max passages to return (default 5, max 20)' },
+    ],
+  },
+  {
+    id: 'builtin_read_knowledge_document', type: 'builtin', name: 'read_knowledge_document', category: 'knowledge',
+    description: 'Read the full text of one of this agent\'s knowledge documents by name (as returned by search_knowledge).',
+    inputSchema: [
+      { name: 'name', type: 'string', description: 'The document name', required: true },
     ],
   },
 

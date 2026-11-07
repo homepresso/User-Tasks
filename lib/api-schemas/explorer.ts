@@ -114,6 +114,7 @@ export function buildExplorerGroups(endpoints: readonly EndpointDef[]): Explorer
   const groups = new Map<string, ExplorerEndpoint[]>()
   for (const endpoint of endpoints) {
     if (endpoint.auth === 'none') continue // the explorer always sends a bearer token
+    if (endpoint.auth === 'instance_admin') continue // needs the instance admin token, never a workspace key
     if (endpoint.stream) continue // long-lived SSE responses never finish; use `usertasks logs tail`
     const label = endpoint.tags[0] ?? 'Other'
     groups.set(label, [...(groups.get(label) ?? []), toExplorerEndpoint(endpoint)])

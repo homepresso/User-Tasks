@@ -45,8 +45,8 @@ export function WorkspaceThemeCard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4 rounded-xl border p-4" style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)" }}>
-        <div className="flex h-12 w-20 shrink-0 overflow-hidden rounded-lg border" style={{ borderColor: "var(--theme-surface-border)" }}>
+      <div className="flex items-center gap-4 rounded-lg border border-border bg-panel p-4">
+        <div className="flex h-12 w-20 shrink-0 overflow-hidden rounded-md border border-border" aria-hidden>
           <div className="w-6" style={{ backgroundColor: palette.sidebar }} />
           <div className="flex flex-1 flex-col gap-1 p-1.5" style={{ backgroundColor: palette.surface }}>
             <div className="h-1.5 w-full rounded-sm" style={{ backgroundColor: palette.topbar, border: `1px solid ${palette.surfaceBorder}` }} />
@@ -55,23 +55,23 @@ export function WorkspaceThemeCard() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{theme.meta.name}</p>
-          <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>{MODE_LABEL[theme.meta.mode]}</p>
+          <p className="text-xs text-fg-muted">{MODE_LABEL[theme.meta.mode]}</p>
           <div className="mt-1.5 flex gap-1.5">
             {swatches.map((color, i) => (
-              <span key={i} className="h-3.5 w-3.5 rounded-full border shadow-sm" style={{ backgroundColor: color, borderColor: "var(--theme-surface-border)" }} />
+              <span key={i} className="size-3.5 rounded-full border border-border" style={{ backgroundColor: color }} />
             ))}
           </div>
         </div>
-        <Palette size={18} style={{ color: "var(--theme-muted-text)" }} />
+        <Palette className="size-4 text-fg-muted" aria-hidden />
       </div>
 
-      <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+      <p className="text-xs text-fg-muted">
         Everyone in this workspace sees this theme.{" "}
         {editable ? "Change it below, or customise fonts, colours and layout in the theme designer." : "Workspace administrators can change it."}
         {!editable && (
           <>
             {" "}
-            <Link href={THEME_DESIGNER_HREF} className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--theme-primary-text)" }}>
+            <Link href={THEME_DESIGNER_HREF} className="font-medium text-primary-text underline-offset-2 hover:underline">
               View the theme
             </Link>
           </>
@@ -80,7 +80,7 @@ export function WorkspaceThemeCard() {
 
       {editable && (
         <div className="space-y-2">
-          {error && <p className="text-xs" style={{ color: "var(--theme-danger)" }}>{error}</p>}
+          {error && <p role="alert" className="text-xs text-danger">{error}</p>}
           <div className="flex flex-wrap items-center gap-3">
             <AutocompleteSelect
               value={templateId}
@@ -90,12 +90,12 @@ export function WorkspaceThemeCard() {
               size="sm"
               className="w-64"
             />
-            <Button size="sm" onClick={apply} disabled={!templateId || saving}>
+            <Button size="sm" variant="secondary" onClick={apply} disabled={!templateId} loading={saving}>
               {saving ? "Applying…" : "Apply to workspace"}
             </Button>
-            <Link href={THEME_DESIGNER_HREF} className="ml-auto text-xs font-medium underline-offset-2 hover:underline" style={{ color: "var(--theme-primary-text)" }}>
-              Open theme designer
-            </Link>
+            <Button asChild size="sm" variant="link" className="ml-auto">
+              <Link href={THEME_DESIGNER_HREF}>Open theme designer</Link>
+            </Button>
           </div>
         </div>
       )}

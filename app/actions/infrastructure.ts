@@ -12,6 +12,7 @@ import {
   retrySwitchAs,
   rollbackSwitchAs,
   saveProviderSettingsAs,
+  setUiSwitchingAs,
   switchRecordAs,
 } from '@/lib/admin/infrastructure-switching'
 import { appSwitchDeps } from '@/lib/admin/switch/app-runner'
@@ -87,4 +88,9 @@ export async function retryProviderSwitch(id: string) {
 
 export async function checkSecretReference(ref: string) {
   return checkSecretRefAs(await viewer(), ref, appSwitchDeps)
+}
+
+/** Cloud edition: unlock (or lock again) provider changes from this page (typed confirmation; recorded in the switch log). */
+export async function setUiSwitching(input: unknown) {
+  return setUiSwitchingAs(await viewer(), input, appSwitchDeps)
 }

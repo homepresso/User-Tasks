@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "91756c5b-5559-5ccb-84be-ebc5c55ddbbd",
+  "asset": {
+    "id": "91756c5b-5559-5ccb-84be-ebc5c55ddbbd",
+    "name": "Open review tasks",
+    "description": "Reviews, legal checks, revisions and sign-offs that are not done yet, with their due dates (the Document review and sign-off workflow's tasks).",
+    "category": "Document control",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "19a97b16-c469-5a1d-8507-b252595eeee1"
+      },
+      "columns": [
+        "title",
+        "status",
+        "priority",
+        "due_date",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 100,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

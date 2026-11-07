@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { generateApiKey, revokeApiKey, deleteApiKey } from "@/app/actions/api-keys"
 import { bulkDeleteWithJob, useJobs } from "@/components/jobs/jobs-provider"
 import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/ui/submit-button"
+import { useSubmitGuard } from "@/hooks/use-submit-guard"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import {
@@ -100,6 +102,8 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
   const userPickerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const jobs = useJobs()
+  // A double click must not mint two keys (only the last would be shown).
+  const { run: runCreate } = useSubmitGuard()
 
   useEffect(() => {
     setLocalApiKeys(apiKeys)
@@ -116,6 +120,10 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
   }, [])
 
   async function handleCreate(formData: FormData) {
+    await runCreate(() => createKey(formData))
+  }
+
+  async function createKey(formData: FormData) {
     const typeConfig = KEY_TYPES.find((t) => t.value === selectedType)
     let expiresIn = typeConfig?.expiresIn ?? ""
     if (selectedType === "custom" && customDays) {
@@ -228,26 +236,26 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="!p-3">
-          <p className="text-[10px] font-medium" style={{ color: "var(--theme-muted-text)" }}>Active</p>
-          <p className="text-2xl font-bold" style={{ color: "var(--theme-primary-text)" }}>{activeCount}</p>
+          <p className="text-2xs font-medium text-fg-muted">Active</p>
+          <p className="text-2xl font-bold text-primary-text">{activeCount}</p>
         </Card>
         <Card className="!p-3">
-          <p className="text-[10px] font-medium" style={{ color: "var(--theme-muted-text)" }}>Expired</p>
-          <p className="text-2xl font-bold" style={{ color: "var(--theme-warning)" }}>{expiredCount}</p>
+          <p className="text-2xs font-medium text-fg-muted">Expired</p>
+          <p className="text-2xl font-bold text-warning">{expiredCount}</p>
         </Card>
         <Card className="!p-3">
-          <p className="text-[10px] font-medium" style={{ color: "var(--theme-muted-text)" }}>Revoked</p>
-          <p className="text-2xl font-bold" style={{ color: "var(--theme-danger)" }}>{revokedCount}</p>
+          <p className="text-2xs font-medium text-fg-muted">Revoked</p>
+          <p className="text-2xl font-bold text-danger">{revokedCount}</p>
         </Card>
       </div>
 
       {/* New key alert */}
       {newKey && (
         <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: "var(--theme-primary-light)", border: "2px solid var(--theme-primary)" }}>
-          <p className="text-sm font-semibold" style={{ color: "var(--theme-primary-text)" }}>
+          <p className="text-sm font-semibold text-primary-text">
             API Key Created — Copy it now!
           </p>
-          <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+          <p className="text-xs text-fg-muted">
             This key will not be shown again. Store it securely.
           </p>
           <div className="flex gap-2">
@@ -266,15 +274,15 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
       )}
 
       {/* Create / Search / Filter */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--theme-muted-text)" }} />
+      <div className="flex flex-wrap gap-3">
+        <div className="relative min-w-[12rem] flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search keys..." className="pl-9" />
         </div>
-        <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: "var(--theme-surface-border)" }}>
+        <div className="flex rounded-lg border overflow-hidden border-border">
           {(["all", "active", "revoked", "expired"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className="px-3 py-2 text-[10px] font-medium capitalize transition-colors"
+              className="px-3 py-2 text-2xs font-medium capitalize transition-colors"
               style={{
                 backgroundColor: filter === f ? "var(--theme-primary)" : "var(--theme-card-bg)",
                 color: filter === f ? 'var(--theme-on-primary)' : "var(--theme-muted-text)",
@@ -328,12 +336,12 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                       }}
                     >
                       <p className="text-xs font-semibold">{option.label}</p>
-                      <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>{option.description}</p>
+                      <p className="text-2xs mt-1 text-fg-muted">{option.description}</p>
                     </button>
                   )
                 })}
               </div>
-              <p className="text-[10px] mt-2" style={{ color: "var(--theme-muted-text)" }}>
+              <p className="text-2xs mt-2 text-fg-muted">
                 Use a user key for Claude/OpenAI MCP clients when you want task, workflow, and data actions to run with a known UserTasks user context.
               </p>
             </div>
@@ -343,7 +351,7 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                 <label className="block text-xs font-medium mb-1">User Context</label>
                 <div ref={userPickerRef} className="relative">
                   <div className="relative">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--theme-muted-text)" }} />
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
                     <Input
                       value={userSearch}
                       onChange={(e) => {
@@ -363,8 +371,7 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                           setUserSearch("")
                           setUserPickerOpen(true)
                         }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70"
-                        style={{ color: "var(--theme-muted-text)" }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 text-fg-muted"
                         title="Clear selected user"
                       >
                         <X size={13} />
@@ -373,10 +380,8 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                   </div>
 
                   {selectedUser && (
-                    <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full px-2.5 py-1.5 text-xs"
-                      style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}>
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold"
-                        style={{ backgroundColor: "var(--theme-primary)", color: 'var(--theme-on-primary)' }}>
+                    <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full px-2.5 py-1.5 text-xs bg-primary-wash text-primary-text">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full text-2xs font-bold bg-primary text-primary-fg">
                         {getInitials(selectedUser.display_name || selectedUser.email || "U")}
                       </span>
                       <span className="truncate">
@@ -388,14 +393,10 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
 
                   {userPickerOpen && (
                     <div
-                      className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border shadow-lg"
-                      style={{
-                        backgroundColor: "var(--theme-card-bg)",
-                        borderColor: "var(--theme-surface-border)",
-                      }}
+                      className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border shadow-lg bg-panel border-border"
                     >
                       {filteredUsers.length === 0 ? (
-                        <div className="px-3 py-3 text-xs" style={{ color: "var(--theme-muted-text)" }}>
+                        <div className="px-3 py-3 text-xs text-fg-muted">
                           No users match that search.
                         </div>
                       ) : (
@@ -412,20 +413,19 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                                 color: isActive ? "var(--theme-primary-text)" : "var(--theme-card-text)",
                               }}
                             >
-                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                                style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-2xs font-bold bg-subtle text-fg-muted">
                                 {getInitials(user.display_name || user.email || "U")}
                               </span>
                               <span className="min-w-0 flex-1">
                                 <span className="block truncate text-xs font-medium">
                                   {user.display_name || user.email || user.id}
                                 </span>
-                                <span className="block truncate text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+                                <span className="block truncate text-2xs text-fg-muted">
                                   {user.email || user.id}
                                 </span>
                               </span>
                               {isActive && (
-                                <span className="text-[10px] font-medium">Selected</span>
+                                <span className="text-2xs font-medium">Selected</span>
                               )}
                             </button>
                           )
@@ -434,7 +434,7 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                     </div>
                   )}
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>
+                <p className="text-2xs mt-1 text-fg-muted">
                   Start typing to find the user whose task, workflow, and data context this key should run as.
                 </p>
               </div>
@@ -455,12 +455,12 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                         backgroundColor: isSelected ? type.color + "10" : "transparent",
                       }}>
                       <Icon size={16} className="mx-auto mb-1" style={{ color: type.color }} />
-                      <p className="text-[10px] font-medium">{type.label}</p>
+                      <p className="text-2xs font-medium">{type.label}</p>
                     </button>
                   )
                 })}
               </div>
-              <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>
+              <p className="text-2xs mt-1 text-fg-muted">
                 {KEY_TYPES.find((t) => t.value === selectedType)?.description}
               </p>
             </div>
@@ -477,11 +477,10 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
             {/* Scope */}
             <div>
               <label className="block text-xs font-medium mb-1">
-                Legacy Workflow Source <span className="font-normal" style={{ color: "var(--theme-muted-text)" }}>(optional)</span>
+                Legacy Workflow Source <span className="font-normal text-fg-muted">(optional)</span>
               </label>
               <select name="workflow_source_id"
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+                className="w-full rounded-lg border px-3 py-2 text-sm bg-panel border-border">
                 <option value="">All workflows (unrestricted)</option>
                 <optgroup label="Workflow Sources">
                   {workflowSources.map((ws) => (
@@ -494,12 +493,11 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-xs font-medium mb-2">
-                  Workflow Scope <span className="font-normal" style={{ color: "var(--theme-muted-text)" }}>(optional)</span>
+                  Workflow Scope <span className="font-normal text-fg-muted">(optional)</span>
                 </label>
-                <div className="max-h-48 overflow-auto rounded-lg border p-2 space-y-1"
-                  style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}>
+                <div className="max-h-48 overflow-auto rounded-lg border p-2 space-y-1 border-border bg-subtle">
                   {workflows.length === 0 ? (
-                    <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>No workflows available.</p>
+                    <p className="text-2xs text-fg-muted">No workflows available.</p>
                   ) : workflows.map((workflow) => (
                     <label key={workflow.id} className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:opacity-90 cursor-pointer">
                       <input
@@ -514,19 +512,18 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                     </label>
                   ))}
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>
+                <p className="text-2xs mt-1 text-fg-muted">
                   Leave empty for all workflows. When set, workflow APIs and MCP workflow tools are limited to these items.
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-medium mb-2">
-                  Data Table Scope <span className="font-normal" style={{ color: "var(--theme-muted-text)" }}>(optional)</span>
+                  Data Table Scope <span className="font-normal text-fg-muted">(optional)</span>
                 </label>
-                <div className="max-h-48 overflow-auto rounded-lg border p-2 space-y-1"
-                  style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}>
+                <div className="max-h-48 overflow-auto rounded-lg border p-2 space-y-1 border-border bg-subtle">
                   {tables.length === 0 ? (
-                    <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>No tables available.</p>
+                    <p className="text-2xs text-fg-muted">No tables available.</p>
                   ) : tables.map((table) => (
                     <label key={table.id} className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:opacity-90 cursor-pointer">
                       <input
@@ -541,16 +538,16 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                     </label>
                   ))}
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>
+                <p className="text-2xs mt-1 text-fg-muted">
                   Leave empty for all tables. OData, REST data routes, and MCP data tools honor this scope.
                 </p>
               </div>
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" size="sm">
+              <SubmitButton size="sm">
                 <Key size={14} className="mr-1" /> Generate Key
-              </Button>
+              </SubmitButton>
               <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
             </div>
           </form>
@@ -561,8 +558,8 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
       {filteredKeys.length === 0 ? (
         <Card>
           <div className="text-center py-6">
-            <Key size={32} className="mx-auto mb-2" style={{ color: "var(--theme-muted-text)" }} />
-            <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>
+            <Key size={32} className="mx-auto mb-2 text-fg-muted" />
+            <p className="text-sm text-fg-muted">
               {localApiKeys.length === 0 ? "No API keys yet. Generate one to enable integrations." : "No keys match your filter."}
             </p>
           </div>
@@ -577,18 +574,16 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
               <Card key={key.id} className="!p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Key size={14} style={{
                         color: key.is_revoked ? "var(--theme-danger)" :
                           isExpired ? "var(--theme-warning)" : "var(--theme-primary)"
                       }} />
                       <span className="text-sm font-medium">{key.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                      <span className="text-2xs px-1.5 py-0.5 rounded-full bg-subtle text-fg-muted">
                         {key.key_type === "user" ? "User key" : "Tenant key"}
                       </span>
-                      <code className="text-[10px] font-mono px-1.5 py-0.5 rounded cursor-pointer hover:opacity-70"
-                        style={{ backgroundColor: "var(--theme-surface)" }}
+                      <code className="text-2xs font-mono px-1.5 py-0.5 rounded cursor-pointer hover:opacity-70 bg-subtle"
                         onClick={(e) => {
                           e.stopPropagation()
                           const plain = (key as any).key_plain
@@ -602,29 +597,27 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                         {(key as any).key_plain ? `${(key as any).key_plain.slice(0, 12)}...` : `${key.key_prefix}...`} 📋
                       </code>
                       {!(key as any).key_plain && !key.is_revoked && (
-                        <span className="text-[9px] px-1 py-0.5 rounded"
-                          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
+                        <span className="text-2xs px-1 py-0.5 rounded bg-subtle text-fg-muted"
                           title="The full key is shown only once, at creation. If you lost it, delete this key and create a new one.">
                           Shown once at creation
                         </span>
                       )}
                       {key.is_revoked && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Revoked</span>
+                        <span className="text-2xs font-medium px-1.5 py-0.5 rounded-full bg-danger-wash text-danger">Revoked</span>
                       )}
                       {isExpired && !key.is_revoked && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600">Expired</span>
+                        <span className="text-2xs font-medium px-1.5 py-0.5 rounded-full bg-warning-wash text-warning">Expired</span>
                       )}
                       {!isExpired && !key.is_revoked && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-100 text-green-600">Active</span>
+                        <span className="text-2xs font-medium px-1.5 py-0.5 rounded-full bg-success-wash text-success">Active</span>
                       )}
                       {isPermanent && !key.is_revoked && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                        <span className="text-2xs px-1.5 py-0.5 rounded-full bg-subtle text-fg-muted">
                           <Infinity size={8} className="inline" /> No expiry
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: "var(--theme-muted-text)" }}>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-fg-muted">
                       <span>Created {formatRelativeDate(key.created_at)}</span>
                       {key.expires_at && <span>Expires {formatRelativeDate(key.expires_at)}</span>}
                       {key.last_used_at && <span>Last used {formatRelativeDate(key.last_used_at)}</span>}
@@ -632,20 +625,17 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                     {((key.scopes?.workflow_ids?.length ?? 0) > 0 || (key.scopes?.table_ids?.length ?? 0) > 0 || key.user_id) && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {key.user_id && (
-                          <span className="text-[10px] px-2 py-1 rounded-full"
-                            style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}>
+                          <span className="text-2xs px-2 py-1 rounded-full bg-primary-wash text-primary-text">
                             User context
                           </span>
                         )}
                         {(key.scopes?.workflow_ids?.length ?? 0) > 0 && (
-                          <span className="text-[10px] px-2 py-1 rounded-full"
-                            style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                          <span className="text-2xs px-2 py-1 rounded-full bg-subtle text-fg-muted">
                             {(key.scopes?.workflow_ids?.length ?? 0)} workflow scope{(key.scopes?.workflow_ids?.length ?? 0) === 1 ? "" : "s"}
                           </span>
                         )}
                         {(key.scopes?.table_ids?.length ?? 0) > 0 && (
-                          <span className="text-[10px] px-2 py-1 rounded-full"
-                            style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                          <span className="text-2xs px-2 py-1 rounded-full bg-subtle text-fg-muted">
                             {(key.scopes?.table_ids?.length ?? 0)} table scope{(key.scopes?.table_ids?.length ?? 0) === 1 ? "" : "s"}
                           </span>
                         )}
@@ -655,14 +645,12 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
                   <div className="flex gap-1 shrink-0 ml-3">
                     {!key.is_revoked && (
                       <button onClick={() => handleRevoke(key.id)}
-                        className="p-1.5 rounded hover:text-amber-500 transition-colors"
-                        style={{ color: "var(--theme-muted-text)" }} title="Revoke">
+                        className="p-1.5 rounded hover:text-warning transition-colors text-fg-muted" title="Revoke">
                         <Ban size={14} />
                       </button>
                     )}
                     <button onClick={() => handleDelete(key.id)}
-                      className="p-1.5 rounded hover:text-red-500 transition-colors"
-                      style={{ color: "var(--theme-muted-text)" }} title="Delete">
+                      className="p-1.5 rounded hover:text-danger transition-colors text-fg-muted" title="Delete">
                       <Trash2 size={14} />
                     </button>
                   </div>

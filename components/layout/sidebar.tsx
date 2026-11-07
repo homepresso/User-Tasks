@@ -1,71 +1,31 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import {
-  LayoutGrid,
-  Clock,
-  Inbox,
-  Eye,
-  List,
-  BarChart3,
-  Database,
-  Network,
-  TrendingUp,
-  Globe,
-  Users,
-  UserCheck,
-  Settings,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ListOrdered,
-  Scale,
-  Bot,
-  FileBarChart,
-  FileText,
-  Activity,
-  X,
-  Blocks,
-  Mail,
-  Boxes,
-  Briefcase, MonitorSmartphone } from 'lucide-react'
-import { SidebarNavItem } from "./sidebar-nav-item"
-import { OrgSwitcher } from "./org-switcher"
-import { NAV_ITEMS, NAV_ITEMS_WORKFLOW, NAV_ITEMS_ADMIN } from "@/lib/constants"
+import { usePathname, useSearchParams } from "next/navigation"
+import { BookOpen, ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
+import { SidebarNavItem, isNavItemActive, sidebarFocus, sidebarItemClass, sidebarMuted, sidebarText, type NavBadgeTone } from "./sidebar-nav-item"
+import { SidebarFormsMenu } from "./available-forms-menu"
+import { SidebarDecorations } from "./sidebar-decorations"
+import { navIcon } from "./nav-icons"
+import { HeaderFormsMenu } from "./header-forms-menu"
+import { NAV_PRIMARY, NAV_SETTINGS, resolveNavGroups, type NavGroupId } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/stores/app-store"
-import { useWorkspaceBrand } from "@/components/providers/theme-provider"
-import { LogoMark } from "@/components/brand/logo"
 import { usePermissions } from "@/lib/permissions-context"
 import { hasExtensibilityFeatureAccess } from "@/lib/extensibility-access"
 import { useIsManager } from "@/hooks/use-is-manager"
+import { useNavCounts, useNavCountsSync } from "@/hooks/use-nav-counts"
+import { navBadgeCount } from "@/lib/nav-badges"
+import { Tooltip } from "@/components/ui/tooltip"
 
-const iconMap = {
-  LayoutGrid,
-  Briefcase,
-  MonitorSmartphone,
-  Clock,
-  Inbox,
-  Eye,
-  List,
-  BarChart3,
-  Database,
-  Network,
-  TrendingUp,
-  Globe,
-  Users,
-  UserCheck,
-  Settings,
-  ListOrdered,
-  Scale,
-  Bot,
-  FileBarChart,
-  FileText,
-  Activity,
-  Blocks,
-  Boxes,
-  Mail,
-} as const
+/**
+ * The side menu (docs/design/ui-polish-spec.md §4.1): the Forms dropdown at
+ * the top (the forms shared with you; workspaces are in the avatar menu), the
+ * primary destinations, Build / Operate / Govern (collapsible, remembered per
+ * browser), Settings pinned at the bottom, then Help & docs and the collapse
+ * toggle. 240px wide (the theme's sidebarWidth overrides), 56px collapsed.
+ */
 
 interface SidebarProps {
   user: { display_name: string; tenant: { name: string; branding: any } | null }
@@ -73,251 +33,177 @@ interface SidebarProps {
   userRole: string | null
 }
 
-export function Sidebar({ user, currentTenantId, userRole: _userRole }: SidebarProps) {
-  const pathname = usePathname()
-  const {
-    sidebarCollapsed: collapsed,
-    toggleSidebar,
-    openTasks,
-    removeOpenTask,
-  } = useAppStore()
-  const { can, permissions } = usePermissions()
-  const isManager = useIsManager(can('tasks.view_own'))
-  const { logoUrl, wordmark } = useWorkspaceBrand(user.tenant?.branding?.logo_url ?? null)
+/** Your own open and queued tasks ask for action (accent); the tracker count is neutral. */
+const BADGE_TONE: Record<string, NavBadgeTone> = { "/tasks": "accent" }
 
-  const filterByPermission = (items: readonly any[]) =>
-    items.filter(item => {
-      if (item.href === '/extensibility') return hasExtensibilityFeatureAccess(permissions)
-      if (item.managerOnly && !isManager) return false
-      return !item.requiredPermission || can(item.requiredPermission)
-    })
+const GROUPS_KEY = "usertasks.nav.groups"
+
+/** Which groups are folded away (remembered per browser). */
+export function useNavGroupState() {
+  const [folded, setFolded] = useState<Partial<Record<NavGroupId, boolean>>>({})
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(GROUPS_KEY)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read once after hydration (localStorage is client-only)
+      if (raw) setFolded(JSON.parse(raw))
+    } catch {}
+  }, [])
+  const toggle = (id: NavGroupId) => setFolded((current) => {
+    const next = { ...current, [id]: !current[id] }
+    try { localStorage.setItem(GROUPS_KEY, JSON.stringify(next)) } catch {}
+    return next
+  })
+  return { folded, toggle }
+}
+
+export function Sidebar(_props: SidebarProps) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { sidebarCollapsed: collapsed, toggleSidebar, openTasks, removeOpenTask } = useAppStore()
+  const { can, permissions } = usePermissions()
+  const isManager = useIsManager(can("tasks.view_own"))
+  // Pending counts beside My tasks (queued included) / Task tracker (the sidebar is always mounted: it keeps them fresh).
+  const navCounts = useNavCounts()
+  useNavCountsSync()
+  const { folded, toggle } = useNavGroupState()
+
+  const visible = (item: { href: string; requiredPermission?: string; managerOnly?: boolean }) => {
+    if (item.href === "/extensibility") return hasExtensibilityFeatureAccess(permissions)
+    if (item.managerOnly && !isManager) return false
+    return !item.requiredPermission || can(item.requiredPermission as Parameters<typeof can>[0])
+  }
+
+  const renderItem = (item: (typeof NAV_PRIMARY)[number]) => (
+    <SidebarNavItem
+      key={item.href}
+      href={item.href}
+      label={item.label}
+      icon={navIcon(item.icon)}
+      enabled={item.enabled}
+      collapsed={collapsed}
+      badgeCount={navBadgeCount(navCounts, item.href)}
+      badgeTone={BADGE_TONE[item.href]}
+    />
+  )
 
   return (
     <aside
       className={cn(
-        // Desktop-only: on phones the shell renders MobileNavDrawer instead.
-        "premium-sidebar themed-sidebar flex h-full flex-col border-r transition-all max-md:hidden",
-        collapsed ? "w-16" : "w-[var(--theme-sidebar-width)]"
+        // Desktop-only: on phones the shell renders the mobile Sheet instead.
+        "premium-sidebar themed-sidebar flex h-full shrink-0 flex-col border-r border-[color:var(--theme-sidebar-border)] transition-[width] duration-[var(--ds-dur-base)] ease-[var(--ds-ease-standard)] max-md:hidden",
+        collapsed ? "w-14" : "w-[var(--theme-sidebar-width)]",
+        sidebarFocus,
       )}
-      style={{ borderColor: 'var(--theme-sidebar-border)' }}
+      aria-label="Main"
+      data-collapsed={collapsed || undefined}
     >
-      {/* Decorative layer — glows + floating illustrations. Hidden when collapsed or non-default theme */}
-      {!collapsed && (
-        <div className="sidebar-decorations pointer-events-none absolute inset-0 z-0">
-          {/* Teal glow — top-left */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              top: '20%',
-              left: '-80px',
-              width: '360px',
-              height: '360px',
-              background: 'radial-gradient(circle, var(--sidebar-glow-1) 0%, transparent 70%)',
-              animation: 'glowPulse 6s ease-in-out infinite',
-            }}
-          />
-          {/* Indigo glow — bottom-right */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              bottom: '15%',
-              right: '-40px',
-              width: '300px',
-              height: '300px',
-              background: 'radial-gradient(circle, var(--sidebar-glow-2) 0%, transparent 70%)',
-              animation: 'glowPulse 8s ease-in-out 3s infinite',
-            }}
-          />
-          {/* Agent orbit — top-right, behind nav */}
-          <div
-            className="deco-orbit absolute"
-            style={{
-              top: '220px',
-              right: '12px',
-              opacity: 0.04,
-              animation: 'floatY 10s ease-in-out 2s infinite',
-            }}
-          >
-            <svg width="80" height="80" viewBox="0 0 120 120" fill="none">
-              <circle cx="60" cy="60" r="50" stroke="white" strokeWidth="2" />
-              <circle cx="60" cy="60" r="30" stroke="white" strokeWidth="1.5" strokeDasharray="6 4" />
-              <circle cx="60" cy="60" r="8" fill="white" />
-              <circle cx="60" cy="10" r="4" fill="white" style={{ transformOrigin: '60px 60px', animation: 'orbit 6s linear infinite' }} />
-              <circle cx="110" cy="60" r="3" fill="white" style={{ transformOrigin: '60px 60px', animation: 'orbit 8s linear 1s infinite' }} />
-            </svg>
-          </div>
-          {/* Workflow nodes — bottom area */}
-          <div
-            className="deco-workflow absolute"
-            style={{
-              bottom: '48px',
-              left: '12px',
-              opacity: 0.05,
-              animation: 'floatY 8s ease-in-out infinite',
-            }}
-          >
-            <svg width="220" height="160" viewBox="0 0 280 200" fill="none">
-              <rect x="110" y="10" width="60" height="32" rx="8" fill="white" />
-              <rect x="30" y="80" width="60" height="32" rx="8" fill="white" />
-              <rect x="190" y="80" width="60" height="32" rx="8" fill="white" />
-              <rect x="70" y="155" width="60" height="32" rx="8" fill="white" />
-              <rect x="150" y="155" width="60" height="32" rx="8" fill="white" />
-              <path d="M130 42 L60 80" stroke="white" strokeWidth="2" />
-              <path d="M150 42 L220 80" stroke="white" strokeWidth="2" />
-              <path d="M60 112 L100 155" stroke="white" strokeWidth="2" />
-              <path d="M220 112 L180 155" stroke="white" strokeWidth="2" />
-            </svg>
+      {!collapsed && <SidebarDecorations />}
+
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
+        <div className={cn("flex h-[var(--theme-topbar-height)] shrink-0 items-center border-b border-[color:var(--theme-sidebar-border)]", collapsed ? "justify-center px-2" : "px-2")}>
+          {/* The Forms dropdown: the forms shared with this person (workspaces are in the avatar menu). */}
+          <div className="min-w-0 flex-1">
+            <HeaderFormsMenu collapsed={collapsed} />
           </div>
         </div>
-      )}
 
-      {/* Content layer */}
-      <div className="relative z-10 flex flex-col h-full">
-      <div className="flex h-[var(--theme-topbar-height)] items-center justify-between border-b px-4" style={{ borderColor: 'var(--theme-sidebar-border)' }}>
-        {!collapsed && (
-          logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Logo"
-              className="max-h-8 max-w-[140px] object-contain"
-            />
-          ) : (
-            <span className="text-lg font-semibold tracking-tight" style={{ color: 'var(--sidebar-brand-color)' }}>
-              {wordmark ? <span>{wordmark}</span> : (
-                <span className="inline-flex items-center gap-2">
-                  <LogoMark variant="glyph" size={24} color="var(--sidebar-brand-color)" accent="var(--theme-sidebar-accent, var(--theme-primary))" />
-                  <span>user<span className="themed-sidebar-accent">tasks</span></span>
-                </span>
-              )}
-            </span>
-          )
-        )}
-        <button
-          onClick={toggleSidebar}
-          className="rounded-md p-1 transition-colors hover:bg-[var(--sidebar-hover-bg)]"
-          style={{ color: 'var(--theme-sidebar-text)' }}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
-        </button>
+        <nav aria-label="Primary" className={cn("min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin py-3", collapsed ? "px-2" : "px-3")}>
+          <ul className="space-y-0.5">
+            {NAV_PRIMARY.filter(visible).map((item) => (
+              <li key={item.href}>
+                {renderItem(item)}
+                {item.href === "/tasks" && !collapsed && openTasks.length > 0 && (
+                  <ul className="mt-0.5 space-y-0.5 pl-6" aria-label="Open tasks">
+                    {openTasks.map((task) => {
+                      const active = pathname === `/tasks/${task.id}`
+                      return (
+                        <li key={task.id} className={cn("group/pin flex h-7 items-center gap-1 rounded-md pr-1 hover:bg-[var(--sidebar-hover-bg)]", active && "bg-[var(--theme-sidebar-active)]")}>
+                          <Link
+                            href={`/tasks/${task.id}`}
+                            aria-current={active ? "page" : undefined}
+                            className={cn("min-w-0 flex-1 truncate rounded-md px-2 text-xs font-medium", active ? "text-[color:var(--theme-sidebar-accent,var(--theme-primary))]" : sidebarMuted)}
+                          >
+                            {task.title}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => removeOpenTask(task.id)}
+                            className={cn("inline-flex size-5 shrink-0 items-center justify-center rounded-sm opacity-0 transition-opacity hover:bg-[var(--sidebar-hover-bg)] focus-visible:opacity-100 group-hover/pin:opacity-100 pointer-coarse:opacity-100", sidebarMuted)}
+                            aria-label={`Close ${task.title}`}
+                          >
+                            <X className="size-3" aria-hidden />
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </li>
+            ))}
+            {/* People without the Forms library still get their available forms. */}
+            {!can("forms.view") && <li><SidebarFormsMenu collapsed={collapsed} /></li>}
+          </ul>
+
+          {resolveNavGroups(can, visible).map((group) => {
+            const items = group.items
+            const isFolded = !collapsed && !!folded[group.id]
+            // A folded group still shows the page you're on.
+            const shown = isFolded ? items.filter((item) => isNavItemActive(item.href, pathname, searchParams)) : items
+            const listId = `nav-group-${group.id}`
+            return (
+              <section key={group.id} aria-labelledby={collapsed ? undefined : `${listId}-label`} className={collapsed ? "mt-3 border-t border-[color:var(--theme-sidebar-border)] pt-3" : "mt-6"}>
+                {!collapsed && (
+                  <button
+                    type="button"
+                    id={`${listId}-label`}
+                    onClick={() => toggle(group.id)}
+                    aria-expanded={!isFolded}
+                    aria-controls={listId}
+                    className={cn("mb-1 flex h-6 w-full items-center gap-1 rounded-md px-2 text-2xs font-medium hover:text-[color:var(--theme-sidebar-text)]", sidebarMuted)}
+                    data-nav-group={group.id}
+                  >
+                    <span className="flex-1 text-left">{group.label}</span>
+                    <ChevronDown className={cn("size-3 transition-transform duration-[var(--ds-dur-fast)]", isFolded && "-rotate-90")} aria-hidden />
+                  </button>
+                )}
+                <ul id={listId} className="space-y-0.5">
+                  {shown.map((item) => <li key={item.href}>{renderItem(item)}</li>)}
+                </ul>
+              </section>
+            )
+          })}
+        </nav>
+
+        <div className={cn("shrink-0 border-t border-[color:var(--theme-sidebar-border)] py-2", collapsed ? "px-2" : "px-3")}>
+          {visible(NAV_SETTINGS) && renderItem(NAV_SETTINGS)}
+          <div className={cn("mt-0.5 flex gap-0.5", collapsed ? "flex-col" : "items-center")}>
+            <Tooltip content="Help & docs" side="right" enabled={collapsed}>
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(sidebarItemClass, collapsed ? "justify-center px-0" : "flex-1")}
+                aria-label={collapsed ? "Help & docs (opens in a new tab)" : undefined}
+              >
+                <BookOpen className={cn("size-4 shrink-0", sidebarMuted)} aria-hidden />
+                {!collapsed && <span className="truncate">Help &amp; docs</span>}
+              </a>
+            </Tooltip>
+            <Tooltip content={collapsed ? "Expand sidebar" : "Collapse sidebar"} side="right">
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-expanded={!collapsed}
+                className={cn(sidebarItemClass, "w-auto justify-center px-0", collapsed ? "w-full" : "w-8")}
+                data-sidebar-toggle
+              >
+                {collapsed ? <PanelLeftOpen className={cn("size-4", sidebarMuted)} aria-hidden /> : <PanelLeftClose className={cn("size-4", sidebarMuted)} aria-hidden />}
+              </button>
+            </Tooltip>
+          </div>
+        </div>
       </div>
-
-      {!collapsed && (
-        <div className="space-y-2 border-b px-3 py-2" style={{ borderColor: 'var(--theme-sidebar-border)' }}>
-          <div className="rounded-lg border" style={{ borderColor: 'var(--theme-sidebar-border)' }}>
-            <OrgSwitcher currentTenantId={currentTenantId} />
-          </div>
-        </div>
-      )}
-
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        <div className="space-y-1">
-          {filterByPermission(NAV_ITEMS).map((item: any) => (
-            <div key={item.href}>
-              <SidebarNavItem
-                href={item.href}
-                label={item.label}
-                icon={iconMap[item.icon as keyof typeof iconMap]}
-                enabled={item.enabled}
-                tooltip={item.tooltip}
-                collapsed={collapsed}
-              />
-              {item.href === '/tasks' && !collapsed && openTasks.length > 0 && (
-                <div className="mt-1 ml-7 space-y-1">
-                  {openTasks.map((task) => {
-                    const isActiveTask = pathname === `/tasks/${task.id}`
-                    return (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-1 rounded-md pr-1"
-                        style={{
-                          backgroundColor: isActiveTask ? 'var(--theme-sidebar-active)' : 'transparent',
-                        }}
-                      >
-                        <Link
-                          href={`/tasks/${task.id}`}
-                          className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-[11px] transition-colors hover:bg-[var(--sidebar-hover-bg)]"
-                          style={{
-                            color: isActiveTask ? 'var(--theme-sidebar-accent)' : 'var(--theme-sidebar-muted)',
-                            fontWeight: isActiveTask ? 600 : 500,
-                          }}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => removeOpenTask(task.id)}
-                          className="rounded p-1 transition-colors hover:bg-[var(--sidebar-hover-bg)]"
-                          style={{ color: 'var(--theme-sidebar-muted)' }}
-                          aria-label={`Close ${task.title}`}
-                          title="Close task"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {filterByPermission(NAV_ITEMS_WORKFLOW).length > 0 && (
-          <>
-            <div className="my-4 border-t" style={{ borderColor: 'var(--theme-sidebar-border)' }} />
-            {!collapsed && (
-              <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-sidebar-muted)' }}>
-                Automations
-              </p>
-            )}
-            <div className="space-y-1">
-              {filterByPermission(NAV_ITEMS_WORKFLOW).map((item: any) => (
-                <SidebarNavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={iconMap[item.icon as keyof typeof iconMap]}
-                  enabled={item.enabled}
-                  tooltip={item.tooltip}
-                  collapsed={collapsed}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {filterByPermission(NAV_ITEMS_ADMIN).length > 0 && (
-          <>
-            <div className="my-4 border-t" style={{ borderColor: 'var(--theme-sidebar-border)' }} />
-            {!collapsed && (
-              <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-sidebar-muted)' }}>
-                Admin
-              </p>
-            )}
-            <div className="space-y-1">
-              {filterByPermission(NAV_ITEMS_ADMIN).map((item: any) => (
-                <SidebarNavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={iconMap[item.icon as keyof typeof iconMap]}
-                  enabled={item.enabled}
-                  tooltip={item.tooltip}
-                  collapsed={collapsed}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </nav>
-      </div>
-
     </aside>
   )
 }
-

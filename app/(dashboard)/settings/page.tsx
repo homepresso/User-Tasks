@@ -23,10 +23,5 @@ export default function SettingsPage() {
 
   if (!profile) return <PageSkeleton variant="settings" />
 
-  return (
-    <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-6">Settings</h1>
-      <SettingsTabs profile={profile} tenantId={tenantId} logoUrl={logoUrl} />
-    </div>
-  )
+  return <SettingsTabs profile={profile} tenantId={tenantId} logoUrl={logoUrl} />
 }

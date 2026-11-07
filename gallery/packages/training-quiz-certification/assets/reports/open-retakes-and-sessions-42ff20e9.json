@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "42ff20e9-7ef7-5db4-8d04-df38eddbb2bf",
+  "asset": {
+    "id": "42ff20e9-7ef7-5db4-8d04-df38eddbb2bf",
+    "name": "Open retakes and sessions",
+    "description": "Retake and book-a-session tasks from the quiz runs that are not done yet.",
+    "category": "Training",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "9e43e668-3f2e-5fd5-a94b-daaaca6213bd"
+      },
+      "columns": [
+        "title",
+        "status",
+        "priority",
+        "due_date",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 100,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

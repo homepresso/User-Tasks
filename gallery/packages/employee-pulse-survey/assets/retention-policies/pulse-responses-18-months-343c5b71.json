@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "343c5b71-3cd2-56d0-aa8a-a7927ed65bf3",
+  "asset": {
+    "id": "343c5b71-3cd2-56d0-aa8a-a7927ed65bf3",
+    "name": "Pulse responses: 18 months",
+    "description": "Pulse answers are personal when not anonymous: purge response rows 18 months after they were created. Apply it to the Pulse responses table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 18,
+    "duration_unit": "months",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

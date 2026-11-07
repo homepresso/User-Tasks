@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "2c23e9ff-5cc8-54c8-be7e-8fd9874e6479",
+  "asset": {
+    "id": "2c23e9ff-5cc8-54c8-be7e-8fd9874e6479",
+    "name": "Thanks for your feedback",
+    "description": "Sent to the customer after they answer the survey (when they gave an email address).",
+    "subject": "Thanks for your feedback, {{form.customer_name}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Thank you for telling us how we did</h2>\n  <p>Hi {{form.customer_name}},</p>\n  <p>You rated us <strong>{{form.overall}} out of 5</strong>. We read every answer, and your comments go straight to the team that looked after you.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Reference {{response_ref}}</p>\n</div>",
+    "text_body": "Thank you for telling us how we did\n\nHi {{form.customer_name}},\nYou rated us {{form.overall}} out of 5. We read every answer, and your comments go straight to the team that looked after you.\n\nReference {{response_ref}}",
+    "is_default": false
+  }
+}

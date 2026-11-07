@@ -55,7 +55,7 @@ export function LogExportSettings() {
   })
 
   if (!canView) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
   if (isLoading && !data) return <PageSkeleton variant="settings" />
 
@@ -70,7 +70,7 @@ export function LogExportSettings() {
             <ScrollText size={22} />
             Log Export
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-sm mt-1 text-fg-muted">
             Stream workflow, integration, agent, task, audit and security events to Splunk, Datadog,
             any OpenTelemetry collector or your own webhook.{' '}
             <Link href="/docs/observability" className="underline underline-offset-2">Docs</Link>
@@ -94,7 +94,7 @@ export function LogExportSettings() {
       {entries.length === 0 ? (
         <Card>
           <p className="text-sm font-medium">No log destinations yet</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-1 text-fg-muted">
             {canEdit
               ? 'Add one to start shipping events. New destinations start from now; choose “start of retention” to also send events from the last 72 hours.'
               : 'Ask a workspace admin to add one.'}
@@ -183,7 +183,7 @@ function DestinationCard({
   return (
     <Card className="p-4 space-y-3">
       <div className="flex flex-wrap items-start gap-3">
-        <div className="rounded-lg p-2" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+        <div className="rounded-lg p-2 bg-primary-wash text-primary-text">
           <Icon size={18} />
         </div>
         <div className="min-w-0 flex-1">
@@ -191,7 +191,7 @@ function DestinationCard({
             <span className="font-medium truncate">{destination.name}</span>
             <DestinationStatusBadge status={String(status?.status ?? destination.status)} />
           </div>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-0.5 text-fg-muted">
             {TYPE_LABELS[type] ?? type}
             {' · '}{describeTarget(destination)}
           </p>
@@ -246,7 +246,7 @@ function DestinationCard({
       )}
 
       {canEdit && (
-        <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-fg-muted">
           <RotateCcw size={12} />
           Reset cursor:
           <button className="underline underline-offset-2 disabled:opacity-40" disabled={busy !== null} onClick={() => setConfirm('reset_now')}>from now</button>
@@ -309,13 +309,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 function SigningSecretCard({ name, secret, onDismiss }: { name: string; secret: string; onDismiss: () => void }) {
   const [copied, setCopied] = useState(false)
   return (
-    <Card className="p-4 space-y-2" style={{ borderColor: 'var(--theme-primary)' }}>
+    <Card className="p-4 space-y-2 border-primary">
       <p className="text-sm font-medium">Signing secret for “{name}”</p>
-      <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs text-fg-muted">
         Copy it now — it is not shown again. Use it to verify the X-UserTasks-Signature header on each request.
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 min-w-0 truncate rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <code className="flex-1 min-w-0 truncate rounded-lg border px-3 py-2 text-xs border-border">
           {secret}
         </code>
         <Button
@@ -341,10 +341,10 @@ function LiveEventsHint() {
   return (
     <Card className="p-4">
       <p className="text-sm font-medium flex items-center gap-2"><Terminal size={14} /> Live events</p>
-      <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mt-1 text-fg-muted">
         Tail the event stream from a terminal, or pull it with the API:
       </p>
-      <pre className="mt-2 rounded-lg p-3 text-xs overflow-x-auto" style={{ backgroundColor: 'var(--theme-surface)' }}>
+      <pre className="mt-2 rounded-lg p-3 text-xs overflow-x-auto bg-subtle">
 {`usertasks logs tail --category workflow --severity warn
 curl -N -H "Authorization: Bearer $USERTASKS_API_KEY" "$USERTASKS_URL/api/v1/events/stream"`}
       </pre>

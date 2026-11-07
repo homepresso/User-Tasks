@@ -1,0 +1,87 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+  "asset": {
+    "id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+    "name": "Sites",
+    "description": "The sites you inspect: the lookup on the inspection form fills the site manager, address and risk class from here, and every inspection updates the last result.",
+    "columns": [
+      {
+        "id": "7d862c17-425d-5de1-8bea-9d3204e0c169",
+        "required": true,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "7d688bcf-f0b1-5855-8aed-cdd98150455d",
+        "required": true,
+        "key": "name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "e49ec427-7fb9-53d2-a272-372b648afca7",
+        "required": false,
+        "key": "address",
+        "name": "Address",
+        "type": "text"
+      },
+      {
+        "id": "a40dacac-aaec-5638-9773-88874cc4c194",
+        "required": false,
+        "key": "site_type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Office",
+          "Warehouse",
+          "Workshop",
+          "Retail",
+          "Laboratory"
+        ]
+      },
+      {
+        "id": "10505842-84d0-5ff2-b1eb-970ab949fd6b",
+        "required": false,
+        "key": "risk_class",
+        "name": "Risk class",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      {
+        "id": "ea8ec322-bbbf-5cb1-bd03-3e617bf91c69",
+        "required": false,
+        "key": "site_manager",
+        "name": "Site manager",
+        "type": "text"
+      },
+      {
+        "id": "751c3ed3-883b-55d6-a60c-15e2d4f03832",
+        "required": false,
+        "key": "site_manager_email",
+        "name": "Site manager email",
+        "type": "email"
+      },
+      {
+        "id": "5066f9b1-6f44-5b59-97ca-d984af925b38",
+        "required": false,
+        "key": "last_inspected",
+        "name": "Last inspected",
+        "type": "date"
+      },
+      {
+        "id": "4ec3e749-fd60-541b-9816-c11a640e7a5c",
+        "required": false,
+        "key": "last_outcome",
+        "name": "Last outcome",
+        "type": "text"
+      }
+    ]
+  }
+}

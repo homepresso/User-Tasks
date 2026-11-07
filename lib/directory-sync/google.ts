@@ -3,7 +3,9 @@ import { z } from 'zod'
 import {
   DirectoryApiError,
   looksLikeEmail,
+  profileValue,
   type DirectoryClient,
+  type DirectoryProfile,
   type DirectoryGroup,
   type DirectoryUser,
 } from '@/lib/directory-sync/types'
@@ -39,6 +41,29 @@ export const googleSettingsSchema = z.object({
 })
 
 export type GoogleSettings = z.output<typeof googleSettingsSchema>
+
+/**
+ * Admin SDK user → org attributes: the primary (else first) organizations[]
+ * entry's title / department / costCenter / name (company) / location, else
+ * the primary desk location's buildingId; the employee id from
+ * externalIds[type=organization].
+ */
+export function googleProfile(u: any): DirectoryProfile {
+  const orgs = Array.isArray(u?.organizations) ? u.organizations.filter((o: any) => o && typeof o === 'object') : []
+  const org = orgs.find((o: any) => o.primary) ?? orgs[0] ?? {}
+  const locations = Array.isArray(u?.locations) ? u.locations.filter((l: any) => l && typeof l === 'object') : []
+  const desk = locations.find((l: any) => l.type === 'desk') ?? locations[0] ?? {}
+  const externalIds = Array.isArray(u?.externalIds) ? u.externalIds : []
+  const employee = externalIds.find((e: any) => e?.type === 'organization')
+  return {
+    job_title: profileValue(org.title),
+    department: profileValue(org.department),
+    cost_center: profileValue(org.costCenter),
+    company: profileValue(org.name),
+    location: profileValue(org.location ?? desk.buildingId ?? desk.area),
+    employee_id: profileValue(employee?.value),
+  }
+}
 
 export interface GoogleServiceAccountKey {
   client_email: string
@@ -153,6 +178,8 @@ export function createGoogleDirectoryClient(options: GoogleClientOptions): Direc
             displayName: String(u.name?.fullName || [u.name?.givenName, u.name?.familyName].filter(Boolean).join(' ') || email || u.id),
             email,
             active: !u.suspended && !u.archived,
+            profile: googleProfile(u),
+            ...(typeof u.orgUnitPath === 'string' ? { orgUnitPath: u.orgUnitPath } : {}),
             ...(Array.isArray(u.relations)
               ? (() => {
                   const rel = u.relations.find((r: any) => r?.type === 'manager' && looksLikeEmail(r?.value))

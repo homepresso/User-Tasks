@@ -73,7 +73,7 @@ type WordmarkProps = {
   textOnly?: boolean
 }
 
-/** Mark + "usertasks" set in the app's DM Sans bold. */
+/** Mark + "usertasks" in the app's sans (Inter), bold. */
 export function Wordmark({ tone = "dark", size = 28, className, textOnly }: WordmarkProps) {
   const light = tone === "light"
   return (

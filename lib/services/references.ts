@@ -7,10 +7,12 @@
  * asset on every save/delete, plus an audit row (integration_reference).
  */
 
+import { isWriteReference } from '@/lib/custom-references/types'
 import { executeReference as runReference } from '@/lib/reference-executor'
 import { captureResponseSample, normalizeResponseSchema, referenceResponseSchema } from '@/lib/response-schema'
 import { EgressBlockedError } from '@/lib/egress-guard'
-import { requirePerm, ServiceError, type ServiceContext } from './context'
+import { unwrapExecutorResult } from '@/lib/response-collections'
+import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyPage, audit, dbError, ilikeTerm, maskSecrets, syncChange, type Page } from './_shared'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- reference inputs/outputs/request_config are free-form JSON */
@@ -148,10 +150,29 @@ export async function getReference(ctx: ServiceContext, referenceId: string) {
   return presentReference(data as any)
 }
 
-export async function createReference(ctx: ServiceContext, integrationId: string, input: ReferenceInput) {
+/**
+ * A custom reference (request_config.origin = 'custom' with
+ * request_config.custom): the source request, public inputs, outputs and
+ * response model are built on the server from the shaping config.
+ */
+export function isCustomReferenceInput(input: { request_config?: Record<string, any> | null } | null | undefined): boolean {
+  const rc = input?.request_config
+  return !!rc && typeof rc === 'object' && rc.origin === 'custom' && !!rc.custom && typeof rc.custom === 'object'
+}
+
+async function buildCustom(ctx: ServiceContext, integrationId: string, input: ReferenceInput | ReferenceUpdateInput, existing: any | null) {
+  const { materializeCustomReference } = await import('./custom-references')
+  return materializeCustomReference(ctx, integrationId, { custom: input.request_config!.custom, request_config: input.request_config ?? undefined }, existing)
+}
+
+export async function createReference(ctx: ServiceContext, integrationId: string, input: ReferenceInput, options: { prebuilt?: boolean } = {}) {
   requirePerm(ctx, 'integrations.manage_references')
   if (!String(input.name ?? '').trim()) throw ServiceError.validation('Reference name is required')
   await requireOwnedIntegration(ctx, integrationId)
+  if (isCustomReferenceInput(input) && !options.prebuilt) {
+    const built = await buildCustom(ctx, integrationId, input, null)
+    input = { name: input.name, description: input.description, tags: input.tags, request_config: built.request_config, inputs: built.inputs, outputs: built.outputs }
+  }
 
   const row = buildReferenceInsert({ tenantId: ctx.tenantId, integrationId, reference: input })
   const { data, error } = await ctx.supabase.from('integration_references')
@@ -180,7 +201,14 @@ export interface ReferenceUpdateInput {
 
 export async function updateReference(ctx: ServiceContext, referenceId: string, input: ReferenceUpdateInput) {
   requirePerm(ctx, 'integrations.manage_references')
-  const existing = await requireOwnedReference(ctx, referenceId)
+  let existing = await requireOwnedReference(ctx, referenceId)
+  if (isCustomReferenceInput(input)) {
+    existing = await requireOwnedReference(ctx, referenceId, 'id, name, integration_id, request_config, inputs, outputs')
+    const built = await buildCustom(ctx, existing.integration_id, input, existing)
+    // Fixed values, shaping and the source live in request_config; the public
+    // inputs and outputs follow it (callers never see Fixed inputs).
+    input = { ...input, request_config: built.request_config, inputs: built.inputs, outputs: built.outputs, response_schema: undefined, method: undefined }
+  }
 
   const updates: Record<string, any> = {}
   if (input.name !== undefined) {
@@ -282,7 +310,7 @@ export async function executeReference(
       referenceId,
       inputValues: inputs as Record<string, string>,
       timeout: 30000,
-      caller: { traceId: '', callerType: ctx.source === 'ui' || ctx.source === 'job' ? 'manual_test' : ctx.source, callerId: ctx.actorId },
+      caller: { traceId: '', callerType: ctx.source === 'ui' || ctx.source === 'job' ? 'manual_test' : ctx.source === 'anonymous' ? 'form_submit' : ctx.source, callerId: ctx.actorId },
       expectedTenantId: ctx.tenantId,
     })
     const status = result.status ?? 200
@@ -338,7 +366,8 @@ export async function captureReferenceSchema(
   const existing = await requireOwnedReference(ctx, referenceId, 'id, name, request_config, outputs')
   const prior = referenceResponseSchema(existing)
   // "auto" capture (every builder test) never touches a spec/manual/database model.
-  if (options.onlyIfInferred && prior && !['sample', 'outputs'].includes(prior.source)) return prior
+  // Connector catalogue models only name the top-level fields, so a real response fills them in too.
+  if (options.onlyIfInferred && prior && !['sample', 'outputs', 'connector'].includes(prior.source)) return prior
   const captured = captureResponseSample(prior, sample)
   const requestConfig = { ...(existing.request_config ?? {}), response_schema: captured }
   const { error } = await ctx.supabase.from('integration_references')
@@ -346,4 +375,79 @@ export async function captureReferenceSchema(
   if (error) throw dbError(error)
   void syncChange(ctx, 'reference', { id: referenceId, name: existing.name })
   return captured
+}
+
+/**
+ * "Load sample" in the designers (form Data table / lookup, workflow Loop and
+ * response model): run the reference once with sample inputs — through the
+ * executor, so the egress guard, credential handling and call log apply —
+ * and fold the response into its model. Needs integrations.test (or
+ * integrations.edit, as on the integration page's Test). With
+ * integrations.manage_references the merged model is saved on the reference
+ * (`saved: true`); without it the model is returned for this session only.
+ * Only the trimmed sample travels back, never the whole response.
+ */
+export async function loadReferenceSample(ctx: ServiceContext, referenceId: string, inputs: Record<string, unknown> = {}) {
+  if (!hasPerm(ctx, 'integrations.test') && !hasPerm(ctx, 'integrations.edit')) requirePerm(ctx, 'integrations.test')
+  const existing = await requireOwnedReference(ctx, referenceId, 'id, name, request_config, outputs')
+  // A sample would run the write for real: write references keep the model built from their columns.
+  if (isWriteReference(existing as any)) throw ServiceError.validation('This reference writes data — its model comes from its columns; there is no sample to load')
+  const cleanInputs: Record<string, string> = {}
+  for (const [name, value] of Object.entries(inputs ?? {}).slice(0, 50)) {
+    if (!/^[A-Za-z0-9_.$-]{1,100}$/.test(name) || value === undefined || value === null) continue
+    cleanInputs[name] = typeof value === 'string' ? value.slice(0, 2000) : JSON.stringify(value).slice(0, 2000)
+  }
+  let result: Awaited<ReturnType<typeof runReference>>
+  try {
+    result = await referenceSampleDeps.execute({
+      supabase: ctx.supabase,
+      referenceId,
+      inputValues: cleanInputs,
+      timeout: 30000,
+      caller: { traceId: '', callerType: 'manual_test', callerId: ctx.actorId },
+      expectedTenantId: ctx.tenantId,
+    })
+  } catch (error: any) {
+    if (error instanceof EgressBlockedError) throw ServiceError.validation(error.message)
+    if (error instanceof ServiceError) throw error
+    throw new ServiceError('internal', `The call failed: ${String(error?.message ?? 'unknown error').slice(0, 300)}`, { status: 502 })
+  }
+  const status = result.status ?? 200
+  if (status >= 400) {
+    const detail = result.error_message ? `: ${String(result.error_message).slice(0, 300)}` : ''
+    throw ServiceError.validation(`The API answered ${status}${detail}`)
+  }
+  const body = unwrapExecutorResult(result.data)
+  if (body === undefined || body === null || (typeof body === 'string' && !body.trim())) {
+    throw ServiceError.validation('The API returned an empty response — there is nothing to build a model from')
+  }
+  if (hasPerm(ctx, 'integrations.manage_references')) {
+    const response_schema = await captureReferenceSchema(ctx, referenceId, body)
+    return { status, response_schema, saved: true }
+  }
+  return { status, response_schema: captureResponseSample(referenceResponseSchema(existing), body), saved: false }
+}
+
+/** Seams for tests. */
+export const referenceSampleDeps = { execute: runReference }
+
+/**
+ * "Duplicate as custom": a custom reference built on this reference's
+ * operation (all inputs asked and passed through, the rows list and its
+ * top-level fields picked from the response model) — a starting point to tidy.
+ */
+export async function duplicateAsCustom(ctx: ServiceContext, referenceId: string, name?: string) {
+  requirePerm(ctx, 'integrations.manage_references')
+  const ref = await requireOwnedReference(ctx, referenceId, 'id, name, description, integration_id, inputs, outputs, request_config')
+  const { customConfigFromReference, materializeCustomReference } = await import('./custom-references')
+  if (ref.request_config?.origin === 'custom') throw ServiceError.validation('This is already a custom reference')
+  const custom = customConfigFromReference(ref)
+  const built = await materializeCustomReference(ctx, ref.integration_id, { custom }, null, { draft: true })
+  return createReference(ctx, ref.integration_id, {
+    name: (name?.trim() || `${ref.name} (custom)`).slice(0, 160),
+    description: ref.description ?? null,
+    request_config: built.request_config,
+    inputs: built.inputs,
+    outputs: built.outputs,
+  }, { prebuilt: true })
 }

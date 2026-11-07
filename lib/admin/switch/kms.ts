@@ -4,6 +4,7 @@ import { dataKeyContext } from '@/lib/providers/kms/types'
 import { resolverFor } from '@/lib/providers/kms/keyring'
 import { decodeSettings } from '../ops/instance-db'
 import { createDataKey, hasKmsSchema, kmsProviderForConfig, listDataKeys, rewrapDataKeys } from '../ops/kms'
+import { isApiClient, NEEDS_DIRECT_REMEDY, NeedsDirectConnectionError } from '../ops/service-sql'
 import type { AreaSwitch, PreflightCheck } from './types'
 
 /**
@@ -23,6 +24,12 @@ import type { AreaSwitch, PreflightCheck } from './types'
  * instance settings, if any are stored there). Rollback re-wraps every data
  * key — including one the switch created — with the previous provider, so
  * nothing written meanwhile becomes unreadable.
+ *
+ * Without a direct connection (the service-role API) only the provider
+ * selection runs: allowed while there are no data keys yet (nothing to
+ * re-wrap), and the first data key is then left to `usertasks-admin kms
+ * rotate` where DATABASE_URL is set — until then secrets keep using
+ * ENCRYPTION_KEY, exactly as before the switch.
  */
 
 export const kmsSwitch: AreaSwitch = {
@@ -55,9 +62,14 @@ export const kmsSwitch: AreaSwitch = {
         checks.push({ name: `data key ${row.id}`, severity: 'error', detail: (error as Error).message })
       }
     }
+    if (rows.length && isApiClient(ctx.db)) {
+      checks.push({ name: 'data keys', severity: 'error', detail: `${rows.length} data key(s) must be re-wrapped with ${ctx.to}, which needs a direct database connection: ${NEEDS_DIRECT_REMEDY}` })
+    }
     if (rows.length && !checks.some((c) => c.severity === 'error')) checks.push({ name: 'data keys', severity: 'ok', detail: `${rows.length} data key(s) unwrap with the current configuration` })
     if (!rows.length) {
-      checks.push({ name: 'data keys', severity: 'ok', detail: `none yet: one will be created under ${ctx.to}${hasEncryptionKey() ? ' (existing enc:v1 secrets keep decrypting with ENCRYPTION_KEY)' : ''}` })
+      checks.push({ name: 'data keys', severity: 'ok', detail: isApiClient(ctx.db)
+        ? `none yet: nothing to re-wrap. Create the first one under ${ctx.to} later with usertasks-admin kms rotate --yes where DATABASE_URL is set${hasEncryptionKey() ? ' (until then secrets keep using ENCRYPTION_KEY)' : ''}`
+        : `none yet: one will be created under ${ctx.to}${hasEncryptionKey() ? ' (existing enc:v1 secrets keep decrypting with ENCRYPTION_KEY)' : ''}` })
     }
     return checks
   },
@@ -76,6 +88,10 @@ export const kmsSwitch: AreaSwitch = {
           return rows.length ? `re-wrap ${rows.map((r) => `#${r.id}`).join(', ')}` : 'no data keys yet'
         },
         async run() {
+          if (isApiClient(ctx.db)) {
+            if ((await listDataKeys(ctx.db)).length) throw new NeedsDirectConnectionError('Re-wrapping the data keys')
+            return 'no data keys to re-wrap'
+          }
           const target = await kmsProviderForConfig(ctx.targetConfig)
           const current = await kmsProviderForConfig(ctx.config)
           const resolveBoth = (id: string) => (id === target.id ? target : resolverFor(current)(id))
@@ -88,6 +104,7 @@ export const kmsSwitch: AreaSwitch = {
         title: 'Create the first data key (when there is none)',
         async run() {
           if ((await listDataKeys(ctx.db)).length) return 'data keys exist'
+          if (isApiClient(ctx.db)) return 'skipped without a direct connection: run usertasks-admin kms rotate --yes where DATABASE_URL is set'
           const created = await createDataKey(ctx.db, await kmsProviderForConfig(ctx.targetConfig), { activateInSeconds: 0, actor: ctx.options.actor })
           return `created data key #${created.id}`
         },
@@ -100,6 +117,10 @@ export const kmsSwitch: AreaSwitch = {
     const previous = await kmsProviderForConfig(before)
     const switched = await kmsProviderForConfig(after)
     if (ctx.dryRun) return [`would re-wrap every data key with ${previous.describe()}`]
+    if (isApiClient(ctx.db)) {
+      if ((await listDataKeys(ctx.db)).length) throw new NeedsDirectConnectionError('Re-wrapping the data keys')
+      return ['no data keys to re-wrap']
+    }
     const resolve = (id: string) => (id === switched.id ? switched : resolverFor(previous)(id))
     const result = await rewrapDataKeys(ctx.db, previous, resolve)
     return [`re-wrapped ${result.rewrapped.length} data key(s) with ${previous.id}`]

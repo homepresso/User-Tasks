@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+  "asset": {
+    "id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+    "name": "Audit log",
+    "description": "One row per step of every document review: who did what, when, on which version, and the outcome. The sign-off row records the signer, the time, the file name and its SHA-256 checksum. Rows get the 7-year retention policy as they are written.",
+    "columns": [
+      {
+        "id": "7d6fcba2-46cc-5436-b58e-e5ad2d2a6880",
+        "required": true,
+        "key": "reference",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "23e860d3-776f-5431-bcbd-23943903d8a2",
+        "required": false,
+        "key": "at",
+        "name": "When",
+        "type": "datetime"
+      },
+      {
+        "id": "f9f68098-d68d-57e9-9af7-948cb8cc14bb",
+        "required": true,
+        "key": "step",
+        "name": "Step",
+        "type": "text"
+      },
+      {
+        "id": "b11573f1-4187-5890-85ac-f94d451f9d57",
+        "required": false,
+        "key": "actor",
+        "name": "Who",
+        "type": "text"
+      },
+      {
+        "id": "3be4da98-b900-5feb-98df-5e6aaf28b805",
+        "required": false,
+        "key": "outcome",
+        "name": "Outcome",
+        "type": "text"
+      },
+      {
+        "id": "5767c01f-4a48-5cdf-ba1b-1f77c7f84981",
+        "required": false,
+        "key": "version",
+        "name": "Version",
+        "type": "number"
+      },
+      {
+        "id": "c4ca62a3-6eb6-5f01-a7c2-af9b839e22a3",
+        "required": false,
+        "key": "document_name",
+        "name": "Document",
+        "type": "text"
+      },
+      {
+        "id": "1a21379d-53e3-51e9-8be3-7a9f86759e7f",
+        "required": false,
+        "key": "detail",
+        "name": "Detail",
+        "type": "text"
+      }
+    ]
+  }
+}

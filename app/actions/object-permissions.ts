@@ -1,7 +1,9 @@
 'use server'
 
-import { createClient, getCachedUser } from '@/lib/supabase/server'
-import { requirePermission } from '@/lib/permissions-server'
+import { createClient } from '@/lib/supabase/server'
+import { getUserPermissions, requirePermission } from '@/lib/permissions-server'
+import { fromSession } from '@/lib/services/context'
+import * as service from '@/lib/services/object-permissions'
 
 export interface ObjectPermission {
   id: string
@@ -21,7 +23,18 @@ export interface ObjectPermission {
   team?: { id: string; name: string } | null
 }
 
+/** Besides Manage roles, who may read an object's grants: the people who can edit it. */
+const GRANT_READ_PERMISSION: Record<string, string> = {
+  workflow: 'workflows.edit', form: 'forms.edit', data_table: 'data.edit_schema', agent: 'agents.edit',
+  integration: 'integrations.edit', report: 'reports.edit_own', api_key: 'settings.manage_api_keys',
+}
+
 export async function getObjectPermissions(objectType: string, objectId: string): Promise<ObjectPermission[]> {
+  // Grantees' names and emails: the people who manage grants (Manage roles)
+  // or can edit the object (its Access panel / availability hint).
+  const perms = await getUserPermissions()
+  const editPerm = GRANT_READ_PERMISSION[objectType]
+  if (!perms.has('team.change_roles') && !(editPerm && perms.has(editPerm))) throw new Error('Forbidden')
   const supabase = await createClient()
   const { data, error } = await (supabase as any)
     .from('object_permissions')
@@ -33,6 +46,26 @@ export async function getObjectPermissions(objectType: string, objectId: string)
   return data ?? []
 }
 
+function toGrant(params: { objectType: string; objectId: string; roleId?: string; userId?: string; teamId?: string; canView: boolean; canEdit: boolean; canDelete: boolean; canExecute: boolean }) {
+  return {
+    object_type: params.objectType, object_id: params.objectId,
+    role_id: params.roleId ?? null, user_id: params.userId ?? null, team_id: params.teamId ?? null,
+    can_view: params.canView, can_edit: params.canEdit, can_delete: params.canDelete, can_execute: params.canExecute,
+  }
+}
+
+/** Service errors become plain Errors with their message (the panel shows it). */
+async function withService<T>(fn: (ctx: Awaited<ReturnType<typeof fromSession>>) => Promise<T>): Promise<T> {
+  await requirePermission('team.change_roles')
+  const ctx = await fromSession()
+  try {
+    return await fn(ctx)
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Could not update the permissions')
+  }
+}
+
+/** Add or change one grantee's grant (lib/services/object-permissions: checks and audit). */
 export async function setObjectPermission(params: {
   objectType: string
   objectId: string
@@ -44,69 +77,11 @@ export async function setObjectPermission(params: {
   canDelete: boolean
   canExecute: boolean
 }) {
-  await requirePermission('team.change_roles')
-  const supabase = await createClient()
-  const user = await getCachedUser()
-  if (!user) throw new Error('Not authenticated')
-  const { data: profile } = await supabase.from('users').select('current_tenant_id, tenant_id').eq('id', user.id).single()
-  const tenantId = profile?.current_tenant_id ?? profile?.tenant_id
-  if (!tenantId) throw new Error('No tenant')
-
-  const row: any = {
-    tenant_id: tenantId,
-    object_type: params.objectType,
-    object_id: params.objectId,
-    can_view: params.canView,
-    can_edit: params.canEdit,
-    can_delete: params.canDelete,
-    can_execute: params.canExecute,
-    granted_by: user.id,
-  }
-  if (params.roleId) row.role_id = params.roleId
-  if (params.userId) row.user_id = params.userId
-  if (params.teamId) row.team_id = params.teamId
-
-  // Upsert: update if exists, insert if new
-  const matchCol = params.roleId ? 'role_id' : params.teamId ? 'team_id' : 'user_id'
-  const matchVal = params.roleId ?? params.teamId ?? params.userId
-
-  const { data: existing } = await (supabase as any)
-    .from('object_permissions')
-    .select('id')
-    .eq('object_type', params.objectType)
-    .eq('object_id', params.objectId)
-    .eq(matchCol, matchVal)
-    .maybeSingle()
-
-  if (existing) {
-    const { error } = await (supabase as any)
-      .from('object_permissions')
-      .update({
-        can_view: params.canView,
-        can_edit: params.canEdit,
-        can_delete: params.canDelete,
-        can_execute: params.canExecute,
-        granted_by: user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
-    if (error) throw new Error(error.message)
-  } else {
-    const { error } = await (supabase as any)
-      .from('object_permissions')
-      .insert(row)
-    if (error) throw new Error(error.message)
-  }
+  await withService((ctx) => service.setObjectPermission(ctx, toGrant(params)))
 }
 
 export async function removeObjectPermission(permissionId: string) {
-  await requirePermission('team.change_roles')
-  const supabase = await createClient()
-  const { error } = await (supabase as any)
-    .from('object_permissions')
-    .delete()
-    .eq('id', permissionId)
-  if (error) throw new Error(error.message)
+  await withService((ctx) => service.removeObjectPermission(ctx, permissionId))
 }
 
 export async function bulkSetObjectPermissions(params: {
@@ -120,19 +95,11 @@ export async function bulkSetObjectPermissions(params: {
   canDelete: boolean
   canExecute: boolean
 }) {
-  await requirePermission('team.change_roles')
-  for (const objectId of params.objectIds) {
-    await setObjectPermission({ ...params, objectId })
-  }
+  await withService(async (ctx) => {
+    for (const objectId of params.objectIds) await service.setObjectPermission(ctx, toGrant({ ...params, objectId }))
+  })
 }
 
 export async function removeAllObjectPermissions(objectType: string, objectId: string) {
-  await requirePermission('team.change_roles')
-  const supabase = await createClient()
-  const { error } = await (supabase as any)
-    .from('object_permissions')
-    .delete()
-    .eq('object_type', objectType)
-    .eq('object_id', objectId)
-  if (error) throw new Error(error.message)
+  await withService((ctx) => service.removeAllObjectPermissions(ctx, objectType, objectId))
 }

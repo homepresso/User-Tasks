@@ -1,0 +1,485 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "3a97ba38-0f2f-5012-93c7-a3e4599285c0",
+  "asset": {
+    "id": "3a97ba38-0f2f-5012-93c7-a3e4599285c0",
+    "name": "Survey results",
+    "description": "The internal results page: NPS trend and category split from the Survey responses table, NPS by product area and the open follow-ups from saved reports, and a button that emails a month's summary.",
+    "tags": [
+      "survey",
+      "dashboard",
+      "nps"
+    ],
+    "fields": [
+      {
+        "key": "about",
+        "type": "custom",
+        "label": "How to read this page",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "info",
+            "card_title": "Net Promoter Score",
+            "body": "NPS = % promoters (9-10) minus % detractors (0-6), from -100 to +100. Every detractor gets a follow-up call within 24-48 hours; the follow-ups still open are listed below.",
+            "layout": "callout",
+            "format": "auto",
+            "show_icon": true
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "nps_trend",
+        "type": "custom",
+        "label": "NPS by month",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Net Promoter Score by month",
+            "chart_type": "line",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "month",
+            "value_field": "nps_points",
+            "aggregate": "average",
+            "show_legend": false,
+            "stacked": false,
+            "height": 300,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+          "search_columns": [
+            "month",
+            "customer_name"
+          ],
+          "display_columns": [
+            "month",
+            "nps_points"
+          ],
+          "value_column": "response_ref",
+          "sort": {
+            "column": "submitted_on",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        },
+        "help_text": "The average of the NPS points (+100 promoter, 0 passive, -100 detractor) of the latest 50 responses, by month."
+      },
+      {
+        "key": "by_category",
+        "type": "custom",
+        "label": "Responses by category",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Promoters, passives and detractors",
+            "chart_type": "doughnut",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "nps_category",
+            "value_field": "nps",
+            "aggregate": "count",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#15803D",
+              "#A16207",
+              "#B91C1C"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+          "search_columns": [
+            "nps_category"
+          ],
+          "display_columns": [
+            "nps_category",
+            "nps"
+          ],
+          "value_column": "response_ref",
+          "sort": {
+            "column": "nps_category",
+            "direction": "desc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "area_report",
+        "type": "custom",
+        "label": "NPS points by product area",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "94ae0773-fc8a-5891-bdb0-5ddafbc634ee",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "open_report",
+        "type": "custom",
+        "label": "Open detractor follow-ups",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "407825ca-2345-549b-b2b2-d066f7e96334",
+            "view": "table",
+            "page_size": 5,
+            "max_rows": 100,
+            "height": 300,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "summary_month",
+        "label": "Email me the summary for",
+        "type": "text",
+        "required": true,
+        "placeholder": "YYYY-MM",
+        "help_text": "A month as YYYY-MM."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "nps_trend",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "by_category",
+              "span": 1
+            },
+            {
+              "field_key": "area_report",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "open_report",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 1,
+          "cells": [
+            {
+              "field_key": "summary_month",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#C2410C",
+            "background": "#FFFFFF",
+            "text": "#22160F",
+            "page": "#FDF0E7",
+            "page_to": "#FFFAF5"
+          }
+        },
+        "radius": 16,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Email me the summary",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Summary on its way",
+            "screen_button": "submit_another",
+            "text": "The NPS summary for {{summary_month}} is being emailed to you.",
+            "screen_button_label": "Back to the results"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Survey results",
+      "align": "left",
+      "subtitle": "Customer satisfaction and NPS: trend, split by category and product area, and open follow-ups."
+    }
+  }
+}

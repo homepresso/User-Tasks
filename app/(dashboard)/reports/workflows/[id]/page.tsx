@@ -42,7 +42,7 @@ export default function WorkflowProcessOverviewPage({ params }: { params: Promis
   if (isLoading) return <PageSkeleton variant="list" />
   if (!data?.workflow) {
     return (
-      <div className="text-center py-16 text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="text-center py-16 text-sm text-fg-muted">
         Workflow not found.
       </div>
     )
@@ -57,6 +57,7 @@ export default function WorkflowProcessOverviewPage({ params }: { params: Promis
       taskById={data.taskById}
       agentRunsByRunId={data.agentRunsByRunId}
       agentNameById={data.agentNameById}
+      variablesByRunId={data.variablesByRunId}
     />
   )
 }

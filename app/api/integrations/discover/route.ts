@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { discoverObjects, discoverParameters, discoverColumns, discoverPrimaryKey, discoverIdentityColumn, parseDbConfig } from '@/lib/db-connector'
 import { getCurrentTenantId, getOwnedIntegration } from '@/lib/integrations/auth'
+import { getUserPermissions } from '@/lib/permissions-server'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Schema discovery reads the connected database: same gate as /api/db introspection.
+  const perms = await getUserPermissions()
+  if (!perms.has('integrations.view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { integration_id, action, schema, name } = await request.json()
   if (!integration_id) return NextResponse.json({ error: 'integration_id required' }, { status: 400 })
 
-  const tenantId = await getCurrentTenantId(supabase, user.id)
-  const integration = await getOwnedIntegration(supabase, tenantId, integration_id, 'config')
+  let integration
+  try {
+    const tenantId = await getCurrentTenantId(supabase, user.id)
+    integration = await getOwnedIntegration(supabase, tenantId, integration_id, 'config')
+  } catch {
+    return NextResponse.json({ error: 'Integration not found' }, { status: 404 })
+  }
 
   const dbConfig = parseDbConfig((integration as any).config as any)
   if (!dbConfig) return NextResponse.json({ error: 'Not a database integration' }, { status: 400 })
@@ -43,6 +52,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })
     }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? 'Discovery failed' })
+    return NextResponse.json({ error: e.message ?? 'Discovery failed' }, { status: e?.name === 'EgressBlockedError' ? 400 : 500 })
   }
 }

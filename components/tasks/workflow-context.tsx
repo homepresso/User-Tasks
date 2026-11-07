@@ -1,4 +1,5 @@
-import { Network } from 'lucide-react'
+import { Network, RefreshCw, User, Zap } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 
 interface WorkflowContextProps {
   workflowSource: {
@@ -9,10 +10,10 @@ interface WorkflowContextProps {
   position: string | null
 }
 
-const engineIcons: Record<string, string> = {
-  nintex: '\u{1F504}',
-  power_automate: '\u26A1',
-  manual: '\u{1F464}',
+const engineIcons: Record<string, React.ReactNode> = {
+  nintex: <RefreshCw />,
+  power_automate: <Zap />,
+  manual: <User />,
 }
 
 export function WorkflowContext({ workflowSource, stepId, position }: WorkflowContextProps) {
@@ -32,28 +33,22 @@ export function WorkflowContext({ workflowSource, stepId, position }: WorkflowCo
   }
 
   return (
-    <div
-      className="flex items-center gap-3 rounded-lg px-4 py-3 mb-4"
-      style={{
-        backgroundColor: 'var(--theme-surface)',
-        border: '1px solid var(--theme-surface-border)',
-      }}
-    >
-      <span className="text-lg">
-        {engineIcons[workflowSource.engine_type] ?? <Network size={18} />}
+    <Card variant="inset" padding="md" className="flex items-center gap-3" data-workflow-context>
+      <span className="inline-flex text-fg-muted [&>svg]:size-5" aria-hidden>
+        {engineIcons[workflowSource.engine_type] ?? <Network />}
       </span>
       <div className="flex-1">
-        <p className="text-xs font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs font-medium text-fg-muted">
           Workflow
         </p>
-        <p className="text-sm font-semibold">
+        <p className="text-sm font-semibold text-fg">
           {workflowSource.display_name}
         </p>
       </div>
       {stepId && (
         <div className="text-right">
-          <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>Step</p>
-          <p className="text-sm font-medium">{stepLabel ?? stepId}</p>
+          <p className="text-xs text-fg-muted">Step</p>
+          <p className="text-sm font-medium text-fg">{stepLabel ?? stepId}</p>
         </div>
       )}
       {stepNumber && totalSteps && (
@@ -61,16 +56,11 @@ export function WorkflowContext({ workflowSource, stepId, position }: WorkflowCo
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div
               key={i}
-              className="h-2 w-6 rounded-full"
-              style={{
-                backgroundColor: i < stepNumber
-                  ? 'var(--theme-primary)'
-                  : 'var(--theme-surface-border)',
-              }}
+              className={`h-1.5 w-6 rounded-full ${i < stepNumber ? 'bg-primary' : 'bg-muted'}`}
             />
           ))}
         </div>
       )}
-    </div>
+    </Card>
   )
 }

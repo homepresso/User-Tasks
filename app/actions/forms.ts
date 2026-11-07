@@ -4,6 +4,7 @@ import type { ActionResult } from '@/lib/action-result'
 import { runAction } from '@/lib/actions/run-action'
 import { fromSession, isServiceError } from '@/lib/services/context'
 import * as forms from '@/lib/services/forms'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 import type { SubmitFormInput, SubmitFormResult } from '@/lib/services/form-submissions'
 
 /*
@@ -17,8 +18,17 @@ function run<T>(label: string, fallback: string, fn: (ctx: Awaited<ReturnType<ty
   return runAction(label, fallback, async () => fn(await fromSession()))
 }
 
+// A repeated create from the UI (double click, retry) reuses the record this
+// user created with the same name moments ago. Only these UI actions dedupe:
+// imports, duplicates and the REST / MCP callers keep plain create semantics.
+async function recentByName<T>(ctx: Awaited<ReturnType<typeof fromSession>>, table: string, name: unknown, select: string): Promise<T | null> {
+  if (!ctx.actorId) return null
+  return findRecentDuplicate<T>(ctx.supabase, table, { tenant_id: ctx.tenantId, created_by: ctx.actorId, name: String(name ?? '').trim() }, { select })
+}
+
 export async function createForm(input: forms.FormInput) {
-  return run('createForm', 'Could not save the form.', (ctx) => forms.createForm(ctx, input))
+  return run('createForm', 'Could not save the form.', async (ctx) =>
+    (await recentByName<forms.FormRow>(ctx, 'forms', input.name, '*')) ?? forms.createForm(ctx, input))
 }
 
 export async function updateForm(formId: string, input: forms.FormUpdateInput) {
@@ -34,7 +44,8 @@ export async function deleteForm(formId: string) {
 }
 
 export async function createFormTheme(input: forms.FormThemeInput) {
-  return run('createFormTheme', 'Could not save the form theme.', (ctx) => forms.createFormTheme(ctx, input))
+  return run('createFormTheme', 'Could not save the form theme.', async (ctx) =>
+    (await recentByName<forms.FormThemeRow>(ctx, 'form_themes', input.name, '*')) ?? forms.createFormTheme(ctx, input))
 }
 
 export async function updateFormTheme(themeId: string, input: Partial<forms.FormThemeInput>) {
@@ -45,19 +56,30 @@ export async function deleteFormTheme(themeId: string) {
   return run('deleteFormTheme', 'Could not delete the form theme.', (ctx) => forms.deleteFormTheme(ctx, themeId))
 }
 
-/** Submit a form from its own page; field errors come back per field. */
-export async function submitStandaloneForm(formId: string, input: SubmitFormInput): Promise<ActionResult<SubmitFormResult> & { fields?: Record<string, string> }> {
+type SubmitActionResult = ActionResult<SubmitFormResult> & { fields?: Record<string, string> }
+
+async function submitFrom(formId: string, input: SubmitFormInput, surface: 'page' | 'run_dialog', label: string): Promise<SubmitActionResult> {
   try {
     const { submitForm } = await import('@/lib/services/form-submissions')
-    return { ok: true, data: await submitForm(await fromSession(), formId, input, { source: 'standalone' }) }
+    return { ok: true, data: await submitForm(await fromSession(), formId, input, { source: 'standalone', ...(surface === 'run_dialog' ? { surface } : {}) }) }
   } catch (error) {
     if (isServiceError(error)) {
       const details = error.details as { fields?: Record<string, string> } | undefined
       return { ok: false, error: error.message, ...(details?.fields ? { fields: details.fields } : {}) }
     }
-    console.error('[submitStandaloneForm]', error)
+    console.error(`[${label}]`, error)
     return { ok: false, error: 'Could not submit the form.' }
   }
+}
+
+/** Submit a form from its own page; field errors come back per field. */
+export async function submitStandaloneForm(formId: string, input: SubmitFormInput): Promise<SubmitActionResult> {
+  return submitFrom(formId, input, 'page', 'submitStandaloneForm')
+}
+
+/** Submit a workflow's trigger form from the Run dialog ({{submission.source}} = run_dialog; set here, never by the request). */
+export async function submitRunDialogForm(formId: string, input: SubmitFormInput): Promise<SubmitActionResult> {
+  return submitFrom(formId, input, 'run_dialog', 'submitRunDialogForm')
 }
 
 /** Header image upload (PNG, JPEG, SVG — sanitised — or WebP, ≤ 1 MB). */
@@ -68,4 +90,24 @@ export async function uploadFormHeaderImage(formData: FormData) {
     const { uploadFormHeaderImage: upload } = await import('@/lib/services/uploads')
     return upload(ctx, { name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })
   })
+}
+
+/**
+ * An in-form button's "Open link" to another host: the address when it is
+ * allowed (an app page, the app's origin or a FORM_REDIRECT_ALLOWLIST host —
+ * the redirect rule), else null. Reads nothing; safe for any visitor.
+ */
+export async function checkFormLink(url: string): Promise<string | null> {
+  const { safeRedirectUrl } = await import('@/lib/forms/buttons')
+  return safeRedirectUrl(typeof url === 'string' ? url.slice(0, 2000) : '', forms.redirectPolicy())
+}
+
+/** Save (replace) my draft of a reusable form: the Save draft icon (lib/services/form-drafts.ts). */
+export async function saveFormDraft(formId: string, input: { values?: Record<string, unknown>; params?: Record<string, unknown> | null }) {
+  return run('saveFormDraft', 'Could not save the draft.', async (ctx) => (await import('@/lib/services/form-drafts')).saveFormDraft(ctx, formId, input))
+}
+
+/** Delete my draft of a reusable form ("Start fresh"). */
+export async function deleteFormDraft(formId: string) {
+  return run('deleteFormDraft', 'Could not delete the draft.', async (ctx) => (await import('@/lib/services/form-drafts')).deleteFormDraft(ctx, formId))
 }

@@ -498,7 +498,7 @@ Every sync and deployment runs in the background and returns an id to poll; resu
     body: `
 A **package** bundles a process — a workflow and everything it needs — into one signed, versioned file (\`.utpkg\`) that you install in other workspaces and environments: dev → test → prod, or from a vendor to its customers. Credentials never travel. When an install needs something the target environment must provide (database credentials, an API token, the URL of this environment's ERP), it asks for it — or installs **incomplete** and lets you finish the setup later.
 
-Packages live in **Automations → Packages** (also under **Settings → Packages**), \`/api/v1/packages\`, \`/api/v1/package-installs\` and \`/api/v1/package-events\`, the MCP \`packages_*\` tools and \`usertasks packages …\`.
+Packages live in **Govern › Packages** (also under **Settings → Packages**), \`/api/v1/packages\`, \`/api/v1/package-installs\` and \`/api/v1/package-events\`, the MCP \`packages_*\` tools and \`usertasks packages …\`.
 
 ## Concepts
 
@@ -554,7 +554,7 @@ Each requirement has an id such as \`connector:connectors:<id>\` and fields such
 
 ## Importing (installing)
 
-Open **Automations → Packages** and drag a \`.utpkg\` file onto the page — or choose **Import package** and pick one. With nothing installed yet the page is one large drop zone. The import wizard opens with the file:
+Open **Govern › Packages** and drag a \`.utpkg\` file onto the page — or choose **Import package** and pick one. With nothing installed yet the page is one large drop zone. The import wizard opens with the file:
 
 1. **Package** — the file is verified (checksum, every file hash, signature) and its readme and contents are shown. A modified file is refused.
 2. **Changes** — the dry-run plan: what is created, updated or unchanged, assets changed locally since the last install, assets no longer in this version, and the row mode per packaged table (**merge**, **replace** or **skip**).
@@ -669,7 +669,7 @@ usertasks packages inspect expense-claims-1.0.0.utpkg
 usertasks packages install expense-claims-1.0.0.utpkg --keep-incomplete --yes
 \`\`\`
 
-In the app, **Automations → Packages → Browse gallery** lists Official and Community packages (with their badges; filter by source or *No integrations needed*) and opens the import wizard with the package you pick. On a self-hosted instance the community entries come from the public index \`GALLERY_INDEX_URL\` (default \`https://usertasks.com/api/gallery/index\`, fetched and downloaded through the instance's own server; \`off\` for air-gapped installs). [\`/gallery/index.json\`](/gallery/index.json) lists every package with its version, file, size, SHA-256 and signer, for scripted installs. ${GALLERY_SIGNING.signed ? `Gallery packages are signed with the **${GALLERY_SIGNING.key_name}** ed25519 key, fingerprint \`${GALLERY_SIGNING.fingerprint}\`. Installs trust it automatically (*Signed by a trusted key*); instances on an older release can add it to \`PACKAGE_TRUSTED_FINGERPRINTS\`.` : `Gallery packages are signed with the **${GALLERY_SIGNING.key_name}** ed25519 key once it is published; until then the files are unsigned preview builds — compare the SHA-256 on each package page.`} Package sources live in the repository under \`gallery/packages/\` in the config-as-code layout; \`gallery/README.md\` explains how to author, build and verify one.
+In the app, **Govern › Packages → Browse gallery** lists Official and Community packages (with their badges; filter by source or *No integrations needed*) and opens the import wizard with the package you pick. On a self-hosted instance the community entries come from the public index \`GALLERY_INDEX_URL\` (default \`https://usertasks.com/api/gallery/index\`, fetched and downloaded through the instance's own server; \`off\` for air-gapped installs). [\`/gallery/index.json\`](/gallery/index.json) lists every package with its version, file, size, SHA-256 and signer, for scripted installs. ${GALLERY_SIGNING.signed ? `Gallery packages are signed with the **${GALLERY_SIGNING.key_name}** ed25519 key, fingerprint \`${GALLERY_SIGNING.fingerprint}\`. Installs trust it automatically (*Signed by a trusted key*); instances on an older release can add it to \`PACKAGE_TRUSTED_FINGERPRINTS\`.` : `Gallery packages are signed with the **${GALLERY_SIGNING.key_name}** ed25519 key once it is published; until then the files are unsigned preview builds — compare the SHA-256 on each package page.`} Package sources live in the repository under \`gallery/packages/\` in the config-as-code layout; \`gallery/README.md\` explains how to author, build and verify one.
 
 ### Share your solution
 

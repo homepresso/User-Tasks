@@ -1,13 +1,26 @@
 import type { ConnectorDefinition } from '../registry'
 
+/**
+ * Jira Cloud REST API.
+ *
+ * Search uses /rest/api/3/search/jql (the old /rest/api/3/search was removed
+ * from Jira Cloud in 2025) with nextPageToken paging. Create issue and add
+ * comment use the v2 resources, which take plain text / wiki markup instead
+ * of Atlassian Document Format, so free text from a workflow works as-is.
+ */
 export const jiraConnector: ConnectorDefinition = {
   key: 'jira',
   name: 'Jira',
-  description: 'App management — create, update, search issues, manage sprints and boards in Jira Cloud',
+  description: 'Issue and project management — create, update, search and transition issues in Jira Cloud',
   category: 'productivity',
   icon: 'Ticket',
   color: '#0052CC',
   docsUrl: 'https://developer.atlassian.com/cloud/jira/platform/rest/v3/',
+  recommendedPermissions: {
+    title: 'Jira permissions',
+    items: ['Browse projects', 'Create issues / Edit issues / Transition issues for write actions', 'Assign issues (Assign Issue action)', 'Create attachments (Add Attachment action)'],
+    note: 'API tokens act as the Atlassian account that created them — use a dedicated integration account with only the projects it needs.',
+  },
   fields: [
     {
       key: 'domain',
@@ -40,20 +53,34 @@ export const jiraConnector: ConnectorDefinition = {
     {
       key: 'search_issues',
       name: 'Search Issues (JQL)',
-      description: 'Search for issues using JQL (Jira Query Language)',
+      description: 'Search issues with JQL. When isLast is false, call again with next_page_token = nextPageToken.',
       method: 'GET',
-      pathTemplate: '/rest/api/3/search?jql={{jql}}&fields={{fields}}&maxResults={{max_results}}&startAt={{start_at}}',
+      pathTemplate: '/rest/api/3/search/jql?jql={{jql}}&fields={{fields}}&maxResults={{max_results}}&nextPageToken={{next_page_token}}',
+      headers: { Accept: 'application/json' },
       inputs: [
-        { name: 'jql', type: 'string', required: true, description: 'JQL query (e.g. app = PROJ AND status = "In Progress")' },
+        { name: 'jql', type: 'string', required: true, description: 'JQL query (e.g. project = PROJ AND status = "In Progress" ORDER BY created DESC). Quote workflow values: summary ~ "\\"text\\""' },
         { name: 'fields', type: 'string', required: false, description: 'Comma-separated fields', defaultValue: 'summary,status,assignee,priority,created,updated' },
-        { name: 'max_results', type: 'number', required: false, description: 'Max results', defaultValue: '50' },
-        { name: 'start_at', type: 'number', required: false, description: 'Pagination offset', defaultValue: '0' },
+        { name: 'max_results', type: 'number', required: false, description: 'Page size (max 5000 when only ids/keys are requested, otherwise 100)', defaultValue: '50' },
+        { name: 'next_page_token', type: 'string', required: false, description: 'nextPageToken from the previous page (empty for the first page)' },
       ],
       outputs: [
         { name: 'issues', type: 'array' },
-        { name: 'total', type: 'number' },
-        { name: 'maxResults', type: 'number' },
+        { name: 'nextPageToken', type: 'string' },
+        { name: 'isLast', type: 'boolean' },
       ],
+    },
+    {
+      key: 'count_issues',
+      name: 'Count Issues (JQL)',
+      description: 'Approximate number of issues matching a JQL query',
+      method: 'POST',
+      pathTemplate: '/rest/api/3/search/approximate-count',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      bodyTemplate: '{"jql":"{{jql}}"}',
+      inputs: [
+        { name: 'jql', type: 'string', required: true, description: 'JQL query (must be bounded, e.g. project = PROJ)' },
+      ],
+      outputs: [{ name: 'count', type: 'number' }],
     },
     {
       key: 'get_issue',
@@ -61,6 +88,7 @@ export const jiraConnector: ConnectorDefinition = {
       description: 'Retrieve a single issue by key or ID',
       method: 'GET',
       pathTemplate: '/rest/api/3/issue/{{issue_key}}?fields={{fields}}&expand={{expand}}',
+      headers: { Accept: 'application/json' },
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key (e.g. PROJ-123) or ID' },
         { name: 'fields', type: 'string', required: false, description: 'Fields to return' },
@@ -75,43 +103,44 @@ export const jiraConnector: ConnectorDefinition = {
     {
       key: 'create_issue',
       name: 'Create Issue',
-      description: 'Create a new issue in an app',
+      description: 'Create a new issue in a project (description as plain text / wiki markup). Set priority, assignee or other fields with Update Issue / Assign Issue, or use Create Issue (Fields JSON).',
       method: 'POST',
-      pathTemplate: '/rest/api/3/issue',
-      headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        fields: {
-          app: { key: '{{app_key}}' },
-          summary: '{{summary}}',
-          issuetype: { name: '{{issue_type}}' },
-          description: { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: '{{description}}' }] }] },
-          priority: { name: '{{priority}}' },
-          assignee: { id: '{{assignee_id}}' },
-          labels: '{{labels}}',
-        },
-      }),
+      pathTemplate: '/rest/api/2/issue',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      bodyTemplate: '{"fields":{"project":{"key":"{{project_key}}"},"summary":"{{summary}}","issuetype":{"name":"{{issue_type}}"},"description":{{description}},"labels":{{labels}}}}',
       inputs: [
-        { name: 'app_key', type: 'string', required: true, description: 'App key (e.g. PROJ)' },
+        { name: 'project_key', type: 'string', required: true, description: 'Project key (e.g. PROJ)' },
         { name: 'summary', type: 'string', required: true, description: 'Issue summary / title' },
         { name: 'issue_type', type: 'string', required: false, description: 'Issue type (Task, Bug, Story, Epic)', defaultValue: 'Task' },
-        { name: 'description', type: 'string', required: false, description: 'Issue description' },
-        { name: 'priority', type: 'string', required: false, description: 'Priority (Highest, High, Medium, Low, Lowest)', defaultValue: 'Medium' },
-        { name: 'assignee_id', type: 'string', required: false, description: 'Assignee account ID' },
-        { name: 'labels', type: 'string', required: false, description: 'JSON array of labels' },
+        { name: 'description', type: 'string', required: false, description: 'Issue description (plain text or Jira wiki markup)' },
+        { name: 'labels', type: 'array', required: false, description: 'Labels, e.g. ["ops","urgent"]' },
+      ],
+      outputs: [{ name: 'id', type: 'string' }, { name: 'key', type: 'string' }, { name: 'self', type: 'string' }],
+    },
+    {
+      key: 'create_issue_fields',
+      name: 'Create Issue (Fields JSON)',
+      description: 'Create an issue from a complete fields object (any field, incl. priority, assignee, custom fields)',
+      method: 'POST',
+      pathTemplate: '/rest/api/2/issue',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      bodyTemplate: '{"fields":{{fields_json}}}',
+      inputs: [
+        { name: 'fields_json', type: 'object', required: true, description: 'e.g. {"project":{"key":"PROJ"},"summary":"…","issuetype":{"name":"Bug"},"priority":{"name":"High"},"assignee":{"accountId":"…"}}' },
       ],
       outputs: [{ name: 'id', type: 'string' }, { name: 'key', type: 'string' }, { name: 'self', type: 'string' }],
     },
     {
       key: 'update_issue',
       name: 'Update Issue',
-      description: 'Update fields on an existing issue',
+      description: 'Update fields on an existing issue (body: {"fields":{...}} and/or {"update":{...}})',
       method: 'PUT',
       pathTemplate: '/rest/api/3/issue/{{issue_key}}',
       headers: { 'Content-Type': 'application/json' },
       bodyTemplate: '{{update_json}}',
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key (e.g. PROJ-123)' },
-        { name: 'update_json', type: 'string', required: true, description: 'JSON with fields/update object' },
+        { name: 'update_json', type: 'object', required: true, description: 'JSON with a fields and/or update object (rich-text fields use Atlassian Document Format in v3)' },
       ],
       outputs: [{ name: 'status', type: 'number' }],
     },
@@ -122,7 +151,7 @@ export const jiraConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/rest/api/3/issue/{{issue_key}}/transitions',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ transition: { id: '{{transition_id}}' } }),
+      bodyTemplate: '{"transition":{"id":"{{transition_id}}"}}',
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key' },
         { name: 'transition_id', type: 'string', required: true, description: 'Transition ID (get from Get Transitions action)' },
@@ -135,6 +164,7 @@ export const jiraConnector: ConnectorDefinition = {
       description: 'Get available status transitions for an issue',
       method: 'GET',
       pathTemplate: '/rest/api/3/issue/{{issue_key}}/transitions',
+      headers: { Accept: 'application/json' },
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key' },
       ],
@@ -148,20 +178,18 @@ export const jiraConnector: ConnectorDefinition = {
       pathTemplate: '/rest/api/3/issue/{{issue_key}}?deleteSubtasks={{delete_subtasks}}',
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key' },
-        { name: 'delete_subtasks', type: 'string', required: false, description: 'Also delete subtasks', defaultValue: 'true' },
+        { name: 'delete_subtasks', type: 'string', required: false, description: 'Also delete subtasks (true/false)', defaultValue: 'false' },
       ],
       outputs: [{ name: 'status', type: 'number' }],
     },
     {
       key: 'add_comment',
       name: 'Add Comment',
-      description: 'Add a comment to an issue',
+      description: 'Add a comment to an issue (plain text or Jira wiki markup)',
       method: 'POST',
-      pathTemplate: '/rest/api/3/issue/{{issue_key}}/comment',
-      headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        body: { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: '{{comment}}' }] }] },
-      }),
+      pathTemplate: '/rest/api/2/issue/{{issue_key}}/comment',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      bodyTemplate: '{"body":"{{comment}}"}',
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key' },
         { name: 'comment', type: 'string', required: true, description: 'Comment text' },
@@ -175,54 +203,58 @@ export const jiraConnector: ConnectorDefinition = {
       method: 'PUT',
       pathTemplate: '/rest/api/3/issue/{{issue_key}}/assignee',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ accountId: '{{account_id}}' }),
+      bodyTemplate: '{"accountId":"{{account_id}}"}',
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key' },
-        { name: 'account_id', type: 'string', required: true, description: 'Assignee Atlassian account ID (use -1 to unassign)' },
+        { name: 'account_id', type: 'string', required: true, description: 'Assignee Atlassian account ID (use -1 for the project default assignee)' },
       ],
       outputs: [{ name: 'status', type: 'number' }],
     },
     {
-      key: 'list_apps',
-      name: 'List Apps',
-      description: 'List all accessible apps',
+      key: 'list_projects',
+      name: 'List Projects',
+      description: 'List accessible projects (paged: startAt + maxResults, stop when isLast is true)',
       method: 'GET',
-      pathTemplate: '/rest/api/3/app/search?maxResults={{max_results}}&startAt={{start_at}}',
+      pathTemplate: '/rest/api/3/project/search?maxResults={{max_results}}&startAt={{start_at}}&query={{query}}',
+      headers: { Accept: 'application/json' },
       inputs: [
         { name: 'max_results', type: 'number', required: false, description: 'Max results', defaultValue: '50' },
         { name: 'start_at', type: 'number', required: false, description: 'Offset', defaultValue: '0' },
+        { name: 'query', type: 'string', required: false, description: 'Filter by project key or name' },
       ],
-      outputs: [{ name: 'values', type: 'array' }, { name: 'total', type: 'number' }],
+      outputs: [{ name: 'values', type: 'array' }, { name: 'total', type: 'number' }, { name: 'isLast', type: 'boolean' }],
     },
     {
       key: 'search_users',
       name: 'Search Users',
       description: 'Find users by name or email',
       method: 'GET',
-      pathTemplate: '/rest/api/3/user/search?query={{query}}&maxResults={{max_results}}',
+      pathTemplate: '/rest/api/3/user/search?query={{query}}&maxResults={{max_results}}&startAt={{start_at}}',
+      headers: { Accept: 'application/json' },
       inputs: [
         { name: 'query', type: 'string', required: true, description: 'Search query (name or email)' },
         { name: 'max_results', type: 'number', required: false, description: 'Max results', defaultValue: '20' },
+        { name: 'start_at', type: 'number', required: false, description: 'Offset', defaultValue: '0' },
       ],
       outputs: [{ name: 'users', type: 'array' }],
     },
     {
       key: 'add_attachment',
       name: 'Add Attachment',
-      description: 'Attach a file to an issue',
+      description: 'Attach a file (form attachment or file URL) to an issue',
       method: 'POST',
       pathTemplate: '/rest/api/3/issue/{{issue_key}}/attachments',
       headers: { 'X-Atlassian-Token': 'no-check', 'Content-Type': 'multipart/form-data' },
-      bodyTemplate: '{{file_content}}',
+      bodyTemplate: '{"file":"{{file}}"}',
       inputs: [
         { name: 'issue_key', type: 'string', required: true, description: 'Issue key' },
-        { name: 'file_content', type: 'string', required: true, description: 'File content or base64 data' },
+        { name: 'file', type: 'string', required: true, description: 'File to attach (form attachment reference or file URL)' },
       ],
       outputs: [{ name: 'id', type: 'string' }, { name: 'filename', type: 'string' }],
     },
   ],
   buildIntegrationConfig: (config, credentials) => ({
-    base_url: `https://${config.domain}`,
+    base_url: `https://${String(config.domain ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '')}`,
     auth_type: 'basic',
     auth_config: {
       username: credentials.email,

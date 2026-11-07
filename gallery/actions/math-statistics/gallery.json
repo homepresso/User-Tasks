@@ -1,0 +1,110 @@
+{
+  "id": "fcba02a3-00e4-461c-8828-86ec61322734",
+  "asset_id": "09d2f355-7360-41cd-b831-4bfcea57fa7f",
+  "slug": "math-statistics",
+  "title": "Math & statistics",
+  "summary": "Safe formulas with variables, exact rounding, statistics and percentiles, compound interest, loan schedules and unit conversion in one workflow step.",
+  "description": "Math & statistics gives workflows the numeric operations that otherwise take a chain of Calculate Value nodes or a spreadsheet. Evaluate a formula such as (price * qty) * (1 + tax_rate) against an object of variables with a real parser (never eval), round with half-up, banker's, floor or ceiling rules that are decimal-exact, and summarise a list of numbers or a field of a list of rows: count, sum, mean, median, mode, variance, standard deviation and percentiles.\n\nThe finance operations return what approvals and customer letters need. Loan schedule computes the monthly payment, each period's interest and principal, totals and the payoff date, with money in cents so the last payment brings the balance to exactly zero; Compound interest grows savings with regular contributions and returns a year-by-year table. Convert units covers length, mass, volume, temperature, area, speed, data size and time. Everything runs in the sandbox with no network, data or secret access.",
+  "icon": "calculator",
+  "tags": [
+    "math",
+    "statistics",
+    "finance",
+    "loan",
+    "interest",
+    "rounding",
+    "units"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Show a loan or lease repayment schedule in a quote or approval task",
+    "Summarise order values or response times (mean, median, 90th percentile) in a scheduled report",
+    "Compute totals with tax and discounts from form fields using one readable formula"
+  ],
+  "setup": [
+    "Install the package: the action appears in Extensibility → Workflow actions and in the workflow designer's palette under Custom actions.",
+    "Drag Math & statistics onto a workflow, choose the function (Evaluate formula, Loan schedule, …) and map its inputs from variables or form fields.",
+    "Use the outputs from the data picker, e.g. {{loan_payment}} or loop over {{loan_schedule}} rows; each output is typed (number, date, list of objects).",
+    "Try the included \"Loan repayment schedule (sample)\" workflow: run it from the API or its start form with no input to see a 60-month schedule."
+  ],
+  "examples": [
+    {
+      "operation": "evaluate",
+      "title": "Order total with tax and discount",
+      "inputs": {
+        "expression": "(price * qty) * (1 + tax_rate) - discount",
+        "variables": {
+          "price": 19.99,
+          "qty": 3,
+          "tax_rate": 0.15,
+          "discount": 5
+        },
+        "decimals": 2
+      },
+      "note": "Variables come from an object; the result is rounded to 2 decimals."
+    },
+    {
+      "operation": "loan_schedule",
+      "title": "Five-year car loan",
+      "inputs": {
+        "principal": 25000,
+        "annual_rate": 7.9,
+        "term_months": 60,
+        "start_date": "2026-12-01"
+      }
+    },
+    {
+      "operation": "stats",
+      "title": "Summary of response times",
+      "inputs": {
+        "values": [
+          {
+            "minutes": 12
+          },
+          {
+            "minutes": 15
+          },
+          {
+            "minutes": 15
+          },
+          {
+            "minutes": 18
+          },
+          {
+            "minutes": 21
+          },
+          {
+            "minutes": 30
+          }
+        ],
+        "field": "minutes"
+      }
+    },
+    {
+      "operation": "round",
+      "title": "Banker's rounding",
+      "inputs": {
+        "value": 2.345,
+        "decimals": 2,
+        "mode": "half_even"
+      },
+      "note": "Half even rounds 2.345 to 2.34 and 2.355 to 2.36."
+    },
+    {
+      "operation": "convert_units",
+      "title": "Marathon in kilometres",
+      "inputs": {
+        "value": 26.2,
+        "from": "mi",
+        "to": "km"
+      }
+    }
+  ]
+}

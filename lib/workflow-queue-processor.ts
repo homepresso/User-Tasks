@@ -106,7 +106,7 @@ export async function runJob(supabase: SupabaseClient, job: Job): Promise<JobRes
               String(triggerData._resume_run_id),
               String(triggerData._resume_event_id ?? ""),
               scope,
-              { supabase },
+              { supabase, attempt: Number(triggerData._resume_attempt) || 0 },
             )),
             run_id: String(triggerData._resume_run_id),
           }

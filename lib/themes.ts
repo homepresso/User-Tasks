@@ -7,13 +7,15 @@ export interface ThemeComponents {
   inputRadius: string       // e.g. '6px', '8px', '9999px'
 }
 
+// Smaller radii read as precise and dense (docs/design/ui-polish-spec.md §2.4):
+// cards 8, buttons / inputs 6 (badges 4 and dialogs 12 live in presets.ts).
 export const DEFAULT_COMPONENTS: ThemeComponents = {
-  borderRadius: '12px',
+  borderRadius: '8px',
   cardShadow: 'sm',
-  buttonRadius: '8px',
+  buttonRadius: '6px',
   fontSize: 'base',
-  sidebarWidth: '256px',
-  inputRadius: '8px',
+  sidebarWidth: '240px',
+  inputRadius: '6px',
 }
 
 export interface Theme {
@@ -60,6 +62,8 @@ export interface Theme {
     cardText: string
     mutedText: string
     primaryLight?: string
+    /** Text on primary fills in dark mode (derived from the primary when omitted). */
+    onPrimary?: string
     success?: string
     warning?: string
     danger?: string
@@ -94,6 +98,29 @@ export const THEMES: Theme[] = [
       warning: "#A6721C",
       danger: "#B23A2E",
     },
+    // Dark (Follow device / Always dark): Noir's surfaces; the ink primary
+    // turns warm white (white-on-black actions), camel stays the accent.
+    dark: {
+      primary: "#EDE8DD",
+      primaryHover: "#D9D2C2",
+      primaryLight: "rgba(237,232,221,0.10)",
+      onPrimary: "#17150F",
+      accent: "#C7A575",
+      sidebar: "#121110",
+      sidebarText: "#D9D2C2",
+      sidebarActive: "rgba(199,165,117,0.20)",
+      sidebarBorder: "rgba(243,239,231,0.08)",
+      topbar: "#121110",
+      topbarText: "#F2EFE7",
+      surface: "#171512",
+      surfaceBorder: "rgba(243,239,231,0.10)",
+      cardBg: "#1F1C18",
+      cardText: "#F2EFE7",
+      mutedText: "#A29A89",
+      success: "#7FA98A",
+      warning: "#D9A441",
+      danger: "#D07A6A",
+    },
   },
 
   // ─── Atelier — tan-forward light: camel primary on warm stone surfaces ───
@@ -121,6 +148,28 @@ export const THEMES: Theme[] = [
       success: "#4F7A5B",
       warning: "#A6721C",
       danger: "#B23A2E",
+    },
+    // Dark: Noir-derived warm charcoal; camel primary lifted to read on it.
+    dark: {
+      primary: "#C7A575",
+      primaryHover: "#D4B68A",
+      primaryLight: "rgba(199,165,117,0.16)",
+      onPrimary: "#17150F",
+      accent: "#E9E0CE",
+      sidebar: "#1A1714",
+      sidebarText: "#E0D7C4",
+      sidebarActive: "rgba(199,165,117,0.22)",
+      sidebarBorder: "rgba(233,224,206,0.10)",
+      topbar: "#1A1714",
+      topbarText: "#F2EFE7",
+      surface: "#1C1915",
+      surfaceBorder: "rgba(233,224,206,0.12)",
+      cardBg: "#24201B",
+      cardText: "#F2EFE7",
+      mutedText: "#A89F8C",
+      success: "#7FA98A",
+      warning: "#D9A441",
+      danger: "#D07A6A",
     },
   },
 
@@ -1253,7 +1302,7 @@ export function themeToCSS(theme: Theme, isDark: boolean = false): Record<string
   return {
     "--theme-primary": primary,
     "--theme-primary-hover": dark?.primaryHover ?? theme.colors.primaryHover,
-    "--theme-on-primary": onPrimaryColor(primary),
+    "--theme-on-primary": dark?.onPrimary ?? onPrimaryColor(primary),
     "--theme-primary-light": dark?.primaryLight ?? (isDark ? adjustColor(theme.colors.primary, -70) : theme.colors.primaryLight),
     "--theme-accent": dark?.accent ?? theme.colors.accent,
     "--theme-accent-light": isDark ? adjustColor(theme.colors.accent, -70) : theme.colors.accentLight,

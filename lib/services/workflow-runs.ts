@@ -23,6 +23,7 @@
  */
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
+import { applyScope, requireVisibleRun, resolveRunScope, runScopeFilter } from './run-visibility'
 import { audit, dbError } from './_shared'
 import { RunNotResumableError } from '@/lib/workflow-run-errors'
 
@@ -61,6 +62,7 @@ const RESUME_NOTES: Record<ServiceContext['source'], string> = {
   ui: 'Manually resumed from queue',
   api: 'Resumed via API',
   mcp: 'Resumed via MCP',
+  anonymous: 'Resumed',
   job: 'Resumed from queue (bulk)',
 }
 
@@ -114,6 +116,8 @@ function auditRun(ctx: ServiceContext, run: { id: string; workflow_id: string | 
 export async function actOnWorkflowRun(ctx: ServiceContext, ref: WorkflowRunRef, input: WorkflowRunActionInput): Promise<WorkflowRunActionResult> {
   requirePerm(ctx, 'workflows.activate')
   const run = await loadRun(ctx, ref)
+  // Acting on a run also needs it to be in the person's run scope (run-visibility).
+  await requireVisibleRun(ctx, run)
   const db = ctx.supabase as any
 
   switch (input.action) {
@@ -337,7 +341,10 @@ export interface ListLiveInstancesInput {
 
 /** Live (waiting / paused) runs of a workflow with their current node and open task, plus counts per version. */
 export async function listLiveInstances(ctx: ServiceContext, workflowId: string, input: ListLiveInstancesInput = {}) {
-  requirePerm(ctx, 'workflows.view_runs')
+  // Every instance with view_runs or an explicit View grant on this workflow;
+  // otherwise only the runs the caller is involved in (lib/services/run-visibility).
+  const scope = await resolveRunScope(ctx)
+  const fullView = scope.kind === 'all' || scope.workflowIds.includes(workflowId)
   const workflow = await loadOwnedWorkflow(ctx, workflowId)
   const statuses = !input.status || input.status === 'active' ? [...LIVE_RUN_STATUSES] : [input.status]
   const limit = Math.min(Math.max(input.limit ?? 50, 1), MIGRATION_CAP)
@@ -348,10 +355,13 @@ export async function listLiveInstances(ctx: ServiceContext, workflowId: string,
     .eq('tenant_id', ctx.tenantId).eq('workflow_id', workflowId).in('status', statuses)
     .order('started_at', { ascending: true })
   if (input.versionId) query = query.eq('version_id', input.versionId)
+  if (!fullView) query = applyScope(query, runScopeFilter(scope))
   query = offset > 0 ? query.range(offset, offset + limit - 1) : query.limit(limit)
-  const [{ data, count, error }, counts] = await Promise.all([query, liveInstanceCounts(ctx, workflowId)])
+  const [{ data, count, error }, allCounts] = await Promise.all([query, fullView ? liveInstanceCounts(ctx, workflowId) : Promise.resolve(null)])
   if (error) throw dbError(error)
   const runs = (data ?? []) as LiveRunRow[]
+  // Involved-only callers: counts of what they can see, never the workspace totals.
+  const counts = allCounts ?? runs.reduce((m, r) => m.set(r.version_id ?? null, (m.get(r.version_id ?? null) ?? 0) + 1), new Map<string | null, number>())
 
   const graphs = await loadGraphs(ctx, workflow, [...new Set([...runs.map((r) => r.version_id), ...counts.keys()])])
   const tasks = await loadOpenTasks(ctx, runs.map((r) => r.event_id).filter((e): e is string => !!e))

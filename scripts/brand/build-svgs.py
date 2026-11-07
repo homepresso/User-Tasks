@@ -87,6 +87,14 @@ def wordmark(tile: str, fg: str, accent: str, user: str, tasks: str) -> str:
     return svg(f"0 0 {width} 64", tile64(tile, fg, accent) + text, f' width="{width}" height="64"')
 
 
+def adaptive_favicon(mark16: str) -> str:
+    """The 16-unit mark for browser tabs: ink tile on light chrome, cream tile on dark (prefers-color-scheme)."""
+    body = mark16.replace(f'fill="{INK}"', 'class="t"').replace(f'fill="{CREAM}"', 'class="g"')
+    style = f"<style>.t{{fill:{INK}}}.g{{fill:{CREAM}}}@media (prefers-color-scheme:dark){{.t{{fill:{CREAM}}}.g{{fill:{INK}}}}}</style>"
+    head, rest = body.split(">", 1)
+    return f"{head}>{style}{rest}"
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     files = {
@@ -104,7 +112,7 @@ def main() -> None:
     }
     for name, content in files.items():
         (OUT / name).write_text(content)
-    (ROOT / "app" / "icon.svg").write_text(files["mark-16.svg"])
+    (ROOT / "app" / "icon.svg").write_text(adaptive_favicon(files["mark-16.svg"]))
     print("wrote", ", ".join(files), "+ app/icon.svg")
 
 

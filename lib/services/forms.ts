@@ -27,10 +27,15 @@ import {
   parseFormThemeOverrides, type FormThemeOverrides, type FormThemeRef,
 } from '@/lib/forms/form-theme'
 import { compactLayoutForSave } from '@/lib/forms/layout'
-import { fieldDefinitionProblems } from '@/lib/task-field-schema'
-import { buttonProblems, normalizeFormButtons, redirectAllowlistFromEnv, startedWorkflowIds, type RedirectPolicy } from '@/lib/forms/buttons'
+import { fieldDefinitionProblems, normalizeTaskFields } from '@/lib/task-field-schema'
+import { tableChangesProblem, tableChangesTargets, type TableChangesConfig } from '@/lib/forms/table-changes'
+import { layoutFormRules } from '@/lib/forms/form-rules'
+import { allActions } from '@/lib/forms/field-buttons'
+import { buttonProblems, normalizeFormButtons, redirectAllowlistFromEnv, safeRedirectUrl, startedWorkflowIds, type RedirectPolicy } from '@/lib/forms/buttons'
 import { appUrlOrLocalhost } from '@/lib/config/bootstrap'
 import { formPageOf, withoutFormPageLinks } from '@/lib/forms/form-page'
+import { sortAvailableForms, type AvailableForm } from '@/lib/forms/available-forms'
+import { requiredParamsWithoutDefault } from '@/lib/forms/form-params'
 import { getDb, hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { applyPage, audit, dbError, ilikeTerm, serviceRoleClient, syncChange, type Page } from './_shared'
 
@@ -38,13 +43,15 @@ import { applyPage, audit, dbError, ilikeTerm, serviceRoleClient, syncChange, ty
 
 export const FORM_LIMITS = { name: 120, description: 2000, tags: 20, tag: 40, fields: 200, bytes: 256 * 1024 } as const
 
-const COLUMNS = 'id, name, description, tags, fields, layout, theme, buttons, header, submission_retention_days, version, created_by, updated_by, created_at, updated_at'
-const LIST_COLUMNS = 'id, name, description, tags, fields, buttons, version, theme, updated_at, created_at'
+const COLUMNS = 'id, name, system_name, description, tags, fields, layout, theme, buttons, header, submission_retention_days, available_in_menu, retention_policy_id, legal_hold, version, created_by, updated_by, created_at, updated_at'
+const LIST_COLUMNS = 'id, name, system_name, description, tags, fields, buttons, version, theme, available_in_menu, updated_at, created_at'
 const THEME_COLUMNS = 'id, name, description, overrides, created_by, created_at, updated_at'
 
 export interface FormRow {
   id: string
   name: string
+  /** Friendly link name (/form/<system_name> on the workspace address); unique per workspace (lib/services/form-links). */
+  system_name?: string | null
   description: string | null
   tags: string[]
   fields: unknown[]
@@ -56,6 +63,12 @@ export interface FormRow {
   header?: unknown | null
   /** Days submissions are kept (null = keep). */
   submission_retention_days?: number | null
+  /** "Available forms": listed in the sidebar Forms menu of people with an explicit grant (not versioned). */
+  available_in_menu?: boolean
+  /** Governance (lib/services/form-governance): the retention policy governing the submissions, set with retention assign. */
+  retention_policy_id?: string | null
+  /** Governance: on legal hold, nothing of the form is purged or deleted. */
+  legal_hold?: boolean
   version: number
   created_by?: string | null
   updated_by?: string | null
@@ -111,6 +124,14 @@ export interface FormInput {
   header?: unknown
   /** Keep submissions this many days (null = keep). */
   submission_retention_days?: number | null
+  /** "Available forms": list it in the Forms menu of people given access to it (a setting: no new version). */
+  available_in_menu?: boolean | null
+  /**
+   * Friendly link name (/form/<system_name>): a–z, 0–9 and hyphens, 3–60,
+   * unique in the workspace (a setting: no new version). Omitted on create =
+   * suggested from the name; a rename keeps the old name as a redirect.
+   */
+  system_name?: string | null
 }
 
 export type FormUpdateInput = Partial<FormInput>
@@ -121,7 +142,11 @@ export interface FormThemeInput {
   overrides: unknown
 }
 
-export interface FormWriteOptions { capture?: boolean }
+export interface FormWriteOptions {
+  capture?: boolean
+  /** Skip the workspace's pre-publish accessibility gate (config-as-code / package imports). */
+  skipAccessibilityGate?: boolean
+}
 
 // ── validation ──────────────────────────────────────────────────────────────
 
@@ -178,8 +203,20 @@ export function validateFormContent(input: { fields: unknown; layout?: unknown; 
   if (input.buttons !== undefined && input.buttons !== null && !Array.isArray(input.buttons)) throw ServiceError.validation('buttons must be an array')
   const theme = validateThemeRef(input.theme)
   const def = normalizeFormDefinition({ fields: input.fields, layout: input.layout, theme, buttons: input.buttons, header: input.header })
-  const buttonIssue = Object.entries(buttonProblems(def.buttons ?? [], { policy: redirectPolicy() }))[0]
+  const editableTables = new Set(def.fields.filter((f) => f.type === 'data_table' && f.data_table?.mode === 'edit').map((f) => f.key))
+  const buttonIssue = Object.entries(buttonProblems(def.buttons ?? [], { policy: redirectPolicy(), editableTables }))[0]
   if (buttonIssue) throw ServiceError.validation(`Button "${buttonIssue[0]}": ${buttonIssue[1]}`)
+  // In-form Buttons: an "Open link" follows the redirect rule (app pages, the app's origin, allow-listed hosts).
+  for (const field of def.fields) {
+    const steps = field.type === 'button' ? allActions(field.button?.actions) : []
+    const link = steps.find((a) => a.type === 'open_link' && !safeRedirectUrl(a.url, redirectPolicy()))
+    if (link) throw ServiceError.validation(`Button "${field.key}": Open link must go to an app page (/…) or an allowed address`)
+    for (const action of steps) {
+      if (action.type !== 'apply_table_changes') continue
+      const problem = tableChangesProblem(action.table_changes, editableTables)
+      if (problem) throw ServiceError.validation(`Button "${field.key}": ${problem}`)
+    }
+  }
   if (def.header?.image === 'upload' && def.header.image_url && options.tenantId && !def.header.image_url.includes(`/form-headers/${options.tenantId}/`)) {
     throw ServiceError.validation('The header image must be an upload in this workspace')
   }
@@ -220,12 +257,85 @@ async function assertStartableWorkflows(ctx: ServiceContext, db: AnySupabaseClie
   if (missing) throw ServiceError.validation(`The workflow ${missing} a button starts is not in this workspace`)
 }
 
+/** Every "for each changed row" rule of a definition (bar buttons' actions and in-form Buttons' steps). */
+export function formTableChangeRules(fields: unknown, buttons: unknown, layout?: unknown): TableChangesConfig[] {
+  const out: TableChangesConfig[] = []
+  for (const r of layoutFormRules(layout)) for (const a of allActions(r.then)) if (a.type === 'apply_table_changes' && a.table_changes) out.push(a.table_changes)
+  for (const b of Array.isArray(buttons) ? normalizeFormButtons(buttons) : []) for (const a of b.actions ?? []) if (a.type === 'apply_table_changes' && a.table_changes) out.push(a.table_changes)
+  for (const f of normalizeTaskFields(fields)) for (const a of f.type === 'button' ? allActions(f.button?.actions) : []) if (a.type === 'apply_table_changes' && a.table_changes) out.push(a.table_changes)
+  return out
+}
+
+/**
+ * Data sources and write targets are configured by the form's author and
+ * later run for whoever fills the form in, so pointing a form at a new one
+ * needs the author's own rights: a Data table field on a data table needs
+ * data.view, on an API reference integrations.view; a "for each changed
+ * row" rule writing to a data table needs data.manage_rows, calling an API
+ * integrations.test, starting a workflow workflows.activate. Each target
+ * must be in this workspace. Unchanged targets are not re-checked.
+ */
+async function assertDataTargets(ctx: ServiceContext, db: AnySupabaseClient, stored: { fields: unknown; buttons: unknown; layout?: unknown }, previous: { fields: unknown; buttons: unknown; layout?: unknown } | null) {
+  const collect = (def: { fields: unknown; buttons: unknown; layout?: unknown } | null) => {
+    const sources = { tables: new Set<string>(), references: new Set<string>() }
+    if (!def) return { ...sources, rules: tableChangesTargets([]) }
+    for (const f of normalizeTaskFields(def.fields)) {
+      if (f.type !== 'data_table' || !f.data_table) continue
+      if (f.data_table.source === 'table' && f.data_table.table_id) sources.tables.add(f.data_table.table_id)
+      if (f.data_table.source === 'reference' && f.data_table.reference_id) sources.references.add(f.data_table.reference_id)
+    }
+    const rules = tableChangesTargets(formTableChangeRules(def.fields, def.buttons, def.layout))
+    // Form rules' server actions: the API references they call and the workflows they start.
+    for (const r of layoutFormRules(def.layout)) {
+      for (const a of allActions(r.then)) {
+        if (a.type === 'call_reference' && a.reference_id && !rules.references.includes(a.reference_id)) rules.references.push(a.reference_id)
+        if (a.type === 'start_workflow' && a.workflow_id && !rules.workflows.includes(a.workflow_id)) rules.workflows.push(a.workflow_id)
+      }
+    }
+    return { ...sources, rules }
+  }
+  const now = collect(stored)
+  const before = collect(previous)
+  const added = <T,>(a: Iterable<T>, b: Iterable<T>) => { const old = new Set(b); return [...a].filter((x) => !old.has(x)) }
+  const readTables = added(now.tables, before.tables)
+  const readRefs = added(now.references, before.references)
+  const writeTables = added(now.rules.tables, before.rules.tables)
+  const callRefs = added(now.rules.references, before.rules.references)
+  const startWorkflows = added(now.rules.workflows, before.rules.workflows)
+  if (readTables.length) requirePerm(ctx, 'data.view')
+  if (readRefs.length) requirePerm(ctx, 'integrations.view')
+  if (writeTables.length) requirePerm(ctx, 'data.manage_rows')
+  if (callRefs.length) requirePerm(ctx, 'integrations.test')
+  if (startWorkflows.length && !hasPerm(ctx, 'workflows.activate')) throw ServiceError.forbidden("Forbidden: a rule that starts a workflow needs the 'workflows.activate' permission")
+  const exists = async (table: string, ids: string[], what: string) => {
+    if (!ids.length) return
+    const bad = ids.find((id) => !UUID_RE.test(id))
+    if (bad) throw ServiceError.validation(`The ${what} ${bad} is not in this workspace`)
+    const { data, error } = await (db as any).from(table).select('id').eq('tenant_id', ctx.tenantId).in('id', ids)
+    if (error) throw dbError(error)
+    const found = new Set(((data ?? []) as any[]).map((r) => String(r.id)))
+    const missing = ids.find((id) => !found.has(id))
+    if (missing) throw ServiceError.validation(`The ${what} ${missing} is not in this workspace`)
+  }
+  await exists('custom_tables', [...new Set([...readTables, ...writeTables])], 'data table')
+  await exists('integration_references', [...new Set([...readRefs, ...callRefs])], 'API reference')
+  await exists('workflows', startWorkflows, 'workflow')
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function cleanRetention(value: unknown): number | null | undefined {
   if (value === undefined) return undefined
   if (value === null || value === '') return null
   const n = Math.floor(Number(value))
   if (!Number.isFinite(n) || n < 1 || n > 3650) throw ServiceError.validation('submission_retention_days must be between 1 and 3650 (or null to keep)')
   return n
+}
+
+function cleanAvailable(value: unknown): boolean | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'boolean') throw ServiceError.validation('available_in_menu must be true or false')
+  return value
 }
 
 async function assertSavedThemeExists(db: AnySupabaseClient, tenantId: string, theme: FormThemeRef) {
@@ -249,6 +359,7 @@ function summarize(row: any) {
   return {
     id: row.id as string,
     name: row.name as string,
+    system_name: (row.system_name ?? null) as string | null,
     description: (row.description ?? null) as string | null,
     tags: (row.tags ?? []) as string[],
     version: row.version as number,
@@ -256,6 +367,8 @@ function summarize(row: any) {
     theme_source: (row.theme?.source ?? 'workspace') as FormThemeRef['source'],
     /** The workflow whose start form this form is the page of ("Publish as form page"), if any. */
     form_page_of: formPageOf(row.buttons),
+    /** "Available forms": listed in the Forms menu of people with an explicit grant. */
+    available_in_menu: row.available_in_menu === true,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   }
@@ -277,6 +390,44 @@ export async function listForms(ctx: ServiceContext, filters: { search?: string;
   const usage = await usageIndex(db, ctx.tenantId)
   const forms: FormSummary[] = ((data ?? []) as any[]).map((row) => ({ ...summarize(row), usage_count: (usage.get(row.id) ?? []).length }))
   return { forms, total: (count ?? forms.length) as number }
+}
+
+/**
+ * The signed-in person's Forms menu ("Available forms"): forms marked
+ * available_in_menu that they hold an explicit grant on (directly, through a
+ * team or a role) and can submit (forms.submit), sorted by name. One RPC
+ * (list_available_forms, 20261209000000) on the caller's client, so RLS
+ * applies to session callers. Workspace-wide rights alone list nothing, and
+ * a caller without an acting user (a tenant API key) has no menu.
+ */
+export async function listAvailableForms(ctx: ServiceContext): Promise<AvailableForm[]> {
+  if (!ctx.actorId || !hasPerm(ctx, 'forms.submit')) return []
+  const { data, error } = await (getDb(ctx) as any).rpc('list_available_forms', { p_tenant_id: ctx.tenantId, p_user_id: ctx.actorId })
+  if (error) throw dbError(error)
+  const rows = (data ?? []) as any[]
+  // The menu opens a form without parameters: a form that needs one (required, no default) is left out.
+  const { blocked, systemNames } = await menuFormFacts(ctx, rows.map((row) => String(row.id)))
+  return sortAvailableForms(rows.filter((row) => !blocked.has(String(row.id))).map((row) => ({
+    id: String(row.id), name: String(row.name), description: (row.description ?? null) as string | null,
+    system_name: systemNames.get(String(row.id)) ?? null,
+  })))
+}
+
+/**
+ * Of these forms: the ones with a required parameter that has no default
+ * (lib/forms/form-params.ts: they can't open from a plain link), and every
+ * form's system name (the friendly /form/<name> link on a workspace address).
+ */
+async function menuFormFacts(ctx: ServiceContext, ids: string[]): Promise<{ blocked: Set<string>; systemNames: Map<string, string> }> {
+  if (!ids.length) return { blocked: new Set(), systemNames: new Map() }
+  const db = await serviceRoleClient(ctx)
+  const { data, error } = await (db as any).from('forms').select('id, layout, system_name').eq('tenant_id', ctx.tenantId).in('id', ids)
+  if (error) throw dbError(error)
+  const rows = (data ?? []) as any[]
+  return {
+    blocked: new Set(rows.filter((row) => requiredParamsWithoutDefault(row.layout).length > 0).map((row) => String(row.id))),
+    systemNames: new Map(rows.filter((row) => row.system_name).map((row) => [String(row.id), String(row.system_name)])),
+  }
 }
 
 export async function getForm(ctx: ServiceContext, formId: string) {
@@ -379,21 +530,33 @@ export async function createForm(ctx: ServiceContext, input: FormInput, options:
   requirePerm(ctx, 'forms.edit')
   const db = await serviceRoleClient(ctx)
   const name = cleanName(input.name)
-  const { stored } = validateFormContent(input, { tenantId: ctx.tenantId })
+  const { def, stored } = validateFormContent(input, { tenantId: ctx.tenantId })
   await assertSavedThemeExists(db, ctx.tenantId, stored.theme)
   await assertStartableWorkflows(ctx, db, stored.buttons, null)
+  await assertDataTargets(ctx, db, stored, null)
+  if (!options.skipAccessibilityGate) await (await import('./form-accessibility')).assertFormAccessibility(db, ctx.tenantId, def)
   const retention = cleanRetention(input.submission_retention_days)
+  const available = cleanAvailable(input.available_in_menu)
+  // An explicit system name is checked; otherwise the database suggests one from the name.
+  const systemName = input.system_name === undefined || input.system_name === null || input.system_name === ''
+    ? undefined
+    : await (await import('./form-links')).assertSystemName(db, ctx.tenantId, null, input.system_name)
   const { data, error } = await (db as any).from('forms').insert({
     tenant_id: ctx.tenantId,
     name,
+    ...(systemName ? { system_name: systemName } : {}),
     description: cleanDescription(input.description),
     tags: cleanTags(input.tags),
     ...stored,
     ...(retention !== undefined ? { submission_retention_days: retention } : {}),
+    ...(available !== undefined ? { available_in_menu: available } : {}),
     version: 1,
     created_by: ctx.actorId,
     updated_by: ctx.actorId,
   }).select(COLUMNS).single()
+  if ((error as { code?: string } | null)?.code === '23505' && String(error?.message ?? '').includes('system_name')) {
+    throw ServiceError.conflict('Another form in this workspace uses that system name.')
+  }
   if (error || !data) throw dbError(error, 'Failed to create form')
   const form = data as FormRow
   await insertVersion(db, ctx, form)
@@ -416,9 +579,14 @@ export async function updateForm(ctx: ServiceContext, formId: string, input: For
   if (input.tags !== undefined) updates.tags = cleanTags(input.tags)
   const retention = cleanRetention(input.submission_retention_days)
   if (retention !== undefined) updates.submission_retention_days = retention
+  const available = cleanAvailable(input.available_in_menu)
+  if (available !== undefined) updates.available_in_menu = available
+  if (input.system_name !== undefined && input.system_name !== null && input.system_name !== (existing.system_name ?? null)) {
+    updates.system_name = await (await import('./form-links')).assertSystemName(db, ctx.tenantId, formId, input.system_name)
+  }
   let versionChanged = false
   if (input.fields !== undefined || input.layout !== undefined || input.theme !== undefined || input.buttons !== undefined || input.header !== undefined) {
-    const { stored } = validateFormContent({
+    const { def, stored } = validateFormContent({
       fields: input.fields ?? existing.fields,
       layout: input.layout !== undefined ? input.layout : existing.layout,
       theme: input.theme !== undefined ? input.theme : existing.theme,
@@ -427,8 +595,10 @@ export async function updateForm(ctx: ServiceContext, formId: string, input: For
     }, { tenantId: ctx.tenantId })
     await assertSavedThemeExists(db, ctx.tenantId, stored.theme)
     await assertStartableWorkflows(ctx, db, stored.buttons, existing.buttons)
+    await assertDataTargets(ctx, db, stored, { fields: existing.fields, buttons: existing.buttons, layout: existing.layout })
     if (!sameJson(stored.fields, existing.fields) || !sameJson(stored.layout, existing.layout) || !sameJson(stored.theme, existing.theme)
       || !sameJson(stored.buttons, existing.buttons) || !sameJson(stored.header, existing.header)) {
+      if (!options.skipAccessibilityGate) await (await import('./form-accessibility')).assertFormAccessibility(db, ctx.tenantId, def)
       Object.assign(updates, stored)
       updates.version = existing.version + 1
       versionChanged = true
@@ -438,15 +608,25 @@ export async function updateForm(ctx: ServiceContext, formId: string, input: For
   if (changed.length === 0) return { ...existing, version_changed: false }
   updates.updated_by = ctx.actorId
   const { data, error } = await (db as any).from('forms').update(updates).eq('id', formId).eq('tenant_id', ctx.tenantId).eq('version', existing.version).select(COLUMNS).maybeSingle()
+  if ((error as { code?: string } | null)?.code === '23505' && String(error?.message ?? '').includes('system_name')) {
+    throw ServiceError.conflict('Another form in this workspace uses that system name.')
+  }
   if (error) throw dbError(error, 'Failed to update form')
   if (!data) throw ServiceError.conflict('The form was changed by someone else; reload and try again')
   const form = data as FormRow
   if (versionChanged) await insertVersion(db, ctx, form)
   if (options.capture !== false) {
+    const changedFields = changed.filter((k) => k !== 'version')
+    // Listing a form in (or removing it from) the Forms menu on its own is a toggle in the audit log.
+    const availabilityOnly = changedFields.length === 1 && changedFields[0] === 'available_in_menu'
+    const systemNameDiff = changedFields.includes('system_name') ? { system_name: { before: existing.system_name ?? null, after: form.system_name ?? null } } : undefined
     await audit(ctx, {
-      objectType: 'form', objectId: formId, action: 'update',
-      summary: versionChanged ? `Updated form "${form.name}" (version ${form.version})` : `Updated form "${form.name}"`,
-      metadata: { fields: changed.filter((k) => k !== 'version'), version: form.version },
+      objectType: 'form', objectId: formId, action: availabilityOnly ? 'toggle' : 'update',
+      summary: availabilityOnly
+        ? (form.available_in_menu ? `Listed form "${form.name}" in Available forms` : `Removed form "${form.name}" from Available forms`)
+        : versionChanged ? `Updated form "${form.name}" (version ${form.version})` : `Updated form "${form.name}"`,
+      metadata: { fields: changedFields, version: form.version, ...(changedFields.includes('available_in_menu') ? { available_in_menu: Boolean(form.available_in_menu) } : {}) },
+      ...(systemNameDiff ? { diff: systemNameDiff } : {}),
     })
     await syncChange(ctx, 'form', form)
   }
@@ -474,9 +654,18 @@ export async function deleteForm(ctx: ServiceContext, formId: string) {
     const list = [...new Set(usages.map((u) => `${u.workflow_name} › ${u.node_label}${u.where === 'published' ? ' (published)' : ''}`))]
     throw new ServiceError('conflict', `Form "${existing.name}" is used by ${list.length} step${list.length === 1 ? '' : 's'}: ${list.slice(0, 10).join('; ')}. Detach or remove it there first.`, { details: { usages } })
   }
+  if (existing.legal_hold) {
+    throw ServiceError.conflict(`Form "${existing.name}" is on legal hold. Release the hold in Settings → Governance (or the form's Details) before deleting it.`)
+  }
+  // Grants and stored files first (no foreign keys reach them); versions and submissions cascade.
+  const { purgeFormForDeletion } = await import('./form-governance')
+  const removed = await purgeFormForDeletion(db, ctx.tenantId, formId)
   const { error } = await (db as any).from('forms').delete().eq('id', formId).eq('tenant_id', ctx.tenantId)
   if (error) throw dbError(error)
-  await audit(ctx, { objectType: 'form', objectId: formId, action: 'delete', summary: `Deleted form "${existing.name}"` })
+  await audit(ctx, {
+    objectType: 'form', objectId: formId, action: 'delete', summary: `Deleted form "${existing.name}"`,
+    metadata: { version: existing.version, submissions: removed.submissions, files: removed.files, grants: removed.grants },
+  })
   await syncChange(ctx, 'form', existing, 'delete')
   return { deleted: true as const, id: formId }
 }
@@ -491,9 +680,34 @@ export async function applyFormManifest(ctx: ServiceContext, asset: Record<strin
     name: asset.name, description: asset.description ?? null, tags: asset.tags ?? [], fields: asset.fields, layout: asset.layout ?? null, theme: asset.theme ?? { source: 'workspace' },
     buttons: asset.buttons ?? null, header: asset.header ?? null,
     ...(asset.submission_retention_days !== undefined ? { submission_retention_days: asset.submission_retention_days } : {}),
+    ...(typeof asset.available_in_menu === 'boolean' ? { available_in_menu: asset.available_in_menu } : {}),
   }
-  if (!existingId) return createForm(ctx, input, { capture: false })
-  return updateForm(ctx, existingId, input, { capture: false })
+  // The system name travels when it is free here; otherwise the form keeps (or gets) its own.
+  if (typeof asset.system_name === 'string' && asset.system_name) {
+    const { systemNameAvailability } = await import('./form-links')
+    if (!(await systemNameAvailability(await serviceRoleClient(ctx), ctx.tenantId, existingId, asset.system_name))) input.system_name = asset.system_name
+  }
+  const form = existingId
+    ? await updateForm(ctx, existingId, input, { capture: false, skipAccessibilityGate: true })
+    : await createForm(ctx, input, { capture: false, skipAccessibilityGate: true })
+  // The retention policy travels (remapped on import); a policy that is not
+  // in this workspace or does not cover forms leaves the assignment as it is.
+  if (asset.retention_policy_id !== undefined) await applyManifestRetention(ctx, form, asset.retention_policy_id)
+  return form
+}
+
+async function applyManifestRetention(ctx: ServiceContext, form: FormRow, policyId: unknown) {
+  const wanted = typeof policyId === 'string' && policyId.trim() ? policyId.trim() : null
+  if ((form.retention_policy_id ?? null) === wanted) return
+  const db = await serviceRoleClient(ctx) as any
+  if (wanted) {
+    const { data: policy } = await db.from('retention_policies').select('id, applies_to').eq('tenant_id', ctx.tenantId).eq('id', wanted).maybeSingle()
+    if (!policy || (Array.isArray(policy.applies_to) && !policy.applies_to.includes('forms'))) return
+  }
+  const { error } = await db.from('forms').update({ retention_policy_id: wanted, retention_applied_at: wanted ? new Date().toISOString() : null })
+    .eq('tenant_id', ctx.tenantId).eq('id', form.id)
+  if (error) throw dbError(error, 'Failed to apply the form retention policy')
+  form.retention_policy_id = wanted
 }
 
 // ── form themes ─────────────────────────────────────────────────────────────

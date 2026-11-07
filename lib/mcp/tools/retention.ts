@@ -3,8 +3,12 @@ import type { McpContext } from '../server'
 import { mcpErr, mcpOk } from '../server'
 import { z } from 'zod'
 import { MCP_CORE_TOOL_DESCRIPTIONS } from '@/lib/mcp/descriptions'
+import { getRetentionPolicyUsageSummary, RETENTION_APPLIES_TO, RETENTION_ASSIGNMENT_TARGETS } from '@/lib/retention-policy-api'
+import { fromMcpContext } from '@/lib/services/context'
+import { assignRetentionPolicy, listRetentionPolicyAssets } from '@/lib/services/retention'
+import { messageOf } from './_util'
 
-const appliesToEnum = z.enum(['data_tables', 'data_rows', 'roles'])
+const appliesToEnum = z.enum(RETENTION_APPLIES_TO)
 const retentionModeEnum = z.enum(['review', 'review_on_exact_date', 'purge_on', 'purge_on_exact_date', 'keep_forever'])
 
 function normalizeText(value: unknown) {
@@ -57,30 +61,12 @@ function normalizeRetentionPayload(args: {
   }
 }
 
-async function getRetentionPolicyUsageSummary(supabase: any, tenantId: string, retentionPolicyId: string) {
-  const [
-    { count: tableCount },
-    { count: rowCount },
-    { count: roleCount },
-  ] = await Promise.all([
-    (supabase as any).from('custom_tables').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
-    (supabase as any).from('custom_table_rows').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
-    (supabase as any).from('roles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', retentionPolicyId),
-  ])
-
-  return {
-    data_tables: Number(tableCount ?? 0),
-    data_rows: Number(rowCount ?? 0),
-    roles: Number(roleCount ?? 0),
-  }
-}
-
 export function registerRetentionTools(server: McpToolServer, ctx: McpContext) {
   const { tenantId, supabase, actingUserId } = ctx
 
-  server.tool('retention_policies_list', 'List and search centrally governed retention policies, optionally filtering by scope or policy mode so MCP can discover reusable governance rules for tables/lists, rows, and roles.', {
+  server.tool('retention_policies_list', 'List and search centrally governed retention policies, optionally filtering by scope or policy mode so MCP can discover reusable governance rules for tables/lists, rows, roles and forms.', {
     search: z.string().optional().describe('Optional search on policy name or description'),
-    applies_to: appliesToEnum.optional().describe('Optional scope filter: data tables, data rows, or roles'),
+    applies_to: appliesToEnum.optional().describe('Optional scope filter: data tables, data rows, roles or forms'),
     policy_mode: retentionModeEnum.optional().describe('Optional policy mode filter'),
     limit: z.number().optional().describe('Max results, default 100, hard cap 200'),
   }, async (args) => {
@@ -106,11 +92,12 @@ export function registerRetentionTools(server: McpToolServer, ctx: McpContext) {
     return mcpOk({ retention_policies: policies, count: policies.length })
   })
 
-  server.tool('retention_policies_list_assets', 'List which tables, rows, and roles currently use a retention policy so MCP can assess governance coverage and cleanly plan updates or deletions.', {
+  server.tool('retention_policies_list_assets', 'List which tables, rows, roles and forms currently use a retention policy so MCP can assess governance coverage and cleanly plan updates or deletions.', {
     retention_policy_id: z.string().describe('Retention policy ID'),
     include_data_tables: z.boolean().optional().describe('Include data tables/lists using this policy'),
     include_data_rows: z.boolean().optional().describe('Include individual rows using this policy'),
     include_roles: z.boolean().optional().describe('Include roles using this policy'),
+    include_forms: z.boolean().optional().describe('Include forms using this policy (a form\'s policy governs its submissions)'),
     limit_per_type: z.number().optional().describe('Max rows per target type, default 100, hard cap 500'),
   }, async (args) => {
     const { data: policy, error: policyError } = await (supabase as any)
@@ -122,37 +109,18 @@ export function registerRetentionTools(server: McpToolServer, ctx: McpContext) {
     if (policyError || !policy) return mcpErr(policyError?.message ?? 'Retention policy not found')
 
     const limit = Math.min(args.limit_per_type ?? 100, 500)
-    const includeTables = args.include_data_tables ?? true
-    const includeRows = args.include_data_rows ?? true
-    const includeRoles = args.include_roles ?? true
-
-    const [tablesResult, rowsResult, rolesResult] = await Promise.all([
-      includeTables
-        ? (supabase as any).from('custom_tables').select('id, name, created_at, retention_applied_at').eq('tenant_id', tenantId).eq('retention_policy_id', args.retention_policy_id).order('updated_at', { ascending: false }).limit(limit)
-        : Promise.resolve({ data: [], error: null }),
-      includeRows
-        ? (supabase as any).from('custom_table_rows').select('id, table_id, data, created_at').eq('tenant_id', tenantId).eq('retention_policy_id', args.retention_policy_id).order('updated_at', { ascending: false }).limit(limit)
-        : Promise.resolve({ data: [], error: null }),
-      includeRoles
-        ? (supabase as any).from('roles').select('id, name, slug, created_at, retention_applied_at').eq('tenant_id', tenantId).eq('retention_policy_id', args.retention_policy_id).order('updated_at', { ascending: false }).limit(limit)
-        : Promise.resolve({ data: [], error: null }),
-    ])
-
-    for (const result of [tablesResult, rowsResult, rolesResult]) {
-      if (result?.error) return mcpErr(result.error.message)
+    try {
+      const assets = await listRetentionPolicyAssets(supabase, tenantId, args.retention_policy_id, {
+        data_tables: args.include_data_tables ?? true,
+        data_rows: args.include_data_rows ?? true,
+        roles: args.include_roles ?? true,
+        forms: args.include_forms ?? true,
+      }, limit)
+      const usage = await getRetentionPolicyUsageSummary(supabase, tenantId, args.retention_policy_id)
+      return mcpOk({ retention_policy: policy, usage, assets })
+    } catch (error) {
+      return mcpErr(messageOf(error, 'Could not list the policy assets'))
     }
-
-    const usage = await getRetentionPolicyUsageSummary(supabase, tenantId, args.retention_policy_id)
-
-    return mcpOk({
-      retention_policy: policy,
-      usage,
-      assets: {
-        data_tables: tablesResult.data ?? [],
-        data_rows: rowsResult.data ?? [],
-        roles: rolesResult.data ?? [],
-      },
-    })
   })
 
   server.tool('retention_policies_get', 'Get a single retention policy by ID so MCP can inspect exact retention behavior before assignment or reuse.', {
@@ -196,7 +164,7 @@ export function registerRetentionTools(server: McpToolServer, ctx: McpContext) {
         duration_value: retention.payload?.duration_value ?? null,
         duration_unit: retention.payload?.duration_unit ?? null,
         exact_date: retention.payload?.exact_date ?? null,
-        applies_to: args.applies_to?.length ? args.applies_to : ['data_tables', 'data_rows', 'roles'],
+        applies_to: args.applies_to?.length ? args.applies_to : [...RETENTION_APPLIES_TO],
         created_by: actingUserId ?? null,
         updated_by: actingUserId ?? null,
       })
@@ -233,7 +201,7 @@ export function registerRetentionTools(server: McpToolServer, ctx: McpContext) {
     })
     if (!retention.ok) return mcpErr(retention.error)
 
-    const appliesTo = args.applies_to?.length ? args.applies_to : (existing.applies_to ?? ['data_tables', 'data_rows', 'roles'])
+    const appliesTo = args.applies_to?.length ? args.applies_to : (existing.applies_to ?? [...RETENTION_APPLIES_TO])
     if (appliesTo.includes('roles') && ['purge_on', 'purge_on_exact_date'].includes(nextPolicyMode)) {
       return mcpErr('Roles support review-style retention policies only')
     }
@@ -291,54 +259,16 @@ export function registerRetentionTools(server: McpToolServer, ctx: McpContext) {
     return mcpOk({ deleted: true, retention_policy_id: args.retention_policy_id, retention_policy_name: existing.name })
   })
 
-  server.tool('retention_policies_assign', 'Assign or clear a centrally governed retention policy on a table/list, individual row, or role. Roles support review-style retention only.', {
-    target_type: z.enum(['data_table', 'data_row', 'role']).describe('Target object type'),
+  server.tool('retention_policies_assign', 'Assign or clear a centrally governed retention policy on a table/list, individual row, role or form. Roles support review-style retention only; a form\'s policy governs its submissions (purge modes delete due submissions and their files unless the form is on legal hold).', {
+    target_type: z.enum(RETENTION_ASSIGNMENT_TARGETS).describe('Target object type'),
     target_id: z.string().describe('Target object ID'),
     retention_policy_id: z.string().optional().describe('Retention policy ID to assign. Omit to clear the assignment.'),
   }, async (args) => {
-    const tableMap: Record<string, { table: string; scope: 'data_tables' | 'data_rows' | 'roles' }> = {
-      data_table: { table: 'custom_tables', scope: 'data_tables' },
-      data_row: { table: 'custom_table_rows', scope: 'data_rows' },
-      role: { table: 'roles', scope: 'roles' },
+    try {
+      const result = await assignRetentionPolicy(fromMcpContext(ctx), { targetType: args.target_type, targetId: args.target_id, retentionPolicyId: args.retention_policy_id ?? null })
+      return mcpOk({ updated: true, ...result })
+    } catch (error) {
+      return mcpErr(messageOf(error, 'Could not update the retention assignment'))
     }
-    const target = tableMap[args.target_type]
-    if (!target) return mcpErr('Unsupported target type')
-
-    if (args.retention_policy_id) {
-      const { data: policy, error: policyError } = await (supabase as any)
-        .from('retention_policies')
-        .select('id, applies_to, policy_mode')
-        .eq('tenant_id', tenantId)
-        .eq('id', args.retention_policy_id)
-        .single()
-      if (policyError || !policy) return mcpErr(policyError?.message ?? 'Retention policy not found')
-      if (Array.isArray(policy.applies_to) && !policy.applies_to.includes(target.scope)) {
-        return mcpErr('That retention policy cannot be applied to this target type')
-      }
-      if (args.target_type === 'role' && ['purge_on', 'purge_on_exact_date'].includes(String(policy.policy_mode ?? ''))) {
-        return mcpErr('Roles support review-style retention policies only')
-      }
-    }
-
-    const updatePayload: Record<string, any> = {
-      retention_policy_id: args.retention_policy_id ?? null,
-    }
-    if (args.target_type !== 'data_row') {
-      updatePayload.retention_applied_at = args.retention_policy_id ? new Date().toISOString() : null
-    }
-
-    const { error } = await (supabase as any)
-      .from(target.table)
-      .update(updatePayload)
-      .eq('tenant_id', tenantId)
-      .eq('id', args.target_id)
-    if (error) return mcpErr(error.message)
-
-    return mcpOk({
-      updated: true,
-      target_type: args.target_type,
-      target_id: args.target_id,
-      retention_policy_id: args.retention_policy_id ?? null,
-    })
   })
 }

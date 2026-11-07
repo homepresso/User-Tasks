@@ -60,6 +60,7 @@ import { deleteEmailTemplate } from './email-templates'
 import { deleteIntegration } from './integrations'
 import { deleteLogDestination } from './log-destinations'
 import { deleteForm, deleteFormTheme } from './forms'
+import { deleteFormControl } from './form-controls'
 import { deleteRole } from './roles'
 import { deleteWorkflowActivity } from './workflow-activities'
 import { deleteWorkflow, publishWorkflow } from './workflows'
@@ -72,14 +73,14 @@ const SECTION_ASSET_TYPE: Record<string, string> = {
   email_templates: 'email_template', connectors: 'connector', data_tables: 'data_table', integrations: 'integration',
   references: 'reference', objects: 'object', decision_tables: 'decision_table', retention_policies: 'retention_policy',
   roles: 'role', mcp_servers: 'mcp_server', workflow_activities: 'workflow_activity', reports: 'report', agents: 'agent',
-  workflows: 'workflow', log_destinations: 'log_destination', form_themes: 'form_theme', forms: 'form',
+  workflows: 'workflow', log_destinations: 'log_destination', form_themes: 'form_theme', forms: 'form', form_controls: 'form_control',
 }
 /** Install asset type → id map key used by config apply. */
 const MAP_KEY: Record<string, keyof AssetIdMaps> = {
   email_template: 'email_template', connector: 'connector', data_table: 'data_table', integration: 'integration', reference: 'reference',
   object: 'reference', decision_table: 'decision_table', retention_policy: 'retention_policy', role: 'role', mcp_server: 'mcp_server',
   workflow_activity: 'workflow_activity', report: 'report', agent: 'agent', workflow: 'workflow', log_destination: 'log_destination',
-  form: 'form', form_theme: 'form_theme',
+  form: 'form', form_theme: 'form_theme', form_control: 'form_control',
 }
 /** Activation flag per section (disabled while incomplete). */
 const ACTIVE_FLAG: Record<string, string> = {
@@ -642,6 +643,17 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     }
   }
 
+  // Form controls without a signature of their own carry the package's verified signer.
+  if ((contents.assets.form_controls ?? []).length) {
+    const { recordPackageSignatures } = await import('./form-controls')
+    await recordPackageSignatures(db, ctx.tenantId, contents.assets.form_controls, verification).catch(() => 0)
+  }
+  // Custom workflow actions whose code matches the package record the package's verified signer.
+  if (((contents.assets as Record<string, unknown[] | undefined>).workflow_activities ?? []).length) {
+    const { recordActionPackageSignatures } = await import('./workflow-activities')
+    await recordActionPackageSignatures(db, ctx.tenantId, (contents.assets as Record<string, unknown[] | undefined>).workflow_activities, verification).catch(() => 0)
+  }
+
   // Publish the workflows that are active in the package (now that the map exists).
   const published = await publishWorkflows(actx, activate.filter((sourceId) => !blockedBy.has(`workflows:${sourceId}`)).map((sourceId) => localIdFor('workflows', sourceId)).filter((id): id is string => Boolean(id)), `${header.name} ${header.version}`, warnings)
 
@@ -927,11 +939,11 @@ export interface UninstallInput {
 }
 
 // Workflows before forms before form themes: a form (or theme) still in use is refused by its service.
-const UNINSTALL_ORDER = ['workflows', 'agents', 'reports', 'log_destinations', 'forms', 'form_themes', 'decision_tables', 'workflow_activities', 'email_templates', 'mcp_servers', 'roles', 'retention_policies', 'integrations', 'connectors', 'data_tables']
+const UNINSTALL_ORDER = ['workflows', 'agents', 'reports', 'log_destinations', 'forms', 'form_themes', 'form_controls', 'decision_tables', 'workflow_activities', 'email_templates', 'mcp_servers', 'roles', 'retention_policies', 'integrations', 'connectors', 'data_tables']
 /** The permissions each section's delete needs (as in deleteAsset → the section services). */
 export const UNINSTALL_PERMISSIONS: Record<string, string[]> = {
   workflows: ['workflows.delete'], agents: ['agents.delete'], reports: ['reports.delete'], log_destinations: ['observability.view', 'settings.edit'],
-  forms: ['forms.delete'], form_themes: ['forms.delete'],
+  forms: ['forms.delete'], form_themes: ['forms.delete'], form_controls: ['extensibility.delete'],
   decision_tables: ['workflows.delete'], workflow_activities: ['extensibility.delete'], email_templates: ['workflows.edit'], mcp_servers: ['settings.edit'],
   roles: ['team.change_roles'], retention_policies: ['settings.edit'], integrations: ['integrations.delete'], connectors: ['integrations.delete'], data_tables: ['data.delete'],
 }
@@ -1107,6 +1119,7 @@ async function deleteAsset(ctx: ServiceContext, section: string, id: string) {
     case 'log_destinations': return deleteLogDestination(ctx, id)
     case 'forms': return deleteForm(ctx, id)
     case 'form_themes': return deleteFormTheme(ctx, id)
+    case 'form_controls': return deleteFormControl(ctx, id)
     case 'agents': requirePerm(ctx, 'agents.delete'); return direct('agents')
     case 'reports': requirePerm(ctx, 'reports.delete'); return direct('reports')
     case 'mcp_servers': requirePerm(ctx, 'settings.edit'); return direct('mcp_servers')

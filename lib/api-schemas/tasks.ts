@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import { INVITABLE_ROLES } from '@/lib/invitation-roles'
 import { defineEndpoint } from './registry'
+import { dataTableQueryBody, dataTableQueryResponse, formVariablesField } from './forms'
 import { booleanFlag, csvFilter, idParams, itemResponse, listResponse, paginationQuery } from './common'
+import { taskNextStepSchema } from './task-completion'
 
 export const taskActionBody = z.object({
   action: z.enum(['accept', 'hold', 'reject', 'complete', 'escalate', 'redirect']),
@@ -80,13 +82,23 @@ export const taskLookupBody = z.object({
   field_key: z.string().min(1).max(64).describe('Key of an Autocomplete / lookup field of the task\'s form'),
   query: z.string().max(500).optional().describe('The typed text (matched against the configured search columns / passed to the reference as {{search}})'),
   values: z.record(z.string(), z.unknown()).optional().describe('The form\'s current values, for {{task_data.<key>}} placeholders in the lookup\'s filters or reference inputs'),
+  resolve: z.array(z.string().max(1000)).max(50).optional().describe('Resolve these stored values to their items (display labels) instead of searching — same source, filters and permissions as a search'),
+  variables: formVariablesField,
 })
 
 const lookupItem = z.object({
   value: z.string().describe('Stored as task_data.<key> when selected'),
-  label: z.string(),
+  label: z.string().describe('Display label (the label template, else the first shown field) — stored as task_data.<key>_label'),
   description: z.string().optional().describe('Secondary display text'),
   fields: z.record(z.string(), z.unknown()).describe('The configured display / value / fill fields of the item (task_data.<key>_item once saved)'),
+})
+
+export const queryTaskDataTableEndpoint = defineEndpoint({
+  method: 'POST', path: '/tasks/{id}/data-table', operationId: 'queryTaskDataTable', tags,
+  summary: 'Rows of a Data table field of an open task (search, filters, sort, page)', permission: 'tasks.complete',
+  description: 'Runs the query stored on the task\'s form (Data table field) — never a config from the request. The caller must be able to act on the task. Column filters / sorts only on the columns the author allows, ANDed onto the base filter; only the selected columns are returned. Data table sources need data.view unless the author turned on open access. Rate limited per user (429).',
+  params: idParams, body: dataTableQueryBody, response: dataTableQueryResponse,
+  cli: { resource: 'tasks', verb: 'data-table', positional: ['id'] },
 })
 
 export const lookupTaskEndpoint = defineEndpoint({
@@ -163,10 +175,13 @@ export const taskEndpoints = [
       workflow_error: z.string().optional(),
       acted_as: z.enum(['assignee', 'on_behalf', 'break_glass', 'credential']).optional().describe('How the caller was allowed to act'),
       on_behalf_of: z.string().nullable().optional().describe('The assignee acted for (on_behalf / break_glass)'),
+      next: taskNextStepSchema.nullable().optional()
+        .describe('complete: what happens next (the Task completed screen\'s summary) — still processing after a brief wait: GET /tasks/{id}/next'),
     }),
     cli: { resource: 'tasks', verb: 'action', positional: ['id'] },
   }),
   lookupTaskEndpoint,
+  queryTaskDataTableEndpoint,
   defineEndpoint({
     method: 'POST', path: '/tasks/ingest', operationId: 'ingestTask', tags,
     summary: 'Create a task (with optional subtasks) from an external system', permission: 'tasks.create',

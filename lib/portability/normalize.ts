@@ -4,6 +4,7 @@
 import { normalizeReportConfig } from '@/lib/report-config'
 import { createDefaultNode, type NodeType } from '@/lib/workflow-schema'
 import { isObjectLike } from '@/lib/utils/guards'
+import { canonicalDelay, canonicalFormatDate, canonicalModifyStringOperation } from '@/lib/workflow-node-handlers'
 
 export function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -36,6 +37,7 @@ const WORKFLOW_TRIGGER_TYPES = new Set([
   'middleware_received',
   'schedule',
   'webhook_received',
+  'esign_event',
   'manual',
 ])
 
@@ -54,6 +56,7 @@ const WORKFLOW_TRIGGER_LABELS: Record<string, string> = {
   middleware_received: 'Middleware',
   schedule: 'Schedule',
   webhook_received: 'Webhook',
+  esign_event: 'E-signature Event',
   manual: 'Manual Trigger',
 }
 
@@ -139,8 +142,53 @@ export function normalizeScaffoldDecisionTable(table: any) {
   }
 }
 
+/**
+ * Natural shapes people and LLMs write for common steps, rewritten to the
+ * shapes the builder and engine use (the engine also accepts the aliases at
+ * run time, see lib/workflow-node-handlers.ts):
+ * - json_build_array `items: ["a", 1]` → `[{ value: "a" }, { value: "1" }]`
+ * - parallel `branches: ["A", "B"]` → `[{ label: "A", order: 0 }, …]`
+ * - modify_string `operation: "upper"` / `"lower"` → `uppercase` / `lowercase`
+ * - delay `{ seconds: 5 }` (minutes / hours / days) → `{ duration: 5, unit: "seconds" }`
+ * - format_date / date_math `input` → `date`; format_date `format: "YYYY-MM-DD"`
+ *   → `format: "custom", custom_format: "YYYY-MM-DD"`
+ */
+export function canonicalizeNodeConfigShapes(type: string, config: Record<string, any>): Record<string, any> {
+  const next = { ...config }
+  if (type === 'json_build_array' && Array.isArray(next.items)) {
+    next.items = next.items.map((item: unknown) =>
+      isObjectLike(item) && 'value' in (item as object) ? item : { value: normalizeExpressionValue(item) })
+  }
+  if (type === 'parallel' && Array.isArray(next.branches)) {
+    next.branches = next.branches
+      .map((branch: unknown, index: number) =>
+        typeof branch === 'string' ? { label: branch, order: index } : branch)
+  }
+  if (type === 'modify_string' && next.operation !== undefined) {
+    next.operation = canonicalModifyStringOperation(next.operation)
+  }
+  if (type === 'delay' && (next.duration === undefined || next.duration === null || next.duration === '')) {
+    const { duration, unit } = canonicalDelay(next)
+    if (duration !== undefined && duration !== null && duration !== '') {
+      for (const key of ['seconds', 'minutes', 'hours', 'days']) delete next[key]
+      next.duration = Number.isFinite(Number(duration)) ? Number(duration) : duration
+      next.unit = unit
+    }
+  }
+  if ((type === 'format_date' || type === 'date_math') && next.date === undefined && next.input !== undefined) {
+    next.date = next.input
+    delete next.input
+  }
+  if (type === 'format_date' && next.format !== undefined) {
+    const { format, custom_format } = canonicalFormatDate(next)
+    next.format = format
+    if (format === 'custom' && custom_format !== undefined) next.custom_format = custom_format
+  }
+  return next
+}
+
 function normalizeWorkflowNodeConfig(type: string, config: Record<string, any>) {
-  const nextConfig = { ...config }
+  const nextConfig = canonicalizeNodeConfigShapes(type, config)
 
   if (type === 'custom_activity' && !nextConfig.input_mappings && isObjectLike(nextConfig.inputs)) {
     nextConfig.input_mappings = Object.fromEntries(
@@ -201,6 +249,20 @@ function normalizeWorkflowNodeConfig(type: string, config: Record<string, any>) 
   if (type === 'set_variable') {
     if (nextConfig.variable && !nextConfig.name) nextConfig.name = nextConfig.variable
     if (nextConfig.value !== undefined && !nextConfig.expression) nextConfig.expression = normalizeExpressionValue(nextConfig.value)
+    // Several variables in one node: { assignments: [{ name, expression }] }
+    // (the same aliases per row). The legacy single shape is left as it is.
+    if (Array.isArray(nextConfig.assignments)) {
+      nextConfig.assignments = nextConfig.assignments
+        .filter((row: any) => isObjectLike(row))
+        .map((row: any) => {
+          const next = { ...row }
+          if (next.variable && !next.name) next.name = next.variable
+          if (next.value !== undefined && !next.expression) next.expression = normalizeExpressionValue(next.value)
+          delete next.variable
+          delete next.value
+          return next
+        })
+    }
   }
 
   // Condition ("Branch by Condition") — the engine expects lowercase

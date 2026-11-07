@@ -14,14 +14,15 @@ export const openaiConnector: ConnectorDefinition = {
       label: 'Default Model',
       type: 'select',
       options: [
-        { value: 'gpt-4o', label: 'GPT-4o' },
-        { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
         { value: 'gpt-4.1', label: 'GPT-4.1' },
         { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
         { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-        { value: 'o3-mini', label: 'o3-mini' },
+        { value: 'gpt-5', label: 'GPT-5 (reasoning)' },
+        { value: 'gpt-5-mini', label: 'GPT-5 Mini (reasoning)' },
+        { value: 'gpt-4o', label: 'GPT-4o' },
+        { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
       ],
-      defaultValue: 'gpt-4o-mini',
+      defaultValue: 'gpt-4.1',
       helpText: 'Default model for chat completions',
     },
     {
@@ -48,6 +49,13 @@ export const openaiConnector: ConnectorDefinition = {
       placeholder: 'org-...',
       helpText: 'If you belong to multiple organizations',
     },
+    {
+      key: 'project_id',
+      label: 'Project ID (optional)',
+      type: 'text',
+      placeholder: 'proj_...',
+      helpText: 'Bill usage to a specific project (legacy user keys only — project keys already carry it)',
+    },
   ],
   referenceTemplates: [
     {
@@ -57,24 +65,17 @@ export const openaiConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/v1/chat/completions',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        model: '{{model}}',
-        messages: [
-          { role: 'system', content: '{{system_prompt}}' },
-          { role: 'user', content: '{{user_message}}' },
-        ],
-        max_tokens: '{{max_tokens}}',
-        temperature: '{{temperature}}',
-      }),
+      bodyTemplate: '{"model":"{{model}}","messages":[{"role":"system","content":"{{system_prompt}}"},{"role":"user","content":"{{user_message}}"}],"max_completion_tokens":{{max_tokens}},"temperature":{{temperature}}}',
       inputs: [
         { name: 'user_message', type: 'string', required: true, description: 'The user message / prompt' },
         { name: 'system_prompt', type: 'string', required: false, description: 'System prompt to set context', defaultValue: 'You are a helpful assistant.' },
-        { name: 'model', type: 'string', required: false, description: 'Model override', defaultValue: 'gpt-4o-mini' },
-        { name: 'max_tokens', type: 'number', required: false, description: 'Maximum response tokens', defaultValue: '1024' },
-        { name: 'temperature', type: 'number', required: false, description: 'Sampling temperature (0-2)', defaultValue: '0.7' },
+        { name: 'model', type: 'string', required: false, description: 'Model override', defaultValue: 'gpt-4.1' },
+        { name: 'max_tokens', type: 'number', required: false, description: 'Maximum response tokens (sent as max_completion_tokens; reasoning models count reasoning tokens too)', defaultValue: '4096' },
+        { name: 'temperature', type: 'number', required: false, description: 'Sampling temperature 0-2 — leave empty for reasoning models (gpt-5, o-series), which reject it' },
       ],
       outputs: [
-        { name: 'content', type: 'string' },
+        { name: 'choices.0.message.content', type: 'string' },
+        { name: 'choices.0.finish_reason', type: 'string' },
         { name: 'usage', type: 'object' },
         { name: 'model', type: 'string' },
       ],
@@ -86,16 +87,14 @@ export const openaiConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/v1/embeddings',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        model: '{{model}}',
-        input: '{{text}}',
-      }),
+      bodyTemplate: '{"model":"{{model}}","input":"{{text}}","dimensions":{{dimensions}}}',
       inputs: [
         { name: 'text', type: 'string', required: true, description: 'Text to embed' },
         { name: 'model', type: 'string', required: false, description: 'Embedding model', defaultValue: 'text-embedding-3-small' },
+        { name: 'dimensions', type: 'number', required: false, description: 'Output dimensions (text-embedding-3 models only; empty = model default)' },
       ],
       outputs: [
-        { name: 'embedding', type: 'array' },
+        { name: 'data.0.embedding', type: 'array' },
         { name: 'usage', type: 'object' },
       ],
     },
@@ -103,6 +102,7 @@ export const openaiConnector: ConnectorDefinition = {
   buildIntegrationConfig: (_config, credentials) => {
     const headers: Record<string, string> = {}
     if (credentials.org_id) headers['OpenAI-Organization'] = credentials.org_id
+    if (credentials.project_id) headers['OpenAI-Project'] = credentials.project_id
     return {
       base_url: 'https://api.openai.com',
       auth_type: 'bearer',

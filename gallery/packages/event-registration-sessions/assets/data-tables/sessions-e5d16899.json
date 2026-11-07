@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+  "asset": {
+    "id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+    "name": "Sessions",
+    "description": "The sessions of each event: speaker, time, room, capacity and seats taken. The session lookups on the registration form store the Session column; confirmed registrations add their attendees to the seats taken.",
+    "columns": [
+      {
+        "id": "aa222477-4df6-5451-bd35-b70179a7ce8b",
+        "required": true,
+        "key": "session_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "e8805c71-a2d0-5597-8368-a3c473685ac3",
+        "required": true,
+        "key": "session_label",
+        "name": "Session",
+        "type": "text"
+      },
+      {
+        "id": "c22ed02b-f5be-5ab4-8c79-2b0782673278",
+        "required": false,
+        "key": "event_code",
+        "name": "Event code",
+        "type": "text"
+      },
+      {
+        "id": "05390c8c-2e62-5547-9ddf-acf4cdb7d1f0",
+        "required": false,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "d1b1a029-92f8-5393-a98a-0697142ec37c",
+        "required": false,
+        "key": "speaker",
+        "name": "Speaker",
+        "type": "text"
+      },
+      {
+        "id": "ba490c8a-7855-501b-8460-55a9d72771da",
+        "required": false,
+        "key": "starts",
+        "name": "Starts",
+        "type": "text"
+      },
+      {
+        "id": "6f0153ab-e033-5588-82a7-7c2c7fdc61e6",
+        "required": false,
+        "key": "room",
+        "name": "Room",
+        "type": "text"
+      },
+      {
+        "id": "03ccc61c-e9b8-5aa6-9c2e-c5ecfbf7efe4",
+        "required": false,
+        "key": "capacity",
+        "name": "Capacity",
+        "type": "number"
+      },
+      {
+        "id": "a61674f7-2c2f-5b40-8e67-963f04eb270a",
+        "required": false,
+        "key": "seats_taken",
+        "name": "Seats taken",
+        "type": "number"
+      }
+    ]
+  }
+}

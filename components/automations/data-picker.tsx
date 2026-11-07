@@ -37,6 +37,12 @@ import {
   type PickerItem,
 } from '@/lib/workflow-data-picker'
 import { DATA_DRAG_MIME, decodeDragPayload, encodeDragPayload, loopItemsFromDrop, readRecentData, rememberRecentData, type DataDragPayload } from '@/lib/workflow-data-drop'
+import { Button } from '@/components/ui/button'
+import { floatingSurfaceClass } from '@/components/ui/dropdown-menu'
+import { IconButton } from '@/components/ui/icon-button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 // ─── Context (provided by the node config panel) ─────────────────────────
 
@@ -57,7 +63,7 @@ export function useDataPicker(): DataPickerContextValue | null {
 export function TypeIcon({ schema, size = 12 }: { schema: SchemaNode | null | undefined; size?: number }) {
   const type = schema?.type ?? 'any'
   const Icon = type === 'object' ? Braces : type === 'array' ? List : type === 'string' ? Type : type === 'number' || type === 'integer' ? Hash : type === 'boolean' ? ToggleLeft : type === 'null' ? CircleSlash : HelpCircle
-  return <Icon size={size} aria-hidden className="shrink-0" style={{ color: type === 'array' || type === 'object' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }} />
+  return <Icon size={size} aria-hidden className={cn('shrink-0', type === 'array' || type === 'object' ? 'text-primary-text' : 'text-fg-subtle')} />
 }
 
 function exampleText(schema: SchemaNode): string | null {
@@ -169,11 +175,10 @@ function ChoicesMenu({ item, groups, onPick, onLoop, onClose }: {
       role="group"
       aria-label={`Choose how to use ${item.label}`}
       onKeyDown={onKeyDown}
-      className="mx-1 my-1 rounded-md border p-1"
-      style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}
+      className="m-1 rounded-md bg-subtle p-1"
     >
-      <p className="px-1.5 pb-1 text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-        {parts.isList ? <><strong style={{ color: 'var(--theme-card-text)' }}>{item.label}</strong> is a list. Use…</> : <><strong style={{ color: 'var(--theme-card-text)' }}>{fieldLabel}</strong> is inside a list. Use…</>}
+      <p className="px-2 pb-1 pt-0.5 text-xs text-fg-muted">
+        {parts.isList ? <><span className="font-medium text-fg">{item.label}</span> is a list. Use…</> : <><span className="font-medium text-fg">{fieldLabel}</span> is inside a list. Use…</>}
       </p>
       {mode === 'menu' && choices.map((choice) => (
         <button
@@ -181,42 +186,41 @@ function ChoicesMenu({ item, groups, onPick, onLoop, onClose }: {
           type="button"
           data-choice
           onClick={choice.run}
-          className="flex w-full items-start gap-1.5 rounded px-1.5 py-1 text-left text-[11px] hover:bg-[var(--theme-row-highlight)] focus:bg-[var(--theme-row-highlight)] focus:outline-none"
-          style={{ color: 'var(--theme-card-text)' }}
+          className="flex w-full items-start gap-2 rounded-md px-2 py-1 text-left text-ui text-fg hover:bg-panel focus-visible:bg-panel"
         >
-          <span className="mt-0.5 shrink-0" style={{ color: 'var(--theme-primary-text)' }}>{choice.icon ?? <ChevronRight size={12} aria-hidden />}</span>
+          <span className="mt-0.5 shrink-0 text-fg-muted [&>svg]:size-3.5">{choice.icon ?? <ChevronRight size={14} aria-hidden />}</span>
           <span className="min-w-0 flex-1">
-            <span className="block font-medium">{choice.label}</span>
-            <span className="block truncate font-mono text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{choice.hint}</span>
+            <span className="block">{choice.label}</span>
+            <span className="block truncate font-mono text-2xs text-fg-muted">{choice.hint}</span>
           </span>
         </button>
       ))}
       {mode === 'index' && (
-        <form className="flex items-center gap-1.5 px-1.5 py-1" onSubmit={(e) => { e.preventDefault(); onPick(expr({ kind: 'index', index: Math.max(1, Number(index) || 1) - 1 })) }}>
-          <label className="text-[11px]" style={{ color: 'var(--theme-card-text)' }} htmlFor={`${item.id}-index`}>Position</label>
-          <input id={`${item.id}-index`} type="number" min={1} value={index} onChange={(e) => setIndex(e.target.value)}
-            className="w-16 rounded border px-1.5 py-0.5 text-[11px]" style={{ backgroundColor: 'var(--theme-input-bg, var(--theme-card-bg))', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }} />
-          <button type="submit" className="rounded px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}>Insert</button>
+        <form className="flex items-center gap-1.5 px-2 py-1" onSubmit={(e) => { e.preventDefault(); onPick(expr({ kind: 'index', index: Math.max(1, Number(index) || 1) - 1 })) }}>
+          <label className="text-xs font-medium text-fg" htmlFor={`${item.id}-index`}>Position</label>
+          <Input id={`${item.id}-index`} type="number" min={1} value={index} onChange={(e) => setIndex(e.target.value)}
+            size="sm" className="num w-16" />
+          <Button type="submit" size="sm">Insert</Button>
         </form>
       )}
       {mode === 'find' && (
-        <form className="space-y-1 px-1.5 py-1" onSubmit={(e) => { e.preventDefault(); if (findField) onPick(expr({ kind: 'find', field: findField, value: findValue })) }}>
+        <form className="space-y-1.5 px-2 py-1" onSubmit={(e) => { e.preventDefault(); if (findField) onPick(expr({ kind: 'find', field: findField, value: findValue })) }}>
           <div className="flex items-center gap-1.5">
-            <label className="w-12 text-[11px]" style={{ color: 'var(--theme-card-text)' }} htmlFor={`${item.id}-find-field`}>Where</label>
-            <select id={`${item.id}-find-field`} value={findField} onChange={(e) => setFindField(e.target.value)}
-              className="min-w-0 flex-1 rounded border px-1 py-0.5 text-[11px]" style={{ backgroundColor: 'var(--theme-input-bg, var(--theme-card-bg))', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+            <label className="w-12 text-xs font-medium text-fg" htmlFor={`${item.id}-find-field`}>Where</label>
+            <Select id={`${item.id}-find-field`} value={findField} onChange={(e) => setFindField(e.target.value)}
+              size="sm" wrapperClassName="min-w-0 flex-1">
               {fields.map((field) => <option key={field} value={field}>{field}</option>)}
-            </select>
+            </Select>
           </div>
           <div className="flex items-center gap-1.5">
-            <label className="w-12 text-[11px]" style={{ color: 'var(--theme-card-text)' }} htmlFor={`${item.id}-find-value`}>equals</label>
-            <input id={`${item.id}-find-value`} value={findValue} onChange={(e) => setFindValue(e.target.value)} placeholder="value or {{variable}}"
-              className="min-w-0 flex-1 rounded border px-1.5 py-0.5 font-mono text-[11px]" style={{ backgroundColor: 'var(--theme-input-bg, var(--theme-card-bg))', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }} />
+            <label className="w-12 text-xs font-medium text-fg" htmlFor={`${item.id}-find-value`}>equals</label>
+            <Input id={`${item.id}-find-value`} value={findValue} onChange={(e) => setFindValue(e.target.value)} placeholder="value or {{variable}}"
+              size="sm" className="min-w-0 flex-1 font-mono text-xs" />
           </div>
           <div className="flex justify-end">
-            <button type="submit" className="rounded px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}>
+            <Button type="submit" size="sm">
               Insert {parts.isList ? 'item' : fieldLabel}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -361,17 +365,16 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
 
   return (
     <div className={className} onKeyDown={onKeyDown}>
-      <div className="relative px-2 pt-2 pb-1">
-        <Search size={12} aria-hidden className="absolute left-4 top-1/2 -translate-y-1/2 mt-0.5" style={{ color: 'var(--theme-muted-text)' }} />
-        <input
+      <div className="px-2 pb-1 pt-2">
+        <Input
           ref={searchRef}
+          size="sm"
+          leading={<Search />}
           value={query}
           onChange={(e) => { setQuery(e.target.value); setActive(0); setChoicesFor(null) }}
           placeholder="Search data (e.g. email)"
           aria-label="Search data"
           aria-controls={treeId}
-          className="w-full rounded-md border py-1 pl-7 pr-2 text-[11px] outline-none focus:ring-1"
-          style={{ backgroundColor: 'var(--theme-input-bg, var(--theme-card-bg))', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
         />
       </div>
       <div
@@ -381,11 +384,11 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
         aria-label="Workflow data"
         tabIndex={0}
         aria-activedescendant={focusable.length ? `${treeId}-row-${active}` : undefined}
-        className={`overflow-y-auto px-1 pb-1 outline-none focus-visible:ring-1${fill ? ' min-h-0 flex-1' : ''}`}
+        className={cn('overflow-y-auto rounded-md px-1 pb-1', fill && 'min-h-0 flex-1')}
         style={fill ? undefined : { maxHeight }}
       >
         {rows.length === 0 && (
-          <p className="px-2 py-3 text-center text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="px-2 py-4 text-center text-xs text-fg-muted">
             {query ? `Nothing matches "${query}"` : emptyMessage ?? 'No data from earlier steps yet. Connect this step after the steps whose data you need.'}
           </p>
         )}
@@ -404,13 +407,12 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
                 aria-selected={isActive}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => { setActive(index); toggle(`group:${row.header.id}`) }}
-                className="mt-1 flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
-                style={{ color: 'var(--theme-muted-text)', backgroundColor: isActive ? 'var(--theme-row-highlight)' : undefined }}
+                className={cn('mt-1 flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-fg-muted hover:bg-subtle hover:text-fg', isActive && 'bg-subtle text-fg')}
               >
-                {open ? <ChevronDown size={11} aria-hidden /> : <ChevronRight size={11} aria-hidden />}
-                {row.header.kind === 'loop' && <Repeat size={11} aria-hidden style={{ color: 'var(--theme-primary-text)' }} />}
-                {(row.header.kind === 'form' || row.header.kind === 'workflow') && <ClipboardList size={11} aria-hidden style={{ color: 'var(--theme-primary-text)' }} />}
-                {row.header.kind === 'recent' && <Clock size={11} aria-hidden />}
+                {open ? <ChevronDown size={14} aria-hidden className="shrink-0" /> : <ChevronRight size={14} aria-hidden className="shrink-0" />}
+                {row.header.kind === 'loop' && <Repeat size={12} aria-hidden className="shrink-0" />}
+                {(row.header.kind === 'form' || row.header.kind === 'workflow') && <ClipboardList size={12} aria-hidden className="shrink-0" />}
+                {row.header.kind === 'recent' && <Clock size={12} aria-hidden className="shrink-0" />}
                 <span className="truncate">{row.header.label}</span>
               </div>
             )
@@ -435,8 +437,8 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
                 onMouseDown={(e) => { if (!readOnly) return; e.preventDefault() }}
                 onClick={() => { setActive(index); activate(row) }}
                 data-data-path={item.path}
-                className={`group flex cursor-pointer items-center gap-1 rounded py-1 pr-1 text-[11px]${readOnly ? '' : ' active:cursor-grabbing'}`}
-                style={{ paddingLeft: 6 + item.depth * 12, backgroundColor: isActive ? 'var(--theme-row-highlight)' : undefined, color: 'var(--theme-card-text)' }}
+                className={cn('group flex min-h-7 cursor-pointer items-center gap-1.5 rounded-md py-1 pr-1.5 text-ui text-fg hover:bg-subtle', isActive && 'bg-subtle', !readOnly && 'active:cursor-grabbing')}
+                style={{ paddingLeft: 6 + item.depth * 12 }}
               >
                 {item.hasChildren && !row.breadcrumb ? (
                   <button
@@ -444,33 +446,32 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
                     tabIndex={-1}
                     aria-label={open ? `Collapse ${item.label}` : `Expand ${item.label}`}
                     onClick={(e) => { e.stopPropagation(); setActive(index); toggle(item.id) }}
-                    className="shrink-0 rounded hover:opacity-70"
-                    style={{ color: 'var(--theme-muted-text)' }}
+                    className="shrink-0 rounded-sm text-fg-muted hover:bg-muted hover:text-fg"
                   >
-                    {open ? <ChevronDown size={11} aria-hidden /> : <ChevronRight size={11} aria-hidden />}
+                    {open ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
                   </button>
-                ) : <span className="w-[11px] shrink-0" />}
-                <TypeIcon schema={item.schema} size={11} />
+                ) : <span className="w-3.5 shrink-0" />}
+                <TypeIcon schema={item.schema} size={12} />
                 {item.hint ? (
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">
-                      {row.breadcrumb ? <span style={{ color: 'var(--theme-muted-text)' }}>{row.breadcrumb.split(' › ').slice(0, -1).join(' › ')} › </span> : null}
-                      <span className="font-medium">{label}</span>
+                      {row.breadcrumb ? <span className="text-fg-muted">{row.breadcrumb.split(' › ').slice(0, -1).join(' › ')} › </span> : null}
+                      <span>{label}</span>
                     </span>
-                    <span className="block truncate font-mono text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="block truncate font-mono text-2xs text-fg-muted">
                       {item.hint}{example ? ` · e.g. ${example}` : ''}
                     </span>
                   </span>
                 ) : (<>
-                  <span className="min-w-0 truncate font-mono">
-                    {row.breadcrumb ? <span style={{ color: 'var(--theme-muted-text)' }}>{row.breadcrumb.split(' › ').slice(0, -1).join(' › ')} › </span> : null}
+                  <span className="min-w-0 truncate font-mono text-xs">
+                    {row.breadcrumb ? <span className="text-fg-muted">{row.breadcrumb.split(' › ').slice(0, -1).join(' › ')} › </span> : null}
                     {label}
                   </span>
-                  {example && <span className="min-w-0 flex-1 truncate font-mono text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{example}</span>}
+                  {example && <span className="min-w-0 flex-1 truncate font-mono text-2xs text-fg-muted">{example}</span>}
                   {!example && <span className="flex-1" />}
                 </>)}
-                {!readOnly && <GripVertical size={11} aria-hidden className="shrink-0 opacity-0 group-hover:opacity-60" style={{ color: 'var(--theme-muted-text)' }} />}
-                <span className="shrink-0 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{describeSchemaType(item.schema)}</span>
+                {!readOnly && <GripVertical size={12} aria-hidden className="shrink-0 text-fg-subtle opacity-0 group-hover:opacity-100" />}
+                <span className="shrink-0 text-right text-2xs text-fg-subtle">{describeSchemaType(item.schema)}</span>
                 {onAddOutput && (
                   <button
                     type="button"
@@ -478,10 +479,9 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
                     title="Add as output"
                     aria-label={`Add ${item.label} as output`}
                     onClick={(e) => { e.stopPropagation(); onAddOutput(item) }}
-                    className="shrink-0 rounded p-0.5 opacity-60 hover:opacity-100 group-hover:opacity-100"
-                    style={{ color: 'var(--theme-primary-text)' }}
+                    className="shrink-0 rounded-sm p-0.5 text-primary-text opacity-60 hover:bg-primary-wash hover:opacity-100 group-hover:opacity-100"
                   >
-                    <Plus size={11} aria-hidden />
+                    <Plus size={12} aria-hidden />
                   </button>
                 )}
               </div>
@@ -499,7 +499,7 @@ export function DataTree({ groups: treeGroups, onPick: onPickRaw, onLoop, onAddO
         })}
       </div>
       {!readOnly && (
-        <p className="px-2.5 pb-1.5 pt-1 text-[10px]" style={{ borderTop: '1px solid var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
+        <p className="border-t border-border-subtle px-2.5 pb-1.5 pt-1 text-2xs text-fg-subtle">
           ↑↓ move · → open · Enter insert · drag onto any input · lists offer first / find / loop
         </p>
       )}
@@ -556,19 +556,17 @@ export function DataPickerPopover({ onPick, onClose, anchor }: {
       aria-label="Insert data"
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } else e.stopPropagation() }}
       onPointerDown={(e) => e.stopPropagation()}
-      className="fixed z-[200] flex flex-col rounded-lg border shadow-xl"
+      className={cn('fixed z-[200] flex flex-col border border-border', floatingSurfaceClass)}
       style={{
-        backgroundColor: 'var(--theme-card-bg)',
-        borderColor: 'var(--theme-surface-border)',
         top: position?.top ?? -9999,
         left: position?.left ?? -9999,
         width: position?.width ?? POPOVER_WIDTH,
         maxHeight: position?.maxHeight,
       }}
     >
-      <div className="flex items-center justify-between px-2.5 pt-2">
-        <span className="text-[11px] font-semibold" style={{ color: 'var(--theme-card-text)' }}>Insert data</span>
-        <button type="button" onClick={onClose} aria-label="Close" className="rounded p-0.5 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}><X size={12} aria-hidden /></button>
+      <div className="flex items-center justify-between pl-3 pr-1.5 pt-1.5">
+        <span className="text-ui font-semibold text-fg">Insert data</span>
+        <IconButton size="sm" label="Close" icon={<X />} onClick={onClose} noTooltip />
       </div>
       <DataTree
         groups={picker.groups}
@@ -598,10 +596,9 @@ export function DataPickerButton({ onPick }: { onPick: (expression: string) => v
         title="Insert data from earlier steps"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((value) => !value)}
-        className="absolute right-1 top-1 rounded p-0.5 hover:opacity-80"
-        style={{ color: open ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)', backgroundColor: open ? 'var(--theme-primary-light)' : 'transparent' }}
+        className={cn('absolute right-1 top-1 rounded-sm p-0.5 transition-colors', open ? 'bg-primary-wash text-primary-text' : 'text-fg-muted hover:bg-subtle hover:text-fg')}
       >
-        <Brackets size={12} aria-hidden />
+        <Brackets size={14} aria-hidden />
       </button>
       {open && <DataPickerPopover onPick={onPick} onClose={() => { setOpen(false); buttonRef.current?.focus() }} anchor={buttonRef.current?.parentElement ?? null} />}
     </>
@@ -634,7 +631,7 @@ export function DropChoicesPopover({ payload, at, onPick, onClose }: {
   const left = Math.min(Math.max(8, at.x - 20), window.innerWidth - width - 8)
   const top = Math.min(at.y + 8, window.innerHeight - 260)
   return createPortal(
-    <div ref={ref} role="dialog" aria-label={`Insert ${payload.label}`} className="fixed z-[210] rounded-lg border shadow-xl" style={{ top, left, width, backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+    <div ref={ref} role="dialog" aria-label={`Insert ${payload.label}`} className={cn('fixed z-[210] border border-border', floatingSurfaceClass)} style={{ top, left, width }}
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } else e.stopPropagation() }}
       onPointerDown={(e) => e.stopPropagation()}>
       <ChoicesMenu
@@ -697,7 +694,7 @@ export function LoopItemsInput({ value, onChange, groups, placeholder }: {
 
   return (
     <div ref={containerRef} className="relative" onPointerDown={(e) => e.stopPropagation()}>
-      <input
+      <Input
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}
@@ -727,25 +724,23 @@ export function LoopItemsInput({ value, onChange, groups, placeholder }: {
           if (e.key === 'Escape') { if (open) { e.preventDefault(); e.stopPropagation(); setOpen(false) } return }
           e.stopPropagation()
         }}
-        className={`w-full rounded-md border px-2 py-1.5 font-mono text-xs outline-none focus:ring-1${dragOver ? ' ring-2' : ''}`}
-        style={{ backgroundColor: dragOver ? 'var(--theme-primary-light)' : 'var(--theme-input-bg, var(--theme-card-bg))', borderColor: dragOver ? 'var(--theme-primary)' : 'var(--theme-surface-border)', color: 'var(--theme-card-text)', ['--tw-ring-color' as string]: 'var(--theme-primary)' }}
+        className={cn('font-mono text-xs', dragOver && 'border-primary bg-primary-wash ring-2 ring-primary')}
       />
       {open && (
         <div
           id={listId}
           role="listbox"
           aria-label="Lists you can loop through"
-          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-lg border shadow-xl"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+          className={cn('absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto border border-border p-1', floatingSurfaceClass)}
         >
           {order.length === 0 ? (
-            <p className="px-2.5 py-2 text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="px-2 py-2 text-xs text-fg-muted">
               {candidates.length === 0 ? 'No lists from earlier steps yet — you can still type an expression.' : 'No list matches — free text is fine too.'}
             </p>
           ) : grouped.map((bucket) => (
             <div key={bucket.group} role="group" aria-label={bucket.group}>
-              <div className="sticky top-0 flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                {bucket.kind === 'loop' && <Repeat size={10} aria-hidden />}
+              <div className="sticky top-0 flex items-center gap-1.5 bg-elevated px-2 pb-1 pt-2 text-xs font-medium text-fg-muted">
+                {bucket.kind === 'loop' && <Repeat size={12} aria-hidden />}
                 {bucket.group}
               </div>
               {bucket.items.map(({ candidate }) => {
@@ -760,15 +755,14 @@ export function LoopItemsInput({ value, onChange, groups, placeholder }: {
                     aria-selected={isActive}
                     onMouseDown={(e) => { e.preventDefault(); choose(candidate) }}
                     onMouseEnter={() => setActive(position)}
-                    className="cursor-pointer px-2.5 py-1.5"
-                    style={{ backgroundColor: isActive ? 'var(--theme-row-highlight)' : undefined }}
+                    className={cn('cursor-pointer rounded-md px-2 py-1', isActive && 'bg-subtle')}
                   >
-                    <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-                      <List size={11} aria-hidden style={{ color: 'var(--theme-primary-text)' }} />
-                      <span className="min-w-0 flex-1 truncate font-mono">{candidate.label}</span>
-                      <span className="shrink-0 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{candidate.hint}</span>
+                    <div className="flex items-center gap-1.5 text-ui text-fg">
+                      <List size={12} aria-hidden className="shrink-0 text-primary-text" />
+                      <span className="min-w-0 flex-1 truncate font-mono text-xs">{candidate.label}</span>
+                      <span className="shrink-0 text-2xs text-fg-subtle">{candidate.hint}</span>
                     </div>
-                    <div className="truncate pl-[17px] font-mono text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <div className="truncate pl-[18px] font-mono text-2xs text-fg-muted">
                       {candidate.preview ? `e.g. ${candidate.preview}` : candidate.expression}
                     </div>
                   </div>
@@ -779,8 +773,8 @@ export function LoopItemsInput({ value, onChange, groups, placeholder }: {
         </div>
       )}
       {status === 'not-array' && (
-        <p role="status" className="mt-1 flex items-start gap-1 text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-          <AlertTriangle size={12} aria-hidden className="mt-0.5 shrink-0" style={{ color: 'var(--theme-warning)' }} />
+        <p role="status" className="mt-1 flex items-start gap-1.5 text-xs text-fg">
+          <AlertTriangle size={14} aria-hidden className="mt-px shrink-0 text-warning" />
           This value isn&apos;t known to be a list — the loop will run zero times unless it is one at run time.
         </p>
       )}

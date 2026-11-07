@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildPublicConfig, publicConfigScript } from '@/lib/config/public'
 import { loadInstanceSettings } from '@/lib/config/instance-settings'
+import { versionInfo } from '@/lib/version'
 
 // Runtime values: never prerender at build time.
 export const dynamic = 'force-dynamic'
@@ -9,6 +10,8 @@ export const dynamic = 'force-dynamic'
  * Browser-safe instance config (Supabase URL + anon key, app URL, SSO flags).
  * `?format=js` returns a script that installs it as window.__USERTASKS_CONFIG__;
  * the root layout loads that form on pages prerendered without the values.
+ * The JSON form also carries the running `version` and `commit` (also at
+ * GET /api/version); the script form stays the browser config only.
  */
 export async function GET(request: NextRequest) {
   // Warm the settings cache so an instance-level realtime provider is included.
@@ -20,5 +23,6 @@ export async function GET(request: NextRequest) {
       headers: { ...headers, 'Content-Type': 'text/javascript; charset=utf-8' },
     })
   }
-  return NextResponse.json(config, { headers })
+  const { version, commit } = versionInfo()
+  return NextResponse.json({ ...config, version, commit }, { headers })
 }

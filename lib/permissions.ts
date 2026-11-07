@@ -1,13 +1,13 @@
 /* ── Permission keys ── */
 
-export const PERMISSION_PAYLOAD_VERSION = 16
+export const PERMISSION_PAYLOAD_VERSION = 19
 
 export const PERMISSION_KEYS = [
   'tasks.create', 'tasks.view_own', 'tasks.view_all', 'tasks.assign', 'tasks.complete',
   'tasks.redirect', 'tasks.escalate', 'tasks.delete', 'tasks.manage_queue', 'tasks.complete_any',
   'workflows.view', 'workflows.create', 'workflows.edit', 'workflows.activate',
-  'workflows.delete', 'workflows.view_runs', 'workflows.manage_runs',
-  'forms.view', 'forms.edit', 'forms.delete', 'forms.submit',
+  'workflows.delete', 'workflows.view_runs', 'workflows.view_queue', 'workflows.manage_runs',
+  'forms.view', 'forms.edit', 'forms.delete', 'forms.submit', 'forms.wizard',
   'agents.view', 'agents.create', 'agents.edit', 'agents.test', 'agents.delete',
   'integrations.view', 'integrations.create', 'integrations.edit', 'integrations.test',
   'integrations.delete', 'integrations.manage_references',
@@ -15,6 +15,7 @@ export const PERMISSION_KEYS = [
   'data.view', 'data.create', 'data.edit_schema', 'data.manage_rows', 'data.delete',
   'reports.view', 'reports.create', 'reports.edit_own', 'reports.share', 'reports.delete',
   'team.view_members', 'team.invite', 'team.remove', 'team.change_roles',
+  'org.view', 'org.manage', 'projects.view', 'projects.manage',
   'settings.view', 'settings.edit', 'settings.manage_api_keys',
   'settings.manage_webhooks',
   'sync.view', 'sync.manage', 'sync.deploy',
@@ -49,7 +50,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'tasks.escalate', label: 'Escalate tasks', description: 'Escalate tasks to managers' },
     { key: 'tasks.delete', label: 'Delete tasks', description: 'Soft-delete tasks' },
     { key: 'tasks.manage_queue', label: 'Manage queue', description: 'Manage the task queue' },
-    { key: 'tasks.complete_any', label: 'Complete any task (break-glass)', description: 'Act on any workflow task on behalf of its assignee, with a note; audited. Owner only by default' },
+    { key: 'tasks.complete_any', label: 'Complete any task (break-glass)', description: 'Act on any workflow task on behalf of its assignee, with a note; audited. Owner and Admin by default' },
   ]},
   { key: 'workflows', label: 'Workflows', permissions: [
     { key: 'workflows.view', label: 'View workflows', description: 'View workflow definitions' },
@@ -57,14 +58,16 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'workflows.edit', label: 'Edit workflows', description: 'Edit workflow nodes and edges' },
     { key: 'workflows.activate', label: 'Activate workflows', description: 'Activate and deactivate workflows' },
     { key: 'workflows.delete', label: 'Delete workflows', description: 'Delete workflows' },
-    { key: 'workflows.view_runs', label: 'View runs', description: 'View workflow run history and logs' },
+    { key: 'workflows.view_runs', label: 'View all runs', description: 'See every run and queue item in the workspace, with its history and logs (includes View queue)' },
+    { key: 'workflows.view_queue', label: 'View queue', description: 'Open the workflow queue and run lists: the runs you are involved in (you started it, your form submission started it, or you have a task in it) plus every run of a workflow you hold an explicit View grant on' },
     { key: 'workflows.manage_runs', label: 'Migrate live runs', description: 'Move live (waiting or paused) workflow runs to another version' },
   ]},
   { key: 'forms', label: 'Forms', permissions: [
-    { key: 'forms.view', label: 'View forms', description: 'See reusable task forms and form themes and where they are used' },
-    { key: 'forms.submit', label: 'Submit forms', description: 'Open reusable forms on their own page (/f/…) and submit them; see their own submissions' },
-    { key: 'forms.edit', label: 'Edit forms', description: 'Create and edit reusable task forms and form themes (new versions)' },
-    { key: 'forms.delete', label: 'Delete forms', description: 'Delete reusable forms and form themes that no workflow uses' },
+    { key: 'forms.view', label: 'View forms', description: 'See reusable task forms and form themes, where they are used, and their retention policy and legal hold' },
+    { key: 'forms.submit', label: 'Submit forms', description: 'Open reusable forms on their own page (/f/…) and submit them; see their own submissions. Forms in Available forms show in the Forms menu of people given a View or Submit grant on them' },
+    { key: 'forms.edit', label: 'Edit forms', description: 'Create and edit reusable task forms and form themes (new versions); see every submission' },
+    { key: 'forms.delete', label: 'Delete forms', description: 'Delete reusable forms (with their versions, submissions, uploaded files and grants) and form themes that no workflow uses; forms on legal hold cannot be deleted' },
+    { key: 'forms.wizard', label: 'Create forms with the wizard', description: 'Build forms, surveys and questionnaires step by step: the wizard creates the form, a data table for the responses, an optional review / approval workflow and a results page, all owned by them, and updates them later. Only what the wizard makes is created (no other build access). Owner, Admin, Manager and Member by default' },
   ]},
   { key: 'agents', label: 'AI Agents', permissions: [
     { key: 'agents.view', label: 'View agents', description: 'View agent definitions' },
@@ -105,7 +108,13 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'team.view_members', label: 'View members', description: 'View team members' },
     { key: 'team.invite', label: 'Invite members', description: 'Invite new members to the organisation' },
     { key: 'team.remove', label: 'Remove members', description: 'Remove members from the organisation' },
-    { key: 'team.change_roles', label: 'Manage roles', description: 'Change user roles and permissions' },
+    { key: 'team.change_roles', label: 'Manage roles', description: 'Change user roles and permissions; manage grants on workflows, forms, data tables and other objects, retention assignments and legal holds' },
+  ]},
+  { key: 'org', label: 'Organization', permissions: [
+    { key: 'org.view', label: 'View organization', description: 'See the org chart, org units, teams and people attributes (job title, department, location)' },
+    { key: 'org.manage', label: 'Manage organization', description: 'Create and edit org units, set people attributes and reporting lines in bulk, import and export the org structure' },
+    { key: 'projects.view', label: 'View projects', description: 'See projects, their members and attached teams' },
+    { key: 'projects.manage', label: 'Manage projects', description: 'Create, edit and archive projects; add members and attach teams' },
   ]},
   { key: 'settings', label: 'Settings', permissions: [
     { key: 'settings.view', label: 'View settings', description: 'View organisation settings' },
@@ -125,6 +134,36 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'packages.install', label: 'Install packages', description: 'Install, upgrade, complete setup and uninstall packages (each asset also needs its own create / edit permission)' },
   ]},
 ]
+
+/* ── Implied permissions ── */
+
+/**
+ * Holding the key permission implies the listed ones (a broader right
+ * includes a narrower one). Applied wherever a permission set is built
+ * (expandPermissions): the session (get_user_permissions), API keys, OAuth
+ * tokens and MCP. Custom roles and API keys that predate a narrower key keep
+ * working without being edited.
+ */
+export const IMPLIED_PERMISSIONS: Partial<Record<Permission, readonly Permission[]>> = {
+  // All runs ⊃ the runs you are involved in.
+  'workflows.view_runs': ['workflows.view_queue'],
+}
+
+/** The permissions plus every permission they imply (deduplicated, input order first). */
+export function expandPermissions(perms: Iterable<string>): string[] {
+  const out = new Set<string>(perms)
+  for (const p of [...out]) for (const implied of IMPLIED_PERMISSIONS[p as Permission] ?? []) out.add(implied)
+  return [...out]
+}
+
+/** True when the set holds the permission or one that implies it. */
+export function holdsPermission(perms: { has(p: string): boolean }, permission: string): boolean {
+  if (perms.has(permission)) return true
+  for (const [broader, implied] of Object.entries(IMPLIED_PERMISSIONS)) {
+    if ((implied as readonly string[]).includes(permission) && perms.has(broader)) return true
+  }
+  return false
+}
 
 /* ── Permission check functions (shared, no server deps) ── */
 

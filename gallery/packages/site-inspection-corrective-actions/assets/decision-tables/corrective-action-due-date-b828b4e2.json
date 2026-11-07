@@ -1,0 +1,69 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "b828b4e2-dbea-51bc-a2e4-0941908ef1b5",
+  "asset": {
+    "id": "b828b4e2-dbea-51bc-a2e4-0941908ef1b5",
+    "name": "Corrective action due date",
+    "description": "How many days a corrective action has, by the severity of the failed item, and how soon its reminder goes out. Each corrective action task and Corrective actions row reads this.",
+    "inputs": [
+      {
+        "key": "severity",
+        "label": "Severity",
+        "type": "string",
+        "id": "e6922537-fa00-5eae-a488-6db1e0e153e8"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "action_days",
+        "label": "Days to fix",
+        "type": "number",
+        "id": "f263bef9-65c8-5fb0-bc59-41f69b79ff36"
+      }
+    ],
+    "rules": [
+      {
+        "label": "High",
+        "conditions": [
+          {
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "High",
+            "id": "67cb25fc-ce71-5709-ab46-3572ada196ca"
+          }
+        ],
+        "outputs": {
+          "action_days": 2
+        },
+        "id": "52c7edfa-245b-5259-ab10-279e2ec3a449",
+        "enabled": true
+      },
+      {
+        "label": "Medium",
+        "conditions": [
+          {
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "Medium",
+            "id": "6adadb90-08d4-56a0-9a8d-2c7429c58ea1"
+          }
+        ],
+        "outputs": {
+          "action_days": 7
+        },
+        "id": "825ddb4a-15f2-54f5-a6e7-f4112454a948",
+        "enabled": true
+      },
+      {
+        "label": "Low or not set",
+        "conditions": [],
+        "outputs": {
+          "action_days": 14
+        },
+        "id": "3da63636-26d5-53b3-aecd-d2d52fa91487",
+        "enabled": true
+      }
+    ]
+  }
+}

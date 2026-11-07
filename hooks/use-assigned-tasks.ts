@@ -11,7 +11,8 @@ interface AssignedTaskFilters {
   teamId?: string
 }
 
-export function useAssignedTasks(filters: AssignedTaskFilters = {}) {
+/** `enabled` false: the tracker is on its Following tab (useFollowedTasks loads that). */
+export function useAssignedTasks(filters: AssignedTaskFilters = {}, options: { enabled?: boolean } = {}) {
   const queryClient = useQueryClient()
   const userId = useRealtimeUserId()
 
@@ -22,6 +23,7 @@ export function useAssignedTasks(filters: AssignedTaskFilters = {}) {
     placeholderData: (previousData) => previousData,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    enabled: options.enabled ?? true,
   })
 
   // Scoped to tasks this user assigned — an unfiltered subscription made

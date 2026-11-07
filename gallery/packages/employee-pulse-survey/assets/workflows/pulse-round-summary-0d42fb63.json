@@ -1,0 +1,278 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "0d42fb63-fa78-564a-9b31-856a7317af94",
+  "asset": {
+    "id": "0d42fb63-fa78-564a-9b31-856a7317af94",
+    "name": "Pulse round summary",
+    "description": "From the Pulse results page: averages engagement, eNPS and the four sections for a survey round in the Pulse responses table, counts the risk bands and emails the summary to whoever asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Summary requested",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "b9d75b68-7646-581b-8fb5-919be275831e",
+          "form_name": "Pulse results"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Answers that round",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "table_name": "Pulse responses",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "round",
+              "operator": "eq",
+              "value": "{{form.summary_round}}"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "round_rows",
+          "output_count_var": "response_count"
+        }
+      },
+      {
+        "id": "avg",
+        "type": "set_variable",
+        "label": "Average engagement",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "name": "avg_engagement",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(round_rows, \"engagement\")), 0), \"-\")}}"
+        }
+      },
+      {
+        "id": "enps",
+        "type": "set_variable",
+        "label": "eNPS",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "name": "enps_score",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(round_rows, \"enps_points\")), 0), \"-\")}}"
+        }
+      },
+      {
+        "id": "w",
+        "type": "set_variable",
+        "label": "Wellbeing",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "avg_wellbeing",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(round_rows, \"wellbeing\")), 1), \"-\")}}"
+        }
+      },
+      {
+        "id": "m",
+        "type": "set_variable",
+        "label": "Manager & team",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "name": "avg_manager",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(round_rows, \"manager_team\")), 1), \"-\")}}"
+        }
+      },
+      {
+        "id": "g",
+        "type": "set_variable",
+        "label": "Growth",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "avg_growth",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(round_rows, \"growth\")), 1), \"-\")}}"
+        }
+      },
+      {
+        "id": "wl",
+        "type": "set_variable",
+        "label": "Workload",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "name": "avg_workload",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(round_rows, \"workload\")), 1), \"-\")}}"
+        }
+      },
+      {
+        "id": "t",
+        "type": "set_variable",
+        "label": "Thriving",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "name": "thriving",
+          "expression": "{{=COUNT(FILTER_WHERE(round_rows, \"risk_band\", \"Thriving\"))}}"
+        }
+      },
+      {
+        "id": "o",
+        "type": "set_variable",
+        "label": "Okay",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "name": "okay",
+          "expression": "{{=COUNT(FILTER_WHERE(round_rows, \"risk_band\", \"Okay\"))}}"
+        }
+      },
+      {
+        "id": "r",
+        "type": "set_variable",
+        "label": "At risk",
+        "position": {
+          "x": 600,
+          "y": 1460
+        },
+        "config": {
+          "name": "at_risk",
+          "expression": "{{=COUNT(FILTER_WHERE(round_rows, \"risk_band\", \"At risk\"))}}"
+        }
+      },
+      {
+        "id": "a",
+        "type": "set_variable",
+        "label": "Anonymous answers",
+        "position": {
+          "x": 600,
+          "y": 1600
+        },
+        "config": {
+          "name": "anonymous_count",
+          "expression": "{{=COUNT(FILTER_WHERE(round_rows, \"anonymous\", true))}}"
+        }
+      },
+      {
+        "id": "of",
+        "type": "set_variable",
+        "label": "Open follow-ups",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "name": "open_follow_ups",
+          "expression": "{{=COUNT(FILTER_WHERE(round_rows, \"follow_up_status\", \"Follow-up due\"))}}"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the summary",
+        "position": {
+          "x": 600,
+          "y": 1880
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "c0c65d9e-2139-5ae3-8117-0db5a9069685"
+        },
+        "onError": "continue"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-list",
+        "source": "trigger",
+        "target": "list"
+      },
+      {
+        "id": "e-list-avg",
+        "source": "list",
+        "target": "avg"
+      },
+      {
+        "id": "e-avg-enps",
+        "source": "avg",
+        "target": "enps"
+      },
+      {
+        "id": "e-enps-w",
+        "source": "enps",
+        "target": "w"
+      },
+      {
+        "id": "e-w-m",
+        "source": "w",
+        "target": "m"
+      },
+      {
+        "id": "e-m-g",
+        "source": "m",
+        "target": "g"
+      },
+      {
+        "id": "e-g-wl",
+        "source": "g",
+        "target": "wl"
+      },
+      {
+        "id": "e-wl-t",
+        "source": "wl",
+        "target": "t"
+      },
+      {
+        "id": "e-t-o",
+        "source": "t",
+        "target": "o"
+      },
+      {
+        "id": "e-o-r",
+        "source": "o",
+        "target": "r"
+      },
+      {
+        "id": "e-r-a",
+        "source": "r",
+        "target": "a"
+      },
+      {
+        "id": "e-a-of",
+        "source": "a",
+        "target": "of"
+      },
+      {
+        "id": "e-of-mail",
+        "source": "of",
+        "target": "mail"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

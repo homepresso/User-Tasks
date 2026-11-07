@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "9ac18f22-35d5-5063-ab92-b53e36d6dd54",
+  "asset": {
+    "id": "9ac18f22-35d5-5063-ab92-b53e36d6dd54",
+    "name": "Contract signed",
+    "description": "Sent to the contract owner when DocuSign reports the envelope completed, with a link to the signed PDF.",
+    "subject": "Signed: {{contract_title}} ({{counterparty}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">The contract is signed</h2>\n  <p><strong>{{contract_title}}</strong> with <strong>{{counterparty}}</strong> (value {{=FORMAT_NUMBER(contract_value, 2)}}) was signed by {{signer_name}}.</p>\n  <p><a href=\"{{signature.signed_document.url}}\">Open the signed PDF</a> (DocuSign envelope {{envelope.envelope_id}}).</p>\n  <p style=\"color:#6E6759;font-size:13px\">It is also recorded in the Signed contracts table.</p>\n</div>",
+    "text_body": "The contract is signed\n  {{contract_title}} with {{counterparty}} (value {{=FORMAT_NUMBER(contract_value, 2)}}) was signed by {{signer_name}}.\n  Signed PDF: {{signature.signed_document.url}} (DocuSign envelope {{envelope.envelope_id}}).\n  It is also recorded in the Signed contracts table.",
+    "is_default": false
+  }
+}

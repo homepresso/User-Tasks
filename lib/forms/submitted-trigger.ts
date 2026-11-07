@@ -16,6 +16,10 @@
  *   {{form_submission_id}} {{form_button}} {{form_outcome}} {{form_source}}
  *   {{submitted_by}} {{submitted_by_name}} {{submitted_by_email}}
  *   {{submitted_at}} {{task_id}} (task forms)
+ *   {{submission.*}}           the submission metadata, one reserved object
+ *                              (lib/forms/submission-meta.ts): id, reference,
+ *                              submitted_at, submitted_by.{id,name,email},
+ *                              form.{id,name,version}, source, url_params…
  *
  * A designer test run (Test runner) carries the same payload with
  * `form_source` = 'test' and a `test-…` submission id: nothing is stored.
@@ -24,9 +28,12 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
-import { lookupItemKey } from './lookup'
+import { lookupItemKey, lookupLabelKey } from './lookup'
 import { attachmentsCountKey } from './attachments'
+import { includedContextSchema } from './form-params'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { customOutputSiblingKeys } from './custom-controls/output'
+import { buildSubmissionMeta, submissionSurface, type SubmissionSurface } from './submission-meta'
 
 export const FORM_SUBMITTED_TRIGGER = 'form_submitted'
 
@@ -58,8 +65,14 @@ export interface FormSubmittedPayloadInput {
   fields: TaskFieldDef[]
   /** Validated, typed values (lookups' `<key>_item` included). */
   values: Record<string, unknown>
-  submission: { id: string; created_at: string; source: 'standalone' | 'task' | 'api' | 'test'; task_id?: string | null; button_id?: string | null; outcome?: string | null }
-  submitter: { id: string | null; name?: string | null; email?: string | null }
+  submission: { id: string; created_at: string; source: 'standalone' | 'task' | 'api' | 'test' | 'anonymous'; task_id?: string | null; button_id?: string | null; outcome?: string | null }
+  submitter: { id: string | null; name?: string | null; email?: string | null; manager_id?: string | null }
+  /** The surface people see (`submission.source`): the Run dialog's submissions are stored as standalone. */
+  surface?: SubmissionSurface
+  /** The form's URL query parameters as the server parsed them (`submission.url_params`). */
+  url_params?: Record<string, unknown> | null
+  /** The form's layout: parameters / variables marked "Include in submission" travel in `form` too. */
+  layout?: unknown
 }
 
 /** The trigger's run variables (only the form's declared fields travel in `form`). */
@@ -68,11 +81,17 @@ export function buildFormSubmittedPayload(input: FormSubmittedPayloadInput): Rec
   for (const field of valueFields(input.fields)) {
     form[field.key] = input.values[field.key] ?? null
     if (field.type === 'lookup') form[lookupItemKey(field.key)] = input.values[lookupItemKey(field.key)] ?? (field.lookup?.multiple ? [] : null)
+    if (field.type === 'lookup' && !(lookupLabelKey(field.key) in form) && Object.prototype.hasOwnProperty.call(input.values, lookupLabelKey(field.key))) form[lookupLabelKey(field.key)] = input.values[lookupLabelKey(field.key)]
     if (field.type === 'attachments') {
       const files = Array.isArray(input.values[field.key]) ? input.values[field.key] as unknown[] : []
       form[field.key] = files
       form[attachmentsCountKey(field.key)] = files.length
     }
+    // Custom control outputs (lib/forms/custom-controls/output.ts): `<key>_raw` and the extras.
+    for (const key of customOutputSiblingKeys(field)) form[key] = input.values[key] ?? null
+  }
+  for (const entry of includedContextSchema(input.layout, Object.keys(form))) {
+    if (Object.prototype.hasOwnProperty.call(input.values, entry.key)) form[entry.key] = input.values[entry.key]
   }
   return {
     form,
@@ -84,9 +103,22 @@ export function buildFormSubmittedPayload(input: FormSubmittedPayloadInput): Rec
     form_outcome: input.submission.outcome ?? null,
     form_source: input.submission.source,
     submitted_by: input.submitter.id,
-    submitted_by_name: input.submitter.name ?? null,
+    submitted_by_name: input.submission.source === 'anonymous' ? 'Anonymous' : input.submitter.name ?? null,
     submitted_by_email: input.submitter.email ?? null,
+    // Their manager in the workspace's reporting lines (null: none, or not signed in).
+    submitted_by_manager_id: input.submitter.manager_id ?? null,
     submitted_at: input.submission.created_at,
     ...(input.submission.task_id ? { task_id: input.submission.task_id } : {}),
+    submission: buildSubmissionMeta({
+      id: input.submission.id,
+      submitted_at: input.submission.created_at,
+      submitter: input.submitter,
+      form: input.form,
+      source: input.surface ?? submissionSurface(input.submission.source),
+      button_id: input.submission.button_id,
+      outcome: input.submission.outcome,
+      task_id: input.submission.task_id,
+      url_params: input.url_params,
+    }),
   }
 }

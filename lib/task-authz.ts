@@ -13,6 +13,11 @@
  *    direct or indirect), with a note. The response counts as the
  *    assignee's; the task records actioned_by = manager and
  *    actioned_on_behalf_of = assignee;
+ *  - a WORKFLOW MANAGER acting on behalf: someone holding an explicit Edit
+ *    grant on the task's workflow (object_permissions can_edit, naming them,
+ *    a role they hold or a team they are in — lib/workflow-grants.ts), with
+ *    a note. Recorded like a manager's on-behalf action, with
+ *    on_behalf_basis = 'workflow_manager' in the task history and audit;
  *  - break-glass: `tasks.complete_any` (Owner only by default) lets someone
  *    outside the chain act on behalf, also with a note, audited as such.
  *    Credentials with no person behind them (tenant API keys, ungated
@@ -25,6 +30,7 @@
  */
 
 import { isInManagerChain, loadReportingIndex, type ReportingIndex } from '@/lib/reporting-lines'
+import { isWorkflowManager } from '@/lib/workflow-grants'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped client rows */
 
@@ -41,6 +47,8 @@ export interface AuthzTask {
   assigned_team_id?: string | null
   assignment_mode?: string | null
   deleted_at?: string | null
+  workflow_id?: string | null
+  workflow_run_id?: string | null
 }
 
 /** Facts about one actor and one task, loaded once (loadTaskActorFacts). */
@@ -53,12 +61,16 @@ export interface TaskActorFacts {
   assigneeIds: string[]
   /** The assignee this actor manages (manager chain), when any. */
   managedAssigneeId: string | null
+  /** Holds an explicit Edit grant on the task's workflow (workflow manager). */
+  isWorkflowManager?: boolean
 }
 
 export type TaskActMode = 'assignee' | 'on_behalf' | 'break_glass' | 'credential'
+/** Why someone not assigned may act on behalf: manager chain, workflow manager grant, or break-glass. */
+export type OnBehalfBasis = 'manager' | 'workflow_manager' | 'break_glass'
 
 export type TaskActDecision =
-  | { allowed: true; mode: TaskActMode; onBehalfOf: string | null }
+  | { allowed: true; mode: TaskActMode; onBehalfOf: string | null; basis?: OnBehalfBasis | null }
   | { allowed: false; status: 400 | 403 | 409; code: 'forbidden' | 'validation_error' | 'conflict'; message: string }
 
 export function isWorkflowTask(task: AuthzTask): boolean {
@@ -115,10 +127,11 @@ export function decideTaskAction(input: {
 
   const target = facts.managedAssigneeId ?? facts.assigneeIds[0] ?? null
   const viaManager = Boolean(facts.managedAssigneeId)
-  const viaBreakGlass = !viaManager && hasPermission(permissions, COMPLETE_ANY_PERMISSION)
+  const viaWorkflowManager = !viaManager && facts.isWorkflowManager === true
+  const viaBreakGlass = !viaManager && !viaWorkflowManager && hasPermission(permissions, COMPLETE_ANY_PERMISSION)
 
-  if (!viaManager && !viaBreakGlass) {
-    return { allowed: false, status: 403, code: 'forbidden', message: 'Forbidden: only the assignee (or their manager, acting on their behalf) can action this task' }
+  if (!viaManager && !viaWorkflowManager && !viaBreakGlass) {
+    return { allowed: false, status: 403, code: 'forbidden', message: 'Forbidden: only the assignee (or their manager, or a manager of the workflow, acting on their behalf) can action this task' }
   }
   if (!target) {
     return { allowed: false, status: 403, code: 'forbidden', message: 'Forbidden: this task has no individual assignee to act on behalf of' }
@@ -135,11 +148,14 @@ export function decideTaskAction(input: {
   if (note.length > ON_BEHALF_NOTE_MAX) {
     return { allowed: false, status: 400, code: 'validation_error', message: `The on-behalf note is too long (${ON_BEHALF_NOTE_MAX} characters at most)` }
   }
-  return { allowed: true, mode: viaManager ? 'on_behalf' : 'break_glass', onBehalfOf: target }
+  return {
+    allowed: true, mode: viaBreakGlass ? 'break_glass' : 'on_behalf', onBehalfOf: target,
+    basis: viaManager ? 'manager' : viaWorkflowManager ? 'workflow_manager' : 'break_glass',
+  }
 }
 
 /** Load the facts decideTaskAction needs (tenant-filtered reads). */
-export async function loadTaskActorFacts(db: any, task: AuthzTask, actorId: string | null, options: { index?: ReportingIndex } = {}): Promise<TaskActorFacts> {
+export async function loadTaskActorFacts(db: any, task: AuthzTask, actorId: string | null, options: { index?: ReportingIndex; workflowManagerOf?: boolean } = {}): Promise<TaskActorFacts> {
   const tenantId = String(task.tenant_id)
   const { data: collaborators } = await db
     .from('task_assignees')
@@ -170,10 +186,32 @@ export async function loadTaskActorFacts(db: any, task: AuthzTask, actorId: stri
     const index = options.index ?? await loadReportingIndex(db, tenantId)
     managedAssigneeId = assigneeIds.find((id) => isInManagerChain(index, actorId, id)) ?? null
   }
-  return { isAssignee, isTeamMember, assigneeIds, managedAssigneeId }
+  let workflowManager = false
+  if (!isAssignee && !isTeamMember && !managedAssigneeId) {
+    // Callers that already know (the run read, batched) pass workflowManagerOf.
+    workflowManager = options.workflowManagerOf ?? await isWorkflowManager(db, tenantId, actorId, await taskWorkflowId(db, task))
+  }
+  return { isAssignee, isTeamMember, assigneeIds, managedAssigneeId, isWorkflowManager: workflowManager }
 }
 
-const AUTHZ_TASK_COLUMNS = 'id, tenant_id, status, is_workflow_task, event_id, assignee_id, assigned_team_id, assignment_mode, deleted_at'
+/** The workflow a task belongs to: tasks.workflow_id, else its run's workflow. */
+export async function taskWorkflowId(db: any, task: AuthzTask): Promise<string | null> {
+  const tenantId = String(task.tenant_id)
+  let workflowId = task.workflow_id ?? null
+  let runId = task.workflow_run_id ?? null
+  if (!workflowId && (task.workflow_id === undefined || task.workflow_run_id === undefined)) {
+    const { data } = await db.from('tasks').select('workflow_id, workflow_run_id').eq('id', task.id).eq('tenant_id', tenantId).maybeSingle()
+    workflowId = data?.workflow_id ?? null
+    runId = data?.workflow_run_id ?? runId
+  }
+  if (!workflowId && runId) {
+    const { data } = await db.from('workflow_runs').select('workflow_id').eq('id', runId).eq('tenant_id', tenantId).maybeSingle()
+    workflowId = data?.workflow_id ?? null
+  }
+  return workflowId ? String(workflowId) : null
+}
+
+const AUTHZ_TASK_COLUMNS = 'id, tenant_id, status, is_workflow_task, event_id, assignee_id, assigned_team_id, assignment_mode, deleted_at, workflow_id, workflow_run_id'
 
 export class TaskAuthzError extends Error {
   readonly status: 400 | 403 | 404 | 409
@@ -191,6 +229,8 @@ export interface AuthorizedTaskAction {
   mode: TaskActMode
   onBehalfOf: string | null
   note: string | null
+  /** Why an on-behalf action was allowed (manager / workflow_manager / break_glass). */
+  basis: OnBehalfBasis | null
 }
 
 /**
@@ -231,13 +271,13 @@ export async function authorizeTaskAction(db: any, params: {
   })
   if (!decision.allowed) throw new TaskAuthzError(decision.status, decision.code, decision.message)
   const note = typeof params.note === 'string' && params.note.trim() ? params.note.trim() : null
-  return { task, mode: decision.mode, onBehalfOf: decision.onBehalfOf, note }
+  return { task, mode: decision.mode, onBehalfOf: decision.onBehalfOf, note, basis: decision.basis ?? null }
 }
 
 /**
  * Read access for user-bound credentials (tasks_get, PATCH of a standard
  * task): the user's own tasks (assignee, collaborator, team) and their
- * reports' tasks.
+ * reports' tasks, and the tasks of workflows they manage (explicit Edit grant).
  */
 export async function canUserSeeTask(db: any, tenantId: string, userId: string, taskId: string): Promise<boolean> {
   const { data: task } = await db
@@ -249,7 +289,28 @@ export async function canUserSeeTask(db: any, tenantId: string, userId: string, 
     .maybeSingle()
   if (!task) return false
   const facts = await loadTaskActorFacts(db, task, userId)
-  return facts.isAssignee || facts.isTeamMember || Boolean(facts.managedAssigneeId)
+  return facts.isAssignee || facts.isTeamMember || Boolean(facts.managedAssigneeId) || facts.isWorkflowManager === true
+}
+
+/**
+ * May this person change a task (edit fields, tick, reopen, comment, log
+ * effort, reorder)? Governance audit 2026-11: tasks.complete alone let anyone
+ * edit any task in the workspace by id. Allowed when they hold
+ * tasks.view_all (task oversight), assigned it (assigner), can see it as
+ * assignee / collaborator / team member / manager of the assignee
+ * (canUserSeeTask), or can reach its parent task (subtasks of their task).
+ * `permissions` null = an unrestricted (internal) context.
+ */
+export async function canReachTask(db: any, params: { tenantId: string; taskId: string; actorId: string | null; permissions: ReadonlySet<string> | null }, depth = 0): Promise<boolean> {
+  if (params.permissions === null || params.permissions.has('tasks.view_all')) return true
+  if (!params.actorId) return false
+  const { data: task } = await db.from('tasks').select('id, assigner_id, parent_task_id')
+    .eq('id', params.taskId).eq('tenant_id', params.tenantId).is('deleted_at', null).maybeSingle()
+  if (!task) return false
+  if (task.assigner_id && task.assigner_id === params.actorId) return true
+  if (await canUserSeeTask(db, params.tenantId, params.actorId, params.taskId)) return true
+  if (task.parent_task_id && depth < 5) return canReachTask(db, { ...params, taskId: task.parent_task_id }, depth + 1)
+  return false
 }
 
 /**
@@ -277,6 +338,8 @@ export interface TaskAccessSummary {
   closed: boolean
   /** The assignee an on-behalf action is for. */
   onBehalfOf: string | null
+  /** Why on behalf is allowed (null for assignee / none). */
+  basis?: OnBehalfBasis | null
 }
 
 /** What the task screen should offer the signed-in user (the server re-checks on every action). */
@@ -286,9 +349,10 @@ export async function describeTaskAccess(db: any, params: { tenantId: string; ta
   if (!task) return null
   const facts = await loadTaskActorFacts(db, task, params.actorId)
   const base = { workflowTask: isWorkflowTask(task), closed: isClosedTask(task) }
-  if (facts.isAssignee || facts.isTeamMember) return { ...base, mode: 'assignee', onBehalfOf: null }
+  if (facts.isAssignee || facts.isTeamMember) return { ...base, mode: 'assignee', onBehalfOf: null, basis: null }
   const target = facts.managedAssigneeId ?? facts.assigneeIds[0] ?? null
-  if (facts.managedAssigneeId) return { ...base, mode: 'on_behalf', onBehalfOf: facts.managedAssigneeId }
-  if (target && hasPermission(params.permissions, COMPLETE_ANY_PERMISSION)) return { ...base, mode: 'break_glass', onBehalfOf: target }
-  return { ...base, mode: 'none', onBehalfOf: null }
+  if (facts.managedAssigneeId) return { ...base, mode: 'on_behalf', onBehalfOf: facts.managedAssigneeId, basis: 'manager' }
+  if (target && facts.isWorkflowManager) return { ...base, mode: 'on_behalf', onBehalfOf: target, basis: 'workflow_manager' }
+  if (target && hasPermission(params.permissions, COMPLETE_ANY_PERMISSION)) return { ...base, mode: 'break_glass', onBehalfOf: target, basis: 'break_glass' }
+  return { ...base, mode: 'none', onBehalfOf: null, basis: null }
 }

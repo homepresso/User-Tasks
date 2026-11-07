@@ -11,4 +11,6 @@ export const LEGACY_DOC_REDIRECTS: Record<string, string> = {
   extensibility: '/docs/custom-steps',
   'github-sync': '/docs/config-as-code',
   reporting: '/docs/reports',
+  // The public changelog was retired; release notes stay in docs/changes/.
+  changelog: '/docs',
 }

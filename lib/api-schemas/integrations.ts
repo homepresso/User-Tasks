@@ -58,6 +58,7 @@ export const importOpenApiQuery = z.object({
 
 const referenceInputDef = looseObject.describe('{ name, type, required, location: path|query|header|body, default_value }')
 const referenceOutputDef = looseObject.describe('{ name, path, type }')
+const CUSTOM_NOTE = " Custom reference: { origin: 'custom', custom: { kind: 'list'|'read'|'create'|'update'|'upsert'|'delete'|'execute', source: { type: 'operation', reference_id | from: 'template'|'openapi', key | from: 'endpoint', method, path_template; params: [{ name, value }] } | { type: 'table', schema?, table, columns }, inputs: [{ name, type, mode: 'ask'|'fixed', required?, default_value?, fixed_value? | fixed_setting? }], rows_path?, columns: [{ path, alias?, type? }], filter?: { op: 'and'|'or', conditions: [{ field, operator, value?, api_param? } | group] }, sort?, distinct?, page_size?, max_rows?, paging_inputs?, include_total?, api?, read?, write?: { method?, body?: { mode: 'source'|'none'|'inputs'|'mapped', fields?: [{ path, value?, type? }] }, idempotency?: { input, header? }, success_statuses?, set?: [{ column, value }], key?: [{ column, value }], returning?, procedure?: { schema?, name, params: [{ name, value? }] }, max_affected? (default 1, ≤ 1000), not_found?: 'error'|'noop', id_field? } } } — the server builds the request, public inputs (Fixed ones hidden), outputs and response model. Write kinds: Update/Delete need a key or conditions (never unbounded); database writes run in a transaction rolled back past max_affected; output { status, affected_rows, id, record }."
 const responseSchemaDef = looseObject.nullable().describe('Response model: { source?, root: { type, description?, example?, fields?: [{ name, ...node }], items?: node } } (a bare root node is accepted). null clears it; it is then derived from outputs again.')
 
 export const referenceCreateBody = z.object({
@@ -68,7 +69,7 @@ export const referenceCreateBody = z.object({
   body_template: z.string().optional(),
   headers: z.record(z.string(), z.string()).optional(),
   query_params: looseObject.optional(),
-  request_config: looseObject.optional().describe('Full request config; overrides the shorthand fields'),
+  request_config: looseObject.optional().describe(`Full request config; overrides the shorthand fields.${CUSTOM_NOTE}`),
   inputs: z.array(referenceInputDef).optional(),
   outputs: z.array(referenceOutputDef).optional(),
   response_schema: responseSchemaDef.optional(),
@@ -79,7 +80,7 @@ export const referenceUpdateBody = z.object({
   name: z.string().min(1).max(160).optional(),
   description: z.string().nullable().optional(),
   method: z.string().optional().describe('Sets request_config.method'),
-  request_config: looseObject.optional(),
+  request_config: looseObject.optional().describe(`Replaces the request config.${CUSTOM_NOTE}`),
   inputs: z.array(referenceInputDef).optional(),
   outputs: z.array(referenceOutputDef).optional(),
   response_schema: responseSchemaDef.optional(),
@@ -127,6 +128,8 @@ export const connectorCreateBody = z.object({
   display_name: z.string().max(120).optional(),
   config: z.record(z.string(), z.any()).optional().describe('Connector configuration fields'),
   credentials: z.record(z.string(), z.any()).optional().describe('Connector credential fields (write-only)'),
+  reference_mode: z.enum(['all', 'none', 'selected']).optional().describe("Which catalogue operations become references: 'all' (default), 'none' (start empty and build custom references) or 'selected' (reference_template_keys)"),
+  reference_template_keys: z.array(z.string()).max(500).optional().describe("Operation keys to generate when reference_mode is 'selected' (see the catalog's reference_templates)"),
 })
 
 export const connectorUpdateBody = z.object({

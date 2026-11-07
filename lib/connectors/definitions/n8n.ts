@@ -3,7 +3,7 @@ import type { ConnectorDefinition } from '../registry'
 export const n8nConnector: ConnectorDefinition = {
   key: 'n8n',
   name: 'n8n',
-  description: 'Trigger workflows, manage executions, and orchestrate automations in n8n',
+  description: 'Manage n8n workflows and executions through the n8n public API (trigger workflows through their webhook URL with the HTTP/webhook integration, not this API key)',
   category: 'productivity',
   icon: 'Workflow',
   color: '#FF6D5A',
@@ -11,7 +11,7 @@ export const n8nConnector: ConnectorDefinition = {
   recommendedPermissions: {
     title: 'Recommended n8n Setup',
     items: ['API access enabled in the workspace', 'API key created for the correct environment', 'Workflow and execution permissions for the account behind the API key'],
-    note: 'Use the base instance URL for testing, not a webhook path.',
+    note: 'Use the base instance URL, not a webhook path. The public API has no "run now" call — to start a workflow, call its Webhook node URL from a separate webhook integration so the API key is never sent to workflow webhooks.',
   },
   fields: [
     {
@@ -64,11 +64,9 @@ export const n8nConnector: ConnectorDefinition = {
     {
       key: 'activate_workflow',
       name: 'Activate Workflow',
-      description: 'Activate a workflow so it responds to triggers',
-      method: 'PATCH',
-      pathTemplate: '/api/v1/workflows/{{workflow_id}}',
-      headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ active: true }),
+      description: 'Activate (publish) a workflow so it responds to triggers',
+      method: 'POST',
+      pathTemplate: '/api/v1/workflows/{{workflow_id}}/activate',
       inputs: [
         { name: 'workflow_id', type: 'string', required: true, description: 'Workflow ID' },
       ],
@@ -78,10 +76,8 @@ export const n8nConnector: ConnectorDefinition = {
       key: 'deactivate_workflow',
       name: 'Deactivate Workflow',
       description: 'Deactivate a workflow',
-      method: 'PATCH',
-      pathTemplate: '/api/v1/workflows/{{workflow_id}}',
-      headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ active: false }),
+      method: 'POST',
+      pathTemplate: '/api/v1/workflows/{{workflow_id}}/deactivate',
       inputs: [
         { name: 'workflow_id', type: 'string', required: true, description: 'Workflow ID' },
       ],
@@ -89,27 +85,14 @@ export const n8nConnector: ConnectorDefinition = {
     },
     // ─── Executions ───
     {
-      key: 'execute_workflow',
-      name: 'Execute Workflow',
-      description: 'Trigger a workflow execution with optional input data',
-      method: 'POST',
-      pathTemplate: '/api/v1/executions',
-      headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ workflowId: '{{workflow_id}}', data: '{{input_data}}' }),
-      inputs: [
-        { name: 'workflow_id', type: 'string', required: true, description: 'Workflow ID to execute' },
-        { name: 'input_data', type: 'string', required: false, description: 'JSON input data to pass to the workflow' },
-      ],
-      outputs: [{ name: 'id', type: 'string' }, { name: 'finished', type: 'boolean' }, { name: 'data', type: 'object' }],
-    },
-    {
       key: 'get_execution',
       name: 'Get Execution',
       description: 'Get details and result of a workflow execution',
       method: 'GET',
-      pathTemplate: '/api/v1/executions/{{execution_id}}',
+      pathTemplate: '/api/v1/executions/{{execution_id}}?includeData={{include_data}}',
       inputs: [
         { name: 'execution_id', type: 'string', required: true, description: 'Execution ID' },
+        { name: 'include_data', type: 'string', required: false, description: 'true to include the execution data', defaultValue: 'false' },
       ],
       outputs: [{ name: 'id', type: 'string' }, { name: 'finished', type: 'boolean' }, { name: 'status', type: 'string' }, { name: 'data', type: 'object' }],
     },
@@ -138,20 +121,19 @@ export const n8nConnector: ConnectorDefinition = {
       ],
       outputs: [{ name: 'status', type: 'number' }],
     },
-    // ─── Webhook Trigger ───
     {
-      key: 'trigger_webhook',
-      name: 'Trigger Webhook Workflow',
-      description: 'Trigger a workflow via its webhook URL with a JSON payload',
+      key: 'retry_execution',
+      name: 'Retry Execution',
+      description: 'Retry a failed execution',
       method: 'POST',
-      pathTemplate: '/webhook/{{webhook_path}}',
+      pathTemplate: '/api/v1/executions/{{execution_id}}/retry',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: '{{payload}}',
+      bodyTemplate: '{"loadWorkflow":{{load_workflow}}}',
       inputs: [
-        { name: 'webhook_path', type: 'string', required: true, description: 'Webhook path (from the Webhook trigger node in n8n)' },
-        { name: 'payload', type: 'string', required: false, description: 'JSON payload to send', defaultValue: '{}' },
+        { name: 'execution_id', type: 'string', required: true, description: 'Execution ID' },
+        { name: 'load_workflow', type: 'boolean', required: false, description: 'true = retry with the current workflow version' },
       ],
-      outputs: [{ name: 'status', type: 'number' }, { name: 'body', type: 'string' }],
+      outputs: [{ name: 'id', type: 'string' }, { name: 'status', type: 'string' }],
     },
     // ─── Credentials ───
     {
@@ -159,11 +141,12 @@ export const n8nConnector: ConnectorDefinition = {
       name: 'List Credentials',
       description: 'List stored credentials in n8n (metadata only, no secrets)',
       method: 'GET',
-      pathTemplate: '/api/v1/credentials?limit={{limit}}',
+      pathTemplate: '/api/v1/credentials?limit={{limit}}&cursor={{cursor}}',
       inputs: [
         { name: 'limit', type: 'number', required: false, description: 'Max results', defaultValue: '50' },
+        { name: 'cursor', type: 'string', required: false, description: 'nextCursor from the previous page' },
       ],
-      outputs: [{ name: 'data', type: 'array' }],
+      outputs: [{ name: 'data', type: 'array' }, { name: 'nextCursor', type: 'string' }],
     },
   ],
   buildIntegrationConfig: (config, credentials) => ({

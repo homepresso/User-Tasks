@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "0f46a894-5325-5a6f-a514-d2347ee965c1",
+  "asset": {
+    "id": "0f46a894-5325-5a6f-a514-d2347ee965c1",
+    "name": "Changes requested on your document",
+    "description": "Sent to the submitter when a reviewer, legal or the signer asks for changes; the revision task is waiting for them.",
+    "subject": "{{reference}}: changes requested on \"{{form.title}}\"",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Changes requested</h2><p>Hi {{submitted_by_name}},</p><p>{{actioned_by_name}} asked for changes to <strong>{{form.title}}</strong> (version {{version}}) at the <em>{{changes_step}}</em> step:</p><blockquote style=\"border-left:3px solid #4338CA;margin:12px 0;padding:4px 12px;color:#33302A\">{{change_request}}</blockquote><p>Upload the revised PDF from your task list within {{revision_days}} days; it then goes back to the first reviewer.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">{{reference}} · document review</p></div>",
+    "text_body": "Changes requested on {{form.title}} (version {{version}}) by {{actioned_by_name}}:\n\n{{change_request}}\n\nUpload the revised PDF from your task list within {{revision_days}} days.",
+    "is_default": false
+  }
+}

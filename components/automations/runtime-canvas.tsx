@@ -6,7 +6,7 @@ import { NODE_CATALOG, type WorkflowEdge, type WorkflowNode } from "@/lib/workfl
 import { getSectionNodes, resolveVisibleGraph } from "@/lib/workflow-sections"
 import { nodeBox } from "@/lib/workflow-edge-routing"
 import { unionBounds } from "@/lib/canvas-zoom"
-import { FOCUS_STEP_LABEL, formatRunDuration, pickFocusStep, RUN_STATUS_LABEL, RUN_STATUS_TOKENS, type EdgeRunTone, type RunNodeResult, type RunOverlay } from "@/lib/workflow-run-overlay"
+import { FOCUS_STEP_LABEL, formatRunDuration, joinWaitingLabel, pickFocusStep, RUN_STATUS_LABEL, RUN_STATUS_TOKENS, type EdgeRunTone, type RunNodeResult, type RunOverlay } from "@/lib/workflow-run-overlay"
 import { heatColor, heatSummary, type HeatOverlay } from "@/lib/workflow-heat-overlay"
 import { EdgeRenderer } from "./edge-renderer"
 import { WorkflowNodeCard } from "./workflow-node-card"
@@ -16,8 +16,12 @@ import { CanvasMinimap, type MinimapItem } from "./canvas-minimap"
 import { useCanvasZoom } from "./use-canvas-zoom"
 import { useNodeSizes } from "./use-node-sizes"
 import { WorkflowLookupsProvider } from "./workflow-lookups"
+import type { SummaryLookups } from "@/lib/workflow-utils"
+import { IconButton } from "@/components/ui/icon-button"
+import { Tooltip } from "@/components/ui/tooltip"
 
-const GRID = 20
+/** Dot grid spacing of the background (visual only: positions are not snapped here). */
+const GRID = 16
 const NO_RUN: RunOverlay = { nodes: {}, edges: {}, traversed: new Set() }
 const NO_RESULTS: Record<string, RunNodeResult | undefined> = {}
 const subscribeNever = () => () => {}
@@ -47,6 +51,8 @@ export interface RuntimeCanvasProps {
   outlines?: Record<string, string | undefined>
   selectedNodeId?: string | null
   onSelectNode?: (id: string | null) => void
+  /** Content drawn just above a step's card (e.g. who has its task and the open-task icon). */
+  nodeAdornments?: Record<string, React.ReactNode>
   /** Extra content in the step details panel (e.g. a waiting step's event id). */
   renderDetails?: (node: WorkflowNode) => React.ReactNode
   /** Fill the parent's height (the parent must have one); otherwise `height` applies. */
@@ -60,6 +66,10 @@ export interface RuntimeCanvasProps {
   expandable?: boolean
   markerPrefix?: string
   label?: string
+  /** The built-in step details panel (output, error) on click; off for the submitter-safe view (default true). */
+  stepDetails?: boolean
+  /** Card lookups (data table names) to use instead of loading them; the submitter-safe view passes {}. */
+  lookups?: SummaryLookups
 }
 
 /** Height of a run preview that isn't inside a sized container: about one screen. */
@@ -75,8 +85,8 @@ export const RUNTIME_CANVAS_SCREEN_HEIGHT = "max(520px, calc(100dvh - 140px))"
  */
 export function RuntimeCanvas({
   nodes, edges, swimlanes = [], overlay = NO_RUN, nodeResults = NO_RESULTS, heat, workflowActive = false, workflowId, storageScope, rootRef, scrollRef: externalScrollRef,
-  nodeRef, outlines, selectedNodeId: controlledSelected, onSelectNode, renderDetails, fill = false, height = RUNTIME_CANVAS_SCREEN_HEIGHT, minHeight = 360,
-  focusRequest, expandable = true, markerPrefix = "rt-arrow", label = "Workflow run canvas",
+  nodeRef, outlines, nodeAdornments, selectedNodeId: controlledSelected, onSelectNode, renderDetails, fill = false, height = RUNTIME_CANVAS_SCREEN_HEIGHT, minHeight = 360,
+  focusRequest, expandable = true, markerPrefix = "rt-arrow", label = "Workflow run canvas", stepDetails = true, lookups,
 }: RuntimeCanvasProps) {
   const internalScrollRef = useRef<HTMLDivElement | null>(null)
   const scrollRef = externalScrollRef ?? internalScrollRef
@@ -177,7 +187,7 @@ export function RuntimeCanvas({
   })
 
   return (
-    <WorkflowLookupsProvider>
+    <WorkflowLookupsProvider value={lookups}>
     <div
       ref={wrapRef}
       data-runtime-canvas-root=""
@@ -195,14 +205,10 @@ export function RuntimeCanvas({
         role="region"
         aria-label={`${label}. Ctrl or Command plus wheel to zoom, space and drag to pan, Shift+3 for the ${focusStep?.kind === "failed" ? "failed" : focusStep?.kind === "current" ? "current" : "first"} step.`}
         data-runtime-canvas=""
-        className={`rounded-xl border overflow-auto focus-visible:outline-none focus-visible:ring-2 ${expanded || fill ? "flex-1 min-h-0" : ""} ${view.cursorClass}`}
+        className={`rounded-lg border border-border bg-bg overflow-auto ${expanded || fill ? "flex-1 min-h-0" : ""} ${view.cursorClass}`}
         style={{
-          backgroundColor: "var(--theme-surface)",
-          borderColor: "var(--theme-surface-border)",
           ...(expanded || fill ? { minHeight: Math.min(minHeight, 240) } : { height, minHeight }),
           touchAction: "pan-x pan-y",
-          // @ts-expect-error CSS custom property for the focus ring
-          "--tw-ring-color": "var(--theme-focus-ring)",
         }}
         {...view.canvasHandlers}
         onClick={(e) => {
@@ -220,7 +226,7 @@ export function RuntimeCanvas({
             height: Math.max(maxY + 600, 1600),
             transform: view.transform,
             transformOrigin: "0 0",
-            backgroundImage: "radial-gradient(circle, var(--theme-surface-border) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, var(--ds-border-subtle) 1px, transparent 1px)",
             backgroundSize: `${GRID}px ${GRID}px`,
           }}
         >
@@ -263,18 +269,31 @@ export function RuntimeCanvas({
                   zIndex: selectedNodeId === node.id || overlay.nodes[node.id]?.current ? 10 : 1,
                   cursor: "pointer",
                   outline: outline ? `3px solid ${outline}` : undefined,
-                  outlineOffset: outline ? 2 : undefined,
+                  // Past the status / heat ring (2px gap + 2–3px ring).
+                  outlineOffset: outline ? 6 : undefined,
                 }}
                 rootProps={{
                   role: "button",
                   tabIndex: 0,
-                  "aria-label": `${node.label}: ${heat?.nodes[node.id] ? heatSummary(heat.nodes[node.id], formatRunDuration) : RUN_STATUS_LABEL[overlay.nodes[node.id]?.status ?? "not_run"]}. Show step details`,
+                  "aria-label": `${node.label}: ${heat?.nodes[node.id] ? heatSummary(heat.nodes[node.id], formatRunDuration) : (overlay.nodes[node.id]?.joinWaiting ? joinWaitingLabel(overlay.nodes[node.id]!.joinWaiting!) : RUN_STATUS_LABEL[overlay.nodes[node.id]?.status ?? "not_run"])}. Show step details`,
                   onClick: (e) => { e.stopPropagation(); select(selectedNodeId === node.id ? null : node.id) },
                   onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(selectedNodeId === node.id ? null : node.id) } },
                 }}
               />
             )
           })}
+
+          {nodeAdornments && effectiveNodes.filter((n) => n.type !== "section_group" && !hiddenNodeIds.has(n.id) && nodeAdornments[n.id]).map((node) => (
+            <div
+              key={`adorn-${node.id}`}
+              data-node-adornment={node.id}
+              className="pointer-events-none absolute"
+              style={{ left: node.position.x, top: node.position.y - 6, transform: "translateY(-100%)", zIndex: 12 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {nodeAdornments[node.id]}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -295,22 +314,22 @@ export function RuntimeCanvas({
         focusStepLabel={focusStep ? FOCUS_STEP_LABEL[focusStep.kind] : undefined}
       >
         {expandable && (
-          <button
+          <IconButton
             type="button"
+            size="sm"
+            variant="secondary"
             onClick={() => setExpanded((x) => !x)}
             aria-pressed={expanded}
-            aria-label={expanded ? "Exit full screen (Esc)" : "Full screen"}
-            title={expanded ? "Exit full screen (Esc)" : "Full screen"}
+            label={expanded ? "Exit full screen (Esc)" : "Full screen"}
+            tooltipSide="bottom"
             data-canvas-expand=""
-            className="flex items-center justify-center h-7 min-w-7 px-1.5 rounded-lg border shadow-sm transition-colors hover:bg-[var(--theme-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset"
-            style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)", "--tw-ring-color": "var(--theme-focus-ring)" } as React.CSSProperties}
-          >
-            {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
-          </button>
+            className="rounded-lg bg-elevated text-fg shadow-elev-2"
+            icon={expanded ? <Minimize2 /> : <Maximize2 />}
+          />
         )}
       </CanvasZoomControls>
 
-      {selectedNode && (
+      {selectedNode && stepDetails && (
         <StepDetails node={selectedNode} result={nodeResults[selectedNode.id]} overlay={overlay} heat={heat} onClose={() => select(null)} extra={renderDetails?.(selectedNode)} />
       )}
     </div>
@@ -329,21 +348,21 @@ export function logStepId(log: { node_id?: string | null; node_label?: string | 
 
 /** A step name in a step list / log line that zooms the run canvas to that step. */
 export function StepChip({ label, onFocus }: { label: string; onFocus?: () => void }) {
-  const style = { backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)", "--tw-ring-color": "var(--theme-focus-ring)" } as React.CSSProperties
-  if (!onFocus) return <span className="text-[10px] px-1 py-0.5 rounded shrink-0" style={style}>{label}</span>
+  const chip = "text-2xs px-1 py-0.5 rounded-sm shrink-0 bg-subtle text-fg-muted"
+  if (!onFocus) return <span className={chip}>{label}</span>
   return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onFocus() }}
-      className="inline-flex items-center gap-1 text-[10px] px-1 py-0.5 rounded shrink-0 hover:underline focus-visible:outline-none focus-visible:ring-2"
-      style={style}
-      title={`Show ${label} on the canvas`}
-      aria-label={`Show ${label} on the canvas`}
-      data-step-chip=""
-    >
-      <Crosshair size={10} aria-hidden="true" />
-      {label}
-    </button>
+    <Tooltip content={`Show ${label} on the canvas`}>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onFocus() }}
+        className={`${chip} inline-flex items-center gap-1 hover:text-fg hover:underline`}
+        aria-label={`Show ${label} on the canvas`}
+        data-step-chip=""
+      >
+        <Crosshair size={12} aria-hidden="true" />
+        {label}
+      </button>
+    </Tooltip>
   )
 }
 
@@ -358,46 +377,46 @@ function StepDetails({ node, result, overlay, heat, onClose, extra }: { node: Wo
       data-step-details=""
       role="dialog"
       aria-label={`Step details: ${node.label}`}
-      className="absolute top-14 right-3 z-30 w-80 max-w-[calc(100%-24px)] max-h-[calc(100%-128px)] overflow-y-auto rounded-xl border shadow-xl"
-      style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+      className="absolute top-14 right-3 z-30 w-80 max-w-[calc(100%-24px)] max-h-[calc(100%-128px)] overflow-y-auto rounded-lg border border-border bg-elevated text-fg shadow-elev-2"
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose() } }}
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "var(--theme-surface-border)" }}>
-        <span className="text-xs font-semibold flex-1 truncate">{node.label}</span>
-        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5" style={{ backgroundColor: tokens.fill, color: tokens.on }}>
+      <div className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 border-b border-border-subtle">
+        <span className="text-ui font-semibold flex-1 truncate">{node.label}</span>
+        <span className="inline-flex items-center h-5 shrink-0 text-2xs font-medium rounded-full px-2" style={{ backgroundColor: tokens.fill, color: tokens.on }}>
           {RUN_STATUS_LABEL[status]}
         </span>
-        <button type="button" onClick={onClose} aria-label="Close step details" className="p-1 rounded hover:opacity-70" style={{ color: "var(--theme-muted-text)" }}>
-          <X size={14} aria-hidden="true" />
-        </button>
+        <IconButton type="button" size="sm" onClick={onClose} label="Close step details" icon={<X />} />
       </div>
-      <dl className="px-3 py-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
-        <dt style={{ color: "var(--theme-muted-text)" }}>Duration</dt>
-        <dd>{o?.durationMs != null ? formatRunDuration(o.durationMs) : "—"}</dd>
-        <dt style={{ color: "var(--theme-muted-text)" }}>Visits</dt>
-        <dd>{o?.visits ?? (result ? 1 : 0)}</dd>
+      <dl className="px-3 py-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+        <dt className="text-fg-muted">Duration</dt>
+        <dd className="num">{o?.durationMs != null ? formatRunDuration(o.durationMs) : "—"}</dd>
+        <dt className="text-fg-muted">Visits</dt>
+        <dd className="num">{o?.visits ?? (result ? 1 : 0)}</dd>
         {o?.takenBranches && (<>
-          <dt style={{ color: "var(--theme-muted-text)" }}>Took</dt>
+          <dt className="text-fg-muted">Took</dt>
           <dd>{o.takenBranches.join(", ")}</dd>
+        </>)}
+        {o?.joinWaiting && (<>
+          <dt className="text-fg-muted">Join</dt>
+          <dd>{joinWaitingLabel(o.joinWaiting)}{o.joinWaiting.waitingFor.length > 0 ? `: ${o.joinWaiting.waitingFor.join(", ")}` : ""}</dd>
         </>)}
       </dl>
       {result?.error && (
-        <div className="mx-3 mb-2 rounded-lg px-2 py-1.5 text-[11px]" style={{ backgroundColor: "var(--status-danger-bg)", color: "var(--theme-danger)" }}>
+        <div className="mx-3 mb-2 rounded-md px-2 py-1.5 text-xs bg-danger-wash text-danger">
           {String(result.error)}
         </div>
       )}
       {extra}
       <div className="px-3 pb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--theme-muted-text)" }}>Output</p>
+        <p className="text-xs font-medium text-fg-muted mb-1">Output</p>
         {output && Object.keys(output).length > 0 ? (
-          <pre className="text-[10px] font-mono whitespace-pre-wrap break-all rounded-lg p-2 max-h-64 overflow-auto"
-            style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-card-text)" }}>
+          <pre className="text-2xs font-mono whitespace-pre-wrap break-all rounded-md p-2 max-h-64 overflow-auto bg-subtle text-fg">
             {JSON.stringify(output, null, 2)}
           </pre>
         ) : (
-          <p className="text-[11px]" style={{ color: "var(--theme-muted-text)" }}>{result ? "No output" : "This step did not run."}</p>
+          <p className="text-xs text-fg-muted">{result ? "No output" : "This step did not run."}</p>
         )}
       </div>
     </div>
@@ -411,25 +430,22 @@ function HeatDetails({ node, heat, onClose, extra }: { node: WorkflowNode; heat:
       data-step-details=""
       role="dialog"
       aria-label={`Step statistics: ${node.label}`}
-      className="absolute top-14 right-3 z-30 w-72 max-w-[calc(100%-24px)] rounded-xl border shadow-xl"
-      style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+      className="absolute top-14 right-3 z-30 w-72 max-w-[calc(100%-24px)] rounded-lg border border-border bg-elevated text-fg shadow-elev-2"
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose() } }}
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "var(--theme-surface-border)" }}>
-        <span className="text-xs font-semibold flex-1 truncate">{node.label}</span>
-        <button type="button" onClick={onClose} aria-label="Close step statistics" className="p-1 rounded hover:opacity-70" style={{ color: "var(--theme-muted-text)" }}>
-          <X size={14} aria-hidden="true" />
-        </button>
+      <div className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 border-b border-border-subtle">
+        <span className="text-ui font-semibold flex-1 truncate">{node.label}</span>
+        <IconButton type="button" size="sm" onClick={onClose} label="Close step statistics" icon={<X />} />
       </div>
-      <dl className="px-3 py-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
-        <dt style={{ color: "var(--theme-muted-text)" }}>Visits</dt>
-        <dd>{h?.count ?? 0}{h && heat.maxNodeCount > 0 ? ` (${Math.round(h.ratio * 100)}% of the busiest step)` : ""}</dd>
-        <dt style={{ color: "var(--theme-muted-text)" }}>Avg duration</dt>
-        <dd>{h?.avgDurationMs != null ? formatRunDuration(h.avgDurationMs) : "—"}</dd>
-        <dt style={{ color: "var(--theme-muted-text)" }}>Error rate</dt>
-        <dd style={h && h.errors > 0 ? { color: "var(--theme-danger)" } : undefined}>
+      <dl className="px-3 py-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+        <dt className="text-fg-muted">Visits</dt>
+        <dd className="num">{h?.count ?? 0}{h && heat.maxNodeCount > 0 ? ` (${Math.round(h.ratio * 100)}% of the busiest step)` : ""}</dd>
+        <dt className="text-fg-muted">Avg duration</dt>
+        <dd className="num">{h?.avgDurationMs != null ? formatRunDuration(h.avgDurationMs) : "—"}</dd>
+        <dt className="text-fg-muted">Error rate</dt>
+        <dd className={h && h.errors > 0 ? "num text-danger" : "num"}>
           {h?.errorRate != null ? `${(h.errorRate * 100).toFixed(h.errorRate > 0 && h.errorRate < 0.01 ? 1 : 0)}% (${h.errors})` : "—"}
         </dd>
       </dl>

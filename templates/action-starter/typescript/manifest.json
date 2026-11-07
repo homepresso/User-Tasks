@@ -1,0 +1,103 @@
+{
+  "manifest_version": 1,
+  "key": "acme_tax",
+  "name": "Acme tax calculator",
+  "version": "1.0.0",
+  "description": "Sales tax for a single amount or a whole invoice: net, tax and gross, with tax-inclusive prices and a choice of rounding.",
+  "icon": "calculator",
+  "color": "#0F766E",
+  "category": "Finance",
+  "entry": "dist/action.js",
+  "summary": "Works out tax on an amount or on invoice lines, so workflows never do money arithmetic in expressions.",
+  "purpose": "An example custom workflow action from the UserTasks action starter kit.",
+  "recommended_for": "Invoice approvals, quotes, expense claims",
+  "author": "Acme Ltd",
+  "license": "Apache-2.0",
+  "tags": ["finance", "tax", "example"],
+  "operations": [
+    {
+      "id": "calculate",
+      "label": "Calculate tax",
+      "description": "Tax on one amount. With prices_include_tax the amount is the gross price and the tax is taken out of it.",
+      "inputs": [
+        { "name": "amount", "label": "Amount", "type": "number", "required": true, "example": 100 },
+        { "name": "rate_percent", "label": "Tax rate (%)", "type": "number", "required": true, "example": 15 },
+        { "name": "prices_include_tax", "label": "Amount includes tax", "type": "boolean", "default": false },
+        {
+          "name": "rounding",
+          "label": "Rounding",
+          "type": "select",
+          "default": "half_up",
+          "options": [
+            { "value": "half_up", "label": "Half up (to the cent)" },
+            { "value": "half_even", "label": "Half even / banker's (to the cent)" },
+            { "value": "none", "label": "No rounding" }
+          ]
+        }
+      ],
+      "outputs": [
+        { "name": "net", "label": "Net amount", "type": "number" },
+        { "name": "tax", "label": "Tax", "type": "number" },
+        { "name": "gross", "label": "Gross amount", "type": "number" }
+      ],
+      "sample": { "amount": 100, "rate_percent": 15, "prices_include_tax": false, "rounding": "half_up" }
+    },
+    {
+      "id": "invoice_totals",
+      "label": "Invoice totals",
+      "description": "Line totals, tax per line and invoice totals, plus the total formatted in a currency.",
+      "inputs": [
+        {
+          "name": "lines",
+          "label": "Invoice lines",
+          "type": "array",
+          "required": true,
+          "description": "Each line: description, quantity, unit_price and (optionally) its own tax_rate_percent.",
+          "items": {
+            "type": "object",
+            "fields": [
+              { "name": "description", "type": "string" },
+              { "name": "quantity", "type": "number" },
+              { "name": "unit_price", "type": "number" },
+              { "name": "tax_rate_percent", "type": "number" }
+            ]
+          }
+        },
+        { "name": "default_rate_percent", "label": "Default tax rate (%)", "type": "number", "default": 15 },
+        { "name": "currency", "label": "Currency", "type": "string", "default": "NZD", "placeholder": "ISO 4217 code, e.g. NZD" },
+        { "name": "locale", "label": "Locale", "type": "string", "default": "en-NZ" }
+      ],
+      "outputs": [
+        {
+          "name": "lines",
+          "label": "Lines",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": [
+              { "name": "description", "type": "string" },
+              { "name": "net", "type": "number" },
+              { "name": "tax", "type": "number" },
+              { "name": "gross", "type": "number" }
+            ]
+          }
+        },
+        { "name": "subtotal", "label": "Subtotal (net)", "type": "number" },
+        { "name": "tax_total", "label": "Tax total", "type": "number" },
+        { "name": "total", "label": "Total (gross)", "type": "number" },
+        { "name": "total_formatted", "label": "Total, formatted", "type": "string" }
+      ],
+      "sample": {
+        "lines": [
+          { "description": "Consulting (hours)", "quantity": 4, "unit_price": 150 },
+          { "description": "Licence", "quantity": 1, "unit_price": 99.99, "tax_rate_percent": 0 }
+        ],
+        "default_rate_percent": 15,
+        "currency": "NZD",
+        "locale": "en-NZ"
+      }
+    }
+  ],
+  "capabilities": {},
+  "limits": { "timeout_ms": 5000, "memory_mb": 16 }
+}

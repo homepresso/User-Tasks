@@ -1,0 +1,41 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "45727be4-b591-5d37-9008-07e7d75d285b",
+  "asset": {
+    "id": "45727be4-b591-5d37-9008-07e7d75d285b",
+    "name": "Pass rate by course",
+    "description": "Share of quizzes passed per course (1 = pass, 0 = retake or fail, so the average is the pass rate) and the number of attempts, from the quiz runs (workflow variables).",
+    "category": "Training",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "9e43e668-3f2e-5fd5-a94b-daaaca6213bd"
+      },
+      "columns": [
+        "vars.course_code",
+        "AVG_vars.passed",
+        "_count"
+      ],
+      "group_by": [
+        "vars.course_code"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.passed"
+        }
+      ],
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "Pass rate by course (0-1)",
+        "colors": [
+          "#1D4ED8"
+        ],
+        "y_axis_label": "Pass rate"
+      }
+    }
+  }
+}

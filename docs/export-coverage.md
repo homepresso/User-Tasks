@@ -29,11 +29,15 @@ Per-type export routes are listed where they exist.
 | Email templates | Export on rows; Import next to "New email template" | config | config | config | yes, `email-templates/` | yes (Packages — see docs/packages) |
 | Reports | Export on rows, for a selection and on the report page ("Export definition"); Import in the Reports header | `GET /reports/{id}/export`, `POST /reports/import`, config | `reports_export`, `reports_import`, config | `reports export` / `import`, config | yes, `reports/` | yes (Packages — see docs/packages) |
 | Agents | Export on rows, for a selection and in the designer header; Import on the list. The designer keeps its own agent JSON download and load (which now also reads config exports), and the list Import accepts the designer file too. | config | config | config | yes, `agents/` | yes (Packages — see docs/packages) |
-| Retention policies | Settings → Governance → Retention: Export on each policy, Import in the header | config | config | config | yes, `retention-policies/` | yes (Packages — see docs/packages) |
+| Reusable forms | Forms library: Import in the header; Export with config export (`ids=<form id>`) | config | config | config | yes, `forms/` (fields, layout, theme, buttons, header, Keep submissions, Available forms and the assigned retention policy, remapped on import; versions stay per workspace; an uploaded header image travels as bytes) | yes (Packages — see docs/packages) |
+| Form themes | Forms library → Form themes; with config export | config | config | config | yes, `form-themes/` | yes (Packages — see docs/packages) |
+| Custom form controls | Extensibility → Form controls: Export / Import per control | `GET /form-controls/{id}/export`, `POST /form-controls/import`, config | `form_controls_export`, `form_controls_import`, config | `form-controls export` / `import`, config | yes, `form-controls/` (every version with its module) | yes (Packages — see docs/packages) |
+| Retention policies | Settings → Governance → Retention: Export on each policy, Import in the header | config | config | config | yes, `retention-policies/` (a data table, role or form export with dependencies brings the policy assigned to it) | yes (Packages — see docs/packages) |
 | Custom roles | Settings → Governance → Roles: Export on each custom role, Import next to "Create Role" | config | config | config | yes, `roles/` (custom roles only; system roles are matched by slug) | yes (Packages — see docs/packages) |
 | MCP servers | Settings → MCP (Export per server, Import next to "Add Server"); Export also on Integrations → MCP servers | config only (no separate CRUD endpoints) | config only | config only | yes, `mcp-servers/` | yes (Packages — see docs/packages) |
 | Log destinations | Settings → Log export: Export on each destination, Import next to "Add destination" | config | config | config | yes, `log-destinations/` (credentials are never exported) | yes (Packages — see docs/packages) |
 | Workspace theme | theme designer (presets); move it between workspaces with config export | `GET` / `PUT /workspace-theme` (the GET response can be sent back as the PUT body), config `types=workspace_theme` | `workspace_theme_get` / `workspace_theme_update`, config | `workspace-theme get` / `update`, `config export --types workspace_theme` | yes, `workspace-theme.json` (singleton) | no |
+| Document OCR setting | Settings → Document OCR; move it between workspaces with config export | `GET` / `PUT` / `DELETE /document-ocr`, `POST /document-ocr/test`, config `types=document_ocr` | `document_ocr_get` / `_update` / `_remove_key` / `_test`, config | `document-ocr get` / `update` / `remove-key` / `test`, `config export --types document_ocr,connectors` | yes, `document-ocr.json` (singleton; the Azure endpoint travels with its connector, the key never) | no |
 
 What the Import button accepts:
 
@@ -67,8 +71,13 @@ Parsing lives in `lib/portability/import-document.ts`. A package (`.utpkg`) file
 | Tag definitions (tag names and colours) | They are not exported anywhere. Tags still travel as names on integrations, references and activities. | Create the tag definitions again if you want the colours. |
 | Node favorites | They are personal to each user. | None. |
 | Workflow versions (published history) | Import creates or updates the draft. | Publish in the target workspace (`workflows publish`). |
+| Document OCR Azure key | Keys are never exported. | Enter the key again in Settings → Document OCR (or `document-ocr update --key …`) after the import; until then OCR steps report that the key must be re-entered. |
 | Workspace theme font and logo files | Binary files are not part of the manifest. Uploaded fonts are referenced by file name. Logos from another workspace are dropped, with a warning. | Upload the font (`workspace-theme upload-font`) or logo in the target, then apply again. A missing font falls back to the default font, with a warning. |
 | Tasks, workflow runs, notifications, events, audit log | They are runtime data, not configuration. | Use log export or the event stream to keep a history. |
+| Task attachments (files on a task's Attachments tab) | They are runtime data like the task itself and can hold personal data; they follow the task's form retention policy and legal hold instead. | Download them from the task, or list them with `GET /tasks/{id}/attachments` and fetch each `…/download` link. |
+| Form submissions and their uploaded files | They are runtime data and can hold personal data; they are governed by the form's retention policy instead. | Export submissions as CSV from the form's Submissions panel (`GET /forms/{id}/submissions`). |
+| Grants on objects (object permissions), on forms and every other type | They name roles, teams and people, which differ per environment (user and team ids are never exported). | Grant access again in the target (Settings → Governance → Object Permissions, or `object-permissions set`). |
+| A form's legal hold | A hold is a legal decision about the data in one environment. | Place the hold in the target workspace if it applies there too. |
 
 ## Gaps found and fixed
 

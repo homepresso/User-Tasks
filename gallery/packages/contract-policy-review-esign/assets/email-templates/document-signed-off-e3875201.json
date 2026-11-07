@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e3875201-c95c-5499-be55-67774fbca2db",
+  "asset": {
+    "id": "e3875201-c95c-5499-be55-67774fbca2db",
+    "name": "Document signed off",
+    "description": "Sent to the submitter and the document owner when the document is signed off, with the sign-off certificate attached.",
+    "subject": "{{reference}}: \"{{form.title}}\" v{{version}} is approved for publication",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Approved for publication</h2><p><strong>{{form.title}}</strong> version {{version}} was signed off by <strong>{{signer_name}}</strong> on {{signed_at_text}}.</p><p>Effective {{form.effective_date}} · next review {{next_review_date}}.</p><p>The sign-off certificate (reviewers, legal review, signer, file name and SHA-256 checksum) is attached.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">{{reference}} · document review</p></div>",
+    "text_body": "{{form.title}} version {{version}} was signed off by {{signer_name}} on {{signed_at_text}}. Effective {{form.effective_date}}, next review {{next_review_date}}. The certificate is attached.",
+    "is_default": false
+  }
+}

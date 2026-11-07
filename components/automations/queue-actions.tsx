@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Play, RefreshCw, Check, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { formatCount } from "@/lib/format/number"
 
 export function QueueActions() {
   const [processing, setProcessing] = useState(false)
@@ -32,21 +33,20 @@ export function QueueActions() {
   return (
     <div className="flex items-center gap-2">
       {result && (
-        <span className="flex items-center gap-1 text-xs font-medium" style={{ color: result.error ? 'var(--theme-danger)' : 'var(--theme-success)' }}>
-          {result.error ? <AlertCircle size={12} /> : <Check size={12} />}
-          {result.error ? result.error : `${result.count} processed`}
+        <span role="status" className={`flex items-center gap-1 text-xs font-medium ${result.error ? "text-danger" : "text-success"}`}>
+          {result.error ? <AlertCircle size={14} aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
+          {result.error ? result.error : `${formatCount(result.count)} processed`}
         </span>
       )}
       <Button
-        size="sm"
-        variant="outline"
+        variant="secondary"
+        leadingIcon={<RefreshCw />}
         onClick={() => router.refresh()}
       >
-        <RefreshCw size={14} className="mr-1" /> Refresh
+        Refresh
       </Button>
-      <Button size="sm" onClick={processQueue} disabled={processing}>
-        <Play size={14} className="mr-1" />
-        {processing ? "Processing..." : "Process Now"}
+      <Button onClick={processQueue} disabled={processing} loading={processing} leadingIcon={processing ? undefined : <Play />}>
+        {processing ? "Processing…" : "Process now"}
       </Button>
     </div>
   )

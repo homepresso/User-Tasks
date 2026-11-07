@@ -4,25 +4,23 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { unwrapAction } from '@/lib/action-result'
 import { listAuditActivity } from '@/app/actions/activity'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { PageSkeleton } from '@/components/ui/page-skeleton'
-import { Activity, Search, Filter } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { PageSkeleton, ListSkeleton } from '@/components/ui/page-skeleton'
 import { ActivityFeed, auditRowToActivityItem, type ActivityItem } from '@/components/activity/activity-feed'
 import { usePermissions } from '@/lib/permissions-context'
+import { AUDIT_ACTION_LABELS, AUDIT_OBJECT_TYPE_LABELS } from '@/lib/audit-labels'
+import { formatCount } from '@/lib/format/number'
+import { plural } from '@/lib/format/plural'
 
 const PAGE_SIZE = 50
 
-const OBJECT_TYPES = [
-  'workflow', 'agent', 'integration',
-  'report', 'data_table', 'team', 'role', 'api_key',
-]
+const OBJECT_TYPES = Object.keys(AUDIT_OBJECT_TYPE_LABELS)
 
-const ACTIONS = [
-  'create', 'update', 'delete', 'publish', 'unpublish', 'toggle',
-  'execute', 'grant', 'revoke', 'duplicate', 'share',
-]
+const ACTIONS = Object.keys(AUDIT_ACTION_LABELS)
 
 export default function GlobalActivityPage() {
   const { can } = usePermissions()
@@ -31,16 +29,12 @@ export default function GlobalActivityPage() {
   const [actionFilter, setActionFilter] = useState<string>('')
   const [page, setPage] = useState(0)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['global-activity', objectTypeFilter, actionFilter, page],
     // Read server-side (lib/services/activity, settings.view).
     queryFn: async () => unwrapAction(await listAuditActivity({ objectType: objectTypeFilter || null, action: actionFilter || null, page })),
     enabled: can('settings.view'),
   })
-
-  if (!can('settings.view')) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
-  }
 
   const items = useMemo<ActivityItem[]>(() => {
     const rows: any[] = data?.rows ?? []
@@ -54,7 +48,12 @@ export default function GlobalActivityPage() {
     )
   }, [data, search])
 
+  if (!can('settings.view')) {
+    return <EmptyState variant="error" title="Not authorized" description="You need settings access to see workspace activity." />
+  }
+
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
+  const filtered = Boolean(objectTypeFilter || actionFilter || search)
 
   if (isLoading && !data) {
     return <PageSkeleton variant="list" />
@@ -62,74 +61,74 @@ export default function GlobalActivityPage() {
 
   return (
     <div className="space-y-4 page-transition">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Activity</h1>
-        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-          Every create, update, delete, publish, and configuration change across the platform.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-2"
+        title="Activity"
+        description="Every create, update, delete, publish and configuration change across the platform."
+      />
 
       {/* Filters */}
-      <Card className="!p-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[240px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search summary, entity, actor..." className="pl-9" />
-          </div>
-          <select
-            value={objectTypeFilter}
-            onChange={(e) => { setObjectTypeFilter(e.target.value); setPage(0) }}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+      <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Filters">
+        <SearchInput
+          value={search}
+          onValueChange={setSearch}
+          placeholder="Search summary, entity, actor…"
+          aria-label="Search activity"
+          wrapperClassName="min-w-[240px] flex-1"
+        />
+        <Select
+          wrapperClassName="w-auto"
+          aria-label="Entity type"
+          value={objectTypeFilter}
+          onChange={(e) => { setObjectTypeFilter(e.target.value); setPage(0) }}
+        >
+          <option value="">All entity types</option>
+          {OBJECT_TYPES.map(t => <option key={t} value={t}>{AUDIT_OBJECT_TYPE_LABELS[t]}</option>)}
+        </Select>
+        <Select
+          wrapperClassName="w-auto"
+          aria-label="Action"
+          value={actionFilter}
+          onChange={(e) => { setActionFilter(e.target.value); setPage(0) }}
+        >
+          <option value="">All actions</option>
+          {ACTIONS.map(a => <option key={a} value={a}>{AUDIT_ACTION_LABELS[a]}</option>)}
+        </Select>
+        {filtered && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setObjectTypeFilter(''); setActionFilter(''); setSearch(''); setPage(0) }}
           >
-            <option value="">All entity types</option>
-            {OBJECT_TYPES.map(t => <option key={t} value={t} className="capitalize">{t.replace(/_/g, ' ')}</option>)}
-          </select>
-          <select
-            value={actionFilter}
-            onChange={(e) => { setActionFilter(e.target.value); setPage(0) }}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            <option value="">All actions</option>
-            {ACTIONS.map(a => <option key={a} value={a} className="capitalize">{a}</option>)}
-          </select>
-          {(objectTypeFilter || actionFilter || search) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setObjectTypeFilter(''); setActionFilter(''); setSearch(''); setPage(0) }}
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
-      </Card>
+            Clear filters
+          </Button>
+        )}
+      </div>
 
       {/* Feed */}
-      {isLoading ? (
-        <Card className="!p-8 text-center">
-          <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Loading activity...</p>
-        </Card>
+      {isError ? (
+        <EmptyState variant="error" title="Couldn’t load activity" description={error instanceof Error ? error.message : undefined}
+          action={{ label: 'Try again', onClick: () => void refetch() }} />
+      ) : isLoading ? (
+        <ListSkeleton rows={8} />
       ) : (
         <ActivityFeed
           items={items}
-          emptyMessage={search || objectTypeFilter || actionFilter
+          emptyMessage={filtered
             ? 'No activity matches your filters'
-            : 'No audit entries recorded yet. Audit logging starts capturing events as users create, update, publish, and delete entities.'}
+            : 'No audit entries yet — they appear as people create, update, publish and delete things.'}
         />
       )}
 
       {/* Pagination */}
       {(data?.total ?? 0) > PAGE_SIZE && (
-        <div className="flex items-center justify-between text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-          <span>Showing page {page + 1} of {totalPages} · {data?.total ?? 0} total events</span>
+        <div className="flex items-center justify-between text-xs text-fg-muted">
+          <span className="num">Page {formatCount(page + 1)} of {formatCount(totalPages)} · {plural(data?.total ?? 0, 'event')}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
+            <Button size="sm" variant="secondary" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
               Previous
             </Button>
-            <Button size="sm" variant="outline" disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>
+            <Button size="sm" variant="secondary" disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>
               Next
             </Button>
           </div>

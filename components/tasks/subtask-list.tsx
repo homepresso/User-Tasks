@@ -45,8 +45,8 @@ export function SubtaskList({ parentTaskId, tenantId }: SubtaskListProps) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-2">
-        <Loader2 size={12} className="animate-spin" style={{ color: 'var(--theme-muted-text)' }} />
-        <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Loading subtasks...</span>
+        <Loader2 size={12} className="animate-spin text-fg-muted" />
+        <span className="text-2xs text-fg-muted">Loading subtasks...</span>
       </div>
     )
   }
@@ -58,7 +58,7 @@ export function SubtaskList({ parentTaskId, tenantId }: SubtaskListProps) {
 
   return (
     <div className="space-y-0.5">
-      <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--theme-muted-text)' }}>Subtasks</p>
+      <p className="text-2xs font-medium mb-1 text-fg-muted">Subtasks</p>
       {displaySubtasks.map(sub => {
         const status = localOverrides[sub.id] ?? sub.status
         const isDone = status === 'completed'
@@ -66,7 +66,7 @@ export function SubtaskList({ parentTaskId, tenantId }: SubtaskListProps) {
         const isOverdue = sub.due_date && new Date(sub.due_date) < new Date() && !isDone
 
         return (
-          <div key={sub.id} className="flex items-center gap-2 py-1 rounded-md px-1 -mx-1 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors">
+          <div key={sub.id} className="flex items-center gap-2 py-1 rounded-md px-1 -mx-1 hover:bg-subtle transition-colors">
             {/* Checkbox */}
             <button
               type="button"
@@ -80,33 +80,30 @@ export function SubtaskList({ parentTaskId, tenantId }: SubtaskListProps) {
                 'w-4 h-4 rounded-full border-[1.5px] shrink-0',
                 'flex items-center justify-center transition-all',
                 'hover:scale-110 active:scale-95',
-                isDone && 'bg-[color:var(--theme-primary)] border-[color:var(--theme-primary)]',
-                !isDone && 'border-gray-300 hover:border-[color:var(--theme-accent)]',
+                isDone && 'border-primary bg-primary',
+                !isDone && 'border-border hover:border-border-strong',
                 isToggling && 'opacity-50',
               )}
             >
               {isToggling ? (
-                <Loader2 size={8} className="animate-spin text-[color:var(--theme-card-text)]" />
+                <Loader2 size={8} className="animate-spin text-fg" />
               ) : isDone ? (
-                <Check size={8} className="text-white" />
+                <Check size={8} className="text-primary-fg" />
               ) : null}
             </button>
 
             {/* Title */}
             <span className={cn(
-              'flex-1 min-w-0 truncate text-[11px]',
-              isDone && 'line-through',
-            )} style={{ color: isDone ? 'var(--theme-muted-text)' : 'var(--theme-card-text)' }}>
+              'min-w-0 flex-1 truncate text-xs',
+              isDone ? 'text-fg-muted line-through' : 'text-fg',
+            )}>
               {sub.title}
             </span>
 
             <PriorityBadge priority={sub.priority} />
 
             {sub.due_date && (
-              <span className="text-[9px] whitespace-nowrap shrink-0" style={{
-                color: isOverdue ? '#DC2626' : 'var(--theme-muted-text)',
-                fontWeight: isOverdue ? 600 : 400,
-              }}>
+              <span className={cn('num shrink-0 whitespace-nowrap text-xs', isOverdue ? 'text-danger' : 'text-fg-muted')}>
                 {formatRelativeDate(sub.due_date)}
               </span>
             )}
@@ -114,7 +111,7 @@ export function SubtaskList({ parentTaskId, tenantId }: SubtaskListProps) {
         )
       })}
       {hasMore && (
-        <Link href={`/tasks/${parentTaskId}`} className="text-[10px] font-medium block mt-1" style={{ color: 'var(--theme-primary-text)' }}
+        <Link href={`/tasks/${parentTaskId}`} className="text-2xs font-medium block mt-1 text-primary-text"
           onClick={e => e.stopPropagation()}>
           View all subtasks
         </Link>

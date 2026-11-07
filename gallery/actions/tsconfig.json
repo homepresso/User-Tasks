@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@usertasks/action": ["../../packages/action/src/index.ts"],
+      "@/*": ["../../*"]
+    }
+  },
+  "include": ["shared/**/*.ts", "*/src/**/*.ts"]
+}

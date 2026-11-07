@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useMutation } from "@tanstack/react-query"
 import {
   Boxes, Plus, Copy, Check, Ban, Trash2, RefreshCw, KeyRound, ShieldAlert,
@@ -43,9 +44,9 @@ function CopyField({ label, value }: { label: string; value: string }) {
   }
   return (
     <div>
-      <p className="text-[10px] font-semibold mb-1" style={{ color: "var(--theme-muted-text)" }}>{label}</p>
+      <p className="text-2xs font-semibold mb-1 text-fg-muted">{label}</p>
       <div className="flex gap-2">
-        <code className="flex-1 rounded px-2 py-1.5 text-[11px] font-mono break-all"
+        <code className="flex-1 rounded px-2 py-1.5 text-2xs font-mono break-all"
           style={{ backgroundColor: "var(--theme-surface)", border: "1px solid var(--theme-surface-border)" }}>
           {value}
         </code>
@@ -107,6 +108,9 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
     }
   }
 
+  // isPending only renders after the click: a synchronous guard stops a
+  // double click registering two apps (the first secret would be lost).
+  const createGuard = useSubmitGuard()
   const createMutation = useMutation({
     mutationFn: () => createOAuthClient({
       name,
@@ -184,10 +188,10 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
       {/* Show-once secret */}
       {secretReveal && (
         <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: "var(--theme-primary-light)", border: "2px solid var(--theme-primary)" }}>
-          <p className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--theme-primary-text)" }}>
+          <p className="text-sm font-semibold flex items-center gap-1.5 text-primary-text">
             <KeyRound size={14} /> Client secret — copy it now!
           </p>
-          <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+          <p className="text-xs text-fg-muted">
             This secret will not be shown again. Store it securely alongside client ID <code className="font-mono">{secretReveal.clientId}</code>.
           </p>
           <div className="flex gap-2">
@@ -207,7 +211,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
       <Card className="!p-4 space-y-3">
         <p className="text-xs font-semibold">How clients get tokens</p>
         <CopyField label="Token endpoint" value={tokenEndpoint} />
-        <p className="text-[11px]" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-2xs text-fg-muted">
           Machine-to-machine clients exchange their client ID and secret at this endpoint for an access token
           using the <code>client_credentials</code> grant. Access tokens carry the scopes granted below.
         </p>
@@ -215,7 +219,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
 
       {/* Register button */}
       <div className="flex justify-between items-center">
-        <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs text-fg-muted">
           {activeClients.length} active app{activeClients.length === 1 ? "" : "s"}
         </p>
         <Button size="sm" onClick={() => setCreating((open) => !open)}>
@@ -253,7 +257,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                       }}
                     >
                       <p className="text-xs font-semibold">{option.label}</p>
-                      <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>{option.description}</p>
+                      <p className="text-2xs mt-1 text-fg-muted">{option.description}</p>
                     </button>
                   )
                 })}
@@ -280,7 +284,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                       />
                       <span className="text-xs">
                         {grant.label}
-                        <span className="block text-[10px]" style={{ color: "var(--theme-muted-text)" }}>{grant.description}</span>
+                        <span className="block text-2xs text-fg-muted">{grant.description}</span>
                       </span>
                     </label>
                   )
@@ -299,7 +303,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                   className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
                   style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-topbar)", color: "var(--theme-topbar-text)" }}
                 />
-                <p className="text-[10px] mt-1" style={{ color: "var(--theme-muted-text)" }}>
+                <p className="text-2xs mt-1 text-fg-muted">
                   One per line. Must be https (or http://localhost for development).
                 </p>
               </div>
@@ -307,8 +311,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
 
             <div>
               <label className="block text-xs font-medium mb-2">Scopes</label>
-              <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1"
-                style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}>
+              <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1 border-border bg-subtle">
                 {visibleScopes.map((scope) => (
                   <label key={scope} className="flex items-start gap-2 rounded-md px-2 py-1.5 cursor-pointer hover:opacity-90">
                     <input
@@ -319,7 +322,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                     />
                     <span className="text-xs">
                       <span className="font-mono">{scope}</span>
-                      <span className="block text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+                      <span className="block text-2xs text-fg-muted">
                         {SCOPE_DESCRIPTIONS[scope] ?? scope}
                       </span>
                     </span>
@@ -327,14 +330,14 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                 ))}
               </div>
               {usesClientCredentials && scopes.includes("admin") && (
-                <p className="text-[10px] mt-1 flex items-center gap-1" style={{ color: "var(--theme-warning)" }}>
+                <p className="text-2xs mt-1 flex items-center gap-1 text-warning">
                   <ShieldAlert size={11} /> The admin scope grants full administrative access to the workspace API.
                 </p>
               )}
             </div>
 
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+              <Button size="sm" onClick={() => { void createGuard.run(() => createMutation.mutateAsync()).catch(() => { /* shown by onError */ }) }} disabled={createMutation.isPending || createGuard.pending}>
                 <KeyRound size={14} className="mr-1" /> {createMutation.isPending ? "Registering..." : "Register app"}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => { setCreating(false); resetForm() }}>Cancel</Button>
@@ -347,8 +350,8 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
       {clients.length === 0 ? (
         <Card>
           <div className="text-center py-6">
-            <Boxes size={32} className="mx-auto mb-2" style={{ color: "var(--theme-muted-text)" }} />
-            <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>
+            <Boxes size={32} className="mx-auto mb-2 text-fg-muted" />
+            <p className="text-sm text-fg-muted">
               No OAuth apps yet. Register one to let external services obtain scoped access tokens.
             </p>
           </div>
@@ -364,24 +367,22 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                     <div className="flex items-center gap-2 flex-wrap">
                       <Boxes size={14} style={{ color: revoked ? "var(--theme-danger)" : "var(--theme-primary-text)" }} />
                       <span className="text-sm font-medium">{client.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full capitalize"
-                        style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                      <span className="text-2xs px-1.5 py-0.5 rounded-full capitalize bg-subtle text-fg-muted">
                         {client.client_type}
                       </span>
                       {client.is_dynamic && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                        <span className="text-2xs px-1.5 py-0.5 rounded-full bg-subtle text-fg-muted">
                           Dynamic
                         </span>
                       )}
                       {revoked ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Revoked</span>
+                        <span className="text-2xs font-medium px-1.5 py-0.5 rounded-full bg-danger-wash text-danger">Revoked</span>
                       ) : (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-100 text-green-600">Active</span>
+                        <span className="text-2xs font-medium px-1.5 py-0.5 rounded-full bg-success-wash text-success">Active</span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 mt-1 text-xs flex-wrap" style={{ color: "var(--theme-muted-text)" }}>
+                    <div className="flex items-center gap-3 mt-1 text-xs flex-wrap text-fg-muted">
                       <span>{client.active_tokens} active token{client.active_tokens === 1 ? "" : "s"}</span>
                       <span>Created {formatRelativeDate(client.created_at)}</span>
                       {client.last_used_at && <span>Last used {formatRelativeDate(client.last_used_at)}</span>}
@@ -389,14 +390,12 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
 
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {client.grant_types.map((grant) => (
-                        <span key={grant} className="text-[10px] px-2 py-0.5 rounded-full font-mono"
-                          style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}>
+                        <span key={grant} className="text-2xs px-2 py-0.5 rounded-full font-mono bg-primary-wash text-primary-text">
                           {grant}
                         </span>
                       ))}
                       {client.allowed_scopes.map((scope) => (
-                        <span key={scope} className="text-[10px] px-2 py-0.5 rounded-full font-mono"
-                          style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                        <span key={scope} className="text-2xs px-2 py-0.5 rounded-full font-mono bg-subtle text-fg-muted">
                           {scope}
                         </span>
                       ))}
@@ -413,8 +412,7 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                         <button
                           onClick={() => rotateMutation.mutate(client.client_id)}
                           disabled={rotateMutation.isPending}
-                          className="p-1.5 rounded hover:text-blue-500 transition-colors"
-                          style={{ color: "var(--theme-muted-text)" }}
+                          className="p-1.5 rounded hover:text-info transition-colors text-fg-muted"
                           title="Rotate client secret"
                         >
                           <RefreshCw size={14} />
@@ -422,16 +420,14 @@ export function OAuthClientsManager({ clients, onChanged }: OAuthClientsManagerP
                       )}
                       <button
                         onClick={() => setRevokeTokensTarget(client)}
-                        className="p-1.5 rounded hover:text-amber-500 transition-colors"
-                        style={{ color: "var(--theme-muted-text)" }}
+                        className="p-1.5 rounded hover:text-warning transition-colors text-fg-muted"
                         title="Revoke all active tokens"
                       >
                         <Ban size={14} />
                       </button>
                       <button
                         onClick={() => setRevokeAppTarget(client)}
-                        className="p-1.5 rounded hover:text-red-500 transition-colors"
-                        style={{ color: "var(--theme-muted-text)" }}
+                        className="p-1.5 rounded hover:text-danger transition-colors text-fg-muted"
                         title="Revoke app"
                       >
                         <Trash2 size={14} />

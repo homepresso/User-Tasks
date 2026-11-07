@@ -1,71 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
-import { createServiceClient, isAuthorizedServiceCall } from '@/lib/cron-auth'
+import { createServiceClient } from '@/lib/cron-auth'
+import { getUserPermissions } from '@/lib/permissions-server'
+import { normalizeAgentOutputConfig } from '@/lib/agent-knowledge'
+import type { AgentToolRuntime } from '@/lib/agents/tools/runtime'
 
 /**
- * Shared dual-auth for the internal agent tool routes
- * (/api/agents/data-tool, /action-tool, /doc-tool and /api/references/execute).
+ * Session auth for the agent tool routes (/api/agents/data-tool,
+ * /action-tool, /doc-tool): a signed-in user with agents.test calls one of
+ * an agent's tools directly, acting as themselves.
  *
- * Two callers reach these routes:
- *   1. The browser, with a Supabase session cookie (interactive agent runs).
- *   2. The agent executor server-to-server, with the processor secret header
- *      (`x-processor-secret` / `Authorization: Bearer`), carrying `tenant_id`
- *      and (optionally) `acting_user_id` in the request body.
- *
- * SECURITY: `body.tenant_id` / `body.acting_user_id` are trusted ONLY on the
- * processor path (secret verified via `isAuthorizedServiceCall`). On the session
- * path the tenant and acting user are derived from the authenticated user — the
- * body is never consulted for identity.
+ * The agent executor no longer calls these routes: tools run in-process
+ * (lib/agents/tools) with a runtime built from the tenant-checked agent. The
+ * former processor-secret path (identity taken from the request body, and an
+ * origin derived from the Host header on two callers) is gone.
  */
-export type AgentToolContext = {
-  tenantId: string
-  /** null on the processor path when no acting user is supplied (e.g. queue). */
-  actingUserId: string | null
-  supabase: SupabaseClient
-  via: 'session' | 'processor'
-}
-
-export async function resolveAgentToolContext(
-  request: NextRequest,
+export async function resolveSessionToolRuntime(
+  _request: NextRequest,
   body: any,
-): Promise<AgentToolContext | { error: NextResponse }> {
-  // Processor path — trusted server-to-server call.
-  if (isAuthorizedServiceCall(request)) {
-    const tenantId = String(body?.tenant_id ?? '').trim()
-    if (!tenantId) {
-      return { error: NextResponse.json({ error: 'tenant_id is required for processor calls' }, { status: 400 }) }
-    }
-    const actingUserId = String(body?.acting_user_id ?? '').trim() || null
-    return {
-      tenantId,
-      actingUserId,
-      supabase: createServiceClient(),
-      via: 'processor',
-    }
-  }
-
-  // Session path — authenticated browser user. Body identity is NOT trusted here.
+): Promise<{ runtime: AgentToolRuntime; permissions: ReadonlySet<string> } | { error: NextResponse }> {
   const supabase = await createClient()
   const user = await getCachedUser()
-  if (!user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  if (!user) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const { data: profile } = await supabase.from('users').select('current_tenant_id, tenant_id').eq('id', user.id).single()
+  const tenantId = String((profile as any)?.current_tenant_id ?? (profile as any)?.tenant_id ?? '')
+  if (!tenantId) return { error: NextResponse.json({ error: 'No tenant' }, { status: 400 }) }
+  const permissions = await getUserPermissions()
+  if (!permissions.has('agents.test')) {
+    return { error: NextResponse.json({ error: "Forbidden: the 'agents.test' permission is required" }, { status: 403 }) }
   }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('current_tenant_id, tenant_id')
-    .eq('id', user.id)
-    .single()
-  const tenantId = (profile as any)?.current_tenant_id ?? (profile as any)?.tenant_id
-  if (!tenantId) {
-    return { error: NextResponse.json({ error: 'No tenant' }, { status: 400 }) }
-  }
-
+  const agentId = String(body?.agent_id ?? '').trim()
+  if (!agentId) return { error: NextResponse.json({ error: 'agent_id is required' }, { status: 400 }) }
+  const db = createServiceClient()
+  const { data: agent } = await (db as any).from('agents').select('id, output_config').eq('id', agentId).eq('tenant_id', tenantId).maybeSingle()
+  // Unknown / foreign agent: refuse (it used to fall back to "all tables").
+  if (!agent) return { error: NextResponse.json({ error: 'Agent not found' }, { status: 404 }) }
+  const outputConfig = normalizeAgentOutputConfig(agent.output_config)
   return {
-    tenantId: String(tenantId),
-    actingUserId: user.id,
-    supabase: supabase as unknown as SupabaseClient,
-    via: 'session',
+    permissions,
+    runtime: {
+      tenantId, agentId, actingUserId: user.id, outputConfig,
+      db: () => db, permissions: async () => permissions,
+      allowedHosts: outputConfig.egress.allowed_hosts, generatedFiles: [],
+    },
   }
 }

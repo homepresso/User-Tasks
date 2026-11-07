@@ -26,6 +26,8 @@ export function isTrueFalseCondition(config: Record<string, unknown> | null | un
 /** Labels of a node's branch ports, in display order (left → right). Empty for single-output nodes. */
 export function getBranchLabels(node: Pick<WorkflowNode, 'type' | 'config'>): string[] {
   const config = node.config ?? {}
+  // A submitter-safe node (lib/home/progress.ts) carries its labels, not the config they came from.
+  if (config.__safe === true && Array.isArray(config.__branch_labels)) return config.__branch_labels.map(String)
   switch (node.type) {
     case 'condition': {
       const branches = (config.branches ?? []) as { label?: string }[]
@@ -49,7 +51,9 @@ export function getBranchLabels(node: Pick<WorkflowNode, 'type' | 'config'>): st
     case 'parallel': {
       const raw = (config.branches ?? []) as unknown[]
       const labels = raw.map((b) => (typeof b === 'string' ? b : labelOf(b, false))).filter(Boolean) as string[]
-      return labels.length > 0 ? labels : ['Branch 1', 'Branch 2']
+      const branches = labels.length > 0 ? labels : ['Branch 1', 'Branch 2']
+      // "Done" runs after every branch has finished (the engine's Done edge), like a loop's.
+      return branches.some((l) => l.toLowerCase().trim() === 'done') ? branches : [...branches, 'Done']
     }
     case 'user_task': {
       const outcomes = (config.outcomes ?? []) as unknown[]

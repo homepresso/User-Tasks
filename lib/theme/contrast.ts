@@ -14,6 +14,10 @@
  *   theme is drawn, so members still get readable text.
  *
  * Built-in presets must pass every pair in both modes (__tests__/theme-contrast-audit.test.ts).
+ *
+ * The design-system tokens derived from the palette (docs/design/foundations.md)
+ * are checked too: text on the neutral fills, subtle (disabled) text at 3:1,
+ * and the strong hairline as a visible step (DS_BOUNDARY) over the card.
  */
 
 import { contrastRatio } from './colors'
@@ -55,6 +59,8 @@ const card = (p: ThemePalette) => opaqueHex(p.cardBg, p.surface)
 
 const T = AA_TEXT
 const L = AA_LARGE
+/** --ds-border-strong (hover / selected outlines): a visible step over the card, not a text target. */
+export const DS_BOUNDARY = 1.3
 
 /** Every pair the UI draws, on the raw palette (derived tokens filled in as the renderer would). */
 export const CONTRAST_PAIRS: PairSpec[] = [
@@ -90,6 +96,13 @@ export const CONTRAST_PAIRS: PairSpec[] = [
   { pair: 'sidebarAccent/sidebar', fg: (_p, _c, d) => d.sidebarAccent, bg: (p) => p.sidebar, on: 'none', required: T },
   { pair: 'sidebarAccent/sidebarActive', fg: (_p, _c, d) => d.sidebarAccent, bg: (p) => p.sidebarActive, on: 'sidebar', required: T },
   { pair: 'topbarText/topbar', fg: (p) => p.topbarText, bg: (p) => p.topbar, on: 'none', required: T, core: true },
+  // Design-system tokens (app/globals.css, derived from the palette).
+  { pair: 'cardText/ds.bgSubtle', fg: (p) => p.cardText, bg: (_p, _c, d) => d.dsBgSubtle, on: 'none', required: T },
+  { pair: 'cardText/ds.bgMuted', fg: (p) => p.cardText, bg: (_p, _c, d) => d.dsBgMuted, on: 'none', required: T },
+  { pair: 'mutedText/ds.bgSubtle', fg: (p) => p.mutedText, bg: (_p, _c, d) => d.dsBgSubtle, on: 'none', required: T },
+  { pair: 'mutedText/ds.bgMuted', fg: (p) => p.mutedText, bg: (_p, _c, d) => d.dsBgMuted, on: 'none', required: T },
+  { pair: 'ds.fgSubtle/cardBg', fg: (_p, _c, d) => d.dsFgSubtle, bg: (p) => p.cardBg, on: 'surface', required: L },
+  { pair: 'ds.borderStrong/cardBg', fg: (_p, _c, d) => d.dsBorderStrong, bg: (p) => p.cardBg, on: 'surface', required: DS_BOUNDARY },
   { pair: 'focusRing/surface', fg: (_p, _c, d) => d.focusRing, bg: (p) => p.surface, on: 'none', required: L },
   { pair: 'focusRing/cardBg', fg: (_p, _c, d) => d.focusRing, bg: (p) => p.cardBg, on: 'surface', required: L },
   ...Array.from({ length: 10 }, (_, i): PairSpec => ({

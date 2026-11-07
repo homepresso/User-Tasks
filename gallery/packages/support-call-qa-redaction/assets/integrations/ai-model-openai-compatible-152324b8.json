@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "152324b8-d942-5ba9-b0dd-1d58cbc89b68",
+  "asset": {
+    "id": "152324b8-d942-5ba9-b0dd-1d58cbc89b68",
+    "name": "AI model (OpenAI-compatible)",
+    "type": "rest_api",
+    "description": "An OpenAI-compatible chat model for the agent: set the base URL (for example https://api.openai.com/v1) and API key on install.",
+    "config": {
+      "base_url": "https://llm.example.com/v1",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "ai"
+    ]
+  }
+}

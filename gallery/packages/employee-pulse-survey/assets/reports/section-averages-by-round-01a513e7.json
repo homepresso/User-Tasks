@@ -1,0 +1,62 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "01a513e7-62fa-5847-807a-4a2b4a851030",
+  "asset": {
+    "id": "01a513e7-62fa-5847-807a-4a2b4a851030",
+    "name": "Section averages by round",
+    "description": "The four section averages (1-5: wellbeing, manager & team, growth, workload) per survey round, from the pulse survey runs (workflow variables).",
+    "category": "Employee pulse",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "a5aa7080-4df2-526a-83a1-dbb9697644e4"
+      },
+      "columns": [
+        "vars.round",
+        "AVG_vars.wellbeing_score",
+        "AVG_vars.manager_team_score",
+        "AVG_vars.growth_score",
+        "AVG_vars.workload_score"
+      ],
+      "group_by": [
+        "vars.round"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.wellbeing_score"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.manager_team_score"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.growth_score"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.workload_score"
+        }
+      ],
+      "sort": {
+        "field": "vars.round",
+        "direction": "asc"
+      },
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "Section averages (1-5)",
+        "colors": [
+          "#BE185D",
+          "#7C3AED",
+          "#0F766E",
+          "#B45309"
+        ],
+        "y_axis_label": "Average (1-5)"
+      }
+    }
+  }
+}

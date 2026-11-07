@@ -17,10 +17,33 @@ COPY packages/sdk/package.json packages/sdk/
 COPY packages/cli/package.json packages/cli/
 COPY packages/pg-query/package.json packages/pg-query/
 COPY packages/admin/package.json packages/admin/
+RUN npm ci
+
+FROM node:22-alpine AS builder
+WORKDIR /app
+ARG NEXT_PUBLIC_APP_URL
+ARG DEPLOYMENT_MODE=self_hosted
+# Largest upload body the app's proxy buffers (form attachments sent through
+# the app; next.config.ts proxyClientMaxBodySize, fixed at build time).
+ARG FORM_UPLOAD_MAX_BODY_MB=50
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    DEPLOYMENT_MODE=$DEPLOYMENT_MODE \
+    FORM_UPLOAD_MAX_BODY_MB=$FORM_UPLOAD_MAX_BODY_MB \
+    NEXT_OUTPUT_STANDALONE=true \
+    NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# Type check (before the optional packages below are removed; see there).
+# tsc needs more than Node's default heap for this codebase.
+RUN npx next typegen && NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit -p .
 # Optional packages: see docs/optional-drivers.md (and lib/optional-drivers,
-# whose test checks these lists). They are chosen here, before `next build`:
-# a missing one is replaced by a stub in the bundle, so adding it later needs
-# a rebuild, not an extra layer on top of this image.
+# whose test checks these lists). They are chosen in this stage, before
+# `next build`: a missing one is replaced by a stub in the bundle, so adding
+# it later needs a rebuild, not an extra layer on top of this image. The type
+# check runs first, with every package still installed (so their real types
+# are checked: a removed package would fail it with "Cannot find module"),
+# then the packages left out are removed and `next build` skips its own
+# duplicate type check (NEXT_BUILD_TYPECHECK=false).
 # Snowflake, Oracle and MongoDB drivers are optionalDependencies and are left
 # out of the image unless INCLUDE_OPTIONAL_DB_DRIVERS=true. (`npm ci
 # --omit=optional` is not used: it would also drop the native binaries Next.js,
@@ -41,8 +64,7 @@ ARG INCLUDE_PROVIDER_SDKS=true
 # OCR for scanned PDFs (tesseract.js, WebAssembly, about 45 MB) is left out
 # unless INCLUDE_OCR=true; a cloud OCR provider needs no package.
 ARG INCLUDE_OCR=false
-RUN npm ci \
- && if [ "$INCLUDE_OPTIONAL_DB_DRIVERS" != "true" ]; then \
+RUN if [ "$INCLUDE_OPTIONAL_DB_DRIVERS" != "true" ]; then \
       rm -rf node_modules/snowflake-sdk node_modules/oracledb node_modules/mongodb; \
     fi \
  && if [ "$INCLUDE_STORAGE_SDKS" != "true" ]; then \
@@ -54,22 +76,7 @@ RUN npm ci \
  && if [ "$INCLUDE_OCR" != "true" ]; then \
       rm -rf node_modules/tesseract.js node_modules/tesseract.js-core; \
     fi
-
-FROM node:22-alpine AS builder
-WORKDIR /app
-ARG NEXT_PUBLIC_APP_URL
-ARG DEPLOYMENT_MODE=self_hosted
-# Largest upload body the app's proxy buffers (form attachments sent through
-# the app; next.config.ts proxyClientMaxBodySize, fixed at build time).
-ARG FORM_UPLOAD_MAX_BODY_MB=50
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
-    DEPLOYMENT_MODE=$DEPLOYMENT_MODE \
-    FORM_UPLOAD_MAX_BODY_MB=$FORM_UPLOAD_MAX_BODY_MB \
-    NEXT_OUTPUT_STANDALONE=true \
-    NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run build \
+RUN NEXT_BUILD_TYPECHECK=false npm run build \
  && node scripts/build-worker.mjs .next/standalone/worker.cjs \
  && node packages/admin/scripts/build.mjs .next/standalone/admin.cjs
 
@@ -80,6 +87,21 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 RUN addgroup -S nodejs -g 1001 && adduser -S nextjs -u 1001 -G nodejs
+# Build info for GET /api/version (and /api/config/public): pass
+# --build-arg GIT_COMMIT=$(git rev-parse HEAD) --build-arg BUILD_TIME=$(date -u +%FT%TZ).
+# Declared in this last stage so a new commit doesn't invalidate the build cache.
+ARG GIT_COMMIT=
+ARG BUILD_TIME=
+ENV GIT_COMMIT=$GIT_COMMIT \
+    BUILD_TIME=$BUILD_TIME
+# FFmpeg / ffprobe for the media steps that process files locally (Media
+# Utilities, Redact Video, frame-sampled Analyze Video, splitting long audio
+# for transcription, non-PNG/JPEG images) — Alpine's package (LGPL/GPL
+# binaries, about 100 MB with codecs and a font for burned-in subtitles).
+# INCLUDE_MEDIA_TOOLS=false leaves them out: those operations then fail with
+# a clear message; provider-side media steps keep working.
+ARG INCLUDE_MEDIA_TOOLS=true
+RUN if [ "$INCLUDE_MEDIA_TOOLS" = "true" ]; then apk add --no-cache ffmpeg font-dejavu; fi
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public

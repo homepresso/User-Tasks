@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "78a81331-8caa-5608-841a-c2b50a867ad1",
+  "asset": {
+    "id": "78a81331-8caa-5608-841a-c2b50a867ad1",
+    "name": "Content platform",
+    "type": "rest_api",
+    "description": "Your site or app that holds the uploads: approved items are published, rejected ones hidden. Replace with your CMS, community platform or storage API.",
+    "config": {
+      "base_url": "https://content-platform.example.com/api/v1",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "content"
+    ]
+  }
+}

@@ -1,14 +1,28 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, ChevronDown, ChevronRight, Copy, ClipboardCheck, Crosshair } from 'lucide-react'
+import { ChevronDown, ChevronRight, Copy, ClipboardCheck, Crosshair } from 'lucide-react'
 import Link from 'next/link'
 import { type WorkflowEdge, type WorkflowNode } from '@/lib/workflow-schema'
-import { formatRelativeDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { formatCount } from '@/lib/format/number'
+import { formatDurationDelta, formatDurationMs } from '@/lib/format/duration'
+import { plural } from '@/lib/format/plural'
+import { StatCard, StatGrid, type StatDelta } from '@/components/ui/stat-card'
+import { Tabs } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Badge, StatusPill, Tag } from '@/components/ui/badge'
+import { InlineNotice } from '@/components/ui/inline-notice'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { average, parseJsonField } from '@/lib/report-flow-stats'
 import { logStepId, RuntimeCanvas, StepChip } from './runtime-canvas'
 import { computeRunOverlay } from '@/lib/workflow-run-overlay'
 import { normalizeDataTableNodes } from '@/lib/workflow-table-refs'
+import type { RunTask } from '@/lib/run-tasks'
+import { RunStepTasks, RunTaskSteps, runStepBadges } from './run-task-links'
 
 interface ProcessViewerProps {
   workflow: any
@@ -16,6 +30,8 @@ interface ProcessViewerProps {
   logs: any[]
   focus?: string | null
   compareRun?: any
+  /** The run's User Tasks with the viewer's access (automations.processView). */
+  tasks?: RunTask[]
 }
 
 function countNodeVisits(run: any) {
@@ -41,15 +57,14 @@ function computeRunDurationMs(run: any) {
   return Number.isFinite(started) && Number.isFinite(ended) ? Math.max(0, ended - started) : null
 }
 
-function formatDuration(ms: number | null) {
-  if (ms == null) return '—'
-  if (ms < 1000) return `${Math.round(ms)}ms`
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
-  if (ms < 3_600_000) return `${(ms / 60_000).toFixed(1)}m`
-  return `${(ms / 3_600_000).toFixed(1)}h`
+const LOG_LEVEL_TONE: Record<string, { text: string; dot: string }> = {
+  info: { text: 'text-info', dot: 'bg-info' },
+  warn: { text: 'text-warning', dot: 'bg-warning' },
+  error: { text: 'text-danger', dot: 'bg-danger' },
+  debug: { text: 'text-fg-muted', dot: 'bg-fg-subtle' },
 }
 
-export function ProcessViewer({ workflow, run, logs, focus, compareRun }: ProcessViewerProps) {
+export function ProcessViewer({ workflow, run, logs, focus, compareRun, tasks = [] }: ProcessViewerProps) {
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
   const [tab, setTab] = useState<'canvas' | 'compare' | 'logs' | 'variables'>('canvas')
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -180,7 +195,8 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun }: Proces
     if (!focus) return null
     if (focus === 'duration') {
       return {
-        title: 'Duration Spike Focus',
+        title: 'Duration spike focus',
+        tone: 'danger' as const,
         description: 'This run was opened from a duration anomaly, so start by checking the longest steps and the logs around elapsed time.',
         color: 'var(--theme-danger)',
         background: 'color-mix(in srgb, var(--theme-danger) 10%, transparent)',
@@ -188,7 +204,8 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun }: Proces
     }
     if (focus === 'traversal') {
       return {
-        title: 'Traversal Spike Focus',
+        title: 'Traversal spike focus',
+        tone: 'warning' as const,
         description: 'This run was opened from a traversal anomaly, so focus on extra branches, loops, and unexpected path depth through the workflow.',
         color: 'var(--theme-warning)',
         background: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)',
@@ -196,7 +213,8 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun }: Proces
     }
     if (focus === 'spike') {
       return {
-        title: 'Anomaly Focus',
+        title: 'Anomaly focus',
+        tone: 'info' as const,
         description: 'This run was flagged as anomalous in the workflow report. Review both path complexity and runtime in the canvas and logs.',
         color: 'var(--theme-chart-6-text)',
         background: 'color-mix(in srgb, var(--theme-chart-6) 10%, transparent)',
@@ -225,227 +243,119 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun }: Proces
     setFocusRequest({ nodeId, nonce: Date.now() })
   }
 
+  const metricDelta = (current: number | null, baseline: number | null, format: (value: number) => string): StatDelta | undefined => {
+    if (!compareMetrics) return undefined
+    const delta = (current ?? 0) - (baseline ?? 0)
+    return { label: format(delta), direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', goodWhen: 'down', caption: 'vs typical run' }
+  }
+  const countDelta = (value: number) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${formatCount(Math.abs(value))}`
+
   return (
     <div ref={viewerRootRef}>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <Link href="/automations/queue" className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold">{workflow.name}</h1>
-          <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-            {run ? `Run ${run.id.slice(0, 8)} · ${formatRelativeDate(run.started_at)}` : 'No run data'}
-          </p>
-        </div>
-        {run && (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full capitalize"
-            style={{
-              backgroundColor: run.status === 'completed' ? 'color-mix(in srgb, var(--theme-success) 8%, transparent)' : run.status === 'failed' ? 'color-mix(in srgb, var(--theme-danger) 8%, transparent)' : 'color-mix(in srgb, var(--status-info) 8%, transparent)',
-              color: run.status === 'completed' ? 'var(--theme-success)' : run.status === 'failed' ? 'var(--theme-danger)' : 'var(--status-info)',
-            }}>
-            {run.status}
-          </span>
-        )}
-      </div>
-
       {executionMetrics && (
-        <div className="grid gap-3 mb-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: 'Duration', value: formatDuration(executionMetrics.durationMs) },
-            { label: 'Executed Nodes', value: executionMetrics.executedNodes },
-            { label: 'Node Visits', value: executionMetrics.nodeVisits },
-            { label: 'Edge Traversals', value: executionMetrics.edgeTraversals },
-          ].map((metric) => (
-            <div
-              key={metric.label}
-              className="rounded-xl border px-4 py-3"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-            >
-              <p className="text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{metric.label}</p>
-              <p className="mt-1 text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>{metric.value}</p>
+        <div className="mb-4">
+          <StatGrid>
+            <StatCard
+              label="Duration"
+              value={formatDurationMs(executionMetrics.durationMs)}
+              delta={metricDelta(executionMetrics.durationMs, compareMetrics?.durationMs ?? null, formatDurationDelta)}
+              hint={compareMetrics ? `Typical run: ${formatDurationMs(compareMetrics.durationMs)}` : undefined}
+            />
+            <StatCard
+              label="Executed nodes"
+              value={formatCount(executionMetrics.executedNodes)}
+              delta={metricDelta(executionMetrics.executedNodes, compareMetrics?.executedNodes ?? null, countDelta)}
+              hint={compareMetrics ? `Typical run: ${formatCount(compareMetrics.executedNodes)}` : undefined}
+            />
+            <StatCard
+              label="Node visits"
+              value={formatCount(executionMetrics.nodeVisits)}
+              delta={metricDelta(executionMetrics.nodeVisits, compareMetrics?.nodeVisits ?? null, countDelta)}
+              hint={compareMetrics ? `Typical run: ${formatCount(compareMetrics.nodeVisits)}` : undefined}
+            />
+            <StatCard
+              label="Edge traversals"
+              value={formatCount(executionMetrics.edgeTraversals)}
+              delta={metricDelta(executionMetrics.edgeTraversals, compareMetrics?.edgeTraversals ?? null, countDelta)}
+              hint={compareMetrics ? `Typical run: ${formatCount(compareMetrics.edgeTraversals)}` : undefined}
+            />
+          </StatGrid>
+          {compareMetrics && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-fg-muted">
+              <span>Compared with a recent completed run of the same workflow to show what changed.</span>
+              <Button asChild variant="link" size="sm">
+                <Link href={`/automations/runs/${compareRun.id}`}>Open baseline run</Link>
+              </Button>
             </div>
-          ))}
+          )}
         </div>
       )}
 
       {focusContext && (
-        <div
-          className="mb-4 rounded-xl border px-4 py-3"
-          style={{
-            backgroundColor: focusContext.background,
-            borderColor: `color-mix(in srgb, ${focusContext.color} 20%, transparent)`,
-          }}
-        >
-          <div className="text-sm font-semibold" style={{ color: focusContext.color }}>{focusContext.title}</div>
-          <div className="mt-1 text-xs" style={{ color: 'var(--theme-card-text)' }}>{focusContext.description}</div>
-        </div>
-      )}
-
-      {executionMetrics && compareMetrics && (
-        <div
-          className="mb-4 rounded-xl border px-4 py-3"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-        >
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Compared With Typical Run</h3>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                Side-by-side with a recent completed run of the same workflow to show what changed.
-              </p>
-            </div>
-            <Link
-              href={`/automations/runs/${compareRun.id}`}
-              className="text-[10px] font-medium hover:underline"
-              style={{ color: 'var(--theme-primary-text)' }}
-            >
-              Open baseline run
-            </Link>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: 'Duration',
-                current: formatDuration(executionMetrics.durationMs),
-                baseline: formatDuration(compareMetrics.durationMs),
-                delta: (executionMetrics.durationMs ?? 0) - (compareMetrics.durationMs ?? 0),
-                formatter: (value: number) => `${value >= 0 ? '+' : ''}${formatDuration(Math.abs(value))}`,
-              },
-              {
-                label: 'Executed Nodes',
-                current: executionMetrics.executedNodes,
-                baseline: compareMetrics.executedNodes,
-                delta: executionMetrics.executedNodes - compareMetrics.executedNodes,
-                formatter: (value: number) => `${value >= 0 ? '+' : ''}${value}`,
-              },
-              {
-                label: 'Node Visits',
-                current: executionMetrics.nodeVisits,
-                baseline: compareMetrics.nodeVisits,
-                delta: executionMetrics.nodeVisits - compareMetrics.nodeVisits,
-                formatter: (value: number) => `${value >= 0 ? '+' : ''}${value}`,
-              },
-              {
-                label: 'Edge Traversals',
-                current: executionMetrics.edgeTraversals,
-                baseline: compareMetrics.edgeTraversals,
-                delta: executionMetrics.edgeTraversals - compareMetrics.edgeTraversals,
-                formatter: (value: number) => `${value >= 0 ? '+' : ''}${value}`,
-              },
-            ].map((metric) => (
-              <div
-                key={metric.label}
-                className="rounded-lg border px-3 py-3"
-                style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-surface-border)' }}
-              >
-                <div className="text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{metric.label}</div>
-                <div className="mt-2 flex items-end justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>{metric.current}</div>
-                    <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>current</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{metric.baseline}</div>
-                    <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>baseline</div>
-                  </div>
-                </div>
-                <div
-                  className="mt-2 text-[10px] font-semibold"
-                  style={{ color: metric.delta > 0 ? 'var(--theme-danger)' : metric.delta < 0 ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}
-                >
-                  {metric.formatter(metric.delta)} vs baseline
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InlineNotice tone={focusContext.tone} title={focusContext.title} className="mb-4">
+          <p className="mt-0.5 text-xs">{focusContext.description}</p>
+        </InlineNotice>
       )}
 
       {focusContext && suspectNodes.length > 0 && (
-        <div
-          className="mb-4 rounded-xl border px-4 py-3"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-        >
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Top Suspect Nodes</h3>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                Ranked by likely contribution to this run&apos;s {focus === 'duration' ? 'duration spike' : focus === 'traversal' ? 'traversal spike' : 'anomalous behavior'}.
-              </p>
-            </div>
-            <span
-              className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold"
-              style={{ backgroundColor: focusContext.background, color: focusContext.color }}
-            >
-              {suspectNodes.length} suspect{suspectNodes.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {suspectNodes.map((node, index) => (
-              <button
-                key={node.id}
-                type="button"
-                onClick={() => focusNodeInCanvas(node.id)}
-                className="rounded-lg border px-3 py-2"
-                style={{
-                  borderColor: node.id === selectedSuspectNodeId ? focusContext.color : `color-mix(in srgb, ${focusContext.color} 13%, transparent)`,
-                  backgroundColor: 'var(--theme-surface)',
-                  boxShadow: node.id === selectedSuspectNodeId ? `0 0 0 1px color-mix(in srgb, ${focusContext.color} 20%, transparent)` : undefined,
-                }}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: focusContext.color }}>
-                      #{index + 1} suspect
+        <Card padding="none" className="mb-4">
+          <CardHeader
+            title="Top suspect nodes"
+            description={`Ranked by likely contribution to this run's ${focus === 'duration' ? 'duration spike' : focus === 'traversal' ? 'traversal spike' : 'anomalous behavior'}.`}
+            actions={<Badge tone={focusContext.tone === 'info' ? 'neutral' : focusContext.tone}>{plural(suspectNodes.length, 'suspect')}</Badge>}
+          />
+          <CardBody>
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {suspectNodes.map((node, index) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => focusNodeInCanvas(node.id)}
+                  aria-pressed={node.id === selectedSuspectNodeId}
+                  className={cn(
+                    'rounded-md border bg-subtle px-3 py-2 text-left transition-colors hover:border-border-strong',
+                    node.id === selectedSuspectNodeId ? 'border-primary bg-primary-wash' : 'border-border-subtle',
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-2xs font-medium" style={{ color: focusContext.color }}>
+                        Suspect #{index + 1}
+                      </div>
+                      <div className="truncate text-ui font-medium text-fg" title={node.label}>
+                        {node.label}
+                      </div>
                     </div>
-                    <div className="truncate text-sm font-medium" style={{ color: 'var(--theme-card-text)' }} title={node.label}>
-                      {node.label}
-                    </div>
+                    <span className="num shrink-0 text-xs font-semibold" style={{ color: focusContext.color }}>
+                      {node.score.toFixed(1)}×
+                    </span>
                   </div>
-                  <span
-                    className="rounded-full px-2 py-1 text-[10px] font-semibold shrink-0"
-                    style={{ backgroundColor: focusContext.background, color: focusContext.color }}
-                  >
-                    {node.score.toFixed(1)}x
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                  <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}>
-                    {node.type}
-                  </span>
-                  {node.duration > 0 && (
-                    <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}>
-                      {node.duration}ms
-                    </span>
-                  )}
-                  {node.visits > 0 && (
-                    <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}>
-                      {node.visits} visits
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <Tag mono>{node.type}</Tag>
+                    {node.duration > 0 && <Tag className="num">{formatDurationMs(node.duration)}</Tag>}
+                    {node.visits > 0 && <Tag className="num">{plural(node.visits, 'visit')}</Tag>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {/* Tabs */}
-      <div className="flex border-b mb-4" style={{ borderColor: 'var(--theme-surface-border)' }}>
-        {[
-          { id: 'canvas' as const, label: 'Process View' },
-          ...(compareRun ? [{ id: 'compare' as const, label: 'Compare' }] : []),
-          { id: 'variables' as const, label: `Variables${variableCount > 0 ? ` (${variableCount})` : ''}` },
-          { id: 'logs' as const, label: `Logs (${visibleLogs.length}${visibleLogs.length !== logs.length ? `/${logs.length}` : ''})` },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className="px-4 py-2 text-sm font-medium transition-colors relative"
-            style={{ color: tab === t.id ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}>
-            {t.label}
-            {tab === t.id && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary)' }} />}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        aria-label="Run views"
+        idBase="run-view"
+        className="mb-4"
+        value={tab}
+        onValueChange={setTab}
+        items={[
+          { value: 'canvas' as const, label: 'Process view' },
+          ...(compareRun ? [{ value: 'compare' as const, label: 'Compare' }] : []),
+          { value: 'variables' as const, label: 'Variables', count: variableCount > 0 ? variableCount : undefined },
+          { value: 'logs' as const, label: visibleLogs.length !== logs.length ? `Logs (${visibleLogs.length}/${logs.length})` : 'Logs', count: visibleLogs.length !== logs.length ? undefined : logs.length },
+        ]}
+      />
 
       {/* Variables tab — shows every workflow-level variable defined on
           the workflow (workflow.user_variables) merged with the ACTUAL
@@ -484,93 +394,91 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun }: Proces
               : undefined]))}
           markerPrefix="pv-arrow"
           label="Run canvas"
+          nodeAdornments={runStepBadges(tasks)}
+          renderDetails={(node) => <RunStepTasks tasks={tasks} nodeId={node.id} />}
         />
+      )}
+      {tab === 'canvas' && tasks.length > 0 && (
+        <Card padding="md" className="mt-4">
+          <h2 className="mb-3 text-base font-semibold text-fg">User Tasks</h2>
+          <RunTaskSteps tasks={tasks} onFocusStep={focusNodeInCanvas} />
+        </Card>
       )}
 
       {/* Logs tab */}
       {tab === 'logs' && (
-        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+        <div className="overflow-hidden rounded-lg border border-border bg-panel">
           {visibleLogs.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-center" style={{ color: 'var(--theme-muted-text)' }}>No logs available</p>
+            <EmptyState size="sm" title="No logs for this run" description="Steps write log entries as they run." />
           ) : (
             <>
               {/* Copy All bar */}
-              <div className="flex items-center justify-between gap-3 px-4 py-2 border-b" style={{ borderColor: 'var(--theme-surface-border)' }}>
+              <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-2">
                 <div className="flex items-center gap-2">
                   {focusContext && suspectNodes.length > 0 && (
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant={showSuspectLogsOnly ? 'secondary' : 'ghost'}
+                      aria-pressed={showSuspectLogsOnly}
                       onClick={() => setShowSuspectLogsOnly((current) => !current)}
-                      className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors hover:opacity-80"
-                      style={{
-                        backgroundColor: showSuspectLogsOnly ? focusContext.background : 'var(--theme-surface)',
-                        color: showSuspectLogsOnly ? focusContext.color : 'var(--theme-muted-text)',
-                      }}
                     >
                       {showSuspectLogsOnly ? 'Showing suspect logs' : 'Show suspect logs only'}
-                    </button>
+                    </Button>
                   )}
-                  <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    {visibleLogs.length} log{visibleLogs.length !== 1 ? 's' : ''}
+                  <span className="num text-xs text-fg-muted">
+                    {plural(visibleLogs.length, 'log')}
                   </span>
                 </div>
-                <button
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
                   onClick={copyAllLogs}
-                  className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors hover:opacity-80"
-                  style={{
-                    backgroundColor: copiedAll ? 'color-mix(in srgb, var(--theme-success) 8%, transparent)' : 'var(--theme-surface)',
-                    color: copiedAll ? 'var(--theme-success)' : 'var(--theme-muted-text)',
-                  }}
+                  leadingIcon={copiedAll ? <ClipboardCheck className="text-success" /> : <Copy />}
                 >
-                  {copiedAll ? <ClipboardCheck size={12} /> : <Copy size={12} />}
-                  {copiedAll ? 'Copied!' : 'Copy All'}
-                </button>
+                  {copiedAll ? 'Copied' : 'Copy all'}
+                </Button>
               </div>
-              <div className="divide-y" style={{ borderColor: 'var(--theme-surface-border)' }}>
+              <div className="divide-y divide-border-subtle">
                 {visibleLogs.map((log: any) => {
                   const isExpanded = expandedLog === log.id
                   const isCopied = copiedId === log.id
-                  const colors: Record<string, string> = { info: 'var(--status-info)', warn: 'var(--theme-warning)', error: 'var(--theme-danger)', debug: 'var(--theme-muted-text)' }
-                  const color = colors[log.level] ?? 'var(--theme-muted-text)'
+                  const tone = LOG_LEVEL_TONE[log.level] ?? LOG_LEVEL_TONE.debug
                   const isSuspectLog = !!(log.node_label && suspectNodeLabels.has(log.node_label))
                   return (
-                    <div key={log.id} className="px-4 py-2 cursor-pointer hover:opacity-90 group"
+                    <div key={log.id} className="group cursor-pointer px-4 py-2 hover:bg-subtle"
                       onClick={() => setExpandedLog(isExpanded ? null : log.id)}>
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                        <span className="text-[10px] font-mono w-10 shrink-0 uppercase" style={{ color }}>{log.level}</span>
+                        <span className={cn('size-1.5 shrink-0 rounded-full', tone.dot)} aria-hidden="true" />
+                        <span className={cn('w-10 shrink-0 font-mono text-2xs', tone.text)}>{log.level}</span>
                         {log.node_label && (() => {
                           const stepId = logStepId(log, nodes as WorkflowNode[])
                           return <StepChip label={log.node_label} onFocus={stepId ? () => focusNodeInCanvas(stepId) : undefined} />
                         })()}
                         {isSuspectLog && (
-                          <span
-                            className="text-[10px] px-1 py-0.5 rounded shrink-0"
-                            style={{ backgroundColor: focusContext?.background ?? 'color-mix(in srgb, var(--theme-chart-6) 10%, transparent)', color: focusContext?.color ?? 'var(--theme-chart-6-text)' }}
-                          >
-                            suspect
-                          </span>
+                          <Badge tone={focusContext ? (focusContext.tone === 'info' ? 'neutral' : focusContext.tone) : 'neutral'} className="shrink-0">
+                            Suspect
+                          </Badge>
                         )}
-                        <span className="text-xs flex-1 truncate">{log.message}</span>
+                        <span className="flex-1 truncate text-ui text-fg">{log.message}</span>
                         {log.duration_ms != null && (
-                          <span className="text-[10px] font-mono shrink-0" style={{ color: 'var(--theme-muted-text)' }}>{log.duration_ms}ms</span>
+                          <span className="num shrink-0 font-mono text-2xs text-fg-muted">{formatDurationMs(log.duration_ms)}</span>
                         )}
-                        <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
+                        <span className="num shrink-0 text-2xs text-fg-muted">
                           {new Date(log.created_at).toLocaleTimeString()}
                         </span>
-                        <button
+                        <IconButton
+                          size="sm"
+                          label={isCopied ? 'Copied' : 'Copy log entry'}
+                          icon={isCopied ? <ClipboardCheck className="text-success" /> : <Copy />}
                           onClick={(e) => copyLogLine(e, log)}
-                          className="shrink-0 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80"
-                          style={{ color: isCopied ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}
-                          title="Copy log entry"
-                        >
-                          {isCopied ? <ClipboardCheck size={12} /> : <Copy size={12} />}
-                        </button>
-                        {log.metadata && (isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />)}
+                          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                        />
+                        {log.metadata && (isExpanded ? <ChevronDown size={14} className="text-fg-muted" aria-hidden="true" /> : <ChevronRight size={14} className="text-fg-muted" aria-hidden="true" />)}
                       </div>
                       {isExpanded && log.metadata && (
-                        <pre className="mt-1 text-[10px] font-mono p-2 rounded overflow-x-auto"
-                          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                        <pre className="mt-1 overflow-x-auto rounded-md bg-subtle p-2 font-mono text-2xs text-fg-muted">
                           {JSON.stringify(log.metadata, null, 2)}
                         </pre>
                       )}
@@ -634,16 +542,16 @@ function VariablesTab({ workflow, run }: { workflow: any; run: any }) {
 
   function renderValue(val: any): React.ReactNode {
     if (val == null || val === '') {
-      return <span className="italic" style={{ color: 'var(--theme-muted-text)' }}>(empty)</span>
+      return <span className="italic text-fg-muted">(empty)</span>
     }
     if (typeof val === 'boolean') {
-      return <span className="font-mono" style={{ color: val ? 'var(--status-success)' : 'var(--status-error)' }}>{String(val)}</span>
+      return <span className={cn('font-mono', val ? 'text-success' : 'text-danger')}>{String(val)}</span>
     }
     if (typeof val === 'number') {
-      return <span className="font-mono" style={{ color: 'var(--status-info)' }}>{val}</span>
+      return <span className="num font-mono text-info">{val}</span>
     }
     if (typeof val === 'string') {
-      return <span className="font-mono break-all" style={{ color: 'var(--theme-card-text)' }}>{val}</span>
+      return <span className="break-all font-mono text-fg">{val}</span>
     }
     // Defensive stringify — workflow node output can contain objects with
     // circular refs (e.g. a response body that includes the request it
@@ -656,10 +564,7 @@ function VariablesTab({ workflow, run }: { workflow: any; run: any }) {
       serialized = '[Unserializable value — contains circular refs or non-JSON data]'
     }
     return (
-      <pre
-        className="font-mono text-[10px] whitespace-pre-wrap break-all rounded p-2 max-h-40 overflow-auto"
-        style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}
-      >
+      <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-md bg-subtle p-2 font-mono text-2xs text-fg">
         {serialized}
       </pre>
     )
@@ -667,75 +572,57 @@ function VariablesTab({ workflow, run }: { workflow: any; run: any }) {
 
   if (variableDefs.length === 0) {
     return (
-      <div
-        className="rounded-xl border p-12 text-center"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-      >
-        <p className="text-sm mb-1" style={{ color: 'var(--theme-card-text)' }}>No workflow variables defined</p>
-        <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-          Add user variables to the workflow definition to see their runtime values here.
-        </p>
+      <div className="rounded-lg border border-border bg-panel">
+        <EmptyState
+          size="sm"
+          title="No workflow variables defined"
+          description="Add user variables to the workflow definition to see their runtime values here."
+        />
       </div>
     )
   }
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-    >
-      <table className="w-full text-xs">
-        <thead>
-          <tr style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-            <th className="text-left pl-4 py-2 font-medium uppercase text-[10px] tracking-wider w-1/4">Variable</th>
-            <th className="text-left py-2 font-medium uppercase text-[10px] tracking-wider w-16">Type</th>
-            <th className="text-left py-2 font-medium uppercase text-[10px] tracking-wider">Value</th>
-            <th className="text-left pr-4 py-2 font-medium uppercase text-[10px] tracking-wider w-24">Source</th>
-          </tr>
-        </thead>
-        <tbody>
-          {variableDefs.map((v, i) => {
-            const hasValue = values[v.name] !== undefined
-            // Determine where the displayed value came from — useful for
-            // debugging "why does this variable show the default?"
-            const fromPause = run?.pause_variables && Object.prototype.hasOwnProperty.call(run.pause_variables, v.name)
-            const fromNodeResult = !fromPause && run?.node_results && Object.values(run.node_results as Record<string, any>).some(
-              (nr: any) => nr?.output && typeof nr.output === 'object' && Object.prototype.hasOwnProperty.call(nr.output, v.name)
-            )
-            const source = fromPause ? 'pause' : fromNodeResult ? 'node' : hasValue ? 'default' : 'unset'
-            const sourceColor = source === 'pause' ? 'var(--status-warning)'
-              : source === 'node' ? 'var(--status-success)'
-              : source === 'default' ? 'var(--theme-muted-text)'
-              : 'var(--theme-muted-text)'
-            return (
-              <tr
-                key={i}
-                className="border-t"
-                style={{ borderColor: 'var(--theme-surface-border)' }}
-              >
-                <td className="pl-4 py-2.5 align-top">
-                  <div className="font-mono font-semibold" style={{ color: 'var(--theme-card-text)' }}>{v.name}</div>
-                  {v.description && (
-                    <div className="text-[10px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>{v.description}</div>
-                  )}
-                </td>
-                <td className="py-2.5 align-top">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-                    {v.type ?? 'text'}
-                  </span>
-                </td>
-                <td className="py-2.5 align-top">{renderValue(values[v.name])}</td>
-                <td className="pr-4 py-2.5 align-top">
-                  <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: sourceColor }}>
-                    {source}
-                  </span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <THead>
+        <tr>
+          <TH className="w-1/4">Variable</TH>
+          <TH className="w-24">Type</TH>
+          <TH>Value</TH>
+          <TH className="w-24">Source</TH>
+        </tr>
+      </THead>
+      <TBody>
+        {variableDefs.map((v, i) => {
+          const hasValue = values[v.name] !== undefined
+          // Determine where the displayed value came from — useful for
+          // debugging "why does this variable show the default?"
+          const fromPause = run?.pause_variables && Object.prototype.hasOwnProperty.call(run.pause_variables, v.name)
+          const fromNodeResult = !fromPause && run?.node_results && Object.values(run.node_results as Record<string, any>).some(
+            (nr: any) => nr?.output && typeof nr.output === 'object' && Object.prototype.hasOwnProperty.call(nr.output, v.name)
+          )
+          const source = fromPause ? 'pause' : fromNodeResult ? 'node' : hasValue ? 'default' : 'unset'
+          const sourceTone = source === 'pause' ? 'warning' as const : source === 'node' ? 'success' as const : 'neutral' as const
+          return (
+            <TR key={i}>
+              <TD className="py-2 align-top">
+                <div className="font-mono text-ui font-medium text-fg">{v.name}</div>
+                {v.description && (
+                  <div className="mt-0.5 text-xs text-fg-muted">{v.description}</div>
+                )}
+              </TD>
+              <TD className="py-2 align-top">
+                <Tag mono>{v.type ?? 'text'}</Tag>
+              </TD>
+              <TD className="py-2 align-top text-ui">{renderValue(values[v.name])}</TD>
+              <TD className="py-2 align-top">
+                <Badge tone={sourceTone}>{source}</Badge>
+              </TD>
+            </TR>
+          )
+        })}
+      </TBody>
+    </Table>
   )
 }
 
@@ -858,79 +745,56 @@ function CompareTab({ workflow, run, compareRun }: { workflow: any; run: any; co
     }
   }
 
+  const signed = (value: number, format: (abs: number) => string) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${format(Math.abs(value))}`
+
   return (
     <div className="space-y-4">
-      <div
-        className="rounded-xl border px-4 py-3"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Run Comparison</h3>
-            <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-              Comparing this run against baseline run {compareRun?.id?.slice?.(0, 8) ?? '—'} to show node-level execution differences.
-            </p>
-          </div>
-          <Link
-            href={`/automations/runs/${compareRun.id}`}
-            className="text-[10px] font-medium hover:underline"
-            style={{ color: 'var(--theme-primary-text)' }}
-          >
-            Open baseline
-          </Link>
+      <div>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-fg-muted">
+            Comparing this run against baseline run <span className="font-mono">{compareRun?.id?.slice?.(0, 8) ?? '—'}</span> to show node-level execution differences.
+          </p>
+          <Button asChild variant="link" size="sm">
+            <Link href={`/automations/runs/${compareRun.id}`}>Open baseline</Link>
+          </Button>
         </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: 'Changed Nodes', value: summary.changedNodes },
-            { label: 'New In Current', value: summary.addedNodes },
-            { label: 'Missing Vs Baseline', value: summary.removedNodes },
-            { label: 'Output Changes', value: summary.outputChanges },
-          ].map((metric) => (
-            <div
-              key={metric.label}
-              className="rounded-lg border px-3 py-3"
-              style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-surface-border)' }}
-            >
-              <div className="text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{metric.label}</div>
-              <div className="mt-1 text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>{metric.value}</div>
-            </div>
-          ))}
-        </div>
+        <StatGrid>
+          <StatCard label="Changed nodes" value={formatCount(summary.changedNodes)} />
+          <StatCard label="New in current" value={formatCount(summary.addedNodes)} />
+          <StatCard label="Missing vs baseline" value={formatCount(summary.removedNodes)} />
+          <StatCard label="Output changes" value={formatCount(summary.outputChanges)} />
+        </StatGrid>
       </div>
 
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-      >
-        <div className="border-b px-4 py-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Compare Canvas</h4>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                Visual node diff between the current run and the baseline run.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-1.5 text-[10px]">
-              {([
-                ['added', 'Added'],
-                ['removed', 'Missing'],
-                ['status', 'Status'],
-                ['duration', 'Duration'],
-                ['visits', 'Visits'],
-                ['output', 'Output'],
-              ] as Array<[CompareRow['diffKind'], string]>).map(([kind, label]) => {
-                const style = diffStyle(kind)
-                return (
-                  <span
-                    key={kind}
-                    className="rounded-full px-2 py-1"
-                    style={{ backgroundColor: style.background, color: style.color }}
-                  >
-                    {label}
-                  </span>
-                )
-              })}
-            </div>
+      <div className="overflow-hidden rounded-lg border border-border bg-panel">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-subtle px-4 py-3">
+          <div>
+            <h3 className="text-base font-semibold text-fg">Compare canvas</h3>
+            <p className="mt-0.5 text-xs text-fg-muted">
+              Visual node diff between the current run and the baseline run.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-2xs">
+            {([
+              ['added', 'Added'],
+              ['removed', 'Missing'],
+              ['status', 'Status'],
+              ['duration', 'Duration'],
+              ['visits', 'Visits'],
+              ['output', 'Output'],
+            ] as Array<[CompareRow['diffKind'], string]>).map(([kind, label]) => {
+              const style = diffStyle(kind)
+              return (
+                <span
+                  key={kind}
+                  className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-medium"
+                  style={{ backgroundColor: style.background, color: style.color }}
+                >
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: style.border }} aria-hidden="true" />
+                  {label}
+                </span>
+              )
+            })}
           </div>
         </div>
         <div className="p-3">
@@ -947,12 +811,12 @@ function CompareTab({ workflow, run, compareRun }: { workflow: any; run: any; co
             renderDetails={(node) => {
               const row = rowsById.get(node.id)
               return (
-                <div className="mx-3 mb-2 rounded-lg px-2 py-1.5 text-[11px] space-y-0.5" style={{ backgroundColor: 'var(--theme-surface)' }}>
+                <div className="mx-3 mb-2 space-y-0.5 rounded-md bg-subtle px-2 py-1.5 text-xs">
                   {row ? (<>
-                    <div><span style={{ color: 'var(--theme-muted-text)' }}>Diff:</span> <span style={{ color: diffStyle(row.diffKind).color }}>{row.diffKind}</span></div>
-                    <div><span style={{ color: 'var(--theme-muted-text)' }}>Current:</span> {row.currentStatus}</div>
-                    <div><span style={{ color: 'var(--theme-muted-text)' }}>Baseline:</span> {row.baselineStatus}</div>
-                  </>) : <div style={{ color: 'var(--theme-muted-text)' }}>No meaningful diff</div>}
+                    <div><span className="text-fg-muted">Diff:</span> <span style={{ color: diffStyle(row.diffKind).color }}>{row.diffKind}</span></div>
+                    <div><span className="text-fg-muted">Current:</span> {row.currentStatus}</div>
+                    <div><span className="text-fg-muted">Baseline:</span> {row.baselineStatus}</div>
+                  </>) : <div className="text-fg-muted">No meaningful diff</div>}
                 </div>
               )
             }}
@@ -962,63 +826,69 @@ function CompareTab({ workflow, run, compareRun }: { workflow: any; run: any; co
         </div>
 
         {rows.length === 0 ? (
-          <p className="px-4 py-10 text-center text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-            No meaningful node differences found between the current run and the selected baseline.
-          </p>
+          <div className="border-t border-border-subtle">
+            <EmptyState
+              size="sm"
+              title="No node differences"
+              description="No meaningful node differences found between the current run and the selected baseline."
+            />
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                  <th className="text-left px-4 py-2 font-medium uppercase text-[10px] tracking-wider">Node</th>
-                  <th className="text-left py-2 font-medium uppercase text-[10px] tracking-wider">Current</th>
-                  <th className="text-left py-2 font-medium uppercase text-[10px] tracking-wider">Baseline</th>
-                  <th className="text-right py-2 font-medium uppercase text-[10px] tracking-wider">Duration Δ</th>
-                  <th className="text-right py-2 font-medium uppercase text-[10px] tracking-wider">Visits Δ</th>
-                  <th className="text-right pr-4 py-2 font-medium uppercase text-[10px] tracking-wider">Output</th>
+          <div className="border-t border-border-subtle">
+            <Table bare>
+              <THead>
+                <tr>
+                  <TH>Node</TH>
+                  <TH>Current</TH>
+                  <TH>Baseline</TH>
+                  <TH numeric>Duration Δ</TH>
+                  <TH numeric>Visits Δ</TH>
+                  <TH numeric>Output</TH>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map((row: CompareRow) => (
-                  <tr key={row.id} className="border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                    <td className="px-4 py-2.5">
-                      <button type="button" className="font-medium text-left hover:underline inline-flex items-center gap-1" style={{ color: 'var(--theme-card-text)' }}
-                        onClick={() => setCompareFocus({ nodeId: row.id, nonce: Date.now() })} title={`Show ${row.label} on the compare canvas`} data-step-chip="">
-                        <Crosshair size={11} aria-hidden="true" style={{ color: 'var(--theme-muted-text)' }} />{row.label}
-                      </button>
-                      <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{row.type}</div>
-                    </td>
-                    <td className="py-2.5">
-                      <div style={{ color: 'var(--theme-card-text)' }}>{row.currentStatus}</div>
-                      <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                        {row.currentDuration ? `${row.currentDuration}ms` : '—'} · {row.currentVisits} visit{row.currentVisits !== 1 ? 's' : ''}
-                      </div>
-                    </td>
-                    <td className="py-2.5">
-                      <div style={{ color: 'var(--theme-card-text)' }}>{row.baselineStatus}</div>
-                      <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                        {row.baselineDuration ? `${row.baselineDuration}ms` : '—'} · {row.baselineVisits} visit{row.baselineVisits !== 1 ? 's' : ''}
-                      </div>
-                    </td>
-                    <td className="text-right py-2.5 font-mono" style={{ color: row.currentDuration - row.baselineDuration > 0 ? 'var(--theme-danger)' : row.currentDuration - row.baselineDuration < 0 ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}>
-                      {row.currentDuration - row.baselineDuration >= 0 ? '+' : ''}{row.currentDuration - row.baselineDuration}ms
-                    </td>
-                    <td className="text-right py-2.5 font-mono" style={{ color: row.currentVisits - row.baselineVisits > 0 ? 'var(--theme-warning)' : row.currentVisits - row.baselineVisits < 0 ? 'var(--theme-success)' : 'var(--theme-muted-text)' }}>
-                      {row.currentVisits - row.baselineVisits >= 0 ? '+' : ''}{row.currentVisits - row.baselineVisits}
-                    </td>
-                    <td className="text-right pr-4 py-2.5">
-                      {row.outputChanged ? (
-                        <span className="rounded-full px-2 py-1 text-[10px]" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-chart-6) 10%, transparent)', color: 'var(--theme-chart-6-text)' }}>
-                          changed
-                        </span>
-                      ) : (
-                        <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>same</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              </THead>
+              <TBody>
+                {rows.map((row: CompareRow) => {
+                  const durationDelta = row.currentDuration - row.baselineDuration
+                  const visitsDelta = row.currentVisits - row.baselineVisits
+                  return (
+                    <TR key={row.id}>
+                      <TD className="py-2">
+                        <button type="button" className="inline-flex items-center gap-1 text-left text-ui font-medium text-fg hover:underline"
+                          onClick={() => setCompareFocus({ nodeId: row.id, nonce: Date.now() })} title={`Show ${row.label} on the compare canvas`} data-step-chip="">
+                          <Crosshair size={12} aria-hidden="true" className="text-fg-muted" />{row.label}
+                        </button>
+                        <div className="font-mono text-2xs text-fg-muted">{row.type}</div>
+                      </TD>
+                      <TD className="py-2">
+                        <StatusPill status={row.currentStatus} />
+                        <div className="num mt-0.5 text-xs text-fg-muted">
+                          {row.currentDuration ? formatDurationMs(row.currentDuration) : '—'} · {plural(row.currentVisits, 'visit')}
+                        </div>
+                      </TD>
+                      <TD className="py-2">
+                        <StatusPill status={row.baselineStatus} />
+                        <div className="num mt-0.5 text-xs text-fg-muted">
+                          {row.baselineDuration ? formatDurationMs(row.baselineDuration) : '—'} · {plural(row.baselineVisits, 'visit')}
+                        </div>
+                      </TD>
+                      <TD numeric className={cn('font-mono text-ui', durationDelta > 0 ? 'text-danger' : durationDelta < 0 ? 'text-success' : 'text-fg-muted')}>
+                        {durationDelta === 0 ? '0 ms' : formatDurationDelta(durationDelta)}
+                      </TD>
+                      <TD numeric className={cn('font-mono text-ui', visitsDelta > 0 ? 'text-warning' : visitsDelta < 0 ? 'text-success' : 'text-fg-muted')}>
+                        {signed(visitsDelta, formatCount)}
+                      </TD>
+                      <TD numeric>
+                        {row.outputChanged ? (
+                          <Badge tone="brand">Changed</Badge>
+                        ) : (
+                          <span className="text-xs text-fg-muted">Same</span>
+                        )}
+                      </TD>
+                    </TR>
+                  )
+                })}
+              </TBody>
+            </Table>
           </div>
         )}
       </div>

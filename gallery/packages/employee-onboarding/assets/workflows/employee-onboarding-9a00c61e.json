@@ -5,7 +5,7 @@
   "asset": {
     "id": "9a00c61e-8525-4c32-82c6-0621f9e3c7ce",
     "name": "Employee onboarding",
-    "description": "HR enters a new hire; the employee is created in the HR system, the department checklist and onboarding track decide the kit and timing, IT setup runs in parallel and the manager prepares the first week.",
+    "description": "HR submits the New starter form (or the start form); the employee is created in the HR system and added to the New starters table, the department checklist and onboarding track decide the kit and timing, IT setup runs in parallel and the manager prepares the first week. The table row follows every step.",
     "trigger_type": "webhook_received",
     "trigger_config": {},
     "nodes": [
@@ -87,6 +87,32 @@
                     {
                       "field_key": "it_owner_id",
                       "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "contract_end_date",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "agency_name",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "offer_signed",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "hr_notes",
+                      "span": 3
                     }
                   ]
                 }
@@ -280,7 +306,7 @@
         },
         "config": {
           "task_title": "Prepare the first week for {{new_hire_name}} (starts {{start_date}})",
-          "task_description": "<p><strong>{{new_hire_name}}</strong> joins as {{job_title}} in {{department}} on {{start_date}} ({{location}}, {{employment_type}}). Track: <strong>{{track}}</strong>.</p><p>Suggested buddy team: {{onboarding_kit.buddy_team}}. Focus for week one: {{onboarding_kit.first_week_focus}}.</p><p>IT is preparing {{onboarding_kit.laptop_model}} for {{it_ready_by}}. Pick a buddy and write the first-week plan; it goes into the welcome email.</p>",
+          "task_description": "<p><strong>{{new_hire_name}}</strong> joins as {{job_title}} in {{department}} on {{start_date}} ({{location}}, {{employment_type}}). Track: <strong>{{track}}</strong>.</p><p>Suggested buddy team: {{onboarding_kit.buddy_team}}. Focus for week one: {{onboarding_kit.first_week_focus}}.</p><p>IT is preparing {{onboarding_kit.laptop_model}} for {{it_ready_by}}. Pick a buddy and write the first-week plan; it goes into the welcome email.</p><p>Notes from HR: {{hr_notes}}</p>",
           "task_priority": "medium",
           "outcomes": [
             "Ready",
@@ -561,6 +587,107 @@
         "config": {
           "reason": "Hire withdrawn"
         }
+      },
+      {
+        "id": "ns_ref",
+        "type": "set_variable",
+        "label": "Starter reference",
+        "position": {
+          "x": 340,
+          "y": 1130
+        },
+        "config": {
+          "name": "starter_ref",
+          "expression": "NS-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "ns_row",
+        "type": "update_data_table",
+        "label": "Add to New starters",
+        "position": {
+          "x": 340,
+          "y": 1240
+        },
+        "config": {
+          "table_id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+          "table_name": "New starters",
+          "operation": "insert",
+          "output_row_id_var": "starter_row_id",
+          "column_values": {
+            "starter_ref": "{{starter_ref}}",
+            "submitted_on": "{{=TODAY()}}",
+            "new_hire_name": "{{new_hire_name}}",
+            "job_title": "{{job_title}}",
+            "department": "{{department}}",
+            "employment_type": "{{employment_type}}",
+            "location": "{{location}}",
+            "start_date": "{{start_date}}",
+            "contract_end_date": "{{contract_end_date}}",
+            "manager_name": "{{manager_name}}",
+            "manager_email": "{{manager_email}}",
+            "employee_id": "{{employee_id}}",
+            "track": "{{track}}",
+            "it_ready_by": "{{it_ready_by}}",
+            "status": "Preparing",
+            "notes": "{{=TRIM(CONCAT(COALESCE(agency_name, \"\"), \" \", COALESCE(hr_notes, \"\")))}}"
+          }
+        }
+      },
+      {
+        "id": "ns_ready",
+        "type": "update_data_table",
+        "label": "New starters: ready for day one",
+        "position": {
+          "x": 340,
+          "y": 1790
+        },
+        "config": {
+          "table_id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+          "table_name": "New starters",
+          "operation": "update",
+          "row_id": "{{starter_row_id}}",
+          "column_values": {
+            "status": "Ready for day one"
+          }
+        }
+      },
+      {
+        "id": "ns_done",
+        "type": "update_data_table",
+        "label": "New starters: onboarded",
+        "position": {
+          "x": 340,
+          "y": 2450
+        },
+        "config": {
+          "table_id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+          "table_name": "New starters",
+          "operation": "update",
+          "row_id": "{{starter_row_id}}",
+          "column_values": {
+            "status": "Onboarded",
+            "notes": "Day-30: {{task_data.settling_in}}"
+          }
+        }
+      },
+      {
+        "id": "ns_withdrawn",
+        "type": "update_data_table",
+        "label": "New starters: withdrawn",
+        "position": {
+          "x": 660,
+          "y": 1790
+        },
+        "config": {
+          "table_id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+          "table_name": "New starters",
+          "operation": "update",
+          "row_id": "{{starter_row_id}}",
+          "column_values": {
+            "status": "Withdrawn"
+          }
+        }
       }
     ],
     "edges": [
@@ -595,9 +722,9 @@
         "target": "ready_by"
       },
       {
-        "id": "e-ready_by-log_track",
+        "id": "e-ready_by-ns_ref",
         "source": "ready_by",
-        "target": "log_track"
+        "target": "ns_ref"
       },
       {
         "id": "e-log_track-it",
@@ -622,9 +749,9 @@
         "label": "Hire withdrawn"
       },
       {
-        "id": "e-welcome-log_ready",
+        "id": "e-welcome-ns_ready",
         "source": "welcome",
-        "target": "log_ready"
+        "target": "ns_ready"
       },
       {
         "id": "e-log_ready-wait",
@@ -643,13 +770,38 @@
         "label": "Done"
       },
       {
-        "id": "e-log_checkin-done",
+        "id": "e-log_checkin-ns_done",
         "source": "log_checkin",
+        "target": "ns_done"
+      },
+      {
+        "id": "e-withdrawn-ns_withdrawn",
+        "source": "withdrawn",
+        "target": "ns_withdrawn"
+      },
+      {
+        "id": "e-ns_ref-ns_row",
+        "source": "ns_ref",
+        "target": "ns_row"
+      },
+      {
+        "id": "e-ns_row-log_track",
+        "source": "ns_row",
+        "target": "log_track"
+      },
+      {
+        "id": "e-ns_ready-log_ready",
+        "source": "ns_ready",
+        "target": "log_ready"
+      },
+      {
+        "id": "e-ns_done-done",
+        "source": "ns_done",
         "target": "done"
       },
       {
-        "id": "e-withdrawn-cancelled",
-        "source": "withdrawn",
+        "id": "e-ns_withdrawn-cancelled",
+        "source": "ns_withdrawn",
         "target": "cancelled"
       }
     ],
@@ -769,6 +921,39 @@
         "description": "Optional: user id of the IT person who prepares the equipment",
         "defaultValue": "",
         "label": "IT owner (user id)"
+      },
+      {
+        "id": "v-contract_end_date",
+        "name": "contract_end_date",
+        "type": "string",
+        "description": "Fixed-term contracts: the last day",
+        "defaultValue": "",
+        "label": "Contract end date",
+        "format": "date"
+      },
+      {
+        "id": "v-agency_name",
+        "name": "agency_name",
+        "type": "string",
+        "description": "Contractors: the agency they come through, if any",
+        "defaultValue": "",
+        "label": "Agency"
+      },
+      {
+        "id": "v-hr_notes",
+        "name": "hr_notes",
+        "type": "string",
+        "description": "Optional notes: accessibility needs, equipment preferences",
+        "defaultValue": "",
+        "label": "Notes for the manager and IT"
+      },
+      {
+        "id": "v-offer_signed",
+        "name": "offer_signed",
+        "type": "boolean",
+        "description": "Optional: HR confirmed the offer is signed and the right-to-work check is done (the New starter form asks for it)",
+        "defaultValue": "false",
+        "label": "Offer signed"
       }
     ],
     "swimlanes": [],

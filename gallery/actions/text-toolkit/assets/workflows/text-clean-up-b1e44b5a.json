@@ -1,0 +1,230 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b1e44b5a-01fb-42f5-a69b-fc7bec240f11",
+  "asset": {
+    "id": "b1e44b5a-01fb-42f5-a69b-fc7bec240f11",
+    "name": "Text clean-up (sample)",
+    "description": "Sample for the Text toolkit action: slugs a title, finds the closest supplier name to a typed one and masks an account number. Starts from the API or its start form and runs with no input using the defaults.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started (API or form)",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "title",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "account_number",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "supplier_typed",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "suppliers",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#7C3AED",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#F4F6FB"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Text clean-up",
+                  "subtitle": "A title, a supplier name as typed and an account number."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "slug",
+        "type": "custom_activity",
+        "label": "Slug of the title",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "custom_activity_id": "b660e09e-e760-4c71-95c4-f94e4fb62cbd",
+          "custom_activity_key": "ut_text",
+          "activity_name": "Text toolkit",
+          "operation": "slugify",
+          "input_mappings": {
+            "text": "{{title}}",
+            "max_length": "60"
+          },
+          "_output_prefix": "slug"
+        }
+      },
+      {
+        "id": "match",
+        "type": "custom_activity",
+        "label": "Match supplier",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "custom_activity_id": "b660e09e-e760-4c71-95c4-f94e4fb62cbd",
+          "custom_activity_key": "ut_text",
+          "activity_name": "Text toolkit",
+          "operation": "similarity",
+          "input_mappings": {
+            "value": "{{supplier_typed}}",
+            "candidates": "{{suppliers}}",
+            "threshold": "0.85"
+          },
+          "_output_prefix": "match"
+        }
+      },
+      {
+        "id": "masked",
+        "type": "custom_activity",
+        "label": "Mask account number",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "custom_activity_id": "b660e09e-e760-4c71-95c4-f94e4fb62cbd",
+          "custom_activity_key": "ut_text",
+          "activity_name": "Text toolkit",
+          "operation": "mask",
+          "input_mappings": {
+            "value": "{{account_number}}",
+            "mode": "keep_last",
+            "keep": "3"
+          },
+          "_output_prefix": "account"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Summary",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "name": "summary",
+          "expression": "Slug: {{slug_slug}} · supplier: {{match_best_match}} (score {{match_best_score}}, matched {{match_matched}}) · account: {{account_masked}}"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "reason": "{{summary}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-slug",
+        "source": "trigger",
+        "target": "slug"
+      },
+      {
+        "id": "e-slug-match",
+        "source": "slug",
+        "target": "match"
+      },
+      {
+        "id": "e-match-masked",
+        "source": "match",
+        "target": "masked"
+      },
+      {
+        "id": "e-masked-summary",
+        "source": "masked",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-title",
+        "name": "title",
+        "type": "string",
+        "label": "Title",
+        "description": "A document or record title to turn into a slug",
+        "defaultValue": "Q3 Supplier Review & Café Costs",
+        "required": true
+      },
+      {
+        "id": "v-supplier_typed",
+        "name": "supplier_typed",
+        "type": "string",
+        "label": "Supplier (as typed)",
+        "description": "A supplier name with typos",
+        "defaultValue": "Acme Corp Ltd",
+        "required": true
+      },
+      {
+        "id": "v-suppliers",
+        "name": "suppliers",
+        "type": "array",
+        "label": "Known suppliers",
+        "description": "The list to match against (JSON list)",
+        "defaultValue": "[\"ACME Corporation Limited\", \"Acme Corp. Ltd\", \"Apex Components Ltd\"]"
+      },
+      {
+        "id": "v-account_number",
+        "name": "account_number",
+        "type": "string",
+        "label": "Account number",
+        "description": "A bank account number to mask",
+        "defaultValue": "12-3456-7890123-00"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

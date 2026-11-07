@@ -27,10 +27,12 @@
 
 import { isPlainObject } from '@/lib/utils/guards'
 import { pathValue } from './lookup'
+import { formContextPath } from './form-params'
+import { normalizeTableChanges, tableChangesProblem, type TableChangesConfig } from './table-changes'
 
 export type FormButtonKind = 'submit' | 'cancel' | 'draft' | 'outcome'
 export type FormButtonStyle = 'primary' | 'secondary' | 'danger'
-export type FormActionType = 'message' | 'success_screen' | 'start_workflow' | 'redirect' | 'close'
+export type FormActionType = 'message' | 'success_screen' | 'start_workflow' | 'redirect' | 'close' | 'apply_table_changes'
 export type ButtonPlacement = 'left' | 'right' | 'full'
 
 export interface FormAction {
@@ -57,6 +59,10 @@ export interface FormAction {
    * change on either side is detected (never overwritten silently).
    */
   start_form_page?: { key: string }
+  /** apply_table_changes: loop over a Data table's changes (lib/forms/table-changes.ts). */
+  table_changes?: TableChangesConfig
+  /** start_workflow / apply_table_changes: also run for anonymous submissions of a public form link. Off by default. */
+  allow_anonymous?: boolean
 }
 
 export interface FormButton {
@@ -71,13 +77,14 @@ export interface FormButton {
 }
 
 export const FORM_BUTTON_KINDS: FormButtonKind[] = ['submit', 'cancel', 'draft', 'outcome']
-export const FORM_ACTION_TYPES: FormActionType[] = ['message', 'success_screen', 'start_workflow', 'redirect', 'close']
+export const FORM_ACTION_TYPES: FormActionType[] = ['message', 'success_screen', 'start_workflow', 'redirect', 'close', 'apply_table_changes']
 export const FORM_ACTION_LABELS: Record<FormActionType, string> = {
   message: 'Show message',
   success_screen: 'Show success screen',
   start_workflow: 'Start workflow',
   redirect: 'Redirect',
   close: 'Close form',
+  apply_table_changes: 'For each changed row',
 }
 
 export const DEFAULT_FORM_BUTTONS: FormButton[] = [
@@ -99,6 +106,23 @@ export function allowedActions(kind: FormButtonKind): FormActionType[] {
 
 export function isSubmittingButton(button: Pick<FormButton, 'kind'>): boolean {
   return button.kind === 'submit' || button.kind === 'outcome'
+}
+
+/**
+ * The bar buttons a task submission counts as (Before-submit rules aimed at
+ * a button apply to it only): the pressed button; without one (the task's
+ * header outcome buttons, the API), the bar's submitting buttons completing
+ * with `outcome` (an outcome button's outcome; a Submit button's: the
+ * task's first outcome). Null when the task has no stored bar (every rule
+ * applies).
+ */
+export function submissionButtonIds(rawButtons: unknown, input: { buttonId?: string | null; outcome?: string | null; outcomes?: string[] }): string[] | null {
+  if (input.buttonId) return [input.buttonId]
+  if (!Array.isArray(rawButtons)) return null
+  const first = input.outcomes?.[0] ?? 'completed'
+  return normalizeFormButtons(rawButtons)
+    .filter((b) => isSubmittingButton(b) && (b.kind === 'outcome' ? (b.outcome ?? b.label) : first) === input.outcome)
+    .map((b) => b.id)
 }
 
 function str(raw: unknown, max: number): string | undefined {
@@ -157,7 +181,11 @@ function normalizeAction(raw: unknown, kind: FormButtonKind): FormAction | null 
     }
     case 'close':
       break
+    case 'apply_table_changes':
+      out.table_changes = normalizeTableChanges(raw.table_changes)
+      break
   }
+  if (raw.allow_anonymous === true && (type === 'start_workflow' || type === 'apply_table_changes')) out.allow_anonymous = true
   return out
 }
 
@@ -240,7 +268,7 @@ export function redirectAllowlistFromEnv(env: Record<string, string | undefined>
 }
 
 /** Problems the designer flags (button id → message). */
-export function buttonProblems(buttons: FormButton[], options: { outcomes?: string[] | null; policy?: RedirectPolicy } = {}): Record<string, string> {
+export function buttonProblems(buttons: FormButton[], options: { outcomes?: string[] | null; policy?: RedirectPolicy; editableTables?: ReadonlySet<string> } = {}): Record<string, string> {
   const problems: Record<string, string> = {}
   for (const b of buttons) {
     if (!b.label.trim()) { problems[b.id] = 'Label is required'; continue }
@@ -250,6 +278,10 @@ export function buttonProblems(buttons: FormButton[], options: { outcomes?: stri
     }
     for (const a of b.actions ?? []) {
       if (a.type === 'start_workflow' && !a.workflow_id) { problems[b.id] = 'Choose the workflow to start'; break }
+      if (a.type === 'apply_table_changes' && options.editableTables) {
+        const problem = tableChangesProblem(a.table_changes, options.editableTables)
+        if (problem) { problems[b.id] = problem; break }
+      }
       if (a.type === 'redirect' && !safeRedirectUrl(a.url, { ...options.policy, appOrigin: options.policy?.appOrigin ?? null })) {
         problems[b.id] = 'Redirect to an app page (/…) or an allowed address'
         break
@@ -266,7 +298,12 @@ export function buttonProblems(buttons: FormButton[], options: { outcomes?: stri
 /** Workflows the buttons start (design-time permission check, dependencies). */
 export function startedWorkflowIds(buttons: FormButton[] | null | undefined): string[] {
   const out = new Set<string>()
-  for (const b of buttons ?? []) for (const a of b.actions ?? []) if (a.type === 'start_workflow' && a.workflow_id) out.add(a.workflow_id)
+  for (const b of buttons ?? []) {
+    for (const a of b.actions ?? []) {
+      if (a.type === 'start_workflow' && a.workflow_id) out.add(a.workflow_id)
+      if (a.type === 'apply_table_changes' && a.table_changes?.target === 'workflow' && a.table_changes.workflow_id) out.add(a.table_changes.workflow_id)
+    }
+  }
   return [...out]
 }
 
@@ -297,8 +334,10 @@ export function interpolateButtonText(template: string | undefined, scope: Butto
   return template.replace(TEMPLATE_RE, (_m, path: string) => {
     const extras = scope.extras ?? {}
     if (Object.prototype.hasOwnProperty.call(extras, path)) return display(extras[path])
+    // Nested extras: {{event.row.name}}, {{user.email}} (form rules).
+    if (path.includes('.') && Object.prototype.hasOwnProperty.call(extras, path.split('.')[0])) return display(pathValue(extras, path))
     const m = /^(?:form|task_data|task\.data)\.(.+)$/.exec(path)
-    return display(pathValue(scope.values, m ? m[1] : path))
+    return display(pathValue(scope.values, formContextPath(path) ?? (m ? m[1] : path)))
   })
 }
 
@@ -313,8 +352,12 @@ export function resolveInputTemplate(template: string, scope: ButtonScope): unkn
     const path = whole[1]
     const extras = scope.extras ?? {}
     if (Object.prototype.hasOwnProperty.call(extras, path)) return extras[path]
+    if (path.includes('.') && Object.prototype.hasOwnProperty.call(extras, path.split('.')[0])) {
+      const nested = pathValue(extras, path)
+      return nested === undefined ? null : nested
+    }
     const m = /^(?:form|task_data|task\.data)\.(.+)$/.exec(path)
-    const v = pathValue(scope.values, m ? m[1] : path)
+    const v = pathValue(scope.values, formContextPath(path) ?? (m ? m[1] : path))
     return v === undefined ? null : v
   }
   return interpolateButtonText(template, scope)
@@ -324,7 +367,20 @@ export function resolveInputTemplate(template: string, scope: ButtonScope): unkn
 
 export interface ButtonEffects {
   messages: Array<{ text: string; tone: 'success' | 'info' }>
-  success_screen?: { title: string; text?: string; button: 'submit_another' | 'close' | 'link' | 'none'; button_label?: string; url?: string }
+  success_screen?: {
+    title: string
+    text?: string
+    /** The first (older screens: the only) button; `buttons` lists them all when present. */
+    button: 'submit_another' | 'close' | 'link' | 'none'
+    button_label?: string
+    url?: string
+    /** Set by the form's Submitted page (lib/forms/submitted-page.ts); absent on a button's own screen. */
+    source?: 'form'
+    icon?: { kind: 'icon'; name: string; color: string } | { kind: 'image'; url: string; alt?: string }
+    summary?: Array<{ label: string; value: string }>
+    note?: string
+    buttons?: Array<{ kind: 'submit_another' | 'close' | 'link'; label: string; url?: string }>
+  }
   redirect?: string
   close?: boolean
 }

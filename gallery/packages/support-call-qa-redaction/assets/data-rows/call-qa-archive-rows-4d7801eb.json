@@ -1,0 +1,28 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4d7801eb-bacd-58d2-8389-ee728efc9abe",
+  "asset": {
+    "id": "4d7801eb-bacd-58d2-8389-ee728efc9abe",
+    "name": "Call QA archive rows",
+    "rows": [
+      {
+        "id": "b07d27af-0d4f-5062-8fae-2253e390f3dd",
+        "data": {
+          "call_id": "CALL-0001",
+          "agent_name": "Casey Example",
+          "queue": "Billing",
+          "call_date": "2026-10-28",
+          "qa_score": 86,
+          "sentiment": "positive",
+          "resolved": true,
+          "summary": "Customer updated their payment card; agent verified identity first.",
+          "pii_bleeps": 2,
+          "review": "Passed",
+          "reviewed_by": "",
+          "coaching": ""
+        }
+      }
+    ]
+  }
+}

@@ -6,6 +6,8 @@ import { publicBaseUrl } from "@/lib/deployment"
 import { GALLERY_PACKAGES, GALLERY_SIGNING, galleryCards, getGalleryPackage, type GalleryCard } from "@/lib/gallery/site"
 import { GALLERY_CATEGORIES, GALLERY_TRIGGERS, type GalleryTrigger } from "@/lib/gallery/types"
 import { GalleryBrowser } from "./gallery-browser"
+import { ControlsTeaser, GalleryTabs } from "./control-pages"
+import { ActionsTeaser } from "./action-pages"
 import { TRIGGER_ICONS } from "./gallery-ui"
 
 export const GALLERY_TITLE = "Workflow package gallery"
@@ -69,10 +71,11 @@ export function GalleryIndexPage({ communityCards = [] }: { communityCards?: Gal
             <nav aria-label="Breadcrumb" className="text-xs text-[#857D6D]">
               <Link href="/" className="hover:text-[#8A6D45]">UserTasks</Link><span className="px-2">/</span><span aria-current="page">Gallery</span>
             </nav>
+            <GalleryTabs active="packages" />
             <p className="mt-8 text-xs font-semibold uppercase tracking-[0.22em] text-[#8A6D45]">Community package gallery</p>
             <h1 className="mt-4 max-w-4xl font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">Install a working process in minutes. Share yours.</h1>
             <p className="mt-6 max-w-3xl text-lg leading-8 text-[#4A463E]">
-              The gallery is where the UserTasks community uploads and shares solutions. Start from {official.length} official packages across {GALLERY_CATEGORIES.length} areas{communityCards.length ? ` and ${communityCards.length} from the community` : ""}, each a complete workflow with its forms, rules, data, integrations and emails: Workday, SAP S/4HANA, ServiceNow and Salesforce flows, or packages that need no integrations at all.
+              The gallery is where the UserTasks community uploads and shares solutions. Start from {official.length} official packages across {GALLERY_CATEGORIES.filter((c) => c.id !== "form-controls" && c.id !== "workflow-actions").length} areas{communityCards.length ? ` and ${communityCards.length} from the community` : ""}, each a complete workflow with its forms, rules, data, integrations and emails: Workday, SAP S/4HANA, ServiceNow and Salesforce flows, or packages that need no integrations at all.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/gallery/share" data-testid="share-cta" className="inline-flex items-center gap-2 rounded-lg bg-[#17150F] px-5 py-2.5 text-sm font-semibold text-[#FAF8F3] hover:bg-[#2E2A24]"><Upload size={15} aria-hidden="true" /> Share your solution</Link>
@@ -88,12 +91,27 @@ export function GalleryIndexPage({ communityCards = [] }: { communityCards?: Gal
                 )
               })}
               <Link href="/forms" className="inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold text-[#8A6D45] hover:underline">How forms work <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/workflows" className="inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold text-[#8A6D45] hover:underline">Complex workflows <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/connectors" className="inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold text-[#8A6D45] hover:underline">Connectors and AI <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/media" className="inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold text-[#8A6D45] hover:underline">Images, audio and video <ArrowRight size={14} aria-hidden="true" /></Link>
             </div>
           </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
           <GalleryBrowser cards={cards} />
+        </section>
+
+        <section id="form-controls" className="scroll-mt-8 border-t border-[#1B1916]/[0.07]">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <ControlsTeaser />
+          </div>
+        </section>
+
+        <section id="workflow-actions" className="scroll-mt-8 border-t border-[#1B1916]/[0.07]">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <ActionsTeaser />
+          </div>
         </section>
 
         <section className="border-y border-[#1B1916]/[0.07] bg-[#FFFFFF]/50">
@@ -125,14 +143,14 @@ usertasks packages install ${example}`} />
         <section id="signing" className="scroll-mt-8 mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
             <SectionHeading eyebrow="Trust" title="Signed packages, verifiable downloads">
-              Official packages are built from the sources in the UserTasks repository and signed with the UserTasks Gallery ed25519 key. Community packages carry their author's signature when they have one, and their checksum either way. The signature covers a SHA-256 checksum of the manifest, which lists the hash of every file, so any change breaks verification.
+              Official packages are built from the sources in the UserTasks repository and signed with the UserTasks Gallery ed25519 key. Community packages carry their author&apos;s signature when they have one, and their checksum either way. The signature covers a SHA-256 checksum of the manifest, which lists the hash of every file, so any change breaks verification.
             </SectionHeading>
             <div className="rounded-2xl border border-[#1B1916]/[0.09] bg-[#FFFFFF] p-5 text-sm">
               {GALLERY_SIGNING.signed ? (
                 <>
                   <p className="flex items-center gap-2 font-semibold"><ShieldCheck size={16} className="text-[#4F7A5B]" aria-hidden="true" /> Signed by {GALLERY_SIGNING.key_name}</p>
                   <p className="mt-3 text-xs text-[#6E6759]">Key fingerprint (SHA-256, first 16 bytes)</p>
-                  <p className="mt-1 break-all font-mono text-[12px]" data-testid="gallery-fingerprint">{GALLERY_SIGNING.fingerprint}</p>
+                  <p className="mt-1 break-all font-mono text-xs" data-testid="gallery-fingerprint">{GALLERY_SIGNING.fingerprint}</p>
                   <p className="mt-3 text-xs leading-5 text-[#6E6759]">The install wizard shows <em>Signed by a trusted key</em> for it. Instances on an older release can add it to <code className="font-mono">PACKAGE_TRUSTED_FINGERPRINTS</code>.</p>
                 </>
               ) : (
@@ -159,7 +177,7 @@ usertasks packages install ${example}`} />
               </div>
               <div className="rounded-2xl border border-[#1B1916]/[0.09] bg-[#FFFFFF] p-6">
                 <h3 className="flex items-center gap-2 font-semibold"><GitPullRequest size={16} className="text-[#8A6D45]" aria-hidden="true" /> Contribute an official package</h3>
-                <p className="mt-2 text-sm leading-6 text-[#4A463E]">Official packages are sources in the repository: add a folder to <code className="font-mono text-[13px]">gallery/packages</code> (gallery.json, README and the config-as-code assets) and open a pull request. CI validates and verifies it, and maintainers sign the release.</p>
+                <p className="mt-2 text-sm leading-6 text-[#4A463E]">Official packages are sources in the repository: add a folder to <code className="font-mono text-ui">gallery/packages</code> (gallery.json, README and the config-as-code assets) and open a pull request. CI validates and verifies it, and maintainers sign the release.</p>
                 {repo
                   ? <a href={`${repo}/blob/main/CONTRIBUTING.md#gallery-packages`} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] hover:underline">Contributing guide <ArrowRight size={14} aria-hidden="true" /></a>
                   : <p className="mt-4 text-xs text-[#6E6759]">The public repository link appears here once it is launched.</p>}

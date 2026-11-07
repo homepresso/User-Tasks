@@ -3,7 +3,8 @@ import type { ProviderArea } from '@/lib/config/schema'
 import { decryptSecret, encryptSecret, isEncrypted } from '@/lib/secret-crypto'
 import { loadInstanceConfig, type SqlClient } from '../ops/instance-db'
 import { runSwitch, type EngineIO, type SwitchResult } from './engine'
-import { hasSwitchLogExtras, newRecord, newSwitchId, switchRunning, tryLockSwitches, unlockSwitches } from './log'
+import { hasSwitchLogExtras, newRecord, newSwitchId, queuedCount, switchRunning, tryLockSwitches, unlockSwitches } from './log'
+import { apiData, apiOf } from '../ops/service-sql'
 import type { AreaSwitch, SwitchJob, SwitchOptions, SwitchRecordRow } from './types'
 
 /**
@@ -44,8 +45,7 @@ const COLUMNS = 'id, kind, area, from_provider, to_provider, status, rollback_of
 export async function switchBusy(db: SqlClient): Promise<boolean> {
   if (await switchRunning(db)) return true
   if (!(await hasSwitchLogExtras(db))) return false
-  const { rows } = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM public.instance_provider_switches WHERE status = 'queued'`)
-  return (rows[0]?.n ?? 0) > 0
+  return (await queuedCount(db)) > 0
 }
 
 interface JobSecrets {
@@ -91,6 +91,25 @@ export async function enqueueSwitch(db: SqlClient, input: EnqueueSwitchInput): P
 
 /** Ask a running or queued switch to stop before its next step (a queued one is cancelled at once). */
 export async function requestCancel(db: SqlClient, id: string, actor: string): Promise<'cancelled' | 'requested' | 'not-running'> {
+  const api = apiOf(db)
+  if (api) {
+    const table = 'instance_provider_switches'
+    const rows = await apiData<Array<{ status: string; log: string[] | null; job: Record<string, unknown> | null }>>(api.from(table).select('status, log, job').eq('id', id).limit(1))
+    const row = rows?.[0]
+    if (row?.status === 'queued') {
+      const line = `Cancelled by ${actor} before it started.`
+      const { secret: _dropped, ...job } = row.job ?? {}
+      void _dropped
+      const now = new Date().toISOString()
+      const done = await apiData<unknown[]>(api.from(table)
+        .update({ status: 'cancelled', cancel_requested_at: now, finished_at: now, job: row.job ? job : null, error: line, log: [...(row.log ?? []), line] })
+        .eq('id', id).eq('status', 'queued').select('id'))
+      if (done?.length) return 'cancelled'
+    }
+    const requested = await apiData<unknown[]>(api.from(table).update({ cancel_requested_at: new Date().toISOString() })
+      .eq('id', id).eq('status', 'running').is('cancel_requested_at', null).select('id'))
+    return requested?.length ? 'requested' : 'not-running'
+  }
   const queued = await db.query(
     `UPDATE public.instance_provider_switches
         SET status = 'cancelled', cancel_requested_at = now(), finished_at = now(), job = job - 'secret',
@@ -168,7 +187,8 @@ export async function runQueuedSwitches(db: SqlClient, options: RunQueuedOptions
         finished_at: null,
         log: [...(Array.isArray(row.log) ? row.log : []), row.status === 'running' ? 'Resuming after an interruption.' : 'Started by the background runner.'],
       }
-      const plan = options.plans[record.area]
+      const area = record.area as ProviderArea // queued jobs are provider switches
+      const plan = options.plans[area]
       const job = record.job!
       let secrets: JobSecrets
       try {
@@ -180,7 +200,7 @@ export async function runQueuedSwitches(db: SqlClient, options: RunQueuedOptions
         continue
       }
       const result = await runSwitch({
-        db, dbUrl: options.dbUrl, area: record.area, plan,
+        db, dbUrl: options.dbUrl, area, plan,
         options: {
           to: record.to_provider, dryRun: false, yes: true, backupRoot: options.backupRoot, set: job.set ?? {}, secret: secrets.secret,
           flags: { ...(job.flags ?? {}), ...secrets.flags }, noDump: job.noDump, actor: record.actor ?? 'settings', force: job.force,

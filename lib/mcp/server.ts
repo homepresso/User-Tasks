@@ -17,14 +17,21 @@ import { registerDecisionTableTools } from './tools/decision-tables'
 import { registerExtensibilityTools } from './tools/extensibility'
 import { registerEmailTemplateTools } from './tools/email-templates'
 import { registerFormTools } from './tools/forms'
+import { registerHomeTools } from './tools/home'
 import { registerFileTools } from './tools/files'
 import { registerRetentionTools } from './tools/retention'
 import { registerWebhookTools } from './tools/webhooks'
 import { registerLogDestinationTools } from './tools/log-destinations'
 import { registerDirectorySyncTools } from './tools/directory-sync'
 import { registerWorkspaceThemeTools } from './tools/workspace-theme'
+import { registerWorkspaceAddressTools } from './tools/workspace-address'
+import { registerTaskCompletionTools } from './tools/task-completion'
+import { registerFormSignInTools } from './tools/form-sign-in-page'
+import { registerDocumentOcrTools } from './tools/document-ocr'
 import { registerConfigTools } from './tools/config'
 import { registerPackageTools } from './tools/packages'
+import { registerOrgTools } from './tools/org'
+import { registerProjectTools } from './tools/projects'
 import { checkToolPermission, auditToolCall } from './authz'
 
 export interface McpContext {
@@ -56,12 +63,15 @@ type ToolRegistrar = (server: any, ctx: McpContext) => void
 
 const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'tasks', register: registerTaskTools },
+  { label: 'home', register: registerHomeTools },
   { label: 'workflows', register: registerWorkflowTools },
   { label: 'agents', register: registerAgentTools },
   { label: 'data', register: registerDataTools },
   { label: 'reports', register: registerReportTools },
   { label: 'integrations', register: registerIntegrationTools },
   { label: 'governance', register: registerGovernanceTools },
+  { label: 'org', register: registerOrgTools },
+  { label: 'projects', register: registerProjectTools },
   { label: 'api_keys', register: registerApiKeyTools },
   { label: 'observability', register: registerObservabilityTools },
   { label: 'decision_tables', register: registerDecisionTableTools },
@@ -74,6 +84,10 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'log_destinations', register: registerLogDestinationTools },
   { label: 'directory_sync', register: registerDirectorySyncTools },
   { label: 'workspace_theme', register: registerWorkspaceThemeTools },
+  { label: 'workspace_address', register: registerWorkspaceAddressTools },
+  { label: 'task_completion', register: registerTaskCompletionTools },
+  { label: 'form_sign_in_page', register: registerFormSignInTools },
+  { label: 'document_ocr', register: registerDocumentOcrTools },
   { label: 'config', register: registerConfigTools },
   { label: 'packages', register: registerPackageTools },
 ]

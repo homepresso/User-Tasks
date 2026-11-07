@@ -17,7 +17,9 @@ import { changedSettingKeys, loadInstanceConfig, type SettingRow, type SqlClient
 import { DATA_MOVING_AREAS, runRollback, runSettingsChange, runSwitch, type EngineIO, type SwitchPlanSummary } from './switch/engine'
 import { enqueueSwitch, requestCancel, requeueSwitch, switchBusy, SwitchBusyError } from './switch/jobs'
 import { getRecord, listRecords, switchRunning } from './switch/log'
-import type { AreaSwitch, PreflightCheck, SwitchOptions, SwitchRecordRow } from './switch/types'
+import { isApiClient, NeedsDirectConnectionError } from './ops/service-sql'
+import { setUiSwitching } from './switch/ui-lock'
+import type { AreaSwitch, PreflightCheck, SwitchLogArea, SwitchOptions, SwitchRecordRow } from './switch/types'
 
 /**
  * Settings → Infrastructure: change providers and provider settings from
@@ -41,17 +43,42 @@ import type { AreaSwitch, PreflightCheck, SwitchOptions, SwitchRecordRow } from 
  *
  * Switching from the page can be turned off with INFRA_UI_SWITCHING=false;
  * in the cloud edition it is off unless the `instance.allow_ui_switching`
- * setting is true (`usertasks-admin ui-switching on`), so a hosted
- * production instance is never switched by accident.
+ * setting is true (Unlock on the page, or `usertasks-admin ui-switching on`),
+ * so a hosted production instance is never switched by accident.
+ *
+ * Without DATABASE_URL (the Supabase provider) every action runs over the
+ * service-role API (./ops/service-sql): config-only switches, settings edits,
+ * rollback of those, the switch log, the lease that keeps switches one at a
+ * time, and the unlock. Changes that move data (the database, auth accounts,
+ * storage objects) still need the direct connection and are refused with
+ * what to add (DIRECT_ONLY_SWITCH_AREAS).
  */
 
-export { ALLOW_UI_SWITCHING_SETTING, BACKGROUND_AREAS, applyMode, backgroundRuntime, switchingGate, type ApplyMode, type BackgroundRuntime, type SwitchingGate } from './switch-runtime'
-import { applyMode, type ApplyMode, type BackgroundRuntime, type SwitchingGate } from './switch-runtime'
+export {
+  ALLOW_UI_SWITCHING_SETTING, BACKGROUND_AREAS, DIRECT_ONLY_SETTINGS_AREAS, DIRECT_ONLY_SWITCH_AREAS, applyMode, areaActionStates, backgroundRuntime, switchingGate,
+  type ApplyMode, type AreaActionStates, type BackgroundRuntime, type SwitchAccess, type SwitchingGate,
+} from './switch-runtime'
+import {
+  applyMode as runtimeApplyMode, areaActionStates, DIRECT_ONLY_SETTINGS_AREAS, DIRECT_ONLY_SWITCH_AREAS, needsDirectReason,
+  type ApplyMode, type AreaActionStates, type BackgroundRuntime, type SwitchAccess, type SwitchingGate,
+} from './switch-runtime'
+
+/** The apply mode for this connection: without a direct one, data-moving switches only get the CLI command. */
+function modeFor(area: ProviderArea, runtime: BackgroundRuntime, access: SwitchAccess): ApplyMode {
+  if (access !== 'direct' && DIRECT_ONLY_SWITCH_AREAS.includes(area)) return 'cli'
+  return runtimeApplyMode(area, runtime)
+}
+const applyMode = runtimeApplyMode
+
+function accessOf(db: SqlClient): SwitchAccess {
+  return isApiClient(db) ? 'api' : 'direct'
+}
 
 /** Whether a provider can run on this deployment (and why not). */
-export function providerAvailability(area: ProviderArea, id: string, env: { supabaseUrl: boolean; serverless: boolean }): { available: boolean; reason: string | null } {
+export function providerAvailability(area: ProviderArea, id: string, env: { supabaseUrl: boolean; serverless: boolean; access?: SwitchAccess }): { available: boolean; reason: string | null } {
   const entry = catalogueEntry(area, id)
   if (!entry) return { available: false, reason: 'unknown provider' }
+  if (env.access === 'api' && area === 'scheduler' && id === 'pg_cron') return { available: false, reason: 'installing the pg_cron jobs needs a direct database connection (DATABASE_URL)' }
   if (entry.requiresSupabase && !env.supabaseUrl) return { available: false, reason: 'needs a Supabase project (SUPABASE_URL is not set)' }
   if (env.serverless && area === 'scheduler' && id === 'worker') return { available: false, reason: 'needs a long-running process: on serverless use pg_cron or an external cron' }
   if (env.serverless && area === 'storage' && id === 'local') return { available: false, reason: 'serverless file systems are not persistent' }
@@ -251,6 +278,10 @@ export interface WizardData {
   mode: ApplyMode
   runtime: BackgroundRuntime
   gate: SwitchingGate
+  /** direct (DATABASE_URL) or api (the service-role API: config-only changes). */
+  access: SwitchAccess
+  /** What Change… / Settings may do here, and why not (the same as the area card). */
+  actions: AreaActionStates
   busy: boolean
   /** Names in the db secret store (secret:// picker), when that is the secret store. */
   secretNames: string[]
@@ -260,7 +291,7 @@ export interface WizardData {
 export interface SwitchRecordView {
   id: string
   kind: SwitchRecordRow['kind']
-  area: ProviderArea
+  area: SwitchLogArea
   areaLabel: string
   fromProvider: string | null
   toProvider: string
@@ -311,7 +342,7 @@ export function recordView(record: SwitchRecordRow, runningNow: boolean): Switch
     id: record.id,
     kind: record.kind,
     area: record.area,
-    areaLabel: AREA_LABELS[record.area] ?? record.area,
+    areaLabel: record.area === 'instance' ? 'Cloud lock' : AREA_LABELS[record.area] ?? record.area,
     fromProvider: record.from_provider,
     toProvider: record.to_provider,
     status: record.status,
@@ -358,7 +389,7 @@ export interface InfrastructureSwitchDeps {
 
 export class NoDatabaseError extends Error {
   constructor() {
-    super('Changing providers from this page uses a direct PostgreSQL connection (DATABASE_URL), which this deployment does not have (the Supabase provider does not otherwise need one). Use usertasks-admin switch where DATABASE_URL is set.')
+    super('Changing providers from this page needs DATABASE_URL, or on the Supabase database provider its service-role key (SUPABASE_SERVICE_ROLE_KEY): this deployment has neither. Add one to the app environment and redeploy.')
     this.name = 'NoDatabaseError'
   }
 }
@@ -391,7 +422,7 @@ async function guard<T>(
   try {
     return await fn(user)
   } catch (error) {
-    if (error instanceof NoDatabaseError || error instanceof SwitchBusyError) return { ok: false, error: error.message }
+    if (error instanceof NoDatabaseError || error instanceof SwitchBusyError || error instanceof NeedsDirectConnectionError) return { ok: false, error: error.message }
     ;(deps.log ?? console.error)(`[infrastructure] ${(error as Error).stack ?? error}`)
     return { ok: false, error: `Failed: ${(error as Error).message}` }
   }
@@ -400,6 +431,13 @@ async function guard<T>(
 async function requireGate(db: SqlClient, deps: InfrastructureSwitchDeps): Promise<ActionResult<object> | null> {
   const gate = await deps.gate(db)
   return gate.enabled ? null : { ok: false, error: gate.reason ?? 'Changing providers from this page is turned off.' }
+}
+
+/** Refusal for a change this connection can't make (data-moving over the API), with the remedy. */
+function requireDirect(db: SqlClient, area: ProviderArea, what: 'switch' | 'settings'): ActionResult<object> | null {
+  if (!isApiClient(db)) return null
+  const list = what === 'switch' ? DIRECT_ONLY_SWITCH_AREAS : DIRECT_ONLY_SETTINGS_AREAS
+  return list.includes(area) ? { ok: false, error: needsDirectReason(area, what, AREA_LABELS[area]) } : null
 }
 
 function capture(): EngineIO & { lines: string[] } {
@@ -421,20 +459,24 @@ export async function loadWizardAs(user: InfrastructureViewer | null | undefined
       const current = config.providers[area]
       const runtime = deps.runtime()
       const serverless = !runtime.available
+      const access = accessOf(db)
       const providers: ProviderChoice[] = filterCatalogue({ area }).map((entry) => ({
         id: entry.id, label: entry.label, badges: catalogueBadges(entry), capabilities: entry.capabilities, switch: entry.switch,
         current: entry.id === current.id, isDefault: isDefaultProvider(area, entry.id),
-        ...providerAvailability(area, entry.id, { supabaseUrl: Boolean(config.bootstrap.supabase.url), serverless }),
+        ...providerAvailability(area, entry.id, { supabaseUrl: Boolean(config.bootstrap.supabase.url), serverless, access }),
       }))
       const fields = Object.fromEntries(providers.map((p) => [p.id, fieldViews(area, p.id, config, env)]))
       const entry = catalogueEntry(area, current.id)
+      const gate = await deps.gate(db)
       return {
         ok: true,
         wizard: {
           area, name: areaName(area), label: AREA_LABELS[area],
           current: { id: current.id, label: entry?.label ?? current.id, source: current.source, envVar: current.source === 'env' ? PROVIDER_ENV[area] : null },
-          providers, fields, flags: switchFlagFields(area), mode: applyMode(area, runtime), runtime,
-          gate: await deps.gate(db), busy: await switchBusy(db),
+          providers, fields, flags: switchFlagFields(area), mode: modeFor(area, runtime, access), runtime,
+          gate, access,
+          actions: areaActionStates({ area, label: AREA_LABELS[area], providerLabel: entry?.label ?? current.id, hasSettings: providerFields(area, current.id).length > 0, gate, access }),
+          busy: await switchBusy(db),
           secretNames: config.providers.secrets.id === 'db' ? secretNames(rows) : [],
           secretsProvider: config.providers.secrets.id,
         },
@@ -477,6 +519,8 @@ export async function previewSwitchAs(user: InfrastructureViewer | null | undefi
     return deps.withDb(async (db, dbUrl) => {
       const denied = await requireGate(db, deps)
       if (denied) return denied as ActionResult<PlanResult>
+      const direct = requireDirect(db, change.area, 'switch')
+      if (direct) return direct as ActionResult<PlanResult>
       const { config } = await loadInstanceConfig(db)
       const built = buildOptions(change, config, 'switch', deps.env)
       if (Object.keys(built.errors).length) return { ok: false, error: 'Some values need attention.', fieldErrors: built.errors }
@@ -487,7 +531,7 @@ export async function previewSwitchAs(user: InfrastructureViewer | null | undefi
         flags: built.flags, noDump: false, actor: actorOf(viewer), force: change.to === config.providers[change.area].id, preflightOnly: what === 'test',
       }
       const result = await runSwitch({ db, dbUrl, area: change.area, plan: deps.plans[change.area], options, io })
-      const mode = applyMode(change.area, deps.runtime())
+      const mode = modeFor(change.area, deps.runtime(), accessOf(db))
       return {
         ok: true,
         preflight: result.preflight,
@@ -518,10 +562,12 @@ export async function applySwitchAs(user: InfrastructureViewer | null | undefine
     return deps.withDb(async (db, dbUrl) => {
       const denied = await requireGate(db, deps)
       if (denied) return denied as ActionResult<ApplyResult>
+      const direct = requireDirect(db, change.area, 'switch')
+      if (direct) return direct as ActionResult<ApplyResult>
       const { config } = await loadInstanceConfig(db)
       const built = buildOptions(change, config, 'switch', deps.env)
       if (Object.keys(built.errors).length) return { ok: false, error: 'Some values need attention.', fieldErrors: built.errors }
-      const mode = applyMode(change.area, deps.runtime())
+      const mode = modeFor(change.area, deps.runtime(), accessOf(db))
       const cli = cliCommand(change.area, change.to, built)
       if (mode === 'cli') return { ok: true, mode, record: null, lines: [], cli }
       if (DATA_MOVING_AREAS.includes(change.area) && confirm !== change.to) {
@@ -571,6 +617,8 @@ export async function saveProviderSettingsAs(user: InfrastructureViewer | null |
     return deps.withDb(async (db) => {
       const denied = await requireGate(db, deps)
       if (denied) return denied as ActionResult<SettingsResult>
+      const direct = requireDirect(db, area, 'settings')
+      if (direct) return direct as ActionResult<SettingsResult>
       const { config } = await loadInstanceConfig(db)
       const change = parseChange({ ...raw, to: config.providers[area].id })
       if (typeof change === 'string') return { ok: false, error: change }
@@ -619,6 +667,11 @@ export async function rollbackSwitchAs(user: InfrastructureViewer | null | undef
       if (denied) return denied as ActionResult<{ lines: string[]; record: SwitchRecordView | null; done: boolean }>
       const original = await getRecord(db, id)
       if (!original) return { ok: false, error: 'Unknown switch' }
+      // Undoing a data-moving switch moves data back: a direct connection only. Settings changes are config.
+      if (original.kind === 'switch' && original.area !== 'instance') {
+        const direct = requireDirect(db, original.area, 'switch')
+        if (direct) return direct as ActionResult<{ lines: string[]; record: SwitchRecordView | null; done: boolean }>
+      }
       if (!dryRun && String(raw.confirm ?? '').trim() !== 'rollback') return { ok: false, error: 'Type rollback to confirm.' }
       if (!dryRun && (await switchBusy(db))) throw new SwitchBusyError()
       const io = capture()
@@ -651,7 +704,8 @@ export async function retrySwitchAs(user: InfrastructureViewer | null | undefine
       const denied = await requireGate(db, deps)
       if (denied) return denied as ActionResult<{ queued: boolean }>
       const original = await getRecord(db, id)
-      if (original && applyMode(original.area, deps.runtime()) === 'cli') return { ok: false, error: 'No long-running process to run it: re-run the switch with usertasks-admin.' }
+      if (isApiClient(db)) return { ok: false, error: 'Retrying a background switch needs a direct database connection: add DATABASE_URL (Supabase → Project Settings → Database → Connection string, Session pooler) and redeploy, or re-run it with usertasks-admin where DATABASE_URL is set.' }
+      if (original && original.area !== 'instance' && applyMode(original.area, deps.runtime()) === 'cli') return { ok: false, error: 'No long-running process to run it: re-run the switch with usertasks-admin.' }
       const queued = await requeueSwitch(db, id)
       if (!queued) return { ok: false, error: 'This switch cannot be retried from here: start it again with Change….' }
       ;(deps.log ?? console.info)(`[infrastructure] ${viewer.email ?? viewer.id} retried ${id}`)
@@ -669,6 +723,40 @@ export async function checkSecretRefAs(user: InfrastructureViewer | null | undef
       const { config } = await loadInstanceConfig(db)
       const result = await deps.checkSecretRef(config, ref.trim())
       return { ok: true, found: result.ok, detail: result.detail }
+    })
+  })
+}
+
+export interface UiLockActionResult {
+  allowed: boolean
+  changed: boolean
+  record: SwitchRecordView | null
+}
+
+/**
+ * Unlock (or lock again) provider changes from this page on the cloud
+ * edition: sets `instance.allow_ui_switching` (over the direct connection or
+ * the service-role API), after a typed confirmation (`unlock` / `lock`).
+ * Instance admins only, rate limited, recorded in the switch log (area
+ * `instance`) with who did it — and rolled back from there like any change.
+ */
+export async function setUiSwitchingAs(user: InfrastructureViewer | null | undefined, input: unknown, deps: InfrastructureSwitchDeps): Promise<ActionResult<UiLockActionResult>> {
+  const raw = (input ?? {}) as { allow?: unknown; confirm?: unknown }
+  return guard(user, deps, { key: 'unlock', max: 5 }, async (viewer) => {
+    if (typeof raw.allow !== 'boolean') return { ok: false, error: 'Say whether to unlock or lock.' }
+    const allow = raw.allow
+    const phrase = allow ? 'unlock' : 'lock'
+    if (String(raw.confirm ?? '').trim().toLowerCase() !== phrase) return { ok: false, error: `Type ${phrase} to confirm.` }
+    return deps.withDb(async (db) => {
+      const gate = await deps.gate(db)
+      if (!gate.lockable) return { ok: false, error: 'Only the cloud edition locks provider changes from this page: there is nothing to unlock here.' }
+      if (gate.code === 'flag-off') return { ok: false, error: gate.reason ?? 'INFRA_UI_SWITCHING=false turns changes from this page off.' }
+      const result = await setUiSwitching(db, allow, actorOf(viewer), { userId: viewer.id })
+      if (result.changed) {
+        deps.invalidate()
+        ;(deps.log ?? console.info)(`[infrastructure] ${viewer.email ?? viewer.id} ${allow ? 'unlocked' : 'locked'} provider changes from the page (${result.record?.id})`)
+      }
+      return { ok: true, allowed: result.allowed, changed: result.changed, record: result.record ? recordView(result.record, false) : null }
     })
   })
 }

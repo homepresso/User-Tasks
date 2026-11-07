@@ -1,0 +1,208 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "323e2133-1405-5a92-b001-7cbe104305f0",
+  "asset": {
+    "id": "323e2133-1405-5a92-b001-7cbe104305f0",
+    "name": "Reviews due summary",
+    "description": "From the Document register page: lists the published documents whose next review falls within the chosen number of days (and those already overdue) and emails the list to whoever asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Summary requested",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "ce0c84b2-7f78-5cf6-bbe3-71f964a09eff",
+          "form_name": "Document register"
+        }
+      },
+      {
+        "id": "due_by",
+        "type": "set_variable",
+        "label": "Due by",
+        "position": {
+          "x": 600,
+          "y": 180
+        },
+        "config": {
+          "name": "due_by",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(NOW(), form.days_ahead), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "today",
+        "type": "set_variable",
+        "label": "Today",
+        "position": {
+          "x": 600,
+          "y": 300
+        },
+        "config": {
+          "name": "today",
+          "expression": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Published documents due for review",
+        "position": {
+          "x": 600,
+          "y": 420
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Published"
+            },
+            {
+              "column": "next_review_date",
+              "operator": "lte",
+              "value": "{{due_by}}"
+            }
+          ],
+          "sort_column": "next_review_date",
+          "limit": 500,
+          "output_rows_var": "due_rows",
+          "output_count_var": "due_count"
+        }
+      },
+      {
+        "id": "overdue",
+        "type": "update_data_table",
+        "label": "Already overdue",
+        "position": {
+          "x": 600,
+          "y": 540
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Published"
+            },
+            {
+              "column": "next_review_date",
+              "operator": "lt",
+              "value": "{{today}}"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "overdue_rows",
+          "output_count_var": "overdue_count"
+        }
+      },
+      {
+        "id": "open",
+        "type": "update_data_table",
+        "label": "Documents in review",
+        "position": {
+          "x": 600,
+          "y": 660
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "neq",
+              "value": "Published"
+            },
+            {
+              "column": "status",
+              "operator": "neq",
+              "value": "Withdrawn"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "open_rows",
+          "output_count_var": "open_reviews"
+        }
+      },
+      {
+        "id": "lines",
+        "type": "set_variable",
+        "label": "List",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "name": "due_list",
+          "expression": "{{=IF(due_count > 0, JOIN(\" · \", PLUCK(due_rows, \"title\")), \"Nothing is due.\")}}"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the summary",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "b0950fad-b6a9-59bb-9170-5ee465338834"
+        },
+        "onError": "continue"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-due_by",
+        "source": "trigger",
+        "target": "due_by"
+      },
+      {
+        "id": "e-due_by-today",
+        "source": "due_by",
+        "target": "today"
+      },
+      {
+        "id": "e-today-list",
+        "source": "today",
+        "target": "list"
+      },
+      {
+        "id": "e-list-overdue",
+        "source": "list",
+        "target": "overdue"
+      },
+      {
+        "id": "e-overdue-open",
+        "source": "overdue",
+        "target": "open"
+      },
+      {
+        "id": "e-open-lines",
+        "source": "open",
+        "target": "lines"
+      },
+      {
+        "id": "e-lines-mail",
+        "source": "lines",
+        "target": "mail"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

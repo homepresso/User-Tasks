@@ -1,23 +1,27 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err, parsePagination } from '@/lib/api-auth'
 import { canAccessWorkflow, hasWorkflowScope } from '@/lib/api-key-permissions'
+import { fromApiAuth } from '@/lib/services/context'
+import { applyScope, queueScopeFilter, resolveRunScope } from '@/lib/services/run-visibility'
 
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request)
   if (!auth.success) return auth.response
-  const forbidden = requireApiPermission(auth, 'workflows.view_runs')
+  // view_queue (involved + granted) or view_runs (all, implies view_queue): lib/services/run-visibility.
+  const forbidden = requireApiPermission(auth, 'workflows.view_queue')
   if (forbidden) return forbidden
   const { tenantId, supabase } = auth
+  const scope = await resolveRunScope(fromApiAuth(auth))
 
   const params = request.nextUrl.searchParams
   const { limit, offset } = parsePagination(params)
   const workflowId = params.get('workflow_id')
   const statuses = params.get('status')?.split(',').map(s => s.trim()).filter(Boolean)
 
-  let query = supabase
+  let query = applyScope(supabase
     .from('workflow_queue')
     .select('*', { count: 'exact' })
-    .eq('tenant_id', tenantId)
+    .eq('tenant_id', tenantId), queueScopeFilter(scope))
     .order('created_at', { ascending: false })
 
   if (workflowId) {

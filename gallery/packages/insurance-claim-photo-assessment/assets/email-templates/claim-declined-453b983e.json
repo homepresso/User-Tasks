@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "453b983e-a280-5e82-8d5f-ce32cd72452b",
+  "asset": {
+    "id": "453b983e-a280-5e82-8d5f-ce32cd72452b",
+    "name": "Claim declined",
+    "description": "Decline letter to the claimant (PDF attached).",
+    "subject": "Decision on your claim {{claim_ref}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Decision on your claim</h2><p>Hi {{form.claimant_name}},</p><p>We are unable to accept this claim. The attached letter explains why and how to ask for a review.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Claim {{claim_ref}} · policy {{form.policy_number}}</p></div>",
+    "text_body": "Claim {{claim_ref}} declined; the letter is attached.",
+    "is_default": false
+  }
+}

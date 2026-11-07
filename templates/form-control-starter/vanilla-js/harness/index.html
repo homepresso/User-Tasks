@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The ES module under test (relative to this page). -->
+  <meta name="ut-module" content="../ut-star-rating.js">
+  <link rel="icon" href="data:,">
+  <title>Control harness</title>
+  <style>
+    :root { color-scheme: light; }
+    :root[data-mode="dark"] { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 16px;
+      background: var(--ut-surface, #f9fafb); color: var(--ut-text, #111827);
+      font: var(--ut-font-size, 14px)/1.45 var(--ut-font-family, system-ui, sans-serif);
+    }
+    h1 { font-size: 16px; margin: 0 0 12px; }
+    h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .04em; color: var(--ut-muted-text); }
+    .layout { display: grid; gap: 16px; grid-template-columns: minmax(260px, 320px) minmax(280px, 1fr) minmax(280px, 1fr); align-items: start; }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+    section { background: var(--ut-card, #fff); border: 1px solid var(--ut-border, #d1d5db); border-radius: var(--ut-radius, 8px); padding: 12px; }
+    label { display: block; margin: 6px 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .row label { display: inline-flex; gap: 6px; align-items: center; margin: 2px 0; }
+    input[type=text], input[type=number], select, textarea {
+      width: 100%; font: inherit; padding: 6px 8px; margin-top: 2px;
+      background: var(--ut-input-bg, #fff); color: var(--ut-input-text, #111827);
+      border: 1px solid var(--ut-muted-text, #6b7280); border-radius: calc(var(--ut-radius, 8px) / 2);
+    }
+    textarea { font-family: ui-monospace, Menlo, monospace; font-size: 12px; min-height: 84px; }
+    textarea[aria-invalid=true] { border-color: var(--ut-error); }
+    button {
+      font: inherit; padding: 6px 12px; min-height: 32px; cursor: pointer; margin-top: 6px;
+      background: var(--ut-primary, #2563eb); color: var(--ut-on-primary, #fff); border: 0; border-radius: calc(var(--ut-radius, 8px) / 2);
+    }
+    button.secondary { background: transparent; color: var(--ut-text); border: 1px solid var(--ut-muted-text); }
+    :focus-visible { outline: 2px solid var(--ut-focus-ring, #2563eb); outline-offset: 2px; }
+    .field-label { font-weight: 600; cursor: default; }
+    .field-help { color: var(--ut-muted-text); font-size: .93em; margin: 2px 0 6px; }
+    .field-error { color: var(--ut-error); font-size: .93em; min-height: 1.4em; margin-top: 4px; }
+    #frame { border: 1px dashed var(--ut-border, #d1d5db); border-radius: 4px; overflow: auto; }
+    dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 12px 0 0; font-size: 13px; }
+    dt { color: var(--ut-muted-text); }
+    dd { margin: 0; font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+    #log { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow: auto; font-size: 12px; }
+    #log li { padding: 4px 0; border-bottom: 1px solid var(--ut-border); }
+    #log li[data-tone=warn] b { color: var(--ut-error); }
+    #log time { color: var(--ut-muted-text); }
+    #log code { word-break: break-all; }
+    #log .note { color: var(--ut-error); }
+    small { color: var(--ut-muted-text); }
+  </style>
+  <script type="module" src="./harness.js"></script>
+</head>
+<body>
+  <h1 id="title">Control harness</h1>
+  <div class="layout">
+    <section aria-labelledby="h-host">
+      <h2 id="h-host">Host properties</h2>
+      <label>label <input id="label" type="text"></label>
+      <label>description <input id="description" type="text"></label>
+      <div class="row">
+        <label><input id="disabled" type="checkbox"> disabled</label>
+        <label><input id="readonly" type="checkbox"> readonly</label>
+        <label><input id="required" type="checkbox"> required</label>
+        <label><input id="invalid" type="checkbox"> invalid</label>
+      </div>
+      <label>error <input id="error" type="text"></label>
+      <label>theme mode
+        <select id="mode"><option value="light">light</option><option value="dark">dark</option></select>
+      </label>
+      <label>locale <input id="locale" type="text"></label>
+      <label>props (JSON) <textarea id="props" spellcheck="false"></textarea></label>
+      <button id="apply-props" type="button">Apply props</button>
+      <label>context.fields (JSON) <textarea id="context" spellcheck="false"></textarea></label>
+      <button id="apply-context" type="button">Apply context</button>
+      <label>value (JSON) <input id="new-value" type="text" placeholder="3"></label>
+      <button id="set-value" type="button">Set value</button>
+      <button id="recreate" type="button" class="secondary">Recreate element</button>
+    </section>
+
+    <section aria-labelledby="h-form">
+      <h2 id="h-form">Form preview</h2>
+      <div class="field-label" id="field-label"></div>
+      <div class="field-help" id="field-help"></div>
+      <div id="frame"></div>
+      <div class="field-error" id="field-error"></div>
+      <dl>
+        <dt>value</dt><dd id="value"></dd>
+        <dt>validity</dt><dd id="validity">–</dd>
+        <dt>height</dt><dd id="height"></dd>
+      </dl>
+      <h2 style="margin-top:16px">Requests (ut-request)</h2>
+      <div class="row" id="caps" aria-label="Granted capabilities"></div>
+      <label>lookup items (JSON) <textarea id="lookup-items" spellcheck="false"></textarea></label>
+      <div class="row">
+        <label>delay ms <input id="delay" type="number" value="300" min="0" style="width:90px"></label>
+        <label><input id="fail" type="checkbox"> fail requests</label>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-log">
+      <h2 id="h-log">Events</h2>
+      <ol id="log" aria-label="Event log"></ol>
+      <button id="clear-log" type="button" class="secondary">Clear</button>
+    </section>
+  </div>
+</body>
+</html>

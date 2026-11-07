@@ -60,11 +60,11 @@ export function useTableDependencies(tableId: string) {
 // ── Shared UI ──
 
 export function AssetDependencyView({ deps, loading, rowLabel }: { deps?: AssetDeps; loading: boolean; rowLabel?: string }) {
-  if (loading) return <p className="text-[10px] py-2 text-center" style={{ color: 'var(--theme-muted-text)' }}>Scanning dependencies...</p>
+  if (loading) return <p className="text-2xs py-2 text-center text-fg-muted">Scanning dependencies...</p>
   if (!deps) return null
 
   const total = deps.workflows.length + deps.tables.length + deps.references.length + deps.integrations.length + deps.tasks + deps.submissions + deps.runs
-  if (total === 0) return <p className="text-[10px] py-2 text-center" style={{ color: 'var(--theme-muted-text)' }}>No linked assets found.</p>
+  if (total === 0) return <p className="text-2xs py-2 text-center text-fg-muted">No linked assets found.</p>
 
   return (
     <div className="space-y-1.5">
@@ -81,10 +81,10 @@ export function AssetDependencyView({ deps, loading, rowLabel }: { deps?: AssetD
 
 function DepRow({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href?: string }) {
   const content = (
-    <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[10px]" style={{ backgroundColor: 'var(--theme-surface)' }}>
-      <span style={{ color: 'var(--theme-primary-text)' }}>{icon}</span>
-      <span className="font-medium" style={{ color: 'var(--theme-muted-text)' }}>{label}</span>
-      <span className="flex-1 truncate font-medium" style={{ color: 'var(--theme-card-text)' }}>{value}</span>
+    <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-2xs bg-bg">
+      <span className="text-primary-text">{icon}</span>
+      <span className="font-medium text-fg-muted">{label}</span>
+      <span className="flex-1 truncate font-medium text-fg">{value}</span>
     </div>
   )
   if (href) return <a href={href} className="block hover:opacity-80">{content}</a>
@@ -99,12 +99,12 @@ export function AssetDependencyDialog({ open, onOpenChange, title, subtitle, dep
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(28rem,92vw)] rounded-xl p-6 shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-          <Dialog.Title className="text-lg font-semibold mb-1" style={{ color: 'var(--theme-card-text)' }}>
-            <Map size={16} className="inline mr-2" style={{ color: 'var(--theme-primary-text)' }} />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(28rem,92vw)] rounded-xl p-6 shadow-xl bg-panel">
+          <Dialog.Title className="text-lg font-semibold mb-1 text-fg">
+            <Map size={16} className="inline mr-2 text-primary-text" />
             Dependency Map
           </Dialog.Title>
-          <p className="text-xs mb-3" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mb-3 text-fg-muted">
             Assets linked to <strong>{title}</strong>{subtitle && <span> ({subtitle})</span>}
           </p>
           <AssetDependencyView deps={deps} loading={loading} rowLabel={rowLabel} />

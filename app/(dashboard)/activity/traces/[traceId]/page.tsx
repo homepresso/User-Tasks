@@ -4,9 +4,14 @@ import { use, useMemo } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { serverRead } from '@/lib/server-read'
-import { Card } from '@/components/ui/card'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
-import { ChevronLeft, GitBranch, Bot, Network, Clock, AlertCircle } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
+import { StatusPill, type Tone } from '@/components/ui/badge'
+import { formatDurationMs, formatDurationSeconds } from '@/lib/format/duration'
+import { plural } from '@/lib/format/plural'
+import { cn } from '@/lib/utils'
+import { GitBranch, Bot, Network, Clock, AlertCircle } from 'lucide-react'
 
 /**
  * Unified trace viewer. Takes a trace_id and stitches together every
@@ -101,7 +106,7 @@ export default function TraceViewerPage({ params }: { params: Promise<{ traceId:
     },
   })
 
-  const { minTime, maxTime, totalSpan } = useMemo(() => {
+  const { minTime, totalSpan } = useMemo(() => {
     if (!data || data.length === 0) return { minTime: 0, maxTime: 0, totalSpan: 1 }
     const min = Math.min(...data.map(n => n.startedAt))
     const max = Math.max(...data.map(n => n.endedAt ?? n.startedAt))
@@ -114,111 +119,93 @@ export default function TraceViewerPage({ params }: { params: Promise<{ traceId:
 
   return (
     <div className="space-y-4 page-transition">
-      {/* Header */}
-      <div>
-        <Link href="/activity" className="inline-flex items-center gap-1 text-xs mb-2 hover:underline" style={{ color: 'var(--theme-muted-text)' }}>
-          <ChevronLeft size={12} /> Back to activity
-        </Link>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Trace</h1>
-        <p className="text-xs font-mono mt-1" style={{ color: 'var(--theme-muted-text)' }}>{traceId}</p>
-        {data && data.length > 0 && (
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-            {data.length} event{data.length === 1 ? '' : 's'} · {(totalSpan / 1000).toFixed(2)}s total
-          </p>
+      <PageHeader
+        className="mb-2"
+        breadcrumbs={[{ label: 'Activity', href: '/activity' }, { label: 'Trace' }]}
+        title="Trace"
+        description={(
+          <>
+            <span className="font-mono text-xs">{traceId}</span>
+            {data && data.length > 0 && (
+              <span className="num block text-xs">{plural(data.length, 'event')} · {formatDurationMs(totalSpan)} total</span>
+            )}
+          </>
         )}
-      </div>
+      />
 
       {/* Trace timeline */}
       {!data || data.length === 0 ? (
-        <Card className="!p-8 text-center">
-          <Clock size={28} className="mx-auto mb-2" style={{ color: 'var(--theme-muted-text)', opacity: 0.5 }} />
-          <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-            No events found for this trace ID.
-          </p>
-          <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-            Trace IDs are assigned to runs and calls when Phase 1 instrumentation is active.
-          </p>
-        </Card>
+        <div className="rounded-lg border border-border bg-panel">
+          <EmptyState icon={Clock} title="No events found for this trace ID"
+            description="Trace IDs are assigned to runs and calls when Phase 1 instrumentation is active." />
+        </div>
       ) : (
-        <Card className="!p-0 overflow-hidden">
-          {data.map((node, i) => {
-            const offsetMs = node.startedAt - minTime
-            const offsetPct = (offsetMs / totalSpan) * 100
+        <ul className="overflow-hidden rounded-lg border border-border bg-panel">
+          {data.map((node) => {
+            const offsetPct = ((node.startedAt - minTime) / totalSpan) * 100
             const widthPct = node.durationMs ? Math.max(0.5, (node.durationMs / totalSpan) * 100) : 0.5
             return (
-              <Link key={node.id} href={node.href} className="block">
-                <div className="px-5 py-3 transition-colors hover:bg-[var(--theme-row-highlight)]"
-                  style={{ borderTop: i > 0 ? '1px solid var(--theme-surface-border)' : undefined }}
-                >
+              <li key={node.id} className="border-b border-border-subtle last:border-b-0">
+                <Link href={node.href} className="block px-4 py-3 transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle">
                   {/* Header row */}
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="mb-1.5 flex items-center gap-2">
                     <NodeIcon type={node.type} />
-                    <span className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{node.title}</span>
-                    {node.subtitle && (
-                      <span className="text-[10px] font-mono" style={{ color: 'var(--theme-muted-text)' }}>
-                        {node.subtitle}
-                      </span>
-                    )}
-                    <div className="ml-auto flex items-center gap-2 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                      {node.status && <StatusChip status={node.status} hasError={!!node.error} />}
-                      <span className="font-mono">+{((node.startedAt - minTime) / 1000).toFixed(2)}s</span>
-                      {node.durationMs != null && <span className="font-mono">{node.durationMs}ms</span>}
+                    <span className="truncate text-ui font-medium text-fg">{node.title}</span>
+                    {node.subtitle && <span className="truncate font-mono text-xs text-fg-muted">{node.subtitle}</span>}
+                    <div className="num ml-auto flex shrink-0 items-center gap-2 text-xs text-fg-muted">
+                      {node.status && <StatusPill status={node.status} tone={statusToneFor(node.status, !!node.error)} />}
+                      <span>+{formatDurationSeconds((node.startedAt - minTime) / 1000)}</span>
+                      {node.durationMs != null && <span>{formatDurationMs(node.durationMs)}</span>}
                     </div>
                   </div>
                   {/* Error */}
                   {node.error && (
-                    <div className="flex items-start gap-1 mb-1.5 text-[10px] font-mono" style={{ color: 'var(--theme-danger)' }}>
-                      <AlertCircle size={10} className="mt-0.5 shrink-0" />
+                    <div className="mb-1.5 flex items-start gap-1 font-mono text-xs text-danger">
+                      <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                       <span className="truncate">{node.error}</span>
                     </div>
                   )}
                   {/* Duration bar (flame graph style) */}
-                  <div className="relative h-1.5 rounded-full overflow-hidden"
-                    style={{ backgroundColor: 'var(--theme-surface)' }}>
+                  <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="absolute h-full rounded-full"
-                      style={{
-                        left: `${offsetPct}%`,
-                        width: `${widthPct}%`,
-                        backgroundColor: node.error
-                          ? 'var(--theme-danger)'
-                          : colorForType(node.type),
-                      }}
+                      className={cn('absolute h-full rounded-full', node.error ? 'bg-danger' : BAR_CLASS[node.type])}
+                      style={{ left: `${offsetPct}%`, width: `${widthPct}%` }}
                     />
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </li>
             )
           })}
-        </Card>
+        </ul>
       )}
     </div>
   )
+}
+
+const BAR_CLASS: Record<TraceNode['type'], string> = {
+  workflow_run: 'bg-primary',
+  agent_run: 'bg-info',
+  integration_call: 'bg-fg-subtle',
+}
+
+const ICON_CLASS: Record<TraceNode['type'], string> = {
+  workflow_run: 'text-primary-text',
+  agent_run: 'text-info',
+  integration_call: 'text-fg-muted',
 }
 
 function NodeIcon({ type }: { type: TraceNode['type'] }) {
   const Icon = type === 'workflow_run' ? GitBranch
     : type === 'agent_run' ? Bot
     : Network
-  return <Icon size={14} style={{ color: colorForType(type) }} />
+  return <Icon className={cn('size-4 shrink-0', ICON_CLASS[type])} aria-hidden />
 }
 
-function colorForType(type: TraceNode['type']): string {
-  return type === 'workflow_run' ? 'var(--theme-primary)'
-    : type === 'agent_run' ? 'var(--status-progress)'
-    : 'var(--status-todo)'
+/** HTTP codes and run statuses → a pill tone (4xx/5xx and errors danger, 2xx/3xx and completed success). */
+function statusToneFor(status: string, hasError: boolean): Tone {
+  const code = /^\d+$/.test(status) ? parseInt(status, 10) : null
+  if (hasError || status === 'failed' || (code !== null && code >= 400)) return 'danger'
+  if (status === 'completed' || status === 'submitted' || (code !== null && code >= 200 && code < 400)) return 'success'
+  return 'neutral'
 }
 
-function StatusChip({ status, hasError }: { status: string; hasError: boolean }) {
-  const isError = hasError || status === 'failed' || (status.match(/^\d+$/) && parseInt(status) >= 400)
-  const isSuccess = status === 'completed' || status === 'submitted' || (status.match(/^\d+$/) && parseInt(status) >= 200 && parseInt(status) < 400)
-  return (
-    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono uppercase"
-      style={{
-        backgroundColor: isError ? 'var(--status-danger-bg)' : isSuccess ? 'var(--status-success-bg)' : 'var(--theme-row-highlight)',
-        color: isError ? 'var(--theme-danger)' : isSuccess ? 'var(--theme-success)' : 'var(--theme-muted-text)',
-      }}>
-      {status}
-    </span>
-  )
-}

@@ -70,6 +70,7 @@ export function StartFormButton({ variables, onVariablesChange, triggerNode, onT
         initial={imported ?? model.def}
         allowedTypes={START_FORM_TYPES}
         formSettings={false}
+        pageOptions={{ rules: false, resume: false }}
         savedThemes={savedThemes}
         canSaveTheme={can('forms.edit')}
         onSaveTheme={async (name, overrides) => {
@@ -84,6 +85,7 @@ export function StartFormButton({ variables, onVariablesChange, triggerNode, onT
           run: async (def) => {
             onVariablesChange(variablesFromStartForm(def, variables, model.nameByKey, () => crypto.randomUUID()))
             const startForm = startFormConfig(def, model.nameByKey)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omitted from the rest
             const { start_form: _old, ...rest } = triggerNode.config ?? {}
             onTriggerConfigChange(startForm ? { ...rest, start_form: startForm } : rest)
             return null

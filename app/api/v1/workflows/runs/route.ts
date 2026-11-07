@@ -1,13 +1,17 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err, parsePagination } from '@/lib/api-auth'
 import { canAccessWorkflow, hasWorkflowScope } from '@/lib/api-key-permissions'
+import { fromApiAuth } from '@/lib/services/context'
+import { applyScope, resolveRunScope, runScopeFilter } from '@/lib/services/run-visibility'
 
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request)
   if (!auth.success) return auth.response
-  const forbidden = requireApiPermission(auth, 'workflows.view_runs')
+  // view_queue (involved + granted) or view_runs (all, implies view_queue): lib/services/run-visibility.
+  const forbidden = requireApiPermission(auth, 'workflows.view_queue')
   if (forbidden) return forbidden
   const { tenantId, supabase } = auth
+  const scope = await resolveRunScope(fromApiAuth(auth))
 
   const params = request.nextUrl.searchParams
   const { limit, offset } = parsePagination(params)
@@ -15,10 +19,10 @@ export async function GET(request: NextRequest) {
   const versionId = params.get('version_id')
   const statuses = params.get('status')?.split(',').map(s => s.trim()).filter(Boolean)
 
-  let query = supabase
+  let query = applyScope(supabase
     .from('workflow_runs')
     .select('id, workflow_id, version_id, migrated_from_run_id, migrated_to_run_id, status, title, started_at, completed_at, error, task_id, event_id, paused_node_id, sla_label, sla_due_at, sla_warning_at, sla_status, sla_warning_triggered_at, sla_breached_triggered_at', { count: 'exact' })
-    .eq('tenant_id', tenantId)
+    .eq('tenant_id', tenantId), runScopeFilter(scope))
     .order('started_at', { ascending: false })
 
   if (workflowId) {

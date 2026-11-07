@@ -32,6 +32,7 @@ import { validateTaskFieldValues } from '@/lib/task-field-schema'
 import type { TestSubmissionLog } from './form-submissions'
 import type { StartFormPageInfo } from './form-pages'
 import { findFormPageAction } from '@/lib/forms/form-page'
+import { buildSubmissionMeta, withSubmissionMeta } from '@/lib/forms/submission-meta'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow rows are untyped here */
 
@@ -120,13 +121,16 @@ export async function prepareTestStart(ctx: ServiceContext, workflowId: string, 
   if (kind === 'start_form') {
     const trigger = (Array.isArray(def.nodes) ? def.nodes : []).find((n: any) => n?.config?.start_form)
     const model = startFormFromVariables(Array.isArray(def.user_variables) ? def.user_variables as any[] : [], (trigger as any)?.config)
+    // {{submission.*}} as a real start would carry it (source test); a value in the request is replaced.
+    const meta = await testStartSubmission(ctx, workflowId)
+    const withMeta = (v: Record<string, unknown> | undefined) => withSubmissionMeta(v ?? {}, meta)
     if (model.def.fields.length) {
       const values: Record<string, unknown> = {}
       for (const field of model.def.fields) {
         const value = variables?.[model.nameByKey.get(field.key) ?? field.key]
         if (value !== undefined) values[field.key] = value
       }
-      const fields = validateTaskFieldValues(model.def.fields, values)
+      const fields = validateTaskFieldValues(model.def.fields, values, { layout: model.def.layout })
       if (Object.keys(fields).length) throw ServiceError.validation('Some start form fields need attention', { fields })
     }
     // Attachments inputs of a test run: only the tester's own uploads (test context, cleaned up after 24 h).
@@ -137,10 +141,24 @@ export async function prepareTestStart(ctx: ServiceContext, workflowId: string, 
         const name = model.nameByKey.get(field.key) ?? field.key
         if (field.type === 'attachments' && typed[name] !== undefined) typed[name] = normalizeAttachmentValue(typed[name])
       }
-      return { variables: await sanitizeTestTaskFiles(createServiceClient() as any, ctx.tenantId, ctx.actorId, typed), logs: [] }
+      return { variables: withMeta(await sanitizeTestTaskFiles(createServiceClient() as any, ctx.tenantId, ctx.actorId, typed)), logs: [] }
     }
+    return { variables: withMeta(variables), logs: [] }
   }
   return { variables, logs: [] }
+}
+
+/** The submission metadata of a designer test start of a start form (nothing is stored). */
+async function testStartSubmission(ctx: ServiceContext, workflowId: string) {
+  const { data: wf } = await (ctx.supabase as any).from('workflows').select('name').eq('id', workflowId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  const { serviceRoleClient } = await import('./_shared')
+  const db = await serviceRoleClient(ctx)
+  const { data: profile } = ctx.actorId ? await (db as any).from('users').select('display_name, email').eq('id', ctx.actorId).maybeSingle() : { data: null }
+  return buildSubmissionMeta({
+    id: null, submitted_at: new Date().toISOString(),
+    submitter: { id: ctx.actorId ?? null, name: profile?.display_name ?? null, email: profile?.email ?? null },
+    form: { id: null, name: `${wf?.name ?? 'Workflow'} (start form)`, version: null }, source: 'test',
+  })
 }
 
 export interface WorkflowFormEntries {

@@ -127,7 +127,7 @@ export const mercuryConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/account/{{account_id}}/transactions',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: '{"recipientId":"{{recipient_id}}","amount":{{amount}},"paymentMethod":"{{payment_method}}","note":"{{note}}","externalMemo":"{{external_memo}}","idempotencyKey":"{{idempotency_key}}"}',
+      bodyTemplate: '{"recipientId":"{{recipient_id}}","amount":{{amount}},"paymentMethod":"{{payment_method}}","note":{{note}},"externalMemo":{{external_memo}},"idempotencyKey":"{{idempotency_key}}"}',
       inputs: [
         { name: 'account_id', type: 'string', required: true, description: 'Source account id' },
         { name: 'recipient_id', type: 'string', required: true, description: 'Saved recipient id' },
@@ -135,7 +135,7 @@ export const mercuryConnector: ConnectorDefinition = {
         { name: 'payment_method', type: 'string', required: true, description: 'ach | domesticWire | internationalWire | check', defaultValue: 'ach' },
         { name: 'note', type: 'string', required: false, description: 'Internal note' },
         { name: 'external_memo', type: 'string', required: false, description: 'Memo visible to the recipient (ACH only)' },
-        { name: 'idempotency_key', type: 'string', required: true, description: 'Unique key preventing duplicate sends (e.g. a GUID)' },
+        { name: 'idempotency_key', type: 'string', required: true, description: 'Unique key preventing duplicate sends — use a stable value per payment (e.g. your invoice id), never a fresh random value on retry' },
       ],
       outputs: [
         { name: 'id', type: 'string' }, { name: 'status', type: 'string' }, { name: 'amount', type: 'number' },
@@ -149,7 +149,7 @@ export const mercuryConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/account/{{account_id}}/request-send-money',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: '{"recipientId":"{{recipient_id}}","amount":{{amount}},"paymentMethod":"{{payment_method}}","note":"{{note}}","externalMemo":"{{external_memo}}","idempotencyKey":"{{idempotency_key}}"}',
+      bodyTemplate: '{"recipientId":"{{recipient_id}}","amount":{{amount}},"paymentMethod":"{{payment_method}}","note":{{note}},"externalMemo":{{external_memo}},"idempotencyKey":"{{idempotency_key}}"}',
       inputs: [
         { name: 'account_id', type: 'string', required: true, description: 'Source account id' },
         { name: 'recipient_id', type: 'string', required: true, description: 'Saved recipient id' },
@@ -231,11 +231,11 @@ export const mercuryConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/recipient/{{recipient_id}}',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: '{"name":"{{name}}","emails":["{{email}}"]}',
+      bodyTemplate: '{"name":{{name}},"emails":{{emails}}}',
       inputs: [
         { name: 'recipient_id', type: 'string', required: true, description: 'Recipient id' },
-        { name: 'name', type: 'string', required: false, description: 'New recipient name' },
-        { name: 'email', type: 'string', required: false, description: 'New recipient email' },
+        { name: 'name', type: 'string', required: false, description: 'New recipient name (empty = unchanged)' },
+        { name: 'emails', type: 'array', required: false, description: 'New recipient emails, e.g. ["ap@example.com"] (empty = unchanged)' },
       ],
       outputs: [{ name: 'id', type: 'string' }, { name: 'name', type: 'string' }],
     },

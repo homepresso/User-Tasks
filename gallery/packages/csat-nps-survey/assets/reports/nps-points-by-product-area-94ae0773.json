@@ -1,0 +1,41 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "94ae0773-fc8a-5891-bdb0-5ddafbc634ee",
+  "asset": {
+    "id": "94ae0773-fc8a-5891-bdb0-5ddafbc634ee",
+    "name": "NPS points by product area",
+    "description": "Average NPS points per product area from the survey runs (workflow variables): above 0 means more promoters than detractors.",
+    "category": "Customer satisfaction",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "a6531735-7719-5383-bd5f-ca58cc2ef247"
+      },
+      "columns": [
+        "vars.form.product_area",
+        "AVG_vars.nps_points"
+      ],
+      "group_by": [
+        "vars.form.product_area"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.nps_points"
+        }
+      ],
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "NPS points by product area",
+        "colors": [
+          "#C2410C"
+        ],
+        "y_axis_label": "NPS points",
+        "hide_legend": true
+      }
+    }
+  }
+}

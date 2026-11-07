@@ -138,9 +138,10 @@ describe('Settings → Infrastructure page', () => {
   })
 
   it('the Settings link is gated on instance admin, not on a workspace permission; the page has no switching UI', () => {
-    const tabs = readFileSync(path.join(process.cwd(), 'components/settings/settings-tabs.tsx'), 'utf8')
-    expect(tabs).toMatch(/href: "\/settings\/infrastructure",[\s\S]{0,80}instanceAdmin: true/)
-    expect(tabs).toMatch(/if \(link\.instanceAdmin\) return instanceAdmin;/)
+    // The settings sub-nav lives in the Settings frame (§5.14).
+    const nav = readFileSync(path.join(process.cwd(), 'components/settings/settings-frame.tsx'), 'utf8')
+    expect(nav).toMatch(/href: "\/settings\/infrastructure",[\s\S]{0,80}instanceAdmin: true/)
+    expect(nav).toMatch(/if \(item\.instanceAdmin\) return instanceAdmin/)
     const view = readFileSync(path.join(process.cwd(), 'components/settings/infrastructure-view.tsx'), 'utf8')
     expect(view).not.toMatch(/'use client'|"use client"|onClick|<form|<button/)
   })

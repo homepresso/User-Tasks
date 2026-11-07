@@ -1,0 +1,42 @@
+{
+  "id": "b884ee06-70fa-4fc9-a6e9-de63f7be7b02",
+  "asset_id": "139e3e5c-f2ab-474f-a3a4-73ac7700e157",
+  "slug": "table",
+  "title": "Table",
+  "kind": "input",
+  "summary": "An editable table for line items, attendees or readings, with typed columns, per-cell validation, totals and spreadsheet-style keyboard editing.",
+  "description": "Collect repeating rows in one field: the line items of a purchase request, the attendees of an event, the readings of an inspection, the expenses of a trip. You define the columns (text, number, currency, date, choice from a list, or tick box), mark the required ones, set number bounds and widths, and choose whether people can add and delete rows, with a minimum and maximum row count.\n\nEvery cell is checked as people type: a required item left blank or a quantity below its minimum is marked on the cell itself and summarised for the form (\"Row 2: Quantity must be at least 1\"). An optional totals row sums the number and currency columns. Starting rows can be shown without being stored, so a template row never ends up in the submission by accident.\n\nIt works like a small spreadsheet from the keyboard: one Tab stop, arrow keys between cells, typing or Enter to edit, Enter to save and move down, Escape to cancel, Ctrl+Enter to add a row. Screen readers hear each cell with its column and row. On a phone the table scrolls sideways inside its own frame. The value is a list of plain objects with real numbers, booleans and ISO dates, ready for workflows and reports.",
+  "icon": "table",
+  "tags": ["table", "grid", "line items", "repeating rows", "spreadsheet", "editable"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: default_rows can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: a list of rows (unchanged)." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Line items on a purchase request, with quantities, prices and a total",
+    "Attendee list for an event or training booking",
+    "Readings or defects recorded during an inspection"
+  ],
+  "setup": [
+    "Install the package: the control appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Table onto a form and define the columns in the properties panel (key, label, type, required, options, min / max, width).",
+    "Set the row limits, whether people can add or delete rows, the currency for currency columns, and (optionally) the starting rows and the totals row."
+  ],
+  "preview": {
+    "props": {
+      "columns": [
+        { "key": "item", "label": "Item", "type": "text", "required": true, "width": 200 },
+        { "key": "quantity", "label": "Quantity", "type": "number", "min": 1, "width": 100 },
+        { "key": "unit_price", "label": "Unit price", "type": "currency", "min": 0, "width": 120 },
+        { "key": "category", "label": "Category", "type": "select", "options": ["Hardware", "Software", "Services"], "width": 140 }
+      ],
+      "show_totals": true,
+      "currency": "USD"
+    },
+    "value": [
+      { "item": "Laptop", "quantity": 2, "unit_price": 1499, "category": "Hardware" },
+      { "item": "Docking station", "quantity": 2, "unit_price": 189.5, "category": "Hardware" },
+      { "item": "Design software licence", "quantity": 1, "unit_price": 599, "category": "Software" }
+    ],
+    "label": "Line items",
+    "height": 280
+  }
+}

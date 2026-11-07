@@ -139,13 +139,18 @@ describe('new OAuth scopes', () => {
     ['integrations', 'integrations.view', 'integrations.manage_references'],
     ['extensibility', 'extensibility.view', 'extensibility.edit'],
     ['settings', 'settings.view', 'settings.edit'],
-    ['team', 'team.view_members', 'team.change_roles'],
     ['sync', 'sync.view', 'sync.deploy'],
   ])('%s:read is read-only and %s:write adds writes', (family, readKey, writeKey) => {
     expect(expandScopes([`${family}:read`])).toEqual([readKey])
     const write = expandScopes([`${family}:write`])
     expect(write).toContain(readKey)
     expect(write).toContain(writeKey)
+  })
+
+  it('team:read also reads the org structure and projects; team:write manages them', () => {
+    expect(expandScopes(['team:read']).sort()).toEqual(['org.view', 'projects.view', 'team.view_members'])
+    const write = expandScopes(['team:write'])
+    for (const key of ['team.view_members', 'team.change_roles', 'org.view', 'org.manage', 'projects.view', 'projects.manage']) expect(write).toContain(key)
   })
 
   it('settings:write never grants API-key management', () => {

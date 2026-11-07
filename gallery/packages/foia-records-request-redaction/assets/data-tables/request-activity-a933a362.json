@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+  "asset": {
+    "id": "a933a362-b7c0-52e5-a826-bbab1dc2e1d3",
+    "name": "Request activity",
+    "description": "Audit trail: each step of each request, when it happened and who acted.",
+    "columns": [
+      {
+        "id": "d84010d9-917e-597d-8787-9440b632ac69",
+        "required": true,
+        "key": "request_ref",
+        "name": "Request",
+        "type": "text"
+      },
+      {
+        "id": "e870f658-d1ef-5a3f-81c2-e60e8ec3e046",
+        "required": false,
+        "key": "at",
+        "name": "At",
+        "type": "datetime"
+      },
+      {
+        "id": "cc5d467e-2bf4-5263-8691-89db41169131",
+        "required": true,
+        "key": "event",
+        "name": "Event",
+        "type": "text"
+      },
+      {
+        "id": "1d5aaa1d-9cc0-5869-9790-2e9a6f349e39",
+        "required": false,
+        "key": "actor",
+        "name": "Actor",
+        "type": "text"
+      },
+      {
+        "id": "0efcd548-d6df-59f2-82ad-7da181fc2a9f",
+        "required": false,
+        "key": "detail",
+        "name": "Detail",
+        "type": "text"
+      }
+    ]
+  }
+}

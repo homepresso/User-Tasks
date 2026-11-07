@@ -48,13 +48,13 @@ export function TaskDescriptionEditor({
       {preview && name && <input type="hidden" name={name} value={value} />}
       {preview ? (
         <div
-          className={cn('min-h-[4.5rem] rounded-lg border px-3 py-2 text-sm', className)}
+          className={cn('min-h-[4.5rem] rounded-md border border-border bg-panel px-3 py-2 text-sm', className)}
           style={style}
           aria-label="Description preview"
         >
           {value.trim()
             ? <TaskDescription value={value} />
-            : <span style={{ color: 'var(--theme-muted-text)' }}>Nothing to preview</span>}
+            : <span className="text-fg-muted">Nothing to preview</span>}
         </div>
       ) : (
         <textarea
@@ -68,13 +68,12 @@ export function TaskDescriptionEditor({
           style={style}
         />
       )}
-      <div className="mt-1 flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="mt-1 flex items-center justify-between gap-2 text-xs text-fg-muted">
         <span>Plain text or HTML (bold, lists, headings, links, tables)</span>
         <button
           type="button"
           onClick={() => setPreview((p) => !p)}
-          className="inline-flex items-center gap-1 hover:underline"
-          style={{ color: 'var(--theme-primary-text)' }}
+          className="inline-flex items-center gap-1 hover:underline text-primary-text"
           aria-pressed={preview}
         >
           {preview ? <><Pencil size={11} /> Edit</> : <><Eye size={11} /> Preview</>}

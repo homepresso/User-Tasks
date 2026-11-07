@@ -5,20 +5,24 @@ import { revalidatePath } from 'next/cache'
 import { kickQueueProcessor } from '@/lib/process-queue'
 import { requirePermission } from '@/lib/permissions-server'
 import { ensureTenantInvitation, INVITABLE_ROLES } from '@/lib/invitations'
+import { QUEUE_TASK_COLUMNS, queueFactsFromTask, type QueueTaskFacts } from '@/lib/tasks/queue-rules'
+import { acceptanceForAssignee, decideAcceptanceForAssignees } from '@/lib/tasks/queue-rules-server'
 
 export async function respondToTask(
   taskId: string,
   action: 'accepted' | 'held' | 'rejected',
   comment?: string
-) {
+): Promise<{ success: true } | { success: false; error: string }> {
+  // Expected failures come back as { success: false, error } — production
+  // builds hide the message of a thrown server-action error.
   await requirePermission('tasks.complete')
   const supabase = await createClient()
   const user = await getCachedUser()
-  if (!user) throw new Error('Not authenticated')
+  if (!user) return { success: false, error: 'You are signed out. Sign in again and retry.' }
 
   // Require comment for hold/reject
   if ((action === 'held' || action === 'rejected') && !comment?.trim()) {
-    throw new Error('A comment is required when holding or rejecting a task')
+    return { success: false, error: 'A comment is required when holding or rejecting a task' }
   }
 
   // Get the task to verify ownership and get assigner info
@@ -28,7 +32,7 @@ export async function respondToTask(
     .eq('id', taskId)
     .single()
 
-  if (!task) throw new Error('Task not found')
+  if (!task) return { success: false, error: 'Task not found' }
 
   const isCollaborative = (task as any).assignment_mode === 'collaborative'
   const now = new Date().toISOString()
@@ -43,7 +47,7 @@ export async function respondToTask(
       .eq('task_id', taskId)
       .eq('user_id', user.id)
       .maybeSingle()
-    if (!membership) throw new Error('You are not an assignee on this task')
+    if (!membership) return { success: false, error: 'Only the people assigned to this task can accept or decline it.' }
 
     await supabase
       .from('task_assignees' as any)
@@ -56,7 +60,7 @@ export async function respondToTask(
       .eq('user_id', user.id)
   } else {
     // Verify ownership for single/individual tasks
-    if ((task as any).assignee_id !== user.id) throw new Error('You are not the assignee')
+    if ((task as any).assignee_id !== user.id) return { success: false, error: 'Only the person assigned to this task can accept or decline it.' }
 
     const updates: Record<string, any> = {
       acceptance_status: action,
@@ -107,7 +111,6 @@ export async function respondToTask(
 
   revalidatePath('/tasks')
   revalidatePath('/tasks/assigned')
-  revalidatePath('/tasks/queue')
   revalidatePath(`/tasks/${taskId}`)
 
   // Kick the workflow queue (acceptance changes may trigger task_submitted workflows)
@@ -143,7 +146,7 @@ export async function rerouteTask(
 
   const { data: task } = await supabase
     .from('tasks')
-    .select('id, title, tenant_id, assigner_id, assignee_id, allow_reassign, allow_escalate, metadata, acceptance_status, assignment_mode')
+    .select(`id, tenant_id, assigner_id, assignee_id, allow_reassign, allow_escalate, acceptance_status, ${QUEUE_TASK_COLUMNS}`)
     .eq('id', taskId)
     .single()
 
@@ -177,6 +180,9 @@ export async function rerouteTask(
   const redirectRecipientLimit = redirectRecipientLimitMode === 'capped'
     ? Math.max(1, Number(taskActions.redirect_recipient_limit ?? 1))
     : null
+
+  // The recipient's queue rules decide Queued (pending) or added (accepted).
+  const queueFacts: QueueTaskFacts = queueFactsFromTask(task as any, { assignedBy: user.id, origins: [action === 'escalate' ? 'escalation' : 'redirect'] })
 
   const targetUserIds = new Set<string>([
     ...(options.targetUserId ? [options.targetUserId] : []),
@@ -249,10 +255,16 @@ export async function rerouteTask(
       }
     }
 
+    const recipientDecisions = await decideAcceptanceForAssignees(supabase, {
+      tenantId: String((task as any).tenant_id),
+      assigneeIds: resolvedUsers.map((target) => target.id),
+      facts: { ...queueFacts, assignment: 'collaborative' },
+    })
+    const acceptanceFor = (userId: string) => recipientDecisions.get(userId) ?? 'pending'
     await supabase.from('tasks').update({
       assignment_mode: 'collaborative',
       assignee_id: resolvedUsers[0].id,
-      acceptance_status: 'pending',
+      acceptance_status: acceptanceFor(resolvedUsers[0].id),
     } as any).eq('id', taskId)
     // Diff instead of delete-all: retained assignees keep their acceptance
     // state (the previous wipe reset everyone to pending on every redirect).
@@ -274,8 +286,9 @@ export async function rerouteTask(
           task_id: taskId,
           user_id: target.id,
           role: existingIds.size === 0 && target.id === resolvedUsers[0].id ? 'lead' : 'collaborator',
-          acceptance_status: 'pending',
-          accepted_at: null,
+          ...(acceptanceFor(target.id) === 'accepted'
+            ? { acceptance_status: 'accepted', accepted_at: new Date().toISOString() }
+            : { acceptance_status: 'pending', accepted_at: null }),
         }))
       )
     }
@@ -306,7 +319,6 @@ export async function rerouteTask(
 
     revalidatePath('/tasks')
     revalidatePath('/tasks/assigned')
-    revalidatePath('/tasks/queue')
     revalidatePath(`/tasks/${taskId}`)
     kickQueueProcessor()
 
@@ -363,7 +375,6 @@ export async function rerouteTask(
 
       revalidatePath('/tasks')
       revalidatePath('/tasks/assigned')
-      revalidatePath('/tasks/queue')
       revalidatePath(`/tasks/${taskId}`)
 
       return {
@@ -397,7 +408,7 @@ export async function rerouteTask(
 
   await supabase.from('tasks').update({
     assignee_id: targetUser.id,
-    acceptance_status: 'pending',
+    acceptance_status: await acceptanceForAssignee(supabase, targetUser.id, queueFacts, undefined, { tenantId: String((task as any).tenant_id) }),
   } as any).eq('id', taskId)
 
   await supabase.from('notifications').insert({
@@ -423,7 +434,6 @@ export async function rerouteTask(
 
   revalidatePath('/tasks')
   revalidatePath('/tasks/assigned')
-  revalidatePath('/tasks/queue')
   revalidatePath(`/tasks/${taskId}`)
 
   kickQueueProcessor()
@@ -449,7 +459,6 @@ async function sessionContextForTask(taskId: string) {
 
 function revalidateTask(taskId: string) {
   revalidatePath('/tasks')
-  revalidatePath('/tasks/queue')
   revalidatePath('/tasks/assigned')
   revalidatePath('/tasks/team')
   revalidatePath(`/tasks/${taskId}`)
@@ -560,7 +569,10 @@ export async function completeTaskWithFormButton(
   if (!task) throw new Error('Task not found')
   const meta = (task.metadata ?? {}) as Record<string, unknown>
   const { normalizeFormButtons, isSubmittingButton } = await import('@/lib/forms/buttons')
-  if (!Array.isArray(meta.form_buttons)) return { success: false as const, error: 'This task has no form buttons' }
+  // An in-form Submit button presses the bar's Submit (the defaults when the step stored none).
+  const { submittingButtonKeys } = await import('@/lib/forms/form-state')
+  const { normalizeTaskFields } = await import('@/lib/task-field-schema')
+  if (!Array.isArray(meta.form_buttons) && !submittingButtonKeys(normalizeTaskFields(meta.fields)).length) return { success: false as const, error: 'This task has no form buttons' }
   const button = normalizeFormButtons(meta.form_buttons).find((b) => b.id === buttonId)
   if (!button) return { success: false as const, error: 'That button is not on this form' }
   if (task.status === 'completed' || task.status === 'cancelled') return { success: false as const, error: 'This task is already closed' }
@@ -591,12 +603,138 @@ export async function completeTaskWithFormButton(
   const stored = (((after?.metadata ?? {}) as Record<string, unknown>).template_values ?? {}) as Record<string, unknown>
   const ctx = await fromSession({ tenantId: String(task.tenant_id) })
   const formRef = (meta.form_ref ?? {}) as { form_id?: string; name?: string }
-  const { runs, effects } = await runButtonActions(ctx, db, {
+  const { normalizeTaskFields: fieldsOf } = await import('@/lib/task-field-schema')
+  const { runs, effects, table_changes } = await runButtonActions(ctx, db, {
     button,
     values: stored,
     form: { id: formRef.form_id ?? taskId, name: formRef.name ?? 'Task form' },
     submissionId: null,
     taskId,
+    fields: fieldsOf(meta.fields),
+    layout: meta.form_layout,
   })
-  return { ...result, effects, runs }
+  return { ...result, effects, runs, table_changes }
+}
+
+/**
+ * Invite someone into a task: add people as collaborators (task_assignees),
+ * keeping everyone already on it. Allowed for the task's assignee (or a
+ * collaborator) when the task allows several people — allow_reassign and
+ * metadata.task_actions.redirect_assignment_mode "many" — within its
+ * recipient cap (everyone on the task counts). Emails of people not yet in
+ * the organisation get an invitation when allow_invite_on_redirect is on
+ * (invite them into the task once they've joined). A single-assignee task
+ * becomes collaborative with its assignee as lead (their acceptance kept).
+ * Each new person's queue rules decide Queued (pending) or added (accepted).
+ */
+export async function inviteToTask(
+  taskId: string,
+  options: { userIds?: string[]; emails?: string[]; comment?: string } = {},
+) {
+  await requirePermission('tasks.complete')
+  const supabase = await createClient()
+  const user = await getCachedUser()
+  if (!user) throw new Error('Not authenticated')
+  const comment = options.comment?.trim() || null
+  const requestedIds = Array.from(new Set((options.userIds ?? []).map(String).filter(Boolean)))
+  const requestedEmails = Array.from(new Set((options.emails ?? []).map((e) => e.toLowerCase().trim()).filter(Boolean)))
+  if (!requestedIds.length && !requestedEmails.length) throw new Error('Choose someone to invite')
+  if (requestedIds.length + requestedEmails.length > 50) throw new Error('Invite at most 50 people at a time')
+
+  const { data: task } = await supabase
+    .from('tasks')
+    .select(`id, status, tenant_id, assignee_id, acceptance_status, accepted_at, allow_reassign, ${QUEUE_TASK_COLUMNS}`)
+    .eq('id', taskId)
+    .single()
+  if (!task) throw new Error('Task not found')
+  const t = task as any
+  if (t.status === 'completed' || t.status === 'cancelled') throw new Error('This task is already closed')
+
+  const { data: existingRows } = await (supabase as any)
+    .from('task_assignees').select('user_id').eq('task_id', taskId)
+  const existingIds = new Set(((existingRows ?? []) as any[]).map((row) => String(row.user_id)))
+  const isCollaborative = t.assignment_mode === 'collaborative'
+  if (isCollaborative ? !existingIds.has(user.id) : t.assignee_id !== user.id) {
+    throw new Error(isCollaborative ? 'You are not an assignee on this task' : 'You are not the assignee')
+  }
+
+  const { redirectSettings } = await import('@/lib/tasks/quick-actions')
+  const settings = redirectSettings(t.metadata)
+  if (t.allow_reassign !== true || settings.mode !== 'many') throw new Error('Inviting people is not enabled for this task')
+  if (requestedEmails.length && !settings.allowEmail) throw new Error('Inviting by email is not enabled for this task')
+  const inviteRole = (t.metadata?.task_actions?.invite_role ?? 'viewer') as (typeof INVITABLE_ROLES)[number]
+
+  // People in the task's workspace; unknown emails get an organisation invitation.
+  const tenantId = String(t.tenant_id)
+  const resolved = new Map<string, { id: string; name: string }>()
+  for (const userId of requestedIds) {
+    const { data } = await (supabase as any).from('users').select('id, email, display_name').eq('id', userId).eq('tenant_id', tenantId).maybeSingle()
+    if (!data?.id) throw new Error('That person is not in this organisation')
+    resolved.set(String(data.id), { id: String(data.id), name: data.display_name ?? data.email ?? 'Someone' })
+  }
+  const invitations: Array<{ email: string; emailSent: boolean; emailError: string | null }> = []
+  for (const email of requestedEmails) {
+    const { data } = await (supabase as any).from('users').select('id, email, display_name').eq('tenant_id', tenantId).eq('email', email).maybeSingle()
+    if (data?.id) { resolved.set(String(data.id), { id: String(data.id), name: data.display_name ?? data.email ?? email }); continue }
+    const inviteResult = await ensureTenantInvitation({ supabase, tenantId, email, invitedBy: user.id, role: inviteRole })
+    invitations.push({ email, emailSent: inviteResult.emailSent, emailError: inviteResult.emailError ?? null })
+  }
+
+  const current = new Set<string>([...existingIds, ...(t.assignee_id ? [String(t.assignee_id)] : [])])
+  const added = [...resolved.values()].filter((p) => !current.has(p.id))
+  if (settings.limit !== null && current.size + added.length > settings.limit) {
+    throw new Error(`This task can have up to ${settings.limit} people`)
+  }
+
+  if (added.length) {
+    const now = new Date().toISOString()
+    if (!isCollaborative) {
+      await supabase.from('tasks').update({ assignment_mode: 'collaborative' } as any).eq('id', taskId)
+      if (t.assignee_id && !existingIds.has(String(t.assignee_id))) {
+        const leadStatus = t.acceptance_status ?? 'accepted'
+        await (supabase as any).from('task_assignees').insert({
+          tenant_id: tenantId, task_id: taskId, user_id: t.assignee_id, role: 'lead',
+          acceptance_status: leadStatus, accepted_at: leadStatus === 'accepted' ? (t.accepted_at ?? now) : null,
+        })
+      }
+    }
+    const decisions = await decideAcceptanceForAssignees(supabase, {
+      tenantId,
+      assigneeIds: added.map((p) => p.id),
+      facts: { ...queueFactsFromTask(t, { assignedBy: user.id, origins: ['invite'] }), assignment: 'collaborative' },
+    })
+    await (supabase as any).from('task_assignees').insert(added.map((p) => {
+      const accepted = decisions.get(p.id) === 'accepted'
+      return {
+        tenant_id: tenantId, task_id: taskId, user_id: p.id, role: 'collaborator',
+        acceptance_status: accepted ? 'accepted' : 'pending', accepted_at: accepted ? now : null,
+      }
+    }))
+    for (const p of added) {
+      await supabase.from('notifications').insert({
+        user_id: p.id, tenant_id: tenantId, type: 'task_assigned',
+        title: `Invited: ${t.title}`,
+        body: comment || 'You have been invited to collaborate on this task.',
+        task_id: taskId,
+      } as any)
+    }
+  }
+
+  await supabase.from('lifecycle_events').insert({
+    tenant_id: tenantId, task_id: taskId, actor_id: user.id, event_type: 'assigned',
+    metadata: { action: 'collaborators_invited', added_user_ids: added.map((p) => p.id), invited_emails: invitations.map((i) => i.email), comment },
+  } as any)
+
+  revalidateTask(taskId)
+  kickQueueProcessor()
+  return {
+    success: true as const,
+    addedNames: added.map((p) => p.name),
+    invitations,
+    message: added.length
+      ? `Added ${added.map((p) => p.name).join(', ')} to the task${invitations.length ? '; invitations sent to the rest' : ''}.`
+      : invitations.length
+        ? 'Invitation sent. Invite them into the task once they’ve joined the organisation.'
+        : 'Everyone you chose is already on this task.',
+  }
 }

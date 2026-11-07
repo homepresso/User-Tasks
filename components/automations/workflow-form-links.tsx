@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Tooltip } from '@/components/ui/tooltip'
+import { Dialog, DialogBody, DialogClose, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { floatingSurfaceClass } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 import type { WorkflowFormEntries } from '@/lib/services/workflow-start-form'
 import { FormPageLink, useWorkflowFormEntries } from '@/components/forms/form-page-link'
 import { StartFormPagePanel } from '@/components/forms/start-form-page'
@@ -28,21 +33,21 @@ export function WorkflowFormLinks({ entries, workflowId }: { entries: WorkflowFo
     <div className="space-y-2.5 text-xs" data-workflow-form-links>
       {entries.trigger && (
         <div className="space-y-1">
-          <p className="font-medium" style={{ color: 'var(--theme-card-text)' }}>
-            Starts when <span style={{ color: 'var(--theme-primary-text)' }}>{entries.trigger.form_name ?? 'the form'}</span> is submitted
-            {entries.trigger.button_ids.length > 0 && <span className="font-normal" style={{ color: 'var(--theme-muted-text)' }}> (buttons: {entries.trigger.button_ids.join(', ')})</span>}
+          <p className="font-medium text-fg">
+            Starts when <span className="text-primary-text">{entries.trigger.form_name ?? 'the form'}</span> is submitted
+            {entries.trigger.button_ids.length > 0 && <span className="font-normal text-fg-muted"> (buttons: {entries.trigger.button_ids.join(', ')})</span>}
           </p>
           {entries.trigger.exists
             ? <FormPageLink formId={entries.trigger.form_id} />
-            : <p style={{ color: 'var(--theme-warning)' }}>The trigger&apos;s form no longer exists.</p>}
+            : <p className="text-warning">The trigger&apos;s form no longer exists.</p>}
         </div>
       )}
       {entries.buttons.length > 0 && (
         <div className="space-y-1">
-          <p className="font-medium" style={{ color: 'var(--theme-card-text)' }}>Started by a form button</p>
+          <p className="font-medium text-fg">Started by a form button</p>
           {entries.buttons.map((b) => (
             <div key={`${b.form_id}-${b.button_label}`} className="space-y-0.5">
-              <p style={{ color: 'var(--theme-muted-text)' }}>{b.form_name} › “{b.button_label}”</p>
+              <p className="text-fg-muted">{b.form_name} › “{b.button_label}”</p>
               <FormPageLink formId={b.form_id} compact />
             </div>
           ))}
@@ -50,8 +55,8 @@ export function WorkflowFormLinks({ entries, workflowId }: { entries: WorkflowFo
       )}
       {(entries.start_form || entries.start_form_page?.page) && (
         <div className="space-y-1.5" data-start-form-entry>
-          <p className="font-medium" style={{ color: 'var(--theme-card-text)' }}>Start form</p>
-          <p style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="font-medium text-fg">Start form</p>
+          <p className="text-fg-muted">
             Opens from <strong>Run</strong> (and API / CLI starts) with the workflow inputs.
           </p>
           {entries.start_form_page && <StartFormPagePanel workflowId={workflowId} info={entries.start_form_page} />}
@@ -80,29 +85,55 @@ export function WorkflowFormLinkButton({ workflowId, compact = false, className 
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
   }, [open])
   if (!compact && !hasFormEntries(entries)) return null
+  // A fixed panel under the button, kept inside the window (list cards sit anywhere).
+  const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const width = Math.min(416, window.innerWidth * 0.9)
+    setPos({ top: r.bottom + 4, left: Math.max(8, r.left + width <= window.innerWidth - 8 ? r.left : r.right - width) })
+    setOpen((o) => !o)
+  }
   return (
-    <div ref={ref} className={`relative ${className ?? ''}`} onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
-      <Button type="button" variant="outline" size="sm" aria-expanded={open} aria-label={compact ? 'Form link' : undefined}
-        title="The form page that starts this workflow" data-workflow-form-link-button
-        className={compact ? '!h-7 !px-2 !text-[11px]' : '!h-7 !text-xs'}
-        onClick={(e) => {
-          // A fixed panel under the button, kept inside the window (list cards sit anywhere).
-          const r = e.currentTarget.getBoundingClientRect()
-          const width = Math.min(416, window.innerWidth * 0.9)
-          setPos({ top: r.bottom + 4, left: Math.max(8, r.left + width <= window.innerWidth - 8 ? r.left : r.right - width) })
-          setOpen((o) => !o)
-        }}>
-        <Link2 size={12} /> {compact ? '' : 'Form link'}
-      </Button>
+    <div ref={ref} className={cn('relative', className)} onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+      {compact ? (
+        <IconButton type="button" variant="secondary" size="sm" label="Form link" icon={<Link2 />}
+          aria-expanded={open} data-workflow-form-link-button onClick={toggle} />
+      ) : (
+        <Tooltip content="The form page that starts this workflow">
+          <Button type="button" variant="secondary" size="sm" aria-expanded={open} data-workflow-form-link-button
+            leadingIcon={<Link2 />} onClick={toggle}>
+            Form link
+          </Button>
+        </Tooltip>
+      )}
       {open && pos && (
         <div role="dialog" aria-label="Forms that start this workflow"
-          className="fixed z-40 w-[min(26rem,90vw)] rounded-lg border p-3 shadow-lg"
-          style={{ top: pos.top, left: pos.left, backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-          {isLoading ? <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>Loading…</p>
+          className={cn('fixed z-40 w-[min(26rem,90vw)] border border-border p-3', floatingSurfaceClass)}
+          style={{ top: pos.top, left: pos.left }}>
+          {isLoading ? <p className="text-xs text-fg-muted">Loading…</p>
             : entries && hasFormEntries(entries) ? <WorkflowFormLinks entries={entries} workflowId={workflowId} />
-            : <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>No form starts this workflow.</p>}
+            : <p className="text-xs text-fg-muted">No form starts this workflow.</p>}
         </div>
       )}
     </div>
+  )
+}
+
+/** The forms that start a workflow, opened from its row menu (Form link). */
+export function FormLinksDialog({ workflow, onOpenChange }: { workflow: { id: string; name: string } | null; onOpenChange: (open: boolean) => void }) {
+  const { data: entries, isLoading } = useWorkflowFormEntries(workflow?.id ?? "", workflow !== null)
+  return (
+    <Dialog open={workflow !== null} onOpenChange={onOpenChange}>
+      <DialogContent size="md" title="Form link" description={workflow ? <>Forms that start <strong>{workflow.name}</strong></> : undefined}>
+        <DialogBody>
+          {!workflow ? null
+            : isLoading ? <p className="text-xs text-fg-muted">Loading…</p>
+            : entries && hasFormEntries(entries) ? <WorkflowFormLinks entries={entries} workflowId={workflow.id} />
+            : <p className="text-xs text-fg-muted">No form starts this workflow.</p>}
+        </DialogBody>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="secondary">Close</Button></DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

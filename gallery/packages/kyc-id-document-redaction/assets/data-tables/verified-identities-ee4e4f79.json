@@ -1,0 +1,96 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "ee4e4f79-4f45-57b6-8add-38dcbf4ff4d0",
+  "asset": {
+    "id": "ee4e4f79-4f45-57b6-8add-38dcbf4ff4d0",
+    "name": "Verified identities",
+    "description": "What is kept after verification: extracted fields with the document number masked, and a redacted copy of the document. The original photos are not copied here.",
+    "columns": [
+      {
+        "id": "bb2aa052-dde3-5a8f-bb51-4967934bd639",
+        "required": true,
+        "key": "kyc_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "e168186d-1718-5210-b943-650d13c2e433",
+        "required": true,
+        "key": "full_name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "461e2cbd-c97d-55b6-9363-fdb13b70e1fc",
+        "required": false,
+        "key": "email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "01b70fd4-cf9b-529f-a326-299b86e57c6f",
+        "required": false,
+        "key": "date_of_birth",
+        "name": "Date of birth",
+        "type": "date"
+      },
+      {
+        "id": "972d4418-2467-5a76-93b8-21ede444bee8",
+        "required": false,
+        "key": "document_type",
+        "name": "Document",
+        "type": "text"
+      },
+      {
+        "id": "99a63a25-4afe-576b-8a45-6bf1261f6c17",
+        "required": false,
+        "key": "number_masked",
+        "name": "Number (masked)",
+        "type": "text"
+      },
+      {
+        "id": "3b49b244-e1f7-5f6c-a86a-660a37932e7e",
+        "required": false,
+        "key": "expiry_date",
+        "name": "Expires",
+        "type": "date"
+      },
+      {
+        "id": "b60abc31-6941-58be-913f-c10ffb356920",
+        "required": false,
+        "key": "issuing_region",
+        "name": "Issued by",
+        "type": "text"
+      },
+      {
+        "id": "34dd0707-7d9a-5e7c-9531-f044ed6696db",
+        "required": false,
+        "key": "redacted_copy",
+        "name": "Redacted copy",
+        "type": "text"
+      },
+      {
+        "id": "d399ce97-4518-562a-820f-ad3de6b22bbf",
+        "required": false,
+        "key": "result",
+        "name": "Result",
+        "type": "text"
+      },
+      {
+        "id": "3628fb35-6f8c-5f21-ae4d-da187f4df775",
+        "required": false,
+        "key": "decided_by",
+        "name": "Decided by",
+        "type": "text"
+      },
+      {
+        "id": "df2c8844-5989-53cb-9964-274bd35b3ac8",
+        "required": false,
+        "key": "decided_at",
+        "name": "Decided",
+        "type": "date"
+      }
+    ]
+  }
+}

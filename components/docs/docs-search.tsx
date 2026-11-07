@@ -73,19 +73,19 @@ export function DocsSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg border border-[#1B1916]/[0.12] bg-[#FFFFFF]/70 px-3 py-1.5 text-sm text-[#6E6759] transition hover:border-[#1B1916]/25 sm:w-56"
+        className="inline-flex items-center gap-2 rounded-lg border border-(color:--mkt-ink)/[0.12] bg-(color:--mkt-white)/70 px-3 py-1.5 text-sm text-(color:--mkt-muted) transition hover:border-(color:--mkt-ink)/25 sm:w-56"
         aria-label="Search documentation"
       >
         <Search size={15} aria-hidden="true" />
         <span className="hidden flex-1 text-left sm:inline">Search docs</span>
-        <kbd className="hidden rounded border border-[#1B1916]/15 px-1.5 font-mono text-[10px] sm:inline">⌘K</kbd>
+        <kbd className="hidden rounded border border-(color:--mkt-ink)/15 px-1.5 font-mono text-2xs sm:inline">⌘K</kbd>
       </button>
       {open && (
         <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Search documentation">
-          <button type="button" aria-label="Close search" className="absolute inset-0 bg-[#1B1916]/40" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-[#1B1916]/10 bg-[#FAF8F3] shadow-2xl">
-            <div className="flex items-center gap-3 border-b border-[#1B1916]/[0.08] px-4">
-              <Search size={18} className="text-[#8A6D45]" aria-hidden="true" />
+          <button type="button" aria-label="Close search" className="absolute inset-0 bg-(color:--mkt-ink)/40" onClick={() => setOpen(false)} />
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-(color:--mkt-ink)/10 bg-(color:--mkt-paper) shadow-2xl">
+            <div className="flex items-center gap-3 border-b border-(color:--mkt-ink)/[0.08] px-4">
+              <Search size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />
               <input
                 ref={inputRef}
                 value={query}
@@ -96,23 +96,23 @@ export function DocsSearch() {
                   if (event.key === 'Enter' && results[active]) go(results[active])
                 }}
                 placeholder="Search nodes, commands, functions, settings…"
-                className="h-12 flex-1 bg-transparent text-[15px] text-[#1B1916] outline-none"
+                className="h-12 flex-1 bg-transparent text-sm text-(color:--mkt-ink) outline-none"
                 aria-label="Search"
               />
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close search" className="text-[#6E6759]"><X size={16} /></button>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close search" className="text-(color:--mkt-muted)"><X size={16} /></button>
             </div>
             <ul className="max-h-[50vh] overflow-y-auto p-2" role="listbox">
-              {query && results.length === 0 && <li className="px-3 py-6 text-center text-sm text-[#6E6759]">{index ? 'No results' : 'Loading…'}</li>}
+              {query && results.length === 0 && <li className="px-3 py-6 text-center text-sm text-(color:--mkt-muted)">{index ? 'No results' : 'Loading…'}</li>}
               {results.map((entry, position) => (
                 <li key={entry.h} role="option" aria-selected={position === active}>
                   <button
                     type="button"
                     onMouseEnter={() => setActive(position)}
                     onClick={() => go(entry)}
-                    className={`w-full rounded-lg px-3 py-2 text-left ${position === active ? 'bg-[#17150F]/[0.07]' : ''}`}
+                    className={`w-full rounded-lg px-3 py-2 text-left ${position === active ? 'bg-(color:--mkt-primary)/[0.07]' : ''}`}
                   >
-                    <span className="block text-sm font-medium text-[#1B1916]">{entry.t}</span>
-                    <span className="block text-xs text-[#6E6759]">{entry.s}</span>
+                    <span className="block text-sm font-medium text-(color:--mkt-ink)">{entry.t}</span>
+                    <span className="block text-xs text-(color:--mkt-muted)">{entry.s}</span>
                   </button>
                 </li>
               ))}

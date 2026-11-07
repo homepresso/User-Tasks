@@ -63,10 +63,13 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'ROUND', category: 'math', description: 'Round to precision', args: [{ name: 'number', type: 'number' }, { name: 'digits', type: 'number', optional: true }], example: 'ROUND(1.567, 1) → 1.6', returnType: 'number' },
   { name: 'ROUND_UP', category: 'math', description: 'Round up (ceiling)', args: [{ name: 'number', type: 'number' }], example: 'ROUND_UP(1.1) → 2', returnType: 'number' },
   { name: 'ROUND_DOWN', category: 'math', description: 'Round down (floor)', args: [{ name: 'number', type: 'number' }], example: 'ROUND_DOWN(1.9) → 1', returnType: 'number' },
-  { name: 'MIN', category: 'math', description: 'Minimum of values', args: [{ name: 'values', type: 'number...' }], example: 'MIN(3, 1, 5) → 1', returnType: 'number' },
-  { name: 'MAX', category: 'math', description: 'Maximum of values', args: [{ name: 'values', type: 'number...' }], example: 'MAX(3, 1, 5) → 5', returnType: 'number' },
-  { name: 'AVG', category: 'math', description: 'Average of values', args: [{ name: 'values', type: 'number...' }], example: 'AVG(2, 4, 6) → 4', returnType: 'number' },
-  { name: 'SUM', category: 'math', description: 'Sum of values', args: [{ name: 'values', type: 'number...' }], example: 'SUM(1, 2, 3) → 6', returnType: 'number' },
+  { name: 'MIN', category: 'math', description: 'Minimum of values (or of one column of a list of rows: MIN(rows, "column"))', args: [{ name: 'values', type: 'number...' }], example: 'MIN(3, 1, 5) → 1', returnType: 'number' },
+  { name: 'MAX', category: 'math', description: 'Maximum of values (or of one column of a list of rows: MAX(rows, "column"))', args: [{ name: 'values', type: 'number...' }], example: 'MAX(3, 1, 5) → 5', returnType: 'number' },
+  { name: 'AVG', category: 'math', description: 'Average of values (or of one column of a list of rows: AVG(rows, "column"))', args: [{ name: 'values', type: 'number...' }], example: 'AVG(2, 4, 6) → 4', returnType: 'number' },
+  { name: 'SUM', category: 'math', description: 'Sum of values (or of one column of a list of rows: SUM(rows, "column"))', args: [{ name: 'values', type: 'number...' }], example: 'SUM(1, 2, 3) → 6', returnType: 'number' },
+  { name: 'SUMPRODUCT', category: 'math', description: 'Multiply columns row by row and add the results (an order total: quantity × price on every line)', args: [{ name: 'rows', type: 'array' }, { name: 'columns', type: 'string...' }], example: 'SUMPRODUCT(control.lines.rows, "qty", "price") → 42.5', returnType: 'number' },
+  { name: 'SUMIF', category: 'math', description: 'Sum one column over the rows whose field equals a value', args: [{ name: 'rows', type: 'array' }, { name: 'field', type: 'string' }, { name: 'value', type: 'any' }, { name: 'sum_column', type: 'string' }], example: 'SUMIF(control.lines.rows, "status", "open", "amount")', returnType: 'number' },
+  { name: 'COUNTIF', category: 'math', description: 'Count the rows whose field equals a value', args: [{ name: 'rows', type: 'array' }, { name: 'field', type: 'string' }, { name: 'value', type: 'any' }], example: 'COUNTIF(control.lines.rows, "status", "open") → 3', returnType: 'number' },
   { name: 'POWER', category: 'math', description: 'Raise to a power', args: [{ name: 'base', type: 'number' }, { name: 'exponent', type: 'number' }], example: 'POWER(2, 3) → 8', returnType: 'number' },
   { name: 'SQRT', category: 'math', description: 'Square root', args: [{ name: 'number', type: 'number' }], example: 'SQRT(9) → 3', returnType: 'number' },
   { name: 'MOD', category: 'math', description: 'Modulo (remainder)', args: [{ name: 'number', type: 'number' }, { name: 'divisor', type: 'number' }], example: 'MOD(10, 3) → 1', returnType: 'number' },
@@ -99,6 +102,7 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'PLUCK', category: 'list', description: 'Extract one field from every item into a list (dotted paths like "address.city" work)', args: [{ name: 'list', type: 'array' }, { name: 'key', type: 'string' }], example: 'SUM(PLUCK(items, "price"))', returnType: 'array' },
   { name: 'FIND_WHERE', category: 'list', description: 'First item whose field equals a value — optionally return one field of it', args: [{ name: 'list', type: 'array' }, { name: 'field', type: 'string' }, { name: 'value', type: 'any' }, { name: 'return_field', type: 'string', optional: true }], example: 'FIND_WHERE(customers, "id", 42, "email") → "ada@example.com"', returnType: 'any' },
   { name: 'FILTER_WHERE', category: 'list', description: 'All items whose field equals a value', args: [{ name: 'list', type: 'array' }, { name: 'field', type: 'string' }, { name: 'value', type: 'any' }], example: 'COUNT(FILTER_WHERE(orders, "status", "open"))', returnType: 'array' },
+  { name: 'MAP', category: 'list', description: 'Work out an expression for every row (its columns by name; the row itself as row) — a list of the results, e.g. to SUM', args: [{ name: 'rows', type: 'array' }, { name: 'expression', type: 'string' }], example: 'SUM(MAP(control.lines.rows, "qty * price * (1 - discount)"))', returnType: 'array' },
 
   // ─── Regex ───
   { name: 'REGEX_MATCH', category: 'regex', description: 'Test if text matches a pattern', args: [{ name: 'text', type: 'string' }, { name: 'pattern', type: 'string' }], example: 'REGEX_MATCH("abc123", "\\\\d+") → true', returnType: 'boolean' },
@@ -470,6 +474,43 @@ function readField(row: any, key: string): any {
   return value
 }
 
+/** Bounds of the row functions (SUMPRODUCT, SUMIF, COUNTIF, MAP): rows read, MAP nesting, MAP's expression length. */
+export const MAP_LIMITS = { rows: 5000, depth: 2, expression: 500 } as const
+let mapDepth = 0
+
+function boundedRows(list: any[]): any[] {
+  return list.length > MAP_LIMITS.rows ? list.slice(0, MAP_LIMITS.rows) : list
+}
+
+/** A cell as a number: numbers, and plain numeric text ("12.50", "1,234.5" with comma thousands); else null. */
+function rowNumber(value: any): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'boolean') return value ? 1 : 0
+  if (typeof value !== 'string') return null
+  const s = value.trim()
+  if (!/^-?(?:\d{1,3}(?:,\d{3})+|\d+)?(?:\.\d+)?$/.test(s) || s === '' || s === '-') return null
+  const n = Number(s.replace(/,/g, ''))
+  return Number.isFinite(n) ? n : null
+}
+
+/** SUM(rows, "column") / AVG / MIN / MAX: a list of rows and one column name → that column's values. */
+function columnArgs(args: any[]): any[] {
+  if (args.length === 2 && Array.isArray(args[0]) && typeof args[1] === 'string' && args[0].some((row: any) => row !== null && typeof row === 'object' && !Array.isArray(row))) {
+    return boundedRows(args[0]).map((row: any) => rowNumber(readField(row, args[1]))).filter((n: number | null) => n !== null)
+  }
+  return args
+}
+
+/** MAP's scope for one row: its columns by name and `row`, then the outer scope (read-only, not copied). */
+function rowScope(row: any, outer?: Record<string, any>): Record<string, any> {
+  const own: Record<string, any> = row !== null && typeof row === 'object' && !Array.isArray(row) ? row : {}
+  const base = outer ?? {}
+  return new Proxy(own, {
+    has: (target, key) => key === 'row' || key in target || key in base,
+    get: (target, key) => (key === 'row' ? row : key in target ? target[key as string] : base[key as string]),
+  })
+}
+
 /** Equality for FIND_WHERE/FILTER_WHERE: 42 matches "42", true matches "true". */
 function looseEquals(a: any, b: any): boolean {
   if (a === b) return true
@@ -595,10 +636,34 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
       case 'ROUND': return Number((Number(args[0]) || 0).toFixed(Number(args[1]) ?? 0))
       case 'ROUND_UP': return Math.ceil(Number(args[0]) || 0)
       case 'ROUND_DOWN': return Math.floor(Number(args[0]) || 0)
-      case 'MIN': { const nums = toNums(args); return nums.length ? Math.min(...nums) : 0 }
-      case 'MAX': { const nums = toNums(args); return nums.length ? Math.max(...nums) : 0 }
-      case 'AVG': { const nums = toNums(args); return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0 }
-      case 'SUM': return toNums(args).reduce((a, b) => a + b, 0)
+      case 'MIN': { const nums = toNums(columnArgs(args)); return nums.length ? Math.min(...nums) : 0 }
+      case 'MAX': { const nums = toNums(columnArgs(args)); return nums.length ? Math.max(...nums) : 0 }
+      case 'AVG': { const nums = toNums(columnArgs(args)); return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0 }
+      case 'SUM': return toNums(columnArgs(args)).reduce((a, b) => a + b, 0)
+      // Row aggregates (form Labels over a Data table's rows; any list of objects).
+      case 'SUMPRODUCT': {
+        if (!Array.isArray(args[0])) return 0
+        const columns = args.slice(1).map((c) => String(c ?? '')).filter(Boolean)
+        if (!columns.length) return 0
+        let total = 0
+        for (const row of boundedRows(args[0])) {
+          let product = 1
+          for (const c of columns) { const n = rowNumber(readField(row, c)); product *= n ?? 0 }
+          total += product
+        }
+        return Number.isFinite(total) ? total : null
+      }
+      case 'SUMIF': {
+        if (!Array.isArray(args[0])) return 0
+        const field = String(args[1] ?? '')
+        const column = String(args[3] ?? args[1] ?? '')
+        return boundedRows(args[0]).filter((row: any) => looseEquals(readField(row, field), args[2])).reduce((sum: number, row: any) => sum + (rowNumber(readField(row, column)) ?? 0), 0)
+      }
+      case 'COUNTIF': {
+        if (!Array.isArray(args[0])) return 0
+        const field = String(args[1] ?? '')
+        return boundedRows(args[0]).filter((row: any) => looseEquals(readField(row, field), args[2])).length
+      }
       case 'POWER': return Math.pow(Number(args[0]) || 0, Number(args[1]) || 0)
       case 'SQRT': return Math.sqrt(Number(args[0]) || 0)
       case 'MOD': return (Number(args[0]) || 0) % (Number(args[1]) || 1)
@@ -651,6 +716,22 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
         if (!Array.isArray(args[0])) return []
         const field = String(args[1] ?? '')
         return args[0].filter((row: any) => looseEquals(readField(row, field), args[2]))
+      }
+      // MAP(rows, "qty * price"): the expression once per row — the row's columns by name, the row as `row`.
+      case 'MAP': {
+        if (!Array.isArray(args[0])) return []
+        const body = String(args[1] ?? '').trim()
+        if (!body || body.length > MAP_LIMITS.expression || mapDepth >= MAP_LIMITS.depth) return []
+        mapDepth++
+        try {
+          return boundedRows(args[0]).map((row: any) => {
+            const value = evaluateFunction(body, rowScope(row, scope))
+            // An expression that didn't evaluate comes back as its own text: no value for that row.
+            return value === body ? null : value
+          })
+        } finally {
+          mapDepth--
+        }
       }
 
       // ─── Regex ───

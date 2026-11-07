@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "9cbed29e-8eac-5e7e-91fc-bc597da10ed0",
+  "asset": {
+    "id": "9cbed29e-8eac-5e7e-91fc-bc597da10ed0",
+    "name": "Upload not published",
+    "description": "Tells the uploader why their upload was not published and how to appeal.",
+    "subject": "Your upload was not published",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Not published</h2><p>Hi {{uploader_name}},</p><p>Your upload \"{{caption}}\" was not published: {{decision_reason}}.</p><p>If you think this is a mistake, reply to this email to appeal; a person will look at it again.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Upload {{upload_id}}</p></div>",
+    "text_body": "Your upload was not published: {{decision_reason}}. Reply to appeal.",
+    "is_default": false
+  }
+}

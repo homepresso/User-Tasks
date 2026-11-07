@@ -1,4 +1,5 @@
 import { syncDirectoryManagers } from './managers'
+import { syncDirectoryOrg } from './profiles'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { invalidateCredentialCache } from '@/lib/api-auth-cache'
 import { writeAudit } from '@/lib/audit-log'
@@ -60,6 +61,13 @@ export interface DirectorySyncStats {
   groups_updated: number
   memberships_added: number
   memberships_removed: number
+  /** Members whose attributes (job title, department, …) changed (import_profiles). */
+  profiles_updated: number
+  /** Org units created / renamed or moved from the directory (import_org_units). */
+  org_units_created: number
+  org_units_updated: number
+  /** Org unit memberships added + removed (import_org_units). */
+  org_unit_memberships_changed: number
 }
 
 export interface DirectorySyncProgress {
@@ -337,6 +345,10 @@ export async function runDirectorySync(
     groups_updated: 0,
     memberships_added: 0,
     memberships_removed: 0,
+    profiles_updated: 0,
+    org_units_created: 0,
+    org_units_updated: 0,
+    org_unit_memberships_changed: 0,
   }
 
   // ── Phase 1: fetching ──────────────────────────────────────────────────────
@@ -549,6 +561,19 @@ export async function runDirectorySync(
   await syncDirectoryManagers(supabase, tenantId, provider, uniqueActiveUsers).catch((error) => {
     console.warn('[directory-sync] manager sync failed:', error?.message ?? error)
   })
+
+  // Org structure: attributes and org units (per-connection toggles; a delta
+  // run touches only the changed users). Best-effort.
+  if (connection.importProfiles || connection.importOrgUnits) {
+    const org = await syncDirectoryOrg(supabase, tenantId, provider, uniqueActiveUsers, {
+      importProfiles: connection.importProfiles,
+      importOrgUnits: connection.importOrgUnits,
+    }).catch((error) => {
+      console.warn('[directory-sync] org structure sync failed:', error?.message ?? error)
+      return null
+    })
+    if (org) Object.assign(stats, org)
+  }
 
   // Inactive directory users that are linked → deactivate their membership in
   // this tenant AND delete their user_roles rows here (revokeDirectoryAccess).

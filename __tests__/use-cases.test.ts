@@ -3,7 +3,9 @@ import sitemap from '@/app/sitemap'
 import { getDocPage } from '@/lib/docs/registry'
 import { SCREENSHOT_NAMES } from '@/lib/docs/screenshot-names'
 import { SEO_PAGES } from '@/lib/seo-pages'
-import { USE_CASE_REDIRECTS, USE_CASES, getUseCase } from '@/lib/use-cases'
+import { readFileSync } from 'node:fs'
+import { GALLERY_CATALOG_FILE } from '@/lib/gallery/source'
+import { USE_CASE_REDIRECTS, USE_CASES, getUseCase, useCasesInGroup } from '@/lib/use-cases'
 
 describe('use-case pages', () => {
   beforeEach(() => {
@@ -23,6 +25,20 @@ describe('use-case pages', () => {
       'sharepoint-workflow-replacement',
       'nintex-migration',
       'k2-migration',
+      'foia-evidence-redaction',
+      'meeting-minutes-from-recordings',
+      'insurance-claim-photo-assessment',
+      'support-call-qa-redaction',
+      'identity-document-kyc',
+      'user-generated-media-moderation',
+      'customer-satisfaction-nps-survey',
+      'employee-pulse-survey',
+      'training-quiz-certificates',
+      'site-safety-inspections',
+      'event-registration-capacity',
+      'contract-policy-review-signoff',
+      'legal-request-intake',
+      'contract-review-approval',
     ])
     for (const key of ['title', 'metaTitle', 'description'] as const) {
       expect(new Set(USE_CASES.map((useCase) => useCase[key])).size).toBe(USE_CASES.length)
@@ -54,6 +70,43 @@ describe('use-case pages', () => {
         expect(getDocPage(href.slice('/docs/'.length)), `${useCase.slug}: ${href}`).toBeDefined()
       }
     }
+  })
+
+  it('offers a gallery package on every media use case, with careful wording on the records page', () => {
+    const media = useCasesInGroup('media')
+    expect(media).toHaveLength(6)
+    const catalog = JSON.parse(readFileSync(GALLERY_CATALOG_FILE, 'utf8')) as { packages: Array<{ slug: string; category: string }> }
+    for (const useCase of media) {
+      const pkg = catalog.packages.find((p) => p.slug === useCase.gallery)
+      expect(pkg?.category, useCase.slug).toBe('media-evidence')
+      expect(useCase.steps?.length, useCase.slug).toBeGreaterThanOrEqual(3)
+      expect(useCase.stepsHeading, useCase.slug).toBeDefined()
+    }
+    expect(useCasesInGroup('platform').map((u) => u.slug)).not.toContain('foia-evidence-redaction')
+    const foia = JSON.stringify(getUseCase('foia-evidence-redaction'))
+    expect(foia).toMatch(/not legal advice/)
+    expect(foia).toMatch(/a person must check every redaction before release/)
+    expect(foia).not.toMatch(/fully automated|guarantee|compliant/i)
+  })
+
+  it('offers a "No integrations needed" package built on official form controls on every forms use case', () => {
+    const forms = useCasesInGroup('forms')
+    expect(forms).toHaveLength(6)
+    const catalog = JSON.parse(readFileSync(GALLERY_CATALOG_FILE, 'utf8')) as { packages: Array<{ slug: string; native: boolean; controls?: Array<{ slug: string; tag: string }> }> }
+    for (const useCase of forms) {
+      const pkg = catalog.packages.find((p) => p.slug === useCase.gallery)
+      expect(pkg, useCase.slug).toBeDefined()
+      expect(pkg?.native, useCase.slug).toBe(true)
+      expect(pkg?.controls?.length, useCase.slug).toBeGreaterThanOrEqual(4)
+      // The page names the controls it relies on and links to the control docs.
+      expect(useCase.features.some((f) => f.href === '/docs/tasks/gallery-form-controls'), useCase.slug).toBe(true)
+      expect(useCase.screenshot.name.startsWith('forms-'), useCase.slug).toBe(true)
+      expect(useCase.steps?.length, useCase.slug).toBeGreaterThanOrEqual(3)
+    }
+    // Signatures are described as internal sign-offs, never as a regulated e-signature service.
+    const text = JSON.stringify(forms)
+    expect(text).not.toMatch(/legally binding|qualified electronic signature service|eIDAS[- ]compliant/i)
+    expect(text).toMatch(/internal sign-off|internal attestation/)
   })
 
   it('cites Microsoft for the SharePoint retirement dates', () => {

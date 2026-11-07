@@ -24,16 +24,14 @@ export function SecretInput({
     return (
       <div className="flex items-center gap-2">
         <span
-          className="flex h-10 flex-1 items-center rounded-lg border px-3 text-sm tracking-widest"
-          style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+          className="flex h-10 flex-1 items-center rounded-lg border px-3 text-sm tracking-widest border-border text-fg-muted"
           aria-label={ariaLabel ? `${ariaLabel} (stored)` : 'Stored secret'}
         >
           ••••••••
         </span>
         <button
           type="button"
-          className="text-xs font-medium underline underline-offset-2 disabled:opacity-40"
-          style={{ color: 'var(--theme-primary-text)' }}
+          className="text-xs font-medium underline underline-offset-2 disabled:opacity-40 text-primary-text"
           onClick={() => onChange({ ...value, replacing: true, value: '' })}
           disabled={disabled}
         >
@@ -56,8 +54,7 @@ export function SecretInput({
       {value.stored && (
         <button
           type="button"
-          className="shrink-0 text-xs font-medium underline underline-offset-2"
-          style={{ color: 'var(--theme-muted-text)' }}
+          className="shrink-0 text-xs font-medium underline underline-offset-2 text-fg-muted"
           onClick={() => onChange({ ...value, replacing: false, value: '' })}
         >
           Keep current

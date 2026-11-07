@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/config/bootstrap"
 import { activeDbProvider, lazyPostgresFetch } from "@/lib/providers/db"
 import { activeAuthProviderId, resolveAuthProvider, type SessionUser } from "@/lib/providers/auth"
-import { authCookieOptions } from "@/lib/providers/auth/cookies"
+import { requestCookieDomain, supabaseCookieOptions } from "@/lib/providers/auth/cookies"
 import { cookies } from "next/headers"
 import { cache } from "react"
 import type { Database } from "@/lib/database.types"
@@ -16,12 +16,15 @@ import type { Database } from "@/lib/database.types"
  */
 export async function createSupabaseAuthClient() {
   const cookieStore = await cookies()
+  // Shared across the workspace subdomains when the request is on the base
+  // domain (lib/providers/auth/cookies.ts); host-only otherwise.
+  const domain = await requestCookieDomain()
 
   return createServerClient<Database>(
     supabaseUrl()!,
     supabaseAnonKey()!,
     {
-      cookieOptions: authCookieOptions(),
+      cookieOptions: supabaseCookieOptions(domain),
       cookies: {
         getAll() {
           return cookieStore.getAll()

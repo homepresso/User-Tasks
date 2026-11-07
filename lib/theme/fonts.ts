@@ -2,7 +2,7 @@
  * Fonts a workspace theme may use.
  *
  * - `google`: one of the curated Google Fonts below. The three families the
- *   app already ships through next/font (DM Sans, Space Mono, Fraunces) are
+ *   app already ships through next/font (Inter, JetBrains Mono, Fraunces) are
  *   served from the app bundle instead of fonts.googleapis.com.
  * - `system`: a platform font stack, no download.
  * - `upload`: a woff2 file in this workspace's `brand-fonts` storage folder
@@ -32,8 +32,8 @@ const range = (from: number, to: number) => {
 
 export const CURATED_FONTS: CuratedFont[] = [
   // Sans-serif
-  { family: 'DM Sans', category: 'sans', weights: range(100, 900), bundledVar: '--font-sans' },
-  { family: 'Inter', category: 'sans', weights: range(100, 900) },
+  { family: 'Inter', category: 'sans', weights: range(100, 900), bundledVar: '--font-sans' },
+  { family: 'DM Sans', category: 'sans', weights: range(100, 900) },
   { family: 'Geist', category: 'sans', weights: range(100, 900) },
   { family: 'Roboto', category: 'sans', weights: [100, 300, 400, 500, 700, 900] },
   { family: 'Open Sans', category: 'sans', weights: range(300, 800) },
@@ -76,8 +76,8 @@ export const CURATED_FONTS: CuratedFont[] = [
   { family: 'Cormorant Garamond', category: 'serif', weights: range(300, 700) },
   { family: 'Bitter', category: 'serif', weights: range(100, 900) },
   // Monospace
-  { family: 'Space Mono', category: 'mono', weights: [400, 700], bundledVar: '--font-mono' },
-  { family: 'JetBrains Mono', category: 'mono', weights: range(100, 800) },
+  { family: 'Space Mono', category: 'mono', weights: [400, 700] },
+  { family: 'JetBrains Mono', category: 'mono', weights: range(100, 800), bundledVar: '--font-mono' },
   { family: 'Fira Code', category: 'mono', weights: range(300, 700) },
   { family: 'IBM Plex Mono', category: 'mono', weights: range(100, 700) },
   { family: 'Roboto Mono', category: 'mono', weights: range(100, 700) },

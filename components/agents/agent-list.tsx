@@ -2,21 +2,42 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import * as Dialog from '@radix-ui/react-dialog'
+import { IconButton } from '@/components/ui/icon-button'
+import { Input, SearchInput } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Field } from '@/components/ui/field'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card } from '@/components/ui/card'
+import { StatusPill, Tag } from '@/components/ui/badge'
+import { PageHeader } from '@/components/ui/page-header'
+import { Tabs } from '@/components/ui/tabs'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/list-controls'
+import { Tooltip } from '@/components/ui/tooltip'
+import { Table, THead, TBody, TR, TH, TD, TDActions } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import {
-  Bot, Plus, Search, Grid3x3, List, Trash2, AlertTriangle,
-  ChevronUp, ChevronDown, Sparkles, Loader2 } from 'lucide-react'
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  Bot, Plus, LayoutGrid, List, Trash2, Download, MoreHorizontal, History,
+  ChevronUp, ChevronDown } from 'lucide-react'
 import { createAgent, deleteAgent } from '@/app/actions/agents'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
+import { ignoreRedirect, isRedirectError } from '@/lib/submit-guard'
 import { bulkDeleteWithJob, useJobs } from '@/components/jobs/jobs-provider'
 import { useAppStore } from '@/stores/app-store'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { buildQueuedDeleteNotice } from '@/lib/queued-delete-feedback'
 import { usePermissions } from '@/lib/permissions-context'
-import { ExportAssetButton, ImportConfigButton } from '@/components/shared/config-transfer'
+import { ExportAssetButton, ExportAssetDialog, ImportConfigButton } from '@/components/shared/config-transfer'
+import { cn } from '@/lib/utils'
+import { plural } from '@/lib/format/plural'
+import { formatCount } from '@/lib/format/number'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
 
 interface AgentListProps { agents: any[] }
 
@@ -24,9 +45,37 @@ type SortField = 'updated_at' | 'name' | 'model' | 'tools'
 type StatusFilter = 'all' | 'active' | 'inactive'
 
 const DEFAULT_PAGE_SIZE = 25
+const PAGE_SIZES = [12, 25, 50, 100] as const
+
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'updated_at:desc', label: 'Recently updated' },
+  { value: 'updated_at:asc', label: 'Least recently updated' },
+  { value: 'name:asc', label: 'Name A–Z' },
+  { value: 'name:desc', label: 'Name Z–A' },
+  { value: 'model:asc', label: 'Model A–Z' },
+  { value: 'model:desc', label: 'Model Z–A' },
+  { value: 'tools:desc', label: 'Most tools' },
+  { value: 'tools:asc', label: 'Fewest tools' },
+]
+
+/** Agents | Costs & budgets: the page views of the Agents section. */
+export function AgentsTabs({ value }: { value: 'agents' | 'costs' }) {
+  return (
+    <Tabs
+      aria-label="Agents"
+      value={value}
+      linkAs={Link}
+      items={[
+        { value: 'agents', label: 'Agents', href: '/agents' },
+        { value: 'costs', label: 'Costs & budgets', href: '/agents/costs' },
+      ]}
+    />
+  )
+}
+
+export const AGENTS_DESCRIPTION = 'AI agents answer in chat and run from workflows, using only the tools and data you grant them.'
 
 export function AgentList({ agents }: AgentListProps) {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const jobs = useJobs()
   const { can } = usePermissions()
@@ -42,7 +91,9 @@ export function AgentList({ agents }: AgentListProps) {
   const [showCreate, setShowCreate] = useState(false)
   const [createName, setCreateName] = useState('')
   const [createDesc, setCreateDesc] = useState('')
-  const [creating, setCreating] = useState(false)
+  // Synchronous guard so a double click can't create the agent twice.
+  const createGuard = useSubmitGuard()
+  const creating = createGuard.pending
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -50,6 +101,8 @@ export function AgentList({ agents }: AgentListProps) {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [localAgents, setLocalAgents] = useState<any[]>(agents)
+  // The per-agent export dialog, opened from a card or row menu.
+  const [exportTarget, setExportTarget] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     setLocalAgents(agents)
@@ -124,16 +177,20 @@ export function AgentList({ agents }: AgentListProps) {
 
   async function handleCreate() {
     if (!createName.trim()) return
-    setCreating(true); setActionError(null)
-    try { await createAgent({ name: createName.trim(), description: createDesc.trim() || undefined }) }
-    catch (err: any) { setActionError(err.message ?? 'Failed to create agent') }
-    setCreating(false)
+    await createGuard.run(async () => {
+      setActionError(null)
+      try { await createAgent({ name: createName.trim(), description: createDesc.trim() || undefined }) }
+      catch (err: any) {
+        // A redirect means it worked: keep the guard locked while navigating.
+        if (isRedirectError(err)) throw err
+        setActionError(err.message ?? 'Failed to create agent')
+      }
+    }).catch(ignoreRedirect)
   }
 
   async function handleDelete() {
     if (!deleteId) return
     setDeleting(true); setActionError(null)
-    const previous = localAgents
     try {
       const currentDeleteId = deleteId
       setLocalAgents((prev) => prev.filter((agent) => agent.id !== currentDeleteId))
@@ -155,7 +212,6 @@ export function AgentList({ agents }: AgentListProps) {
     if (ids.length === 0) return
     setBulkDeleting(true); setActionError(null)
     try {
-      const previous = localAgents
       setLocalAgents((prev) => prev.filter((agent) => !ids.includes(agent.id)))
       setSelected(new Set())
       setShowBulkDelete(false)
@@ -172,310 +228,344 @@ export function AgentList({ agents }: AgentListProps) {
     setBulkDeleting(false)
   }
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortBy !== field) return null
-    return sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+  const allVisibleSelected = pageRows.length > 0 && pageRows.every(agent => selected.has(agent.id))
+  const someVisibleSelected = pageRows.some(agent => selected.has(agent.id)) && !allVisibleSelected
+
+  function sortHeader(field: SortField, label: string, numeric?: boolean) {
+    const active = sortBy === field
+    return (
+      <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+        <button
+          type="button"
+          onClick={() => toggleSort(field)}
+          className={cn('inline-flex items-center gap-1 hover:text-fg', active && 'text-fg')}
+        >
+          {label}
+          {active && (sortDir === 'asc' ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />)}
+        </button>
+      </TH>
+    )
   }
 
-  return (
-    <div className="space-y-3">
-      {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg px-4 py-2 border" style={{ backgroundColor: 'var(--theme-primary-light)', borderColor: 'var(--theme-primary)' }}>
-          <span className="text-sm font-medium" style={{ color: 'var(--theme-primary-text)' }}>{selected.size} selected</span>
-          <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} className="!h-7 !text-xs">Clear</Button>
-          <div className="flex-1" />
-          <ExportAssetButton ids={[...selected]} name={`${selected.size} agent${selected.size === 1 ? '' : 's'}`} className="!h-7 !text-xs" />
-          <Button size="sm" onClick={() => setShowBulkDelete(true)} className="!h-7 !text-xs !bg-red-600 hover:!bg-red-700 !text-white">
-            <Trash2 size={12} className="mr-1" /> Delete {selected.size}
-          </Button>
-        </div>
-      )}
+  function agentMenu(agent: any) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <IconButton size="sm" label={`More actions for ${agent.name}`} icon={<MoreHorizontal />} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/agents/${agent.id}/runs`}>
+              <History className="size-4 text-fg-muted" aria-hidden="true" /> View runs
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem icon={<Download />} onSelect={() => setExportTarget({ id: agent.id, name: agent.name })}>
+            Export…
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem danger icon={<Trash2 />} onSelect={() => setDeleteId(agent.id)}>
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
 
-      {/* Toolbar */}
-      <div className="flex gap-2 items-center flex-wrap">
-        <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shrink-0" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <input
-            type="checkbox"
-            checked={pageRows.length > 0 && pageRows.every(agent => selected.has(agent.id))}
-            ref={el => { if (el) el.indeterminate = pageRows.some(agent => selected.has(agent.id)) && !pageRows.every(agent => selected.has(agent.id)) }}
-            onChange={toggleSelectAllVisible}
-            className="h-4 w-4 rounded border-gray-300 accent-[color:var(--theme-primary)]"
-          />
-          Select visible
-        </label>
-        <div className="relative flex-1 min-w-[220px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, description, or model…" className="pl-9" />
-        </div>
-        {/* Status filter — All / Active / Inactive. Segmented control
-            keeps it compact and matches the BulkAssignUsersDialog
-            "with / without role" chips. */}
-        <div className="flex rounded-lg overflow-hidden border shrink-0" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          {(['all', 'active', 'inactive'] as StatusFilter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => setStatusFilter(f)}
-              className="px-2.5 py-1 text-[10px] font-medium capitalize transition-colors"
-              style={{
-                backgroundColor: statusFilter === f ? 'var(--theme-primary)' : 'transparent',
-                color: statusFilter === f ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-        {/* Sort chips — only visible in grid mode. In list mode the
-            column headers are clickable so these would be redundant. */}
-        {viewMode === 'grid' && (
-          <div className="flex items-center gap-1 shrink-0">
-            {(['updated_at', 'name'] as SortField[]).map(f => (
-              <button key={f} onClick={() => toggleSort(f)}
-                className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-1 rounded"
-                style={{ backgroundColor: sortBy === f ? 'var(--theme-primary-light)' : 'var(--theme-surface)', color: sortBy === f ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}>
-                {f === 'updated_at' ? 'Updated' : 'Name'} <SortIcon field={f} />
-              </button>
-            ))}
+  const filtersActive = search.trim() !== '' || statusFilter !== 'all'
+
+  return (
+    <div>
+      <PageHeader
+        title="Agents"
+        description={AGENTS_DESCRIPTION}
+        actions={(
+          <>
+            {can('agents.create') && <ImportConfigButton onImported={() => void queryClient.invalidateQueries({ queryKey: ['agents'] })} />}
+            <Button onClick={() => setShowCreate(true)} leadingIcon={<Plus />}>New agent</Button>
+          </>
+        )}
+        tabs={<AgentsTabs value="agents" />}
+      />
+
+      <div className="space-y-3">
+        {selected.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-primary-wash px-3 py-2">
+            <span className="num text-ui font-medium text-primary-text">{formatCount(selected.size)} selected</span>
+            <Button size="sm" variant="ghost" onClick={toggleSelectAllVisible}>
+              {allVisibleSelected ? 'Deselect visible' : 'Select visible'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+            <div className="flex-1" />
+            <ExportAssetButton ids={[...selected]} name={plural(selected.size, 'agent')} />
+            <Button size="sm" variant="danger" leadingIcon={<Trash2 />} onClick={() => setShowBulkDelete(true)}>
+              Delete {selected.size}
+            </Button>
           </div>
         )}
-        <div className="flex rounded-lg overflow-hidden border shrink-0" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <button onClick={() => setViewMode('grid')} className="p-1.5" style={{ backgroundColor: viewMode === 'grid' ? 'var(--theme-primary)' : 'transparent', color: viewMode === 'grid' ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}><Grid3x3 size={14} /></button>
-          <button onClick={() => setViewMode('list')} className="p-1.5" style={{ backgroundColor: viewMode === 'list' ? 'var(--theme-primary)' : 'transparent', color: viewMode === 'list' ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}><List size={14} /></button>
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Search name, description, or model…"
+            aria-label="Search agents"
+            wrapperClassName="min-w-[220px] flex-1"
+          />
+          <SegmentedControl
+            aria-label="Status"
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            options={[
+              { value: 'all', text: 'All' },
+              { value: 'active', text: 'Active' },
+              { value: 'inactive', text: 'Inactive' },
+            ]}
+          />
+          <Select
+            aria-label="Sort"
+            value={`${sortBy}:${sortDir}`}
+            onChange={e => {
+              const [field, dir] = e.target.value.split(':') as [SortField, 'asc' | 'desc']
+              setSortBy(field); setSortDir(dir)
+            }}
+            options={SORT_OPTIONS}
+            wrapperClassName="w-auto"
+          />
+          <SegmentedControl
+            aria-label="View"
+            size="sm"
+            value={viewMode}
+            onValueChange={setViewMode}
+            options={[
+              { value: 'grid', icon: <LayoutGrid />, label: 'Grid' },
+              { value: 'list', icon: <List />, label: 'List' },
+            ]}
+          />
+          <span className="num ml-auto text-xs text-fg-muted">
+            {sorted.length === agents.length
+              ? plural(agents.length, 'agent')
+              : `${formatCount(sorted.length)} of ${plural(agents.length, 'agent')} match`}
+          </span>
         </div>
-        {can('agents.create') && <ImportConfigButton onImported={() => void queryClient.invalidateQueries({ queryKey: ['agents'] })} />}
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Plus size={14} className="mr-1" /> New Agent
-        </Button>
+
+        {actionError && (
+          <InlineNotice tone="warning" message={actionError} onDismiss={() => setActionError(null)} />
+        )}
+
+        {sorted.length === 0 ? (
+          <Card padding="none">
+            {filtersActive ? (
+              <EmptyState
+                size="sm"
+                variant="no-results"
+                icon={Bot}
+                title={search ? 'No agents match your search' : 'No agents match this filter'}
+                action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all') } }}
+              />
+            ) : (
+              <EmptyState
+                icon={Bot}
+                title="No agents yet"
+                description="Create your first AI agent to get started."
+                action={{ label: 'New agent', onClick: () => setShowCreate(true) }}
+              />
+            )}
+          </Card>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pageRows.map(agent => {
+              const isSelected = selected.has(agent.id)
+              const toolCount = (agent.tools as any[])?.length ?? 0
+              return (
+                <Card
+                  key={agent.id}
+                  variant="interactive"
+                  padding="md"
+                  className={cn('group relative flex flex-col gap-2', isSelected && 'border-primary hover:border-primary')}
+                >
+                  <div className="flex items-start gap-3">
+                    {/* The icon tile turns into the select checkbox on hover / focus, and stays one while selected. */}
+                    <div className="relative z-10 size-8 shrink-0">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'flex size-8 items-center justify-center rounded-md bg-primary-wash text-primary-text transition-opacity duration-[var(--ds-dur-fast)]',
+                          isSelected ? 'opacity-0' : 'group-focus-within:opacity-0 group-hover:opacity-0',
+                        )}
+                      >
+                        <Bot size={16} />
+                      </span>
+                      <span
+                        className={cn(
+                          'absolute inset-0 flex items-center justify-center transition-opacity duration-[var(--ds-dur-fast)]',
+                          isSelected ? 'opacity-100' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
+                        )}
+                      >
+                        <Checkbox
+                          aria-label={`Select ${agent.name}`}
+                          checked={isSelected}
+                          onChange={() => toggleSelect(agent.id)}
+                        />
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="line-clamp-2 text-sm font-semibold text-fg">
+                        {/* Stretched link: the whole card opens the agent; the checkbox and menu sit above it. */}
+                        <Link href={`/agents/${agent.id}`} className="after:absolute after:inset-0 after:rounded-lg">
+                          {agent.name}
+                        </Link>
+                      </h3>
+                      {agent.model && <Tag mono className="mt-1 max-w-full">{agent.model}</Tag>}
+                    </div>
+                    <StatusPill status={agent.is_active ? 'active' : 'inactive'} className="shrink-0" />
+                  </div>
+                  {agent.description && <p className="line-clamp-2 text-xs text-fg-muted">{agent.description}</p>}
+                  <div className="mt-auto flex items-center gap-2 pt-1">
+                    <p className="num min-w-0 flex-1 truncate text-xs text-fg-muted">
+                      {plural(toolCount, 'tool')} · {agent.integration?.name ?? 'No provider'}
+                    </p>
+                    <div className="relative z-10 -my-1 -mr-1">{agentMenu(agent)}</div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        ) : (
+          <Table>
+            <THead>
+              <tr>
+                <TH className="w-10">
+                  <Checkbox
+                    aria-label="Select visible"
+                    checked={allVisibleSelected}
+                    ref={el => { if (el) el.indeterminate = someVisibleSelected }}
+                    onChange={toggleSelectAllVisible}
+                  />
+                </TH>
+                {sortHeader('name', 'Name')}
+                {sortHeader('model', 'Model')}
+                {sortHeader('tools', 'Tools', true)}
+                <TH>Status</TH>
+                {sortHeader('updated_at', 'Updated')}
+                <TH className="w-12"><span className="sr-only">Actions</span></TH>
+              </tr>
+            </THead>
+            <TBody>
+              {pageRows.map(agent => {
+                const isSelected = selected.has(agent.id)
+                return (
+                  <TR key={agent.id} selected={isSelected} className="group">
+                    <TD>
+                      <span className={cn('inline-flex transition-opacity', isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
+                        <Checkbox
+                          aria-label={`Select ${agent.name}`}
+                          checked={isSelected}
+                          onChange={() => toggleSelect(agent.id)}
+                        />
+                      </span>
+                    </TD>
+                    <TD className="w-[40%] max-w-0">
+                      <Link href={`/agents/${agent.id}`} className="flex min-w-0 items-center gap-2">
+                        <Bot size={14} className="shrink-0 text-primary-text" aria-hidden="true" />
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium text-fg hover:underline">{agent.name}</span>
+                          {agent.description && <span className="block truncate text-xs text-fg-muted">{agent.description}</span>}
+                        </span>
+                      </Link>
+                    </TD>
+                    <TD>{agent.model ? <Tag mono>{agent.model}</Tag> : <span className="text-fg-muted">—</span>}</TD>
+                    <TD numeric className="text-fg-muted">{formatCount((agent.tools as any[])?.length ?? 0)}</TD>
+                    <TD><StatusPill status={agent.is_active ? 'active' : 'inactive'} /></TD>
+                    <TD className="text-xs text-fg-muted">
+                      {agent.updated_at ? (
+                        <Tooltip content={formatAbsolute(agent.updated_at)}>
+                          <span className="num">{formatRelative(agent.updated_at)}</span>
+                        </Tooltip>
+                      ) : '—'}
+                    </TD>
+                    <TDActions>{agentMenu(agent)}</TDActions>
+                  </TR>
+                )
+              })}
+            </TBody>
+          </Table>
+        )}
+
+        {sorted.length > 0 && (
+          <Pagination
+            page={safePage}
+            pageSize={pageSize}
+            total={sorted.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={PAGE_SIZES}
+            noun="agents"
+          />
+        )}
       </div>
 
-      <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-        {sorted.length === agents.length
-          ? `${agents.length} agent${agents.length !== 1 ? 's' : ''}`
-          : `${sorted.length} of ${agents.length} agents match`}
-      </p>
-
-      {actionError && (
-        <InlineNotice tone="warning" message={actionError} onDismiss={() => setActionError(null)} />
+      {exportTarget && (
+        <ExportAssetDialog
+          ids={[exportTarget.id]}
+          name={exportTarget.name}
+          open
+          onOpenChange={(open) => { if (!open) setExportTarget(null) }}
+        />
       )}
 
-      {sorted.length === 0 ? (
-        <div className="rounded-xl border p-12 text-center" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          <Bot size={36} className="mx-auto mb-3" style={{ color: 'var(--theme-muted-text)', opacity: 0.3 }} />
-          <p className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>
-            {search ? 'No agents match your search' : 'No agents yet'}
-          </p>
-          {!search && <p className="text-xs mt-1 mb-3" style={{ color: 'var(--theme-muted-text)' }}>Create your first AI agent to get started.</p>}
-          {!search && <Button size="sm" onClick={() => setShowCreate(true)}><Plus size={14} className="mr-1" /> New Agent</Button>}
-        </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {pageRows.map(agent => (
-            <div key={agent.id} className="rounded-xl border overflow-hidden transition-all hover:shadow-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-              <Link href={`/agents/${agent.id}`} className="block p-4">
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(agent.id)}
-                      onChange={(e) => { e.preventDefault(); e.stopPropagation(); toggleSelect(agent.id) }}
-                      className="h-4 w-4 rounded border-gray-300 accent-[color:var(--theme-primary)] shrink-0"
-                    />
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-                      <Bot size={16} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>{agent.name}</h3>
-                      <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{agent.model}</p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{
-                    backgroundColor: agent.is_active ? '#10B98115' : '#6B728015',
-                    color: agent.is_active ? '#10B981' : '#6B7280',
-                  }}>{agent.is_active ? 'Active' : 'Inactive'}</span>
-                </div>
-                {agent.description && <p className="text-[11px] line-clamp-2 mt-1" style={{ color: 'var(--theme-muted-text)' }}>{agent.description}</p>}
-                <p className="text-[10px] mt-2" style={{ color: 'var(--theme-muted-text)' }}>
-                  {(agent.tools as any[])?.length ?? 0} tools · {agent.integration?.name ?? 'No provider'}
-                </p>
-              </Link>
-              <div className="flex items-center gap-1 px-3 py-2 border-t" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                <div className="flex-1" />
-                <ExportAssetButton ids={[agent.id]} name={agent.name} iconOnly variant="ghost" className="!h-auto !p-1" style={{ color: 'var(--theme-muted-text)' }} />
-                <button onClick={() => setDeleteId(agent.id)} className="text-[9px] font-medium px-2 py-0.5 rounded hover:opacity-80" style={{ color: 'var(--theme-danger, #DC2626)' }}>
-                  <Trash2 size={9} className="inline mr-0.5" /> Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-xl border overflow-hidden max-lg:overflow-x-auto" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          <div className="max-lg:min-w-[700px] grid text-[10px] font-semibold uppercase tracking-wider select-none" style={{ gridTemplateColumns: '1.6fr 140px 80px 80px 120px 60px', backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-            <button className="px-3 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleSort('name')} style={{ color: sortBy === 'name' ? 'var(--theme-primary-text)' : undefined }}>Name <SortIcon field="name" /></button>
-            <button className="px-2 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleSort('model')} style={{ color: sortBy === 'model' ? 'var(--theme-primary-text)' : undefined }}>Model <SortIcon field="model" /></button>
-            <button className="px-2 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleSort('tools')} style={{ color: sortBy === 'tools' ? 'var(--theme-primary-text)' : undefined }}>Tools <SortIcon field="tools" /></button>
-            <div className="px-2 py-2">Status</div>
-            <button className="px-2 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleSort('updated_at')} style={{ color: sortBy === 'updated_at' ? 'var(--theme-primary-text)' : undefined }}>Updated <SortIcon field="updated_at" /></button>
-            <div className="px-2 py-2" />
-          </div>
-          {pageRows.map(agent => (
-            <div key={agent.id} className="max-lg:min-w-[700px] grid items-center text-xs border-t hover:bg-[var(--theme-surface)]" style={{ gridTemplateColumns: '1.6fr 140px 80px 80px 120px 60px', borderColor: 'var(--theme-surface-border)' }}>
-              <Link href={`/agents/${agent.id}`} className="flex items-center gap-2 px-3 py-2.5 min-w-0">
-                <input
-                  type="checkbox"
-                  checked={selected.has(agent.id)}
-                  onChange={(e) => { e.preventDefault(); e.stopPropagation(); toggleSelect(agent.id) }}
-                  className="h-4 w-4 rounded border-gray-300 accent-[color:var(--theme-primary)] shrink-0"
-                />
-                <Bot size={14} className="shrink-0" style={{ color: 'var(--theme-primary-text)' }} />
-                <div className="min-w-0">
-                  <div className="font-medium truncate" style={{ color: 'var(--theme-card-text)' }}>{agent.name}</div>
-                  {agent.description && (
-                    <div className="text-[10px] truncate" style={{ color: 'var(--theme-muted-text)' }}>{agent.description}</div>
-                  )}
-                </div>
-              </Link>
-              <div className="px-2 py-2.5 text-[10px] truncate" style={{ color: 'var(--theme-muted-text)' }}>{agent.model ?? '—'}</div>
-              <div className="px-2 py-2.5" style={{ color: 'var(--theme-muted-text)' }}>{(agent.tools as any[])?.length ?? 0}</div>
-              <div className="px-2 py-2.5">
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{
-                  backgroundColor: agent.is_active ? '#10B98115' : '#6B728015',
-                  color: agent.is_active ? '#10B981' : '#6B7280',
-                }}>{agent.is_active ? 'Active' : 'Inactive'}</span>
-              </div>
-              <div className="px-2 py-2.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{new Date(agent.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>
-              <div className="px-2 py-2.5 flex justify-end gap-0.5">
-                <ExportAssetButton ids={[agent.id]} name={agent.name} iconOnly variant="ghost" className="!h-auto !p-1" style={{ color: 'var(--theme-muted-text)' }} />
-                <button onClick={() => setDeleteId(agent.id)} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-danger, #DC2626)' }}><Trash2 size={12} /></button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Create dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent size="sm" title="New agent">
+          <DialogBody className="space-y-3">
+            <Field label="Name">
+              <Input value={createName} onChange={e => setCreateName(e.target.value)} placeholder="e.g. Research Assistant" autoFocus />
+            </Field>
+            <Field label="Description" optional>
+              <Input value={createDesc} onChange={e => setCreateDesc(e.target.value)} placeholder="What does this agent do?" />
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={!createName.trim()} loading={creating}>
+              {creating ? 'Creating…' : 'Create agent'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Pagination footer — only shown when the working set is
-          non-empty. Mirrors the pattern used in UserRoleAssignments
-          so tenants with hundreds of agents don't load every card
-          at once. Always visible on non-empty lists so users can
-          switch "rows per page" even on short lists. */}
-      {sorted.length > 0 && (
-        <div
-          className="flex items-center justify-between px-3 py-2 rounded-lg border text-[11px]"
-          style={{
-            borderColor: 'var(--theme-surface-border)',
-            backgroundColor: 'var(--theme-card-bg)',
-            color: 'var(--theme-muted-text)',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span>
-              Showing {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sorted.length)} of {sorted.length}
-            </span>
-            <span>·</span>
-            <label className="flex items-center gap-1">
-              Rows per page
-              <select
-                value={pageSize}
-                onChange={e => setPageSize(Number(e.target.value))}
-                className="rounded border px-1.5 py-0.5 text-[11px]"
-                style={{
-                  borderColor: 'var(--theme-surface-border)',
-                  backgroundColor: 'var(--theme-card-bg)',
-                  color: 'var(--theme-card-text)',
-                }}
-              >
-                {[12, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </label>
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={safePage === 1}
-                className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-              >‹ Prev</button>
-              <span className="px-2">Page {safePage} of {totalPages}</span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage === totalPages}
-                className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-              >Next ›</button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Delete dialog */}
+      <Dialog open={deleteId !== null} onOpenChange={open => { if (!open) setDeleteId(null) }}>
+        <DialogContent size="sm" title="Delete agent">
+          <DialogBody className="space-y-3">
+            <p className="text-sm text-fg">
+              Delete <strong className="font-semibold">{agents.find(a => a.id === deleteId)?.name}</strong>?
+            </p>
+            <InlineNotice tone="danger" message="This will delete the agent and all its run history." />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete} loading={deleting}>
+              {deleting ? 'Deleting…' : 'Delete agent'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Create Dialog */}
-      <Dialog.Root open={showCreate} onOpenChange={setShowCreate}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(28rem,92vw)] rounded-xl p-6 shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-            <Dialog.Title className="text-lg font-semibold mb-3" style={{ color: 'var(--theme-card-text)' }}>
-              <Sparkles size={18} className="inline mr-2" style={{ color: 'var(--theme-primary-text)' }} /> New Agent
-            </Dialog.Title>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--theme-muted-text)' }}>Name</label>
-                <Input value={createName} onChange={e => setCreateName(e.target.value)} placeholder="e.g. Research Assistant" autoFocus />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--theme-muted-text)' }}>Description <span className="font-normal">(optional)</span></label>
-                <Input value={createDesc} onChange={e => setCreateDesc(e.target.value)} placeholder="What does this agent do?" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Dialog.Close asChild><Button variant="outline" size="sm">Cancel</Button></Dialog.Close>
-              <Button size="sm" onClick={handleCreate} disabled={!createName.trim() || creating}>
-                {creating ? (<><Loader2 size={14} className="mr-1.5 animate-spin" /> Creating…</>) : 'Create Agent'}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      {/* Delete Dialog */}
-      <Dialog.Root open={deleteId !== null} onOpenChange={open => { if (!open) setDeleteId(null) }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(24rem,92vw)] rounded-xl p-6 shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-            <Dialog.Title className="text-lg font-semibold mb-2">Delete Agent</Dialog.Title>
-            <p className="text-sm mb-1" style={{ color: 'var(--theme-muted-text)' }}>
-              Delete <strong>{agents.find(a => a.id === deleteId)?.name}</strong>?
-            </p>
-            <p className="text-xs mb-4" style={{ color: 'var(--theme-danger)' }}>
-              <AlertTriangle size={11} className="inline mr-1" /> This will delete the agent and all its run history.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setDeleteId(null)}>Cancel</Button>
-              <Button size="sm" onClick={handleDelete} disabled={deleting} className="!bg-red-600 hover:!bg-red-700 !text-white">
-                {deleting ? 'Deleting...' : 'Delete'}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      <Dialog.Root open={showBulkDelete} onOpenChange={setShowBulkDelete}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(24rem,92vw)] rounded-xl p-6 shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-            <Dialog.Title className="text-lg font-semibold mb-2">Delete Agents</Dialog.Title>
-            <p className="text-sm mb-1" style={{ color: 'var(--theme-muted-text)' }}>
-              Delete {selected.size} selected agent{selected.size !== 1 ? 's' : ''}?
-            </p>
-            <p className="text-xs mb-4" style={{ color: 'var(--theme-danger)' }}>
-              <AlertTriangle size={11} className="inline mr-1" /> This will delete the selected agents and their run history.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowBulkDelete(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleBulkDelete} disabled={bulkDeleting} className="!bg-red-600 hover:!bg-red-700 !text-white">
-                {bulkDeleting ? `Deleting (${selected.size})...` : `Delete ${selected.size}`}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Dialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
+        <DialogContent size="sm" title="Delete agents">
+          <DialogBody className="space-y-3">
+            <p className="text-sm text-fg">Delete {plural(selected.size, 'selected agent')}?</p>
+            <InlineNotice tone="danger" message="This will delete the selected agents and their run history." />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowBulkDelete(false)}>Cancel</Button>
+            <Button variant="danger" onClick={handleBulkDelete} loading={bulkDeleting}>
+              {bulkDeleting ? `Deleting (${selected.size})…` : `Delete ${selected.size}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

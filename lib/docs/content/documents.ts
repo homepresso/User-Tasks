@@ -1,4 +1,5 @@
 import type { DocPageDef } from '../types'
+import { infoTypeReferenceMarkdown } from '@/lib/documents/pii/catalog'
 
 /**
  * Document actions (lib/documents): Read, Compare, Convert, PDF tools,
@@ -28,7 +29,7 @@ Find them in the designer's palette under **Operations**, next to Word Document,
 | [Convert Document](/docs/workflows/documents/convert-document) | \`doc_convert\` | A file → PDF, Word, HTML, Markdown, plain text, CSV, Excel or JSON |
 | [PDF Tools](/docs/workflows/documents/pdf-tools) | \`doc_pdf\` | Merge, split, extract pages, count pages, watermark or stamp text, rotate, fill and read form fields |
 | [Extract from Document](/docs/workflows/documents/extract) | \`doc_extract\` | Tables, named values by regular expression, and emails, URLs, phone numbers, dates, amounts and percentages — optionally written straight into a data table |
-| [Redact Document](/docs/workflows/documents/redact) | \`doc_redact\` | A copy without emails, phone and card numbers, IBANs, other personal data, chosen words or patterns |
+| [Redact Document](/docs/workflows/documents/redact) | \`doc_redact\` | Find sensitive information by type — SSNs, dates of birth, national IDs, card and bank numbers, health numbers, contact details, keys and passwords ([50+ types](/docs/workflows/documents/info-types)) — and report it (**Detect only**) or make a copy without it, plus chosen words and patterns |
 | [Inspect Document](/docs/workflows/documents/inspect-document) | \`doc_inspect\` | File type from the content (not the name), checksums, word and character counts, reading time, search with context |
 
 Scanned PDFs and images need OCR: see [Scanned PDFs and OCR](/docs/workflows/documents/ocr).
@@ -141,7 +142,7 @@ Fixed limits:
 
 ## Summarise or classify with AI
 
-There is no separate AI document node: Read Document turns the file into text, and a [Run Agent](/docs/workflows/nodes#node-run-agent) step does the rest. Put \`{{document.text}}\` (or \`{{document.markdown}}\`, which keeps headings, lists and tables) in the agent's prompt:
+There is no separate AI document node: Read Document turns the file into text, and a [Run Agent](/docs/workflows/nodes#node-run-agent) step does the rest. For recordings, photos and video use the [media actions](/docs/workflows/media) — transcribe a call first, then pass \`{{transcript_text}}\` to the agent the same way. Put \`{{document.text}}\` (or \`{{document.markdown}}\`, which keeps headings, lists and tables) in the agent's prompt:
 
 \`\`\`json title="Read Document, then Run Agent"
 [
@@ -168,6 +169,7 @@ The built-in PDF output keeps the text, headings, lists and tables of a Word, Ex
 - [Import an Excel file into a data table](/docs/workflows/documents/how-to/excel-to-data-table)
 - [Redline two contract versions and email the changes](/docs/workflows/documents/how-to/contract-redline)
 - [Extract contact details and redact a copy](/docs/workflows/documents/how-to/extract-and-redact)
+- [Find and redact SSNs and dates of birth in uploaded documents](/docs/workflows/documents/how-to/redact-ssn-dob)
 - [Capture invoice PDFs into a table](/docs/workflows/documents/how-to/invoice-pdf)
 `,
   },
@@ -866,13 +868,16 @@ Canvas: \`tables · 1 pattern · emails, dates, amounts → Invoice lines\`.
   {
     slug: 'workflows/documents/redact',
     title: 'Redact Document',
-    description: 'Make a copy of a document without email addresses, phone and card numbers, IBANs, other personal data, chosen words or custom patterns.',
+    description: 'Find sensitive information by type (SSNs, dates of birth, national IDs, card and bank numbers, health numbers, contact details, keys) and report it or make a redacted copy; plus chosen words and custom patterns.',
     body: `
-**Redact Document** (\`doc_redact\`) makes a **redacted copy** of a file; the original is not changed. It removes what the presets detect, the words and phrases you list, and matches of your own patterns, and reports how many of each it replaced.
+**Redact Document** (\`doc_redact\`) looks for sensitive information in a file and either **reports it** (**Detect only**: findings, nothing changed) or makes a **redacted copy**; the original is never changed.
+
+It finds information **by type** — a US Social Security number, a date of birth, a New Zealand IRD number, an NHS number, a card number — by its format *and* its syntax: a pattern, then a check (check digits such as Luhn, mod-11 or mod-97, valid ranges, real calendar dates), then context words nearby ("SSN", "DOB", "IRD"), which together give each match a **confidence** (low, medium or high). The [information types reference](/docs/workflows/documents/info-types) lists all of them. Words and phrases you list and your own patterns are found too.
 
 - **Word, PowerPoint and Excel** files are redacted **in place**: the text inside the file is replaced and the formatting, layout and images are kept. The author fields in the file properties are cleared too.
 - **Text formats** (plain text, Markdown, CSV, TSV, JSON, XML, YAML) keep their format.
 - **PDF, HTML and OpenDocument** files are **rebuilt from the redacted text**: a PDF (or HTML) with the text, headings, lists and tables, but not the original layout or images. Nothing redacted is left in the file — the original text layer is gone.
+- **Scanned PDFs and images**: turn on OCR in the step, or redact the text of an upstream [Read Document](/docs/workflows/documents/read-document) with OCR (\`{{document.text}}\` as the source).
 
 ## Inputs
 
@@ -882,20 +887,40 @@ Canvas: \`tables · 1 pattern · emails, dates, amounts → Invoice lines\`.
 
 | Setting | Key | Default | What it does |
 |---|---|---|---|
-| Remove | \`presets\` | none | Any of the presets below |
+| Action | \`mode\` | \`redact\` | \`redact\`: make a redacted copy. \`detect_only\`: report the findings, no copy |
+| Information types | \`info_types\` | none | Type ids (\`us_ssn\`, \`date_of_birth\`, \`credit_card\`, \`nz_ird\`, \`uk_nhs\`, …). \`*\` is every type, \`@high\` every type that can reach high confidence (**All high-confidence types**), \`category:financial\` a whole category. See the [reference](/docs/workflows/documents/info-types) |
+| Regions | \`regions\` | all | Only types for these regions: \`US\`, \`UK\`, \`CA\`, \`AU\`, \`NZ\`, \`EU\` (Germany, France, Spain, Italy, Netherlands), \`IN\`, \`SG\`. Global types (cards, IBANs, emails, dates of birth, keys…) always apply |
+| Minimum confidence | \`min_confidence\` | \`medium\` | \`low\`, \`medium\` or \`high\`; matches below it are ignored |
+| Presets | \`presets\` | none | The original presets (below); still supported |
 | Words and phrases | \`terms\` | none | Comma-separated (or a list), matched anywhere, ignoring case: \`Project Falcon, {{customer.company_name}}\` |
 | Patterns | \`patterns\` | none | A list of \`{ "pattern": "…" }\` regular expressions, matched line by line, ignoring case: \`ACC-\\d{6}\` |
-| Replace with | \`replacement\` | \`block\` | \`block\`: █ for every character (spaces kept, so the length shows); \`label\`: the kind in brackets (\`[EMAIL]\`, \`[PHONE]\`, \`[CREDIT_CARD]\`, \`[IBAN]\`, \`[TERM]\`, \`[PATTERN]\`…); \`text\`: your own text |
+| Use AI to find names of people and addresses | \`ai_detection\`, \`ai_agent_id\` | off | See [AI detection](#ai-detection) |
+| Replace with | \`replacement\` | \`block\` | The style: \`block\` (█ for every character; \`mask\` is the same), \`label\` (\`[SSN]\`, \`[DATE_OF_BIRTH]\`, \`[EMAIL]\`, \`[TERM]\`…), \`partial\` (█ but the last 4 characters: \`███-██-1120\`), \`hash\` (\`[SSN:3f9a0c21b7]\`) or \`text\` (your own text) |
+| Style per type | \`styles\` | none | Override the style for some types: \`{ "credit_card": "partial", "email": "label" }\` |
 | Replacement text | \`replacement_text\` | \`[REDACTED]\` | With \`replacement: "text"\` |
+| Include the values in the findings variable | \`include_values\` | \`false\` | Off: each finding's \`text\` is masked (\`•••-••-••••\`) |
+| OCR | \`ocr\`, \`ocr_languages\` | \`off\`, \`eng\` | PDFs and images: read scanned pages first. See [OCR](/docs/workflows/documents/ocr) |
 | Redacted copy | \`output\` | \`same\` | \`same\` (Word, PowerPoint, Excel and text formats keep their format; anything else becomes PDF, HTML stays HTML), \`pdf\`, \`html\` or \`text\` |
 | Clear the author in the file properties | \`clear_author\` | \`true\` | Word, PowerPoint and Excel: empty the Author and Last modified by properties |
-| Pages, OCR | \`pages\`, \`ocr\`, \`ocr_languages\` | all, \`off\`, \`eng\` | PDFs rebuilt from text: which pages, and OCR for scans (not shown in the designer) |
+| Pages | \`pages\` | all | PDFs rebuilt from text: which pages (not shown in the designer) |
 | Output file name | \`output_name\` | \`<source>-redacted\` | |
-| Output variable | \`output_var\` | \`redacted\` | |
+| Output variable | \`output_var\` | \`redacted\` (\`detected\` with Detect only) | |
 
-At least one preset, term or pattern is required.
+At least one information type, preset, term or pattern (or AI detection) is required.
+
+### Information types and confidence
+
+Pick types by category (Identity, Financial, Contact, Health, Technical, Credentials) with the checkboxes, narrow them with **Regions**, or press **All high-confidence types** (\`info_types: ["@high"]\`, \`min_confidence: "high"\`). Each type has a pattern, a validator and context words; the confidence of a match is:
+
+- **High**: a check digit or structure check passed *and* the format is distinctive (an IBAN, a card with a known issuer, an Italian fiscal code, an MRZ line), or a context word is next to it ("SSN: 078-05-1120", "NHS number 943 476 5919").
+- **Medium**: the format and check pass but nothing nearby says what it is ("078-05-1120" alone), or a context-only type with its context word.
+- **Low**: only a checksum on bare digits ("9434765919" passes the NHS check, but so does one in eleven random 10-digit numbers).
+
+The default minimum, **medium**, leaves out bare numbers that only pass a checksum. A **date of birth** is any date (\`1985-03-12\`, \`12/03/1985\`, \`12 March 1985\`, \`Mar 12, 1985\`…) with a word such as *DOB*, *date of birth* or *born* just before it, that is a real date in the last 120 years; other dates stay plain **Date**s, so "Invoice date 12/03/1985" is not a date of birth. Where two types match the same text, the more confident and more specific one wins (an NHS number is not also reported as a phone number).
 
 ### Presets
+
+The original presets still work and keep their names in \`counts\`:
 
 | Preset | \`presets\` value | Finds |
 |---|---|---|
@@ -908,45 +933,80 @@ At least one preset, term or pattern is required.
 | URLs | \`url\` | \`http\` and \`https\` links |
 | Dates | \`date\` | ISO, numeric and written dates |
 
-The checksums keep order numbers and other long numbers that merely look like card numbers or IBANs out of the result.
+The information types cover all of them with checks and confidence (\`email\`, \`phone\`, \`credit_card\`, \`iban\`, \`us_ssn\`, \`ip_address\`, \`url\`, \`date\`).
+
+## AI detection
+
+Names of people (and free-form addresses) have no syntax to check, so patterns cannot find them reliably. Turn on **Use AI to find names of people and addresses** and choose one of your [agents](/docs/agents): its model connection is asked, once, for the names and addresses in the document, and every value it returns that occurs in the text is found as **Person name (AI)** (\`person_name\`, \`[NAME]\`) or **Street address** (\`postal_address\`), with \`source: "ai"\` and medium confidence.
+
+> [!WARNING]
+> AI detection is probabilistic — a model's judgement, not a pattern — so check its findings, and add names you know as **Words and phrases**. The first 40,000 characters of the document are sent to the agent's model provider; leave it off for documents that must not leave your network unless the agent uses a model you host. It is off by default.
 
 ## Outputs
 
 | Variable | Contents |
 |---|---|
-| \`{{redacted}}\` | \`{ file, text, counts, total }\` |
-| \`{{redacted_file}}\` | The redacted copy as a [file object](/docs/workflows/documents#output-files) |
-| \`{{redacted_text}}\` | The redacted text |
-| \`{{redacted_count}}\` | Number of redactions |
+| \`{{redacted}}\` | \`{ mode, file, text, counts, counts_by_type, total, findings, findings_truncated }\` |
+| \`{{redacted_file}}\` | The redacted copy as a [file object](/docs/workflows/documents#output-files) (\`null\` with Detect only) |
+| \`{{redacted_text}}\` | The redacted text (\`null\` with Detect only) |
+| \`{{redacted_findings}}\` | The findings, to loop over (up to 5,000) |
+| \`{{redacted_count}}\` | Number of findings / redactions |
 
-\`\`\`json title="{{redacted}} for a Word file, replacement: label"
+With **Detect only** the default output variable is \`detected\`: \`{{detected_findings}}\`, \`{{detected.counts_by_type}}\`.
+
+Each finding is:
+
+| Field | Contents |
+|---|---|
+| \`type\`, \`label\`, \`category\` | \`us_ssn\`, "US Social Security number", \`identity\` (terms and patterns: \`term\` / \`pattern\`, category \`custom\`) |
+| \`confidence\` | \`low\`, \`medium\` or \`high\` |
+| \`source\` | \`pattern\`, \`ai\`, \`preset\` or \`term\` |
+| \`text\` | The value, **masked** (\`•••-••-••••\`) unless **Include the values** is on |
+| \`page\`, \`slide\`, \`sheet\`, \`cell\`, \`part\`, \`paragraph\`, \`line\`, \`row\`, \`column\` | Where it is: PDF page; PowerPoint slide (\`part\`: slide, notes, comments); Excel sheet and cell (\`B2\`); Word \`part\` (body, header, footer, footnotes, endnotes, comments) and paragraph; line of a text file; row and column of a table in a rebuilt document |
+| \`start\`, \`end\` | Character offsets in that paragraph, cell or (text files) the whole text |
+| \`context_snippet\` | About 30 characters either side, with every finding replaced by its \`[LABEL]\` and other numbers of 4+ digits masked: \`SSN: [SSN], DOB [DATE_OF_BIRTH]\` |
+
+\`\`\`json title="{{detected}} for a Word file, Detect only"
 {
-  "file": { "_file": true, "name": "customer-onboarding-redacted.docx", "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "size": 14876, "url": "…", "storage_ref": "storage://task-files/workflow-files/…", "checksum_sha256": "…" },
-  "text": "Customer onboarding\\nOrders: Nancy Davolio <[EMAIL]>, phone [PHONE].\\nAccounts: [EMAIL], [PHONE].\\nCard on file: [CREDIT_CARD]\\nBank account: [IBAN]",
-  "counts": { "email": 2, "phone": 2, "credit_card": 1, "iban": 1 },
-  "total": 6
+  "mode": "detect_only",
+  "file": null,
+  "text": null,
+  "counts": { "us_ssn": 1, "date_of_birth": 1, "credit_card": 1, "nz_ird": 1, "uk_nhs": 1 },
+  "counts_by_type": { "us_ssn": 1, "date_of_birth": 1, "credit_card": 1, "nz_ird": 1, "uk_nhs": 1 },
+  "total": 5,
+  "findings": [
+    { "type": "us_ssn", "label": "US Social Security number", "category": "identity", "confidence": "high", "source": "pattern", "text": "•••-••-••••", "part": "body", "paragraph": 3, "start": 5, "end": 16, "context_snippet": "SSN: [SSN]" },
+    { "type": "date_of_birth", "label": "Date of birth", "category": "identity", "confidence": "high", "source": "pattern", "text": "••/••/••••", "part": "body", "paragraph": 4, "start": 15, "end": 25, "context_snippet": "Date of birth: [DATE_OF_BIRTH]" }
+  ],
+  "findings_truncated": false
 }
 \`\`\`
 
-\`counts\` is keyed by preset, plus \`term\` and \`pattern\`. The run history shows the file name, \`redactions\` and \`counts\`, never the text.
+\`counts\` is keyed by information type or preset, plus \`term\` and \`pattern\`; \`counts_by_type\` is the same, most frequent first. Branch on \`{{detected.counts_by_type.us_ssn}}\` (is not empty) or \`{{detected_count}}\` (greater than 0).
+
+## Run history and Save & Test
+
+The run history — and the step's output in **Save & Test** — shows the mode, the file name, \`found\` or \`redactions\`, \`counts\` and the first 25 findings, always masked, with their location and context snippet: enough to review what was found before you switch from **Detect only** to **Redact a copy**. Raw values never appear in the run history, the logs or the event stream, even with **Include the values** on (that only affects the variable).
 
 ## On the canvas
 
-The presets (or the number of rules) and the output variable: \`email, phone, credit_card, iban → redacted\`.
+What is selected and the output variable: \`5 types → redacted\`, \`Find high-confidence types → detected\`, \`email, phone, credit_card, iban → redacted\`.
 
 ## Limits
 
 - **PDFs are rebuilt from their text**: the layout, fonts and images of the original are not kept (a warning says so), and the standard PDF fonts show only Latin (Windows-1252) characters — others become "?". Where the layout matters and you have the Word original, redact that (it is redacted in place) and [convert](/docs/workflows/documents/convert-document) the copy to PDF.
 - Word, PowerPoint and Excel: the body, headers, footers, footnotes, endnotes and comments (Word), slides, notes and comments (PowerPoint), and text cells and comments (Excel) are redacted. Numbers stored as numeric Excel cells, text inside images and embedded objects, and the names of comment and tracked-change authors are not.
-- Patterns match within one line. Text inside an image is only seen with OCR, and then only in the rebuilt PDF.
+- Information types are found within one paragraph, cell or line, with context words in the same unit: in Excel a "DOB" header does not make the dates below it dates of birth (choose **Date** as well, or redact the column's values another way). A private key split over several Word paragraphs has only its first line found.
+- Patterns match within one line. Text inside an image is only seen with OCR.
+- Up to 5,000 findings are kept in the variable (\`findings_truncated\` says when there were more); every match is still redacted.
 - Reading follows the [read limits](/docs/workflows/documents#limits).
 
 > [!WARNING]
-> Pattern-based detection finds what looks like personal data; it is not a guarantee. Check a sample of redacted copies before you rely on them, and add terms (names, account numbers) the presets cannot know.
+> Detection finds what looks like sensitive information; it is not a guarantee. Run **Detect only** on samples first, check a sample of redacted copies before you rely on them, and add terms (names, account numbers) the types cannot know.
 
 ## Security notes
 
-Custom patterns go through the ReDoS guard. Redacted HTML is sanitised. The original file is not changed or moved. See [Security](/docs/workflows/documents#security).
+The built-in patterns are bounded so a scan stays linear (each passes the ReDoS guard; a 5 MB text is scanned in about a second); custom patterns go through the ReDoS guard. The \`hash\` style is a keyed HMAC-SHA-256 per workspace (the same value gives the same token in this workspace only). Redacted HTML is sanitised. The original file is not changed or moved. See [Security](/docs/workflows/documents#security).
 
 ## Example
 
@@ -956,23 +1016,73 @@ Custom patterns go through the ReDoS guard. Redacted HTML is sanitised. The orig
   "label": "Redact customer file",
   "config": {
     "source": "{{form.customer_file}}",
-    "presets": ["email", "phone", "credit_card", "iban"],
+    "info_types": ["us_ssn", "date_of_birth", "credit_card", "iban", "email", "phone"],
+    "min_confidence": "medium",
     "terms": "{{customer.contact_name}}",
     "patterns": [{ "pattern": "ACC-\\\\d{6}" }],
     "replacement": "label",
+    "styles": { "credit_card": "partial" },
     "output": "same",
     "clear_author": true
   }
 }
 \`\`\`
 
-Canvas: \`email, phone, credit_card, iban → redacted\`.
+Canvas: \`6 types, terms, 1 pattern → redacted\`.
 
 ## Works well with
 
+- [Information types](/docs/workflows/documents/info-types): every type with its format, check, context words and confidence.
+- [Find and redact SSNs and dates of birth in uploaded documents](/docs/workflows/documents/how-to/redact-ssn-dob): Detect only, review, then redact.
 - [Extract from Document](/docs/workflows/documents/extract) first, to keep the details you need in variables — see [Extract contact details and redact a copy](/docs/workflows/documents/how-to/extract-and-redact).
 - [Inspect Document](/docs/workflows/documents/inspect-document) with \`search\` on \`{{redacted_file}}\` to check that a term is gone.
 - [Send Email](/docs/workflows/nodes#node-send-email) with \`{{redacted_file}}\` as an attachment, or a storage connector upload.
+`,
+  },
+  {
+    slug: 'workflows/documents/info-types',
+    title: 'Information types',
+    description: 'Every sensitive-information type Redact Document finds: national IDs, dates of birth, card and bank numbers, health numbers, contact details, network identifiers, keys and passwords — with regions, formats, checks, context words and confidence.',
+    body: `
+[Redact Document](/docs/workflows/documents/redact) finds sensitive information by **type**. Each type is recognised in three steps:
+
+1. **Format** — a pattern for what it looks like (\`123-45-6789\`, \`AB 12 34 56 C\`, 16 digits in groups).
+2. **Validation** — what it must satisfy to be real: a check digit (Luhn for cards and Canadian SINs, mod-11 for NHS, IRD and Australian TFNs, mod-97 for IBANs and French NIRs, Verhoeff for Aadhaar, the ICAO 7-3-1 digits of a passport MRZ), a valid range (no SSN starts with 000, 666 or 9), a real calendar date, a known bank and branch.
+3. **Context** — words nearby (up to about 48 characters before and 24 after, in the same paragraph, cell or line) that say what it is: "SSN", "date of birth", "IRD", "passport". Some types need them (a 9-digit passport number looks like any other number), and for the rest they raise the confidence.
+
+The result is a confidence — **low**, **medium** or **high** — compared with the step's **Minimum confidence** (default medium). Choose types in the designer by category, filter them by region, or use \`*\` (every type), \`@high\` (every type that can reach high confidence) or \`category:<id>\` in \`info_types\`.
+
+## Reference
+
+${infoTypeReferenceMarkdown()}
+
+"(required)" after the context words means the type is only found next to one of them.
+
+## Dates of birth
+
+A date of birth is any date in the formats above with a date-of-birth word **just before it on the same line** — *DOB*, *D.O.B.*, *date of birth*, *birth date*, *born (on)*, *birthday*, and *geboren*, *né(e) le*, *fecha de nacimiento*, *data di nascita*, *geboortedatum* — at most 16 characters before it with no other number in between, or "(date of birth)" right after it. It must be a real date, not in the future and not more than 120 years ago. Numeric dates are read day-first or month-first, whichever is a real date.
+
+| Text | Found as |
+|---|---|
+| \`DOB: 12/03/1985\` | Date of birth (high) |
+| \`Born on 3 March 1990\` | Date of birth (high) |
+| \`1985-03-12 (date of birth)\` | Date of birth (high) |
+| \`Invoice date 12/03/1985\` | Date (medium) |
+| \`DOB 12/03/1985, next visit 01/02/2026\` | Date of birth, then Date |
+| \`DOB 05/05/2031\` | Date (in the future) |
+
+Choose **Date of birth** without **Date** to redact birth dates and keep every other date.
+
+## Overlaps
+
+Many identifiers are runs of digits that more than one type could claim. When matches overlap, the one with the higher confidence wins, then the more specific type (an ID with a check digit before a phone number, a postcode or a plain date), then the longer match. A text is never reported or redacted twice.
+
+## Limits
+
+- Detection is pattern-based: a number that passes a check is not necessarily what it looks like (one in eleven random 9-digit numbers passes the Dutch BSN check), and a real identifier written in an unusual way can be missed. Use **Detect only** on sample documents first.
+- Ethereum addresses are checked by format only (no EIP-55 checksum). Singapore M-series FINs are checked by format only. A New Zealand bank account whose check digit does not match is still found, with medium confidence (bank and branch must be valid).
+- Driver's licence and passport numbers, medical record numbers, US bank accounts and ZIP / Australian / New Zealand postcodes have no syntax of their own, so they are found only with a context word.
+- Names of people need [AI detection](/docs/workflows/documents/redact#ai-detection) (probabilistic, off by default).
 `,
   },
   {
@@ -1082,9 +1192,12 @@ Canvas: \`all → inspection\`.
   {
     slug: 'workflows/documents/ocr',
     title: 'Scanned PDFs and OCR',
-    description: 'Read scanned PDFs and images with OCR — automatic detection of pages without text, tesseract.js or Azure AI Document Intelligence, language data, air-gapped setup and limits.',
+    description: 'Read scanned PDFs and images with OCR — automatic detection of pages without text, your own Azure AI Document Intelligence key per workspace (usertasks.com), tesseract.js on self-hosted instances, language data, air-gapped setup and limits.',
     body: `
-A scanned PDF is a picture of a page: it has no text layer, so reading it gives nothing until the text is recognised (OCR). The document actions find such pages themselves and, when you turn OCR on, recognise them with the instance's OCR provider. OCR is **off by default** in every step.
+A scanned PDF is a picture of a page: it has no text layer, so reading it gives nothing until the text is recognised (OCR). The document actions find such pages themselves and, when you turn OCR on, recognise them with your workspace's OCR provider (Settings → Document OCR). OCR is **off by default** in every step.
+
+> [!NOTE]
+> **On usertasks.com, OCR uses your own Azure key.** The hosted cloud does not supply a shared OCR service: each workspace that wants OCR adds its own Azure AI Document Intelligence resource in **Settings → Document OCR** (see [Set up Azure AI Document Intelligence](#set-up-azure-ai-document-intelligence)). Azure bills that resource directly; the F0 free tier reads 500 pages a month.
 
 ## Turning it on
 
@@ -1117,19 +1230,63 @@ Branch on it: a [Condition](/docs/workflows/nodes#node-condition) on \`{{=MIN(PL
 
 ## Providers
 
-The provider is an instance setting, \`DOCUMENT_OCR_PROVIDER\`:
+Each workspace chooses its OCR provider in **Settings → Document OCR** (\`/settings/document-ocr\`, needs *Edit settings*):
+
+| Choice | Provider | Where the page images go | Offered |
+|---|---|---|---|
+| **Azure AI Document Intelligence** | Your own Azure resource, the \`prebuilt-read\` model; endpoint and key entered by a workspace admin | Your Azure resource | Everywhere (the only choice on usertasks.com) |
+| **Built-in (tesseract)** | [tesseract.js](https://github.com/naptha/tesseract.js) in the app's process | Nowhere: OCR runs on the server | Self-hosted instances that have tesseract.js (not on Vercel) |
+| **Instance default** | Whatever the instance is configured with (\`DOCUMENT_OCR_PROVIDER\`, below) | Depends on the instance | Self-hosted instances (\`DOCUMENT_OCR_INSTANCE_DEFAULT=true\`) |
+| **Off** | No OCR in this workspace | — | Everywhere |
+
+When a step needs OCR, the provider is resolved in this order:
+
+1. **The workspace's own setting** (Azure, built-in or off).
+2. **The instance configuration**, only where the instance allows a shared default: \`DOCUMENT_OCR_INSTANCE_DEFAULT\` is \`true\` by default on self-hosted installs (so nothing changes for them) and \`false\` when \`DEPLOYMENT_MODE=cloud\`, so a workspace on the hosted cloud never uses a platform key.
+3. **Otherwise the step fails** with: *OCR isn't set up for this workspace. An admin can add an Azure AI Document Intelligence key in Settings → Document OCR (/settings/document-ocr).*
+
+In the designer, a document step with OCR turned on in a workspace without a provider shows a warning with a link to the setting.
+
+### Set up Azure AI Document Intelligence
+
+1. In the [Azure portal](https://portal.azure.com), **Create a resource** → search for **Document Intelligence** (it is also part of an *Azure AI services* multi-service resource) → **Create**.
+2. Pick a subscription, resource group, **region** (page images are processed there — choose one that suits your data residency) and a name. **Pricing tier**: **Free F0** reads 500 pages a month at no cost (2 pages per document); **Standard S0** is billed per 1,000 pages. Create it.
+3. Open the resource → **Keys and Endpoint**. Copy the **Endpoint** (\`https://<name>.cognitiveservices.azure.com/\`) and **KEY 1** (KEY 2 works too — keep one for rotation).
+4. In UserTasks, **Settings → Document OCR** → choose **Azure AI Document Intelligence**, paste the endpoint and key, and click **Test connection**. The test is a free call (resource info): no page is billed.
+5. **Save.** The key is stored encrypted and never shown again — the page shows **•••• saved**, with **Replace** and **Remove**. The **API version** is optional (default \`2024-11-30\`; versions before \`2023-10-31\` use the older \`/formrecognizer\` path).
+
+Turn OCR on in a document step (**OCR: Pages without text**) and run it. Each recognised page is one page image sent to Azure — one billed page — and the step output counts them:
+
+\`\`\`json title="Step output (run history)"
+{ "variable": "document", "format": "pdf", "pages": 3, "words": 412,
+  "ocr": { "provider": "azure_document_intelligence", "source": "workspace", "pages_sent": 2 } }
+\`\`\`
+
+\`source\` is \`workspace\` for your own setting and \`instance\` for a self-hosted instance default. Compare \`pages_sent\` with the resource's **Metrics** in the Azure portal.
+
+**Privacy.** Page images from document steps with OCR on are sent to your Azure resource for recognition; nothing else is. Text PDFs read from their text layer never leave UserTasks. Azure does not keep the images after the analysis ([data, privacy and security for Document Intelligence](https://learn.microsoft.com/en-us/legal/cognitive-services/document-intelligence/data-privacy-security)).
+
+**Security.** The endpoint must be \`https://\` and pass the same egress rules as connectors: private, loopback, link-local and cloud-metadata addresses are refused, also when a public name resolves to one. The key is write-only on every surface (Settings, REST, MCP, CLI): reads return \`"__SECRET__"\` at most, and it never appears in run output, logs or exports. Setting, changing, removing and testing it are written to the audit log (*Settings → Governance → Audit log*).
+
+**Automation.** \`GET\` / \`PUT\` / \`DELETE /api/v1/document-ocr\` and \`POST /api/v1/document-ocr/test\`; MCP \`document_ocr_get\` / \`_update\` / \`_remove_key\` / \`_test\`; CLI \`usertasks document-ocr get | update | remove-key | test\`. Config as code exports the choice as \`document-ocr.json\` (\`config export --types document_ocr,connectors\`); the endpoint travels with its connector and the **key is never exported**, so after an import an admin enters it again (until then the step reports that the key must be re-entered). Behind the scenes the endpoint and key are an *Azure AI Document Intelligence* connector in **Integrations → Connectors**.
+
+### Self-hosted instances
+
+A self-hosted instance can also configure OCR for every workspace with \`DOCUMENT_OCR_PROVIDER\`; workspaces that keep **Instance default** use it:
 
 | Value | Provider | Where the page images go |
 |---|---|---|
 | \`tesseract\` (default) | [tesseract.js](https://github.com/naptha/tesseract.js) in the app's process — WebAssembly, no native code | Nowhere: OCR runs on the server |
-| \`azure_document_intelligence\` (or \`azure\`) | Azure AI Document Intelligence, the \`prebuilt-read\` model | Your Azure resource |
-| \`none\` (or \`off\`) | OCR turned off for the instance; a step that needs it fails with "OCR is turned off on this instance" | — |
+| \`azure_document_intelligence\` (or \`azure\`) | Azure AI Document Intelligence, the \`prebuilt-read\` model, with the instance's key | The instance's Azure resource |
+| \`none\` (or \`off\`) | OCR turned off for the instance; a step that needs it fails with "OCR is turned off on this instance" (and workspaces are not offered the built-in engine) | — |
+
+Set \`DOCUMENT_OCR_INSTANCE_DEFAULT=false\` to make every workspace bring its own key (as on the cloud); set it to \`true\` on a \`DEPLOYMENT_MODE=cloud\` instance only if you mean to lend the instance's OCR to every workspace.
 
 ### tesseract.js (default)
 
 \`tesseract.js\` 7 (Apache-2.0, about 45 MB with its WebAssembly core) is an **optional package**:
 
-- **From source and on Vercel**, \`npm install\` / \`npm ci\` install it with the other optional packages.
+- **From source**, \`npm install\` / \`npm ci\` install it with the other optional packages. **On Vercel** its worker and language files are not part of the deployed functions, so the built-in engine is not offered there: use an Azure key.
 - **The Docker image leaves it out** unless you build with \`INCLUDE_OCR=true\` (default \`false\`): \`docker build --build-arg INCLUDE_OCR=true …\`, or \`INCLUDE_OCR=true\` in \`.env\` for Docker Compose.
 
 Without it, a step that needs OCR fails with a message that names the package, the version, the rebuild and the build arg; text PDFs are not affected. See [Optional drivers](/docs/self-hosting/optional-drivers#ocr-tesseractjs).
@@ -1157,7 +1314,9 @@ DOCUMENT_OCR_LANG_PATH=/opt/usertasks/tessdata     # a local folder holding <lan
 
 With \`DOCUMENT_OCR_LANG_PATH\` set, nothing is downloaded from the internet. The same files are published as the npm packages \`@tesseract.js-data/<lang>\`, so an internal npm mirror is another source. Build the image with \`INCLUDE_OCR=true\` before you carry it across: an optional package cannot be added offline. See [Air-gapped installs](/docs/self-hosting/air-gapped).
 
-### Azure AI Document Intelligence
+### Azure AI Document Intelligence for the whole instance
+
+Instead of a key per workspace, a self-hosted instance can use one resource for every workspace that keeps **Instance default**:
 
 \`\`\`bash
 DOCUMENT_OCR_PROVIDER=azure_document_intelligence
@@ -1180,7 +1339,7 @@ export interface OcrProvider {
 }
 \`\`\`
 
-\`recognize\` receives one page as a PNG image. Add the provider next to \`azureProvider\`, a value for it in \`configuredOcrProvider\` and a case in \`openOcrProvider\`, then rebuild. Everything else — page detection, limits, confidence in the output — works unchanged.
+\`recognize\` receives one page as a PNG image. Add the provider next to \`azureOcrProvider\`, a value for it in \`configuredOcrProvider\` and a case in \`openOcrProvider\` (instance) or \`openWorkspaceOcr\` (\`lib/documents/ocr-workspace.ts\`, per workspace), then rebuild. Everything else — page detection, limits, confidence in the output — works unchanged.
 
 ## Limits
 
@@ -1558,6 +1717,120 @@ Attach \`{{redacted_file}}\` to a [Send Email](/docs/workflows/nodes#node-send-e
 A PDF cannot be edited in place safely, so Redact Document **rebuilds it from the redacted text**: the new PDF has the text, headings, lists and tables, and none of the redacted text, but not the original layout, fonts or images. The run logs: "The redacted PDF is rebuilt from the text: the original layout and images are not kept, and no redacted text remains in it". Its standard fonts show Latin (Windows-1252) characters only; others become "?". HTML stays HTML; OpenDocument files become PDF; **Redacted copy** can force \`pdf\`, \`html\` or \`text\` for any input.
 
 For a scanned PDF, add \`"ocr": "auto"\` to the Redact step's configuration so the scanned pages have text to redact.
+`,
+  },
+  {
+    slug: 'workflows/documents/how-to/redact-ssn-dob',
+    title: 'Find and redact SSNs and dates of birth in uploaded documents',
+    description: 'Detect Social Security numbers, dates of birth and other identifiers in documents uploaded to a form, review the findings in Save & Test, then redact them with labels and send the copy on.',
+    body: `
+An intake form takes supporting documents — a Word form, a scanned PDF, a spreadsheet. Before they go to the wider team, the Social Security numbers, dates of birth, card numbers and (for New Zealand and UK patients) IRD and NHS numbers must come out. You will run **Redact Document** twice: first in **Detect only** to see what it finds, then as **Redact a copy** with labels.
+
+The sample document (\`intake.docx\`, made-up values that pass the checks) reads:
+
+\`\`\`text
+Patient intake form
+Name: Jane Example
+SSN: 078-05-1120
+Date of birth: 12/03/1985
+Card on file: 4111 1111 1111 1111
+IRD number 49-091-850 and NHS number 943 476 5919
+Form received 01/10/2026.
+\`\`\`
+
+## 1. Detect only
+
+Add **Redact Document** after the form trigger. Set **Document** to \`{{form.supporting_documents}}\` (a list uses its first file; wrap the step in a [Loop](/docs/workflows/nodes#node-loop) over \`{{form.supporting_documents}}\` with \`{{item}}\` for several), **Action** to **Detect only (no changes)**, and under **Information types** tick, in **Identity**, *US Social Security number* and *Date of birth*; in **Financial**, *Credit / debit card number*; and *New Zealand IRD number* and *UK NHS number* (or choose the regions **United States**, **United Kingdom** and **New Zealand** to see only theirs). Keep **Minimum confidence** at **Medium**.
+
+\`\`\`json title="Detect sensitive information"
+{
+  "type": "doc_redact",
+  "label": "Find identifiers",
+  "config": {
+    "source": "{{form.supporting_documents}}",
+    "mode": "detect_only",
+    "info_types": ["us_ssn", "date_of_birth", "credit_card", "nz_ird", "uk_nhs"],
+    "min_confidence": "medium"
+  }
+}
+\`\`\`
+
+The canvas shows \`Find 5 types → detected\`.
+
+## 2. Review the findings in Save & Test
+
+Press **Save & Test** and upload the sample. The step's output lists what was found, masked, with where it is:
+
+\`\`\`json title="Find identifiers (run output)"
+{
+  "variable": "detected",
+  "mode": "detect_only",
+  "found": 5,
+  "counts": { "us_ssn": 1, "date_of_birth": 1, "credit_card": 1, "nz_ird": 1, "uk_nhs": 1 },
+  "info_types": 5,
+  "min_confidence": "medium",
+  "findings": [
+    { "type": "us_ssn", "label": "US Social Security number", "confidence": "high", "text": "•••-••-••••", "part": "body", "paragraph": 3, "context_snippet": "SSN: [SSN]" },
+    { "type": "date_of_birth", "label": "Date of birth", "confidence": "high", "text": "••/••/••••", "part": "body", "paragraph": 4, "context_snippet": "Date of birth: [DATE_OF_BIRTH]" },
+    { "type": "credit_card", "label": "Credit / debit card number", "confidence": "high", "text": "•••• •••• •••• ••••", "part": "body", "paragraph": 5, "context_snippet": "Card on file: [CREDIT_CARD]" },
+    { "type": "nz_ird", "label": "New Zealand IRD number", "confidence": "high", "text": "••-•••-•••", "part": "body", "paragraph": 6, "context_snippet": "IRD number [IRD_NUMBER] and NHS number [NHS_NUMBER]" },
+    { "type": "uk_nhs", "label": "UK NHS number", "confidence": "high", "text": "••• ••• ••••", "part": "body", "paragraph": 6, "context_snippet": "IRD number [IRD_NUMBER] and NHS number [NHS_NUMBER]" }
+  ]
+}
+\`\`\`
+
+Each finding also has its \`category\`, \`source\` and \`start\` / \`end\` offsets (shortened here). Things to check:
+
+- **"Form received 01/10/2026" is not there**: it is a plain date, and only *Date of birth* is selected. A date counts as a date of birth only with *DOB*, *date of birth* or *born* just before it.
+- **Every value is masked** (\`•••-••-••••\`), here and in the run history. To see the values in the workflow (for example to compare with a record), turn on **Include the values in the findings variable**; the run output stays masked.
+- **Something missing?** A bare number with no context word ("078051120" on its own line) is low confidence: lower **Minimum confidence** to **Low**, or add the label word to the document template. **Too much?** Raise it to **High**.
+
+To stop here and send the document to a person when anything was found, add a [Condition](/docs/workflows/nodes#node-condition) on \`{{detected_count}}\` *greater than* \`0\`, and a User Task that loops over \`{{detected_findings}}\` (\`{{item.label}}\`, \`{{item.page}}\`, \`{{item.context_snippet}}\`).
+
+## 3. Redact with labels
+
+Switch **Action** to **Redact a copy**, set **Replace with** to **[SSN]** (labels), and under **Style per type** set the card to **Keep last 4**. Keep **Redacted copy** at **Same format** so the Word file keeps its formatting.
+
+\`\`\`json title="Redact identifiers"
+{
+  "type": "doc_redact",
+  "label": "Redact identifiers",
+  "config": {
+    "source": "{{form.supporting_documents}}",
+    "info_types": ["us_ssn", "date_of_birth", "credit_card", "nz_ird", "uk_nhs"],
+    "min_confidence": "medium",
+    "replacement": "label",
+    "styles": { "credit_card": "partial" },
+    "output": "same",
+    "clear_author": true
+  }
+}
+\`\`\`
+
+\`{{redacted_text}}\` is:
+
+\`\`\`text
+Patient intake form
+Name: Jane Example
+SSN: [SSN]
+Date of birth: [DATE_OF_BIRTH]
+Card on file: ████ ████ ████ 1111
+IRD number [IRD_NUMBER] and NHS number [NHS_NUMBER]
+Form received 01/10/2026.
+\`\`\`
+
+and \`{{redacted_file}}\` is \`intake-redacted.docx\`, the same document with only those values replaced and the author properties cleared. "Jane Example" is still there: names have no syntax — add them as **Words and phrases** (\`{{form.patient_name}}\`) or turn on [AI detection](/docs/workflows/documents/redact#ai-detection).
+
+## 4. Download or send the copy
+
+In **Save & Test**, the run output names the copy (\`redact-intake-redacted.docx\`); add a [Log](/docs/workflows/nodes#node-log) step with \`{{redacted_file.url}}\` and open the link from **Logs** to check the result. In the workflow, attach \`{{redacted_file}}\` to a [Send Email](/docs/workflows/nodes#node-send-email), store it in a data table file column, or upload it with a storage connector.
+
+## Variations
+
+- **Scanned PDFs:** turn on **OCR** in the step (Pages without text), or redact \`{{document.text}}\` from a [Read Document](/docs/workflows/documents/read-document) with OCR. The copy is a rebuilt PDF.
+- **Everything at once:** **All high-confidence types** with the regions you serve, then review **Detect only** findings for a few real documents before switching to redaction.
+- **Keep records matchable:** **Replace with: Hash** gives \`[SSN:3f9a0c21b7]\` — the same SSN gets the same token in every document of this workspace, without the number.
+- **Spreadsheets:** each finding has \`sheet\` and \`cell\` (\`Staff!B2\`); text cells are redacted in place.
 `,
   },
   {

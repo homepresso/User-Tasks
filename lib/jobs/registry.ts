@@ -19,6 +19,7 @@ import { runHousekeepingJob } from '@/lib/jobs/housekeeping'
 import { hasDueUserJobs, processUserJobs, purgeExpiredUserJobs } from '@/lib/user-jobs/runner'
 import { runProviderSwitchesJob } from '@/lib/jobs/provider-switches'
 import { purgeFormFiles } from '@/lib/services/form-files'
+import { purgeTaskAttachments } from '@/lib/services/task-attachments'
 import { getProviderConfig } from '@/lib/config'
 
 /**
@@ -114,6 +115,31 @@ export const JOBS: JobDefinition[] = [
     run: async (ctx) => {
       const result = await processAgentQueueBatch({ supabase: ctx.supabase, batchSize: 10, deadline: ctx.deadline })
       return { processed: result.processed }
+    },
+  },
+  {
+    // Media steps on long media (lib/media/jobs.ts): run queued jobs and poll provider jobs.
+    name: 'process-media',
+    cadence: { every: 1 },
+    endpoint: '/api/cron/process-media',
+    budgetMs: 50_000,
+    isEnabled: probed('media_jobs'),
+    run: async (ctx) => {
+      const { processMediaJobBatch } = await import('@/lib/media/jobs')
+      const result = await processMediaJobBatch({ supabase: ctx.supabase, batchSize: 5, deadline: ctx.deadline })
+      return { processed: result.processed }
+    },
+  },
+  {
+    // Wait for signature steps (lib/esign/waits): polling fallback, timeouts, cancelled runs.
+    name: 'esign-poll',
+    cadence: { every: 1 },
+    endpoint: '/api/cron/esign-poll',
+    budgetMs: 40_000,
+    isEnabled: probed('esign_waits'),
+    run: async (ctx) => {
+      const { pollDueWaits } = await import('@/lib/esign/waits')
+      return pollDueWaits({ db: ctx.supabase, batchSize: 20, deadline: ctx.deadline })
     },
   },
   {
@@ -263,7 +289,12 @@ export const JOBS: JobDefinition[] = [
     endpoint: '/api/cron/form-files-cleanup',
     budgetMs: 20_000,
     isEnabled: always,
-    run: (ctx) => purgeFormFiles({ supabase: ctx.supabase, deadline: ctx.deadline }),
+    // Task attachments: abandoned direct uploads, deleted ones past
+    // TASK_ATTACHMENT_DELETED_RETENTION_DAYS (unless held), objects of deleted tasks.
+    run: async (ctx) => ({
+      ...(await purgeFormFiles({ supabase: ctx.supabase, deadline: ctx.deadline })),
+      task_attachments: await purgeTaskAttachments({ supabase: ctx.supabase, deadline: ctx.deadline }),
+    }),
   },
   {
     // System-table purge (lib/jobs/housekeeping.ts). The database decides

@@ -1,0 +1,209 @@
+"use client"
+
+import { useId, useRef, useState } from "react"
+import Link from "next/link"
+import { AlertTriangle, ChevronDown, Clock, ExternalLink, UserCheck } from "lucide-react"
+import type { serverQuery } from "@/lib/server-read"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Badge, StatusPill } from "@/components/ui/badge"
+import { PriorityBadge } from "@/components/ui/priority-badge"
+import { Tooltip } from "@/components/ui/tooltip"
+import { TD, TR, tdClass } from "@/components/ui/table"
+import { ProgressBar } from "@/components/ui/progress-bar"
+import { RelativeTime } from "@/components/activity/relative-time"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { cn } from "@/lib/utils"
+import { formatAbsolute, formatRelative } from "@/lib/format/date"
+import { rowProgress } from "@/lib/tasks/list-sort"
+import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
+import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
+
+/**
+ * One task of a report (My team, and the reporting-line view on My team and
+ * the Task tracker's Team members tab): a table row that opens the shared
+ * task detail panel, with Process view, Open, the quick actions, Act on
+ * behalf and Reassign (hidden on phones).
+ */
+
+export type TeamTaskRowData = Awaited<ReturnType<typeof serverQuery<'tasks.reports'>>>['tasks'][number]
+
+/** Columns of the team task table (TeamTaskRow). */
+export const TEAM_TASK_COLUMNS = 9
+
+export function teamPersonName(p: { display_name: string | null; email: string | null } | null | undefined) {
+  return p?.display_name || p?.email || "Unknown"
+}
+
+export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, onDone }: {
+  task: TeamTaskRowData
+  readOnly: boolean
+  reassigning: boolean
+  onReassign: () => void
+  targets: Array<{ id: string; display_name: string | null; email: string | null }>
+  onDone: () => void
+}) {
+  const [target, setTarget] = useState("")
+  const [comment, setComment] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const mobile = useIsMobile()
+  const baseId = useId()
+  const panelId = `${baseId}-panel`
+  const actionsId = `${baseId}-actions`
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const closed = task.status === "completed" || task.status === "cancelled"
+  const canReassign = !closed && (!(task.is_workflow_task && task.event_id) || task.allow_reassign)
+  const progress = rowProgress(task)
+
+  async function reassign(toSelf: boolean) {
+    setBusy(true)
+    setMessage(null)
+    try {
+      const { reassignReportTask } = await import("@/app/actions/task-queue")
+      const { getUserId } = await import("@/lib/get-user-id")
+      const to = toSelf ? await getUserId() : target
+      if (!to) { setMessage("Choose someone"); return }
+      const result = await reassignReportTask(task.id, to, comment || null)
+      if (!result.success) { setMessage(result.error); return }
+      onDone()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const secondary = [task.workflow_name, task.child_count ? `${task.completed_child_count}/${task.child_count} subtasks` : null].filter(Boolean)
+  const toggle = () => setExpanded((v) => !v)
+
+  if (mobile) {
+    // Phones: one card per task (read-only there: no Act on behalf / Reassign); tapping opens the task.
+    return (
+      <>
+        <MobileTaskCard as="tr" colSpan={TEAM_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={closed}
+          meta={[teamPersonName(task.assignee), ...secondary].join(" · ")}
+          actions={(
+            <>
+              {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+              <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
+            </>
+          )}
+          status={<StatusPill status={task.status} />}
+          priority={task.priority ? <PriorityBadge priority={task.priority} /> : undefined}
+          progress={progress > 0 ? (
+            <span className="flex items-center gap-1.5">
+              <ProgressBar value={progress} className="w-10 shrink-0" label={`${progress}% complete`} />
+              <span className="num text-fg-muted">{progress}%</span>
+            </span>
+          ) : undefined}
+          due={task.due_date ? (
+            <span className={cn("inline-flex items-center gap-1 whitespace-nowrap", task.is_overdue ? "text-danger" : "text-fg-muted")}>
+              {task.is_overdue && <Clock className="size-3.5" aria-hidden />}
+              {task.is_overdue && <span className="sr-only">Overdue: </span>}
+              {formatRelative(task.due_date)}
+            </span>
+          ) : undefined}
+          footer={task.sla_breached ? <Badge tone="danger"><AlertTriangle className="size-3" aria-hidden /> SLA</Badge> : undefined}
+          data-team-task={task.id}
+        />
+        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <TR className={cn("cursor-pointer", expanded && "border-b-0 bg-subtle")} onClick={toggle} data-team-task={task.id}>
+        <TD className="max-w-0 py-2">
+          <button ref={toggleRef} type="button" aria-expanded={expanded} aria-controls={expanded ? panelId : undefined}
+            onClick={(e) => { e.stopPropagation(); toggle() }} className="flex w-full min-w-0 items-center gap-2 rounded-sm text-left" data-task-toggle>
+            <ChevronDown className={cn("size-3.5 shrink-0 text-fg-subtle transition-transform duration-[var(--ds-dur-fast)] motion-reduce:transition-none", !expanded && "-rotate-90")} aria-hidden />
+            <span className={cn("truncate font-medium text-fg", closed && "text-fg-muted line-through")}>{task.title}</span>
+            {task.sla_breached && <Badge tone="danger"><AlertTriangle className="size-3" aria-hidden /> SLA</Badge>}
+          </button>
+          {secondary.length > 0 && <p className="mt-0.5 truncate pl-[22px] text-xs text-fg-muted">{secondary.join(" · ")}</p>}
+        </TD>
+        <TD className="max-w-0 truncate text-fg-muted">{teamPersonName(task.assignee)}</TD>
+        <TD><StatusPill status={task.status} /></TD>
+        <TD>{task.priority ? <PriorityBadge priority={task.priority} /> : <span className="text-fg-subtle">—</span>}</TD>
+        <TD>
+          <span className="flex items-center gap-2">
+            <ProgressBar value={progress} className="w-12 shrink-0" label={`${progress}% complete`} />
+            <span className="num text-xs text-fg-muted">{progress}%</span>
+          </span>
+        </TD>
+        <TD numeric className={task.is_overdue ? "text-danger" : "text-fg-muted"}>
+          {task.due_date ? (
+            <Tooltip content={formatAbsolute(task.due_date)}>
+              <span className="inline-flex items-center justify-end gap-1">
+                {task.is_overdue && <Clock className="size-3.5" aria-hidden />}
+                {task.is_overdue && <span className="sr-only">Overdue: </span>}
+                {formatRelative(task.due_date)}
+              </span>
+            </Tooltip>
+          ) : "—"}
+        </TD>
+        <TD numeric className="text-xs text-fg-muted">{task.updated_at ? <RelativeTime at={task.updated_at} /> : "—"}</TD>
+        <td className={cn(tdClass, "w-px whitespace-nowrap px-1 text-right")} onClick={(e) => e.stopPropagation()}>
+          <span className="inline-flex items-center gap-0.5">
+            {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            <Tooltip content="Open task">
+              <Link href={`/tasks/${task.id}`} aria-label={`Open ${task.title}`}
+                className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-muted hover:text-fg">
+                <ExternalLink className="size-3.5" aria-hidden />
+              </Link>
+            </Tooltip>
+          </span>
+        </td>
+        <td className={cn(tdClass, "w-px whitespace-nowrap text-right")} onClick={(e) => e.stopPropagation()}>
+          <span className="inline-flex items-center gap-1">
+            <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
+            {!readOnly && !closed && (
+              <Button asChild size="sm" variant="ghost">
+                <Link href={`/tasks/${task.id}`} data-act-on-behalf><UserCheck aria-hidden /> Act on behalf</Link>
+              </Button>
+            )}
+            {!readOnly && canReassign && (
+              <Button size="sm" variant="ghost" aria-expanded={reassigning} onClick={onReassign}>Reassign</Button>
+            )}
+          </span>
+        </td>
+      </TR>
+      {expanded && (
+        <tr className="border-b border-border-subtle bg-subtle last:border-b-0" data-team-task-panel={task.id}>
+          <td colSpan={TEAM_TASK_COLUMNS} className="px-4 pb-4 pt-1 pl-9">
+            <TaskDetailPanel id={panelId} taskId={task.id} title={task.title} onClose={() => { setExpanded(false); toggleRef.current?.focus() }} />
+          </td>
+        </tr>
+      )}
+      {mobile ? (
+        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} />
+      ) : actionsOpen && (
+        <tr className="border-b border-border-subtle" data-task-actions-row>
+          <td colSpan={TEAM_TASK_COLUMNS} className="p-0">
+            <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false} taskId={task.id} title={task.title} />
+          </td>
+        </tr>
+      )}
+      {reassigning && !readOnly && (
+        <tr className="border-b border-border-subtle bg-subtle last:border-b-0">
+          <td colSpan={TEAM_TASK_COLUMNS} className="px-[var(--theme-density-cell-x)] py-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select size="sm" wrapperClassName="w-auto" value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Reassign to">
+                <option value="">Reassign to…</option>
+                {targets.filter((p) => p.id !== task.assignee_id).map((p) => <option key={p.id} value={p.id}>{teamPersonName(p)}</option>)}
+              </Select>
+              <Input size="sm" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Comment (optional)" aria-label="Comment" className="min-w-[12rem] flex-1" />
+              <Button size="sm" disabled={busy || !target} onClick={() => void reassign(false)}>Reassign</Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => void reassign(true)}>Take it myself</Button>
+              {message && <span role="alert" className="text-xs text-danger">{message}</span>}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}

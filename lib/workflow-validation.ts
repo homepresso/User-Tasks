@@ -2,7 +2,10 @@ import type { WorkflowNode } from './workflow-schema'
 import { WORKFLOW_UPDATABLE_TASK_FIELDS } from './task-fields'
 import { NODE_CATALOG } from './workflow-schema'
 import { normalizeScheduleConfig } from './workflow-schedule'
+import { setVariableValidationErrors } from './workflow-set-variable'
 import { taskDataFieldSlug } from './task-data'
+import { aadGroupValidationErrors } from './tasks/aad-group-assignment'
+import { AUDIO_FORMATS, IMAGE_FEATURES, MEDIA_BACKGROUND_NODE_TYPES, MEDIA_TOOL_OPERATIONS, REDACT_TARGETS, TRANSCRIPT_FORMATS, VIDEO_FEATURES, VIDEO_FORMATS, isMediaNodeType } from './media/catalog'
 
 const TRIGGER_TYPES = NODE_CATALOG.filter(n => n.category === 'trigger').map(n => n.type)
 
@@ -27,7 +30,16 @@ function validateTriggerNode(node: WorkflowNode): string[] {
   return []
 }
 
-export function validateNode(node: WorkflowNode): string[] {
+/**
+ * What the workspace makes available, when the caller knows it (the designer,
+ * MCP). Absent fields are not checked (offline / gallery validation).
+ */
+export interface WorkflowValidationEnv {
+  /** An enabled Entra ID directory connection (AAD group assignment). */
+  entraGroups?: boolean
+}
+
+export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}): string[] {
   const c = node.config
   const errors: string[] = []
 
@@ -42,7 +54,9 @@ export function validateNode(node: WorkflowNode): string[] {
       if (!c.cases?.length) errors.push('No cases defined')
       break
     case 'set_variable':
-      if (!c.name) errors.push('Variable name required')
+      // Legacy { name, expression }: only the name is required (unchanged);
+      // { assignments: [...] }: per-row name / duplicate / expression checks.
+      errors.push(...setVariableValidationErrors(c))
       break
     case 'set_sla':
       if ((c.mode ?? 'relative') === 'exact') {
@@ -127,6 +141,9 @@ export function validateNode(node: WorkflowNode): string[] {
       break
     case 'loop_n_times':
       if (!c.count) errors.push('Count required')
+      break
+    case 'add_task_attachment':
+      if (!String(c.file ?? '').trim()) errors.push('File required')
       break
     case 'create_subtask':
       if (!c.title) errors.push('Title required')
@@ -267,8 +284,24 @@ export function validateNode(node: WorkflowNode): string[] {
       if (!String(c.source ?? '').trim()) errors.push('Source file required')
       if (node.type === 'doc_convert' && c.target && !['pdf', 'docx', 'html', 'markdown', 'text', 'csv', 'xlsx', 'json'].includes(c.target)) errors.push('Unknown target format')
       if (node.type === 'doc_extract' && c.to_table && !c.table_id) errors.push('Data table required')
-      if (node.type === 'doc_redact' && !(Array.isArray(c.presets) && c.presets.length) && !String(c.terms ?? '').trim() && !(Array.isArray(c.patterns) && c.patterns.some((p: any) => String(p?.pattern ?? p ?? '').trim()))) errors.push('Choose what to redact')
+      if (node.type === 'doc_redact' && !(Array.isArray(c.presets) && c.presets.length) && !(Array.isArray(c.info_types) ? c.info_types.length : String(c.info_types ?? '').trim()) && !c.ai_detection && !String(c.terms ?? '').trim() && !(Array.isArray(c.patterns) && c.patterns.some((p: any) => String(p?.pattern ?? p ?? '').trim()))) errors.push(c.mode === 'detect_only' ? 'Choose what to find' : 'Choose what to redact')
+      if (node.type === 'doc_redact' && c.ai_detection && !String(c.ai_agent_id ?? '').trim()) errors.push('Choose the agent for AI detection')
       if (node.type === 'doc_inspect' && c.operation === 'search' && !String(c.query ?? '').trim()) errors.push('Search text required')
+      break
+    case 'media_transcribe':
+    case 'media_analyze_image':
+    case 'media_analyze_video':
+    case 'media_redact_image':
+    case 'media_redact_video':
+    case 'media_generate_image':
+    case 'media_tts':
+    case 'media_tools':
+      errors.push(...validateMediaNode(node.type, c))
+      break
+    case 'esign_send':
+    case 'esign_envelope':
+    case 'esign_wait':
+      errors.push(...validateEsignNode(node.type, c))
       break
     case 'doc_compare':
       if (!String(c.original ?? '').trim()) errors.push('Original required')
@@ -286,7 +319,11 @@ export function validateNode(node: WorkflowNode): string[] {
       if (!(c.task_title ?? c.title)) errors.push('Task title required')
       if ((c.assignment_type ?? 'individual') === 'individual' && !c.assignee_id && !c.assignee_variable && !c.assign_to_user_id && !c.assign_to_user_variable) errors.push('Assignee required')
       if (c.assignment_type === 'team' && !c.team_id && !c.assign_to_team_id) errors.push('Team required')
+      errors.push(...aadGroupValidationErrors(c, env))
       if (c.allow_invite_on_redirect && !c.allow_redirect) errors.push('Enable redirect before invite on redirect')
+      if (c.queue_behaviour !== undefined && c.queue_behaviour !== null && c.queue_behaviour !== '' && !['rules', 'queue', 'add'].includes(c.queue_behaviour)) {
+        errors.push('Queue behaviour must be rules, queue or add')
+      }
       if (c.redirect_assignment_mode && !['single', 'many'].includes(c.redirect_assignment_mode)) errors.push('Redirect assignment mode must be single or many')
       if (c.redirect_recipient_limit_mode && !['unlimited', 'capped'].includes(c.redirect_recipient_limit_mode)) errors.push('Redirect recipient limit mode must be unlimited or capped')
       if (c.redirect_assignment_mode === 'many' && c.redirect_recipient_limit_mode === 'capped' && (!(Number(c.redirect_recipient_limit) > 0) || !Number.isFinite(Number(c.redirect_recipient_limit)))) {
@@ -326,6 +363,8 @@ export function validateNode(node: WorkflowNode): string[] {
     case 'run_agent':
       if (!c.agent_id) errors.push('Agent is required')
       if (!c.user_message?.trim() && !c.message?.trim()) errors.push('Prompt / message required')
+      if (c.execution_mode !== undefined && !['inline', 'queued'].includes(c.execution_mode)) errors.push('Run mode must be inline or queued')
+      if (c.act_as !== undefined && !['initiator', 'owner', 'none'].includes(c.act_as)) errors.push('Act as must be initiator, owner or none')
       break
     // end_workflow — no required fields
   }
@@ -338,12 +377,12 @@ export interface WorkflowValidationResult {
   nodeErrors: { nodeId: string; nodeLabel: string; errors: string[] }[]
 }
 
-export function validateWorkflow(nodes: WorkflowNode[], triggerType?: string): WorkflowValidationResult {
+export function validateWorkflow(nodes: WorkflowNode[], triggerType?: string, env: WorkflowValidationEnv = {}): WorkflowValidationResult {
   const nodeErrors: { nodeId: string; nodeLabel: string; errors: string[] }[] = []
   let totalErrors = 0
 
   for (const node of nodes) {
-    const errors = validateNode(node)
+    const errors = validateNode(node, env)
     if (triggerType === 'middleware_received' && node.type === 'user_task') {
       errors.push('User Task is unavailable for middleware workflows')
     }
@@ -362,4 +401,127 @@ export function validateWorkflow(nodes: WorkflowNode[], triggerType?: string): W
   }
 
   return { valid: totalErrors === 0, totalErrors, nodeErrors }
+}
+
+/* ── Media actions (lib/media) ─────────────────────────────────────── */
+
+const filled = (v: unknown) => v != null && (typeof v !== 'string' || v.trim() !== '') && !(Array.isArray(v) && v.length === 0)
+/** A literal number to range-check, or null for empty values and expressions. */
+function literalNumber(v: unknown): number | null {
+  if (v == null || v === '') return null
+  if (typeof v === 'number') return v
+  const t = String(v).trim()
+  if (t.includes('{{')) return null
+  const n = Number(t)
+  return Number.isFinite(n) ? n : NaN
+}
+function unknownOf(values: unknown, allowed: readonly string[]): string[] {
+  return Array.isArray(values) ? values.map(String).filter((v) => !allowed.includes(v)) : []
+}
+
+const filledText = (v: unknown) => v !== undefined && v !== null && String(typeof v === 'object' ? JSON.stringify(v) : v).trim() !== '' && !(Array.isArray(v) && v.length === 0)
+
+/** Designer checks for the e-signature steps (config keys of lib/esign/handlers.ts). */
+export function validateEsignNode(type: string, c: Record<string, any>): string[] {
+  const errors: string[] = []
+  if (!filledText(c.integration_id)) errors.push('E-signature integration required')
+  if (type === 'esign_send') {
+    if (c.source === 'template') { if (!filledText(c.template_id)) errors.push('Template required') }
+    else if (!filledText(c.documents)) errors.push('Documents required')
+    const rows = Array.isArray(c.recipients) ? c.recipients.filter((r: any) => filledText(r?.email)) : []
+    if (!rows.length && !filledText(c.recipients_expr)) errors.push('At least one recipient required')
+    if (!filledText(c.subject)) errors.push('Email subject required')
+    if (filledText(c.advanced) && typeof c.advanced === 'string' && !c.advanced.includes('{{')) {
+      try { const v = JSON.parse(c.advanced); if (!v || typeof v !== 'object' || Array.isArray(v)) errors.push('Advanced options must be a JSON object') } catch { errors.push('Advanced options must be valid JSON') }
+    }
+  } else if (type === 'esign_envelope') {
+    const action = String(c.action ?? 'status')
+    if (!['status', 'download', 'cancel', 'signing_url', 'list_templates'].includes(action)) errors.push('Unknown envelope action')
+    if (action !== 'list_templates' && !filledText(c.envelope_id)) errors.push('Envelope ID required')
+    if (action === 'signing_url' && !filledText(c.recipient_email)) errors.push('Recipient email required')
+  } else if (type === 'esign_wait') {
+    if (!filledText(c.envelope_id)) errors.push('Envelope ID required')
+    const t = literalNumber(c.timeout_days)
+    if (t !== null && !(t > 0 && t <= 365)) errors.push('Timeout must be 1–365 days')
+  }
+  return errors
+}
+
+/** Designer checks for the media steps (config keys of lib/media/handlers.ts). */
+export function validateMediaNode(type: string, c: Record<string, unknown>): string[] {
+  if (!isMediaNodeType(type)) return []
+  const errors: string[] = []
+  const targets: string[] = Array.isArray(c.targets) ? c.targets.map(String) : ['faces', 'text_pii']
+  const audio = String(c.audio ?? 'none')
+  const isRedact = type === 'media_redact_image' || type === 'media_redact_video'
+  const editing = type === 'media_generate_image' && c.operation === 'edit'
+
+  if (isRedact) {
+    // Visual targets need the main provider; speech needs it or a separate speech provider.
+    if (targets.some((t) => t !== 'custom') && !filled(c.integration_id)) errors.push('AI provider required')
+    if (type === 'media_redact_video' && audio !== 'none' && !filled(c.integration_id) && !filled(c.transcribe_integration_id)) errors.push('Speech provider required')
+  } else if (type !== 'media_tools' && !filled(c.integration_id)) errors.push('AI provider required')
+  if (type !== 'media_tts' && (type !== 'media_generate_image' || editing) && !filled(c.source)) errors.push(editing ? 'Image to edit required' : 'Source media required')
+  if (c.run_mode && (MEDIA_BACKGROUND_NODE_TYPES as readonly string[]).includes(type) && !['auto', 'inline', 'background'].includes(String(c.run_mode))) errors.push('Unknown run mode')
+
+  switch (type) {
+    case 'media_transcribe':
+      if (unknownOf(c.formats, TRANSCRIPT_FORMATS).length) errors.push('Unknown transcript format (srt, vtt, txt or json)')
+      { const n = literalNumber(c.max_speakers); if (n !== null && !(n >= 1 && n <= 30)) errors.push('Max speakers must be 1–30') }
+      break
+    case 'media_analyze_image':
+      if (unknownOf(c.features, IMAGE_FEATURES.map((f) => f.id)).length) errors.push('Unknown image feature')
+      if (Array.isArray(c.features) && c.features.length === 0 && !filled(c.prompt)) errors.push('Choose what to find or ask a question')
+      { const n = literalNumber(c.max_results); if (n !== null && !(n >= 1 && n <= 100)) errors.push('Max results must be 1–100') }
+      break
+    case 'media_analyze_video':
+      if (unknownOf(c.features, VIDEO_FEATURES.map((f) => f.id)).length) errors.push('Unknown video feature')
+      if (Array.isArray(c.features) && c.features.length === 0 && !filled(c.prompt)) errors.push('Choose what to find or ask a question')
+      { const n = literalNumber(c.max_frames); if (n !== null && !(Number.isInteger(n) && n >= 1 && n <= 60)) errors.push('Max frames must be 1–60') }
+      break
+    case 'media_redact_image':
+    case 'media_redact_video':
+      if (!targets.length && (type === 'media_redact_image' || audio === 'none')) errors.push(c.mode === 'detect_only' ? 'Choose what to find' : 'Choose what to redact')
+      if (unknownOf(targets, REDACT_TARGETS.map((t) => t.id)).length) errors.push('Unknown redaction target')
+      if (targets.includes('custom') && !filled(c.boxes)) errors.push('Boxes required (or remove "Boxes from earlier steps")')
+      if (targets.includes('text_pii') && Array.isArray(c.info_types) && !c.info_types.length && !filled(c.terms) && !(Array.isArray(c.patterns) && c.patterns.some((p: unknown) => String((p as { pattern?: unknown } | null)?.pattern ?? p ?? '').trim()))) errors.push('Choose the sensitive text to find')
+      if (c.style && !['blur', 'pixelate', 'box'].includes(String(c.style))) errors.push('Unknown style')
+      if (type === 'media_redact_image' && c.output_format && !['same', 'png', 'jpeg'].includes(String(c.output_format))) errors.push('Unknown output format')
+      if (type === 'media_redact_video') {
+        if (!['none', 'bleep', 'mute'].includes(audio)) errors.push('Unknown audio option')
+        if (c.output_format && !['mp4', 'webm', 'mov'].includes(String(c.output_format))) errors.push('Unknown output format')
+        const n = literalNumber(c.sample_interval)
+        if (n !== null && !(n >= 0.2)) errors.push('Seconds between frames must be at least 0.2')
+      }
+      break
+    case 'media_generate_image': {
+      if (!filled(c.prompt)) errors.push('Prompt required')
+      if (c.operation && !['generate', 'edit'].includes(String(c.operation))) errors.push('Unknown operation')
+      const n = literalNumber(c.count)
+      if (n !== null && !(Number.isInteger(n) && n >= 1 && n <= 4)) errors.push('Number of images must be 1–4')
+      if (c.format && !['png', 'jpeg', 'webp'].includes(String(c.format))) errors.push('Unknown image format')
+      break
+    }
+    case 'media_tts':
+      if (!filled(c.text)) errors.push('Text required')
+      if (c.format && !['mp3', 'wav', 'opus', 'aac', 'flac'].includes(String(c.format))) errors.push('Unknown audio format')
+      break
+    case 'media_tools': {
+      const op = String(c.operation ?? 'info')
+      if (!MEDIA_TOOL_OPERATIONS.some((o) => o.id === op)) { errors.push('Unknown operation'); break }
+      if (op === 'trim' && !filled(c.start) && !filled(c.end)) errors.push('Start or end required')
+      if (op === 'burn_subtitles' && !filled(c.subtitles)) errors.push('Subtitles required')
+      if (op === 'convert' && !(filled(c.format) && ([...VIDEO_FORMATS, ...AUDIO_FORMATS] as readonly string[]).includes(String(c.format)))) errors.push('Choose a known format to convert to')
+      if (op === 'extract_audio' && c.format && !(AUDIO_FORMATS as readonly string[]).includes(String(c.format))) errors.push('Unknown audio format')
+      if ((op === 'frames' || op === 'thumbnail') && c.format && !['png', 'jpeg'].includes(String(c.format))) errors.push('Unknown image format')
+      if (op === 'frames') {
+        const count = literalNumber(c.count)
+        if (count !== null && !(Number.isInteger(count) && count >= 1 && count <= 100)) errors.push('Max frames must be 1–100')
+        const interval = literalNumber(c.interval)
+        if (interval !== null && !(interval > 0)) errors.push('Seconds between frames must be more than 0')
+      }
+      break
+    }
+  }
+  return errors
 }

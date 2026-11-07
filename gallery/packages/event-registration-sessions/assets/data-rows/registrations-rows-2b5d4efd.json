@@ -1,0 +1,163 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+  "asset": {
+    "id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+    "name": "Registrations rows",
+    "rows": [
+      {
+        "id": "135ebebd-9b76-5c29-b224-b3ebbf1d84c8",
+        "data": {
+          "reg_ref": "REG-20261012-A1F3",
+          "event_code": "OPS-26",
+          "event_title": "Operations Summit 2026",
+          "contact_name": "Avery Example",
+          "contact_email": "avery.example@example.com",
+          "attendees": 2,
+          "first_choice": "Keynote: Operations in 2027 · Operations Summit",
+          "second_choice": "Panel: Safety and compliance without paper · Operations Summit",
+          "assigned_session": "Keynote: Operations in 2027 · Operations Summit",
+          "status": "Confirmed",
+          "sessions_planned": 3,
+          "networking_interest": 4,
+          "questions": "How do other teams handle approvals across time zones?",
+          "registered_on": "2026-10-12"
+        }
+      },
+      {
+        "id": "8c39da22-5ee8-5405-a7ce-f9ec32637658",
+        "data": {
+          "reg_ref": "REG-20261014-B27C",
+          "event_code": "OPS-26",
+          "event_title": "Operations Summit 2026",
+          "contact_name": "Jordan Sample",
+          "contact_email": "jordan.sample@example.com",
+          "attendees": 1,
+          "first_choice": "Workshop A: Forms that fill themselves · Operations Summit",
+          "second_choice": "Workshop B: Decision tables in practice · Operations Summit",
+          "assigned_session": "Workshop A: Forms that fill themselves · Operations Summit",
+          "status": "Confirmed",
+          "sessions_planned": 2,
+          "networking_interest": 5,
+          "questions": "",
+          "registered_on": "2026-10-14"
+        }
+      },
+      {
+        "id": "ac8ea728-09f8-505b-9572-458087911c1d",
+        "data": {
+          "reg_ref": "REG-20261016-C904",
+          "event_code": "OPS-26",
+          "event_title": "Operations Summit 2026",
+          "contact_name": "Riley Test",
+          "contact_email": "riley.test@example.com",
+          "attendees": 3,
+          "first_choice": "Workshop B: Decision tables in practice · Operations Summit",
+          "second_choice": "Clinic: Ask the workflow engineers · Operations Summit",
+          "assigned_session": "Workshop B: Decision tables in practice · Operations Summit",
+          "status": "Confirmed",
+          "sessions_planned": 4,
+          "networking_interest": 3,
+          "questions": "",
+          "registered_on": "2026-10-16"
+        }
+      },
+      {
+        "id": "e654e0f7-7128-537c-8b88-1715ebeb4ba2",
+        "data": {
+          "reg_ref": "REG-20261019-D5E1",
+          "event_code": "CUS-26",
+          "event_title": "Customer Day",
+          "contact_name": "Casey Demo",
+          "contact_email": "casey.demo@example.com",
+          "attendees": 2,
+          "first_choice": "Roadmap preview · Customer Day",
+          "second_choice": "Customer stories · Customer Day",
+          "assigned_session": "Roadmap preview · Customer Day",
+          "status": "Confirmed",
+          "sessions_planned": 2,
+          "networking_interest": 4,
+          "questions": "How do other teams handle approvals across time zones?",
+          "registered_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "f4ae2329-3e90-594d-9e9c-dd4272c7cf70",
+        "data": {
+          "reg_ref": "REG-20261021-E0B8",
+          "event_code": "OPS-26",
+          "event_title": "Operations Summit 2026",
+          "contact_name": "Morgan Placeholder",
+          "contact_email": "morgan.placeholder@example.com",
+          "attendees": 2,
+          "first_choice": "Workshop A: Forms that fill themselves · Operations Summit",
+          "second_choice": "Workshop B: Decision tables in practice · Operations Summit",
+          "assigned_session": "",
+          "status": "Waitlisted",
+          "sessions_planned": 3,
+          "networking_interest": 2,
+          "questions": "",
+          "registered_on": "2026-10-21"
+        }
+      },
+      {
+        "id": "a291c5c2-2e00-5aa1-aa96-39ea53bbec54",
+        "data": {
+          "reg_ref": "REG-20261023-F6A2",
+          "event_code": "PRT-27",
+          "event_title": "Partner briefing 2027",
+          "contact_name": "Quinn Sample",
+          "contact_email": "quinn.sample@example.com",
+          "attendees": 1,
+          "first_choice": "Building on the API · Partner briefing",
+          "second_choice": "Partner programme update · Partner briefing",
+          "assigned_session": "Building on the API · Partner briefing",
+          "status": "Confirmed",
+          "sessions_planned": 2,
+          "networking_interest": 3,
+          "questions": "",
+          "registered_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "02ffa0b1-be0e-5e21-983b-3330fb6bbee6",
+        "data": {
+          "reg_ref": "REG-20261026-0C3D",
+          "event_code": "OPS-26",
+          "event_title": "Operations Summit 2026",
+          "contact_name": "Taylor Example",
+          "contact_email": "taylor.example@example.com",
+          "attendees": 2,
+          "first_choice": "Workshop A: Forms that fill themselves · Operations Summit",
+          "second_choice": "Panel: Safety and compliance without paper · Operations Summit",
+          "assigned_session": "Panel: Safety and compliance without paper · Operations Summit",
+          "status": "Confirmed",
+          "sessions_planned": 3,
+          "networking_interest": 5,
+          "questions": "How do other teams handle approvals across time zones?",
+          "registered_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "d4d1d655-d031-58a6-96fe-91233a79ede9",
+        "data": {
+          "reg_ref": "REG-20261028-1D7E",
+          "event_code": "CUS-26",
+          "event_title": "Customer Day",
+          "contact_name": "Drew Placeholder",
+          "contact_email": "drew.placeholder@example.com",
+          "attendees": 1,
+          "first_choice": "Customer stories · Customer Day",
+          "second_choice": "Roadmap preview · Customer Day",
+          "assigned_session": "Customer stories · Customer Day",
+          "status": "Confirmed",
+          "sessions_planned": 1,
+          "networking_interest": 2,
+          "questions": "",
+          "registered_on": "2026-10-28"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "format_version": 3,
+  "asset_type": "agents",
+  "id": "a43e5008-943a-562d-8f50-3c0ff1e2d1d8",
+  "asset": {
+    "id": "a43e5008-943a-562d-8f50-3c0ff1e2d1d8",
+    "name": "Minutes writer",
+    "is_active": true,
+    "description": "Turns a meeting transcript with speakers into minutes: a summary, the decisions and up to three action items with a suggested owner and due date.",
+    "model": "gpt-4o-mini",
+    "role": "an experienced minute-taker for operations meetings",
+    "task": "Read the transcript (speaker labels and times) and write: a three-sentence summary; the decisions agreed, one per line; and up to three action items, each with a short imperative description, the person named as owner (as said in the meeting, or \"unassigned\") and a due date in YYYY-MM-DD when one was said (otherwise empty). Then write the full minutes as plain text with headings Summary, Decisions and Actions.",
+    "boundaries": "- Use only what was said in the transcript; never invent attendees, decisions or dates.\n- Speaker labels (Speaker 1, Speaker 2) are not names: only use a name when someone says it.\n- Leave an action empty when there are fewer than three.\n- Keep the minutes neutral and short.",
+    "system_prompt": "",
+    "tools": [],
+    "integration_id": "a690149f-b4d3-5cb2-bc57-89a0f25c52b2",
+    "output_config": {
+      "variables": [
+        {
+          "name": "summary",
+          "type": "string",
+          "description": "Three-sentence summary"
+        },
+        {
+          "name": "decisions",
+          "type": "string",
+          "description": "Decisions, one per line"
+        },
+        {
+          "name": "action_1",
+          "type": "string",
+          "description": "First action item"
+        },
+        {
+          "name": "action_1_owner",
+          "type": "string",
+          "description": "Owner named in the meeting"
+        },
+        {
+          "name": "action_1_due",
+          "type": "string",
+          "description": "Due date YYYY-MM-DD or empty"
+        },
+        {
+          "name": "action_2",
+          "type": "string",
+          "description": "Second action item"
+        },
+        {
+          "name": "action_2_owner",
+          "type": "string",
+          "description": "Owner named in the meeting"
+        },
+        {
+          "name": "action_2_due",
+          "type": "string",
+          "description": "Due date YYYY-MM-DD or empty"
+        },
+        {
+          "name": "action_3",
+          "type": "string",
+          "description": "Third action item"
+        },
+        {
+          "name": "action_3_owner",
+          "type": "string",
+          "description": "Owner named in the meeting"
+        },
+        {
+          "name": "action_3_due",
+          "type": "string",
+          "description": "Due date YYYY-MM-DD or empty"
+        },
+        {
+          "name": "minutes_text",
+          "type": "string",
+          "description": "Full minutes as plain text"
+        }
+      ]
+    }
+  }
+}

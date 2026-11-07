@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "3a752ff2-898c-5efe-aae1-90437c133482",
+  "asset": {
+    "id": "3a752ff2-898c-5efe-aae1-90437c133482",
+    "name": "Corrective action closed",
+    "description": "Sent to the site manager when a corrective action is signed off, with the evidence photos attached.",
+    "subject": "Fixed at {{site_row.name}}: {{action.item}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1C1917\">\n  <div style=\"height:4px;background:#15803D;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Corrective action closed</h2>\n  <p>Hi {{site_row.site_manager}},</p>\n  <p><strong>{{action.item}}</strong> ({{action.severity}}) was fixed on {{task_data.fixed_on}} and signed off by {{actioned_by_name}}.</p>\n  <blockquote style=\"border-left:3px solid #15803D;margin:12px 0;padding:4px 12px\">{{task_data.fix_description}}</blockquote>\n  <p>{{closed_count}} of {{fail_count}} actions from this inspection are now closed.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Inspection {{inspection_ref}} · sent by the site inspection workflow</p>\n</div>",
+    "text_body": "Corrective action closed: {{action.item}}\n\nFixed on {{task_data.fixed_on}}, signed off by {{actioned_by_name}}.\n{{task_data.fix_description}}\n{{closed_count}} of {{fail_count}} actions closed.",
+    "is_default": false
+  }
+}

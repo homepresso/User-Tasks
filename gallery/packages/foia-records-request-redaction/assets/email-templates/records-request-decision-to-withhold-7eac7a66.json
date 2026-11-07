@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "7eac7a66-7b7a-5247-b0db-7e23c4f46e17",
+  "asset": {
+    "id": "7eac7a66-7b7a-5247-b0db-7e23c4f46e17",
+    "name": "Records request: decision to withhold",
+    "description": "Sent when the request is refused, with the decision letter attached.",
+    "subject": "Decision on your records request {{reference}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Decision on your request</h2><p>Dear {{form.requester_name}},</p><p>We have decided to withhold the records you asked for. The attached letter gives the grounds and your review rights.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Reference {{reference}} · sent by the public records workflow</p></div>",
+    "text_body": "Decision on {{reference}}: withheld. The letter is attached.",
+    "is_default": false
+  }
+}

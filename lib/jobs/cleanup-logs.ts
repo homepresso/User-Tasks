@@ -25,7 +25,8 @@ import {
  * than QUEUE_RETENTION_DAYS (default 7), in batches via purge_queue_history().
  *
  * Also deletes form submissions older than their form's
- * `submission_retention_days` (forms without one keep them).
+ * `submission_retention_days` (forms without one keep them; forms on legal
+ * hold or with a retention policy are skipped).
  *
  * Also cancels designer test runs left waiting for more than 24 hours
  * (lib/workflow-test-runs.ts — never a production run) and their open tasks.
@@ -158,19 +159,24 @@ export async function cleanupExpiredLogs(options: { supabase?: SupabaseClient } 
   }
 
   // Form submissions past their form's submission_retention_days (forms
-  // without one keep theirs). Missing table (migration 20261116000000 not
-  // applied yet) → skipped.
+  // without one keep theirs), with the stored files only they hold. Forms on
+  // legal hold and forms governed by a retention policy (lib/jobs/retention
+  // purges those) are skipped. Missing table / columns (migrations
+  // 20261116000000 / 20261213000000 not applied yet) → skipped.
   totals['form_submissions'] = 0
   try {
     const { data: forms, error } = await (supabase as any).from('forms')
       .select('id, tenant_id, submission_retention_days').not('submission_retention_days', 'is', null)
+      .eq('legal_hold', false).is('retention_policy_id', null)
     if (error) throw error
+    const { purgeFormSubmissions } = await import('@/lib/services/form-governance')
     for (const form of (forms ?? []) as Array<{ id: string; tenant_id: string; submission_retention_days: number }>) {
-      const { count, error: deleteError } = await (supabase as any).from('form_submissions')
-        .delete({ count: 'exact' }).eq('tenant_id', form.tenant_id).eq('form_id', form.id)
-        .lt('created_at', daysAgoIso(form.submission_retention_days))
-      if (deleteError) throw deleteError
-      totals['form_submissions'] += count ?? 0
+      const result = await purgeFormSubmissions(supabase as any, {
+        tenantId: form.tenant_id, formId: form.id, before: daysAgoIso(form.submission_retention_days),
+        reason: `Keep submissions (${form.submission_retention_days} days): deleted`,
+        metadata: { submission_retention_days: form.submission_retention_days },
+      })
+      totals['form_submissions'] += result.submissions
     }
   } catch (err) {
     console.warn('[cleanup-logs] form submissions purge failed:', err)

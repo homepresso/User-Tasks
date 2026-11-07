@@ -18,7 +18,7 @@ export default function ApiKeysPage() {
   })
 
   if (!can('settings.manage_api_keys')) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
 
   const apiKeys = data?.apiKeys ?? []
@@ -46,37 +46,37 @@ export default function ApiKeysPage() {
 
       <div className="pt-2">
         <h2 className="text-xl font-semibold mb-1">OData Endpoint</h2>
-        <p className="text-xs mb-4" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs mb-4 text-fg-muted">
           Use OData to discover your data-table schema and perform CRUD on table rows with standard entity-set semantics.
         </p>
         <Card className="p-5 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+            <div className="rounded-xl border p-4 border-border bg-subtle">
               <p className="text-xs font-semibold mb-2">Service URL</p>
-              <code className="block text-xs break-all" style={{ color: 'var(--theme-card-text)' }}>{odataBaseUrl}</code>
-              <p className="text-[11px] mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+              <code className="block text-xs break-all text-fg">{odataBaseUrl}</code>
+              <p className="text-2xs mt-2 text-fg-muted">
                 Returns the OData service document listing each table as an entity set.
               </p>
             </div>
-            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+            <div className="rounded-xl border p-4 border-border bg-subtle">
               <p className="text-xs font-semibold mb-2">Metadata URL</p>
-              <code className="block text-xs break-all" style={{ color: 'var(--theme-card-text)' }}>{`${odataBaseUrl}/$metadata`}</code>
-              <p className="text-[11px] mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+              <code className="block text-xs break-all text-fg">{`${odataBaseUrl}/$metadata`}</code>
+              <p className="text-2xs mt-2 text-fg-muted">
                 Returns EDM metadata so clients can understand available tables and fields.
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+          <div className="rounded-xl border p-4 space-y-3 border-border bg-subtle">
             <p className="text-xs font-semibold">Example OData Calls</p>
             <div className="space-y-3">
               <div>
-                <p className="text-[11px] mb-1" style={{ color: 'var(--theme-muted-text)' }}>List rows with filtering and count</p>
-                <pre className="text-xs overflow-x-auto rounded-lg p-3" style={{ backgroundColor: '#0f172a', color: '#e2e8f0' }}>{`GET ${odataBaseUrl}/employee_expense_claims?$top=25&$count=true&$filter=amount gt 1000&$orderby=amount desc`}</pre>
+                <p className="text-2xs mb-1 text-fg-muted">List rows with filtering and count</p>
+                <pre className="overflow-x-auto rounded-md bg-subtle p-3 font-mono text-xs text-fg">{`GET ${odataBaseUrl}/employee_expense_claims?$top=25&$count=true&$filter=amount gt 1000&$orderby=amount desc`}</pre>
               </div>
               <div>
-                <p className="text-[11px] mb-1" style={{ color: 'var(--theme-muted-text)' }}>Create a row</p>
-                <pre className="text-xs overflow-x-auto rounded-lg p-3" style={{ backgroundColor: '#0f172a', color: '#e2e8f0' }}>{`POST ${odataBaseUrl}/employee_expense_claims
+                <p className="text-2xs mb-1 text-fg-muted">Create a row</p>
+                <pre className="overflow-x-auto rounded-md bg-subtle p-3 font-mono text-xs text-fg">{`POST ${odataBaseUrl}/employee_expense_claims
 {
   "employee_name": "Alex Morgan",
   "department": "Finance",
@@ -84,7 +84,7 @@ export default function ApiKeysPage() {
 }`}</pre>
               </div>
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-2xs text-fg-muted">
               Authenticate with the same API keys used for the REST API via <code>Authorization: Bearer ...</code> or <code>?key=...</code>.
             </p>
           </div>
@@ -93,7 +93,7 @@ export default function ApiKeysPage() {
 
       <div className="pt-2">
         <h2 className="text-xl font-semibold mb-1">API Explorer</h2>
-        <p className="text-xs mb-4" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs mb-4 text-fg-muted">
           Test API endpoints directly from the browser. Select an API key and an endpoint, fill in parameters, and send requests.
         </p>
         <Card>

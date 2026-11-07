@@ -19,6 +19,7 @@ import { getConnectorFieldErrors, getMissingConnectorFields } from "@/lib/connec
 import { runConnectorPreflight } from "@/lib/connectors/preflight"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { ExportAssetButton } from "@/components/shared/config-transfer"
+import { esignProviderForConnector, esignWebhookPath } from "@/lib/esign/catalog"
 
 const iconMap: Record<string, any> = {
   MessageSquare, Mail, Sparkles, Brain, CreditCard, Phone,
@@ -55,6 +56,7 @@ interface DetailProps {
 }
 
 export function ConnectorDetail({ definition, connector, liveReferences = [], onClose, onUpdated, onAddInstance }: DetailProps) {
+  const esignInfo = esignProviderForConnector(definition.key)
   const [credentials, setCredentials] = useState<Record<string, any>>(connector.credentials ?? {})
   const [config, setConfig] = useState<Record<string, any>>(connector.config ?? {})
   const [saving, setSaving] = useState(false)
@@ -167,8 +169,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--theme-card-bg)' }}
+        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden bg-panel"
         onClick={e => e.stopPropagation()}
       >
         {notice && (
@@ -178,17 +179,17 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
         )}
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
             style={{ backgroundColor: definition.color + '15' }}>
             <Icon size={18} style={{ color: definition.color }} />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+              <h2 className="text-sm font-semibold text-fg">
                 {definition.name}
               </h2>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              <span className="text-2xs font-semibold px-2 py-0.5 rounded-full"
                 style={{
                   backgroundColor: statusColor + (effectiveStatus === 'active' ? '15' : '20'),
                   color: statusColor,
@@ -197,13 +198,13 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
               </span>
             </div>
             {connector.last_tested_at && (
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-2xs text-fg-muted">
                 Last tested {new Date(connector.last_tested_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
           </div>
           <ExportAssetButton ids={[connector.id]} name={connector.display_name || definition.name} className="!h-7" />
-          <button onClick={onClose} className="hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+          <button onClick={onClose} className="hover:opacity-70 text-fg-muted">
             <X size={18} />
           </button>
         </div>
@@ -212,7 +213,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
         <div className="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-5">
           {/* Credentials */}
           <div>
-            <h3 className="text-xs font-semibold mb-2" style={{ color: 'var(--theme-card-text)' }}>
+            <h3 className="text-xs font-semibold mb-2 text-fg">
               {uiCopy.credentialTitle}
             </h3>
             <ConnectorFieldRenderer
@@ -225,7 +226,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
           {/* Config */}
           {definition.fields.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold mb-2" style={{ color: 'var(--theme-card-text)' }}>Configuration</h3>
+              <h3 className="text-xs font-semibold mb-2 text-fg">Configuration</h3>
               <ConnectorFieldRenderer
                 fields={definition.fields}
                 values={config}
@@ -234,22 +235,34 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
             </div>
           )}
           {definition.recommendedPermissions && (
-            <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-              <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+            <div className="rounded-xl border p-3 space-y-2 border-border bg-bg">
+              <p className="text-xs font-semibold text-fg">
                 {definition.recommendedPermissions.title ?? 'Recommended Permissions'}
               </p>
               <div className="space-y-1">
                 {definition.recommendedPermissions.items.map((item) => (
-                  <p key={item} className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p key={item} className="text-2xs text-fg-muted">
                     • {item}
                   </p>
                 ))}
               </div>
               {definition.recommendedPermissions.note && (
-                <p className="text-[10px]" style={{ color: 'var(--theme-card-text)' }}>
+                <p className="text-2xs text-fg">
                   {definition.recommendedPermissions.note}
                 </p>
               )}
+            </div>
+          )}
+
+          {esignInfo && connector.integration_id && (
+            <div className="rounded-xl border p-3 space-y-1 border-border bg-bg" data-testid="esign-webhook-url">
+              <p className="text-xs font-semibold text-fg">Webhook URL</p>
+              <code className="block text-2xs break-all text-fg">
+                {`${typeof window !== 'undefined' ? window.location.origin : ''}${esignWebhookPath(esignInfo.id, connector.integration_id)}${esignInfo.id === 'adobe_sign' ? '?token=<webhook secret>' : ''}`}
+              </code>
+              <p className="text-2xs text-fg-muted">
+                Register it with {esignInfo.label} and set the Webhook secret ({esignInfo.webhookAuth}). Without it, Wait for Signature polls. <a href="/docs/integrations/e-signature" className="underline text-primary-text">Setup</a>
+              </p>
             </div>
           )}
 
@@ -261,14 +274,14 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
                 backgroundColor: 'var(--theme-warning)' + '10',
               }}
             >
-              <p className="text-xs font-semibold" style={{ color: 'var(--theme-warning)' }}>
+              <p className="text-xs font-semibold text-warning">
                 Preflight Issues
               </p>
-              <p className="text-[10px] mt-1" style={{ color: 'var(--theme-card-text)' }}>
+              <p className="text-2xs mt-1 text-fg">
                 {preflightResult.message}
               </p>
               {preflightResult.hint && (
-                <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-2xs mt-1 text-fg-muted">
                   {preflightResult.hint}
                 </p>
               )}
@@ -276,7 +289,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
           )}
 
           {/* Test */}
-          <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+          <div className="rounded-xl border p-3 space-y-2 border-border bg-bg">
             <Button size="sm" onClick={handleTest} disabled={testing || Boolean(preflightResult)} variant="outline" className="w-full">
               {testing ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Testing...</> :
                 <><Zap size={14} className="mr-1.5" /> Test Connection</>}
@@ -286,13 +299,13 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
                 backgroundColor: testResult.status === 'success' ? 'var(--theme-success)' + '10' : 'var(--theme-danger)' + '10',
               }}>
                 {testResult.status === 'success' ?
-                  <CheckCircle2 size={14} style={{ color: 'var(--theme-success)' }} className="shrink-0 mt-0.5" /> :
-                  <XCircle size={14} style={{ color: 'var(--theme-danger)' }} className="shrink-0 mt-0.5" />
+                  <CheckCircle2 size={14} className="shrink-0 mt-0.5 text-success" /> :
+                  <XCircle size={14} className="shrink-0 mt-0.5 text-danger" />
                 }
                 <div>
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{testResult.message}</p>
+                  <p className="text-2xs text-fg-muted">{testResult.message}</p>
                   {testResult.hint && (
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--theme-card-text)' }}>
+                    <p className="text-2xs mt-1 text-fg">
                       Hint: {testResult.hint}
                     </p>
                   )}
@@ -304,7 +317,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
           {/* Live References */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+              <h3 className="text-xs font-semibold text-fg">
                 {uiCopy.referenceHeading} ({liveRefCount}/{expectedRefCount})
               </h3>
               <Button
@@ -312,7 +325,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
                 size="sm"
                 onClick={handleRegenerate}
                 disabled={regenerating}
-                className="h-6 text-[10px] px-2"
+                className="h-6 text-2xs px-2"
               >
                 {regenerating ? <Loader2 size={10} className="mr-1 animate-spin" /> : <RefreshCw size={10} className="mr-1" />}
                 {regenerating ? 'Regenerating...' : 'Regenerate'}
@@ -324,8 +337,8 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
               <div className="flex items-start gap-2 rounded-lg p-2.5 mb-2" style={{
                 backgroundColor: 'var(--theme-warning)' + '10',
               }}>
-                <AlertTriangle size={12} style={{ color: 'var(--theme-warning)' }} className="shrink-0 mt-0.5" />
-                <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <AlertTriangle size={12} className="shrink-0 mt-0.5 text-warning" />
+                <p className="text-2xs text-fg-muted">
                   {refsAllMissing
                     ? 'All references have been deleted. Click Regenerate to recreate them.'
                     : `${expectedRefCount - liveRefCount} reference${expectedRefCount - liveRefCount > 1 ? 's' : ''} missing. Click Regenerate to restore.`
@@ -338,21 +351,21 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
               {liveRefCount > 0 ? (
                 // Show actual live references from DB
                 liveReferences.map(ref => (
-                  <div key={ref.id} className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ backgroundColor: 'var(--theme-surface)' }}>
+                  <div key={ref.id} className="flex items-center gap-2 rounded-lg px-3 py-1.5 bg-bg">
                     <Icon size={10} style={{ color: definition.color }} />
-                    <span className="text-[11px] truncate" style={{ color: 'var(--theme-card-text)' }}>{ref.name}</span>
+                    <span className="text-2xs truncate text-fg">{ref.name}</span>
                     {ref.description && (
-                      <span className="text-[9px] truncate" style={{ color: 'var(--theme-muted-text)' }}>— {ref.description}</span>
+                      <span className="text-2xs truncate text-fg-muted">— {ref.description}</span>
                     )}
                   </div>
                 ))
               ) : (
                 // Fallback: show expected templates (greyed out)
                 definition.referenceTemplates.map(tpl => (
-                  <div key={tpl.key} className="flex items-center gap-2 rounded-lg px-3 py-1.5 opacity-40" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                    <Icon size={10} style={{ color: 'var(--theme-muted-text)' }} />
-                    <span className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>{tpl.name}</span>
-                    <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>— not created</span>
+                  <div key={tpl.key} className="flex items-center gap-2 rounded-lg px-3 py-1.5 opacity-40 bg-bg">
+                    <Icon size={10} className="text-fg-muted" />
+                    <span className="text-2xs text-fg-muted">{tpl.name}</span>
+                    <span className="text-2xs text-fg-muted">— not created</span>
                   </div>
                 ))
               )}
@@ -362,7 +375,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
           {/* Docs link */}
           {definition.docsUrl && (
             <a href={definition.docsUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] hover:underline"
+              className="inline-flex items-center gap-1 text-2xs hover:underline"
               style={{ color: definition.color }}>
               <ExternalLink size={10} /> {uiCopy.docsLabel}
             </a>
@@ -370,7 +383,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleToggle} disabled={toggling}>
               {toggling ? <Loader2 size={14} className="animate-spin" /> :
@@ -384,7 +397,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
             )}
             {confirmDelete ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-red-500">Are you sure?</span>
+                <span className="text-2xs text-red-500">Are you sure?</span>
                 <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
                   {deleting ? <Loader2 size={14} className="animate-spin" /> : 'Delete'}
                 </Button>

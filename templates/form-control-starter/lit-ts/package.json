@@ -1,0 +1,19 @@
+{
+  "name": "ut-star-rating",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A UserTasks custom form control built with Lit and TypeScript",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit -p . && node scripts/build.mjs",
+    "package": "npm run build && node scripts/package.mjs",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.7",
+    "lit": "^3.3.1",
+    "typescript": "^5.9.3"
+  }
+}

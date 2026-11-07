@@ -96,6 +96,7 @@ const kindOf = (name: string, deps: RunnerDeps = {}) => (deps.kinds ?? getJobKin
 
 function originOf(ctx: ServiceContext, hasInput: boolean): JobOrigin {
   if (ctx.authKind === 'job') throw new ServiceError('validation_error', 'A background job cannot start another job')
+  if (ctx.authKind === 'anonymous' || ctx.source === 'anonymous') throw ServiceError.forbidden('Background jobs are not available on a public form')
   const credential = ctx.authKind === 'api_key' || ctx.authKind === 'oauth' || ctx.authKind === 'mcp'
   return {
     source: ctx.source === 'job' ? 'api' : ctx.source,

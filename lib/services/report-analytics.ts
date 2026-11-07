@@ -2,7 +2,7 @@
  * Workflow report analytics: wrappers over the SQL aggregates the reports
  * views called from the browser (supabase/migrations/20261028000000_perf_api_reports.sql).
  * The functions are SECURITY INVOKER, so they run as the session user and
- * RLS scopes the runs; reports.view is required on top, as for the pages.
+ * RLS scopes the runs; workflows.view_runs is required on top (workspace-wide run analytics; governance audit 2026-11).
  */
 
 import { getDb, requirePerm, ServiceError, type ServiceContext } from './context'
@@ -78,21 +78,21 @@ async function call<T>(ctx: ServiceContext, fn: string, args: Record<string, unk
 
 /** Per workflow × UTC day run aggregates since `since` (reports hub). */
 export async function runDailyStats(ctx: ServiceContext, input: { since: string; workflowIds?: string[] | null }) {
-  requirePerm(ctx, 'reports.view')
+  requirePerm(ctx, 'workflows.view_runs')
   const ids = workflowIds(input.workflowIds, false)
   return call<RunDailyStat>(ctx, 'workflow_run_daily_stats', { p_since: since(input.since), ...(ids ? { p_workflow_ids: ids } : {}) })
 }
 
 /** Status counts and avg/p50/p95 completed durations since `since`. */
 export async function runDurationStats(ctx: ServiceContext, input: { since: string; workflowIds?: string[] | null }) {
-  requirePerm(ctx, 'reports.view')
+  requirePerm(ctx, 'workflows.view_runs')
   const ids = workflowIds(input.workflowIds, false)
   return call<RunDurationStat>(ctx, 'workflow_run_duration_stats', { p_since: since(input.since), ...(ids ? { p_workflow_ids: ids } : {}) })
 }
 
 /** Run rows without traces (newest first) for the given workflows. */
 export async function runSummaries(ctx: ServiceContext, input: { workflowIds: string[]; since?: string | null; limit?: number }) {
-  requirePerm(ctx, 'reports.view')
+  requirePerm(ctx, 'workflows.view_runs')
   const sinceValue = optionalSince(input.since)
   return call<Record<string, any>>(ctx, 'workflow_run_summaries', {
     p_workflow_ids: workflowIds(input.workflowIds, true), ...(sinceValue ? { p_since: sinceValue } : {}), p_limit: runLimit(input.limit, 2000),
@@ -101,7 +101,7 @@ export async function runSummaries(ctx: ServiceContext, input: { workflowIds: st
 
 /** Per-node visit counts over the same newest runs. */
 export async function nodeVisitStats(ctx: ServiceContext, input: { workflowIds: string[]; since?: string | null; limit?: number }) {
-  requirePerm(ctx, 'reports.view')
+  requirePerm(ctx, 'workflows.view_runs')
   const sinceValue = optionalSince(input.since)
   return call<NodeVisitStat>(ctx, 'workflow_node_visit_stats', {
     p_workflow_ids: workflowIds(input.workflowIds, true), ...(sinceValue ? { p_since: sinceValue } : {}), p_limit: runLimit(input.limit, 5000),

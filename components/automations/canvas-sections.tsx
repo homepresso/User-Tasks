@@ -1,6 +1,8 @@
 "use client"
 
+import { ChevronRight } from "lucide-react"
 import type { WorkflowNode } from "@/lib/workflow-schema"
+import { cn } from "@/lib/utils"
 import { getSectionDimensions, SECTION_COLLAPSED_WIDTH, SECTION_HEADER_HEIGHT } from "@/lib/workflow-sections"
 
 export const TRIGGER_ZONE_HEIGHT = 100
@@ -21,16 +23,15 @@ export function CanvasBands({ showTriggerZone, swimlanes }: { showTriggerZone: b
     <>
       {showTriggerZone && (
         <div
-          className="absolute top-0 left-0 pointer-events-none rounded-t-lg"
+          className="absolute top-0 left-0 pointer-events-none rounded-t-lg border-b border-dashed border-border-subtle"
           style={{
             width: "100%",
             height: `${TRIGGER_ZONE_HEIGHT}px`,
-            backgroundColor: "rgba(34, 197, 94, 0.04)",
-            borderBottom: "1px dashed rgba(34, 197, 94, 0.2)",
+            backgroundColor: "color-mix(in srgb, var(--ds-node-trigger, var(--theme-chart-2)) 6%, transparent)",
           }}
           data-trigger-zone=""
         >
-          <span className="absolute top-2 left-3 text-[9px] font-semibold uppercase tracking-wider" style={{ color: "var(--theme-success)" }}>
+          <span className="absolute top-2 left-3 text-2xs font-medium text-fg-muted">
             Triggers
           </span>
         </div>
@@ -50,7 +51,7 @@ export function CanvasBands({ showTriggerZone, swimlanes }: { showTriggerZone: b
               borderBottom: `1px dashed rgba(${r}, ${g}, ${b}, 0.25)`,
             }}
           >
-            <span className="absolute top-2 left-3 text-[9px] font-semibold uppercase tracking-wider" style={{ color: `rgba(${r}, ${g}, ${b}, 0.5)` }}>
+            <span className="absolute top-2 left-3 text-2xs font-medium" style={{ color: `rgba(${r}, ${g}, ${b}, 0.7)` }}>
               {lane.label}
             </span>
           </div>
@@ -94,20 +95,19 @@ export function SectionFrame({ section, collapsed, nodeCount, onToggle, title, t
     >
       <button
         type="button"
-        className="text-[10px] w-5 h-5 flex items-center justify-center rounded hover:opacity-70 shrink-0"
+        className="w-5 h-5 flex items-center justify-center rounded-sm hover:opacity-70 shrink-0"
         style={{ color }}
         aria-expanded={!collapsed}
         aria-label={collapsed ? `Expand section ${section.label}` : `Collapse section ${section.label}`}
         onClick={(e) => { e.stopPropagation(); onToggle() }}
       >
-        {collapsed ? '▶' : '▼'}
+        <ChevronRight size={14} aria-hidden="true" className={cn("transition-transform", !collapsed && "rotate-90")} />
       </button>
       {title ?? <span className="text-xs font-semibold flex-1 min-w-0 truncate" style={{ color }}>{section.label}</span>}
-      <span className="text-[9px] font-medium shrink-0 px-1.5 py-0.5 rounded-full"
-        style={{
-          backgroundColor: tone === 'danger' ? 'var(--status-danger-bg)' : tone === 'success' ? 'var(--status-success-bg)' : `rgba(${r}, ${g}, ${b}, 0.15)`,
-          color: tone === 'danger' ? 'var(--theme-danger)' : tone === 'success' ? 'var(--theme-success)' : color,
-        }}>
+      <span className={cn("num text-2xs font-medium shrink-0 px-1.5 py-0.5 rounded-full",
+          tone === 'danger' && "bg-danger-wash text-danger",
+          tone === 'success' && "bg-success-wash text-success")}
+        style={tone ? undefined : { backgroundColor: `rgba(${r}, ${g}, ${b}, 0.15)`, color }}>
         {nodeCount} node{nodeCount !== 1 ? 's' : ''}
       </span>
     </div>

@@ -16,7 +16,8 @@ image:
   # (Snowflake, Oracle, MongoDB; the storage / email / secrets / KMS SDKs; OCR)
   # are chosen when the image is built (INCLUDE_OPTIONAL_DB_DRIVERS,
   # INCLUDE_STORAGE_SDKS, INCLUDE_PROVIDER_SDKS, INCLUDE_OCR; docs/optional-drivers.md):
-  # build it with the ones your providers need.
+  # build it with the ones your providers need. FFmpeg for the media steps is
+  # in the image unless it was built with INCLUDE_MEDIA_TOOLS=false.
   repository: usertasks
   # Defaults to the chart's appVersion.
   tag: ""
@@ -123,7 +124,12 @@ security:
   # ALLOW_PRIVATE_EGRESS: integrations, LDAP and log destinations on private
   # addresses (cloud metadata addresses stay blocked).
   allowPrivateEgress: false
-  # ENABLE_CUSTOM_ACTIVITY_CODE (unsandboxed JavaScript activities).
+  # CUSTOM_ACTIONS_DISABLED: stop every custom workflow action on this
+  # release (they always run in a QuickJS WebAssembly sandbox otherwise).
+  customActionsDisabled: false
+  # Deprecated, no effect: custom actions no longer need switching on
+  # (ENABLE_CUSTOM_ACTIVITY_CODE is ignored). Kept so existing values files
+  # still validate.
   enableCustomActivityCode: false
   # ALLOW_QUERY_KEY_AUTH (?key= API keys for MCP connectors).
   allowQueryKeyAuth: false

@@ -1,5 +1,6 @@
 import type { ReportAggregation, ReportConfig } from '@/lib/report-sources'
 import { isPlainObject } from '@/lib/utils/guards'
+import { normalizeReportCharts } from '@/lib/report-charts'
 
 function normalizeAggregation(raw: unknown): ReportAggregation | null {
   if (!isPlainObject(raw)) return null
@@ -98,6 +99,13 @@ export function normalizeReportConfig(raw: unknown): Partial<ReportConfig> {
       ...next.date_range,
       field: normalizeFieldReference(next.date_range.field, partialConfig),
     }
+  }
+
+  // Summary charts: valid specs only (max 8); no charts → no key (configs without charts stay as they were).
+  if ('charts' in next) {
+    const charts = normalizeReportCharts(next.charts)
+    if (charts) next.charts = charts
+    else delete next.charts
   }
 
   return next as Partial<ReportConfig>

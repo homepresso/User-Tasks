@@ -1,0 +1,98 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "46448616-845d-5cf5-b872-4fcb66e09366",
+  "asset": {
+    "id": "46448616-845d-5cf5-b872-4fcb66e09366",
+    "integration_id": "78a81331-8caa-5608-841a-c2b50a867ad1",
+    "name": "Reject upload",
+    "description": "Hides a rejected upload and records the reason.",
+    "tags": [
+      "content"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "path_template": "/uploads/{{upload_id}}/reject",
+      "body_template": "{\"reason\":\"{{reason}}\",\"decided_by\":\"{{decided_by}}\"}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "type": "string",
+              "example": "UP-20261030-0042",
+              "name": "id"
+            },
+            {
+              "type": "string",
+              "example": "rejected",
+              "name": "status"
+            },
+            {
+              "type": "string",
+              "example": "",
+              "name": "url"
+            },
+            {
+              "type": "string",
+              "example": "2026-10-30T10:00:00Z",
+              "name": "updated_at"
+            }
+          ]
+        },
+        "sample": {
+          "id": "UP-20261030-0042",
+          "status": "rejected",
+          "url": "",
+          "updated_at": "2026-10-30T10:00:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-30T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "30926c7f-1dee-5d36-85b3-20f7663d312d",
+        "name": "upload_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e39bdb68-7213-57c0-90ad-5c56d995d236",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "8c28c3db-f659-50e4-ae89-fe041d333d1f",
+        "name": "decided_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6ce0195e-13c2-53db-883e-4493642fc2fc",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

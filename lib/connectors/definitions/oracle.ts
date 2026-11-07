@@ -52,6 +52,18 @@ export const oracleConnector: ConnectorDefinition = {
       placeholder: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=...)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=...)))',
       helpText: 'Full TNS connect descriptor — only needed if Connection Type is TNS',
     },
+    {
+      key: 'protocol',
+      label: 'Network Protocol',
+      type: 'select',
+      options: [
+        { value: 'tcp', label: 'TCP' },
+        { value: 'tcps', label: 'TCPS (TLS)' },
+      ],
+      defaultValue: 'tcp',
+      visibleWhen: { field: 'connection_type', equals: 'service_name' },
+      helpText: 'TCPS encrypts the connection (server certificate verified against public CAs). For SID or wallets, use a TNS connect string.',
+    },
   ],
   credentialFields: [
     {
@@ -200,7 +212,7 @@ export const oracleConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/db/query',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ sql: "SELECT OWNER, TABLE_NAME, NUM_ROWS, LAST_ANALYZED FROM ALL_TABLES WHERE OWNER = :1 ORDER BY TABLE_NAME", params: ['{{schema}}'] }),
+      bodyTemplate: JSON.stringify({ sql: "SELECT OWNER, TABLE_NAME, NUM_ROWS, LAST_ANALYZED FROM ALL_TABLES WHERE OWNER = NVL(UPPER(:1), USER) ORDER BY TABLE_NAME", params: ['{{schema}}'] }),
       inputs: [
         { name: 'schema', type: 'string', required: false, description: 'Schema/owner name (defaults to current user)', defaultValue: '' },
       ],
@@ -216,7 +228,7 @@ export const oracleConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/db/query',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ sql: "SELECT OWNER, VIEW_NAME, TEXT_LENGTH FROM ALL_VIEWS WHERE OWNER = :1 ORDER BY VIEW_NAME", params: ['{{schema}}'] }),
+      bodyTemplate: JSON.stringify({ sql: "SELECT OWNER, VIEW_NAME, TEXT_LENGTH FROM ALL_VIEWS WHERE OWNER = NVL(UPPER(:1), USER) ORDER BY VIEW_NAME", params: ['{{schema}}'] }),
       inputs: [
         { name: 'schema', type: 'string', required: false, description: 'Schema/owner name', defaultValue: '' },
       ],
@@ -293,6 +305,7 @@ export const oracleConnector: ConnectorDefinition = {
       connection_type: config.connection_type || 'service_name',
       service: config.service,
       tns_string: config.tns_string || '',
+      ...(config.protocol === 'tcps' ? { protocol: 'tcps' } : {}),
     },
   }),
 }

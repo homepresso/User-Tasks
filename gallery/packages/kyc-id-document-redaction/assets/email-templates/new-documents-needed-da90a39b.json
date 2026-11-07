@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "da90a39b-7bc7-5fdb-986a-566c16d60098",
+  "asset": {
+    "id": "da90a39b-7bc7-5fdb-986a-566c16d60098",
+    "name": "New documents needed",
+    "description": "Sent when the reviewer needs new photos.",
+    "subject": "We need another photo of your ID",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">One more step</h2><p>Hi {{form.full_name}},</p><p>We could not verify your identity from the photos: {{task_data.message}}</p><p>Please submit the form again with a clear photo of the whole document and a selfie in good light.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Reference {{kyc_ref}}</p></div>",
+    "text_body": "We need new photos: {{task_data.message}}",
+    "is_default": false
+  }
+}

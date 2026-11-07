@@ -37,8 +37,12 @@ export interface EndpointDef<
   tags: string[]
   /** Permission key required (null = any authenticated caller). */
   permission: string | null
-  /** `none` = public endpoint (no bearer token). Defaults to `bearer`. */
-  auth?: 'bearer' | 'none'
+  /**
+   * `none` = public endpoint (no bearer token); `instance_admin` = the
+   * instance admin token (INSTANCE_ADMIN_TOKEN) only, never a workspace API
+   * key or OAuth token (lib/api/instance-admin-route.ts). Defaults to `bearer`.
+   */
+  auth?: 'bearer' | 'none' | 'instance_admin'
   params?: P
   query?: Q
   body?: B

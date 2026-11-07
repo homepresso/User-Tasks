@@ -1,0 +1,284 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "2d989f01-c7c2-5cff-8327-906c4f4c92cb",
+  "asset": {
+    "id": "2d989f01-c7c2-5cff-8327-906c4f4c92cb",
+    "name": "Legal request routing",
+    "description": "Which queue a legal request goes to, its SLA in days, and whether the general counsel reviews the outcome. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "request_type",
+        "label": "Request type",
+        "type": "text",
+        "id": "052416c3-2c15-5f05-ab5a-52fd5bc2a945"
+      },
+      {
+        "key": "urgency",
+        "label": "Urgency",
+        "type": "text",
+        "id": "777b870f-0cf4-5c87-ad67-fae1d38c8a9d"
+      },
+      {
+        "key": "contract_value",
+        "label": "Contract value (NZD)",
+        "type": "number",
+        "id": "16d7981e-6432-59c4-87b9-a7dda2cf5862"
+      },
+      {
+        "key": "question_area",
+        "label": "Question area",
+        "type": "text",
+        "id": "f323d4a3-dfeb-5e8f-a40d-6396d3df5fab"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "queue",
+        "label": "Queue",
+        "type": "text",
+        "id": "ec320c05-2379-5369-bf42-007579ae9691"
+      },
+      {
+        "key": "sla_days",
+        "label": "SLA (days)",
+        "type": "number",
+        "id": "eba6bae6-864d-5219-acac-bf40a044de3d"
+      },
+      {
+        "key": "gc_review",
+        "label": "General counsel reviews",
+        "type": "boolean",
+        "id": "d634d2fd-2144-5c6f-8aa9-d9f18045995d"
+      },
+      {
+        "key": "route_note",
+        "label": "Note",
+        "type": "text",
+        "id": "ea4c7fe7-d916-5114-be00-7be2923afb6c"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Dispute or claim",
+        "conditions": [
+          {
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "Dispute or claim",
+            "id": "6f773b3e-0408-5397-98ea-b3f45a7d0790"
+          }
+        ],
+        "outputs": {
+          "queue": "Disputes",
+          "sla_days": 2,
+          "gc_review": true,
+          "route_note": "Disputes have deadlines: the disputes lawyer picks it up and the general counsel reviews the response."
+        },
+        "id": "f1c40b80-1afd-5a3f-a0c0-228ebb2c8f57",
+        "enabled": true
+      },
+      {
+        "label": "High-value contract",
+        "conditions": [
+          {
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "Contract review",
+            "id": "3c92246a-db80-5897-b292-6e161ca60e7f"
+          },
+          {
+            "inputKey": "contract_value",
+            "operator": "greater_than_or_equal",
+            "value": "500000",
+            "id": "638cf65f-bb5b-5e51-83e0-089af1a21909"
+          }
+        ],
+        "outputs": {
+          "queue": "Commercial",
+          "sla_days": 5,
+          "gc_review": true,
+          "route_note": "Contract value of NZD 500,000 or more: the general counsel signs off the advice."
+        },
+        "id": "6ff477eb-da6d-5e83-9953-fe92262955a6",
+        "enabled": true
+      },
+      {
+        "label": "Urgent contract",
+        "conditions": [
+          {
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "Contract review",
+            "id": "b69fb4e5-137b-5068-8b32-6179b0104c63"
+          },
+          {
+            "inputKey": "urgency",
+            "operator": "equals",
+            "value": "Critical",
+            "id": "8f4c09f0-a3ad-5f76-9467-174c4c1a5f77"
+          }
+        ],
+        "outputs": {
+          "queue": "Commercial",
+          "sla_days": 1,
+          "gc_review": false,
+          "route_note": "Critical contract review: one working day."
+        },
+        "id": "7b17800f-f6b5-550e-9d67-f628b686b829",
+        "enabled": true
+      },
+      {
+        "label": "Contract review",
+        "conditions": [
+          {
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "Contract review",
+            "id": "7d93120e-8b04-5b53-a4b1-d0cc937818ac"
+          }
+        ],
+        "outputs": {
+          "queue": "Commercial",
+          "sla_days": 5,
+          "gc_review": false,
+          "route_note": "Standard contract review."
+        },
+        "id": "5c64da28-934c-55f5-8388-7fbad99f30db",
+        "enabled": true
+      },
+      {
+        "label": "Urgent NDA",
+        "conditions": [
+          {
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "NDA",
+            "id": "3b33fe79-6215-5d57-89d9-a49a7d530a47"
+          },
+          {
+            "inputKey": "urgency",
+            "operator": "equals",
+            "value": "Critical",
+            "id": "38bf98da-ce88-5524-9437-47d89665a0ad"
+          }
+        ],
+        "outputs": {
+          "queue": "Commercial",
+          "sla_days": 1,
+          "gc_review": false,
+          "route_note": "Critical NDA: same or next working day."
+        },
+        "id": "5aa2b421-2f0f-5d7c-b43a-bbf5acf9b1b7",
+        "enabled": true
+      },
+      {
+        "label": "NDA",
+        "conditions": [
+          {
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "NDA",
+            "id": "e1d6efc6-1608-55c6-bf8d-d9e033c16f41"
+          }
+        ],
+        "outputs": {
+          "queue": "Commercial",
+          "sla_days": 2,
+          "gc_review": false,
+          "route_note": "NDA on our template, or a review of theirs."
+        },
+        "id": "2e437342-3165-5835-8b79-7b730eb56a46",
+        "enabled": true
+      },
+      {
+        "label": "Employment question",
+        "conditions": [
+          {
+            "inputKey": "question_area",
+            "operator": "equals",
+            "value": "Employment",
+            "id": "a5996e6c-7a4d-5cb7-8323-addf54d2ee5f"
+          }
+        ],
+        "outputs": {
+          "queue": "Employment",
+          "sla_days": 3,
+          "gc_review": false,
+          "route_note": "Employment law question."
+        },
+        "id": "44028b6c-bb46-5672-9d22-ab8112939f73",
+        "enabled": true
+      },
+      {
+        "label": "Privacy question",
+        "conditions": [
+          {
+            "inputKey": "question_area",
+            "operator": "equals",
+            "value": "Privacy",
+            "id": "17f5ae85-07a7-59e5-b690-7a30cd417449"
+          }
+        ],
+        "outputs": {
+          "queue": "Privacy & IP",
+          "sla_days": 3,
+          "gc_review": false,
+          "route_note": "Privacy question: the privacy officer is copied."
+        },
+        "id": "f1cc299c-84cc-510e-b00b-f0acc93c2bc1",
+        "enabled": true
+      },
+      {
+        "label": "IP question",
+        "conditions": [
+          {
+            "inputKey": "question_area",
+            "operator": "equals",
+            "value": "Intellectual property",
+            "id": "3139dabc-3dbe-5104-a4ff-39f7cf251734"
+          }
+        ],
+        "outputs": {
+          "queue": "Privacy & IP",
+          "sla_days": 3,
+          "gc_review": false,
+          "route_note": "Intellectual property question."
+        },
+        "id": "6ca234bc-e7e8-5fc7-ac59-3a6b25ca84ca",
+        "enabled": true
+      },
+      {
+        "label": "Urgent question",
+        "conditions": [
+          {
+            "inputKey": "urgency",
+            "operator": "equals",
+            "value": "Critical",
+            "id": "06bf671a-6849-53d0-97ac-5ac5ac6fea81"
+          }
+        ],
+        "outputs": {
+          "queue": "General counsel",
+          "sla_days": 1,
+          "gc_review": true,
+          "route_note": "Critical question: the general counsel answers it."
+        },
+        "id": "e02e1217-b9a4-50de-a858-c2553c4286fd",
+        "enabled": true
+      },
+      {
+        "label": "Anything else",
+        "conditions": [],
+        "outputs": {
+          "queue": "General counsel",
+          "sla_days": 5,
+          "gc_review": false,
+          "route_note": "General legal question."
+        },
+        "id": "693839a7-db69-5935-9830-7d2fb6b9229d",
+        "enabled": true
+      }
+    ]
+  }
+}

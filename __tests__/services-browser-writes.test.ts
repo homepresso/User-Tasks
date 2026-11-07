@@ -29,7 +29,7 @@ import * as workflows from '@/lib/services/workflows'
 import * as references from '@/lib/services/references'
 import * as objects from '@/lib/services/objects'
 import * as uploads from '@/lib/services/uploads'
-import { updateUserPreferences } from '@/app/actions/profile'
+import { saveMyQueueRules, updateUserPreferences } from '@/app/actions/profile'
 import { createMemorySupabase } from './fixtures/supabase-memory'
 
 function seed() {
@@ -203,5 +203,56 @@ describe('updateUserPreferences', () => {
     expect(await updateUserPreferences({ default_priority: 'urgent', queue_bypass_priority: 'high', available_hours_week: 40, hours_per_day: {} })).toEqual({ error: 'Choose a priority from the list.' })
     session.user = null
     expect(await updateUserPreferences({ default_priority: 'high', queue_bypass_priority: 'high', available_hours_week: 40, hours_per_day: {} })).toEqual({ error: 'Not signed in.' })
+  })
+
+  it('stores queue rules (empty pickers dropped) and keeps the legacy threshold optional', async () => {
+    const result = await updateUserPreferences({
+      default_priority: 'medium', available_hours_week: 40, hours_per_day: {},
+      queue_rules: { default: 'add', rules: [{ when: { source: 'workflow', workflow_id: '' as never }, then: 'queue' }] },
+    })
+    expect(result).toEqual({ error: null })
+    const prefs = session.db.tables.users[0].preferences
+    // Version 1 input is stored as version 2 (same behaviour).
+    expect(prefs.queue_rules).toEqual({ version: 2, default: 'add', rules: [{ id: 'r1', enabled: true, match: 'all', conditions: [{ field: 'source', op: 'is', value: 'workflow' }], then: 'queue' }] })
+    expect(prefs).not.toHaveProperty('queue_bypass_priority')
+  })
+
+  it('rejects malformed queue rules and an unknown legacy threshold', async () => {
+    expect(await updateUserPreferences({
+      default_priority: 'medium', available_hours_week: 40, hours_per_day: {},
+      queue_rules: { default: 'maybe' as never, rules: [] },
+    })).toEqual({ error: expect.stringMatching(/queue rules/i) })
+    expect(await updateUserPreferences({ default_priority: 'medium', queue_bypass_priority: 'urgent', available_hours_week: 40, hours_per_day: {} }))
+      .toEqual({ error: 'Choose a priority from the list.' })
+  })
+})
+
+describe('saveMyQueueRules (the task lists\' Queue rules dialog)', () => {
+  beforeEach(() => {
+    session.db = createMemorySupabase({ users: [{ id: 'user-1', preferences: { default_priority: 'low' } }, { id: 'user-2', preferences: { queue_rules: { default: 'add', rules: [] } } }] })
+    session.user = { id: 'user-1' }
+  })
+  const rules = {
+    version: 2, default: 'queue',
+    rules: [{ id: 'r1', name: 'From my manager', enabled: true, match: 'any', conditions: [{ field: 'assigned_by_relation', op: 'is', value: 'manager' }, { field: 'priority', op: 'at_least', value: 'critical' }], then: 'add' }],
+  }
+
+  it('validates and merges into the caller\'s own preferences only', async () => {
+    const result = await saveMyQueueRules(rules)
+    expect(result.error).toBeNull()
+    const [me, other] = session.db.tables.users
+    expect(me.preferences).toEqual({ default_priority: 'low', queue_rules: rules })
+    expect(other.preferences).toEqual({ queue_rules: { default: 'add', rules: [] } })
+  })
+
+  it('takes no target: an extra user id in the payload is refused, never written elsewhere', async () => {
+    expect((await saveMyQueueRules({ ...rules, user_id: 'user-2' })).error).toMatch(/queue rules/i)
+    expect(session.db.tables.users[1].preferences).toEqual({ queue_rules: { default: 'add', rules: [] } })
+  })
+
+  it('rejects invalid rules and signed-out callers', async () => {
+    expect((await saveMyQueueRules({ version: 2, default: 'queue', rules: [{ id: 'r1', enabled: true, match: 'all', conditions: [{ field: 'priority', op: 'contains', value: 'x' }], then: 'add' }] })).error).toMatch(/Rule 1/)
+    session.user = null
+    expect(await saveMyQueueRules(rules)).toEqual({ error: 'Not signed in.' })
   })
 })

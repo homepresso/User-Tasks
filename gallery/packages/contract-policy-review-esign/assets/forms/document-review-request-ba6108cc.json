@@ -1,0 +1,506 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "ba6108cc-686d-5bfe-8bb1-9a3e05ef8135",
+  "asset": {
+    "id": "ba6108cc-686d-5bfe-8bb1-9a3e05ef8135",
+    "name": "Document review request",
+    "description": "Submit a policy, contract or procedure for review and internal e-sign: title, type (its review route comes from the Document types table), owner, the PDF (previewed in a PDF viewer), effective date, reviewers and a rich-text summary of what changed.",
+    "tags": [
+      "documents",
+      "review",
+      "e-sign"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Document title",
+        "type": "text",
+        "required": true,
+        "placeholder": "For example: Information security policy"
+      },
+      {
+        "key": "doc_type",
+        "label": "Document type",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "faf4dcab-ed96-5e25-b5e0-6d4acbbe1bed",
+          "search_columns": [
+            "type",
+            "type_description"
+          ],
+          "display_columns": [
+            "type",
+            "type_description"
+          ],
+          "value_column": "type",
+          "fill": [
+            {
+              "from": "route_summary",
+              "to": "route_summary"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "type",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 20
+        }
+      },
+      {
+        "key": "change_size",
+        "label": "What kind of change is this?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "New document",
+          "Major change",
+          "Minor change"
+        ],
+        "display": "radio",
+        "help_text": "Major changes and new policies get a second reviewer and legal review."
+      },
+      {
+        "key": "route_summary",
+        "label": "Review route",
+        "type": "textarea",
+        "read_only": true
+      },
+      {
+        "key": "route_card",
+        "type": "custom",
+        "label": "Review route",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "info",
+            "card_title": "How this document is reviewed",
+            "body": "{{field1}}",
+            "layout": "callout",
+            "format": "auto",
+            "show_icon": true
+          },
+          "context_map": {
+            "field1": "route_summary"
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "doc_owner",
+        "label": "Document owner (signs it off)",
+        "type": "user",
+        "required": true,
+        "help_text": "The person accountable for the document. They e-sign the final version."
+      },
+      {
+        "key": "doc_owner_name",
+        "label": "Owner name (for the certificate)",
+        "type": "text",
+        "required": true,
+        "placeholder": "Avery Example"
+      },
+      {
+        "key": "doc_owner_email",
+        "label": "Owner email (receives the signed pack)",
+        "type": "email",
+        "required": true,
+        "placeholder": "avery.example@example.com"
+      },
+      {
+        "key": "reviewer",
+        "label": "Reviewer",
+        "type": "user",
+        "required": true
+      },
+      {
+        "key": "second_reviewer",
+        "label": "Second reviewer (major changes)",
+        "type": "user",
+        "help_text": "Used when the route needs two reviewers; if empty, the second review goes to the workspace owner of this process."
+      },
+      {
+        "key": "effective_date",
+        "label": "Effective date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "version_label",
+        "label": "Version label",
+        "type": "text",
+        "placeholder": "e.g. 2026.1 (optional)"
+      },
+      {
+        "key": "document",
+        "label": "The document (PDF)",
+        "type": "attachments",
+        "required": true,
+        "attachments": {
+          "max_files": 1,
+          "max_file_mb": 20,
+          "custom_types": [
+            ".pdf"
+          ]
+        },
+        "help_text": "One PDF. Reviewers and the signer see it in a PDF viewer inside their task."
+      },
+      {
+        "key": "preview",
+        "type": "custom",
+        "label": "Preview",
+        "custom": {
+          "tag": "ut-pdf-viewer",
+          "version": "1.1.0",
+          "name": "PDF viewer",
+          "value_type": "files",
+          "icon": "file-text",
+          "value_schema": {
+            "type": "array",
+            "maxItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "number"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "props": {
+            "allow_upload": false
+          },
+          "context_map": {
+            "document": "document"
+          },
+          "display": {
+            "format": "list"
+          },
+          "accessibility": {
+            "role": "region",
+            "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 560,
+            "min_height": 200,
+            "max_height": 1000,
+            "full_width": true
+          },
+          "capabilities": [
+            "files"
+          ],
+          "output": {
+            "type": "array",
+            "description": "The PDF as an uploaded file (a list of one)"
+          }
+        }
+      },
+      {
+        "key": "change_summary",
+        "type": "custom",
+        "label": "Summary of changes",
+        "custom": {
+          "tag": "ut-rich-text",
+          "version": "1.1.0",
+          "name": "Rich text",
+          "value_type": "json",
+          "icon": "type",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "html": {
+                "type": "string",
+                "maxLength": 100000
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 100000
+              }
+            },
+            "required": [
+              "html",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "placeholder": "What changed since the last version, and why?",
+            "max_length": 4000,
+            "toolbar": "basic",
+            "min_height": 160
+          },
+          "display": {
+            "template": "{{value.text}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "textbox",
+            "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 216,
+            "min_height": 120,
+            "max_height": 900,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "primary": "html",
+            "html": true,
+            "extras": {
+              "text": "text"
+            },
+            "choices": [
+              {
+                "value": "html",
+                "label": "HTML (formatted, sanitised)",
+                "primary": "html",
+                "html": true
+              },
+              {
+                "value": "text",
+                "label": "Plain text",
+                "primary": "text"
+              }
+            ],
+            "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+          }
+        },
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "page_1",
+          "title": "The document",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "title",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "doc_type",
+                  "span": 1
+                },
+                {
+                  "field_key": "change_size",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "route_card",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "effective_date",
+                  "span": 1
+                },
+                {
+                  "field_key": "version_label",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "file-text",
+          "description": "What it is and how it will be reviewed."
+        },
+        {
+          "id": "page_2",
+          "title": "Upload",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "document",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "preview",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "upload",
+          "description": "The PDF reviewers will read."
+        },
+        {
+          "id": "page_3",
+          "title": "People and changes",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "doc_owner",
+                  "span": 1
+                },
+                {
+                  "field_key": "doc_owner_name",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "doc_owner_email",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "reviewer",
+                  "span": 1
+                },
+                {
+                  "field_key": "second_reviewer",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "change_summary",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "users"
+        }
+      ],
+      "page_settings": {
+        "indicator": "numbered",
+        "review": true,
+        "review_title": "Check before you submit",
+        "next_label": "Next"
+      }
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#4338CA",
+            "background": "#FFFFFF",
+            "text": "#16152B",
+            "page": "#ECEDFB",
+            "page_to": "#F8F8FE"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit for review",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Submitted for review",
+            "screen_button": "submit_another",
+            "text": "\"{{title}}\" is in review. You will get an email with its reference.",
+            "screen_button_label": "Submit another document"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Submit a document for review",
+      "align": "left",
+      "subtitle": "Policies, contracts and procedures: review, redline, legal check and internal e-sign, with a full audit log."
+    }
+  }
+}

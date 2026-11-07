@@ -1,0 +1,611 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+  "asset": {
+    "id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+    "name": "Survey responses rows",
+    "rows": [
+      {
+        "id": "194a3f8b-9d1d-59da-a527-97ee982db324",
+        "data": {
+          "response_ref": "CSAT-20260510-S001",
+          "submitted_on": "2026-05-10",
+          "month": "2026-05",
+          "customer_name": "Avery Example",
+          "customer_email": "avery.example@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "a94622dc-530a-5e6b-bc2d-d58b3721db13",
+        "data": {
+          "response_ref": "CSAT-20260511-S002",
+          "submitted_on": "2026-05-13",
+          "month": "2026-05",
+          "customer_name": "Jordan Sample",
+          "customer_email": "jordan.sample@example.com",
+          "product_area": "Mobile app",
+          "channel": "Phone",
+          "overall_rating": 3,
+          "nps": 6,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 2.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "No contact"
+        }
+      },
+      {
+        "id": "ff23277a-06d6-5aea-a706-802f4b323dd8",
+        "data": {
+          "response_ref": "CSAT-20260512-S003",
+          "submitted_on": "2026-05-16",
+          "month": "2026-05",
+          "customer_name": "Riley Test",
+          "customer_email": "riley.test@example.com",
+          "product_area": "Onboarding",
+          "channel": "Chat",
+          "overall_rating": 2,
+          "nps": 3,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 1.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "Recovered"
+        }
+      },
+      {
+        "id": "cb003103-9b90-5e03-8436-a515bb1d5802",
+        "data": {
+          "response_ref": "CSAT-20260513-S004",
+          "submitted_on": "2026-05-19",
+          "month": "2026-05",
+          "customer_name": "Casey Demo",
+          "customer_email": "casey.demo@example.com",
+          "product_area": "Support",
+          "channel": "In person",
+          "overall_rating": 4,
+          "nps": 8,
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "experience_score": 4,
+          "comment": "Fine overall, a bit slow to hear back.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "17e02219-5f99-5f90-b299-ed7ede3d2b6e",
+        "data": {
+          "response_ref": "CSAT-20260514-S005",
+          "submitted_on": "2026-05-22",
+          "month": "2026-05",
+          "customer_name": "Morgan Placeholder",
+          "customer_email": "morgan.placeholder@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "4d94116a-597a-54dd-96a3-b82f95150f97",
+        "data": {
+          "response_ref": "CSAT-20260610-S006",
+          "submitted_on": "2026-06-10",
+          "month": "2026-06",
+          "customer_name": "Avery Example",
+          "customer_email": "avery.example@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 4,
+          "nps": 7,
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "experience_score": 4,
+          "comment": "Fine overall, a bit slow to hear back.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "72404eec-8f3e-5853-b515-527ba12f3eed",
+        "data": {
+          "response_ref": "CSAT-20260611-S007",
+          "submitted_on": "2026-06-13",
+          "month": "2026-06",
+          "customer_name": "Jordan Sample",
+          "customer_email": "jordan.sample@example.com",
+          "product_area": "Mobile app",
+          "channel": "Phone",
+          "overall_rating": 4,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 4.4,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "844f6ac7-8985-5488-8105-7f732d34ec81",
+        "data": {
+          "response_ref": "CSAT-20260612-S008",
+          "submitted_on": "2026-06-16",
+          "month": "2026-06",
+          "customer_name": "Riley Test",
+          "customer_email": "riley.test@example.com",
+          "product_area": "Onboarding",
+          "channel": "Chat",
+          "overall_rating": 2,
+          "nps": 5,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 1.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "No contact"
+        }
+      },
+      {
+        "id": "2f14fb0b-2d11-5166-ab07-cab782fc8a9c",
+        "data": {
+          "response_ref": "CSAT-20260613-S009",
+          "submitted_on": "2026-06-19",
+          "month": "2026-06",
+          "customer_name": "Casey Demo",
+          "customer_email": "casey.demo@example.com",
+          "product_area": "Support",
+          "channel": "In person",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "934b749f-2923-5c65-befa-5562a69cec1a",
+        "data": {
+          "response_ref": "CSAT-20260614-S010",
+          "submitted_on": "2026-06-22",
+          "month": "2026-06",
+          "customer_name": "Morgan Placeholder",
+          "customer_email": "morgan.placeholder@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 3,
+          "nps": 6,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 2.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "No contact"
+        }
+      },
+      {
+        "id": "819aa8c5-e2f8-56ee-92ce-f63dcafca5d0",
+        "data": {
+          "response_ref": "CSAT-20260710-S011",
+          "submitted_on": "2026-07-10",
+          "month": "2026-07",
+          "customer_name": "Avery Example",
+          "customer_email": "avery.example@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "024b4516-813a-561f-a417-729c0bb9de9b",
+        "data": {
+          "response_ref": "CSAT-20260711-S012",
+          "submitted_on": "2026-07-13",
+          "month": "2026-07",
+          "customer_name": "Jordan Sample",
+          "customer_email": "jordan.sample@example.com",
+          "product_area": "Mobile app",
+          "channel": "Phone",
+          "overall_rating": 4,
+          "nps": 8,
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "experience_score": 4,
+          "comment": "Fine overall, a bit slow to hear back.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "42246e61-ee40-5ebf-a04f-fae129c17e8f",
+        "data": {
+          "response_ref": "CSAT-20260712-S013",
+          "submitted_on": "2026-07-16",
+          "month": "2026-07",
+          "customer_name": "Riley Test",
+          "customer_email": "riley.test@example.com",
+          "product_area": "Onboarding",
+          "channel": "Chat",
+          "overall_rating": 2,
+          "nps": 4,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 1.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "Recovered"
+        }
+      },
+      {
+        "id": "ff272ccf-4950-53aa-a586-d0614fcf04d8",
+        "data": {
+          "response_ref": "CSAT-20260713-S014",
+          "submitted_on": "2026-07-19",
+          "month": "2026-07",
+          "customer_name": "Casey Demo",
+          "customer_email": "casey.demo@example.com",
+          "product_area": "Support",
+          "channel": "In person",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "11f7961f-feb8-573c-9512-950e9848293f",
+        "data": {
+          "response_ref": "CSAT-20260714-S015",
+          "submitted_on": "2026-07-22",
+          "month": "2026-07",
+          "customer_name": "Morgan Placeholder",
+          "customer_email": "morgan.placeholder@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 4,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 4.4,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "7089e8b1-26b6-5a60-9585-5ebb6afad388",
+        "data": {
+          "response_ref": "CSAT-20260810-S016",
+          "submitted_on": "2026-08-10",
+          "month": "2026-08",
+          "customer_name": "Avery Example",
+          "customer_email": "avery.example@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "9b8dd07c-d4e7-5923-8161-da082dc3fe9d",
+        "data": {
+          "response_ref": "CSAT-20260811-S017",
+          "submitted_on": "2026-08-13",
+          "month": "2026-08",
+          "customer_name": "Jordan Sample",
+          "customer_email": "jordan.sample@example.com",
+          "product_area": "Mobile app",
+          "channel": "Phone",
+          "overall_rating": 4,
+          "nps": 7,
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "experience_score": 4,
+          "comment": "Fine overall, a bit slow to hear back.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "e96608eb-6b97-590d-a403-5a485649b0f6",
+        "data": {
+          "response_ref": "CSAT-20260812-S018",
+          "submitted_on": "2026-08-16",
+          "month": "2026-08",
+          "customer_name": "Riley Test",
+          "customer_email": "riley.test@example.com",
+          "product_area": "Onboarding",
+          "channel": "Chat",
+          "overall_rating": 5,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "2107792d-e64a-5d87-ac2e-e46969be3ccb",
+        "data": {
+          "response_ref": "CSAT-20260813-S019",
+          "submitted_on": "2026-08-19",
+          "month": "2026-08",
+          "customer_name": "Casey Demo",
+          "customer_email": "casey.demo@example.com",
+          "product_area": "Support",
+          "channel": "In person",
+          "overall_rating": 3,
+          "nps": 6,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 2.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "Recovered"
+        }
+      },
+      {
+        "id": "0b1080b3-8640-52b0-9456-2e3621bed8e3",
+        "data": {
+          "response_ref": "CSAT-20260814-S020",
+          "submitted_on": "2026-08-22",
+          "month": "2026-08",
+          "customer_name": "Morgan Placeholder",
+          "customer_email": "morgan.placeholder@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "c3d4659e-1de4-5926-83e5-3caccddae475",
+        "data": {
+          "response_ref": "CSAT-20260910-S021",
+          "submitted_on": "2026-09-10",
+          "month": "2026-09",
+          "customer_name": "Avery Example",
+          "customer_email": "avery.example@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "c4047b12-53fd-5f90-bdf0-8d751b8ca075",
+        "data": {
+          "response_ref": "CSAT-20260911-S022",
+          "submitted_on": "2026-09-13",
+          "month": "2026-09",
+          "customer_name": "Jordan Sample",
+          "customer_email": "jordan.sample@example.com",
+          "product_area": "Mobile app",
+          "channel": "Phone",
+          "overall_rating": 5,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "6cd167d6-5495-5bde-9bc2-f94a074c7d0b",
+        "data": {
+          "response_ref": "CSAT-20260912-S023",
+          "submitted_on": "2026-09-16",
+          "month": "2026-09",
+          "customer_name": "Riley Test",
+          "customer_email": "riley.test@example.com",
+          "product_area": "Onboarding",
+          "channel": "Chat",
+          "overall_rating": 4,
+          "nps": 8,
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "experience_score": 4,
+          "comment": "Fine overall, a bit slow to hear back.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "9ef25db9-e81d-5f10-91de-7b8684352290",
+        "data": {
+          "response_ref": "CSAT-20260913-S024",
+          "submitted_on": "2026-09-19",
+          "month": "2026-09",
+          "customer_name": "Casey Demo",
+          "customer_email": "casey.demo@example.com",
+          "product_area": "Support",
+          "channel": "In person",
+          "overall_rating": 3,
+          "nps": 5,
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "experience_score": 2.4,
+          "comment": "Took three emails to get an answer.",
+          "follow_up": true,
+          "status": "No contact"
+        }
+      },
+      {
+        "id": "791052ef-5ccc-5ca6-9739-c31af8a5f496",
+        "data": {
+          "response_ref": "CSAT-20260914-S025",
+          "submitted_on": "2026-09-22",
+          "month": "2026-09",
+          "customer_name": "Morgan Placeholder",
+          "customer_email": "morgan.placeholder@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "dcfe6c4a-ce94-55de-8fd7-944b3e2e8664",
+        "data": {
+          "response_ref": "CSAT-20261010-S026",
+          "submitted_on": "2026-10-10",
+          "month": "2026-10",
+          "customer_name": "Avery Example",
+          "customer_email": "avery.example@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "dfd9b15d-eae8-5a32-924c-35ecfc9551d2",
+        "data": {
+          "response_ref": "CSAT-20261011-S027",
+          "submitted_on": "2026-10-13",
+          "month": "2026-10",
+          "customer_name": "Jordan Sample",
+          "customer_email": "jordan.sample@example.com",
+          "product_area": "Mobile app",
+          "channel": "Phone",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "283965df-c4cb-52db-bf23-1c7c65446116",
+        "data": {
+          "response_ref": "CSAT-20261012-S028",
+          "submitted_on": "2026-10-16",
+          "month": "2026-10",
+          "customer_name": "Riley Test",
+          "customer_email": "riley.test@example.com",
+          "product_area": "Onboarding",
+          "channel": "Chat",
+          "overall_rating": 4,
+          "nps": 9,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 4.4,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "94716721-7ff8-5aaf-9c4e-ee83022bff5e",
+        "data": {
+          "response_ref": "CSAT-20261013-S029",
+          "submitted_on": "2026-10-19",
+          "month": "2026-10",
+          "customer_name": "Casey Demo",
+          "customer_email": "casey.demo@example.com",
+          "product_area": "Support",
+          "channel": "In person",
+          "overall_rating": 4,
+          "nps": 7,
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "experience_score": 4,
+          "comment": "Fine overall, a bit slow to hear back.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "2bb7c653-ae1a-5827-a361-d798b923faf4",
+        "data": {
+          "response_ref": "CSAT-20261014-S030",
+          "submitted_on": "2026-10-22",
+          "month": "2026-10",
+          "customer_name": "Morgan Placeholder",
+          "customer_email": "morgan.placeholder@example.com",
+          "product_area": "Billing",
+          "channel": "Email",
+          "overall_rating": 5,
+          "nps": 10,
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "experience_score": 5,
+          "comment": "Quick and friendly, thank you.",
+          "follow_up": false,
+          "status": "Closed"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,983 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "9adca175-8a25-5d09-8ced-f76225ee2715",
+  "asset": {
+    "id": "9adca175-8a25-5d09-8ced-f76225ee2715",
+    "name": "Contract register",
+    "description": "The contract register as Data tables: Renewals due (base filter: Active or Approved contracts whose renewal decision falls in the next 90 days) and All contracts (editable status saved back for each changed row), with NZD values, dates, check marks and risk / status badges, search, filters and sorting on the server. Click a row to open the contract details tab.",
+    "tags": [
+      "contracts",
+      "register",
+      "renewals"
+    ],
+    "fields": [
+      {
+        "key": "renew_intro",
+        "label": "Active contracts whose renewal decision falls in the next 90 days, soonest first.",
+        "type": "heading"
+      },
+      {
+        "key": "renewals",
+        "label": "Renewals due in 90 days",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "mode": "display",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "contract_ref",
+              "label": "Contract",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "width": 150,
+              "hidden": true
+            },
+            {
+              "key": "title",
+              "label": "Title",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "counterparty",
+              "label": "Counterparty",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "owner_name",
+              "label": "Owner",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "value",
+              "label": "Value",
+              "type": "number",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "currency",
+                "currency": "NZD",
+                "decimals": 0
+              }
+            },
+            {
+              "key": "end_date",
+              "label": "Ends",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              },
+              "hidden": true
+            },
+            {
+              "key": "renewal_date",
+              "label": "Decide by",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "auto_renew",
+              "label": "Auto-renews",
+              "type": "boolean",
+              "read_only": true,
+              "filterable": true,
+              "format": {
+                "kind": "boolean",
+                "boolean_style": "check"
+              }
+            },
+            {
+              "key": "risk_level",
+              "label": "Risk",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Low",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Medium",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "High",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "In review",
+                "Changes requested",
+                "Awaiting approval",
+                "Approved",
+                "Active",
+                "Rejected",
+                "Withdrawn",
+                "Expired"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "In review",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Changes requested",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Awaiting approval",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Approved",
+                    "color": "teal"
+                  },
+                  {
+                    "value": "Active",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Rejected",
+                    "color": "red"
+                  },
+                  {
+                    "value": "Withdrawn",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Expired",
+                    "color": "gray"
+                  }
+                ],
+                "default_color": "gray"
+              },
+              "read_only": true,
+              "hidden": true
+            },
+            {
+              "key": "contract_type",
+              "label": "Type",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "business_unit",
+              "label": "Business unit",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "owner_email",
+              "label": "Owner email",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "start_date",
+              "label": "Start",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "notice_days",
+              "label": "Notice (days)",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "version",
+              "label": "Version",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "document_name",
+              "label": "Document",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "deviations",
+              "label": "Deviations",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approval_path",
+              "label": "Approval path",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approved_by",
+              "label": "Approved by",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approved_on",
+              "label": "Approved",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "renewal_date",
+                "operator": "gte",
+                "value": "{{today}}"
+              },
+              {
+                "column": "renewal_date",
+                "operator": "lte",
+                "value": "{{today+90d}}"
+              },
+              {
+                "column": "status",
+                "operator": "in",
+                "value": "Active,Approved"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "renewal_date",
+              "direction": "asc"
+            }
+          ],
+          "page_size": 10
+        }
+      },
+      {
+        "key": "all_intro",
+        "label": "Every contract. Click a row for the details; double-click a Status to change it, then Save changes.",
+        "type": "heading"
+      },
+      {
+        "key": "contracts",
+        "label": "All contracts",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "mode": "edit",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "contract_ref",
+              "label": "Contract",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "width": 150,
+              "hidden": true
+            },
+            {
+              "key": "title",
+              "label": "Title",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "counterparty",
+              "label": "Counterparty",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "owner_name",
+              "label": "Owner",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "value",
+              "label": "Value",
+              "type": "number",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "currency",
+                "currency": "NZD",
+                "decimals": 0
+              }
+            },
+            {
+              "key": "end_date",
+              "label": "Ends",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "renewal_date",
+              "label": "Decide by",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              },
+              "hidden": true
+            },
+            {
+              "key": "auto_renew",
+              "label": "Auto-renews",
+              "type": "boolean",
+              "read_only": true,
+              "filterable": true,
+              "format": {
+                "kind": "boolean",
+                "boolean_style": "check"
+              },
+              "hidden": true
+            },
+            {
+              "key": "risk_level",
+              "label": "Risk",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Low",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Medium",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "High",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "In review",
+                "Changes requested",
+                "Awaiting approval",
+                "Approved",
+                "Active",
+                "Rejected",
+                "Withdrawn",
+                "Expired"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "In review",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Changes requested",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Awaiting approval",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Approved",
+                    "color": "teal"
+                  },
+                  {
+                    "value": "Active",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Rejected",
+                    "color": "red"
+                  },
+                  {
+                    "value": "Withdrawn",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Expired",
+                    "color": "gray"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "contract_type",
+              "label": "Type",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "business_unit",
+              "label": "Business unit",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "owner_email",
+              "label": "Owner email",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "start_date",
+              "label": "Start",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "notice_days",
+              "label": "Notice (days)",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "version",
+              "label": "Version",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "document_name",
+              "label": "Document",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "deviations",
+              "label": "Deviations",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approval_path",
+              "label": "Approval path",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approved_by",
+              "label": "Approved by",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approved_on",
+              "label": "Approved",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "status",
+                "operator": "neq",
+                "value": "Withdrawn"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "end_date",
+              "direction": "asc"
+            }
+          ],
+          "page_size": 15
+        }
+      },
+      {
+        "key": "save_changes",
+        "label": "Save changes",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "apply_table_changes",
+              "table_changes": {
+                "field": "contracts",
+                "kinds": [
+                  "updated"
+                ],
+                "target": "table",
+                "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+                "operation": "update",
+                "match_column": "row_id",
+                "match_value": "{{key}}",
+                "mapping": {
+                  "status": "{{row.status}}"
+                },
+                "on_error": "continue"
+              }
+            }
+          ],
+          "icon": "save",
+          "align": "right"
+        }
+      },
+      {
+        "key": "d_hint",
+        "label": "Pick a contract on either list to see it here.",
+        "type": "heading"
+      },
+      {
+        "key": "d_ref",
+        "label": "Contract",
+        "type": "text"
+      },
+      {
+        "key": "d_status",
+        "label": "Status and risk",
+        "type": "text"
+      },
+      {
+        "key": "d_title",
+        "label": "Title",
+        "type": "text"
+      },
+      {
+        "key": "d_counterparty",
+        "label": "Counterparty and type",
+        "type": "text"
+      },
+      {
+        "key": "d_owner",
+        "label": "Owner",
+        "type": "text"
+      },
+      {
+        "key": "d_value",
+        "label": "Total value",
+        "type": "currency",
+        "currency": "NZD"
+      },
+      {
+        "key": "d_term",
+        "label": "Term",
+        "type": "text"
+      },
+      {
+        "key": "d_renewal",
+        "label": "Renewal",
+        "type": "text"
+      },
+      {
+        "key": "d_document",
+        "label": "Document and version",
+        "type": "text"
+      },
+      {
+        "key": "d_deviations",
+        "label": "Playbook deviations",
+        "type": "textarea"
+      },
+      {
+        "key": "d_approval",
+        "label": "Approval",
+        "type": "text"
+      },
+      {
+        "key": "to_list",
+        "label": "Back to renewals",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "go_to_page",
+              "page": "renewals"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "tabs",
+      "pages": [
+        {
+          "id": "renewals",
+          "title": "Renewals due",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "renew_intro",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "renewals",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "clock"
+        },
+        {
+          "id": "all",
+          "title": "All contracts",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "all_intro",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "contracts",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "save_changes",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "list"
+        },
+        {
+          "id": "details",
+          "title": "Contract details",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_hint",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_ref",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_status",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_value",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_title",
+                  "span": 2
+                },
+                {
+                  "field_key": "d_counterparty",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_owner",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_term",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_renewal",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_document",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_deviations",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_approval",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "to_list",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "file-text"
+        }
+      ],
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_open_renewal",
+          "name": "Renewals: row clicked → details",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.contract_ref}}",
+                "d_status": "{{event.row.status}} · {{event.row.risk_level}} risk",
+                "d_title": "{{event.row.title}}",
+                "d_counterparty": "{{event.row.counterparty}} · {{event.row.contract_type}}",
+                "d_owner": "{{event.row.owner_name}} ({{event.row.business_unit}}, {{event.row.owner_email}})",
+                "d_value": "{{event.row.value}}",
+                "d_term": "{{event.row.start_date}} to {{event.row.end_date}}",
+                "d_renewal": "Decide by {{event.row.renewal_date}} · notice {{event.row.notice_days}} days · auto-renews: {{event.row.auto_renew}}",
+                "d_document": "{{event.row.document_name}} (version {{event.row.version}})",
+                "d_deviations": "{{event.row.deviations}}",
+                "d_approval": "{{event.row.approval_path}} · {{event.row.approved_by}} {{event.row.approved_on}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "renewals"
+        },
+        {
+          "id": "r_open_contract",
+          "name": "All contracts: row clicked → details",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.contract_ref}}",
+                "d_status": "{{event.row.status}} · {{event.row.risk_level}} risk",
+                "d_title": "{{event.row.title}}",
+                "d_counterparty": "{{event.row.counterparty}} · {{event.row.contract_type}}",
+                "d_owner": "{{event.row.owner_name}} ({{event.row.business_unit}}, {{event.row.owner_email}})",
+                "d_value": "{{event.row.value}}",
+                "d_term": "{{event.row.start_date}} to {{event.row.end_date}}",
+                "d_renewal": "Decide by {{event.row.renewal_date}} · notice {{event.row.notice_days}} days · auto-renews: {{event.row.auto_renew}}",
+                "d_document": "{{event.row.document_name}} (version {{event.row.version}})",
+                "d_deviations": "{{event.row.deviations}}",
+                "d_approval": "{{event.row.approval_path}} · {{event.row.approved_by}} {{event.row.approved_on}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "contracts"
+        },
+        {
+          "id": "r_details_read_only",
+          "name": "Details are read-only",
+          "event": "always",
+          "then": [
+            {
+              "type": "enable_disable",
+              "mode": "disable",
+              "targets": [
+                "field:d_ref",
+                "field:d_status",
+                "field:d_title",
+                "field:d_counterparty",
+                "field:d_owner",
+                "field:d_value",
+                "field:d_term",
+                "field:d_renewal",
+                "field:d_document",
+                "field:d_deviations",
+                "field:d_approval"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit",
+        "kind": "submit",
+        "style": "primary"
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0F766E",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#E6F4F1",
+            "page_to": "#F5FBFA"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "Contract register",
+          "subtitle": "Every contract, its renewal date and where it is in review."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Contract register",
+      "align": "left",
+      "subtitle": "Every contract, its renewal date and where it is in review."
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-rich-text",
+  "name": "Rich text",
+  "description": "A rich-text editor with bold, italic, underline, headings, lists, quotes and links, a character counter and strict sanitising of everything typed, pasted or dropped.",
+  "icon": "type",
+  "version": "1.1.0",
+  "entry": "ut-rich-text.js",
+  "value": {
+    "type": "json",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "html": { "type": "string", "maxLength": 100000 },
+        "text": { "type": "string", "maxLength": 100000 }
+      },
+      "required": ["html", "text"],
+      "additionalProperties": false
+    }
+  },
+  "props": [
+    { "name": "placeholder", "label": "Placeholder", "type": "string", "description": "Shown in the empty editor, e.g. Describe the problem." },
+    { "name": "max_length", "label": "Maximum characters", "type": "number", "default": 5000, "min": 1, "max": 100000, "description": "Counted on the plain text. A counter shows the length; longer text is refused." },
+    {
+      "name": "toolbar",
+      "label": "Toolbar",
+      "type": "select",
+      "default": "full",
+      "options": [
+        { "value": "full", "label": "Full (headings, quote, clear formatting)" },
+        { "value": "basic", "label": "Basic (bold, italic, underline, lists, link)" }
+      ]
+    },
+    { "name": "min_height", "label": "Minimum height (px)", "type": "number", "default": 160, "min": 60, "max": 1200 }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 216, "min_height": 120, "max_height": 900, "full_width": true },
+  "capabilities": [],
+  "context": [],
+  "display": { "template": "{{value.text}}", "format": "text" },
+  "output": { "type": "string", "primary": "html", "html": true, "choices": [ { "value": "html", "label": "HTML (formatted, sanitised)", "primary": "html", "html": true }, { "value": "text", "label": "Plain text", "primary": "text" } ], "extras": { "text": "text" }, "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text" },
+  "accessibility": {
+    "role": "textbox",
+    "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/rich-text",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

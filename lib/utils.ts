@@ -1,5 +1,16 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+// The design system's own scale names (app/globals.css @theme): without them
+// tailwind-merge reads `text-ui` as a colour and drops it next to `text-fg`.
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: ["2xs", "ui", "title", "metric", "display"],
+      shadow: ["elev-0", "elev-1", "elev-2", "elev-3"],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

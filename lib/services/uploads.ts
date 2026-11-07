@@ -10,6 +10,7 @@
  *  - integration icons   task-files/integration-icons/<uuid>.<ext>   images, ≤ 512 KB
  *  - reference icons     task-files/reference-icons/<uuid>.<ext>     images, ≤ 512 KB
  *  - data-table files    task-files/data-tables/<table>/<uuid>.<ext> any type, ≤ 45 MB
+ *  - agent knowledge     task-files/agent-knowledge/<tenant>/<uuid>.<ext> documents, ≤ 20 MB
  *  - workspace logos     logos/<tenant>/<variant>.<ext> (replaced)   per variant (LOGO_SPECS)
  *
  * The browser path only required a signed-in user for task-files (any path)
@@ -48,7 +49,7 @@ export const ICON_MAX_BYTES = 512 * 1024
  */
 export const DATA_FILE_MAX_BYTES = 45 * 1024 * 1024
 
-export type LogoVariant = 'logo' | 'logo-light' | 'logo-dark' | 'favicon'
+export type LogoVariant = 'logo' | 'logo-light' | 'logo-dark' | 'favicon' | 'form-sign-in'
 
 /** Same types and sizes as the logo picker (components/settings/logo-upload.tsx). */
 export const LOGO_SPECS: Record<LogoVariant, { types: string[]; maxBytes: number }> = {
@@ -56,6 +57,8 @@ export const LOGO_SPECS: Record<LogoVariant, { types: string[]; maxBytes: number
   'logo-light': { types: ['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'], maxBytes: 2 * 1024 * 1024 },
   'logo-dark': { types: ['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'], maxBytes: 2 * 1024 * 1024 },
   favicon: { types: ['image/png', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/webp'], maxBytes: 512 * 1024 },
+  /** The form sign-in page logo (Settings → Forms): shown to visitors who aren't signed in, so SVGs are sanitised. */
+  'form-sign-in': { types: ['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'], maxBytes: 2 * 1024 * 1024 },
 }
 
 const TASK_FILES = 'task-files'
@@ -119,6 +122,24 @@ export async function uploadDataTableFile(ctx: ServiceContext, tableId: string, 
   return store(TASK_FILES, `data-tables/${tableId}/${crypto.randomUUID()}.${fileExtension(file.name, 'bin')}`, file)
 }
 
+export const KNOWLEDGE_FILE_MAX_BYTES = 20 * 1024 * 1024
+const KNOWLEDGE_EXTENSIONS = new Set(['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'md', 'markdown', 'csv', 'json', 'html', 'htm', 'xml'])
+
+/**
+ * A knowledge document for an agent (agents.edit): PDF, Word, Excel,
+ * PowerPoint, text, Markdown, CSV, JSON, HTML or XML up to 20 MB. The
+ * returned file object goes into the agent's output_config.knowledge.files
+ * (search_knowledge reads it; lib/agents/tools/knowledge.ts).
+ */
+export async function uploadAgentKnowledgeFile(ctx: ServiceContext, file: UploadInput): Promise<StoredFile & { mime_type: string }> {
+  requirePerm(ctx, 'agents.edit')
+  checkFile(file, KNOWLEDGE_FILE_MAX_BYTES)
+  const ext = fileExtension(file.name, '')
+  if (!KNOWLEDGE_EXTENSIONS.has(ext)) throw ServiceError.validation('Knowledge files must be PDF, Word, Excel, PowerPoint, text, Markdown, CSV, JSON, HTML or XML')
+  const stored = await store(TASK_FILES, `agent-knowledge/${ctx.tenantId}/${crypto.randomUUID()}.${ext}`, file)
+  return { ...stored, name: String(file.name).slice(0, 200), mime_type: file.type || 'application/octet-stream' }
+}
+
 /**
  * Workspace logo / theme logo / favicon, replacing the variant's previous
  * file. The returned URL carries a cache-busting `?t=` as before; saving it
@@ -130,7 +151,22 @@ export async function uploadWorkspaceLogo(ctx: ServiceContext, variant: LogoVari
   if (!spec) throw ServiceError.validation('Unknown logo variant')
   if (!spec.types.includes(file?.type)) throw ServiceError.validation('Unsupported image type')
   checkFile(file, spec.maxBytes)
-  const stored = await store(LOGOS, `${ctx.tenantId}/${variant}.${fileExtension(file.name, 'png')}`, file, { upsert: true })
+  let upload = file
+  let ext = fileExtension(file.name, 'png')
+  if (variant === 'form-sign-in') {
+    // Public page: SVGs are sanitised (scripts, handlers, external references removed); other images must look like one.
+    ext = file.type === 'image/svg+xml' ? 'svg' : file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+    if (file.type === 'image/svg+xml') {
+      const { sanitizeSvg } = await import('@/lib/sanitize-svg')
+      const text = new TextDecoder().decode(file.bytes).replace(/^\uFEFF?\s*(<\?xml[\s\S]*?\?>\s*)?(<!DOCTYPE[^>]*>\s*)?/i, '')
+      const clean = sanitizeSvg(text)
+      if (!clean) throw ServiceError.validation('That SVG could not be used (it is not a valid, safe SVG image)')
+      upload = { ...file, bytes: new TextEncoder().encode(clean) }
+    } else if (!looksLikeImage(file.bytes, file.type)) {
+      throw ServiceError.validation('The file is not a valid image')
+    }
+  }
+  const stored = await store(LOGOS, `${ctx.tenantId}/${variant}.${ext}`, upload, { upsert: true, contentType: file.type })
   const t = `?t=${Date.now()}`
   return { ...stored, url: `${stored.url}${t}`, ...(stored.ref ? { ref: `${stored.ref}${t}` } : {}) }
 }

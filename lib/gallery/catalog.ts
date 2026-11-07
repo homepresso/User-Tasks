@@ -10,11 +10,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- manifests are free-form JSON */
 
+import type { ActionCatalogEntry } from './actions'
 import { deriveInputFields } from '@/lib/workflow-inputs'
 import type { BuiltGalleryPackage } from './build'
 import { isNativeContents, releaseDate } from './build'
 import type { GallerySource } from './source'
-import type { GalleryMeta } from './types'
+import type { ControlGalleryMeta, GalleryChangelogEntry, GalleryControlKind, GalleryMeta } from './types'
+import type { ControlAccessibilitySpec, ControlContextSpec, ControlDisplaySpec, ControlOutputSpec, ControlPropSpec, ControlSizeSpec, ControlValueSpec } from '@/lib/forms/custom-controls/contract'
 
 export interface CatalogField {
   key: string
@@ -41,6 +43,23 @@ export interface CatalogForm {
   columns?: number
   /** The form has a mini theme / header of its own. */
   themed?: boolean
+  /** Form features it showcases ("Steps & progress bar", "Application mode", "Data table", "Form rules"…). */
+  uses?: string[]
+}
+
+/** The form features a stored form uses, as short labels for the gallery's "Uses" chips. */
+export function formUses(fields: any[], layout: any): string[] {
+  const list = Array.isArray(fields) ? fields : []
+  const out: string[] = []
+  if (layout?.mode === 'steps') out.push(layout?.page_settings?.indicator === 'progress' ? 'Steps & progress bar' : 'Steps')
+  if (layout?.mode === 'tabs') out.push('Tabs')
+  if (layout?.application_mode === true) out.push('Application mode')
+  if (list.some((f) => f?.type === 'button')) out.push('In-form buttons')
+  if (list.some((f) => f?.type === 'data_table')) out.push('Data table')
+  if (Array.isArray(layout?.rules) && layout.rules.length) out.push('Form rules')
+  if (list.some((f) => f?.type === 'lookup' && f?.lookup?.label_template)) out.push('Autocomplete labels')
+  if (layout?.submitted_page?.enabled === true) out.push('Submitted page')
+  return out
 }
 
 export interface CatalogWorkflow {
@@ -79,17 +98,81 @@ export interface CatalogEntry extends Omit<GalleryMeta, 'sample_input' | 'expect
   tables: Array<{ id: string; name: string; columns: string[]; rows: number }>
   requirements: CatalogRequirement[]
   asset_count: number
+  /** Official form controls its forms use (they ship in the package): /gallery/controls/<slug>. */
+  controls: Array<{ slug: string; tag: string; name: string }>
+}
+
+/** One form control in a control entry (from its validated manifest and module). */
+export interface ControlCatalogItem {
+  /** Source folder (gallery/controls/<slug>). */
+  slug: string
+  tag: string
+  name: string
+  version: string
+  description: string | null
+  icon: string | null
+  kind: GalleryControlKind
+  value: ControlValueSpec
+  props: ControlPropSpec[]
+  context: ControlContextSpec[]
+  capabilities: string[]
+  hosts: string[]
+  display: ControlDisplaySpec | null
+  /** What the workflow receives (absent in catalogs built before outputs). */
+  output?: ControlOutputSpec | null
+  accessibility: ControlAccessibilitySpec | null
+  size: ControlSizeSpec
+  validation: { reports_validity?: boolean }
+  libraries: Array<{ name: string; version: string; licence: string }>
+  module_bytes: number
+  sha256: string
+}
+
+/** A form control (or a bundle of them) as the /gallery/controls pages show it. */
+export interface ControlCatalogEntry {
+  kind: 'form_control' | 'control_bundle'
+  id: string
+  /** Page slug: /gallery/controls/<slug>. */
+  slug: string
+  /** Package slug (index.json, file name): form-control-<slug> / form-controls-<slug>. */
+  package_slug: string
+  title: string
+  control_kind: GalleryControlKind | null
+  summary: string
+  description: string
+  icon: string | null
+  tags: string[]
+  version: string
+  changelog: GalleryChangelogEntry[]
+  released: string
+  uses: string[]
+  setup: string[]
+  systems: string[]
+  preview: ControlGalleryMeta['preview'] | null
+  readme: string
+  file_name: string
+  checksum: string
+  asset_count: number
+  controls: ControlCatalogItem[]
+  /** Config-as-code assets that ship with the control (integration, API reference, sample form). */
+  extras: Array<{ section: string; name: string; description: string | null }>
+  requirements: CatalogRequirement[]
 }
 
 export interface GalleryCatalog {
   format_version: 1
   packages: CatalogEntry[]
+  /** Official form controls and control bundles (gallery/controls). */
+  controls?: ControlCatalogEntry[]
+  /** Official custom workflow actions (gallery/actions). */
+  actions?: ActionCatalogEntry[]
 }
 
 const SECTION_LABEL: Record<string, string> = {
   workflows: 'Workflow', decision_tables: 'Decision table', data_tables: 'Data table', integrations: 'Integration',
-  references: 'API reference', email_templates: 'Email template', agents: 'AI agent', workflow_activities: 'Custom step',
+  references: 'API reference', email_templates: 'Email template', agents: 'AI agent', workflow_activities: 'Workflow action',
   reports: 'Report', roles: 'Role', retention_policies: 'Retention policy', objects: 'Object',
+  forms: 'Form', form_themes: 'Form theme', form_controls: 'Form control',
 }
 
 export function sectionLabel(section: string): string {
@@ -97,11 +180,14 @@ export function sectionLabel(section: string): string {
 }
 
 function field(raw: any): CatalogField {
-  const options = Array.isArray(raw?.options) ? raw.options.map((o: any) => String(typeof o === 'object' ? o?.label ?? o?.value : o)).filter(Boolean) : undefined
+  // A Data table field previews its visible columns.
+  const columns = raw?.type === 'data_table' && Array.isArray(raw?.data_table?.columns) ? raw.data_table.columns.filter((c: any) => !c?.hidden).map((c: any) => c?.label ?? c?.key) : null
+  const options = Array.isArray(columns ?? raw?.options) ? (columns ?? raw.options).map((o: any) => String(typeof o === 'object' ? o?.label ?? o?.value : o)).filter(Boolean) : undefined
   return {
     key: String(raw?.key ?? raw?.name ?? ''),
     label: String(raw?.label ?? raw?.name ?? raw?.key ?? ''),
-    type: String(raw?.type ?? 'text'),
+    // A custom control shows its element tag (ut-rating) rather than "custom".
+    type: raw?.type === 'custom' && typeof raw?.custom?.tag === 'string' ? raw.custom.tag : String(raw?.type ?? 'text'),
     required: raw?.required === true,
     ...(options?.length ? { options } : {}),
     ...(raw?.description ? { description: String(raw.description) } : {}),
@@ -140,17 +226,23 @@ export function catalogEntry(source: GallerySource, built: BuiltGalleryPackage):
   }))
   workflows.sort((a, b) => Number(b.entry) - Number(a.entry))
   const forms: CatalogForm[] = []
-  const shape = (layout: any, theme: any, header: any, buttons: any) => {
-    const columns = Math.max(1, ...((layout?.rows ?? []) as any[]).map((row) => Number(row?.columns) || 1))
+  const shape = (layout: any, theme: any, header: any, buttons: any, fields: any[] = []) => {
+    const rows = [...((layout?.rows ?? []) as any[]), ...((Array.isArray(layout?.pages) ? layout.pages : []) as any[]).flatMap((p) => (Array.isArray(p?.rows) ? p.rows : []))]
+    const columns = Math.max(1, ...rows.map((row) => Number(row?.columns) || 1))
     const themed = Boolean((theme && theme.source && theme.source !== 'workspace') || header?.enabled)
-    const labels = Array.isArray(buttons) && buttons.length ? buttons.filter((b: any) => !b?.hidden).map((b: any) => String(b?.label ?? '')).filter(Boolean) : undefined
-    return { ...(columns > 1 ? { columns } : {}), ...(themed ? { themed } : {}), ...(labels?.length ? { buttons: labels } : {}) }
+    // Application mode hides the bar: the buttons people see are the in-form ones.
+    const labels = layout?.application_mode === true
+      ? (Array.isArray(fields) ? fields : []).filter((f: any) => f?.type === 'button').map((f: any) => String(f?.label ?? '')).filter(Boolean).filter((l, i, all) => all.indexOf(l) === i)
+      : Array.isArray(buttons) && buttons.length ? buttons.filter((b: any) => !b?.hidden).map((b: any) => String(b?.label ?? '')).filter(Boolean) : undefined
+    const uses = formUses(fields, layout)
+    return { ...(columns > 1 ? { columns } : {}), ...(themed ? { themed } : {}), ...(labels?.length ? { buttons: labels } : {}), ...(uses.length ? { uses } : {}) }
   }
+  const shown = (fields: any) => (Array.isArray(fields) ? fields : []).filter((f: any) => !['heading', 'divider', 'button'].includes(f?.type)).map(field)
   for (const form of assets.forms ?? []) {
     forms.push({
       workflow: 'Form page', step: String(form.name), title: String(form.header?.title || form.name), outcomes: [],
-      fields: (form.fields ?? []).filter((f: any) => !['heading', 'divider'].includes(f?.type)).map(field), kind: 'page',
-      ...shape(form.layout, form.theme, form.header, form.buttons),
+      fields: shown(form.fields), kind: 'page',
+      ...shape(form.layout, form.theme, form.header, form.buttons, form.fields),
     })
   }
   for (const wf of workflows) {
@@ -161,9 +253,9 @@ export function catalogEntry(source: GallerySource, built: BuiltGalleryPackage):
         step: String(node.label),
         title: String(node.config?.task_title ?? node.label),
         outcomes: (node.config?.outcomes ?? []).map(String),
-        fields: (node.config?.fields ?? []).filter((f: any) => !['heading', 'divider'].includes(f?.type)).map(field),
+        fields: shown(node.config?.fields),
         kind: 'task',
-        ...shape(node.config?.form_layout, node.config?.form_theme, node.config?.form_header, node.config?.form_buttons),
+        ...shape(node.config?.form_layout, node.config?.form_theme, node.config?.form_header, node.config?.form_buttons, node.config?.fields),
       })
     }
   }
@@ -210,5 +302,6 @@ export function catalogEntry(source: GallerySource, built: BuiltGalleryPackage):
     tables,
     requirements,
     asset_count: built.assetCount,
+    controls: source.controls ?? [],
   }
 }

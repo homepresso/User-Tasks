@@ -14,13 +14,13 @@
  */
 
 import { fieldKeyFromLabel, normalizeTaskFields, type TaskFieldDef, type TaskFieldType } from '@/lib/task-field-schema'
-import { normalizeFormLayout, renameLayoutKey, type FormLayout } from './layout'
+import { compactLayoutForSave, isPaged, normalizeFormLayout, renameLayoutKey, type FormLayout } from './layout'
 import { parseFormThemeRef, type FormThemeRef } from './form-theme'
 import type { FormDefinition } from './definition'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- user_variables and node config are loose JSON */
 
-export const START_FORM_TYPES: TaskFieldType[] = ['text', 'number', 'boolean', 'date', 'datetime', 'email', 'url', 'choice', 'attachments']
+export const START_FORM_TYPES: TaskFieldType[] = ['text', 'number', 'boolean', 'date', 'datetime', 'email', 'url', 'choice', 'attachments', 'custom']
 
 export interface StartFormVariable {
   id?: string
@@ -42,6 +42,8 @@ export interface StartFormModel {
 }
 
 function fieldTypeOf(variable: StartFormVariable): TaskFieldType | null {
+  // A custom form control input (`format: 'custom'`, its control in `custom`).
+  if (String(variable.format ?? '').toLowerCase() === 'custom' && variable.custom && typeof variable.custom === 'object') return 'custom'
   const type = String(variable.type ?? 'string').toLowerCase()
   if (type === 'number' || type === 'integer') return 'number'
   if (type === 'boolean') return 'boolean'
@@ -80,18 +82,38 @@ export function startFormFromVariables(variables: StartFormVariable[] | null | u
       placeholder: variable.placeholder,
       options: type === 'choice' ? optionsOf(variable.options) : undefined,
       attachments: type === 'attachments' ? variable.attachments : undefined,
+      custom: type === 'custom' ? variable.custom : undefined,
     })
   }
   const fields = normalizeTaskFields(raw)
   const stored = triggerConfig?.start_form ?? {}
   // The stored layout references variable names: map them to designer keys.
   let layout: FormLayout | null = null
-  if (stored.layout && Array.isArray(stored.layout.rows)) {
-    let mapped: FormLayout = { rows: stored.layout.rows }
-    for (const [key, name] of nameByKey) if (key !== name) mapped = renameLayoutKey(mapped, name, key)
-    layout = normalizeFormLayout(mapped, fields.map((f) => f.key))
+  if (stored.layout && (Array.isArray(stored.layout.rows) || Array.isArray(stored.layout.pages))) {
+    // Normalized against the variable names first (pages, rules), then renamed to the designer keys.
+    let mapped = normalizeFormLayout(stored.layout, fields.map((f) => nameByKey.get(f.key) ?? f.key))
+    for (const [key, name] of nameByKey) if (mapped && key !== name) mapped = renameLayoutKey(mapped, name, key)
+    layout = mapped ? normalizeFormLayout(mapped, fields.map((f) => f.key)) : null
   }
   return { def: { fields, layout, theme: parseFormThemeRef(stored.theme) }, nameByKey }
+}
+
+/** Workflow variable type for a custom control's value. */
+function customVariableType(field: TaskFieldDef): string {
+  // A declared output is what the workflow variable holds.
+  switch (field.custom?.output?.type) {
+    case 'number': return 'number'
+    case 'boolean': return 'boolean'
+    case 'object': case 'array': return 'json'
+    case 'string': case 'date': return 'string'
+    default: break
+  }
+  switch (field.custom?.value_type) {
+    case 'number': return 'number'
+    case 'boolean': return 'boolean'
+    case 'json': case 'array': case 'files': return 'json'
+    default: return 'string'
+  }
 }
 
 function humanize(name: string): string {
@@ -125,6 +147,7 @@ function variableFor(field: TaskFieldDef, name: string, prev: StartFormVariable 
     : field.type === 'choice' ? { type: 'string', format: 'select', options: (field.options ?? []).join(', ') }
     : field.type === 'text' ? { type: 'string', format: prev?.format === 'text' ? 'text' : undefined }
     : field.type === 'attachments' ? { type: 'array', format: 'attachments', attachments: field.attachments ?? {} }
+    : field.type === 'custom' ? { type: customVariableType(field), format: 'custom', custom: field.custom }
     : { type: 'string', format: field.type }
   const next: StartFormVariable = {
     ...base,
@@ -136,6 +159,7 @@ function variableFor(field: TaskFieldDef, name: string, prev: StartFormVariable 
   }
   if (field.type !== 'choice' && next.format !== 'select') delete next.options
   if (field.type !== 'attachments') delete next.attachments
+  if (field.type !== 'custom') delete next.custom
   else next.defaultValue = ''
   if (field.placeholder) next.placeholder = field.placeholder
   else delete next.placeholder
@@ -151,9 +175,13 @@ export function startFormConfig(def: FormDefinition, nameByKey: Map<string, stri
       const name = nameByKey.get(field.key) ?? field.key
       if (name !== field.key) layout = renameLayoutKey(layout, field.key, name)
     }
-    const rows = layout.rows.filter((row) => row.cells.length)
-    const trivial = rows.every((row) => row.columns === 1 && row.cells.length === 1)
-    layout = trivial ? null : { rows }
+    if (isPaged(layout)) {
+      layout = compactLayoutForSave(layout, [])
+    } else {
+      const rows = layout.rows.filter((row) => row.cells.length)
+      const trivial = rows.every((row) => row.columns === 1 && row.cells.length === 1)
+      layout = trivial ? null : { rows }
+    }
   }
   const out: { layout?: FormLayout; theme?: FormThemeRef } = {}
   if (layout) out.layout = layout

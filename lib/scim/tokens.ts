@@ -47,6 +47,9 @@ export interface ScimAuth {
   settings: Record<string, unknown>
   autoProvision: boolean
   syncGroups: boolean
+  /** Org structure options: absent in the stored config = off (connectors made before them). */
+  importOrgUnits: boolean
+  importProfiles: boolean
 }
 
 export function clientIp(request: Request): string {
@@ -109,6 +112,8 @@ export async function authenticateScim(db: any, request: Request, now = Date.now
     settings,
     autoProvision: config.auto_provision !== false,
     syncGroups: config.sync_groups !== false,
+    importOrgUnits: config.import_org_units === true,
+    importProfiles: config.import_profiles === true,
   }
 }
 

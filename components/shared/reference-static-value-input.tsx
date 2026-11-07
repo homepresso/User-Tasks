@@ -30,7 +30,7 @@ export function ReferenceStaticValueInput({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={selectClassName ?? 'w-full rounded-lg border px-3 py-2 text-[11px]'}
+        className={selectClassName ?? 'w-full rounded-lg border px-3 py-2 text-2xs'}
         style={selectStyle}
       >
         <option value="">Select an option...</option>
@@ -46,7 +46,7 @@ export function ReferenceStaticValueInput({
   if (type === 'boolean' || type === 'bool') {
     return (
       <label
-        className={selectClassName ?? 'flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px]'}
+        className={selectClassName ?? 'flex items-center gap-2 rounded-lg border px-3 py-2 text-2xs'}
         style={selectStyle}
       >
         <input
@@ -67,7 +67,7 @@ export function ReferenceStaticValueInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={input.default_value || '0'}
-        className={inputClassName ?? '!h-8 !text-[11px] font-mono'}
+        className={inputClassName ?? '!h-8 !text-2xs font-mono'}
       />
     )
   }
@@ -78,7 +78,7 @@ export function ReferenceStaticValueInput({
         type={type === 'date' ? 'date' : 'datetime-local'}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={inputClassName ?? '!h-8 !text-[11px] font-mono'}
+        className={inputClassName ?? '!h-8 !text-2xs font-mono'}
       />
     )
   }
@@ -88,7 +88,7 @@ export function ReferenceStaticValueInput({
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={input.default_value || input.placeholder || 'Enter value'}
-      className={inputClassName ?? '!h-8 !text-[11px] font-mono'}
+      className={inputClassName ?? '!h-8 !text-2xs font-mono'}
     />
   )
 }

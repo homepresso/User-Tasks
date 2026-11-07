@@ -306,8 +306,8 @@ describe('initiator helpers', () => {
 
   it('strips and builds the engine-owned variables', () => {
     expect(stripInitiatorVariables({ a: 1, workflow_started_by: 'x', workflow_started_via: 'y', workflow_owner_id: 'z' })).toEqual({ a: 1 })
-    expect(initiatorVariables({ userId: null, via: 'schedule' }, OWNER)).toEqual({ workflow_started_by: OWNER, workflow_started_via: 'schedule', workflow_owner_id: OWNER })
-    expect(initiatorVariables({ userId: ALICE, via: 'bogus' as any }, null)).toEqual({ workflow_started_by: ALICE, workflow_started_via: 'system', workflow_owner_id: '' })
+    expect(initiatorVariables({ userId: null, via: 'schedule' }, OWNER)).toEqual({ workflow_started_by: OWNER, workflow_started_via: 'schedule', workflow_owner_id: OWNER, workflow_initiator_user_id: '' })
+    expect(initiatorVariables({ userId: ALICE, via: 'bogus' as any }, null)).toEqual({ workflow_started_by: ALICE, workflow_started_via: 'system', workflow_owner_id: '', workflow_initiator_user_id: ALICE })
   })
 
   it('signs over sorted JSON and expires after 7 days', () => {
@@ -319,5 +319,53 @@ describe('initiator helpers', () => {
     expect(readQueuedInitiator(signed, target, now + 8 * 24 * 3600 * 1000)).toBeNull()
     expect(readQueuedInitiator(signed, { tenantId: 'other', workflowId: WF }, now)).toBeNull()
     expect(readQueuedInitiator({ a: 1 }, target, now)).toBeNull()
+  })
+})
+
+describe('submission metadata ({{submission.*}}) on the run', () => {
+  const meta = { id: 'meta', type: 'set_variable', label: 'Meta', config: { name: 'meta', expression: '{{submission.submitted_by.name}}|{{submission.source}}|{{submission.reference}}|{{submission.form.name}}' } }
+  const START_WF = '0f000000-0000-4000-8000-0000000000a5'
+  const FORGED = { submitted_by: { id: CAROL, name: 'Mallory' }, source: 'task', reference: 'FORGED' }
+  function seedMeta() {
+    const fake = seed()
+    fake.tables.users = [{ id: ALICE, display_name: 'Alice Able', email: 'alice@example.test' }, { id: CAROL, display_name: 'Carol C', email: 'carol@example.test' }]
+    fake.tables.workflows.push(wf(START_WF, 'manual', {
+      name: 'Leave request',
+      user_variables: [{ name: 'days', type: 'number' }],
+      nodes: [{ id: 'start', type: 'manual', label: 'Start', config: { start_form: { layout: null } } }, meta],
+      edges: [{ id: 'e1', source: 'start', target: 'meta' }],
+    }))
+    for (const w of fake.tables.workflows as any[]) if (w.id === WF) { w.nodes = [w.nodes[0], meta]; w.edges = [{ id: 'e1', source: 'start', target: 'meta' }] }
+    return fake
+  }
+  const metaOf = (fake: any, workflowId: string) => {
+    const runs = fake.tables.workflow_runs.filter((r: any) => r.workflow_id === workflowId)
+    return runs[runs.length - 1]?.node_results?.meta?.output?.value
+  }
+
+  it('a start form from the Run dialog: the starter, source run_dialog — a forged value is replaced', async () => {
+    const fake = seedMeta()
+    await startWorkflow(ctxOf({ supabase: fake.client, actorId: ALICE }), { workflow_id: START_WF, variables: { days: 2, submission: FORGED } })
+    expect(metaOf(fake, START_WF)).toBe('Alice Able|run_dialog||Leave request (start form)')
+  })
+
+  it('API start of a plain workflow: a forged submission is dropped (queued too)', async () => {
+    const fake = seedMeta()
+    await startWorkflow(ctxOf({ supabase: fake.client, actorId: ALICE, authKind: 'api_key', source: 'api' }), { workflow_id: WF, async: true, variables: { submission: FORGED } })
+    expect((fake.tables.workflow_queue[0] as any).trigger_data.submission).toBeUndefined()
+    await processWorkflowQueueBatch({ batchSize: 5 })
+    expect(metaOf(fake, WF)).toBe('|||')
+  })
+
+  it('a form button\'s Start workflow: the submitter\'s metadata reaches the run', async () => {
+    const fake = seedMeta()
+    const ctx = ctxOf({ supabase: fake.client, actorId: CAROL, permissions: new Set(['forms.submit']) })
+    const sub = '0f000000-0000-4000-8000-0000000000f1'
+    await runButtonActions(ctx, fake.client, {
+      button: { id: 'b1', label: 'Submit', kind: 'submit', actions: [{ type: 'start_workflow', workflow_id: WF, inputs: { submission: '{{name}}' } }] } as any,
+      values: { name: 'x' }, form: { id: FORM, name: 'Leave' }, submissionId: sub,
+    })
+    await processWorkflowQueueBatch({ batchSize: 5 })
+    expect(metaOf(fake, WF)).toBe(`Carol C|page|${sub.slice(0, 8)}|Leave`)
   })
 })

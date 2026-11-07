@@ -417,6 +417,39 @@ export class UsertasksClient {
     return done.file
   }
 
+  /**
+   * Attach a file to a task (its Attachments tab) with a name, type and
+   * description; returns the attachment. Same transport as uploadFile:
+   * base64 in one request for small files, else init → PUT to storage →
+   * complete (when the server's storage signs uploads).
+   */
+  async uploadTaskAttachment(
+    taskId: string,
+    file: { name: string; bytes: Uint8Array },
+    meta: { name?: string; type?: string; description?: string } = {},
+    options: { inlineMaxBytes?: number; signal?: AbortSignal } = {},
+  ): Promise<Record<string, unknown> & { id: string; name: string }> {
+    type Attachment = Record<string, unknown> & { id: string; name: string }
+    const base = { ...meta, file_name: file.name, size: file.bytes.byteLength }
+    const toBase64 = (bytes: Uint8Array) => {
+      let binary = ''
+      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+      return btoa(binary)
+    }
+    const inline = async () => (await this.request<{ attachment: Attachment }>('POST', '/tasks/{id}/attachments', { path: { id: taskId }, body: { ...base, content_base64: toBase64(file.bytes) } })).attachment
+    if (file.bytes.byteLength <= (options.inlineMaxBytes ?? 3 * 1024 * 1024)) return inline()
+    const started = await this.request<{ mode: string; attachment_id?: string; upload?: { url: string; method: string; headers: Record<string, string> } }>('POST', '/tasks/{id}/attachments', { path: { id: taskId }, body: base })
+    if (started.mode !== 'direct' || !started.attachment_id || !started.upload) return inline()
+    let put: Response
+    try {
+      put = await this.fetchImpl(started.upload.url, { method: started.upload.method, headers: started.upload.headers, body: file.bytes as unknown as NonNullable<RequestInit["body"]>, signal: options.signal })
+    } catch (error) {
+      throw new UsertasksNetworkError(`Upload of ${file.name} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
+    }
+    if (!put.ok) throw new UsertasksNetworkError(`Upload of ${file.name} failed: storage answered ${put.status}`)
+    return (await this.request<{ attachment: Attachment }>('POST', '/tasks/{id}/attachments/{attachmentId}/complete', { path: { id: taskId, attachmentId: started.attachment_id } })).attachment
+  }
+
   /** Perform a request and return status, headers and parsed body (throws on non-2xx). */
   async raw(method: HttpMethod | Lowercase<HttpMethod>, path: string, options: RequestOptions = {}): Promise<RawResponse> {
     const verb = method.toUpperCase()

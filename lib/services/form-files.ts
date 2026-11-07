@@ -42,17 +42,17 @@ import {
 } from '@/lib/forms/attachments'
 import { verifyAttachmentContent } from '@/lib/forms/attachment-sniff'
 import { scanFailOpen, scannerFor, type ScanResult } from '@/lib/forms/attachment-scan'
-import { fieldKeyFromLabel, normalizeTaskFields, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { fieldKeyFromLabel, holdsFiles, normalizeTaskFields, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { deriveInputFields } from '@/lib/workflow-inputs'
 import { isPlainObject } from '@/lib/utils/guards'
-import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
+import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- form_files is not in the generated Database types */
 
 export const FORM_FILES_BUCKET = 'form-files'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const FILE_COLUMNS = 'id, tenant_id, storage_key, name, size, mime_type, checksum_sha256, uploaded_by, context_kind, form_id, task_id, workflow_id, run_id, field_key, status, submission_id, created_at'
+const FILE_COLUMNS = 'id, tenant_id, storage_key, name, size, mime_type, checksum_sha256, uploaded_by, upload_session, context_kind, form_id, task_id, workflow_id, run_id, field_key, status, submission_id, created_at'
 
 export type UploadContext =
   | { kind: 'form'; formId: string }
@@ -78,6 +78,8 @@ export interface FormFileRow {
   status: 'uploading' | 'pending' | 'bound' | 'orphaned'
   submission_id: string | null
   created_at: string
+  /** Anonymous uploads: sha256 of the visitor's per-visit upload key (uploaded_by is null). */
+  upload_session?: string | null
 }
 
 function envNumber(name: string, fallback: number, min: number, max: number): number {
@@ -122,6 +124,11 @@ function pendingLimit(): number {
 
 let ensured: Promise<void> | null = null
 
+/** The storage provider with the private form-files bucket ensured (task attachments share it). */
+export async function formFilesStorage(): Promise<StorageProvider> {
+  return storage()
+}
+
 async function storage(): Promise<StorageProvider> {
   const provider = await getStorageProvider()
   // Supabase: the migration created the private bucket; local: a directory;
@@ -155,7 +162,7 @@ export function presentFormFile(row: FormFileRow): AttachmentFile {
 /* ── Upload ──────────────────────────────────────────────────────────── */
 
 function attachmentField(fields: TaskFieldDef[], fieldKey: string, where: string): TaskFieldDef {
-  const field = fields.find((f) => f.key === fieldKey && f.type === 'attachments')
+  const field = fields.find((f) => f.key === fieldKey && holdsFiles(f))
   if (!field) throw ServiceError.notFound(`${where} has no attachments field "${String(fieldKey).slice(0, 64)}"`)
   if (field.read_only) throw ServiceError.forbidden(`"${field.label}" is read-only`)
   return field
@@ -163,13 +170,17 @@ function attachmentField(fields: TaskFieldDef[], fieldKey: string, where: string
 
 /** The field the upload goes to, authorised for the caller in their workspace. */
 async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, context: UploadContext, fieldKey: string): Promise<{ field: TaskFieldDef; contextId: string }> {
+  if (isAnonymous(ctx) && (context.kind !== 'form' || context.formId !== ctx.anonymous.formId)) throw ServiceError.notFound('Form not found')
   if (context.kind === 'form') {
     requirePerm(ctx, 'forms.submit')
     if (!UUID_RE.test(context.formId)) throw ServiceError.notFound('Form not found')
     const { data: form, error } = await (db as any).from('forms').select('id, fields').eq('id', context.formId).eq('tenant_id', ctx.tenantId).maybeSingle()
     if (error) throw dbError(error)
     if (!form) throw ServiceError.notFound('Form not found')
-    return { field: attachmentField(normalizeTaskFields(form.fields), fieldKey, 'The form'), contextId: form.id }
+    const field = attachmentField(normalizeTaskFields(form.fields), fieldKey, 'The form')
+    // Anonymous visitors: plain Attachments fields only (never a custom control's files capability).
+    if (isAnonymous(ctx) && field.type !== 'attachments') throw ServiceError.forbidden('Uploads are not available on a public form')
+    return { field, contextId: form.id }
   }
   if (context.kind === 'task') {
     const task = await loadActionableTask(ctx, db, context.taskId)
@@ -196,7 +207,7 @@ async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, co
   for (const node of (Array.isArray(workflow.nodes) ? workflow.nodes : []) as any[]) {
     if (node?.type !== 'user_task' || !isPlainObject(node.config)) continue
     const form = await resolveRuntimeForm(db, ctx.tenantId, node.config).catch(() => null)
-    const field = form?.fields.find((f) => f.key === fieldKey && f.type === 'attachments')
+    const field = form?.fields.find((f) => f.key === fieldKey && holdsFiles(f))
     if (field && !field.read_only) return { field, contextId: workflow.id }
   }
   throw ServiceError.notFound(`No User Task of this workflow has an attachments field "${String(fieldKey).slice(0, 64)}"`)
@@ -253,7 +264,7 @@ async function loadActionableTask(ctx: ServiceContext, db: AnySupabaseClient, ta
   }
   const { loadTaskActorFacts } = await import('@/lib/task-authz')
   const facts = await loadTaskActorFacts(db, task, ctx.actorId)
-  const allowed = facts.isAssignee || facts.isTeamMember || Boolean(facts.managedAssigneeId)
+  const allowed = facts.isAssignee || facts.isTeamMember || Boolean(facts.managedAssigneeId) || facts.isWorkflowManager === true
     || hasPerm(ctx, 'tasks.complete_any') || (!task.is_workflow_task && hasPerm(ctx, 'tasks.manage_queue'))
   if (!allowed) throw ServiceError.forbidden('Forbidden: you cannot act on that task')
   return task
@@ -271,7 +282,7 @@ export interface UploadFormFileInput {
 
 async function rateLimited(ctx: ServiceContext) {
   const { rateLimit } = await import('@/lib/rate-limit')
-  const hit = await rateLimit(`form-files:${ctx.tenantId}:${ctx.actorId ?? 'tenant'}`, { max: 120, windowMs: 60_000 })
+  const hit = await rateLimit(`form-files:${ctx.tenantId}:${rateSubject(ctx)}`, { max: isAnonymous(ctx) ? 20 : 120, windowMs: 60_000 })
   if (!hit.ok) throw new ServiceError('rate_limited', 'Too many uploads — wait a moment and try again', { details: { retry_after_ms: hit.retryAfterMs } })
 }
 
@@ -286,6 +297,13 @@ function tooLarge(maxBytes: number): ServiceError {
 /** Uploads not yet submitted: per person in the workspace, and per field of this context. */
 async function checkUploadQuota(ctx: ServiceContext, db: AnySupabaseClient, context: UploadContext, contextId: string, field: TaskFieldDef, maxFiles: number) {
   const since = new Date(Date.now() - pendingTtlHours() * 3_600_000).toISOString()
+  if (isAnonymous(ctx)) {
+    // Per visit (upload key), across the form's fields: the form's "files per submission".
+    const { count } = await (db as any).from('form_files').select('id', { count: 'exact', head: true })
+      .eq('tenant_id', ctx.tenantId).is('uploaded_by', null).eq('upload_session', ctx.anonymous.uploadSession ?? '-').in('status', ['uploading', 'pending']).gte('created_at', since)
+    if ((count ?? 0) >= ctx.anonymous.uploads.maxFiles) throw new ServiceError('rate_limited', `At most ${ctx.anonymous.uploads.maxFiles} files can be sent with this form`)
+    return
+  }
   const { count: pendingCount } = await (db as any).from('form_files').select('id', { count: 'exact', head: true })
     .eq('tenant_id', ctx.tenantId).eq('uploaded_by', ctx.actorId).in('status', ['uploading', 'pending']).gte('created_at', since)
   if ((pendingCount ?? 0) >= pendingLimit()) throw new ServiceError('rate_limited', 'You have too many unsubmitted uploads — submit or remove some first')
@@ -301,7 +319,7 @@ async function checkUploadQuota(ctx: ServiceContext, db: AnySupabaseClient, cont
  * content by magic bytes against the name and the field's types, SVG
  * sanitising (the bytes to store change), the optional virus scan.
  */
-async function verifyUploadBytes(field: TaskFieldDef, name: string, bytes: Uint8Array, maxFileBytes: number): Promise<{ body: Uint8Array; mime: string; scan: ScanResult['status']; rewritten: boolean }> {
+export async function verifyUploadBytes(field: TaskFieldDef, name: string, bytes: Uint8Array, maxFileBytes: number): Promise<{ body: Uint8Array; mime: string; scan: ScanResult['status']; rewritten: boolean }> {
   if (!(bytes instanceof Uint8Array) || bytes.byteLength === 0) throw ServiceError.validation('The file is empty')
   if (bytes.byteLength > maxFileBytes) throw tooLarge(maxFileBytes)
   const verified = verifyAttachmentContent({ name, bytes, config: field.attachments })
@@ -325,6 +343,31 @@ async function verifyUploadBytes(field: TaskFieldDef, name: string, bytes: Uint8
   return { body, mime: verified.mime, scan: scan.status, rewritten }
 }
 
+/**
+ * Anonymous visitors (lib/services/anonymous-forms.ts) may upload only when the form allows it
+ * and they hold a per-visit upload key; signed-in people otherwise.
+ */
+function assertAnonymousUploads(ctx: ServiceContext): void {
+  if (!isAnonymous(ctx)) throw ServiceError.forbidden('Forbidden: uploads need a signed-in person')
+  if (!ctx.anonymous.uploads.enabled) throw ServiceError.forbidden('Uploads are not available on this form')
+  if (!ctx.anonymous.uploadSession || !/^[0-9a-f]{64}$/.test(ctx.anonymous.uploadSession)) throw ServiceError.forbidden('Uploads need an upload key')
+}
+
+/** The field's limits, tightened to the form's anonymous limits for anonymous visitors. */
+function anonymousLimits<T extends { maxFileBytes: number; maxFiles: number }>(ctx: ServiceContext, limits: T): T {
+  if (!isAnonymous(ctx)) return limits
+  return { ...limits, maxFileBytes: Math.min(limits.maxFileBytes, ctx.anonymous.uploads.maxBytes), maxFiles: Math.min(limits.maxFiles, ctx.anonymous.uploads.maxFiles) }
+}
+
+/** Anonymous uploads: the safe list of types only (and the field's own list, checked as for everyone). */
+async function assertAnonymousType(name: string): Promise<void> {
+  const { ANONYMOUS_UPLOAD_EXTENSIONS } = await import('@/lib/forms/anonymous')
+  const ext = fileExtension(name)
+  if (!ext || !(ANONYMOUS_UPLOAD_EXTENSIONS as readonly string[]).includes(ext)) {
+    throw ServiceError.validation(`This form accepts ${ANONYMOUS_UPLOAD_EXTENSIONS.join(', ')} files`)
+  }
+}
+
 function storageKeyFor(ctx: ServiceContext, context: UploadContext, contextId: string, id: string, name: string): string {
   return `${ctx.tenantId}/${context.kind}-${contextId}/${id}/${storageSafeName(name)}`
 }
@@ -337,14 +380,15 @@ function storageKeyFor(ctx: ServiceContext, context: UploadContext, contextId: s
  * storage (initDirectUpload / completeDirectUpload).
  */
 export async function uploadFormFile(ctx: ServiceContext, input: UploadFormFileInput): Promise<AttachmentFile> {
-  if (!ctx.actorId) throw ServiceError.forbidden('Forbidden: uploads need a signed-in person')
+  if (!ctx.actorId) assertAnonymousUploads(ctx)
   const db = await serviceRoleClient(ctx)
   const { field, contextId } = await resolveUploadField(ctx, db, input.context, String(input.field_key ?? ''))
   await rateLimited(ctx)
 
   const bytes = input.bytes
   if (!(bytes instanceof Uint8Array) || bytes.byteLength === 0) throw ServiceError.validation('The file is empty')
-  const limits = attachmentLimits(field.attachments, { required: field.required, instanceMaxMb: instanceMaxMb() })
+  const limits = anonymousLimits(ctx, attachmentLimits(field.attachments, { required: field.required, instanceMaxMb: instanceMaxMb() }))
+  if (isAnonymous(ctx)) await assertAnonymousType(sanitizeFileName(input.name))
   if (bytes.byteLength > limits.maxFileBytes) throw tooLarge(limits.maxFileBytes)
   if (input.declared_size !== undefined && input.declared_size !== null && Number(input.declared_size) !== bytes.byteLength) {
     // A proxy in front of the app (or its own body buffer) may have cut the body short.
@@ -374,6 +418,7 @@ export async function uploadFormFile(ctx: ServiceContext, input: UploadFormFileI
     mime_type: checked.mime,
     checksum_sha256: createHash('sha256').update(checked.body).digest('hex'),
     uploaded_by: ctx.actorId,
+    ...(isAnonymous(ctx) ? { uploaded_by: null, upload_session: ctx.anonymous.uploadSession } : {}),
     context_kind: input.context.kind,
     ...contextColumns(input.context, contextId),
     field_key: field.key,
@@ -418,7 +463,11 @@ export type InitDirectUploadResult =
  * without signed uploads answer `{ mode: 'server' }` (send it through the app).
  */
 export async function initDirectUpload(ctx: ServiceContext, input: InitDirectUploadInput): Promise<InitDirectUploadResult> {
-  if (!ctx.actorId) throw ServiceError.forbidden('Forbidden: uploads need a signed-in person')
+  // Anonymous visitors always send their (small) files through the app, where every byte is checked first.
+  if (!ctx.actorId) {
+    assertAnonymousUploads(ctx)
+    return { mode: 'server', max_bytes: Math.min(ctx.anonymous!.uploads.maxBytes, streamedUploadMaxBytes()) }
+  }
   const db = await serviceRoleClient(ctx)
   const { field, contextId } = await resolveUploadField(ctx, db, input.context, String(input.field_key ?? ''))
   await rateLimited(ctx)
@@ -537,10 +586,12 @@ export async function completeDirectUpload(ctx: ServiceContext, fileId: string):
  * removes it once no saved value refers to it).
  */
 export async function removePendingFormFile(ctx: ServiceContext, fileId: string): Promise<{ removed: boolean }> {
-  if (!ctx.actorId || !UUID_RE.test(fileId)) throw ServiceError.notFound('File not found')
+  const session = isAnonymous(ctx) ? ctx.anonymous.uploadSession ?? null : null
+  if ((!ctx.actorId && !session) || !UUID_RE.test(fileId)) throw ServiceError.notFound('File not found')
   const db = await serviceRoleClient(ctx)
   const { data: row } = await (db as any).from('form_files').select(FILE_COLUMNS).eq('id', fileId).eq('tenant_id', ctx.tenantId).maybeSingle()
-  if (!row || row.uploaded_by !== ctx.actorId) throw ServiceError.notFound('File not found')
+  const owns = row && (ctx.actorId ? row.uploaded_by === ctx.actorId : row.uploaded_by === null && row.upload_session === session && row.form_id === ctx.anonymous?.formId)
+  if (!owns) throw ServiceError.notFound('File not found')
   if (row.status !== 'pending' && row.status !== 'uploading') return { removed: false }
   if (row.task_id && await taskReferences(db, ctx.tenantId, row.task_id, row.id)) return { removed: false }
   await deleteFormFileRows(db, [row as FormFileRow])
@@ -550,7 +601,8 @@ export async function removePendingFormFile(ctx: ServiceContext, fileId: string)
 /* ── Submit / save: the value rebuilt from the server's records ─────── */
 
 export type FileValueContext =
-  | { kind: 'form'; formId: string; actorId: string | null }
+  /** `uploadSession`: an anonymous visitor's upload key hash (actorId null). */
+  | { kind: 'form'; formId: string; actorId: string | null; uploadSession?: string | null }
   | { kind: 'task'; taskId: string }
   | { kind: 'start'; workflowId: string; actorId: string | null }
 
@@ -571,7 +623,7 @@ export async function resolveAttachmentValues(
 ): Promise<{ errors: Record<string, string>; values: Record<string, unknown> }> {
   const errors: Record<string, string> = {}
   const out: Record<string, unknown> = {}
-  const targets = valueFields(fields).filter((f) => f.type === 'attachments' && (!keys || keys.includes(f.key)))
+  const targets = valueFields(fields).filter((f) => holdsFiles(f) && (!keys || keys.includes(f.key)))
   if (!targets.length) return { errors, values: out }
   const wanted = new Map<string, string[]>()
   for (const field of targets) wanted.set(field.key, attachmentIds(values[field.key]))
@@ -593,7 +645,9 @@ export async function resolveAttachmentValues(
       const row = rows.get(id)
       const belongs = row && row.field_key === field.key && (row.status === 'pending' || row.status === 'bound') && (
         context!.kind === 'form'
-          ? row.context_kind === 'form' && row.form_id === context!.formId && row.status === 'pending' && row.uploaded_by !== null && row.uploaded_by === context!.actorId
+          ? row.context_kind === 'form' && row.form_id === context!.formId && row.status === 'pending' && (context!.actorId
+            ? row.uploaded_by !== null && row.uploaded_by === context!.actorId
+            : Boolean(context!.uploadSession) && row.uploaded_by === null && row.upload_session === context!.uploadSession)
           : context!.kind === 'start'
             ? row.context_kind === 'start' && row.workflow_id === context!.workflowId && row.status === 'pending' && row.uploaded_by !== null && row.uploaded_by === context!.actorId
             : row.context_kind === 'task' && row.task_id === context!.taskId
@@ -618,7 +672,7 @@ export async function resolveAttachmentValues(
 /** Ids of every file in the attachments fields of a value set. */
 export function attachmentIdsIn(fields: TaskFieldDef[], values: Record<string, unknown> | null | undefined): string[] {
   const ids: string[] = []
-  for (const field of valueFields(fields)) if (field.type === 'attachments') ids.push(...attachmentIds(values?.[field.key]))
+  for (const field of valueFields(fields)) if (holdsFiles(field)) ids.push(...attachmentIds(values?.[field.key]))
   return [...new Set(ids)]
 }
 
@@ -727,7 +781,12 @@ export async function readWorkflowFile(db: AnySupabaseClient, tenantId: string, 
   let query = (db as any).from('form_files').select(FILE_COLUMNS).eq('tenant_id', tenantId).in('status', ['pending', 'bound'])
   query = target.id ? query.eq('id', target.id) : query.eq('storage_key', target.key)
   const { data: row } = await query.maybeSingle()
-  if (!row || !String(row.storage_key).startsWith(`${tenantId}/`)) return null
+  if (!row) {
+    // A task attachment (same bucket, /attachments/<id> URLs): lib/services/task-attachments.ts.
+    const { readTaskAttachmentForWorkflow } = await import('./task-attachments')
+    return readTaskAttachmentForWorkflow(db, tenantId, target)
+  }
+  if (!String(row.storage_key).startsWith(`${tenantId}/`)) return null
   const provider = await storage()
   const object = await provider.get(FORM_FILES_BUCKET, row.storage_key)
   if (!object) return null
@@ -748,7 +807,8 @@ async function taskReferences(db: AnySupabaseClient, tenantId: string, taskId: s
   return attachmentIdsIn(normalizeTaskFields(meta.fields), values).includes(fileId.toLowerCase())
 }
 
-async function deleteFormFileRows(db: AnySupabaseClient, rows: FormFileRow[]): Promise<number> {
+/** Delete file rows and their stored objects (cleanup, retention purges, form deletion). */
+export async function deleteFormFileRows(db: AnySupabaseClient, rows: Array<Pick<FormFileRow, 'id' | 'storage_key'>>): Promise<number> {
   if (!rows.length) return 0
   const provider = await storage()
   await provider.delete(FORM_FILES_BUCKET, rows.map((r) => r.storage_key))

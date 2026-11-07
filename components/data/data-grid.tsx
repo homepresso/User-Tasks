@@ -1,20 +1,32 @@
 'use client'
 
-import { useEffect, useState, useRef, useMemo } from 'react'
-import { insertRow, updateRow, deleteRow } from '@/app/actions/data-store'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
+import { insertRow, deleteRow } from '@/app/actions/data-store'
 import { bulkDeleteWithJob, useJobs } from '@/components/jobs/jobs-provider'
-import { serverRead } from '@/lib/server-read'
-import { uploadDataTableFile } from '@/app/actions/uploads'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconButton } from '@/components/ui/icon-button'
+import { Input, SearchInput } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar } from '@/components/ui/avatar'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Tooltip } from '@/components/ui/tooltip'
+import { Kbd } from '@/components/ui/kbd'
+import { TableEmpty, tdClass, thClass, trClass } from '@/components/ui/table'
 import {
-  Plus, Trash2, Save, Upload, FileText, ExternalLink, Loader2,
-  Eye, Search, Clock, User as UserIcon,
+  Plus, Trash2, Upload, FileText, ExternalLink, Loader2, Check, X,
+  PanelRightOpen, ArrowUp, ArrowDown, Type, Hash, Calendar, ToggleLeft,
+  List, Paperclip, AlignLeft, Link2, Columns3,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { RowDetailDrawer } from './row-detail-drawer'
-import { formatRelativeDate, getInitials } from '@/lib/utils'
+import { RowDetailDrawer, uploadRowFile } from './row-detail-drawer'
+import { AddRowSheet } from './add-row-sheet'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { plural } from '@/lib/format/plural'
+import { cn } from '@/lib/utils'
 import type { DataColumn } from './lookup-config'
 import { columnKey, getCellValue, getCellByIdentifier } from '@/lib/data-table-cells'
 import { useLookupOptions } from './use-lookup-options'
@@ -58,33 +70,91 @@ interface DataGridProps {
   rows: DataRow[]
 }
 
+/** 14px muted type icon in the column header. */
+export const COLUMN_TYPE_ICON: Record<DataColumn['type'], typeof Type> = {
+  text: Type,
+  longtext: AlignLeft,
+  number: Hash,
+  date: Calendar,
+  boolean: ToggleLeft,
+  select: List,
+  file: Paperclip,
+  lookup: Link2,
+}
+
+const isNumeric = (col: DataColumn) => col.type === 'number'
+
+/** Sticky left columns: the selection checkbox (40px) and the row ID. */
+const STICKY_SELECT = 'sticky left-0 z-[2] w-10 min-w-10 pl-3 pr-0'
+const STICKY_ID = 'sticky left-10 z-[2] w-24 min-w-24'
+
+/** True when the key event comes from a text field (shortcuts must not fire). */
+function isTyping(e: KeyboardEvent) {
+  const t = e.target as HTMLElement | null
+  if (!t) return false
+  return t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)
+}
+
 export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
   const jobs = useJobs()
   const queryClient = useQueryClient()
   // Invalidate the page-level react-query that drives this grid so
   // insert/update/delete immediately re-render. router.refresh() alone
   // refreshes server components but does NOT refetch useQuery data.
-  const refreshRows = () => {
+  const refreshRows = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['custom-table-rows', tableId] })
     // Also refresh any page-embedded data_table component bindings.
     queryClient.invalidateQueries({ queryKey: ['binding-table', tableId] })
-  }
+  }, [queryClient, tableId])
   const [localRows, setLocalRows] = useState<DataRow[]>(rows)
   const [newRow, setNewRow] = useState<Record<string, any>>({})
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editData, setEditData] = useState<Record<string, any>>({})
+  const [inlineAdd, setInlineAdd] = useState(false)
+  const [sheetAdd, setSheetAdd] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null)
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [confirmBulk, setConfirmBulk] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [detailRowId, setDetailRowId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [scroll, setScroll] = useState({ left: false, right: false })
+  const scrollRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  // Synchronous guard: a double click on + must not insert the row twice.
+  const addRowGuard = useSubmitGuard()
 
   useEffect(() => {
     setLocalRows(rows)
   }, [rows])
+
+  // Shift+N toggles the inline "new row" entry under the header (the button opens the Sheet).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'N' && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey && !isTyping(e)) {
+        e.preventDefault()
+        setInlineAdd((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Horizontal scroll shadows: left once scrolled, right while more is hidden.
+  const updateScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const left = el.scrollLeft > 0
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setScroll((s) => (s.left === left && s.right === right ? s : { left, right }))
+  }, [])
+  useEffect(() => {
+    updateScroll()
+    window.addEventListener('resize', updateScroll)
+    return () => window.removeEventListener('resize', updateScroll)
+  }, [updateScroll, columns.length, localRows.length])
 
   // Currently selected row for the drawer (lookup against the fresh rows
   // list so the drawer sees live updates when the parent refetches).
@@ -95,9 +165,10 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
 
   const allRowIds = localRows.map(r => r.id)
   const allSelected = allRowIds.length > 0 && allRowIds.every(id => selectedRows.has(id))
+  const someSelected = !allSelected && allRowIds.some(id => selectedRows.has(id))
 
   function toggleRow(id: string) {
-    setSelectedRows(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+    setSelectedRows(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }
 
   function toggleAll() {
@@ -106,12 +177,12 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
   }
 
   async function deleteSelected() {
-    if (!confirm(`Delete ${selectedRows.size} row(s)?`)) return
     setDeleting(true)
     const ids = Array.from(selectedRows)
     const previous = localRows
     setLocalRows((current) => current.filter((row) => !selectedRows.has(row.id)))
     setSelectedRows(new Set())
+    setConfirmBulk(false)
     if (detailRowId && ids.includes(detailRowId)) setDetailRowId(null)
     try {
       // A `bulk.delete` job: small selections finish here, large ones in the background.
@@ -125,29 +196,20 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
   }
 
   async function handleAddRow() {
-    try {
-      await insertRow(tableId, tenantId, newRow)
-      setNewRow({})
-      refreshRows()
-      router.refresh()
-    } catch (e: any) {
-      alert(`Failed to add row: ${e.message}`)
-    }
-  }
-
-  async function handleSaveEdit(rowId: string) {
-    try {
-      await updateRow(rowId, editData)
-      setEditingId(null)
-      refreshRows()
-      router.refresh()
-    } catch (e: any) {
-      alert(`Failed to save: ${e.message}`)
-    }
+    await addRowGuard.run(async () => {
+      try {
+        await insertRow(tableId, tenantId, newRow)
+        setNewRow({})
+        refreshRows()
+        router.refresh()
+      } catch (e: any) {
+        alert(`Failed to add row: ${e.message}`)
+      }
+    })
   }
 
   async function handleDelete(rowId: string) {
-    if (!confirm('Delete this row?')) return
+    setPendingDelete(null)
     const previous = localRows
     setLocalRows((current) => current.filter((row) => row.id !== rowId))
     setSelectedRows((current) => {
@@ -166,32 +228,21 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
     }
   }
 
-  async function uploadFile(file: File, colKey: string, target: 'new' | 'edit', rowId?: string) {
+  async function uploadNewRowFile(file: File, colKey: string) {
     setUploading(colKey)
     try {
-      // Stored server-side (data.manage_rows) in task-files/data-tables/<table>/.
-      const body = new FormData()
-      body.set('file', file)
-      body.set('table_id', tableId)
-      const uploaded = await uploadDataTableFile(body)
-      if (!uploaded.ok) throw new Error(uploaded.error)
-      const { name, url, size, path, ref } = uploaded.data
-      const fileData = { name, url, size, path, ...(ref ? { ref } : {}) }
-
-      if (target === 'new') {
-        setNewRow(prev => ({ ...prev, [colKey]: fileData }))
-      } else if (rowId) {
-        const { data: currentRowData } = await serverRead('data.rowData', { id: rowId })
-        const currentData = (currentRowData ?? {}) as Record<string, any>
-        const merged = { ...currentData, [colKey]: fileData }
-        await updateRow(rowId, merged)
-        setEditData(prev => ({ ...prev, [colKey]: fileData }))
-        router.refresh()
-      }
+      const fileData = await uploadRowFile(tableId, file)
+      setNewRow(prev => ({ ...prev, [colKey]: fileData }))
     } catch (e: any) {
       alert(`Upload failed: ${e.message}`)
     }
     setUploading(null)
+  }
+
+  function copyId(id: string) {
+    navigator.clipboard.writeText(id)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 1500)
   }
 
   // Filter and sort rows. We hide system columns (ID, Date Created)
@@ -238,288 +289,305 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
 
   if (columns.length === 0) {
     return (
-      <div className="rounded-lg border p-6 text-center" style={{ borderColor: 'var(--theme-surface-border)' }}>
-        <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-          Add columns above to start adding data.
-        </p>
+      <div className="rounded-lg border border-border bg-panel">
+        <EmptyState
+          size="sm"
+          icon={Columns3}
+          title="This table has no columns yet"
+          description="Add columns on the Schema tab, then come back to add rows."
+        />
       </div>
     )
   }
 
+  const colSpan = editableColumns.length + 4
+  const stickyEdge = scroll.left && 'shadow-[6px_0_6px_-6px_var(--ds-border-strong)]'
+
+  function sortHeader({ id, label, numeric, icon: Icon, className }: { id: string; label: string; numeric?: boolean; icon?: typeof Type; className?: string }) {
+    const active = sortCol === id
+    return (
+      <th
+        key={id}
+        scope="col"
+        aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
+        className={cn(thClass, 'h-auto min-h-8 whitespace-normal py-1.5', numeric && 'text-right', className)}
+      >
+        <button
+          type="button"
+          onClick={() => toggleSort(id)}
+          className={cn(
+            'inline-flex max-w-full items-center gap-1.5 text-left hover:text-fg',
+            numeric && 'flex-row-reverse text-right',
+            active && 'text-fg',
+          )}
+        >
+          {Icon && <Icon className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />}
+          <span className="line-clamp-2 break-words">{label}</span>
+          {active && (sortDir === 'asc'
+            ? <ArrowUp className="size-3.5 shrink-0" aria-hidden="true" />
+            : <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />)}
+        </button>
+      </th>
+    )
+  }
+
   return (
-    <div className="space-y-2">
-      {/* Search */}
-      <div className="relative">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-        <input
+    <div className="space-y-3">
+      {/* Toolbar: search, match count / selection, add row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
           value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search rows by any value, ID, or creator…"
-          className="w-full rounded-lg border pl-8 pr-3 py-2 text-xs focus:outline-none focus:ring-1"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-            color: 'var(--theme-card-text)',
-            // @ts-expect-error — ring-color via CSS var
-            '--tw-ring-color': 'var(--theme-primary)',
-          }}
+          onValueChange={setSearch}
+          placeholder="Search rows by any value, ID or creator…"
+          aria-label="Search rows"
+          wrapperClassName="w-full max-w-sm"
         />
         {search && (
-          <span
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px]"
-            style={{ color: 'var(--theme-muted-text)' }}
-          >
-            {filteredRows.length} match{filteredRows.length !== 1 ? 'es' : ''}
+          <span className="num text-xs text-fg-muted">
+            {plural(filteredRows.length, 'match', 'matches')}
           </span>
+        )}
+        {selectedRows.size > 0 && (
+          <div className="flex items-center gap-1 rounded-md bg-primary-wash py-0.5 pl-3 pr-1">
+            <span className="num text-ui font-medium text-primary-text">{selectedRows.size} selected</span>
+            <Button size="sm" variant="danger-ghost" leadingIcon={<Trash2 />} onClick={() => setConfirmBulk(true)} disabled={deleting}>
+              Delete
+            </Button>
+            <IconButton size="sm" label="Clear selection" icon={<X />} onClick={() => setSelectedRows(new Set())} />
+          </div>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <Tooltip content="Add a row in a panel" kbd="⇧N inline">
+            <Button variant="secondary" size="sm" leadingIcon={<Plus />} onClick={() => setSheetAdd(true)}>
+              Add row
+            </Button>
+          </Tooltip>
+        </div>
+      </div>
+
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onScroll={updateScroll}
+          className="scrollbar-thin max-h-[calc(100vh-280px)] min-h-48 overflow-auto rounded-lg border border-border bg-panel"
+        >
+          <table className="w-full border-separate border-spacing-0 text-left text-ui text-fg">
+            <thead className="sticky top-0 z-[3]">
+              <tr>
+                <th scope="col" className={cn(thClass, STICKY_SELECT, 'z-[4]')}>
+                  <Checkbox
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected }}
+                    onChange={toggleAll}
+                    aria-label="Select all rows"
+                  />
+                </th>
+                {sortHeader({ id: '_row_id', label: 'Row', className: cn(STICKY_ID, 'z-[4]', stickyEdge) })}
+                {editableColumns.map((col) => sortHeader({
+                  id: columnKey(col),
+                  label: col.name || 'Untitled',
+                  numeric: isNumeric(col),
+                  icon: COLUMN_TYPE_ICON[col.type] ?? Type,
+                  className: cn('min-w-28 max-w-60', col.type === 'boolean' && 'text-center'),
+                }))}
+                {sortHeader({ id: '_updated_at', label: 'Last edited', className: 'min-w-44' })}
+                <th scope="col" className={cn(thClass, 'w-px')}><span className="sr-only">Actions</span></th>
+              </tr>
+              {inlineAdd && (
+                <tr className="bg-subtle">
+                  <td className={cn(tdClass, STICKY_SELECT, 'border-b border-border bg-subtle')} />
+                  <td className={cn(tdClass, STICKY_ID, 'border-b border-border bg-subtle text-xs text-fg-muted', stickyEdge)}>New</td>
+                  {editableColumns.map((col, index) => (
+                    <td key={getColumnKey(col, index)} className={cn(tdClass, 'min-w-28 border-b border-border px-1.5')}>
+                      <InlineCellEditor
+                        column={col}
+                        value={newRow[columnKey(col)]}
+                        onChange={(value) => setNewRow({ ...newRow, [columnKey(col)]: value })}
+                        uploading={uploading === columnKey(col)}
+                        onUpload={(file) => uploadNewRowFile(file, columnKey(col))}
+                      />
+                    </td>
+                  ))}
+                  <td className={cn(tdClass, 'border-b border-border text-xs text-fg-muted')}>
+                    <span className="inline-flex items-center gap-1"><Kbd>⇧N</Kbd> to hide</span>
+                  </td>
+                  <td className={cn(tdClass, 'border-b border-border text-right')}>
+                    <Button size="sm" onClick={handleAddRow} loading={addRowGuard.pending}>Add</Button>
+                  </td>
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {sortedRows.length === 0 && (
+                search ? (
+                  <TableEmpty
+                    colSpan={colSpan}
+                    variant="no-results"
+                    title={`No rows match “${search}”`}
+                    action={{ label: 'Clear search', onClick: () => setSearch('') }}
+                  />
+                ) : (
+                  <TableEmpty
+                    colSpan={colSpan}
+                    icon={Plus}
+                    title="No rows yet"
+                    description="Add the first row, or import rows from a file."
+                    action={{ label: 'Add row', onClick: () => setSheetAdd(true) }}
+                  />
+                )
+              )}
+              {sortedRows.map((row) => {
+                const editor = row.updater ?? row.creator
+                const editorName = editor?.display_name ?? editor?.email ?? null
+                const selected = selectedRows.has(row.id)
+                const edited = row.updated_at ?? row.created_at
+                // Sticky cells need an opaque background that follows the row state.
+                const stickyBg = selected
+                  ? 'bg-panel bg-[image:linear-gradient(var(--theme-primary-light),var(--theme-primary-light))]'
+                  : 'bg-panel group-hover/row:bg-subtle'
+                return (
+                  <tr
+                    key={row.id}
+                    data-selected={selected || undefined}
+                    tabIndex={0}
+                    onClick={() => setDetailRowId(row.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setDetailRowId(row.id) }}
+                    className={cn(trClass, 'group/row cursor-pointer [&>td]:border-b [&>td]:border-border-subtle last:[&>td]:border-b-0')}
+                  >
+                    <td className={cn(tdClass, STICKY_SELECT, stickyBg)} onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={selected} onChange={() => toggleRow(row.id)} aria-label={`Select row ${row.id.slice(0, 8)}`} />
+                    </td>
+                    <td className={cn(tdClass, STICKY_ID, stickyBg, stickyEdge)}>
+                      <Tooltip content={copiedId === row.id ? 'Copied' : 'Copy row ID'}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); copyId(row.id) }}
+                          className="font-mono text-xs text-fg-muted hover:text-fg"
+                          aria-label={`Copy row ID ${row.id}`}
+                        >
+                          {row.id.slice(0, 8)}
+                        </button>
+                      </Tooltip>
+                    </td>
+                    {editableColumns.map((col, index) => (
+                      <td
+                        key={getColumnKey(col, index)}
+                        className={cn(
+                          tdClass,
+                          (isNumeric(col) || col.type === 'date') && 'num whitespace-nowrap',
+                          isNumeric(col) && 'text-right',
+                          col.type === 'boolean' && 'text-center',
+                        )}
+                      >
+                        <CellValue column={col} value={getCellValue(row.data, col)} />
+                      </td>
+                    ))}
+                    <td className={cn(tdClass, 'max-w-60')}>
+                      <div className="flex min-w-0 items-center gap-2" title={formatAbsolute(edited)}>
+                        {editorName && <Avatar name={editorName} size="sm" />}
+                        <span className="truncate text-xs">
+                          <span className="text-fg">{editorName ?? '—'}</span>
+                          <span className="num text-fg-muted"> · {formatRelative(edited)}</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td className={cn(tdClass, 'w-px whitespace-nowrap text-right')} onClick={(e) => e.stopPropagation()}>
+                      <div className="inline-flex items-center gap-0.5 opacity-0 transition-opacity duration-[var(--ds-dur-fast)] group-hover/row:opacity-100 group-focus-within/row:opacity-100 [@media(pointer:coarse)]:opacity-100">
+                        <IconButton size="sm" label="Open row" icon={<PanelRightOpen />} onClick={() => setDetailRowId(row.id)} />
+                        <IconButton size="sm" variant="danger-ghost" label="Delete row" icon={<Trash2 />} onClick={() => setPendingDelete(row.id)} />
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        {scroll.right && (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-y-px right-px w-6 rounded-r-lg bg-gradient-to-l from-[var(--ds-border-strong)] to-transparent opacity-40" />
         )}
       </div>
 
-      {selectedRows.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--theme-primary-light)', border: '1px solid var(--theme-primary)' }}>
-          <span className="text-xs font-semibold" style={{ color: 'var(--theme-primary-text)' }}>
-            {selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''} selected
-          </span>
-          <div className="flex-1" />
-          <Button size="sm" variant="outline" className="!text-[10px] !h-6 !text-red-600" onClick={deleteSelected} disabled={deleting}>
-            <Trash2 size={10} className="mr-1" /> {deleting ? 'Deleting...' : 'Delete Selected'}
-          </Button>
-          <button onClick={() => setSelectedRows(new Set())} className="text-[10px] underline" style={{ color: 'var(--theme-muted-text)' }}>Clear</button>
-        </div>
-      )}
-    <div className="rounded-lg border overflow-x-auto" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-      <table className="w-full text-sm">
-        <thead>
-          <tr style={{ backgroundColor: 'var(--theme-surface)' }}>
-            <th className="px-2 py-2 w-8">
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded" />
-            </th>
-            <th
-              className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider w-20 cursor-pointer select-none"
-              style={{ color: sortCol === '_row_id' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-              onClick={() => toggleSort('_row_id')}
-            >
-              Row {sortCol === '_row_id' && (sortDir === 'asc' ? '↑' : '↓')}
-            </th>
-            {editableColumns.map((col, index) => (
-              <th
-                key={getColumnKey(col, index)}
-                className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none"
-                style={{ color: sortCol === columnKey(col) ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-                onClick={() => toggleSort(columnKey(col))}
-              >
-                {col.name || 'Untitled'} {sortCol === columnKey(col) && (sortDir === 'asc' ? '↑' : '↓')}
-              </th>
-            ))}
-            <th
-              className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider w-40 cursor-pointer select-none"
-              style={{ color: sortCol === '_updated_at' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}
-              onClick={() => toggleSort('_updated_at')}
-            >
-              Last edited {sortCol === '_updated_at' && (sortDir === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="px-3 py-2 w-24"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* Add new row */}
-          <tr style={{ borderTop: '1px solid var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-            <td className="px-2 py-1.5"></td>
-            <td className="px-3 py-1.5 text-[10px] italic" style={{ color: 'var(--theme-muted-text)' }}>New</td>
-            {editableColumns.map((col, index) => (
-              <td key={getColumnKey(col, index)} className="px-2 py-1.5">
-                {col.type === 'boolean' ? (
-                  <input type="checkbox" checked={!!newRow[columnKey(col)]} onChange={(e) => setNewRow({ ...newRow, [columnKey(col)]: e.target.checked })} />
-                ) : col.type === 'longtext' ? (
-                  <textarea
-                    value={newRow[columnKey(col)] ?? ''}
-                    onChange={(e) => setNewRow({ ...newRow, [columnKey(col)]: e.target.value })}
-                    placeholder="..."
-                    rows={2}
-                    className="w-full rounded border px-2 py-1 text-xs"
-                    style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-                  />
-                ) : col.type === 'file' ? (
-                  <FileCell
-                    value={newRow[columnKey(col)]}
-                    uploading={uploading === columnKey(col)}
-                    onUpload={(file) => uploadFile(file, columnKey(col), 'new')}
-                    onClear={() => setNewRow(prev => ({ ...prev, [columnKey(col)]: null }))}
-                  />
-                ) : col.type === 'select' ? (
-                  <select
-                    value={newRow[columnKey(col)] ?? ''}
-                    onChange={(e) => setNewRow({ ...newRow, [columnKey(col)]: e.target.value })}
-                    className="w-full rounded border px-2 py-1 text-xs h-7"
-                    style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-                  >
-                    <option value="">Select...</option>
-                    {(col.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                ) : col.type === 'lookup' ? (
-                  <LookupCellEditor
-                    column={col}
-                    value={newRow[columnKey(col)]}
-                    onChange={(value) => setNewRow({ ...newRow, [columnKey(col)]: value })}
-                  />
-                ) : (
-                  <Input
-                    type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
-                    value={newRow[columnKey(col)] ?? ''}
-                    onChange={(e) => setNewRow({ ...newRow, [columnKey(col)]: e.target.value })}
-                    placeholder="..."
-                    className="!h-7 !text-xs"
-                  />
-                )}
-              </td>
-            ))}
-            <td className="px-2 py-1.5">
-              <Button size="sm" variant="ghost" onClick={handleAddRow}>
-                <Plus size={12} />
-              </Button>
-            </td>
-          </tr>
-
-          {/* Existing rows */}
-          {sortedRows.map((row) => {
-            const isEditing = editingId === row.id
-            const editor = row.updater ?? row.creator
-            return (
-              <tr
-                key={row.id}
-                className="transition-colors hover:bg-[var(--theme-row-highlight)]"
-                style={{
-                  borderTop: '1px solid var(--theme-surface-border)',
-                  backgroundColor: selectedRows.has(row.id) ? 'var(--theme-primary-light)' : undefined,
-                }}
-              >
-                <td className="px-2 py-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.has(row.id)}
-                    onChange={() => toggleRow(row.id)}
-                    className="rounded"
-                  />
-                </td>
-                <td
-                  className="px-3 py-2 text-[10px] font-mono cursor-pointer"
-                  style={{ color: 'var(--theme-muted-text)' }}
-                  title={`Click to copy: ${row.id}`}
-                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(row.id) }}
-                >
-                  {row.id.slice(0, 8)}
-                </td>
-                {editableColumns.map((col, index) => (
-                  <td key={getColumnKey(col, index)} className="px-3 py-2">
-                    {isEditing ? (
-                      col.type === 'file' ? (
-                        <FileCell
-                          value={editData[columnKey(col)]}
-                          uploading={uploading === columnKey(col)}
-                          onUpload={(file) => uploadFile(file, columnKey(col), 'edit', row.id)}
-                          onClear={() => setEditData(prev => ({ ...prev, [columnKey(col)]: null }))}
-                        />
-                      ) : col.type === 'boolean' ? (
-                        <input type="checkbox" checked={!!editData[columnKey(col)]} onChange={(e) => setEditData({ ...editData, [columnKey(col)]: e.target.checked })} />
-                      ) : col.type === 'lookup' ? (
-                        <LookupCellEditor
-                          column={col}
-                          value={editData[columnKey(col)]}
-                          onChange={(value) => setEditData({ ...editData, [columnKey(col)]: value })}
-                        />
-                      ) : (
-                        <Input
-                          type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
-                          value={editData[columnKey(col)] ?? ''}
-                          onChange={(e) => setEditData({ ...editData, [columnKey(col)]: e.target.value })}
-                          className="!h-7 !text-xs"
-                        />
-                      )
-                    ) : col.type === 'file' ? (
-                      <FileDisplay value={getCellValue(row.data, col)} />
-                    ) : col.type === 'boolean' ? (
-                      <span>{getCellValue(row.data, col) ? '✓' : '—'}</span>
-                    ) : (
-                      <span className="text-sm">{String(getCellValue(row.data, col) ?? '')}</span>
-                    )}
-                  </td>
-                ))}
-                {/* Last edited — avatar + relative timestamp. Falls back
-                    to "created by" if the row was never updated. */}
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {editor && (
-                      <span
-                        className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
-                        style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
-                        title={editor.display_name ?? editor.email ?? 'Unknown'}
-                      >
-                        {getInitials(editor.display_name ?? editor.email ?? '?')}
-                      </span>
-                    )}
-                    <div className="min-w-0">
-                      <p
-                        className="text-[10px] truncate"
-                        style={{ color: 'var(--theme-card-text)' }}
-                      >
-                        {editor?.display_name ?? editor?.email ?? '—'}
-                      </p>
-                      <p
-                        className="text-[9px]"
-                        style={{ color: 'var(--theme-muted-text)' }}
-                        title={new Date(row.updated_at ?? row.created_at).toLocaleString()}
-                      >
-                        {formatRelativeDate(row.updated_at ?? row.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-2 py-1.5">
-                  <div className="flex items-center gap-1 justify-end">
-                    {isEditing ? (
-                      <Button size="sm" variant="ghost" onClick={() => handleSaveEdit(row.id)} title="Save inline edit">
-                        <Save size={12} />
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setDetailRowId(row.id)}
-                        title="Open row detail"
-                      >
-                        <Eye size={12} />
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(row.id)}
-                      className="hover:text-red-500"
-                      title="Delete row"
-                    >
-                      <Trash2 size={12} />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Detail drawer — portalled, opens on Eye-icon click */}
-    <RowDetailDrawer
-      open={detailRowId !== null}
-      onOpenChange={(open) => { if (!open) setDetailRowId(null) }}
-      row={detailRow as any}
-      columns={editableColumns}
-      tableId={tableId}
-    />
+      {/* Detail sheet: opens on a row click */}
+      <RowDetailDrawer
+        open={detailRowId !== null}
+        onOpenChange={(open) => { if (!open) setDetailRowId(null) }}
+        row={detailRow as any}
+        columns={editableColumns}
+        tableId={tableId}
+      />
+      <AddRowSheet open={sheetAdd} onOpenChange={setSheetAdd} columns={editableColumns} tableId={tableId} tenantId={tenantId} />
+      <ConfirmDialog
+        open={confirmBulk}
+        onOpenChange={setConfirmBulk}
+        destructive
+        title={`Delete ${plural(selectedRows.size, 'row')}?`}
+        description="The selected rows are deleted permanently."
+        confirmLabel="Delete rows"
+        busy={deleting}
+        onConfirm={deleteSelected}
+      />
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null) }}
+        destructive
+        title="Delete this row?"
+        description="The row is deleted permanently."
+        confirmLabel="Delete row"
+        onConfirm={() => { if (pendingDelete) void handleDelete(pendingDelete) }}
+      />
     </div>
   )
 }
 
-// ─── File upload cell ───
+// ─── Read-only cell: one line, truncated, with the full value on hover ───
+function CellValue({ column, value }: { column: DataColumn; value: any }) {
+  if (column.type === 'file') return <FileDisplay value={value} />
+  if (column.type === 'boolean') {
+    return value
+      ? <Check className="mx-auto size-4 text-fg" aria-label="Yes" />
+      : <span className="text-fg-subtle" aria-label="No">—</span>
+  }
+  const text = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)
+  if (!text) return <span className="text-fg-subtle">—</span>
+  return <span className="block max-w-80 truncate" title={text.length > 24 ? text : undefined}>{text}</span>
+}
+
+// ─── Inline new-row editor (Shift+N) ───
+function InlineCellEditor({ column, value, onChange, uploading, onUpload }: {
+  column: DataColumn
+  value: any
+  onChange: (value: any) => void
+  uploading: boolean
+  onUpload: (file: File) => void
+}) {
+  const label = column.name || 'Untitled'
+  if (column.type === 'boolean') {
+    return <div className="text-center"><Checkbox checked={!!value} onChange={(e) => onChange(e.target.checked)} aria-label={label} /></div>
+  }
+  if (column.type === 'file') {
+    return <FileCell value={value} uploading={uploading} onUpload={onUpload} onClear={() => onChange(null)} />
+  }
+  if (column.type === 'select') {
+    return (
+      <Select size="sm" value={value ?? ''} onChange={(e) => onChange(e.target.value)} aria-label={label}
+        placeholder="Select…" options={(column.options ?? []).map(o => ({ value: o, label: o }))} />
+    )
+  }
+  if (column.type === 'lookup') return <LookupCellEditor column={column} value={value} onChange={onChange} />
+  return (
+    <Input
+      size="sm"
+      type={column.type === 'number' ? 'number' : column.type === 'date' ? 'date' : 'text'}
+      value={value ?? ''}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={label}
+      className={cn(column.type === 'number' && 'num text-right')}
+    />
+  )
+}
+
+// ─── File upload cell (inline new row) ───
 function FileCell({ value, uploading, onUpload, onClear }: {
   value: any
   uploading: boolean
@@ -531,29 +599,27 @@ function FileCell({ value, uploading, onUpload, onClear }: {
 
   if (uploading) {
     return (
-      <div className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--theme-primary-text)' }}>
-        <Loader2 size={12} className="animate-spin" /> Uploading...
+      <div className="flex items-center gap-1 text-xs text-fg-muted">
+        <Loader2 className="size-3.5 animate-spin" /> Uploading…
       </div>
     )
   }
 
   if (fileData?.url) {
     return (
-      <div className="flex items-center gap-1">
-        <FileText size={12} style={{ color: 'var(--theme-primary-text)' }} />
-        <span className="text-[10px] truncate max-w-24">{fileData.name ?? 'File'}</span>
-        <button onClick={onClear} className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+      <div className="flex min-w-0 items-center gap-1">
+        <FileText className="size-3.5 shrink-0 text-fg-muted" />
+        <span className="truncate text-xs">{fileData.name ?? 'File'}</span>
+        <IconButton size="sm" label="Remove file" icon={<X />} onClick={onClear} />
       </div>
     )
   }
 
   return (
     <>
-      <button onClick={() => inputRef.current?.click()}
-        className="flex items-center gap-1 text-[10px] px-2 py-1 rounded hover:opacity-70"
-        style={{ color: 'var(--theme-primary-text)', backgroundColor: 'var(--theme-primary-light)' }}>
-        <Upload size={10} /> Upload
-      </button>
+      <Button size="sm" variant="ghost" leadingIcon={<Upload />} onClick={() => inputRef.current?.click()}>
+        Upload
+      </Button>
       <input ref={inputRef} type="file" className="hidden" onChange={(e) => {
         const file = e.target.files?.[0]
         if (file) onUpload(file)
@@ -567,14 +633,14 @@ function FileCell({ value, uploading, onUpload, onClear }: {
 function FileDisplay({ value }: { value: any }) {
   const fileData = value && typeof value === 'object' ? value : null
   if (!fileData?.url) {
-    return <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>—</span>
+    return <span className="text-fg-subtle">—</span>
   }
   return (
-    <a href={fileData.url} target="_blank" rel="noopener noreferrer"
-      className="flex items-center gap-1 text-[10px] hover:underline" style={{ color: 'var(--theme-primary-text)' }}>
-      <FileText size={12} />
-      <span className="truncate max-w-32">{fileData.name ?? 'File'}</span>
-      <ExternalLink size={10} />
+    <a href={fileData.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+      className="inline-flex max-w-full items-center gap-1 text-primary-text hover:underline">
+      <FileText className="size-3.5 shrink-0" />
+      <span className="truncate">{fileData.name ?? 'File'}</span>
+      <ExternalLink className="size-3 shrink-0" />
     </a>
   )
 }
@@ -591,17 +657,11 @@ function LookupCellEditor({
   const { data: options = [], isLoading } = useLookupOptions(column.lookup, true)
 
   return (
-    <select
-      value={value ?? ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded border px-2 py-1 text-xs h-7"
-      style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-      disabled={isLoading}
-    >
+    <Select size="sm" value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={isLoading} aria-label={column.name || 'Lookup'}>
       <option value="">{isLoading ? 'Loading…' : 'Select…'}</option>
       {options.map((option) => (
         <option key={`${column.id}:${option.value}`} value={option.value}>{option.label}</option>
       ))}
-    </select>
+    </Select>
   )
 }

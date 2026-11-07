@@ -1,6 +1,7 @@
 'use client'
 
-import { getInitials, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { Avatar } from '@/components/ui/avatar'
 import { CheckCircle, Clock, PauseCircle, XCircle } from 'lucide-react'
 import { useState } from 'react'
 
@@ -17,80 +18,68 @@ interface CollaboratorBarProps {
   compact?: boolean
 }
 
-const statusConfig: Record<string, { icon: any; color: string }> = {
-  accepted: { icon: CheckCircle, color: '#22C55E' },
-  pending: { icon: Clock, color: '#F59E0B' },
-  held: { icon: PauseCircle, color: '#F97316' },
-  rejected: { icon: XCircle, color: '#EF4444' },
+/** Acceptance → icon and semantic tone (text / dot classes). */
+const statusConfig: Record<string, { icon: typeof CheckCircle; text: string; dot: string }> = {
+  accepted: { icon: CheckCircle, text: 'text-success', dot: 'bg-success' },
+  pending: { icon: Clock, text: 'text-warning', dot: 'bg-warning' },
+  held: { icon: PauseCircle, text: 'text-warning', dot: 'bg-warning' },
+  rejected: { icon: XCircle, text: 'text-danger', dot: 'bg-danger' },
 }
 
 export function CollaboratorBar({ collaborators, compact }: CollaboratorBarProps) {
   const [expanded, setExpanded] = useState(false)
 
   if (!collaborators.length) return null
+  const shown = compact ? 3 : 5
 
   return (
     <div className="relative">
       {/* Avatar stack */}
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center -space-x-1.5 hover:opacity-80 transition-opacity"
+        aria-expanded={expanded}
+        aria-label={`${collaborators.length} collaborators: ${collaborators.map((c) => `${c.user?.display_name || c.user?.email || ''} (${c.acceptance_status})`).join(', ')}`}
+        className="flex items-center -space-x-1.5 transition-opacity hover:opacity-80"
       >
-        {collaborators.slice(0, compact ? 3 : 5).map((c) => {
+        {collaborators.slice(0, shown).map((c) => {
           const name = c.user?.display_name || c.user?.email || ''
           const status = statusConfig[c.acceptance_status] ?? statusConfig.pending
           return (
-            <div key={c.user_id} className="relative" title={`${name} (${c.acceptance_status})`}>
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold border-2"
-                style={{
-                  backgroundColor: 'var(--theme-surface)',
-                  color: 'var(--theme-card-text)',
-                  borderColor: 'var(--theme-card-bg)',
-                }}
-              >
-                {getInitials(name)}
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border"
-                style={{ backgroundColor: status.color, borderColor: 'var(--theme-card-bg)' }} />
-            </div>
+            <span key={c.user_id} className="relative">
+              <Avatar name={name} src={c.user?.avatar_url ?? undefined} size="md" ring />
+              <span aria-hidden className={cn('absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-panel', status.dot)} />
+            </span>
           )
         })}
-        {collaborators.length > (compact ? 3 : 5) && (
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold border-2"
-            style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)', borderColor: 'var(--theme-card-bg)' }}>
-            +{collaborators.length - (compact ? 3 : 5)}
-          </div>
+        {collaborators.length > shown && (
+          <span className="num flex size-7 items-center justify-center rounded-full bg-muted text-2xs font-medium text-fg-muted ring-2 ring-panel">
+            +{collaborators.length - shown}
+          </span>
         )}
       </button>
 
-      {/* Expanded dropdown */}
+      {/* Expanded list */}
       {expanded && (
-        <div
-          className="absolute top-full mt-1 right-0 max-md:left-0 max-md:right-auto z-50 w-64 max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-2 space-y-1"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1" style={{ color: 'var(--theme-muted-text)' }}>
-            Collaborators ({collaborators.length})
+        <div className="absolute right-0 top-full z-50 mt-1 w-64 max-w-[calc(100vw-2rem)] space-y-0.5 rounded-lg bg-elevated p-1.5 shadow-elev-2 max-md:left-0 max-md:right-auto">
+          <p className="px-2 py-1 text-xs font-medium text-fg-muted">
+            Collaborators <span className="num">({collaborators.length})</span>
           </p>
           {collaborators.map((c) => {
             const name = c.user?.display_name || c.user?.email || ''
             const status = statusConfig[c.acceptance_status] ?? statusConfig.pending
             const StatusIcon = status.icon
             return (
-              <div key={c.user_id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0"
-                  style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-                  {getInitials(name)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{name}</p>
-                  <p className="text-[9px] capitalize" style={{ color: status.color }}>
+              <div key={c.user_id} className="flex items-center gap-2 rounded-md px-2 py-1.5">
+                <Avatar name={name} src={c.user?.avatar_url ?? undefined} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-ui font-medium text-fg">{name}</p>
+                  <p className={cn('text-xs', status.text)}>
                     {c.role === 'lead' && '★ '}
-                    {c.acceptance_status}
+                    {c.acceptance_status.charAt(0).toUpperCase() + c.acceptance_status.slice(1)}
                   </p>
                 </div>
-                <StatusIcon size={12} style={{ color: status.color }} />
+                <StatusIcon className={cn('size-3.5 shrink-0', status.text)} aria-hidden />
               </div>
             )
           })}

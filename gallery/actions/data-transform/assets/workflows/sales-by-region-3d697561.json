@@ -1,0 +1,209 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3d697561-90da-4ef7-a0ef-f59f65eaeec0",
+  "asset": {
+    "id": "3d697561-90da-4ef7-a0ef-f59f65eaeec0",
+    "name": "Sales by region (sample)",
+    "description": "Sample for the Data transform action: filters paid orders, groups them by region with totals and averages, and writes the result as CSV. Starts from the API (post an orders list) or its start form, and runs with no input using sample orders.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started (API or form)",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "orders",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "status",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#EA580C",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#F4F6FB"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Sales by region",
+                  "subtitle": "Post a list of orders, or run with the sample orders."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "paid",
+        "type": "custom_activity",
+        "label": "Keep orders with the status",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "custom_activity_id": "f6114bc5-d4d1-4571-b9ce-9d7ebdab1b7e",
+          "custom_activity_key": "ut_data",
+          "activity_name": "Data transform",
+          "operation": "filter",
+          "input_mappings": {
+            "items": "{{orders}}",
+            "conditions": "[{\"field\": \"status\", \"operator\": \"eq\", \"value\": \"{{status}}\"}]"
+          },
+          "_output_prefix": "paid"
+        }
+      },
+      {
+        "id": "by_region",
+        "type": "custom_activity",
+        "label": "Group by region",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "custom_activity_id": "f6114bc5-d4d1-4571-b9ce-9d7ebdab1b7e",
+          "custom_activity_key": "ut_data",
+          "activity_name": "Data transform",
+          "operation": "group",
+          "input_mappings": {
+            "items": "{{paid_items}}",
+            "group_by": "[\"region\"]",
+            "aggregates": "[\"sum(amount) as total\", \"avg(amount) as average\", \"sum(qty) as units\"]"
+          },
+          "_output_prefix": "regions"
+        }
+      },
+      {
+        "id": "csv",
+        "type": "custom_activity",
+        "label": "Totals as CSV",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "custom_activity_id": "f6114bc5-d4d1-4571-b9ce-9d7ebdab1b7e",
+          "custom_activity_key": "ut_data",
+          "activity_name": "Data transform",
+          "operation": "json_to_csv",
+          "input_mappings": {
+            "items": "{{regions_groups}}",
+            "columns": "[\"region as Region\", \"count as Orders\", \"units as Units\", \"total as Total\", \"average as Average\"]"
+          },
+          "_output_prefix": "report"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Summary",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "name": "summary",
+          "expression": "{{regions_count}} region(s) from {{paid_count}} {{status}} order(s):\n{{report_csv}}"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "reason": "{{summary}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-paid",
+        "source": "trigger",
+        "target": "paid"
+      },
+      {
+        "id": "e-paid-by_region",
+        "source": "paid",
+        "target": "by_region"
+      },
+      {
+        "id": "e-by_region-csv",
+        "source": "by_region",
+        "target": "csv"
+      },
+      {
+        "id": "e-csv-summary",
+        "source": "csv",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-orders",
+        "name": "orders",
+        "type": "array",
+        "label": "Orders",
+        "description": "JSON list of orders with region, status and amount",
+        "defaultValue": "[{\"id\":\"SO-1\",\"region\":\"North\",\"product\":\"Desk\",\"status\":\"paid\",\"amount\":1200,\"qty\":2},{\"id\":\"SO-2\",\"region\":\"South\",\"product\":\"Chair\",\"status\":\"paid\",\"amount\":300,\"qty\":3},{\"id\":\"SO-3\",\"region\":\"North\",\"product\":\"Chair\",\"status\":\"open\",\"amount\":450,\"qty\":5},{\"id\":\"SO-4\",\"region\":\"North\",\"product\":\"Desk\",\"status\":\"paid\",\"amount\":600,\"qty\":1},{\"id\":\"SO-5\",\"region\":\"South\",\"product\":\"Lamp\",\"status\":\"void\",\"amount\":80,\"qty\":2}]",
+        "required": true
+      },
+      {
+        "id": "v-status",
+        "name": "status",
+        "type": "string",
+        "label": "Status to include",
+        "description": "Only orders with this status are summed",
+        "defaultValue": "paid",
+        "options": [
+          "paid",
+          "open",
+          "void"
+        ]
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

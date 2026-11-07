@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
   try {
     const tenantId = await getCurrentTenantId(supabase, user.id)
     await getOwnedReference(supabase, tenantId, referenceId)
+    // Browser sessions only read here: write references run from workflows,
+    // form rule actions / table changes (server, saved targets), agents and the API.
     const result = await executeReference({
       supabase,
       referenceId,
@@ -51,11 +53,12 @@ export async function POST(request: NextRequest) {
       timeout: 30000,
       caller: { traceId: '', callerType: 'api', callerId: user.id },
       expectedTenantId: tenantId,
+      readOnly: true,
     })
     return NextResponse.json(result)
   } catch (e: any) {
     const message = e.message ?? 'Execution failed'
-    const status = message === 'Reference not found' ? 404 : 500
+    const status = message === 'Reference not found' ? 404 : e?.name === 'CustomReferenceError' ? (e.status ?? 400) : 500
     return NextResponse.json({ error: message }, { status })
   }
 }

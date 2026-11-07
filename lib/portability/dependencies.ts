@@ -22,12 +22,12 @@ import { formPageOf } from '@/lib/forms/form-page'
 export type DependencyAssetType =
   | 'workflow' | 'workflow_activity' | 'data_table' | 'integration' | 'connector' | 'decision_table'
   | 'email_template' | 'agent' | 'report' | 'role' | 'mcp_server' | 'retention_policy' | 'log_destination'
-  | 'form' | 'form_theme'
+  | 'form' | 'form_theme' | 'form_control'
 
 export const DEPENDENCY_TYPES: readonly DependencyAssetType[] = [
   'workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table',
   'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination',
-  'form', 'form_theme',
+  'form', 'form_theme', 'form_control',
 ]
 
 export interface AssetRef { type: DependencyAssetType; id: string }
@@ -74,9 +74,11 @@ export interface FoundRef {
  * Every asset id referenced inside one exported asset (pure). Custom
  * activity keys are returned as `activity_keys`; people separately.
  */
-export function scanAssetReferences(asset: unknown): { refs: FoundRef[]; activityKeys: string[]; people: Array<{ kind: 'user' | 'team'; id: string; path: Array<string | number> }> } {
+export function scanAssetReferences(asset: unknown): { refs: FoundRef[]; activityKeys: string[]; controlTags: string[]; people: Array<{ kind: 'user' | 'team'; id: string; path: Array<string | number> }> } {
   const refs: FoundRef[] = []
   const activityKeys: string[] = []
+  // Custom form controls are referenced by tag (field / start-form variable `custom.tag`).
+  const controlTags: string[] = []
   const people: Array<{ kind: 'user' | 'team'; id: string; path: Array<string | number> }> = []
   const walk = (value: unknown, path: Array<string | number>, depth: number) => {
     if (depth > 40 || value === null || typeof value !== 'object') return
@@ -94,20 +96,28 @@ export function scanAssetReferences(asset: unknown): { refs: FoundRef[]; activit
         else if (TEAM_KEYS.has(key)) people.push({ kind: 'team', id: child, path: childPath })
         continue
       }
+      if (key === 'custom' && child && typeof child === 'object' && !Array.isArray(child) && typeof (child as any).tag === 'string' && (child as any).tag) {
+        controlTags.push(String((child as any).tag))
+        continue
+      }
       if (key === 'custom_activity_key' && typeof child === 'string' && child.trim()) {
         activityKeys.push(child.trim())
         continue
       }
-      if (Array.isArray(child) && ['tools', 'workflow_ids', 'policy_ids'].includes(key)) {
-        const type: DependencyAssetType | 'reference' = key === 'tools' ? 'reference' : key === 'workflow_ids' ? 'workflow' : 'retention_policy'
-        child.forEach((id, index) => { if (isUuid(id)) refs.push({ type, id, path: [...childPath, index] }) })
+      if (Array.isArray(child) && ['tools', 'workflow_ids', 'policy_ids', 'table_ids'].includes(key)) {
+        const type: DependencyAssetType | 'reference' = key === 'tools' ? 'reference' : key === 'workflow_ids' ? 'workflow' : key === 'table_ids' ? 'data_table' : 'retention_policy'
+        child.forEach((id, index) => {
+          if (isUuid(id)) refs.push({ type, id, path: [...childPath, index] })
+          // Agent tools are objects ({ referenceId } / { mcpServerId }): walk them.
+          else if (id && typeof id === 'object') walk(id, [...childPath, index], depth + 1)
+        })
         continue
       }
       walk(child, childPath, depth + 1)
     }
   }
   walk(asset, [], 0)
-  return { refs, activityKeys, people }
+  return { refs, activityKeys, controlTags, people }
 }
 
 const key = (ref: AssetRef) => `${ref.type}:${ref.id}`
@@ -174,6 +184,7 @@ export async function resolveDependencyClosure(
     // Scan every exported asset (references and objects belong to their integration).
     const referenceIds: Array<{ id: string; by: AssetRef }> = []
     const activityKeys: Array<{ key: string; by: AssetRef }> = []
+    const controlTags: Array<{ tag: string; by: AssetRef }> = []
     for (const { section, asset } of bySection) {
       const type = SECTION_TYPE[section]
       const owner: AssetRef | null = type === 'reference' || type === 'object'
@@ -193,6 +204,7 @@ export async function resolveDependencyClosure(
         queue.push({ ref: { type: ref.type, id: ref.id }, by: owner })
       }
       for (const activityKey of scanned.activityKeys) activityKeys.push({ key: activityKey, by: owner })
+      for (const tag of scanned.controlTags) controlTags.push({ tag, by: owner })
       for (const person of scanned.people) people.push({ ...person, section, asset_id: String(asset.id) })
     }
 
@@ -217,6 +229,15 @@ export async function resolveDependencyClosure(
         const integrationId = integrationOf.get(id)
         if (!integrationId) { missing.push({ type: 'integration', id, required_by: by }); continue }
         queue.push({ ref: { type: 'integration', id: integrationId }, by })
+      }
+    }
+    if (controlTags.length) {
+      const unique = [...new Set(controlTags.map((c) => c.tag))]
+      const { data: controls } = await supabase.from('form_controls').select('id, tag').eq('tenant_id', tenantId).in('tag', unique)
+      const idOf = new Map<string, string>(((controls ?? []) as any[]).map((c) => [String(c.tag), String(c.id)]))
+      for (const { tag, by } of controlTags) {
+        const id = idOf.get(tag)
+        if (id) queue.push({ ref: { type: 'form_control', id }, by })
       }
     }
     if (activityKeys.length) {

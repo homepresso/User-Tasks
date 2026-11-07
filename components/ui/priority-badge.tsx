@@ -1,60 +1,33 @@
-type PriorityTone = {
-  label: string
-  bg: string
-  text: string
-  border: string
+import { cn } from '@/lib/utils'
+
+/**
+ * Priority (§3.7): not a pill — a 14px signal-bars icon plus the label in
+ * muted text. Critical is danger, high is warning, medium neutral, low subtle.
+ */
+const PRIORITY: Record<string, { label: string; bars: number; color: string }> = {
+  critical: { label: 'Critical', bars: 3, color: 'text-danger' },
+  high: { label: 'High', bars: 3, color: 'text-warning' },
+  medium: { label: 'Medium', bars: 2, color: 'text-fg-muted' },
+  low: { label: 'Low', bars: 1, color: 'text-fg-subtle' },
+  none: { label: 'None', bars: 0, color: 'text-fg-subtle' },
 }
 
-const priorityConfig: Record<string, PriorityTone> = {
-  critical: {
-    label: 'Critical',
-    bg: 'color-mix(in srgb, var(--theme-danger) 12%, var(--theme-card-bg))',
-    text: 'var(--theme-danger)',
-    border: 'color-mix(in srgb, var(--theme-danger) 30%, var(--theme-surface-border))',
-  },
-  high: {
-    label: 'High',
-    bg: 'color-mix(in srgb, var(--theme-primary) 12%, var(--theme-card-bg))',
-    text: 'var(--theme-primary-text)',
-    border: 'color-mix(in srgb, var(--theme-primary) 30%, var(--theme-surface-border))',
-  },
-  medium: {
-    label: 'Medium',
-    bg: 'color-mix(in srgb, var(--theme-warning) 12%, var(--theme-card-bg))',
-    text: 'var(--theme-warning)',
-    border: 'color-mix(in srgb, var(--theme-warning) 34%, var(--theme-surface-border))',
-  },
-  low: {
-    label: 'Low',
-    bg: 'color-mix(in srgb, var(--theme-accent) 12%, var(--theme-card-bg))',
-    text: 'var(--theme-accent-text)',
-    border: 'color-mix(in srgb, var(--theme-accent) 28%, var(--theme-surface-border))',
-  },
-  none: {
-    label: 'None',
-    bg: 'var(--theme-surface)',
-    text: 'var(--theme-muted-text)',
-    border: 'var(--theme-surface-border)',
-  },
-}
-
-interface PriorityBadgeProps {
-  priority: string
-}
-
-export function PriorityBadge({ priority }: PriorityBadgeProps) {
-  const config = priorityConfig[priority] ?? priorityConfig.none
-
+export function PriorityIcon({ bars, className }: { bars: number; className?: string }) {
   return (
-    <span
-      className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-      style={{
-        backgroundColor: config.bg,
-        color: config.text,
-        borderColor: config.border,
-      }}
-    >
-      {config.label}
+    <svg viewBox="0 0 14 14" className={cn('size-3.5 shrink-0', className)} aria-hidden="true" fill="currentColor">
+      {[0, 1, 2].map((i) => (
+        <rect key={i} x={1.5 + i * 4} y={9 - i * 3} width={3} height={4 + i * 3} rx={0.75} opacity={i < bars ? 1 : 0.25} />
+      ))}
+    </svg>
+  )
+}
+
+export function PriorityBadge({ priority, className }: { priority: string; className?: string }) {
+  const p = PRIORITY[priority] ?? PRIORITY.none
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-fg-muted', className)} data-priority={priority}>
+      <PriorityIcon bars={p.bars} className={p.color} />
+      {p.label}
     </span>
   )
 }

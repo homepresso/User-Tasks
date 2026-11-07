@@ -1,0 +1,266 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "faabef33-1a65-40ea-8330-4985dcd46597",
+  "asset": {
+    "id": "faabef33-1a65-40ea-8330-4985dcd46597",
+    "name": "Supplier bank details check (sample)",
+    "description": "Sample for the Validation & formatting action: validates a supplier's IBAN, BIC, email and phone in one step and formats the first payment amount in the supplier's currency. Starts from the API or its start form and runs with no input using the defaults.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started (API or form)",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "supplier_name",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "country",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "iban",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "bic",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "email",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "phone",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "first_payment",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "currency",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#16A34A",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#F4F6FB"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Supplier bank details check",
+                  "subtitle": "Bank details and contact for a new supplier."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "check",
+        "type": "custom_activity",
+        "label": "Validate bank and contact details",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "custom_activity_id": "d2776a1f-4f91-4019-a36c-ad5ebf8d7423",
+          "custom_activity_key": "ut_validate",
+          "activity_name": "Validation & formatting",
+          "operation": "validate_many",
+          "input_mappings": {
+            "items": "[{\"name\": \"IBAN\", \"type\": \"iban\", \"value\": \"{{iban}}\"}, {\"name\": \"BIC\", \"type\": \"bic\", \"value\": \"{{bic}}\"}, {\"name\": \"Email\", \"type\": \"email\", \"value\": \"{{email}}\"}, {\"name\": \"Phone\", \"type\": \"phone\", \"value\": \"{{phone}}\"}]",
+            "country": "{{country}}"
+          },
+          "_output_prefix": "check"
+        }
+      },
+      {
+        "id": "amount",
+        "type": "custom_activity",
+        "label": "Format first payment",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "custom_activity_id": "d2776a1f-4f91-4019-a36c-ad5ebf8d7423",
+          "custom_activity_key": "ut_validate",
+          "activity_name": "Validation & formatting",
+          "operation": "format_currency",
+          "input_mappings": {
+            "value": "{{first_payment}}",
+            "currency": "{{currency}}",
+            "locale": "en-NZ",
+            "display": "code"
+          },
+          "_output_prefix": "amount"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Summary",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "name": "summary",
+          "expression": "{{supplier_name}}: all details valid = {{check_all_valid}} ({{check_valid_count}} valid, {{check_invalid_count}} invalid); first payment {{amount_formatted}}."
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "reason": "{{summary}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-check",
+        "source": "trigger",
+        "target": "check"
+      },
+      {
+        "id": "e-check-amount",
+        "source": "check",
+        "target": "amount"
+      },
+      {
+        "id": "e-amount-summary",
+        "source": "amount",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-supplier_name",
+        "name": "supplier_name",
+        "type": "string",
+        "label": "Supplier",
+        "description": "Supplier name",
+        "defaultValue": "Kauri Office Supplies",
+        "required": true
+      },
+      {
+        "id": "v-iban",
+        "name": "iban",
+        "type": "string",
+        "label": "IBAN",
+        "description": "Bank account (IBAN)",
+        "defaultValue": "DE89 3704 0044 0532 0130 00",
+        "required": true
+      },
+      {
+        "id": "v-bic",
+        "name": "bic",
+        "type": "string",
+        "label": "BIC",
+        "description": "Bank BIC / SWIFT code",
+        "defaultValue": "COBADEFFXXX",
+        "required": true
+      },
+      {
+        "id": "v-email",
+        "name": "email",
+        "type": "string",
+        "format": "email",
+        "label": "Remittance email",
+        "description": "Where remittance advice goes",
+        "defaultValue": "ap@example.co.nz",
+        "required": true
+      },
+      {
+        "id": "v-phone",
+        "name": "phone",
+        "type": "string",
+        "label": "Phone",
+        "description": "Accounts contact phone (national numbers use the country)",
+        "defaultValue": "021 123 4567"
+      },
+      {
+        "id": "v-country",
+        "name": "country",
+        "type": "string",
+        "label": "Country",
+        "description": "ISO country of the supplier",
+        "defaultValue": "NZ"
+      },
+      {
+        "id": "v-first_payment",
+        "name": "first_payment",
+        "type": "number",
+        "label": "First payment",
+        "description": "Amount of the first payment",
+        "defaultValue": "12500.5"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "label": "Currency",
+        "description": "ISO 4217 currency of the payment",
+        "defaultValue": "EUR"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

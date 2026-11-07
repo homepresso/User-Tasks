@@ -6,9 +6,13 @@ import {
   Car, DoorOpen, GraduationCap, Boxes, Timer, HandCoins, Ticket, CalendarRange, Presentation, HardHat, ClipboardPen, FileWarning, Wallet,
   BadgeCheck, Cloud, Landmark, BriefcaseBusiness, MailCheck, ListChecks, Warehouse, MonitorSmartphone, Contact, IdCard, Flag, ScrollText,
   Gauge, Server, UserCog, BookOpenCheck, Award, Archive, Store, Factory, Banknote, FileSpreadsheet, Building,
+  Clapperboard, ScanFace, Captions, Headset, ImageUp, EyeOff, Camera,
+  Puzzle, Star, BarChart3, MapPin, Map as MapIcon, Signature, SlidersHorizontal, Type, Table, Info, Layers, TextCursorInput, FileChartColumn,
+  Smile, HeartPulse,
+  Calculator, Shuffle,
   type LucideIcon,
 } from "lucide-react"
-import { createElement } from "react"
+import { createElement, type ReactNode } from "react"
 import type { GalleryCategoryId, GalleryNeed, GalleryOrigin, GalleryTrigger } from "@/lib/gallery/types"
 import { GALLERY_NEEDS, GALLERY_ORIGINS, GALLERY_TRIGGERS, NATIVE_BADGE } from "@/lib/gallery/types"
 
@@ -30,6 +34,14 @@ const ICONS: Record<string, LucideIcon> = {
   "list-checks": ListChecks, warehouse: Warehouse, "monitor-smartphone": MonitorSmartphone, contact: Contact, "id-card": IdCard, flag: Flag,
   "scroll-text": ScrollText, gauge: Gauge, server: Server, "user-cog": UserCog, "book-open-check": BookOpenCheck, award: Award, archive: Archive,
   store: Store, factory: Factory, banknote: Banknote, "file-spreadsheet": FileSpreadsheet, building: Building,
+  clapperboard: Clapperboard, "scan-face": ScanFace, captions: Captions, headset: Headset, "image-up": ImageUp, "eye-off": EyeOff, camera: Camera,
+  // Workflow actions (gallery/actions): the manifest icon names.
+  calculator: Calculator, shuffle: Shuffle,
+  // Form controls (gallery/controls): the manifest icon names.
+  puzzle: Puzzle, star: Star, "bar-chart": BarChart3, "map-pin": MapPin, map: MapIcon, signature: Signature, sliders: SlidersHorizontal,
+  type: Type, table: Table, info: Info, layers: Layers, "text-cursor": TextCursorInput, "file-chart": FileChartColumn,
+  // Surveys & Assessments.
+  smile: Smile, "heart-pulse": HeartPulse,
 }
 
 /** Icon names a gallery.json may use. */
@@ -43,6 +55,10 @@ const CATEGORY_ICONS: Record<GalleryCategoryId, LucideIcon> = {
   "operations-compliance": ClipboardCheck,
   workplace: Building2,
   "headless-integration": Code2,
+  "surveys-assessments": ClipboardList,
+  "media-evidence": Clapperboard,
+  "form-controls": Puzzle,
+  "workflow-actions": Workflow,
 }
 
 export function packageIcon(icon: string | null | undefined, category: GalleryCategoryId): LucideIcon {
@@ -91,7 +107,7 @@ export const DIFFICULTY_LABEL: Record<string, string> = { starter: "Starter", in
 export function OriginBadge({ source, size = "sm" }: { source: GalleryOrigin; size?: "sm" | "md" }) {
   const community = source === "community"
   return (
-    <span title={GALLERY_ORIGINS[source].description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset ${community ? "bg-[#6B4E8E]/[0.1] text-[#4F3870] ring-[#6B4E8E]/30" : "bg-[#17150F]/[0.06] text-[#33302A] ring-[#17150F]/15"} ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-[11px]"}`} data-testid={`origin-${source}`}>
+    <span title={GALLERY_ORIGINS[source].description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset ${community ? "bg-[#6B4E8E]/[0.1] text-[#4F3870] ring-[#6B4E8E]/30" : "bg-[#17150F]/[0.06] text-[#33302A] ring-[#17150F]/15"} ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-2xs"}`} data-testid={`origin-${source}`}>
       {createElement(community ? UsersRound : BadgeCheck, { size: size === "md" ? 14 : 11, "aria-hidden": true })}
       {GALLERY_ORIGINS[source].label}
     </span>
@@ -101,7 +117,7 @@ export function OriginBadge({ source, size = "sm" }: { source: GalleryOrigin; si
 /** "No integrations needed": built-in features only, installs complete with nothing to configure. */
 export function NativeBadge({ size = "sm" }: { size?: "sm" | "md" }) {
   return (
-    <span title={NATIVE_BADGE.description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset bg-[#4F7A5B]/[0.12] text-[#2F5A3B] ring-[#4F7A5B]/30 ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-[11px]"}`} data-testid="native-badge">
+    <span title={NATIVE_BADGE.description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset bg-[#4F7A5B]/[0.12] text-[#2F5A3B] ring-[#4F7A5B]/30 ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-2xs"}`} data-testid="native-badge">
       {createElement(Package, { size: size === "md" ? 14 : 11, "aria-hidden": true })}
       {NATIVE_BADGE.label}
     </span>
@@ -114,10 +130,28 @@ export function SystemChips({ systems }: { systems: string[] }) {
   return (
     <span className="inline-flex flex-wrap gap-1.5" data-testid="system-chips">
       {systems.map((system) => (
-        <span key={system} className="inline-flex items-center gap-1 rounded-md bg-[#4E6E8E]/[0.1] px-1.5 py-0.5 text-[11px] font-semibold text-[#2E4B67] ring-1 ring-inset ring-[#4E6E8E]/25">
+        <span key={system} className="inline-flex items-center gap-1 rounded-md bg-[#4E6E8E]/[0.1] px-1.5 py-0.5 text-2xs font-semibold text-[#2E4B67] ring-1 ring-inset ring-[#4E6E8E]/25">
           {createElement(Building2, { size: 11, "aria-hidden": true })}{system}
         </span>
       ))}
     </span>
   )
 }
+
+/**
+ * The 16:10 preview at the top of a gallery card: the package's icon on a
+ * brand wash, its step count and the trigger badge. The galleries ship no
+ * screenshots, so this stands in for one.
+ */
+export function CardPreview({ icon, steps, badge, tone = "gold" }: { icon: ReactNode; steps?: number; badge?: ReactNode; tone?: "gold" | "ink" }) {
+  return (
+    <div className={`relative flex aspect-[16/10] flex-col items-center justify-center gap-3 overflow-hidden rounded-t-lg border-b border-[#1B1916]/[0.07] ${tone === "ink" ? "bg-[#17150F]/[0.04]" : "bg-[radial-gradient(circle_at_50%_30%,rgba(176,138,84,0.16),rgba(176,138,84,0.05)_70%)]"}`}>
+      {badge && <span className="absolute right-3 top-3">{badge}</span>}
+      <span aria-hidden="true" className="inline-flex size-14 items-center justify-center rounded-xl bg-[#FFFFFF] text-[#8A6D45] shadow-elev-1 transition-transform duration-[var(--ds-dur-base)] group-hover:scale-105">{icon}</span>
+      {steps ? <span className="num text-xs font-medium text-[#857D6D]">{steps} steps</span> : null}
+    </div>
+  )
+}
+
+/** Card frame shared by the gallery grids: flat, hairline, elev-1 and a stronger border on hover. */
+export const galleryCardClass = "group flex h-full flex-col overflow-hidden rounded-lg border border-[#1B1916]/[0.09] bg-[#FFFFFF] transition-[border-color,box-shadow] duration-[var(--ds-dur-fast)] hover:border-[#8A6D45]/45 hover:shadow-elev-1"

@@ -1,0 +1,81 @@
+{
+  "id": "8bb99258-583e-45c4-8c92-87547bca70a4",
+  "asset_id": "2093e544-d6e9-47c0-8f28-24a9a2129c0d",
+  "slug": "crypto-ids",
+  "title": "Crypto & IDs",
+  "summary": "UUID v4/v7 and ULIDs, SHA hashes, HMAC webhook signatures with a stored secret, base64/hex/URL encoding, random and one-time codes, and HS256 JWTs.",
+  "description": "Crypto & IDs gives workflows identifiers and cryptography from the server's secure random generator. Generate random UUID v4s or time-ordered UUID v7s and ULIDs that sort by creation time, unbiased random codes from alphabets without look-alike characters (grouped like ABCD-EFGH), and numeric one-time codes with an expiry time and a hash to store instead of the code. Hash text with SHA-256, SHA-512, SHA-384 or SHA-1 and encode or decode base64, base64url, hex and URL percent-encoding.\n\nFor integrations, HMAC signs a message with a key that an administrator stores once (hmac_key): the host computes the signature, so the key never reaches workflow builders or the action's code, and a received webhook signature is compared in constant time. Sign token and Verify token issue and check compact HS256 JSON Web Tokens with token_secret: expiry, not-before, issuer and audience are enforced, and invalid tokens come back with a reason instead of failing the workflow.",
+  "icon": "key-round",
+  "tags": [
+    "uuid",
+    "hmac",
+    "jwt",
+    "webhook",
+    "otp",
+    "hash"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Verify the HMAC signature of an incoming webhook before processing it",
+    "Issue a signed, expiring link token for an external approver and check it when they respond",
+    "Generate voucher or reference codes and time-ordered IDs for new records"
+  ],
+  "setup": [
+    "Install the package: the action appears in Extensibility → Workflow actions and in the workflow designer's palette under Custom actions.",
+    "For HMAC: in Extensibility → Workflow actions, open Crypto & IDs and set the hmac_key secret (e.g. your webhook provider's signing secret). For tokens: set token_secret to a long random value.",
+    "Drag Crypto & IDs onto a workflow and choose the function. For webhooks, map Message to the raw request body and Signature to check to the signature header, then branch on {{prefix_matches}}.",
+    "Try the included \"Signed approval link (sample)\" workflow from the API or its start form after setting token_secret: it signs a token for an approver, verifies it and hashes the request reference."
+  ],
+  "examples": [
+    {
+      "operation": "hash",
+      "title": "SHA-256 of \"abc\"",
+      "inputs": {
+        "text": "abc",
+        "algorithm": "SHA-256"
+      }
+    },
+    {
+      "operation": "hmac",
+      "title": "Check a webhook signature",
+      "inputs": {
+        "message": "{\"event\":\"invoice.paid\",\"id\":\"evt_1042\"}",
+        "expected": "sha256=1c1b1b59b8b80733797d06dae9234186bd3e41395f81d2773aa87f70daeaa4b3"
+      },
+      "note": "Signed with the hmac_key secret (the example uses the value \"example-secret\")."
+    },
+    {
+      "operation": "verify_token",
+      "title": "Verify a signed token",
+      "inputs": {
+        "issuer": "usertasks",
+        "audience": "approvals",
+        "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTQyIiwicm9sZSI6ImFwcHJvdmVyIiwiaXNzIjoidXNlcnRhc2tzIiwiYXVkIjoiYXBwcm92YWxzIn0.ViY7aLGdekI4TR6SYbUEvxrBc4VtgmtpczNL4qmy6YU"
+      },
+      "note": "Signed with token_secret = \"example-secret\"."
+    },
+    {
+      "operation": "encode",
+      "title": "Base64 of UTF-8 text",
+      "inputs": {
+        "text": "Hello, Wörld & friends",
+        "format": "base64"
+      }
+    },
+    {
+      "operation": "decode",
+      "title": "Decode a URL parameter",
+      "inputs": {
+        "text": "name%3DAroha%20Smith%26role%3Dapprover",
+        "format": "url"
+      }
+    }
+  ]
+}

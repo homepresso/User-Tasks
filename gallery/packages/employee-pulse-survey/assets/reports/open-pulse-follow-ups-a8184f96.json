@@ -1,0 +1,43 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "a8184f96-4b0e-51bc-885d-e5853a6bb42a",
+  "asset": {
+    "id": "a8184f96-4b0e-51bc-885d-e5853a6bb42a",
+    "name": "Open pulse follow-ups",
+    "description": "Manager follow-ups for at-risk answers that are not closed yet, with their due dates and engagement scores.",
+    "category": "Employee pulse",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "a5aa7080-4df2-526a-83a1-dbb9697644e4"
+      },
+      "columns": [
+        "title",
+        "priority",
+        "due_date",
+        "status",
+        "created_at",
+        "fields.t_engagement"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 100,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

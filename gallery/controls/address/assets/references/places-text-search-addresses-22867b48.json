@@ -1,0 +1,251 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "22867b48-18ff-4d08-a9c5-28144e03085f",
+  "asset": {
+    "id": "22867b48-18ff-4d08-a9c5-28144e03085f",
+    "integration_id": "665fd837-6f7d-46b8-a4fe-697b144b7c88",
+    "name": "Places text search (addresses)",
+    "description": "Google Places API (New) Text Search: up to five places for a typed address, with the formatted address, address components and coordinates. Used by the Address control's lookup.",
+    "tags": [
+      "maps",
+      "addresses"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {
+        "X-Goog-FieldMask": "places.id,places.formattedAddress,places.addressComponents,places.location"
+      },
+      "query_params": {},
+      "body_template": "{\"textQuery\":\"{{query}}\",\"maxResultCount\":5}",
+      "path_template": "/v1/places:searchText",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "places",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "ChIJLWl7ckhIDW0RRhZBrhyJUBE"
+                  },
+                  {
+                    "name": "formattedAddress",
+                    "type": "string",
+                    "example": "1 Queen Street, Auckland CBD, Auckland 1010, New Zealand"
+                  },
+                  {
+                    "name": "addressComponents",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "fields": [
+                        {
+                          "name": "longText",
+                          "type": "string",
+                          "example": "Queen Street"
+                        },
+                        {
+                          "name": "shortText",
+                          "type": "string",
+                          "example": "Queen St"
+                        },
+                        {
+                          "name": "types",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "example": "route"
+                          }
+                        },
+                        {
+                          "name": "languageCode",
+                          "type": "string",
+                          "example": "en"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "location",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "latitude",
+                        "type": "number",
+                        "example": -36.8441486
+                      },
+                      {
+                        "name": "longitude",
+                        "type": "number",
+                        "example": 174.7671598
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "places": [
+            {
+              "id": "ChIJLWl7ckhIDW0RRhZBrhyJUBE",
+              "formattedAddress": "1 Queen Street, Auckland CBD, Auckland 1010, New Zealand",
+              "addressComponents": [
+                {
+                  "longText": "1",
+                  "shortText": "1",
+                  "types": [
+                    "street_number"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Queen Street",
+                  "shortText": "Queen St",
+                  "types": [
+                    "route"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Auckland CBD",
+                  "shortText": "Auckland CBD",
+                  "types": [
+                    "sublocality_level_1",
+                    "sublocality",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Auckland",
+                  "shortText": "Auckland",
+                  "types": [
+                    "locality",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Auckland",
+                  "shortText": "AUK",
+                  "types": [
+                    "administrative_area_level_1",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "New Zealand",
+                  "shortText": "NZ",
+                  "types": [
+                    "country",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "1010",
+                  "shortText": "1010",
+                  "types": [
+                    "postal_code"
+                  ],
+                  "languageCode": "en"
+                }
+              ],
+              "location": {
+                "latitude": -36.8441486,
+                "longitude": 174.7671598
+              }
+            },
+            {
+              "id": "ChIJ9WwMzP2xbW0RkK3ZSVn0b-A",
+              "formattedAddress": "1 Queen Street East, Hastings 4122, New Zealand",
+              "addressComponents": [
+                {
+                  "longText": "1",
+                  "shortText": "1",
+                  "types": [
+                    "street_number"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Queen Street East",
+                  "shortText": "Queen St E",
+                  "types": [
+                    "route"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Hastings",
+                  "shortText": "Hastings",
+                  "types": [
+                    "locality",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Hawke's Bay",
+                  "shortText": "HKB",
+                  "types": [
+                    "administrative_area_level_1",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "New Zealand",
+                  "shortText": "NZ",
+                  "types": [
+                    "country",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "4122",
+                  "shortText": "4122",
+                  "types": [
+                    "postal_code"
+                  ],
+                  "languageCode": "en"
+                }
+              ],
+              "location": {
+                "latitude": -39.6406571,
+                "longitude": 176.8448713
+              }
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-31T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ca4c78af-d34f-47bc-bb74-1b013fc9f976",
+        "name": "query",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "The address text to search for, e.g. 1 Queen Street Auckland",
+        "default_value": ""
+      }
+    ],
+    "outputs": []
+  }
+}

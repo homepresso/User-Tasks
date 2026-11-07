@@ -205,7 +205,8 @@ their options, the other sections, `env`.
 {{- $_ := set $out (printf "LOG_EXPORT_%s" (upper $key)) (toString $value) -}}
 {{- end -}}
 {{- $_ := set $out "ALLOW_PRIVATE_EGRESS" (toString $v.security.allowPrivateEgress) -}}
-{{- $_ := set $out "ENABLE_CUSTOM_ACTIVITY_CODE" (toString $v.security.enableCustomActivityCode) -}}
+{{- /* security.enableCustomActivityCode is deprecated and ignored: actions always run sandboxed. */ -}}
+{{- $_ := set $out "CUSTOM_ACTIONS_DISABLED" (toString (default false $v.security.customActionsDisabled)) -}}
 {{- $_ := set $out "ALLOW_QUERY_KEY_AUTH" (toString $v.security.allowQueryKeyAuth) -}}
 {{- if $v.security.mcpAllowedOrigins -}}
 {{- $_ := set $out "MCP_ALLOWED_ORIGINS" (join "," $v.security.mcpAllowedOrigins) -}}

@@ -1,0 +1,995 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c77051ec-f264-5f3a-9d29-a00dfa4469ec",
+  "asset": {
+    "id": "c77051ec-f264-5f3a-9d29-a00dfa4469ec",
+    "name": "Legal request",
+    "description": "A legal request is submitted on the Legal request form; the routing table picks the queue, the SLA and whether the general counsel reviews, the request is added to the Legal requests table, and a lawyer completes it, asks the requester for more information or declines it. The requester is emailed at each step and the table row follows the request.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Legal request submitted",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "ab56df6e-6d2b-5e37-a08d-73073d18f5a4",
+          "form_name": "Legal request"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Request reference",
+        "position": {
+          "x": 400,
+          "y": 170
+        },
+        "config": {
+          "name": "request_ref",
+          "expression": "LR-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 280
+        },
+        "config": {
+          "title": "{{request_ref}} · {{form.request_type}}: {{form.title}}"
+        }
+      },
+      {
+        "id": "route",
+        "type": "decision_table",
+        "label": "Legal request routing",
+        "position": {
+          "x": 400,
+          "y": 390
+        },
+        "config": {
+          "decision_table_id": "2d989f01-c7c2-5cff-8327-906c4f4c92cb",
+          "decision_table_name": "Legal request routing",
+          "input_mappings": {
+            "request_type": "{{form.request_type}}",
+            "urgency": "{{form.urgency}}",
+            "contract_value": "{{=COALESCE(form.contract_value, 0)}}",
+            "question_area": "{{form.question_area}}"
+          }
+        }
+      },
+      {
+        "id": "due",
+        "type": "date_math",
+        "label": "SLA due date",
+        "position": {
+          "x": 400,
+          "y": 500
+        },
+        "config": {
+          "date": "{{=TODAY()}}",
+          "operation": "add",
+          "amount": "{{sla_days}}",
+          "unit": "days",
+          "output_var": "sla_due_at"
+        }
+      },
+      {
+        "id": "due_fmt",
+        "type": "set_variable",
+        "label": "Format SLA date",
+        "position": {
+          "x": 400,
+          "y": 610
+        },
+        "config": {
+          "name": "sla_due",
+          "expression": "{{=FORMAT_DATE(sla_due_at, \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Queue SLA",
+        "position": {
+          "x": 400,
+          "y": 720
+        },
+        "config": {
+          "sla_label": "Legal request ({{queue}})",
+          "mode": "relative",
+          "amount": "{{sla_days}}",
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to Legal requests",
+        "position": {
+          "x": 400,
+          "y": 830
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "insert",
+          "output_row_id_var": "request_row_id",
+          "column_values": {
+            "request_ref": "{{request_ref}}",
+            "submitted_on": "{{=TODAY()}}",
+            "requester_name": "{{form.requester_name}}",
+            "requester_email": "{{form.requester_email}}",
+            "department": "{{form.department}}",
+            "request_type": "{{form.request_type}}",
+            "title": "{{form.title}}",
+            "details": "{{form.details}}",
+            "counterparty": "{{form.counterparty}}",
+            "contract_value": "{{=COALESCE(form.contract_value, form.dispute_amount)}}",
+            "urgency": "{{form.urgency}}",
+            "needed_by": "{{form.needed_by}}",
+            "queue": "{{queue}}",
+            "sla_due": "{{sla_due}}",
+            "status": "Triaged",
+            "documents": "{{=FILE_NAMES(form.documents)}}"
+          }
+        }
+      },
+      {
+        "id": "ack",
+        "type": "send_email",
+        "label": "Confirm to the requester",
+        "position": {
+          "x": 400,
+          "y": 940
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "ed2655f3-9f34-58f8-b006-8047641d6f3d"
+        }
+      },
+      {
+        "id": "handle",
+        "type": "user_task",
+        "label": "Handle the request",
+        "position": {
+          "x": 400,
+          "y": 1050
+        },
+        "config": {
+          "task_title": "{{request_ref}} · {{form.request_type}}: {{form.title}}",
+          "task_description": "<p><strong>{{form.requester_name}}</strong> ({{form.department}}) asks for <strong>{{form.request_type}}</strong>: {{form.title}}. Queue <strong>{{queue}}</strong>, due {{sla_due}}. {{route_note}}</p><p>Documents: {{=FILE_NAMES(form.documents)}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Completed",
+            "Need more information",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{sla_due_at}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "t_type",
+              "label": "Request",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.request_type}} · {{queue}} queue · {{form.urgency}} urgency"
+            },
+            {
+              "key": "t_requester",
+              "label": "Requester",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.requester_name}} ({{form.department}}, {{form.requester_email}})"
+            },
+            {
+              "key": "t_counterparty",
+              "label": "Other party",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.counterparty}}"
+            },
+            {
+              "key": "t_due",
+              "label": "Needed by / SLA due",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.needed_by}} / {{sla_due}}"
+            },
+            {
+              "key": "t_details",
+              "label": "Details",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.details}}"
+            },
+            {
+              "key": "t_documents",
+              "label": "Documents",
+              "type": "text",
+              "read_only": true,
+              "default": "{{=FILE_NAMES(form.documents)}}"
+            },
+            {
+              "key": "handled_by",
+              "label": "Handled by",
+              "type": "text",
+              "required": true,
+              "default": "{{actioned_by_name}}",
+              "help_text": "Shown to the team on the Legal requests page"
+            },
+            {
+              "key": "outcome_summary",
+              "label": "Outcome or advice (summary)",
+              "type": "textarea",
+              "help_text": "What you advised or did; the requester gets this when you complete"
+            },
+            {
+              "key": "question_for_requester",
+              "label": "Question for the requester",
+              "type": "textarea",
+              "help_text": "For Need more information"
+            },
+            {
+              "key": "hours_spent",
+              "label": "Hours spent",
+              "type": "number",
+              "min": 0,
+              "max": 500
+            }
+          ],
+          "form_layout": {
+            "rows": [],
+            "mode": "tabs",
+            "pages": [
+              {
+                "id": "request",
+                "title": "The request",
+                "rows": [
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_type",
+                        "span": 1
+                      },
+                      {
+                        "field_key": "t_requester",
+                        "span": 1
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_counterparty",
+                        "span": 1
+                      },
+                      {
+                        "field_key": "t_due",
+                        "span": 1
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_details",
+                        "span": 2
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_documents",
+                        "span": 2
+                      }
+                    ]
+                  }
+                ],
+                "icon": "file-text"
+              },
+              {
+                "id": "outcome",
+                "title": "Your outcome",
+                "rows": [
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "handled_by",
+                        "span": 1
+                      },
+                      {
+                        "field_key": "hours_spent",
+                        "span": 1
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "outcome_summary",
+                        "span": 2
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "question_for_requester",
+                        "span": 2
+                      }
+                    ]
+                  }
+                ],
+                "icon": "check-circle"
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "complete",
+              "label": "Complete",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Completed"
+            },
+            {
+              "id": "need_info",
+              "label": "Need more information",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Need more information"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{form.title}}",
+            "align": "left",
+            "subtitle": "{{request_ref}} · {{form.request_type}} · due {{sla_due}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "st_progress",
+        "type": "update_data_table",
+        "label": "Legal requests: in progress",
+        "position": {
+          "x": 400,
+          "y": 1160
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "update",
+          "row_id": "{{request_row_id}}",
+          "column_values": {
+            "status": "In progress",
+            "assigned_to": "{{task_data.handled_by}}"
+          }
+        }
+      },
+      {
+        "id": "gc_check",
+        "type": "condition",
+        "label": "General counsel reviews?",
+        "position": {
+          "x": 400,
+          "y": 1270
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "GC review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{gc_review}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "gc",
+        "type": "user_task",
+        "label": "General counsel review",
+        "position": {
+          "x": 200,
+          "y": 1380
+        },
+        "config": {
+          "task_title": "GC review: {{request_ref}} · {{form.title}}",
+          "task_description": "<p>{{task_data.handled_by}} completed <strong>{{form.title}}</strong> ({{form.request_type}}, {{queue}}). {{route_note}}</p><p>Advice: {{task_data.outcome_summary}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Send back"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "gc_notes",
+              "label": "Notes for the lawyer",
+              "type": "textarea"
+            }
+          ],
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "send_back",
+              "label": "Send back",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Send back"
+            }
+          ],
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "gc_back",
+        "type": "goto_activity",
+        "label": "Back to the lawyer",
+        "position": {
+          "x": 0,
+          "y": 1490
+        },
+        "config": {
+          "target_node_id": "handle",
+          "target_node_label": "Handle the request"
+        }
+      },
+      {
+        "id": "done_vars",
+        "type": "set_variable",
+        "label": "Status: completed",
+        "position": {
+          "x": 400,
+          "y": 1490
+        },
+        "config": {
+          "name": "final_status",
+          "expression": "completed"
+        }
+      },
+      {
+        "id": "done_note",
+        "type": "set_variable",
+        "label": "Outcome for the email",
+        "position": {
+          "x": 400,
+          "y": 1600
+        },
+        "config": {
+          "name": "final_note",
+          "expression": "{{task_data.outcome_summary}}"
+        }
+      },
+      {
+        "id": "st_done",
+        "type": "update_data_table",
+        "label": "Legal requests: completed",
+        "position": {
+          "x": 400,
+          "y": 1710
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "update",
+          "row_id": "{{request_row_id}}",
+          "column_values": {
+            "status": "Completed",
+            "outcome_summary": "{{final_note}}",
+            "closed_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "mail_closed",
+        "type": "send_email",
+        "label": "Tell the requester",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "70764047-f0ca-5fe4-bf9b-7616d796a340"
+        }
+      },
+      {
+        "id": "end_done",
+        "type": "end_workflow",
+        "label": "Closed",
+        "position": {
+          "x": 400,
+          "y": 1930
+        },
+        "config": {
+          "reason": "{{request_ref}} {{final_status}}"
+        }
+      },
+      {
+        "id": "st_waiting",
+        "type": "update_data_table",
+        "label": "Legal requests: waiting on requester",
+        "position": {
+          "x": 800,
+          "y": 1160
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "update",
+          "row_id": "{{request_row_id}}",
+          "column_values": {
+            "status": "Waiting on requester",
+            "assigned_to": "{{task_data.handled_by}}",
+            "outcome_summary": "Asked: {{task_data.question_for_requester}}"
+          }
+        }
+      },
+      {
+        "id": "mail_info",
+        "type": "send_email",
+        "label": "Ask the requester",
+        "position": {
+          "x": 800,
+          "y": 1270
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "39ba44e2-094a-5127-ac0a-c8a4bf22c3f4"
+        }
+      },
+      {
+        "id": "info",
+        "type": "user_task",
+        "label": "More information from the requester",
+        "position": {
+          "x": 800,
+          "y": 1380
+        },
+        "config": {
+          "task_title": "More information for {{request_ref}}: {{form.title}}",
+          "task_description": "<p>Legal asks about <strong>{{form.title}}</strong>:</p><blockquote>{{task_data.question_for_requester}}</blockquote><p>Answer below and attach anything that helps, or withdraw the request.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Send answer",
+            "Withdraw request"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "answer",
+              "label": "Your answer",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "more_documents",
+              "label": "More documents",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 5,
+                "types": [
+                  "documents"
+                ]
+              }
+            }
+          ],
+          "form_buttons": [
+            {
+              "id": "send",
+              "label": "Send answer",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Send answer"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw request",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Withdraw request"
+            }
+          ],
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "st_back",
+        "type": "update_data_table",
+        "label": "Legal requests: in progress again",
+        "position": {
+          "x": 800,
+          "y": 1490
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "update",
+          "row_id": "{{request_row_id}}",
+          "column_values": {
+            "status": "In progress",
+            "details": "{{form.details}}\n\nRequester added: {{task_data.answer}}"
+          }
+        }
+      },
+      {
+        "id": "again",
+        "type": "goto_activity",
+        "label": "Back to legal",
+        "position": {
+          "x": 800,
+          "y": 1600
+        },
+        "config": {
+          "target_node_id": "handle",
+          "target_node_label": "Handle the request"
+        }
+      },
+      {
+        "id": "wd_vars",
+        "type": "set_variable",
+        "label": "Status: withdrawn",
+        "position": {
+          "x": 1100,
+          "y": 1490
+        },
+        "config": {
+          "name": "final_status",
+          "expression": "withdrawn"
+        }
+      },
+      {
+        "id": "wd_note",
+        "type": "set_variable",
+        "label": "Withdrawn note",
+        "position": {
+          "x": 1100,
+          "y": 1600
+        },
+        "config": {
+          "name": "final_note",
+          "expression": "You withdrew the request."
+        }
+      },
+      {
+        "id": "st_wd",
+        "type": "update_data_table",
+        "label": "Legal requests: withdrawn",
+        "position": {
+          "x": 1100,
+          "y": 1710
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "update",
+          "row_id": "{{request_row_id}}",
+          "column_values": {
+            "status": "Withdrawn",
+            "closed_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "dec_vars",
+        "type": "set_variable",
+        "label": "Status: declined",
+        "position": {
+          "x": 1400,
+          "y": 1160
+        },
+        "config": {
+          "name": "final_status",
+          "expression": "declined"
+        }
+      },
+      {
+        "id": "dec_note",
+        "type": "set_variable",
+        "label": "Declined note",
+        "position": {
+          "x": 1400,
+          "y": 1270
+        },
+        "config": {
+          "name": "final_note",
+          "expression": "{{=COALESCE(task_data.outcome_summary, \"Legal cannot take this request on; your manager can advise on the next step.\")}}"
+        }
+      },
+      {
+        "id": "st_dec",
+        "type": "update_data_table",
+        "label": "Legal requests: declined",
+        "position": {
+          "x": 1400,
+          "y": 1380
+        },
+        "config": {
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "table_name": "Legal requests",
+          "operation": "update",
+          "row_id": "{{request_row_id}}",
+          "column_values": {
+            "status": "Declined",
+            "assigned_to": "{{task_data.handled_by}}",
+            "outcome_summary": "{{final_note}}",
+            "closed_on": "{{=TODAY()}}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-route",
+        "source": "title",
+        "target": "route"
+      },
+      {
+        "id": "e-route-due",
+        "source": "route",
+        "target": "due"
+      },
+      {
+        "id": "e-due-due_fmt",
+        "source": "due",
+        "target": "due_fmt"
+      },
+      {
+        "id": "e-due_fmt-sla",
+        "source": "due_fmt",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-row",
+        "source": "sla",
+        "target": "row"
+      },
+      {
+        "id": "e-row-ack",
+        "source": "row",
+        "target": "ack"
+      },
+      {
+        "id": "e-ack-handle",
+        "source": "ack",
+        "target": "handle"
+      },
+      {
+        "id": "e-handle-st_progress-completed",
+        "source": "handle",
+        "target": "st_progress",
+        "label": "Completed"
+      },
+      {
+        "id": "e-handle-st_waiting-need-more-information",
+        "source": "handle",
+        "target": "st_waiting",
+        "label": "Need more information"
+      },
+      {
+        "id": "e-handle-dec_vars-decline",
+        "source": "handle",
+        "target": "dec_vars",
+        "label": "Decline"
+      },
+      {
+        "id": "e-st_progress-gc_check",
+        "source": "st_progress",
+        "target": "gc_check"
+      },
+      {
+        "id": "e-gc_check-gc-gc-review",
+        "source": "gc_check",
+        "target": "gc",
+        "label": "GC review"
+      },
+      {
+        "id": "e-gc_check-done_vars-else",
+        "source": "gc_check",
+        "target": "done_vars",
+        "label": "Else"
+      },
+      {
+        "id": "e-gc-done_vars-approve",
+        "source": "gc",
+        "target": "done_vars",
+        "label": "Approve"
+      },
+      {
+        "id": "e-gc-gc_back-send-back",
+        "source": "gc",
+        "target": "gc_back",
+        "label": "Send back"
+      },
+      {
+        "id": "e-done_vars-done_note",
+        "source": "done_vars",
+        "target": "done_note"
+      },
+      {
+        "id": "e-done_note-st_done",
+        "source": "done_note",
+        "target": "st_done"
+      },
+      {
+        "id": "e-st_done-mail_closed",
+        "source": "st_done",
+        "target": "mail_closed"
+      },
+      {
+        "id": "e-mail_closed-end_done",
+        "source": "mail_closed",
+        "target": "end_done"
+      },
+      {
+        "id": "e-st_waiting-mail_info",
+        "source": "st_waiting",
+        "target": "mail_info"
+      },
+      {
+        "id": "e-mail_info-info",
+        "source": "mail_info",
+        "target": "info"
+      },
+      {
+        "id": "e-info-st_back-send-answer",
+        "source": "info",
+        "target": "st_back",
+        "label": "Send answer"
+      },
+      {
+        "id": "e-info-wd_vars-withdraw-request",
+        "source": "info",
+        "target": "wd_vars",
+        "label": "Withdraw request"
+      },
+      {
+        "id": "e-st_back-again",
+        "source": "st_back",
+        "target": "again"
+      },
+      {
+        "id": "e-wd_vars-wd_note",
+        "source": "wd_vars",
+        "target": "wd_note"
+      },
+      {
+        "id": "e-wd_note-st_wd",
+        "source": "wd_note",
+        "target": "st_wd"
+      },
+      {
+        "id": "e-st_wd-mail_closed",
+        "source": "st_wd",
+        "target": "mail_closed"
+      },
+      {
+        "id": "e-dec_vars-dec_note",
+        "source": "dec_vars",
+        "target": "dec_note"
+      },
+      {
+        "id": "e-dec_note-st_dec",
+        "source": "dec_note",
+        "target": "st_dec"
+      },
+      {
+        "id": "e-st_dec-mail_closed",
+        "source": "st_dec",
+        "target": "mail_closed"
+      }
+    ]
+  }
+}

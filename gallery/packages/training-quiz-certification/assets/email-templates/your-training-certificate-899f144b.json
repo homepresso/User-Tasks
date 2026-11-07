@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "899f144b-67db-5cef-bc8b-a785549a3abc",
+  "asset": {
+    "id": "899f144b-67db-5cef-bc8b-a785549a3abc",
+    "name": "Your training certificate",
+    "description": "Sent to the learner when they pass, with the certificate PDF attached.",
+    "subject": "Certificate: {{course_title}} ({{certificate_no}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#13202B\">\n  <h2 style=\"margin:0 0 12px;color:#1D4ED8\">Congratulations, {{form.learner_name}}</h2>\n  <p>You passed <strong>{{course_title}}</strong> with <strong>{{score_pct}}%</strong> (pass mark {{pass_mark}}%).</p>\n  <p>Your certificate <strong>{{certificate_no}}</strong> is attached and is valid until <strong>{{certificate_expires}}</strong>. We will remind you before it expires.</p>\n  <p style=\"color:#5B6B7A;font-size:13px\">Reference {{result_ref}}</p>\n</div>",
+    "text_body": "Congratulations, {{form.learner_name}}\n\nYou passed {{course_title}} with {{score_pct}}% (pass mark {{pass_mark}}%).\nYour certificate {{certificate_no}} is attached and is valid until {{certificate_expires}}.\n\nReference {{result_ref}}",
+    "is_default": false
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "59b5dba7-1e83-5fe7-8065-66ce404c31cc",
+  "asset": {
+    "id": "59b5dba7-1e83-5fe7-8065-66ce404c31cc",
+    "name": "Engagement risk band",
+    "description": "Turns the engagement score (0-100), the mood rating and the eNPS answer into a risk band and decides whether the manager follows up, how fast and with what priority. Change the thresholds here; the workflow reads the outputs.",
+    "inputs": [
+      {
+        "key": "engagement",
+        "label": "Engagement score (0-100)",
+        "type": "number",
+        "id": "a56bb499-1da9-5928-bf49-abd1069a8dfd"
+      },
+      {
+        "key": "mood",
+        "label": "Mood (1-5)",
+        "type": "number",
+        "id": "65581f67-e50c-50e5-b4a6-47d42a5171f9"
+      },
+      {
+        "key": "enps",
+        "label": "Recommend working here (0-10)",
+        "type": "number",
+        "id": "c905c76a-db73-54d0-8c61-f6ef4318a5a0"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "risk_band",
+        "label": "Risk band",
+        "type": "string",
+        "id": "1066126c-f3ec-5a40-99b3-bc0bbdfd7d3f"
+      },
+      {
+        "key": "follow_up",
+        "label": "Manager follow-up",
+        "type": "boolean",
+        "id": "6287629a-ddd8-5ff0-a7dd-3dbb9c15c91d"
+      },
+      {
+        "key": "follow_up_days",
+        "label": "Follow up within (days)",
+        "type": "number",
+        "id": "24895195-0140-5b07-8b6e-bb5d6a5fa0ea"
+      },
+      {
+        "key": "band_note",
+        "label": "Note",
+        "type": "string",
+        "id": "05e68039-f58b-5b73-b709-b5b3e0d7f2c1"
+      }
+    ],
+    "rules": [
+      {
+        "label": "At risk: low engagement",
+        "conditions": [
+          {
+            "inputKey": "engagement",
+            "operator": "less_than",
+            "value": "50",
+            "id": "f9d34a4f-254f-54e9-b4bb-cd58c35d4f27"
+          }
+        ],
+        "outputs": {
+          "risk_band": "At risk",
+          "follow_up": true,
+          "follow_up_days": 5,
+          "band_note": "Engagement below 50: a one-to-one within a week."
+        },
+        "id": "5f89eacc-cec5-5be5-970e-8a56d0ec6094",
+        "enabled": true
+      },
+      {
+        "label": "At risk: very low mood",
+        "conditions": [
+          {
+            "inputKey": "mood",
+            "operator": "less_than_or_equal",
+            "value": "1",
+            "id": "ee965244-34b4-52ed-88e2-3caf0585aa5b"
+          }
+        ],
+        "outputs": {
+          "risk_band": "At risk",
+          "follow_up": true,
+          "follow_up_days": 3,
+          "band_note": "Mood 1 of 5: check in within three days."
+        },
+        "id": "00f0503d-5dc5-5273-9d6e-a78b52e6a704",
+        "enabled": true
+      },
+      {
+        "label": "Okay",
+        "conditions": [
+          {
+            "inputKey": "engagement",
+            "operator": "less_than",
+            "value": "70",
+            "id": "7d36cd2d-17a6-52cc-8413-0bb3019a1e38"
+          }
+        ],
+        "outputs": {
+          "risk_band": "Okay",
+          "follow_up": false,
+          "follow_up_days": 0,
+          "band_note": "Watch the trend at the next round."
+        },
+        "id": "2c66ab97-baa9-5fa7-acf1-78f3dac052a1",
+        "enabled": true
+      },
+      {
+        "label": "Okay: would not recommend",
+        "conditions": [
+          {
+            "inputKey": "enps",
+            "operator": "less_than_or_equal",
+            "value": "6",
+            "id": "4e624583-acf8-5295-9f87-1de83e83bc76"
+          }
+        ],
+        "outputs": {
+          "risk_band": "Okay",
+          "follow_up": false,
+          "follow_up_days": 0,
+          "band_note": "Engaged, but would not recommend working here."
+        },
+        "id": "edbd5fe2-76c1-5497-9b67-d827a23fc131",
+        "enabled": true
+      },
+      {
+        "label": "Thriving",
+        "conditions": [],
+        "outputs": {
+          "risk_band": "Thriving",
+          "follow_up": false,
+          "follow_up_days": 0,
+          "band_note": "Engaged and positive."
+        },
+        "id": "54dd68c8-a2a4-58bc-ba90-20b7b7737d80",
+        "enabled": true
+      }
+    ]
+  }
+}

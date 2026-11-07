@@ -2,12 +2,23 @@
 
 import type { ChangeEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import * as Dialog from '@radix-ui/react-dialog'
-import { ArrowLeft, Plus, Trash2, Save, FlaskConical, X, Download, Upload } from 'lucide-react'
+import { Plus, Trash2, Save, FlaskConical, Download, Upload, MoreHorizontal, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Field } from '@/components/ui/field'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Badge, Tag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { thClass, tdClass, trClass } from '@/components/ui/table'
+import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { updateDecisionTable } from '@/app/actions/business-rules'
@@ -173,6 +184,33 @@ export function DecisionTableEditor({ table }: { table: any }) {
 
   return (
     <div className="space-y-4">
+      <PageHeader
+        className="mb-2"
+        breadcrumbs={[{ label: 'Business rules', href: '/automations/rules' }, { label: name || table.name || 'Business rule' }]}
+        title={name || table.name || 'Business rule'}
+        description="Model decision logic with custom inputs, outputs, and ordered rule rows."
+        actions={
+          <>
+            <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+            <Button variant="secondary" leadingIcon={<FlaskConical />} onClick={() => setTesterOpen(true)}>
+              Test rules
+            </Button>
+            <Button leadingIcon={<Save />} onClick={handleSave} disabled={saving} loading={saving}>
+              Save
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <IconButton variant="secondary" label="More actions" icon={<MoreHorizontal />} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem icon={<Download />} onSelect={handleExport}>Export</DropdownMenuItem>
+                <DropdownMenuItem icon={<Upload />} onSelect={() => importRef.current?.click()}>Import…</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
+
       {notice && (
         <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />
       )}
@@ -180,7 +218,7 @@ export function DecisionTableEditor({ table }: { table: any }) {
       <ConfirmDialog
         open={Boolean(pendingImport)}
         onOpenChange={(open) => { if (!open) setPendingImport(null) }}
-        title="Import Decision Table"
+        title="Import decision table"
         description={`Import decision table "${pendingImport?.name ?? 'this file'}"? This will replace the current design.`}
         confirmLabel="Import"
         busy={false}
@@ -195,52 +233,22 @@ export function DecisionTableEditor({ table }: { table: any }) {
         }}
       />
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <Link href="/automations/rules" className="inline-flex items-center gap-1 text-xs hover:underline" style={{ color: 'var(--theme-primary-text)' }}>
-            <ArrowLeft size={12} /> Back to business rules
-          </Link>
-          <h1 className="text-2xl font-semibold mt-2" style={{ color: 'var(--theme-card-text)' }}>Business Rule Designer</h1>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-            Model decision logic with custom inputs, outputs, and ordered rule rows.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download size={14} className="mr-1" /> Export
-          </Button>
-          <Button variant="outline" onClick={() => importRef.current?.click()}>
-            <Upload size={14} className="mr-1" /> Import
-          </Button>
-          <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-          <Button variant="outline" onClick={() => setTesterOpen(true)}>
-            <FlaskConical size={14} className="mr-1" /> Test Rules
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save size={14} className="mr-1" /> {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1.8fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1.8fr]">
         <div className="space-y-4">
           <Panel title="Details" description="Name and describe the business rule so workflow designers understand what it does.">
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">Name</label>
+            <CardBody className="space-y-4 pt-0">
+              <Field label="Name">
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Description</label>
-                <textarea
+              </Field>
+              <Field label="Description">
+                <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  className="w-full rounded-lg border px-3 py-2 text-sm resize-none"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                  className="resize-none"
                 />
-              </div>
-            </div>
+              </Field>
+            </CardBody>
           </Panel>
 
           <FieldBuilder
@@ -259,20 +267,23 @@ export function DecisionTableEditor({ table }: { table: any }) {
         </div>
 
         <Panel title="Rules" description="Rules run top to bottom. The first enabled rule whose conditions all match wins.">
-          <div className="space-y-4">
+          <CardBody className="space-y-3 pt-0">
             {rules.length === 0 && (
-              <div className="rounded-xl border border-dashed px-4 py-6 text-center text-sm" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
-                No rules yet. Add a rule to start mapping conditions to outputs.
-              </div>
+              <EmptyState
+                size="sm"
+                icon={GitBranch}
+                title="No rules yet"
+                description="Add a rule to start mapping conditions to outputs."
+                className="rounded-lg border border-dashed border-border"
+              />
             )}
 
             {rules.map((rule, index) => (
-              <div key={rule.id} className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+              <Card key={rule.id} variant="inset" padding="md" className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full text-[10px] font-bold"
-                        style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="num inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-wash text-2xs font-semibold text-primary-text">
                         {index + 1}
                       </span>
                       <Input
@@ -283,35 +294,35 @@ export function DecisionTableEditor({ table }: { table: any }) {
                           setRules(next)
                         }}
                         placeholder={`Rule ${index + 1}`}
-                        className="!h-8"
+                        aria-label={`Rule ${index + 1} name`}
                       />
                     </div>
-                    <label className="inline-flex items-center gap-2 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                      <input
-                        type="checkbox"
-                        checked={rule.enabled !== false}
-                        onChange={(e) => {
-                          const next = [...rules]
-                          next[index] = { ...rule, enabled: e.target.checked }
-                          setRules(next)
-                        }}
-                      />
-                      Rule enabled
-                    </label>
+                    <Checkbox
+                      label="Rule enabled"
+                      checked={rule.enabled !== false}
+                      onChange={(e) => {
+                        const next = [...rules]
+                        next[index] = { ...rule, enabled: e.target.checked }
+                        setRules(next)
+                      }}
+                    />
                   </div>
-                  <button
+                  <IconButton
+                    size="sm"
+                    variant="danger-ghost"
+                    label="Delete rule"
+                    icon={<Trash2 />}
                     onClick={() => setRules(rules.filter((candidate) => candidate.id !== rule.id))}
-                    className="p-1.5 rounded hover:bg-red-50"
-                    title="Delete rule"
-                  >
-                    <Trash2 size={13} className="text-red-400" />
-                  </button>
+                  />
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>Conditions</p>
-                    <button
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-fg-muted">Conditions</p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      leadingIcon={<Plus />}
                       onClick={() => {
                         const next = [...rules]
                         next[index] = {
@@ -320,11 +331,9 @@ export function DecisionTableEditor({ table }: { table: any }) {
                         }
                         setRules(next)
                       }}
-                      className="text-[11px] hover:underline"
-                      style={{ color: 'var(--theme-primary-text)' }}
                     >
-                      + Add condition
-                    </button>
+                      Add condition
+                    </Button>
                   </div>
                   <div className="space-y-2">
                     {(rule.conditions ?? []).map((condition: any, conditionIndex: number) => {
@@ -333,35 +342,39 @@ export function DecisionTableEditor({ table }: { table: any }) {
 
                       return (
                         <div key={condition.id} className="space-y-1.5">
-                          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                            <select
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+                            <Select
                               value={condition.inputKey ?? ''}
                               onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { inputKey: e.target.value })}
-                              className="rounded-lg border px-3 py-2 text-xs"
-                              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                              aria-label="Input"
                             >
                               <option value="">Select input…</option>
                               {availableInputKeys.map((field) => (
                                 <option key={field.key} value={field.key}>{field.label}</option>
                               ))}
-                            </select>
-                            <select
+                            </Select>
+                            <Select
                               value={condition.operator ?? 'equals'}
                               onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { operator: e.target.value })}
-                              className="rounded-lg border px-3 py-2 text-xs"
-                              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                              aria-label="Operator"
                             >
                               {OPERATORS.map((operator) => (
                                 <option key={operator.value} value={operator.value}>{operator.label}</option>
                               ))}
-                            </select>
+                            </Select>
                             <Input
                               value={condition.value ?? ''}
                               onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { value: e.target.value })}
                               placeholder="Comparison value"
+                              aria-label="Comparison value"
                               disabled={['is_empty', 'is_not_empty'].includes(condition.operator)}
                             />
-                            <button
+                            <IconButton
+                              size="sm"
+                              variant="danger-ghost"
+                              label="Delete condition"
+                              icon={<Trash2 />}
+                              className="self-center"
                               onClick={() => {
                                 const next = [...rules]
                                 next[index] = {
@@ -370,30 +383,18 @@ export function DecisionTableEditor({ table }: { table: any }) {
                                 }
                                 setRules(next)
                               }}
-                              className="px-2 rounded hover:bg-red-50"
-                              title="Delete condition"
-                            >
-                              <Trash2 size={13} className="text-red-400" />
-                            </button>
+                            />
                           </div>
 
                           {selectedField && (
-                            <div className="flex items-center gap-2 text-[11px]">
-                              <span
-                                className="inline-flex items-center rounded-full px-2 py-0.5 font-medium"
-                                style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)', border: '1px solid var(--theme-surface-border)' }}
-                              >
-                                {selectedField.type} input
-                              </span>
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <Tag mono>{selectedField.type} input</Tag>
                               {compatibilityMessage ? (
-                                <span
-                                  className="rounded-full px-2 py-0.5 font-medium"
-                                  style={{ backgroundColor: 'color-mix(in srgb, #F59E0B 14%, transparent)', color: '#B45309' }}
-                                >
+                                <Badge tone="warning" className="h-auto py-0.5 [&>span]:whitespace-normal">
                                   {compatibilityMessage}
-                                </span>
+                                </Badge>
                               ) : (
-                                <span style={{ color: 'var(--theme-muted-text)' }}>
+                                <span className="text-fg-muted">
                                   This operator matches the selected input type.
                                 </span>
                               )}
@@ -406,16 +407,16 @@ export function DecisionTableEditor({ table }: { table: any }) {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold mb-2" style={{ color: 'var(--theme-card-text)' }}>Outputs</p>
+                  <p className="mb-2 text-xs font-medium text-fg-muted">Outputs</p>
                   <div className="space-y-2">
                     {outputs.length === 0 && (
-                      <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p className="text-xs text-fg-muted">
                         Define at least one output field on the left to map values here.
                       </p>
                     )}
                     {outputs.map((field) => (
-                      <div key={field.id} className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-2 items-center">
-                        <label className="text-xs font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+                      <div key={field.id} className="grid grid-cols-1 items-center gap-2 md:grid-cols-[160px_1fr]">
+                        <label className="truncate text-ui text-fg">
                           {field.label || field.key || 'Output'}
                         </label>
                         <Input
@@ -429,22 +430,24 @@ export function DecisionTableEditor({ table }: { table: any }) {
                             setRules(next)
                           }}
                           placeholder={`Value for ${field.key || 'output'}`}
+                          aria-label={field.label || field.key || 'Output'}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
 
             <Button
-              variant="outline"
+              variant="secondary"
+              leadingIcon={<Plus />}
               onClick={() => setRules([...rules, createRule()])}
               className="w-full"
             >
-              <Plus size={14} className="mr-1" /> Add Rule
+              Add rule
             </Button>
-          </div>
+          </CardBody>
         </Panel>
       </div>
 
@@ -471,57 +474,82 @@ function FieldBuilder({
   fields: any[]
   onChange: (fields: any[]) => void
 }) {
+  const noun = title.toLowerCase().slice(0, -1)
   return (
     <Panel title={title} description={description}>
-      <div className="space-y-2">
-        {fields.map((field, index) => (
-          <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-2">
-            <Input
-              value={field.key}
-              onChange={(e) => {
-                const next = [...fields]
-                next[index] = { ...field, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }
-                onChange(next)
-              }}
-              placeholder="key_name"
-            />
-            <Input
-              value={field.label}
-              onChange={(e) => {
-                const next = [...fields]
-                next[index] = { ...field, label: e.target.value }
-                onChange(next)
-              }}
-              placeholder="Label"
-            />
-            <select
-              value={field.type}
-              onChange={(e) => {
-                const next = [...fields]
-                next[index] = { ...field, type: e.target.value }
-                onChange(next)
-              }}
-              className="rounded-lg border px-3 py-2 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
-            >
-              {FIELD_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-            <button
-              onClick={() => onChange(fields.length > 1 ? fields.filter((candidate) => candidate.id !== field.id) : [createField()])}
-              className="px-2 rounded hover:bg-red-50"
-              title={`Delete ${title.toLowerCase().slice(0, -1)}`}
-            >
-              <Trash2 size={13} className="text-red-400" />
-            </button>
-          </div>
-        ))}
+      <div className="overflow-x-auto border-y border-border-subtle">
+        <table className="w-full border-collapse text-left text-ui text-fg">
+          <thead>
+            <tr>
+              <th scope="col" className={thClass}>Key</th>
+              <th scope="col" className={thClass}>Label</th>
+              <th scope="col" className={cn(thClass, 'w-[132px]')}>Type</th>
+              <th scope="col" className={cn(thClass, 'w-px')}><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {fields.map((field, index) => (
+              <tr key={field.id} className={trClass}>
+                <td className={cn(tdClass, 'py-1.5')}>
+                  <Input
+                    value={field.key}
+                    onChange={(e) => {
+                      const next = [...fields]
+                      next[index] = { ...field, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }
+                      onChange(next)
+                    }}
+                    placeholder="key_name"
+                    aria-label={`${title.slice(0, -1)} key`}
+                    className="font-mono"
+                  />
+                </td>
+                <td className={cn(tdClass, 'py-1.5')}>
+                  <Input
+                    value={field.label}
+                    onChange={(e) => {
+                      const next = [...fields]
+                      next[index] = { ...field, label: e.target.value }
+                      onChange(next)
+                    }}
+                    placeholder="Label"
+                    aria-label={`${title.slice(0, -1)} label`}
+                  />
+                </td>
+                <td className={cn(tdClass, 'py-1.5')}>
+                  <Select
+                    value={field.type}
+                    onChange={(e) => {
+                      const next = [...fields]
+                      next[index] = { ...field, type: e.target.value }
+                      onChange(next)
+                    }}
+                    aria-label={`${title.slice(0, -1)} type`}
+                  >
+                    {FIELD_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </Select>
+                </td>
+                <td className={cn(tdClass, 'w-px py-1.5 pl-0')}>
+                  <IconButton
+                    size="sm"
+                    variant="danger-ghost"
+                    label={`Delete ${noun}`}
+                    icon={<Trash2 />}
+                    onClick={() => onChange(fields.length > 1 ? fields.filter((candidate) => candidate.id !== field.id) : [createField()])}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <Button variant="outline" size="sm" onClick={() => onChange([...fields, createField()])} className="mt-3">
-        <Plus size={13} className="mr-1" /> Add {title.slice(0, -1)}
-      </Button>
+      <div className="p-4">
+        <Button variant="secondary" size="sm" leadingIcon={<Plus />} onClick={() => onChange([...fields, createField()])}>
+          Add {noun}
+        </Button>
+      </div>
     </Panel>
   )
 }
@@ -536,13 +564,10 @@ function Panel({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-2xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-      <div className="mb-3">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>{title}</h2>
-        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>{description}</p>
-      </div>
+    <Card padding="none">
+      <CardHeader title={title} description={description} />
       {children}
-    </section>
+    </Card>
   )
 }
 
@@ -617,100 +642,79 @@ function DecisionTableTesterDialog({
   }, [inputs, rules, values])
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50 dialog-overlay" />
-        <Dialog.Content
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(48rem,92vw)] rounded-2xl shadow-xl dialog-content"
-          style={{ backgroundColor: 'var(--theme-card-bg)' }}
-        >
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <div>
-              <Dialog.Title className="text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-                Test Rules
-              </Dialog.Title>
-              <Dialog.Description className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-                Quickly test {ruleName} with sample inputs and inspect the matching outputs.
-              </Dialog.Description>
-            </div>
-            <Dialog.Close className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-              <X size={18} />
-            </Dialog.Close>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-4 p-6 max-h-[75vh] overflow-y-auto">
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Test Inputs</h3>
-              {inputs.length === 0 ? (
-                <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-                  Add input fields to this rule before using the tester.
-                </p>
-              ) : (
-                inputs.map((field) => (
-                  <div key={field.id}>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--theme-muted-text)' }}>
-                      {field.label || field.key || 'Input'} {field.key ? `(${field.key})` : ''}
-                    </label>
-                    {field.type === 'boolean' ? (
-                      <select
-                        value={values[field.key] ?? ''}
-                        onChange={(e) => setValues((current) => ({ ...current, [field.key]: e.target.value }))}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
-                      >
-                        <option value="">Select…</option>
-                        <option value="true">True</option>
-                        <option value="false">False</option>
-                      </select>
-                    ) : (
-                      <Input
-                        type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                        value={values[field.key] ?? ''}
-                        onChange={(e) => setValues((current) => ({ ...current, [field.key]: e.target.value }))}
-                        placeholder={field.key || 'Enter a value'}
-                      />
-                    )}
-                  </div>
-                ))
-              )}
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Result</h3>
-              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Matched Rule</p>
-                  <p className="text-sm mt-1" style={{ color: 'var(--theme-card-text)' }}>
-                    {result.matched ? (result.rule?.label || 'Matched unnamed rule') : 'No matching rule'}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Outputs</p>
-                  {outputs.length === 0 ? (
-                    <p className="text-sm mt-1" style={{ color: 'var(--theme-muted-text)' }}>No outputs defined yet.</p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        size="lg"
+        title="Test rules"
+        description={`Quickly test ${ruleName} with sample inputs and inspect the matching outputs.`}
+      >
+        <DialogBody className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-fg">Test inputs</h3>
+            {inputs.length === 0 ? (
+              <p className="text-sm text-fg-muted">
+                Add input fields to this rule before using the tester.
+              </p>
+            ) : (
+              inputs.map((field) => (
+                <Field key={field.id} label={<>{field.label || field.key || 'Input'} {field.key ? <span className="font-mono text-2xs font-normal text-fg-muted">({field.key})</span> : ''}</>}>
+                  {field.type === 'boolean' ? (
+                    <Select
+                      value={values[field.key] ?? ''}
+                      onChange={(e) => setValues((current) => ({ ...current, [field.key]: e.target.value }))}
+                    >
+                      <option value="">Select…</option>
+                      <option value="true">True</option>
+                      <option value="false">False</option>
+                    </Select>
                   ) : (
-                    <div className="space-y-2 mt-2">
-                      {outputs.map((field) => (
-                        <div key={field.id} className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-                          <p className="text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>
-                            {field.label || field.key || 'Output'}
-                          </p>
-                          <p className="text-sm mt-1" style={{ color: 'var(--theme-card-text)' }}>
-                            {result.outputs?.[field.key] != null && result.outputs?.[field.key] !== ''
-                              ? String(result.outputs[field.key])
-                              : '—'}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                    <Input
+                      type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                      value={values[field.key] ?? ''}
+                      onChange={(e) => setValues((current) => ({ ...current, [field.key]: e.target.value }))}
+                      placeholder={field.key || 'Enter a value'}
+                    />
                   )}
-                </div>
+                </Field>
+              ))
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-fg">Result</h3>
+            <Card variant="inset" padding="md" className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-fg-muted">Matched rule</p>
+                <p className="mt-1 text-sm text-fg">
+                  {result.matched ? (result.rule?.label || 'Matched unnamed rule') : 'No matching rule'}
+                </p>
               </div>
-            </section>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+
+              <div>
+                <p className="text-xs font-medium text-fg-muted">Outputs</p>
+                {outputs.length === 0 ? (
+                  <p className="mt-1 text-sm text-fg-muted">No outputs defined yet.</p>
+                ) : (
+                  <dl className="mt-1 divide-y divide-border-subtle">
+                    {outputs.map((field) => (
+                      <div key={field.id} className="py-2">
+                        <dt className="text-xs text-fg-muted">
+                          {field.label || field.key || 'Output'}
+                        </dt>
+                        <dd className="mt-0.5 text-sm text-fg">
+                          {result.outputs?.[field.key] != null && result.outputs?.[field.key] !== ''
+                            ? String(result.outputs[field.key])
+                            : '—'}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            </Card>
+          </section>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -3,7 +3,8 @@ import { createServiceClient } from '@/lib/cron-auth'
 import { decryptSensitiveFields, encryptSensitiveFields } from '@/lib/secret-fields'
 import { hashOAuthToken } from '@/lib/oauth/tokens'
 import { appBaseUrl } from '@/lib/oauth/redirect'
-import { assertSafeEgressUrl } from '@/lib/egress-guard'
+import { getCachedUser } from '@/lib/supabase/server'
+import { connectorFetch, providerErrorMessage, readCappedText } from '@/lib/integrations/http'
 
 /**
  * OAuth CLIENT callback (Phase 2): the external provider redirects the browser
@@ -11,6 +12,11 @@ import { assertSafeEgressUrl } from '@/lib/egress-guard'
  * credential. We exchange the code for tokens and stash them (encrypted) on the
  * linked tenant_connectors row, then bounce the user back to the integration
  * settings page with a success/error flag. Never 500 to the user.
+ *
+ * The state is bound to the user who started the flow: the callback only
+ * completes in that user's signed-in browser. Otherwise an attacker could
+ * start a flow for their own tenant and trick a victim into authorizing it,
+ * landing the victim's external account tokens in the attacker's tenant.
  */
 
 function settleRedirect(target: string, flag: 'connected' | 'error', detail?: string): NextResponse {
@@ -42,13 +48,18 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient()
 
   try {
-    // Atomically consume the single-use state (unconsumed + unexpired).
+    const user = await getCachedUser().catch(() => null)
+    if (!user?.id) {
+      return settleRedirect('/integrations', 'error', 'Sign in to finish connecting, then start the connection again')
+    }
+    // Atomically consume the single-use state (unconsumed + unexpired + started by this user).
     const nowIso = new Date().toISOString()
     const { data: stateRow } = await (supabase as any)
       .from('oauth_connect_states')
       .update({ consumed_at: nowIso })
       .eq('state_hash', hashOAuthToken(state))
       .eq('kind', 'connector_authorize')
+      .eq('user_id', user.id)
       .is('consumed_at', null)
       .gt('expires_at', nowIso)
       .select('id, tenant_id, payload')
@@ -95,33 +106,37 @@ export async function GET(request: NextRequest) {
       return settleRedirect(redirectAfter, 'error', 'Connector is missing token URL')
     }
 
-    await assertSafeEgressUrl(tokenUrl)
-
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
       code: authorizationCode,
       redirect_uri: `${appBaseUrl()}/api/connectors/oauth/callback`,
       code_verifier: codeVerifier,
     })
+    const basicAuth = connectorConfig.client_auth === 'basic' && clientId
     if (clientId) body.set('client_id', clientId)
-    if (clientSecret) body.set('client_secret', clientSecret)
+    if (clientSecret && !basicAuth) body.set('client_secret', clientSecret)
 
-    const res = await fetch(tokenUrl, {
+    // token_url is tenant-supplied: egress-guarded on every hop, bounded.
+    // An authorization code is single-use, so no retry.
+    const res = await connectorFetch(tokenUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+        // HTTP Basic client authentication (DocuSign, SignNow) instead of form fields.
+        ...(basicAuth ? { Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}` } : {}),
+      },
       body: body.toString(),
-    })
+    }, { timeoutMs: 15_000, retry: 'never' })
 
+    const raw = await readCappedText(res, 1024 * 1024)
+    let tokenPayload: any = null
+    try { tokenPayload = JSON.parse(raw) } catch { /* non-JSON */ }
     if (!res.ok) {
-      let detail = String(res.status)
-      try {
-        const errPayload = await res.json()
-        detail = errPayload?.error_description || errPayload?.error || detail
-      } catch { /* keep status */ }
+      const detail = providerErrorMessage(tokenPayload) ?? String(res.status)
       return settleRedirect(redirectAfter, 'error', `Token exchange failed: ${detail}`)
     }
 
-    const tokenPayload = await res.json()
     const accessToken = String(tokenPayload?.access_token ?? '')
     if (!accessToken) {
       return settleRedirect(redirectAfter, 'error', 'Provider returned no access token')

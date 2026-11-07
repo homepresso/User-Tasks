@@ -61,12 +61,12 @@ function Submission({ s, onDone }: { s: any; onDone: (message: string, ok: boole
       {(s.screenshots ?? []).length > 0 && (
         <div className="flex gap-2 overflow-x-auto">
           {/* eslint-disable-next-line @next/next/no-img-element -- moderator preview of stored screenshots */}
-          {s.screenshots.map((shot: any, i: number) => <img key={shot.path} src={`/api/gallery/submissions/${s.id}/screenshots/${i + 1}`} alt={`Screenshot ${i + 1}`} className="h-28 rounded border" style={{ borderColor: 'var(--theme-surface-border)' }} />)}
+          {s.screenshots.map((shot: any, i: number) => <img key={shot.path} src={`/api/gallery/submissions/${s.id}/screenshots/${i + 1}`} alt={`Screenshot ${i + 1}`} className="h-28 rounded border border-border" />)}
         </div>
       )}
       {s.status === 'pending' ? (
         <div className="grid gap-2">
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={2000} placeholder="Reason (required to reject; optional note when approving)" className="w-full rounded-lg border px-3 py-2 text-sm bg-transparent" style={{ borderColor: 'var(--theme-surface-border)' }} data-testid="review-reason" />
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={2000} placeholder="Reason (required to reject; optional note when approving)" className="w-full rounded-lg border px-3 py-2 text-sm bg-transparent border-border" data-testid="review-reason" />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" disabled={pending || !s.validation?.ok} onClick={() => act(() => approveSubmissionAction(s.id, reason), `Approved ${s.title}: it is listed as Community`)} data-testid="approve"><CheckCircle2 size={14} /> Approve and list</Button>
             <Button size="sm" variant="outline" disabled={pending || !reason.trim()} onClick={() => act(() => rejectSubmissionAction(s.id, reason), `Rejected ${s.title}; the submitter was emailed`)} data-testid="reject"><XCircle size={14} /> Reject</Button>

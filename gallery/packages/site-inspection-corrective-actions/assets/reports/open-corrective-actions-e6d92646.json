@@ -1,0 +1,48 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "e6d92646-1347-54b8-a428-f2fab5ecfa8e",
+  "asset": {
+    "id": "e6d92646-1347-54b8-a428-f2fab5ecfa8e",
+    "name": "Open corrective actions",
+    "description": "Corrective action tasks from the Site inspection workflow that are not completed yet, soonest due first, with the item, area and severity.",
+    "category": "Health and safety",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        },
+        {
+          "field": "title",
+          "operator": "ilike",
+          "value": "Corrective action"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "6993d232-4c0b-59d1-b34c-4e02a56aaa7e"
+      },
+      "columns": [
+        "title",
+        "fields.ca_severity",
+        "fields.ca_area",
+        "due_date",
+        "status",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 100,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

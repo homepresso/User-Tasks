@@ -1,0 +1,89 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+  "asset": {
+    "id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+    "name": "Moderation log",
+    "description": "Every upload checked: AI risk, categories, the decision, who made it and why.",
+    "columns": [
+      {
+        "id": "cff468d8-9835-5e60-9e76-80613928373d",
+        "required": true,
+        "key": "upload_id",
+        "name": "Upload",
+        "type": "text"
+      },
+      {
+        "id": "3048ba51-8b5e-5db1-9603-ac5eb63b500a",
+        "required": false,
+        "key": "uploader",
+        "name": "Uploader",
+        "type": "text"
+      },
+      {
+        "id": "758bb83d-1e4d-556d-8de0-a88a225f2bda",
+        "required": false,
+        "key": "media_type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "5a542707-c9ea-5658-a536-2bc2de611f41",
+        "required": false,
+        "key": "channel",
+        "name": "Channel",
+        "type": "text"
+      },
+      {
+        "id": "37407c19-9dc0-5853-9ec2-7df1ac9a1237",
+        "required": false,
+        "key": "risk_score",
+        "name": "Risk",
+        "type": "number"
+      },
+      {
+        "id": "cf203021-3310-5c6d-902d-d0b25fbf26f6",
+        "required": false,
+        "key": "category",
+        "name": "Top category",
+        "type": "text"
+      },
+      {
+        "id": "3478057a-cb63-5ca8-9b23-3b72f18a00a6",
+        "required": false,
+        "key": "ai_reason",
+        "name": "AI reason",
+        "type": "text"
+      },
+      {
+        "id": "d0d5c43b-e79e-5354-b458-fad9e03b16ab",
+        "required": false,
+        "key": "decision",
+        "name": "Decision",
+        "type": "text"
+      },
+      {
+        "id": "6107c50b-0f69-570c-ba86-7363d8274397",
+        "required": false,
+        "key": "decided_by",
+        "name": "Decided by",
+        "type": "text"
+      },
+      {
+        "id": "0bce4bf7-b964-5b59-b4c6-40348421b41e",
+        "required": false,
+        "key": "reason",
+        "name": "Reason",
+        "type": "text"
+      },
+      {
+        "id": "d33fd34f-7c17-5943-be11-d0c6c7e8901c",
+        "required": false,
+        "key": "decided_at",
+        "name": "Decided",
+        "type": "datetime"
+      }
+    ]
+  }
+}

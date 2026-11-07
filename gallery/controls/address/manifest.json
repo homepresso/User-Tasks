@@ -1,0 +1,105 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-address",
+  "name": "Address",
+  "description": "Address search with suggestions from the field's lookup source (e.g. Google Places, key kept on the server), stored as a structured address with coordinates. Manual entry as a fallback.",
+  "icon": "map-pin",
+  "version": "1.1.0",
+  "entry": "ut-address.js",
+  "value": {
+    "type": "json",
+    "schema": {
+      "type": "object",
+      "required": ["formatted"],
+      "additionalProperties": false,
+      "properties": {
+        "formatted": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "street": { "type": ["string", "null"], "maxLength": 200 },
+        "city": { "type": ["string", "null"], "maxLength": 200 },
+        "region": { "type": ["string", "null"], "maxLength": 200 },
+        "postcode": { "type": ["string", "null"], "maxLength": 200 },
+        "country": { "type": ["string", "null"], "maxLength": 200 },
+        "country_code": { "type": ["string", "null"], "maxLength": 3 },
+        "lat": { "type": ["number", "null"], "minimum": -90, "maximum": 90 },
+        "lng": { "type": ["number", "null"], "minimum": -180, "maximum": 180 },
+        "place_id": { "type": ["string", "null"], "maxLength": 300 }
+      }
+    }
+  },
+  "props": [
+    {
+      "name": "placeholder",
+      "label": "Placeholder",
+      "type": "string",
+      "default": "Start typing an address"
+    },
+    {
+      "name": "min_chars",
+      "label": "Search after (characters)",
+      "type": "number",
+      "default": 3,
+      "min": 1,
+      "max": 20
+    },
+    {
+      "name": "debounce_ms",
+      "label": "Wait after typing (ms)",
+      "type": "number",
+      "default": 350,
+      "min": 0,
+      "max": 2000,
+      "description": "How long to wait after the last keystroke before searching."
+    },
+    {
+      "name": "allow_manual",
+      "label": "Allow manual entry",
+      "type": "boolean",
+      "default": true,
+      "description": "Shows \"Enter the address manually\": street, city, region, postcode and country inputs."
+    },
+    {
+      "name": "show_details",
+      "label": "Show address details",
+      "type": "boolean",
+      "default": false,
+      "description": "Shows the parsed street, city, region, postcode, country and coordinates under the field."
+    },
+    {
+      "name": "country_hint",
+      "label": "Country hint",
+      "type": "string",
+      "description": "Appended to every search as \", <country>\" (e.g. New Zealand) to favour addresses in that country."
+    }
+  ],
+  "events": [],
+  "validation": {
+    "reports_validity": true
+  },
+  "size": {
+    "default_height": 84,
+    "min_height": 48,
+    "max_height": 520,
+    "full_width": true
+  },
+  "capabilities": ["lookup"],
+  "context": [],
+  "display": {
+    "template": "{{value.formatted}}",
+    "format": "text"
+  },
+  "output": { "type": "string", "primary": "formatted", "extras": { "parts": "" }, "description": "The formatted address; <key>_parts has street, city, region, postcode, country and coordinates" },
+  "accessibility": {
+    "role": "combobox",
+    "keyboard": "Type at least three characters to search. Down / Up move through the suggestions, Enter chooses one, Escape closes the list (a second Escape clears the field). \"Enter the address manually\" shows separate inputs.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/address",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

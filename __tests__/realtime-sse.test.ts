@@ -122,6 +122,7 @@ function fakeDb(visibleTasks: string[]) {
       calls.push(name)
       if (name === 'rls_visible_tenant_ids') return { data: [A], error: null }
       if (name === 'get_user_tenant_ids') return { data: [{ get_user_tenant_ids: A }], error: null }
+      if (name === 'user_has_tenant_permission') return { data: true, error: null }
       return { data: null, error: { message: 'unknown' } }
     },
   }
@@ -162,7 +163,7 @@ describe('authorizeSubscriptions', () => {
     const res = await authorizeSubscriptions({ userId: ME, permissions: new Set(['settings.view']), db: fakeDb([]) }, ['workflow_logs||INSERT', 'agent_runs||INSERT'])
     expect(res.accepted).toHaveLength(2)
     const aud = await loadAudience(fakeDb([]), ME)
-    expect(aud).toEqual({ userId: ME, visible: new Set([A]), member: new Set([A]), current: A, agent: new Set([A]) })
+    expect(aud).toEqual({ userId: ME, visible: new Set([A]), member: new Set([A]), current: A, agent: new Set([A]), agentMember: new Set([A]) })
   })
 })
 

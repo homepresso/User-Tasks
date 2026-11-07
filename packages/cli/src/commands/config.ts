@@ -87,7 +87,7 @@ export function registerConfigCommands(program: Command, runtime: Runtime) {
   config
     .command('export <dir>')
     .description('Export workspace configuration into a folder (GitHub-sync layout; secrets are replaced by "__SECRET__")')
-    .option('--types <list>', 'Comma-separated sections (workflows, decision_tables, workflow_activities, data_tables, integrations, agents, reports, retention_policies, roles, mcp_servers, email_templates, connectors, log_destinations, form_themes, forms, workspace_theme)')
+    .option('--types <list>', 'Comma-separated sections (workflows, decision_tables, workflow_activities, data_tables, integrations, agents, reports, retention_policies, roles, mcp_servers, email_templates, connectors, log_destinations, form_themes, forms, workspace_theme, document_ocr)')
     .option('--ids <list>', 'Only these asset ids (comma-separated; any type) — single-asset export')
     .option('--with-dependencies', 'With --ids: also export everything those assets depend on')
     .option('--include-rows', 'Also export the rows of the exported data tables (data-rows/ folder)')

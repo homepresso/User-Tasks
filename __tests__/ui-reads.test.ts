@@ -85,7 +85,7 @@ describe('read runner', () => {
 
   it('agent run stats are computed server-side for that agent only', async () => {
     expect(await runUiRead(ctx(db(), ['agents.view']), { name: 'agents.runStats', args: { agentId: 'ag1' } }))
-      .toEqual({ ok: true, data: { total: 2, completed: 1, failed: 1, totalTokens: 15, avgDuration: 200 } })
+      .toEqual({ ok: true, data: { total: 2, completed: 1, failed: 1, awaitingApproval: 0, totalTokens: 15, avgDuration: 200 } })
   })
 })
 

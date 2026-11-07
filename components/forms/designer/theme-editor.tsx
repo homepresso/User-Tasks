@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { AlertTriangle, Check, Save, WandSparkles } from 'lucide-react'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { useWorkspaceTheme } from '@/components/providers/theme-provider'
@@ -8,9 +9,12 @@ import {
   autoFixFormTheme, blockingFormThemeIssues, formThemeContrast, overridesFromPreset, FORM_THEME_FONTS,
   type FormThemeColors, type FormThemeOverrides, type FormThemeRef,
 } from '@/lib/forms/form-theme'
+import { FORM_WIDTHS, FORM_WIDTH_LABELS, FORM_WIDTH_PCT, clampFormWidthPct, normalizeFormWidth } from '@/lib/forms/form-width'
 import { isValidColor } from '@/lib/theme/colors'
 import { THEME_TEMPLATES } from '@/lib/theme/presets'
 import type { ThemeMode } from '@/lib/theme/schema'
+import { cn } from '@/lib/utils'
+import { designerInputClass as inputClass } from './designer-controls'
 
 /**
  * Mini-theme editor: inherit the workspace theme, pick a saved Form theme,
@@ -22,14 +26,22 @@ import type { ThemeMode } from '@/lib/theme/schema'
 
 export interface SavedFormTheme { id: string; name: string; overrides: FormThemeOverrides }
 
-const inputClass = 'h-8 w-full rounded-md border px-2 text-xs outline-none focus-visible:ring-2'
-const inputStyle: React.CSSProperties = {
-  borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-topbar)', color: 'var(--theme-topbar-text)',
-  ['--tw-ring-color' as string]: 'var(--theme-primary)',
+
+/** The custom width's number box: typed freely, clamped to 40–100 on Enter / leaving the box. */
+function PctInput({ value, disabled, onCommit }: { value: number; disabled: boolean; onCommit: (raw: string) => void }) {
+  const [text, setText] = useState(String(value))
+  return (
+    <input type="number" min={FORM_WIDTH_PCT.min} max={FORM_WIDTH_PCT.max} step={1} value={text} disabled={disabled}
+      aria-label="Form width percent" className="h-7 w-16 rounded border px-1.5 text-xs border-border bg-input text-fg"
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => { if (text.trim()) onCommit(text); setText(String(text.trim() ? clampFormWidthPct(text) : value)) }}
+      onKeyDown={(e) => { if (e.key === 'Enter' && text.trim()) { e.preventDefault(); onCommit(text); setText(String(clampFormWidthPct(text))) } }}
+      data-form-width-pct-input />
+  )
 }
 
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
-  return <label htmlFor={htmlFor} className="mb-0.5 block text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{children}</label>
+  return <label htmlFor={htmlFor} className="mb-0.5 block text-2xs font-medium text-fg-muted">{children}</label>
 }
 
 function ColorInput({ label, value, onChange, id }: { label: string; value: string | undefined; onChange: (value: string | undefined) => void; id: string }) {
@@ -41,11 +53,10 @@ function ColorInput({ label, value, onChange, id }: { label: string; value: stri
     <div>
       <Label htmlFor={id}>{label}</Label>
       <div className="flex items-center gap-1">
-        <input type="color" aria-label={`${label} picker`} value={hex} onChange={(e) => onChange(e.target.value)} className="h-8 w-8 shrink-0 cursor-pointer rounded border p-0.5" style={{ borderColor: 'var(--theme-surface-border)' }} />
+        <input type="color" aria-label={`${label} picker`} value={hex} onChange={(e) => onChange(e.target.value)} className="h-8 w-8 shrink-0 cursor-pointer rounded border p-0.5 border-border" />
         <input
           id={id}
           className={`${inputClass} font-mono`}
-          style={{ ...inputStyle, ...(draft && !isValidColor(draft) ? { borderColor: 'var(--status-blocked)' } : {}) }}
           placeholder="inherit"
           value={draft}
           onChange={(e) => {
@@ -59,7 +70,7 @@ function ColorInput({ label, value, onChange, id }: { label: string; value: stri
   )
 }
 
-export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSaveTheme, idPrefix = 'te' }: {
+export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSaveTheme, idPrefix = 'te', formHeaderOn = false }: {
   value: FormThemeRef
   onChange: (next: FormThemeRef) => void
   savedThemes: SavedFormTheme[]
@@ -67,13 +78,17 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
   /** Save the current overrides as a reusable Form theme; resolves to its id (or an error message). */
   onSaveTheme?: (name: string, overrides: FormThemeOverrides) => Promise<{ id: string } | { error: string }>
   idPrefix?: string
+  /** The form's own header is on (Buttons & header): it is drawn in place of this one. */
+  formHeaderOn?: boolean
 }) {
   const { theme } = useWorkspaceTheme()
   const [mode, setMode] = useState<ThemeMode>('light')
   const [saveName, setSaveName] = useState('')
+  // Synchronous guard: two clicks in one frame would save the theme twice.
+  const saveGuard = useSubmitGuard()
   const [saveState, setSaveState] = useState<{ busy: boolean; error?: string; saved?: boolean }>({ busy: false })
-  const overrides: FormThemeOverrides = value.source === 'custom' ? value.overrides
-    : value.source === 'saved' ? (savedThemes.find((t) => t.id === value.theme_id)?.overrides ?? {}) : {}
+  const overrides: FormThemeOverrides = useMemo(() => (value.source === 'custom' ? value.overrides
+    : value.source === 'saved' ? (savedThemes.find((t) => t.id === value.theme_id)?.overrides ?? {}) : {}), [value, savedThemes])
   const editable = value.source === 'custom'
   const setOverrides = (next: FormThemeOverrides) => onChange({ source: 'custom', overrides: next })
   const colors: FormThemeColors = overrides.colors?.[mode] ?? {}
@@ -102,10 +117,7 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
               else if (source === 'custom') onChange({ source: 'custom', overrides: value.source === 'saved' ? overrides : (value.source === 'custom' ? value.overrides : {}) })
               else if (savedThemes[0]) onChange({ source: 'saved', theme_id: savedThemes[0].id })
             }}
-            className="h-8 rounded border text-[10px] font-medium disabled:opacity-40"
-            style={value.source === source
-              ? { backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }
-              : { borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            className={cn('h-8 rounded border text-2xs font-medium disabled:opacity-40', value.source === source ? 'border-primary' : 'border-border', value.source === source ? 'bg-primary-wash' : '', value.source === source ? 'text-primary-text' : 'text-fg')}
           >
             {label}
           </button>
@@ -113,8 +125,54 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
       </div>
 
       {value.source === 'workspace' && (
-        <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>The form uses the workspace theme (light and dark) as it is.</p>
+        <p className="text-2xs text-fg-muted">The form uses the workspace theme (light and dark) as it is. Choosing a form width below switches to Custom (colours unchanged).</p>
       )}
+
+      {/* Form width (lib/forms/form-width.ts): stored on the theme as form_width. */}
+      <div data-form-width-setting>
+        <Label>Form width</Label>
+        <div role="radiogroup" aria-label="Form width" className="grid grid-cols-5 gap-1">
+          {FORM_WIDTHS.map((w) => {
+            const current = normalizeFormWidth(overrides.form_width)
+            return (
+              <button
+                key={w}
+                type="button"
+                role="radio"
+                aria-checked={current === w}
+                disabled={value.source === 'saved'}
+                data-form-width={w}
+                onClick={() => {
+                  const base: FormThemeOverrides = value.source === 'custom' ? value.overrides : {}
+                  const next: FormThemeOverrides = { ...base }
+                  if (w === 'normal') delete next.form_width
+                  else next.form_width = w
+                  if (w === 'custom') next.form_width_pct = clampFormWidthPct(base.form_width_pct)
+                  else delete next.form_width_pct
+                  setOverrides(next)
+                }}
+                className={cn('h-7 rounded border text-2xs font-medium disabled:opacity-40', current === w ? 'bg-primary-wash' : '', current === w ? 'border-primary' : 'border-border', current === w ? 'text-fg' : 'text-fg')}
+              >
+                {FORM_WIDTH_LABELS[w]}
+              </button>
+            )
+          })}
+        </div>
+        {normalizeFormWidth(overrides.form_width) === 'custom' && (() => {
+          const pct = clampFormWidthPct(overrides.form_width_pct)
+          const setPct = (raw: string) => { if (raw.trim() && value.source === 'custom') setOverrides({ ...value.overrides, form_width: 'custom', form_width_pct: clampFormWidthPct(raw) }) }
+          return (
+            <div className="mt-2 flex items-center gap-2" data-form-width-pct-control>
+              <input type="range" min={FORM_WIDTH_PCT.min} max={FORM_WIDTH_PCT.max} step={1} value={pct} disabled={!editable}
+                aria-label="Form width, percent of the available width" className="flex-1 accent-primary"
+                onChange={(e) => setPct(e.target.value)} data-form-width-pct-slider />
+              <PctInput key={pct} value={pct} disabled={!editable} onCommit={setPct} />
+              <span aria-hidden>%</span>
+            </div>
+          )
+        })()}
+        <p className="mt-1 text-2xs text-fg-muted">How wide the form card may grow. Normal keeps each page&apos;s usual width; Wide suits Data tables with many columns; Custom % takes a share of the available width (never under 320px, always full width on phones).</p>
+      </div>
 
       {value.source === 'saved' && (
         <div>
@@ -124,7 +182,7 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
             options={savedThemes.map((t) => ({ value: t.id, label: t.name }))}
             onChange={(id) => id && onChange({ source: 'saved', theme_id: id })}
           />
-          <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Edits to the saved theme apply to new tasks. Choose Custom to start a copy.</p>
+          <p className="mt-1 text-2xs text-fg-muted">Edits to the saved theme apply to new tasks. Choose Custom to start a copy.</p>
         </div>
       )}
 
@@ -144,12 +202,11 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
           </div>
 
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Colours for">
-            <span className="mr-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Colours for</span>
+            <span className="mr-1 text-2xs text-fg-muted">Colours for</span>
             {(['light', 'dark'] as const).map((m) => (
               <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)}
-                className="h-6 rounded border px-2 text-[10px] font-medium capitalize"
-                style={mode === m ? { backgroundColor: 'var(--theme-primary-light)', borderColor: 'var(--theme-primary)', color: 'var(--theme-card-text)' } : { borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
-                {m} mode
+                className={cn('h-6 rounded border px-2 text-2xs font-medium text-fg', mode === m ? 'border-primary bg-primary-wash' : 'border-border')}>
+                {m === 'light' ? 'Light mode' : 'Dark mode'}
               </button>
             ))}
           </div>
@@ -157,8 +214,8 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
             <ColorInput id={`${idPrefix}-accent-${mode}`} label="Accent (buttons, focus, selection)" value={colors.accent} onChange={(v) => setColors({ accent: v })} />
             <ColorInput id={`${idPrefix}-bg-${mode}`} label="Background" value={colors.background} onChange={(v) => setColors({ background: v })} />
             <ColorInput id={`${idPrefix}-text-${mode}`} label="Text" value={colors.text} onChange={(v) => setColors({ text: v })} />
-            <details className="rounded border px-2 py-1" style={{ borderColor: 'var(--theme-surface-border)' }} open={Boolean(colors.page || colors.input || colors.border || colors.button)}>
-              <summary className="cursor-pointer text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Page, inputs, borders and buttons</summary>
+            <details className="rounded border px-2 py-1 border-border" open={Boolean(colors.page || colors.input || colors.border || colors.button)}>
+              <summary className="cursor-pointer text-2xs font-medium text-fg-muted">Page, inputs, borders and buttons</summary>
               <div className="mt-2 grid grid-cols-1 gap-2">
                 <ColorInput id={`${idPrefix}-page-${mode}`} label="Page background (behind the form)" value={colors.page} onChange={(v) => setColors({ page: v, ...(v ? {} : { page_to: undefined }) })} />
                 {colors.page && <ColorInput id={`${idPrefix}-pageto-${mode}`} label="Page gradient to (optional)" value={colors.page_to} onChange={(v) => setColors({ page_to: v })} />}
@@ -166,17 +223,17 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
                 <ColorInput id={`${idPrefix}-border-${mode}`} label="Borders (default: from the text)" value={colors.border} onChange={(v) => setColors({ border: v })} />
                 <ColorInput id={`${idPrefix}-button-${mode}`} label="Primary buttons (default: the accent)" value={colors.button} onChange={(v) => setColors({ button: v })} />
               </div>
-              <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Text on every colour is kept legible (contrast raised where needed).</p>
+              <p className="mt-1 text-2xs text-fg-muted">Text on every colour is kept legible (contrast raised where needed).</p>
             </details>
           </div>
           {mode === 'dark' && !overrides.colors?.dark && (
-            <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>No dark colours: dark mode keeps the workspace&apos;s dark palette with the light accent (made legible).</p>
+            <p className="text-2xs text-fg-muted">No dark colours: dark mode keeps the workspace&apos;s dark palette with the light accent (made legible).</p>
           )}
 
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor={`${idPrefix}-radius`}>Corner radius ({overrides.radius ?? '—'}px)</Label>
-              <input id={`${idPrefix}-radius`} type="range" min={0} max={24} value={overrides.radius ?? 8} onChange={(e) => setOverrides({ ...overrides, radius: Number(e.target.value) })} className="w-full" style={{ accentColor: 'var(--theme-primary)' }} />
+              <input id={`${idPrefix}-radius`} type="range" min={0} max={24} value={overrides.radius ?? 8} onChange={(e) => setOverrides({ ...overrides, radius: Number(e.target.value) })} className="w-full accent-primary" />
             </div>
             <div>
               <Label>Font</Label>
@@ -186,6 +243,7 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
                 clearable
                 options={FORM_THEME_FONTS}
                 onChange={(v) => {
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omitted from the rest
                   if (!v) { const { font: _f, ...rest } = overrides; setOverrides(rest); return }
                   const [source, ...family] = v.split(':')
                   setOverrides({ ...overrides, font: { source: source as 'google', family: family.join(':') } })
@@ -206,26 +264,31 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
             </div>
           </div>
 
-          <fieldset className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <legend className="pr-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Header</legend>
-            <label className="flex items-center gap-1.5 text-[11px]">
-              <input type="checkbox" checked={overrides.header?.enabled === true} style={{ accentColor: 'var(--theme-primary)' }}
+          <fieldset className="space-y-2 border-t pt-3 border-border">
+            <legend className="pr-2 text-2xs font-semibold text-fg-muted">Header</legend>
+            <label className="flex items-center gap-1.5 text-2xs">
+              <input className="accent-primary" type="checkbox" checked={overrides.header?.enabled === true}
                 onChange={(e) => setOverrides({ ...overrides, header: { ...overrides.header, enabled: e.target.checked } })} />
               Show a header above the form
             </label>
+            {formHeaderOn && (
+              <p className="text-2xs text-fg-muted" data-theme-header-note>
+                This form has its own header (Buttons &amp; header tab), drawn in place of this one. Set the title and subtitle there; these fill in only where it has none.
+              </p>
+            )}
             {overrides.header?.enabled && (
               <>
                 <div>
                   <Label htmlFor={`${idPrefix}-htitle`}>Title</Label>
-                  <input id={`${idPrefix}-htitle`} className={inputClass} style={inputStyle} maxLength={120} value={overrides.header.title ?? ''} onChange={(e) => setOverrides({ ...overrides, header: { ...overrides.header!, title: e.target.value.replace(/[<>{}]/g, '') || undefined } })} />
+                  <input id={`${idPrefix}-htitle`} className={inputClass} maxLength={120} value={overrides.header.title ?? ''} onChange={(e) => setOverrides({ ...overrides, header: { ...overrides.header!, title: e.target.value.replace(/[<>{}]/g, '') || undefined } })} />
                 </div>
                 <div>
                   <Label htmlFor={`${idPrefix}-hsub`}>Subtitle</Label>
-                  <input id={`${idPrefix}-hsub`} className={inputClass} style={inputStyle} maxLength={300} value={overrides.header.subtitle ?? ''} onChange={(e) => setOverrides({ ...overrides, header: { ...overrides.header!, subtitle: e.target.value.replace(/[<>{}]/g, '') || undefined } })} />
+                  <input id={`${idPrefix}-hsub`} className={inputClass} maxLength={300} value={overrides.header.subtitle ?? ''} onChange={(e) => setOverrides({ ...overrides, header: { ...overrides.header!, subtitle: e.target.value.replace(/[<>{}]/g, '') || undefined } })} />
                 </div>
                 <ColorInput id={`${idPrefix}-banner`} label="Banner colour (text colour is picked for it)" value={overrides.header.banner_color} onChange={(v) => setOverrides({ ...overrides, header: { ...overrides.header!, banner_color: v } })} />
-                <label className="flex items-center gap-1.5 text-[11px]">
-                  <input type="checkbox" disabled={!logo} checked={Boolean(overrides.header.logo_url)} style={{ accentColor: 'var(--theme-primary)' }}
+                <label className="flex items-center gap-1.5 text-2xs">
+                  <input className="accent-primary" type="checkbox" disabled={!logo} checked={Boolean(overrides.header.logo_url)}
                     onChange={(e) => setOverrides({ ...overrides, header: { ...overrides.header!, logo_url: e.target.checked ? logo : undefined } })} />
                   Show the workspace logo{!logo && ' (upload one in Settings → Theme)'}
                 </label>
@@ -236,53 +299,52 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
       )}
 
       {value.source !== 'workspace' && (
-        <div className="space-y-1.5 rounded-lg border p-2" style={{ borderColor: issues.length ? 'var(--theme-warning)' : 'var(--theme-surface-border)' }} aria-live="polite">
+        <div className={cn('space-y-1.5 rounded-lg border p-2', issues.length ? 'border-warning' : 'border-border')} aria-live="polite">
           {issues.length === 0 ? (
-            <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--theme-card-text)' }}><Check size={12} style={{ color: 'var(--theme-success)' }} /> Text is legible in light and dark mode.</p>
+            <p className="flex items-center gap-1.5 text-2xs text-fg"><Check className="text-success" size={12} /> Text is legible in light and dark mode.</p>
           ) : (
             <>
-              <p className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: 'var(--theme-card-text)' }}>
-                <AlertTriangle size={12} style={{ color: 'var(--theme-warning)' }} /> Low contrast — the form raises these colours when drawn:
+              <p className="flex items-center gap-1.5 text-2xs font-medium text-fg">
+                <AlertTriangle className="text-warning" size={12} /> Low contrast — the form raises these colours when drawn:
               </p>
-              <ul className="space-y-0.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <ul className="space-y-0.5 text-2xs text-fg-muted">
                 {issues.map((issue, i) => (
                   <li key={i}>{issue.mode}: {issue.pair} {issue.ratio}:1 (needs {issue.required}:1){issue.blocking ? ' — must be fixed to save' : ''}</li>
                 ))}
               </ul>
               {editable && (
-                <button type="button" onClick={() => setOverrides(autoFixFormTheme(overrides, theme.colors))} className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--theme-primary-text)' }}>
+                <button type="button" onClick={() => setOverrides(autoFixFormTheme(overrides, theme.colors))} className="flex items-center gap-1 text-2xs font-medium text-primary-text">
                   <WandSparkles size={11} /> Auto-fix colours
                 </button>
               )}
             </>
           )}
-          {blocking.length > 0 && <p className="text-[10px]" style={{ color: 'var(--status-blocked)' }}>{blocking.join('; ')}</p>}
+          {blocking.length > 0 && <p className="text-2xs text-danger">{blocking.join('; ')}</p>}
         </div>
       )}
 
       {editable && canSaveTheme && onSaveTheme && (
-        <div className="flex items-end gap-1 border-t pt-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="flex items-end gap-1 border-t pt-3 border-border">
           <div className="flex-1">
             <Label htmlFor={`${idPrefix}-savename`}>Save as a reusable form theme</Label>
-            <input id={`${idPrefix}-savename`} className={inputClass} style={inputStyle} placeholder="Theme name" value={saveName} onChange={(e) => setSaveName(e.target.value)} />
+            <input id={`${idPrefix}-savename`} className={inputClass} placeholder="Theme name" value={saveName} onChange={(e) => setSaveName(e.target.value)} />
           </div>
           <button
             type="button"
             disabled={!saveName.trim() || saveState.busy || blocking.length > 0}
-            onClick={async () => {
+            onClick={() => saveGuard.run(async () => {
               setSaveState({ busy: true })
               const result = await onSaveTheme(saveName.trim(), overrides)
               if ('error' in result) setSaveState({ busy: false, error: result.error })
               else { setSaveState({ busy: false, saved: true }); setSaveName(''); onChange({ source: 'saved', theme_id: result.id }) }
-            }}
-            className="flex h-8 items-center gap-1 rounded-md border px-2 text-[10px] font-medium disabled:opacity-40"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            })}
+            className="flex h-8 items-center gap-1 rounded-md border px-2 text-2xs font-medium disabled:opacity-40 border-border text-fg"
           >
             <Save size={11} /> {saveState.busy ? 'Saving…' : 'Save theme'}
           </button>
         </div>
       )}
-      {saveState.error && <p className="text-[10px]" style={{ color: 'var(--status-blocked)' }}>{saveState.error}</p>}
+      {saveState.error && <p className="text-2xs text-danger">{saveState.error}</p>}
     </div>
   )
 }

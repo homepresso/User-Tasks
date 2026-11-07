@@ -1,0 +1,289 @@
+/* ─── Form animations (lib/forms/motion.ts, components/forms/form-motion.tsx) ───
+   Keyed off data-form-motion (none | subtle | expressive | reduced) and
+   data-fm-on (anything but none) on a form's card, grid, pager, banner stack
+   or Submitted page. Only transform and opacity animate, plus the row height
+   of a collapse (grid-template-rows). Fills are `backwards`: once an animation
+   ends nothing stays applied (no lingering transform, stacking context or
+   containing block). Elements are interactive from the first frame. */
+
+[data-form-motion="subtle"] {
+  --fm-ease: var(--ds-ease-out);
+  --fm-card-dur: 240ms;
+  --fm-card-rise: 6px;
+  --fm-card-scale: 1;
+  --fm-field-dur: 200ms;
+  --fm-field-rise: 4px;
+  --fm-step: 24ms;
+  --fm-page-dur: 220ms;
+  --fm-slide: 12px;
+  --fm-collapse-dur: 200ms;
+  --fm-fade-dur: 180ms;
+  --fm-shake: 3px;
+  --fm-press: 0.98;
+  --fm-gate-dur: 200ms;
+}
+
+[data-form-motion="expressive"] {
+  --fm-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --fm-card-dur: 420ms;
+  --fm-card-rise: 16px;
+  --fm-card-scale: 0.97;
+  --fm-field-dur: 320ms;
+  --fm-field-rise: 10px;
+  --fm-step: 40ms;
+  --fm-page-dur: 340ms;
+  --fm-slide: 32px;
+  --fm-collapse-dur: 280ms;
+  --fm-fade-dur: 240ms;
+  --fm-shake: 5px;
+  --fm-press: 0.96;
+  --fm-gate-dur: 320ms;
+}
+
+/* Reduced motion: opacity only — no movement, no stagger, no height animation. */
+[data-form-motion="reduced"] {
+  --fm-ease: ease-out;
+  --fm-card-dur: 160ms;
+  --fm-card-rise: 0px;
+  --fm-card-scale: 1;
+  --fm-field-dur: 160ms;
+  --fm-field-rise: 0px;
+  --fm-step: 0ms;
+  --fm-page-dur: 160ms;
+  --fm-slide: 0px;
+  --fm-collapse-dur: 0ms;
+  --fm-fade-dur: 160ms;
+  --fm-shake: 0px;
+  --fm-press: 1;
+  --fm-gate-dur: 160ms;
+}
+
+[data-form-motion="none"] { --fm-gate-dur: 0ms; }
+
+/* The first paint before hydration knows the style but not the preference. */
+@media (prefers-reduced-motion: reduce) {
+  [data-form-motion="subtle"], [data-form-motion="expressive"] {
+    --fm-ease: ease-out;
+    --fm-card-rise: 0px;
+    --fm-card-scale: 1;
+    --fm-field-rise: 0px;
+    --fm-step: 0ms;
+    --fm-slide: 0px;
+    --fm-collapse-dur: 0ms;
+    --fm-shake: 0px;
+    --fm-press: 1;
+  }
+}
+
+@keyframes fm-card {
+  from { opacity: 0; transform: translateY(var(--fm-card-rise, 6px)) scale(var(--fm-card-scale, 1)); }
+}
+@keyframes fm-rise {
+  from { opacity: 0; transform: translateY(var(--fm-field-rise, 4px)); }
+}
+@keyframes fm-drop {
+  from { opacity: 0; transform: translateY(calc(-1 * var(--fm-field-rise, 4px))); }
+}
+@keyframes fm-fade {
+  from { opacity: 0; }
+}
+@keyframes fm-leave {
+  to { opacity: 0; transform: translateY(calc(-1 * var(--fm-field-rise, 4px))); }
+}
+@keyframes fm-page-forward {
+  from { opacity: 0; transform: translateX(var(--fm-slide, 12px)); }
+}
+@keyframes fm-page-back {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--fm-slide, 12px))); }
+}
+@keyframes fm-expand {
+  from { grid-template-rows: 0fr; }
+}
+@keyframes fm-collapse-out {
+  from { grid-template-rows: 1fr; opacity: 1; }
+  to { grid-template-rows: 0fr; opacity: 0; }
+}
+/* Clips a revealing cell to its growing row (only while it runs: no stacking context after). */
+@keyframes fm-clip {
+  from, to { clip-path: inset(0); }
+}
+@keyframes fm-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(calc(-1 * var(--fm-shake, 3px))); }
+  40% { transform: translateX(var(--fm-shake, 3px)); }
+  60% { transform: translateX(calc(-0.6 * var(--fm-shake, 3px))); }
+  80% { transform: translateX(calc(0.6 * var(--fm-shake, 3px))); }
+}
+@keyframes fm-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes fm-draw {
+  from { stroke-dashoffset: 80; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes fm-confetti {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+  10% { opacity: 1; }
+  45% { transform: translate(calc(var(--dx) * 0.7), var(--dy)) rotate(calc(var(--r) * 0.5)); }
+  100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 140px)) rotate(var(--r)); }
+}
+
+/* ── Load: the card rises in, fields follow (staggered on short forms) ── */
+
+[data-fm-on][data-fm-card] {
+  animation: fm-card var(--fm-card-dur) var(--fm-ease) backwards;
+}
+[data-fm-on] [data-fm="enter"] {
+  animation: fm-rise var(--fm-field-dur) var(--fm-ease) backwards;
+  animation-delay: calc(var(--fm-i, 0) * var(--fm-step) + 40ms);
+}
+
+/* ── Show / hide (rules, sections added): the row grows / shrinks, the content fades ── */
+
+[data-fm-on] [data-fm="reveal"] {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: fm-expand var(--fm-collapse-dur) var(--ds-ease-standard) backwards, fm-fade var(--fm-fade-dur) ease-out backwards;
+}
+[data-fm-on] [data-fm="reveal"] > * {
+  min-height: 0;
+  animation: fm-clip var(--fm-collapse-dur) linear;
+}
+[data-fm-on] [data-fm="exit"] {
+  display: grid;
+  animation: fm-collapse-out var(--fm-collapse-dur) var(--ds-ease-standard) forwards;
+  pointer-events: none;
+}
+[data-form-motion="reduced"] [data-fm="exit"] {
+  animation: fm-fade var(--fm-fade-dur) ease-out reverse forwards;
+}
+[data-fm-on] [data-fm="exit"] > * {
+  min-height: 0;
+  overflow: hidden;
+}
+[data-fm-on] [data-fm="fade"] {
+  animation: fm-rise var(--fm-field-dur) var(--fm-ease) backwards;
+}
+
+/* Sections: expand / collapse with the grid-rows trick (no height measuring). */
+.fm-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--fm-collapse-dur, 0ms) var(--ds-ease-standard), opacity var(--fm-fade-dur, 0ms) ease-out, visibility 0s;
+}
+.fm-collapse > * { min-height: 0; }
+.fm-collapse[data-open="true"] > * { animation: fm-clip var(--fm-collapse-dur, 0ms) linear; }
+.fm-collapse[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows var(--fm-collapse-dur, 0ms) var(--ds-ease-standard), opacity var(--fm-fade-dur, 0ms) ease-out, visibility 0s linear var(--fm-collapse-dur, 0ms);
+}
+.fm-collapse[data-open="false"] > * { overflow: hidden; }
+
+/* ── Steps / tabs: slide in the direction of travel ── */
+
+[data-fm-on] [data-form-pages] { overflow-x: clip; overflow-clip-margin: 8px; }
+[data-fm-on] [data-fm-page="forward"] { animation: fm-page-forward var(--fm-page-dur) var(--fm-ease) backwards; }
+[data-fm-on] [data-fm-page="back"] { animation: fm-page-back var(--fm-page-dur) var(--fm-ease) backwards; }
+
+/* ── Lazy parts: the skeleton shimmers (.ds-skeleton), the loaded controls fade up ── */
+
+[data-fm-on] [data-lazy-loaded] { animation: fm-rise var(--fm-field-dur) var(--fm-ease) backwards; }
+
+/* ── Banners, questions and button messages ── */
+
+[data-fm-on] :is([data-form-banner], [data-form-prompt="banner"], [data-form-message]) {
+  animation: fm-drop var(--fm-field-dur) var(--fm-ease) backwards;
+}
+[data-fm-on] [data-fm-leaving] {
+  animation: fm-leave var(--fm-fade-dur) ease-in forwards;
+  pointer-events: none;
+}
+
+/* ── Validation: a short shake on the control, the error text fades in ── */
+
+[data-fm-on] :is(input, select, textarea, [role="combobox"], [role="radiogroup"], [role="group"], [data-fm-field])[aria-invalid="true"] {
+  animation: fm-shake 320ms ease-in-out;
+}
+[data-fm-on] [role="alert"][id$="-error"] {
+  animation: fm-drop var(--fm-fade-dur) ease-out backwards;
+}
+
+/* ── Buttons: a press state (the submit spinner is the Button's own) ── */
+
+[data-fm-on] :is([data-form-button], [data-step-nav] button, [data-form-success-action], [data-field-button] button) {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--ds-dur-fast);
+}
+[data-fm-on] :is([data-form-button], [data-step-nav] button, [data-form-success-action], [data-field-button] button):active:not(:disabled) {
+  transform: scale(var(--fm-press, 0.98));
+  transition-duration: var(--ds-dur-instant);
+}
+
+/* ── Data table field: rows fade in on load and page change ── */
+
+[data-fm-on] [data-fm-table] tbody tr {
+  animation: fm-fade var(--fm-fade-dur) ease-out backwards;
+}
+[data-fm-on] [data-fm-table] tbody tr:nth-child(2) { animation-delay: calc(var(--fm-step) * 0.75); }
+[data-fm-on] [data-fm-table] tbody tr:nth-child(3) { animation-delay: calc(var(--fm-step) * 1.5); }
+[data-fm-on] [data-fm-table] tbody tr:nth-child(4) { animation-delay: calc(var(--fm-step) * 2.25); }
+[data-fm-on] [data-fm-table] tbody tr:nth-child(n+5) { animation-delay: calc(var(--fm-step) * 3); }
+
+/* ── Submitted page ── */
+
+/* Surfaces without a form animation keep the page's own entrance (globals.css). */
+[data-form-motion="none"].submitted-page-enter, [data-form-motion="none"] .submitted-page-enter,
+[data-form-motion="none"].submitted-page-enter .submitted-page-icon, [data-form-motion="none"] .submitted-page-enter .submitted-page-icon {
+  animation: none !important;
+}
+[data-fm-on].submitted-page-enter { animation: fm-card var(--fm-card-dur) var(--fm-ease) backwards !important; }
+[data-fm-on].submitted-page-enter .submitted-page-icon { animation: fm-pop calc(var(--fm-card-dur) + 140ms) 60ms var(--fm-ease) backwards !important; }
+[data-fm-on].submitted-page-enter :is([data-submitted-heading], [data-submitted-subheading]) {
+  animation: fm-rise var(--fm-field-dur) var(--fm-ease) backwards;
+  animation-delay: calc(var(--fm-card-dur) * 0.6);
+}
+[data-fm-on].submitted-page-enter [data-submitted-subheading] { animation-delay: calc(var(--fm-card-dur) * 0.6 + 60ms); }
+[data-fm-on].submitted-page-enter :is([data-submitted-summary], [data-submitted-note], [data-submitted-buttons]) {
+  animation: fm-fade var(--fm-fade-dur) ease-out backwards;
+  animation-delay: calc(var(--fm-card-dur) * 0.8);
+}
+/* Expressive: the icon's strokes draw in. */
+[data-form-motion="expressive"].submitted-page-enter .submitted-page-icon svg :is(path, circle, polyline, line, rect) {
+  stroke-dasharray: 80;
+  animation: fm-draw 520ms 160ms ease-out backwards;
+}
+[data-form-motion="reduced"].submitted-page-enter .submitted-page-icon { animation: fm-fade var(--fm-fade-dur) ease-out backwards !important; }
+
+.fm-confetti {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0;
+  top: 2.5rem;
+  pointer-events: none;
+  overflow: visible;
+}
+.fm-confetti-piece {
+  position: absolute;
+  top: 0;
+  border-radius: 1px;
+  opacity: 0;
+  background: var(--theme-primary);
+  animation: fm-confetti 1400ms cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+.fm-confetti-dot { border-radius: 9999px; }
+.fm-confetti-piece[data-c="1"] { background: var(--theme-success, var(--status-done, #16a34a)); }
+.fm-confetti-piece[data-c="2"] { background: var(--theme-warning, #f59e0b); }
+.fm-confetti-piece[data-c="3"] { background: var(--theme-info, #3b82f6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-confetti { display: none; }
+  [data-fm-on].submitted-page-enter .submitted-page-icon { animation: fm-fade 160ms ease-out backwards !important; }
+  [data-fm-on].submitted-page-enter .submitted-page-icon svg :is(path, circle, polyline, line, rect) { animation: none; }
+  [data-fm-on] :is(input, select, textarea, [role="combobox"], [role="radiogroup"], [role="group"], [data-fm-field])[aria-invalid="true"] { animation: none; }
+  [data-fm-on] [data-fm="reveal"] { animation: fm-fade var(--fm-fade-dur) ease-out backwards; }
+  [data-fm-on] [data-fm="reveal"] > * { animation: none; }
+}

@@ -1,0 +1,255 @@
+{
+  "id": "0c2b53ff-281d-4307-8aba-b7246d07ca0f",
+  "asset_id": "e784cf88-ce7d-4428-9d69-4260e3d52e97",
+  "slug": "saved-report",
+  "title": "Saved report",
+  "kind": "display",
+  "summary": "Show a saved report inside a form as a sortable, paginated table or chart, with the permissions of the person filling it in. Optionally pick a row.",
+  "description": "Bring the numbers someone needs into the form where they make the decision: open invoices on a payment approval, a customer's recent orders on a refund request, this month's incidents on a weekly review. Choose any saved report from Reports and the control runs it with the permissions of the person filling in the form, so people only ever see what they could already see in Reports: their own or shared reports, with their row-level rules.\n\nThe table sorts by any column, pages through the rows (\"Rows 11-20 of 57\"), formats numbers and dates for the reader's locale and scrolls sideways inside its own frame on a phone. Reports saved as a bar, line, area or pie chart open as that chart, with a Table switch for every value. Turn on Selectable rows and picking a row makes it the field's value, so the workflow can carry the chosen invoice or order forward.",
+  "icon": "table",
+  "tags": [
+    "report",
+    "table",
+    "dashboard",
+    "data"
+  ],
+  "version": "1.1.0",
+  "changelog": [{ "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: the picked row as an object (unchanged)." },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Open invoices beside a payment approval",
+    "A customer's recent orders on a refund or complaint form, picking the order in question",
+    "This week's incidents or tickets on a review step"
+  ],
+  "setup": [
+    "Install the package: Saved report appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Open the report in Reports and copy its id from the address bar.",
+    "Drag Saved report onto a form and paste the id into Saved report (report_id). Share the report with the people who fill in the form — they only see reports that are theirs or shared with them.",
+    "Optionally choose the view, rows per page and Selectable rows."
+  ],
+  "systems": [],
+  "preview": {
+    "props": {
+      "report_id": "rep-42",
+      "selectable": true
+    },
+    "value": {
+      "invoice": "INV-1042",
+      "customer": "Kiwi Foods",
+      "status": "Paid",
+      "amount": 1088.5,
+      "due": "2026-11-03"
+    },
+    "label": "Outstanding invoices",
+    "height": 520,
+    "context": {},
+    "fixtures": {
+      "report": {
+        "report": {
+          "id": "rep-42",
+          "name": "Invoices due this month",
+          "description": "Unpaid invoices from the Finance table",
+          "visualization": "table"
+        },
+        "columns": [
+          {
+            "key": "invoice",
+            "label": "Invoice",
+            "type": "text"
+          },
+          {
+            "key": "customer",
+            "label": "Customer",
+            "type": "text"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "text"
+          },
+          {
+            "key": "amount",
+            "label": "Amount",
+            "type": "number"
+          },
+          {
+            "key": "due",
+            "label": "Due",
+            "type": "date"
+          }
+        ],
+        "rows": [
+          {
+            "invoice": "INV-1040",
+            "customer": "Acme Ltd",
+            "status": "Open",
+            "amount": 250.5,
+            "due": "2026-11-01"
+          },
+          {
+            "invoice": "INV-1041",
+            "customer": "Bluebird Co",
+            "status": "Approved",
+            "amount": 3169.5,
+            "due": "2026-11-02"
+          },
+          {
+            "invoice": "INV-1042",
+            "customer": "Kiwi Foods",
+            "status": "Paid",
+            "amount": 1088.5,
+            "due": "2026-11-03"
+          },
+          {
+            "invoice": "INV-1043",
+            "customer": "Harbour Health",
+            "status": "Open",
+            "amount": 4007.5,
+            "due": "2026-11-04"
+          },
+          {
+            "invoice": "INV-1044",
+            "customer": "Summit Legal",
+            "status": "Approved",
+            "amount": 1926.5,
+            "due": "2026-11-05"
+          },
+          {
+            "invoice": "INV-1045",
+            "customer": "Tui Tech",
+            "status": "Paid",
+            "amount": 4845.5,
+            "due": "2026-11-06"
+          },
+          {
+            "invoice": "INV-1046",
+            "customer": "Orbit Media",
+            "status": "Open",
+            "amount": 2764.5,
+            "due": "2026-11-07"
+          },
+          {
+            "invoice": "INV-1047",
+            "customer": "Acme Ltd",
+            "status": "Approved",
+            "amount": 683.5,
+            "due": "2026-11-08"
+          },
+          {
+            "invoice": "INV-1048",
+            "customer": "Bluebird Co",
+            "status": "Paid",
+            "amount": 3602.5,
+            "due": "2026-11-09"
+          },
+          {
+            "invoice": "INV-1049",
+            "customer": "Kiwi Foods",
+            "status": "Open",
+            "amount": 1521.5,
+            "due": "2026-11-10"
+          },
+          {
+            "invoice": "INV-1050",
+            "customer": "Harbour Health",
+            "status": "Approved",
+            "amount": 4440.5,
+            "due": "2026-11-11"
+          },
+          {
+            "invoice": "INV-1051",
+            "customer": "Summit Legal",
+            "status": "Paid",
+            "amount": 2359.5,
+            "due": "2026-11-12"
+          },
+          {
+            "invoice": "INV-1052",
+            "customer": "Tui Tech",
+            "status": "Open",
+            "amount": 278.5,
+            "due": "2026-11-13"
+          },
+          {
+            "invoice": "INV-1053",
+            "customer": "Orbit Media",
+            "status": "Approved",
+            "amount": 3197.5,
+            "due": "2026-11-14"
+          },
+          {
+            "invoice": "INV-1054",
+            "customer": "Acme Ltd",
+            "status": "Paid",
+            "amount": 1116.5,
+            "due": "2026-11-15"
+          },
+          {
+            "invoice": "INV-1055",
+            "customer": "Bluebird Co",
+            "status": "Open",
+            "amount": 4035.5,
+            "due": "2026-11-16"
+          },
+          {
+            "invoice": "INV-1056",
+            "customer": "Kiwi Foods",
+            "status": "Approved",
+            "amount": 1954.5,
+            "due": "2026-11-17"
+          },
+          {
+            "invoice": "INV-1057",
+            "customer": "Harbour Health",
+            "status": "Paid",
+            "amount": 4873.5,
+            "due": "2026-11-18"
+          },
+          {
+            "invoice": "INV-1058",
+            "customer": "Summit Legal",
+            "status": "Open",
+            "amount": 2792.5,
+            "due": "2026-11-19"
+          },
+          {
+            "invoice": "INV-1059",
+            "customer": "Tui Tech",
+            "status": "Approved",
+            "amount": 711.5,
+            "due": "2026-11-20"
+          },
+          {
+            "invoice": "INV-1060",
+            "customer": "Orbit Media",
+            "status": "Paid",
+            "amount": 3630.5,
+            "due": "2026-11-21"
+          },
+          {
+            "invoice": "INV-1061",
+            "customer": "Acme Ltd",
+            "status": "Open",
+            "amount": 1549.5,
+            "due": "2026-11-22"
+          },
+          {
+            "invoice": "INV-1062",
+            "customer": "Bluebird Co",
+            "status": "Approved",
+            "amount": 4468.5,
+            "due": "2026-11-23"
+          }
+        ],
+        "total": 23,
+        "truncated": false
+      }
+    },
+    "note": "Sample report data; sort by a column or select a row."
+  }
+}

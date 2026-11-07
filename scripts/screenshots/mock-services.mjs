@@ -9,7 +9,12 @@
  *     GET  /vendors/:id        vendor master record (V-1099 hangs past the
  *                              engine's 30 s HTTP timeout and then answers 500,
  *                              so one invoice run fails realistically)
+ *     GET  /vendors            vendor list: ?q= (name / id), ?country=, ?sort= &dir=,
+ *                              ?page= &page_size= → { vendors, total, page } (Data table demos)
  *     POST /payments           schedules a payment → 201 { payment_id, … }
+ *     POST /vendor-updates     receives one changed vendor (Data table "for each
+ *                              changed row" demos) → 200 { ok, received }; vendor_id
+ *                              V-1099 answers 422 so a per-row failure can be shown
  * - Splunk HTTP Event Collector
  *     POST /services/collector/event  → {"text":"Success","code":0}
  * - Generic webhook receiver
@@ -80,7 +85,25 @@ const server = createServer(async (req, res) => {
     if (VENDORS[id]) return send(res, 200, VENDORS[id])
     return send(res, 404, { error: `Vendor ${id} not found` })
   }
-  if (path === '/vendors' && req.method === 'GET') return send(res, 200, { vendors: Object.values(VENDORS) })
+  if (path === '/vendors' && req.method === 'GET') {
+    const q = (url.searchParams.get('q') ?? '').toLowerCase()
+    const country = url.searchParams.get('country') ?? ''
+    const sort = url.searchParams.get('sort') ?? ''
+    const dir = url.searchParams.get('dir') === 'desc' ? -1 : 1
+    let list = Object.values(VENDORS).filter((v) => (!q || `${v.id} ${v.name}`.toLowerCase().includes(q)) && (!country || v.country === country))
+    if (sort && list.length && sort in list[0]) list = [...list].sort((a, b) => (a[sort] > b[sort] ? 1 : a[sort] < b[sort] ? -1 : 0) * dir)
+    const total = list.length
+    const size = Math.min(Math.max(Number(url.searchParams.get('page_size')) || total || 1, 1), 100)
+    const page = Math.max(Number(url.searchParams.get('page')) || 1, 1)
+    return send(res, 200, { vendors: list.slice((page - 1) * size, page * size), total, page })
+  }
+  if (path === '/vendor-updates' && req.method === 'POST') {
+    stats.vendor_updates = (stats.vendor_updates ?? 0) + 1
+    let input = {}
+    try { input = JSON.parse(body || '{}') } catch { /* keep empty */ }
+    if (input.vendor_id === FAILING_VENDOR) return send(res, 422, { error: `Vendor ${FAILING_VENDOR} is locked in the ERP` })
+    return send(res, 200, { ok: true, received: input })
+  }
 
   if (path === '/payments' && req.method === 'POST') {
     stats.payments++

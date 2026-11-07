@@ -36,11 +36,21 @@ export const postgresConnector: ConnectorDefinition = {
       label: 'SSL Mode',
       type: 'select',
       options: [
-        { value: 'require', label: 'Require SSL' },
-        { value: 'prefer', label: 'Prefer SSL' },
+        { value: 'verify-full', label: 'Verify certificate (recommended)' },
+        { value: 'require', label: 'Require SSL (no certificate check)' },
+        { value: 'prefer', label: 'Prefer SSL (no certificate check)' },
         { value: 'disable', label: 'Disable SSL' },
       ],
-      defaultValue: 'require',
+      defaultValue: 'verify-full',
+      helpText: 'Verify checks the server certificate and host name. Providers with their own CA (Amazon RDS, Supabase, self-signed): paste the CA certificate below.',
+    },
+    {
+      key: 'ca_cert',
+      label: 'CA Certificate (optional, PEM)',
+      type: 'textarea',
+      placeholder: '-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----',
+      visibleWhen: { field: 'ssl', in: ['verify-full'] },
+      helpText: 'Only needed when the server certificate is not signed by a public CA.',
     },
   ],
   credentialFields: [
@@ -251,7 +261,9 @@ export const postgresConnector: ConnectorDefinition = {
       host: config.host,
       port: String(config.port || 5432),
       database: config.database,
+      // Stored connectors without the setting keep 'require' (no certificate check).
       ssl: config.ssl || 'require',
+      ...(config.ca_cert ? { ca_cert: String(config.ca_cert) } : {}),
     },
   }),
 }

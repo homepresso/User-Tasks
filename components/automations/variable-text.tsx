@@ -35,7 +35,7 @@ const TOKEN_RE = /\{\{\s*(=\s*)?([^{}]+?)\s*\}\}/g
 
 export function VariableText({ text, className = '', block = false, maxLength }: VariableTextProps) {
   if (text == null) {
-    return <span className={className} style={{ color: 'var(--theme-muted-text)' }}>—</span>
+    return <span className={`text-fg-muted ${className}`.trim()}>—</span>
   }
 
   const display = typeof text === 'string' ? text : String(text)
@@ -102,13 +102,14 @@ function VariablePill({ value, isExpression }: { value: string; isExpression?: b
   // relying on a non-standard borderOpacity prop (which TS rejects).
   // Theme-aware violet (blends toward card text) so expressions read on both
   // light and fully-dark themes — matches variable-input.tsx.
-  const bg = isExpression ? 'color-mix(in srgb, #7D5B7A 20%, transparent)' : 'var(--theme-primary-light)'
-  const fg = isExpression ? 'color-mix(in srgb, #7D5B7A 55%, var(--theme-card-text))' : 'var(--theme-primary-text)'
-  const border = isExpression ? 'color-mix(in srgb, #7D5B7A 45%, transparent)' : 'color-mix(in srgb, var(--theme-accent) 40%, transparent)'
+  // Expression violet is the theme's chart-6 hue (was a raw #7D5B7A).
+  const bg = isExpression ? 'color-mix(in srgb, var(--theme-chart-6) 20%, transparent)' : 'var(--theme-primary-light)'
+  const fg = isExpression ? 'color-mix(in srgb, var(--theme-chart-6) 55%, var(--theme-card-text))' : 'var(--theme-primary-text)'
+  const border = isExpression ? 'color-mix(in srgb, var(--theme-chart-6) 45%, transparent)' : 'color-mix(in srgb, var(--theme-accent) 40%, transparent)'
   const label = isExpression ? `ƒ ${value}` : value
   return (
     <span
-      className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md font-mono text-[10px] font-semibold align-middle whitespace-nowrap"
+      className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md font-mono text-2xs font-medium align-middle whitespace-nowrap"
       style={{
         backgroundColor: bg,
         color: fg,

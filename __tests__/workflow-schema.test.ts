@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest'
-import { NODE_CATALOG, createDefaultNode, type NodeType } from '@/lib/workflow-schema'
+import { NODE_CATALOG, NODE_COLOR_CATEGORIES, createDefaultNode, nodeColorCategory, nodeColorTextVar, nodeColorVar, type NodeType } from '@/lib/workflow-schema'
+
+describe('node colour categories (theme tokens)', () => {
+  it('every catalog entry has a category that resolves to a theme chart token', () => {
+    for (const entry of NODE_CATALOG) {
+      const category = nodeColorCategory(entry.type)
+      expect(NODE_COLOR_CATEGORIES).toContain(category)
+      expect(nodeColorVar(category)).toMatch(/^var\(--ds-node-[a-z]+, var\(--theme-chart-\d+\)\)$/)
+      expect(nodeColorTextVar(category)).toMatch(/--theme-chart-\d+-text/)
+    }
+  })
+
+  it('groups steps by the kind of work they do', () => {
+    expect(nodeColorCategory('webhook_received')).toBe('trigger')
+    expect(nodeColorCategory('http_request')).toBe('action')
+    expect(nodeColorCategory('condition')).toBe('logic')
+    expect(nodeColorCategory('user_task')).toBe('human')
+    expect(nodeColorCategory('run_agent')).toBe('ai')
+    expect(nodeColorCategory('set_variable')).toBe('data')
+    expect(nodeColorCategory('end_workflow')).toBe('end')
+  })
+})
 
 describe('NODE_CATALOG', () => {
   it('has entries for all categories', () => {
@@ -9,6 +30,16 @@ describe('NODE_CATALOG', () => {
     expect(categories).toContain('operation')
     expect(categories).toContain('collection')
     expect(categories).toContain('action')
+  })
+
+  it('describes the task triggers in unified-task-list terms (queued or added)', () => {
+    const description = (type: string) => NODE_CATALOG.find((n) => n.type === type)?.description
+    expect(description('task_received')).toBe('When a task is assigned (queued or added)')
+    expect(description('task_rejected')).toBe('When an assignee declines a queued task')
+  })
+
+  it('leaves a new User Task on the assignee\'s queue rules (no queue_behaviour)', () => {
+    expect(createDefaultNode('user_task').config.queue_behaviour).toBeUndefined()
   })
 
   it('has unique type values', () => {

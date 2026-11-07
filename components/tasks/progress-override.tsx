@@ -4,7 +4,9 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Check, X, RotateCcw } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { IconButton } from '@/components/ui/icon-button'
+import { plural } from '@/lib/format/plural'
 import { updateTaskField } from '@/app/actions/tasks'
 
 interface ProgressOverrideProps {
@@ -81,38 +83,29 @@ export function ProgressOverride({
     try {
       await updateTaskField(taskId, 'progress_pct', null)
       queryClient.invalidateQueries({ queryKey: ['task-tree', taskId] })
-    } catch (err) {
-}
+    } catch {
+      /* the next refresh shows the stored value */
+    }
   }
 
   return (
-    <div className="mt-5 mb-2">
-      <div className="flex flex-wrap items-center justify-between gap-y-1 mb-2">
+    <div className="mb-2" data-task-progress>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-y-1">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-medium" style={{ color: 'var(--theme-muted-text)' }}>
-            Progress
-          </p>
-          {saving && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-              Saving...
-            </span>
-          )}
-          {!saving && isOverridden && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
-              Manual override
-            </span>
-          )}
+          <p className="text-xs font-medium text-fg-muted">Progress</p>
+          {saving && <Badge tone="brand">Saving…</Badge>}
+          {!saving && isOverridden && <Badge tone="warning">Manual override</Badge>}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {totalSubtasks > 0 && (
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-              {completedSubtasks} of {totalSubtasks} subtasks
+            <p className="num text-xs text-fg-muted">
+              {completedSubtasks} of {plural(totalSubtasks, 'subtask')}
             </p>
           )}
 
           {editing ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <input
                 type="range"
                 min="0"
@@ -120,52 +113,34 @@ export function ProgressOverride({
                 step="5"
                 value={value || 0}
                 onChange={(e) => handleSliderChange(e.target.value)}
-                className="w-28 h-1.5 accent-[color:var(--theme-primary)] cursor-pointer"
+                aria-label="Progress"
+                className="h-1.5 w-28 cursor-pointer accent-[color:var(--theme-primary)]"
               />
-              <span className="text-xs font-semibold w-8 text-right" style={{ color: 'var(--theme-card-text)' }}>
-                {value || 0}%
-              </span>
-              <button onClick={saveOverride}
-                className="p-0.5 text-[color:var(--theme-card-text)] hover:text-[color:var(--theme-card-text)]">
-                <Check size={14} />
-              </button>
-              <button onClick={() => setEditing(false)}
-                className="p-0.5 text-gray-400 hover:text-gray-600">
-                <X size={14} />
-              </button>
+              <span className="num w-9 text-right text-xs font-semibold text-fg">{value || 0}%</span>
+              <IconButton size="sm" label="Save progress" icon={<Check />} onClick={saveOverride} />
+              <IconButton size="sm" label="Cancel" icon={<X />} onClick={() => setEditing(false)} />
               {isOverridden && (
-                <button onClick={clearOverride}
-                  className="p-0.5 text-amber-500 hover:text-amber-600"
-                  title="Reset to subtask progress">
-                  <RotateCcw size={14} />
-                </button>
+                <IconButton size="sm" label="Reset to subtask progress" icon={<RotateCcw />} onClick={clearOverride} />
               )}
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => {
                 setValue(String(displayProgress))
                 setEditing(true)
               }}
-              className="flex items-center gap-1 text-xs font-medium rounded px-1.5 py-0.5
-                hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              style={{ color: 'var(--theme-primary-text)' }}
+              aria-label={`Edit progress: ${displayProgress}%`}
+              className="flex cursor-text items-center gap-1 rounded-md px-1.5 py-0.5 text-fg transition-colors hover:bg-subtle"
             >
-              <span className={cn(
-                "text-sm font-semibold",
-                displayProgress === 100 ? "text-[color:var(--theme-card-text)]" : ""
-              )}
-                style={displayProgress < 100 ? { color: 'var(--theme-card-text)' } : undefined}
-              >
-                {displayProgress}%
-              </span>
-              <Pencil size={10} />
+              <span className="num text-sm font-semibold decoration-fg-subtle decoration-dotted underline-offset-4 hover:underline">{displayProgress}%</span>
+              <Pencil className="size-3 text-fg-muted" aria-hidden />
             </button>
           )}
         </div>
       </div>
 
-      <ProgressBar value={displayProgress} />
+      <ProgressBar value={displayProgress} label="Task progress" />
     </div>
   )
 }

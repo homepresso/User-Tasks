@@ -1,0 +1,616 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "2ba3537c-79e1-5801-968f-dfdd0c5b0b02",
+  "asset": {
+    "id": "2ba3537c-79e1-5801-968f-dfdd0c5b0b02",
+    "name": "Vendor applications",
+    "description": "Every vendor application in one Data table: formatted dates, NZD amounts and risk / status badges, search, filters and sorting on the server, the last 12 months as a base filter. Click a row to open its details tab; edit a status or note and Save changes writes them back to the Vendor applications table (for each changed row).",
+    "tags": [
+      "vendors",
+      "onboarding",
+      "register"
+    ],
+    "fields": [
+      {
+        "key": "intro",
+        "label": "Applications from the last 12 months. Click a row to open its details; double-click a Status or Notes cell to change it, then Save changes.",
+        "type": "heading"
+      },
+      {
+        "key": "applications",
+        "label": "Vendor applications",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "mode": "edit",
+          "key_column": "row_id",
+          "allow_add": false,
+          "allow_delete": false,
+          "columns": [
+            {
+              "key": "application_ref",
+              "label": "Application",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "hidden": true
+            },
+            {
+              "key": "submitted_on",
+              "label": "Submitted",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "legal_name",
+              "label": "Vendor",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "key": "country",
+              "label": "Country",
+              "type": "text",
+              "read_only": true,
+              "filterable": true,
+              "width": 90,
+              "hidden": true
+            },
+            {
+              "key": "spend_category",
+              "label": "Category",
+              "type": "choice",
+              "read_only": true,
+              "filterable": true,
+              "options": [
+                "Logistics",
+                "IT hardware",
+                "Software",
+                "Professional services",
+                "Facilities",
+                "Marketing",
+                "Raw materials"
+              ],
+              "hidden": true
+            },
+            {
+              "key": "expected_annual_spend",
+              "label": "Annual spend",
+              "type": "number",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "currency",
+                "currency": "NZD",
+                "decimals": 0
+              }
+            },
+            {
+              "key": "risk_tier",
+              "label": "Risk",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "pending",
+                "low",
+                "medium",
+                "high",
+                "blocked"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "pending",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "low",
+                    "color": "green"
+                  },
+                  {
+                    "value": "medium",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "high",
+                    "color": "red"
+                  },
+                  {
+                    "value": "blocked",
+                    "color": "gray"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Submitted",
+                "Screening",
+                "Compliance review",
+                "Bank verification",
+                "Approved",
+                "Declined"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Submitted",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Screening",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Compliance review",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Bank verification",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Approved",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Declined",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "decision_notes",
+              "label": "Notes",
+              "type": "text",
+              "max_length": 500,
+              "format": {
+                "kind": "text",
+                "max_length": 60
+              }
+            },
+            {
+              "key": "registration_number",
+              "label": "Registration number",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "contact_email",
+              "label": "Vendor contact",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "requester_email",
+              "label": "Requested by",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "risk_score",
+              "label": "Risk score",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "vendor_id",
+              "label": "ERP vendor id",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "next_review_date",
+              "label": "Next re-screen",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "submitted_on",
+                "operator": "gte",
+                "value": "{{today-12m}}"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "submitted_on",
+              "direction": "desc"
+            }
+          ],
+          "page_size": 10,
+          "searchable": true
+        }
+      },
+      {
+        "key": "save_changes",
+        "label": "Save changes",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "apply_table_changes",
+              "table_changes": {
+                "field": "applications",
+                "kinds": [
+                  "updated"
+                ],
+                "target": "table",
+                "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+                "operation": "update",
+                "match_column": "row_id",
+                "match_value": "{{key}}",
+                "mapping": {
+                  "status": "{{row.status}}",
+                  "decision_notes": "{{row.decision_notes}}"
+                },
+                "on_error": "continue"
+              }
+            }
+          ],
+          "icon": "save",
+          "align": "right"
+        }
+      },
+      {
+        "key": "d_hint",
+        "label": "Pick an application on the Applications tab to see it here.",
+        "type": "heading"
+      },
+      {
+        "key": "d_ref",
+        "label": "Application",
+        "type": "text"
+      },
+      {
+        "key": "d_status",
+        "label": "Status",
+        "type": "text"
+      },
+      {
+        "key": "d_legal_name",
+        "label": "Vendor",
+        "type": "text"
+      },
+      {
+        "key": "d_registration",
+        "label": "Registration number",
+        "type": "text"
+      },
+      {
+        "key": "d_country",
+        "label": "Country",
+        "type": "text"
+      },
+      {
+        "key": "d_category",
+        "label": "Spend category",
+        "type": "text"
+      },
+      {
+        "key": "d_spend",
+        "label": "Expected annual spend",
+        "type": "currency",
+        "currency": "NZD"
+      },
+      {
+        "key": "d_risk",
+        "label": "Risk tier and score",
+        "type": "text"
+      },
+      {
+        "key": "d_contact",
+        "label": "Vendor contact",
+        "type": "text"
+      },
+      {
+        "key": "d_requester",
+        "label": "Requested by",
+        "type": "text"
+      },
+      {
+        "key": "d_vendor_id",
+        "label": "ERP vendor id",
+        "type": "text"
+      },
+      {
+        "key": "d_review",
+        "label": "Next re-screen",
+        "type": "text"
+      },
+      {
+        "key": "d_notes",
+        "label": "Notes",
+        "type": "textarea"
+      },
+      {
+        "key": "to_list",
+        "label": "Back to the list",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "go_to_page",
+              "page": "list"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "tabs",
+      "pages": [
+        {
+          "id": "list",
+          "title": "Applications",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "intro",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "applications",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "save_changes",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "list"
+        },
+        {
+          "id": "details",
+          "title": "Application details",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_hint",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_ref",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_status",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_risk",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_legal_name",
+                  "span": 2
+                },
+                {
+                  "field_key": "d_registration",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_country",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_category",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_spend",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_contact",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_requester",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_vendor_id",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_review",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_notes",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "to_list",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "file-text"
+        }
+      ],
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_open_details",
+          "name": "Row clicked → fill the details tab",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.application_ref}}",
+                "d_status": "{{event.row.status}}",
+                "d_legal_name": "{{event.row.legal_name}}",
+                "d_registration": "{{event.row.registration_number}}",
+                "d_country": "{{event.row.country}}",
+                "d_category": "{{event.row.spend_category}}",
+                "d_spend": "{{event.row.expected_annual_spend}}",
+                "d_risk": "{{event.row.risk_tier}} (score {{event.row.risk_score}})",
+                "d_contact": "{{event.row.contact_email}}",
+                "d_requester": "{{event.row.requester_email}}",
+                "d_vendor_id": "{{event.row.vendor_id}}",
+                "d_review": "{{event.row.next_review_date}}",
+                "d_notes": "{{event.row.decision_notes}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "applications"
+        },
+        {
+          "id": "r_details_read_only",
+          "name": "Details are read-only",
+          "event": "always",
+          "then": [
+            {
+              "type": "enable_disable",
+              "mode": "disable",
+              "targets": [
+                "field:d_ref",
+                "field:d_status",
+                "field:d_legal_name",
+                "field:d_registration",
+                "field:d_country",
+                "field:d_category",
+                "field:d_spend",
+                "field:d_risk",
+                "field:d_contact",
+                "field:d_requester",
+                "field:d_vendor_id",
+                "field:d_review",
+                "field:d_notes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit",
+        "kind": "submit",
+        "style": "primary"
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#15803D",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#ECF6EF",
+            "page_to": "#F7FBF8"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "Vendor applications",
+          "subtitle": "Applications, their screening result and where each one is."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Vendor applications",
+      "align": "left",
+      "subtitle": "Applications, their screening result and where each one is."
+    }
+  }
+}

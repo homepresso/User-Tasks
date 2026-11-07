@@ -3,20 +3,26 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft, Search, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Workflow as WorkflowIcon,
-  CheckCircle, AlertTriangle, Clock, Activity, ExternalLink,
+  ArrowUpDown, ArrowUp, ArrowDown, Workflow as WorkflowIcon, CheckCircle, Activity,
 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { SearchInput } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ReportMetricRow } from '@/components/reports/report-metric-row'
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-} from 'recharts'
-import { formatRelativeDate } from '@/lib/utils'
+import { Select } from '@/components/ui/select'
+import { PageHeader } from '@/components/ui/page-header'
+import { StatCard, StatGrid } from '@/components/ui/stat-card'
+import { Badge, StatusPill } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/list-controls'
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, TableSkeleton } from '@/components/ui/table'
+import { AXIS_TICK, BASE_AXIS, ChartFrame, ChartTooltip, GRID_PROPS, VALUE_AXIS, useSeriesColors } from '@/components/reports/chart-kit'
 import { useRunDurationStats, useWorkflowHub } from '@/hooks/use-workflow-reports'
 import { formatDuration } from '@/lib/format'
-import { useWorkspaceTheme } from '@/components/providers/theme-provider'
+import { formatRelative } from '@/lib/format/date'
+import { formatCount } from '@/lib/format/number'
+import { plural } from '@/lib/format/plural'
+import { cn } from '@/lib/utils'
 
 interface Props {
   /**
@@ -26,6 +32,8 @@ interface Props {
    * that case so the parent's header is the only one on screen.
    */
   embedded?: boolean
+  /** The period, when the parent page owns the selector (the /reports header). */
+  range?: Range
 }
 
 type SortField = 'name' | 'total' | 'active' | 'lastStarted' | 'lastCompleted' | 'avgDuration' | 'avgNodeVisits' | 'avgEdgeTraversals'
@@ -52,9 +60,9 @@ function windowStartDay(days: number): string {
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 250]
 
-export function ProcessesHubView({ embedded = false }: Props) {
+export function ProcessesHubView({ embedded = false, range: rangeProp }: Props) {
   const { data: hub, isLoading } = useWorkflowHub()
-  const { palette } = useWorkspaceTheme()
+  const [trendColor] = useSeriesColors(1)
   const workflows = useMemo(() => hub?.workflows ?? [], [hub])
   const daily = useMemo(() => hub?.daily ?? [], [hub])
   const queueStats = useMemo(() => hub?.queueStats ?? [], [hub])
@@ -63,7 +71,8 @@ export function ProcessesHubView({ embedded = false }: Props) {
   const [sortField, setSortField] = useState<SortField>('lastStarted')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [highlightWorkflowId, setHighlightWorkflowId] = useState<string | null>(null)
-  const [range, setRange] = useState<Range>(90)
+  const [ownRange, setOwnRange] = useState<Range>(90)
+  const range: Range = rangeProp ?? ownRange
   const { data: durationStats } = useRunDurationStats(range)
   const overallDurations = durationStats?.find((row) => row.workflow_id === null) ?? null
   const [page, setPage] = useState(1)
@@ -339,532 +348,314 @@ export function ProcessesHubView({ embedded = false }: Props) {
     return { busiest, slowest, mostComplex, mostTraversed }
   }, [tableRows])
 
+  const description = isLoading
+    ? 'Loading…'
+    : `${plural(workflows.length, 'workflow')} · ${plural(tiles.totalRuns, 'run')} in ${RANGE_LABELS[range].toLowerCase()}`
+
   return (
-    <div className={embedded ? 'space-y-4' : 'space-y-6'}>
-      {/* Header — hidden when embedded inside another page (e.g. the
-          /reports main page) so we don't double up on titles / back
-          buttons. Embedded mode still shows the date range picker inline. */}
-      {!embedded ? (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-              <ArrowLeft size={18} />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Workflow Processes</h1>
-              <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                {isLoading ? 'Loading…' : `${workflows.length} workflow${workflows.length !== 1 ? 's' : ''} · ${tiles.totalRuns} run${tiles.totalRuns !== 1 ? 's' : ''} in ${RANGE_LABELS[range].toLowerCase()}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {workflows.length >= 2 && (
-              <Link href={`/reports/workflows/compare?a=${workflows[0]?.id}&b=${workflows[1]?.id}`}>
-                <Button size="sm" variant="outline">Compare workflows</Button>
-              </Link>
-            )}
-            <select
-              value={range}
-              onChange={e => setRange(Number(e.target.value) as Range)}
-              className="rounded-lg border px-3 py-1.5 text-xs"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-            >
-              {Object.entries(RANGE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-end">
-          <select
-            value={range}
-            onChange={e => setRange(Number(e.target.value) as Range)}
-            className="rounded-lg border px-3 py-1.5 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            {Object.entries(RANGE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
+    <div className="space-y-6">
+      {!embedded && (
+        <PageHeader
+          breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Workflows' }]}
+          title="Workflow processes"
+          description={description}
+          actions={
+            <>
+              {workflows.length >= 2 && (
+                <Button asChild variant="secondary">
+                  <Link href={`/reports/workflows/compare?a=${workflows[0]?.id}&b=${workflows[1]?.id}`}>Compare workflows</Link>
+                </Button>
+              )}
+              <Select
+                aria-label="Period"
+                value={String(range)}
+                onChange={e => setOwnRange(Number(e.target.value) as Range)}
+                options={Object.entries(RANGE_LABELS).map(([value, label]) => ({ value, label }))}
+                wrapperClassName="w-36"
+              />
+            </>
+          }
+          className="mb-0"
+        />
       )}
 
-      {/* KPI tiles */}
-      <ReportMetricRow
-        metrics={[
-          { label: 'Total Workflows', value: tiles.totalWorkflows },
-          { label: 'Active Instances', value: tiles.activeRuns, subtitle: 'running or queued' },
-          { label: 'Process Errors', value: tiles.errors, subtitle: tiles.errors > 0 ? 'needs attention' : 'healthy' },
-          { label: 'Total Runs', value: tiles.totalRuns, subtitle: RANGE_LABELS[range].toLowerCase() },
-          {
-            label: 'Avg Duration',
-            value: tiles.avgDuration,
-            subtitle: overallDurations?.p50_ms != null
-              ? `p50 ${formatDuration(overallDurations.p50_ms)} · p95 ${formatDuration(overallDurations.p95_ms ?? 0)}`
-              : undefined,
-          },
-          { label: 'Avg Node Visits', value: tiles.avgNodeVisits, subtitle: 'per run' },
-          { label: 'Avg Edge Traversals', value: tiles.avgEdgeTraversals, subtitle: 'per run' },
-        ]}
-      />
+      {/* KPI tiles: the four that answer "is it healthy?". Node visits and edge traversals live on Compare. */}
+      <StatGrid>
+        <StatCard label="Runs" value={formatCount(tiles.totalRuns)}
+          delta={{ label: `${RANGE_LABELS[range].toLowerCase()} · ${plural(tiles.totalWorkflows, 'workflow')}`, direction: 'flat' }} />
+        <StatCard label="Active" value={formatCount(tiles.activeRuns)} hint="Runs that are running or queued right now"
+          delta={{ label: 'running or queued', direction: 'flat' }} />
+        <StatCard label="Errors" value={formatCount(tiles.errors)} tone={tiles.errors > 0 ? 'danger' : undefined}
+          delta={{ label: tiles.errors > 0 ? 'need attention' : 'healthy', direction: 'flat' }} />
+        <StatCard label="p50 duration" value={overallDurations?.p50_ms != null ? formatDuration(overallDurations.p50_ms) : '—'}
+          hint="Median time from start to finish of completed runs"
+          delta={{ label: `avg ${tiles.avgDuration}${overallDurations?.p95_ms != null ? ` · p95 ${formatDuration(overallDurations.p95_ms)}` : ''}`, direction: 'flat' }} />
+      </StatGrid>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SpotlightCard
-          title="Busiest Workflow"
+          title="Busiest workflow"
           subtitle="Highest run volume in range"
           row={spotlight.busiest}
-          accent={{ background: 'color-mix(in srgb, var(--status-info) 10%, transparent)', color: 'var(--status-info)' }}
-          metricLabel="runs"
-          metricValue={spotlight.busiest?.total ?? 0}
+          metric={spotlight.busiest ? plural(spotlight.busiest.total, 'run') : null}
           active={sortField === 'total' && highlightWorkflowId === spotlight.busiest?.id}
           onClick={() => applySpotlight('total', spotlight.busiest?.id ?? null)}
         />
         <SpotlightCard
-          title="Slowest Workflow"
+          title="Slowest workflow"
           subtitle="Highest average duration"
           row={spotlight.slowest}
-          accent={{ background: 'color-mix(in srgb, var(--theme-warning) 12%, transparent)', color: 'var(--theme-warning)' }}
-          metricLabel="avg duration"
-          metricValue={spotlight.slowest ? formatDuration(spotlight.slowest.avgDurationMs) : '—'}
+          metric={spotlight.slowest ? `${formatDuration(spotlight.slowest.avgDurationMs)} avg` : null}
           active={sortField === 'avgDuration' && highlightWorkflowId === spotlight.slowest?.id}
           onClick={() => applySpotlight('avgDuration', spotlight.slowest?.id ?? null)}
         />
         <SpotlightCard
-          title="Most Complex"
+          title="Most complex"
           subtitle="Highest average node visits"
           row={spotlight.mostComplex}
-          accent={{ background: 'color-mix(in srgb, var(--theme-chart-3) 12%, transparent)', color: 'var(--theme-chart-3-text)' }}
-          metricLabel="visits/run"
-          metricValue={spotlight.mostComplex?.avgNodeVisits ?? 0}
+          metric={spotlight.mostComplex ? `${formatCount(spotlight.mostComplex.avgNodeVisits)} visits/run` : null}
           active={sortField === 'avgNodeVisits' && highlightWorkflowId === spotlight.mostComplex?.id}
           onClick={() => applySpotlight('avgNodeVisits', spotlight.mostComplex?.id ?? null)}
         />
         <SpotlightCard
-          title="Most Traversed"
+          title="Most traversed"
           subtitle="Highest average edge traversals"
           row={spotlight.mostTraversed}
-          accent={{ background: 'color-mix(in srgb, var(--theme-primary) 12%, transparent)', color: 'var(--theme-primary-text)' }}
-          metricLabel="traversals/run"
-          metricValue={spotlight.mostTraversed?.avgEdgeTraversals ?? 0}
+          metric={spotlight.mostTraversed ? `${formatCount(spotlight.mostTraversed.avgEdgeTraversals)} traversals/run` : null}
           active={sortField === 'avgEdgeTraversals' && highlightWorkflowId === spotlight.mostTraversed?.id}
           onClick={() => applySpotlight('avgEdgeTraversals', spotlight.mostTraversed?.id ?? null)}
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <AnomalyCard
-          title="Duration Spike"
-          subtitle="Recent average runtime vs prior window"
-          insight={anomalyInsights.durationSpike}
-          accent={{ background: 'color-mix(in srgb, var(--theme-danger) 10%, transparent)', color: 'var(--theme-danger)' }}
-          metricLabel="slower"
-          metricValue={anomalyInsights.durationSpike ? `${anomalyInsights.durationSpike.durationSpikeRatio.toFixed(1)}x` : '—'}
-          onClick={() => applySpotlight('avgDuration', anomalyInsights.durationSpike?.id ?? null)}
-        />
-        <AnomalyCard
-          title="Traversal Spike"
-          subtitle="Recent edge traversals vs prior window"
-          insight={anomalyInsights.traversalSpike}
-          accent={{ background: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}
-          metricLabel="more traversed"
-          metricValue={anomalyInsights.traversalSpike ? `${anomalyInsights.traversalSpike.traversalSpikeRatio.toFixed(1)}x` : '—'}
-          onClick={() => applySpotlight('avgEdgeTraversals', anomalyInsights.traversalSpike?.id ?? null)}
-        />
-      </div>
-
-      {/* Processes Started trend chart */}
-      <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Processes Started</h3>
-          <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{RANGE_LABELS[range]}</span>
+      {anomalyInsights.durationSpike || anomalyInsights.traversalSpike ? (
+        <div className="grid gap-3 xl:grid-cols-2">
+          {anomalyInsights.durationSpike && (
+            <AnomalyCard
+              title="Duration spike"
+              subtitle="Recent average runtime vs the prior window"
+              insight={anomalyInsights.durationSpike}
+              metric={`${anomalyInsights.durationSpike.durationSpikeRatio.toFixed(1)}× slower`}
+              onClick={() => applySpotlight('avgDuration', anomalyInsights.durationSpike?.id ?? null)}
+            />
+          )}
+          {anomalyInsights.traversalSpike && (
+            <AnomalyCard
+              title="Traversal spike"
+              subtitle="Recent edge traversals vs the prior window"
+              insight={anomalyInsights.traversalSpike}
+              metric={`${anomalyInsights.traversalSpike.traversalSpikeRatio.toFixed(1)}× more traversed`}
+              onClick={() => applySpotlight('avgEdgeTraversals', anomalyInsights.traversalSpike?.id ?? null)}
+            />
+          )}
         </div>
+      ) : (
+        <p className="flex items-center gap-2 text-ui text-fg-muted" data-testid="no-anomalies">
+          <CheckCircle className="size-4 text-success" aria-hidden />
+          No anomalies in the last {range} days
+        </p>
+      )}
+
+      {/* Processes started per day */}
+      <ChartFrame
+        title="Processes started"
+        description={RANGE_LABELS[range]}
+        table={{ caption: 'Processes started per day', columns: ['Day', 'Runs'], rows: trendData.map((d) => [d.name, formatCount(d.runs)]) }}
+      >
         {trendData.every(d => d.runs === 0) ? (
-          <p className="text-xs py-12 text-center" style={{ color: 'var(--theme-muted-text)' }}>No runs in this range</p>
+          <EmptyState size="sm" variant="no-results" icon={Activity} title="No runs in this range" description="Pick a longer period or start a workflow." />
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="wfHubGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={palette.primary} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={palette.primary} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-surface-border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: 'var(--theme-muted-text)' }} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12, borderRadius: 8,
-                  backgroundColor: 'var(--theme-card-bg)',
-                  border: '1px solid var(--theme-surface-border)',
-                  color: 'var(--theme-card-text)',
-                }}
-              />
-              <Area type="monotone" dataKey="runs" stroke={palette.primary} strokeWidth={2} fill="url(#wfHubGradient)" />
+            <AreaChart data={trendData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid {...GRID_PROPS} />
+              <XAxis dataKey="name" tick={AXIS_TICK} interval="preserveStartEnd" minTickGap={24} {...BASE_AXIS} />
+              <YAxis tick={AXIS_TICK} allowDecimals={false} width={36} {...VALUE_AXIS} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--ds-border)' }} />
+              <Area type="monotone" dataKey="runs" name="runs started" stroke={trendColor} strokeWidth={2} fill={trendColor} fillOpacity={0.12} isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         )}
-      </Card>
+      </ChartFrame>
 
-      {/* All Processes table */}
-      <Card className="!p-0 overflow-hidden">
-        {/* Filter bar */}
-        <div className="flex items-center gap-2 p-3 border-b" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <div className="relative flex-1 max-w-md">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search workflows by name or description…"
-              className="pl-8 !h-8 !text-xs"
-            />
-          </div>
-          <select
+      {/* All processes */}
+      <section className="space-y-3" aria-label="All processes">
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Search workflows by name or description…"
+            className="w-full max-w-md"
+          />
+          <Select
+            aria-label="Status"
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as any)}
-            className="rounded-lg border px-2 py-1 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            <option value="all">All statuses</option>
-            <option value="active">Active only</option>
-            <option value="inactive">Inactive only</option>
-          </select>
-          <span className="text-[10px] ml-auto" style={{ color: 'var(--theme-muted-text)' }}>
-            {tableRows.length} of {workflows.length}
+            onChange={e => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            options={[{ value: 'all', label: 'All statuses' }, { value: 'active', label: 'Active only' }, { value: 'inactive', label: 'Inactive only' }]}
+            wrapperClassName="w-36"
+          />
+          <span className="num ml-auto text-xs text-fg-muted">
+            {formatCount(tableRows.length)} of {formatCount(workflows.length)}
           </span>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                <SortableHeader label="Process Name" field="name" sortField={sortField} sortDir={sortDir} onClick={toggleSort} className="pl-4" />
-                <SortableHeader label="Total" field="total" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <SortableHeader label="Active" field="active" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <SortableHeader label="Last Started" field="lastStarted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Last Completed" field="lastCompleted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-                <SortableHeader label="Avg Duration" field="avgDuration" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <SortableHeader label="Avg Visits" field="avgNodeVisits" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <SortableHeader label="Avg Traversals" field="avgEdgeTraversals" sortField={sortField} sortDir={sortDir} onClick={toggleSort} align="right" />
-                <th className="text-right pr-4 py-2 font-medium uppercase text-[10px] tracking-wider">Variables</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={9} className="text-center py-12" style={{ color: 'var(--theme-muted-text)' }}>Loading workflows…</td></tr>
-              ) : tableRows.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-12" style={{ color: 'var(--theme-muted-text)' }}>
-                  {search || statusFilter !== 'all' ? 'No workflows match your filters.' : 'No workflows yet.'}
-                </td></tr>
-              ) : (
-                paginatedRows.map(row => (
-                  <tr
-                    key={row.id}
-                    className="border-t transition-colors hover:bg-[var(--theme-row-highlight)]"
-                    style={{
-                      borderColor: 'var(--theme-surface-border)',
-                      backgroundColor: highlightWorkflowId === row.id ? 'var(--theme-row-highlight)' : undefined,
-                    }}
-                  >
-                    <td className="pl-4 py-2.5">
-                      <Link
-                        href={`/reports/workflows/${row.id}`}
-                        className="flex items-center gap-2 font-medium hover:underline"
-                        style={{ color: 'var(--theme-primary-text)' }}
-                      >
-                        <WorkflowIcon size={12} />
-                        <span className="truncate max-w-[280px]" title={row.name}>{row.name}</span>
-                        {!row.isActive && (
-                          <span className="text-[8px] px-1 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                            inactive
-                          </span>
-                        )}
+        <Table>
+          <THead>
+            <tr>
+              <SortableHeader label="Process" field="name" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Runs" field="total" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <SortableHeader label="Active" field="active" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <SortableHeader label="Last started" field="lastStarted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Last completed" field="lastCompleted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Avg duration" field="avgDuration" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <SortableHeader label="Avg visits" field="avgNodeVisits" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <SortableHeader label="Avg traversals" field="avgEdgeTraversals" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
+              <TH numeric>Variables</TH>
+            </tr>
+          </THead>
+          <TBody>
+            {isLoading ? (
+              <TableSkeleton columns={9} />
+            ) : tableRows.length === 0 ? (
+              <TableEmpty
+                colSpan={9}
+                variant={search || statusFilter !== 'all' ? 'no-results' : 'first-run'}
+                icon={WorkflowIcon}
+                title={search || statusFilter !== 'all' ? 'No workflows match your filters' : 'No workflows yet'}
+              />
+            ) : (
+              paginatedRows.map(row => (
+                <TR key={row.id} selected={highlightWorkflowId === row.id}>
+                  <TD className="max-w-[380px]">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Link href={`/reports/workflows/${row.id}`} className="truncate font-medium text-fg hover:underline" title={row.name}>
+                        {row.name}
                       </Link>
-                      {row.description && (
-                        <p className="text-[10px] mt-0.5 max-w-[380px] truncate" style={{ color: 'var(--theme-muted-text)' }} title={row.description}>
-                          {row.description}
-                        </p>
+                      {!row.isActive && <StatusPill status="inactive" />}
+                      {row.durationSpikeRatio && row.durationSpikeRatio >= 1.25 && (
+                        <Badge tone="danger">{row.durationSpikeRatio.toFixed(1)}× slower</Badge>
                       )}
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]"
-                          style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 10%, transparent)', color: 'var(--status-info)' }}
-                        >
-                          {row.avgNodeVisits} visits/run
-                        </span>
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]"
-                          style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)', color: 'var(--theme-primary-text)' }}
-                        >
-                          {row.avgEdgeTraversals} traversals/run
-                        </span>
-                        {row.durationSpikeRatio && row.durationSpikeRatio >= 1.25 && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]"
-                            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-danger) 10%, transparent)', color: 'var(--theme-danger)' }}
-                          >
-                            {row.durationSpikeRatio.toFixed(1)}x slower
-                          </span>
-                        )}
-                        {row.traversalSpikeRatio && row.traversalSpikeRatio >= 1.25 && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]"
-                            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}
-                          >
-                            {row.traversalSpikeRatio.toFixed(1)}x traversals
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="text-right py-2.5" style={{ color: 'var(--theme-card-text)' }}>{row.total}</td>
-                    <td className="text-right py-2.5">
-                      {row.active > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: 'var(--status-info-bg)', color: 'var(--status-info)' }}>
-                          <Activity size={9} /> {row.active}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--theme-muted-text)' }}>0</span>
+                      {row.traversalSpikeRatio && row.traversalSpikeRatio >= 1.25 && (
+                        <Badge tone="warning">{row.traversalSpikeRatio.toFixed(1)}× traversals</Badge>
                       )}
-                    </td>
-                    <td className="py-2.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      {row.lastStarted ? formatRelativeDate(row.lastStarted) : '—'}
-                    </td>
-                    <td className="py-2.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      {row.lastCompleted ? formatRelativeDate(row.lastCompleted) : '—'}
-                    </td>
-                    <td className="text-right py-2.5 font-mono text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-                      {row.total > 0 ? formatDuration(row.avgDurationMs) : '—'}
-                    </td>
-                    <td className="text-right py-2.5 font-mono text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-                      {row.total > 0 ? row.avgNodeVisits : '—'}
-                    </td>
-                    <td className="text-right py-2.5 font-mono text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-                      {row.total > 0 ? row.avgEdgeTraversals : '—'}
-                    </td>
-                    <td className="pr-4 py-2.5 text-right">
-                      {row.variableCount > 0 ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-                          {row.variableCount}
-                        </span>
-                      ) : (
-                        <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination footer — only rendered when the filtered result set
-            exceeds the page size. We use the unrendered-when-unnecessary
-            pattern so short lists don't get decorative chrome they don't
-            need. The page-size selector stays visible always so users can
-            still switch it when the list is short. */}
-        {tableRows.length > 0 && (
-          <div
-            className="flex items-center justify-between p-3 border-t text-[11px]"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
-          >
-            <div className="flex items-center gap-2">
-              <span>
-                Showing {tableRows.length === 0 ? 0 : (safePage - 1) * pageSize + 1}
-                –{Math.min(safePage * pageSize, tableRows.length)} of {tableRows.length}
-              </span>
-              <span>·</span>
-              <label className="flex items-center gap-1">
-                Rows per page
-                <select
-                  value={pageSize}
-                  onChange={e => setPageSize(Number(e.target.value))}
-                  className="rounded border px-1.5 py-0.5 text-[11px]"
-                  style={{
-                    borderColor: 'var(--theme-surface-border)',
-                    backgroundColor: 'var(--theme-card-bg)',
-                    color: 'var(--theme-card-text)',
-                  }}
-                >
-                  {PAGE_SIZE_OPTIONS.map(n => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage(1)}
-                  disabled={safePage === 1}
-                  className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-                  title="First page"
-                >
-                  «
-                </button>
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={safePage === 1}
-                  className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-                  title="Previous page"
-                >
-                  ‹ Prev
-                </button>
-                <span className="px-2">Page {safePage} of {totalPages}</span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={safePage === totalPages}
-                  className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-                  title="Next page"
-                >
-                  Next ›
-                </button>
-                <button
-                  onClick={() => setPage(totalPages)}
-                  disabled={safePage === totalPages}
-                  className="px-2 py-1 rounded disabled:opacity-30 hover:bg-[var(--theme-surface)]"
-                  title="Last page"
-                >
-                  »
-                </button>
-              </div>
+                    </div>
+                  </TD>
+                  <TD numeric>{formatCount(row.total)}</TD>
+                  <TD numeric>
+                    {row.active > 0 ? <Badge tone="info" className="num">{formatCount(row.active)}</Badge> : <span className="text-fg-muted">0</span>}
+                  </TD>
+                  <TD className="num whitespace-nowrap text-fg-muted">{row.lastStarted ? formatRelative(row.lastStarted) : '—'}</TD>
+                  <TD className="num whitespace-nowrap text-fg-muted">{row.lastCompleted ? formatRelative(row.lastCompleted) : '—'}</TD>
+                  <TD numeric>{row.total > 0 ? formatDuration(row.avgDurationMs) : '—'}</TD>
+                  <TD numeric>{row.total > 0 ? formatCount(row.avgNodeVisits) : '—'}</TD>
+                  <TD numeric>{row.total > 0 ? formatCount(row.avgEdgeTraversals) : '—'}</TD>
+                  <TD numeric>{row.variableCount > 0 ? formatCount(row.variableCount) : <span className="text-fg-muted">—</span>}</TD>
+                </TR>
+              ))
             )}
-          </div>
-        )}
-      </Card>
+          </TBody>
+        </Table>
+
+        <Pagination
+          page={safePage}
+          pageSize={pageSize}
+          total={tableRows.length}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          showPageNumbers
+          noun="workflows"
+        />
+      </section>
     </div>
   )
 }
 
 function SortableHeader({
-  label, field, sortField, sortDir, onClick, align = 'left', className = '',
+  label, field, sortField, sortDir, onClick, numeric = false,
 }: {
   label: string
   field: SortField
   sortField: SortField
   sortDir: SortDir
   onClick: (f: SortField) => void
-  align?: 'left' | 'right'
-  className?: string
+  numeric?: boolean
 }) {
   const active = sortField === field
   return (
-    <th
-      className={`py-2 font-medium uppercase text-[10px] tracking-wider cursor-pointer select-none hover:text-[var(--theme-card-text)] ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}
-      onClick={() => onClick(field)}
-    >
-      <span className="inline-flex items-center gap-1">
+    <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      <button type="button" onClick={() => onClick(field)} className={cn('inline-flex items-center gap-1 whitespace-nowrap hover:text-fg', numeric && 'flex-row-reverse')}>
         {label}
-        {active ? (sortDir === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />) : <ArrowUpDown size={10} className="opacity-40" />}
-      </span>
-    </th>
+        {active ? (sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />) : <ArrowUpDown className="size-3 opacity-40" />}
+      </button>
+    </TH>
   )
 }
 
+interface SpotRow {
+  id: string
+  name: string
+  description: string
+  triggerType: string
+  active: number
+  errors: number
+  lastStarted: string | null
+}
+
+/** A highlight: one consistent card, equal heights, the value in a neutral badge. Clicking sorts the table by it. */
 function SpotlightCard({
-  title,
-  subtitle,
-  row,
-  metricLabel,
-  metricValue,
-  accent,
-  active = false,
-  onClick,
+  title, subtitle, row, metric, active = false, onClick,
 }: {
   title: string
   subtitle: string
-  row: any | null
-  metricLabel: string
-  metricValue: string | number
-  accent: { background: string; color: string }
+  row: SpotRow | null
+  metric: string | null
   active?: boolean
   onClick?: () => void
 }) {
   return (
-    <button
-      type="button"
+    <Card
+      variant="interactive"
+      padding="md"
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
       onClick={onClick}
-      className="text-left"
-      style={{ width: '100%' }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }}
+      className={cn('flex h-full min-w-0 flex-col text-left', active && 'border-border-strong bg-subtle')}
     >
-      <Card
-        className="!p-4 transition-all"
-        style={{
-          borderColor: active ? accent.color : undefined,
-          boxShadow: active ? `0 0 0 1px ${accent.color}33` : undefined,
-        }}
-      >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>{title}</h3>
-          <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{subtitle}</p>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-fg">{title}</h3>
+          <p className="mt-0.5 text-xs text-fg-muted">{subtitle}</p>
         </div>
-        <span
-          className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold"
-          style={{ backgroundColor: accent.background, color: accent.color }}
-        >
-          {metricValue} {metricLabel}
-        </span>
+        {metric && <Badge className="num shrink-0">{metric}</Badge>}
       </div>
-
       {row ? (
-        <div className="mt-4 space-y-2">
-          <Link
-            href={`/reports/workflows/${row.id}`}
-            className="block text-sm font-medium hover:underline"
-            style={{ color: 'var(--theme-primary-text)' }}
-            title={row.name}
-          >
+        <div className="mt-3 flex min-w-0 flex-1 flex-col gap-1">
+          <Link href={`/reports/workflows/${row.id}`} onClick={(e) => e.stopPropagation()} className="truncate text-sm font-medium text-primary-text hover:underline" title={row.name}>
             {row.name}
           </Link>
-          {row.description ? (
-            <p className="text-[11px] line-clamp-2" style={{ color: 'var(--theme-muted-text)' }}>
-              {row.description}
-            </p>
-          ) : (
-            <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-              {row.triggerType ? `${String(row.triggerType).replace(/_/g, ' ')}` : 'No description yet'}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-1.5 text-[10px]">
-            <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-              {row.active} active
-            </span>
-            <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-              {row.errors} errors
-            </span>
-            <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-              last started {row.lastStarted ? formatRelativeDate(row.lastStarted) : '—'}
-            </span>
-          </div>
+          <p className="line-clamp-2 text-xs text-fg-muted">
+            {row.description || (row.triggerType ? String(row.triggerType).replace(/_/g, ' ') : 'No description yet')}
+          </p>
+          <p className="num mt-auto pt-2 text-xs text-fg-muted">
+            {formatCount(row.active)} active · {plural(row.errors, 'error')} · started {row.lastStarted ? formatRelative(row.lastStarted) : '—'}
+          </p>
         </div>
       ) : (
-        <p className="mt-4 text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-          No workflows with runs in this range yet.
-        </p>
+        <p className="mt-3 text-xs text-fg-muted">No workflows with runs in this range yet.</p>
       )}
-      </Card>
-    </button>
+    </Card>
   )
 }
 
 function AnomalyCard({
-  title,
-  subtitle,
-  insight,
-  metricLabel,
-  metricValue,
-  accent,
-  onClick,
+  title, subtitle, insight, metric, onClick,
 }: {
   title: string
   subtitle: string
   insight: {
     id: string
     name: string
-    description: string
     triggerType: string
     recentRuns: number
     baselineRuns: number
@@ -872,74 +663,45 @@ function AnomalyCard({
     baselineDurationAvg: number
     recentTraversalAvg: number
     baselineTraversalAvg: number
-  } | null
-  metricLabel: string
-  metricValue: string | number
-  accent: { background: string; color: string }
+  }
+  metric: string
   onClick?: () => void
 }) {
+  const stats: Array<[string, string]> = [
+    ['Recent duration', formatDuration(insight.recentDurationAvg)],
+    ['Baseline duration', formatDuration(insight.baselineDurationAvg)],
+    ['Recent traversals', insight.recentTraversalAvg.toFixed(1)],
+    ['Baseline traversals', insight.baselineTraversalAvg.toFixed(1)],
+  ]
   return (
-    <button
-      type="button"
+    <Card
+      variant="interactive"
+      padding="md"
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="text-left"
-      style={{ width: '100%' }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }}
+      className="h-full text-left"
     >
-      <Card className="!p-4 transition-all">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>{title}</h3>
-            <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{subtitle}</p>
-          </div>
-          <span
-            className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold"
-            style={{ backgroundColor: accent.background, color: accent.color }}
-          >
-            {metricValue} {metricLabel}
-          </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-fg">{title}</h3>
+          <p className="mt-0.5 text-xs text-fg-muted">{subtitle}</p>
         </div>
-
-        {insight ? (
-          <div className="mt-4 space-y-2">
-            <div className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>
-              {insight.name}
-            </div>
-            <div className="flex flex-wrap gap-1.5 text-[10px]">
-              <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                recent {insight.recentRuns} runs
-              </span>
-              <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                baseline {insight.baselineRuns} runs
-              </span>
-              <span className="rounded-full px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                trigger {String(insight.triggerType ?? 'manual').replace(/_/g, ' ')}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                <div style={{ color: 'var(--theme-muted-text)' }}>Recent duration</div>
-                <div style={{ color: 'var(--theme-card-text)' }}>{formatDuration(insight.recentDurationAvg)}</div>
-              </div>
-              <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                <div style={{ color: 'var(--theme-muted-text)' }}>Baseline duration</div>
-                <div style={{ color: 'var(--theme-card-text)' }}>{formatDuration(insight.baselineDurationAvg)}</div>
-              </div>
-              <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                <div style={{ color: 'var(--theme-muted-text)' }}>Recent traversals</div>
-                <div style={{ color: 'var(--theme-card-text)' }}>{insight.recentTraversalAvg.toFixed(1)}</div>
-              </div>
-              <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                <div style={{ color: 'var(--theme-muted-text)' }}>Baseline traversals</div>
-                <div style={{ color: 'var(--theme-card-text)' }}>{insight.baselineTraversalAvg.toFixed(1)}</div>
-              </div>
-            </div>
+        <Badge tone="warning" className="num shrink-0">{metric}</Badge>
+      </div>
+      <p className="mt-3 text-sm font-medium text-fg">{insight.name}</p>
+      <p className="num mt-0.5 text-xs text-fg-muted">
+        {plural(insight.recentRuns, 'recent run')} · {plural(insight.baselineRuns, 'baseline run')} · {String(insight.triggerType ?? 'manual').replace(/_/g, ' ')} trigger
+      </p>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-border-subtle pt-3 text-xs">
+        {stats.map(([k, v]) => (
+          <div key={k} className="flex items-baseline justify-between gap-2">
+            <dt className="text-fg-muted">{k}</dt>
+            <dd className="num text-fg">{v}</dd>
           </div>
-        ) : (
-          <p className="mt-4 text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-            No strong anomaly detected yet. We show spikes once a workflow has enough recent and baseline runs to compare.
-          </p>
-        )}
-      </Card>
-    </button>
+        ))}
+      </dl>
+    </Card>
   )
 }

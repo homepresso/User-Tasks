@@ -1,0 +1,113 @@
+{
+  "title": "Training feedback, quiz and certificate",
+  "category": "surveys-assessments",
+  "summary": "Course feedback with ratings and a Likert matrix, a scored six-question quiz and a signed attestation; passes get a PDF certificate by email, near misses a retake task and fails a booked session.",
+  "description": "Training feedback, quiz and certificate turns the end of a course into feedback, an assessment and a certificate, built only from UserTasks features and the official form controls. The Training feedback and quiz page has four numbered steps and a review step: the learner looks up the course in the Courses data table (title, trainer, pass mark and certificate validity fill in), rates the trainer and the content with the Rating control, answers a Likert scale matrix on course quality, takes a six-question multiple-choice quiz on information security basics and signs an attestation with the Signature control.\n\nThe Quiz submitted workflow scores the answers with Set Variable expressions, lists the topics to revise, and a decision table compares the score with the course pass mark: at or above it passes, up to 20 points below means a retake, further below means a session. Every result is saved in the Quiz results data table, which ships with sample results across four courses.\n\nA pass gets a certificate number and an expiry date from the course validity; the certificate is written as HTML with a Text template, converted to PDF on the server (no external API), recorded in Quiz results and emailed to the learner as an attachment. A retake becomes a task for the learner with their score on a Progress bar (warning below 60 %, good from 80 %) and the topics on an Info card. A fail becomes a task for the training coordinator to book a session, with an SLA, reminder and escalation.\n\nThe Training results page is a dashboard: Chart controls for the average score by course and the pass / retake / fail split from Quiz results, Saved report controls for the pass rate and average scores and ratings by course (workflow variables) and the open retakes and sessions, and a button that emails a summary and reminds every learner whose certificate expires soon.",
+  "trigger": "form",
+  "entry_workflow": "9e43e668-3f2e-5fd5-a94b-daaaca6213bd",
+  "entry_form": "33312887-82dc-5aa8-92e5-5e123fca005c",
+  "start": "Starts from a form page: share the Training feedback and quiz page (/f/<id>) with signed-in learners at the end of a course, or submit it from your LMS through the forms API.",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "training",
+    "quiz",
+    "certificate",
+    "learning",
+    "form controls",
+    "no integrations"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "Uses the 1.1.0 form controls: they appear with the form, with no visible loading."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open Forms → Training feedback and quiz (share its /f/ link) and Forms → Training results.",
+    "The Rating, Likert scale, Signature, Progress, Info card, Chart and Saved report controls install with the package (Extensibility → Form controls).",
+    "Replace the sample rows in Courses with your catalogue (code, title, pass mark, certificate validity, trainer) and delete the sample rows in Quiz results when you go live.",
+    "The quiz questions are on the form and their correct answers are in the Correct answers step of the Quiz submitted workflow: change both together for your own topic.",
+    "Session bookings go to the person who installed the package (the training coordinator); retakes go to the learner. Edit the Quiz result band decision table to change the margins.",
+    "Optional: apply the \"Quiz results: 7 years\" retention policy, and set EMAIL_PROVIDER so certificates and reminders are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Learner gives feedback and takes the quiz",
+      "body": "Four steps: look up the course, rate the trainer and content and answer a Likert matrix, answer six quiz questions, then sign the attestation; a review step comes before submit."
+    },
+    {
+      "title": "Score and band",
+      "body": "Set Variable expressions count the correct answers and list topics to revise; a decision table compares the score with the course pass mark."
+    },
+    {
+      "title": "Save",
+      "body": "The result, ratings and band go into the Quiz results table."
+    },
+    {
+      "title": "Certificate for a pass",
+      "body": "A certificate number and expiry date are set, an HTML certificate is converted to PDF, recorded and emailed to the learner."
+    },
+    {
+      "title": "Retake or session",
+      "body": "Near misses get a retake task with their score on a Progress bar; fails get a book-a-session task for the coordinator with an SLA."
+    },
+    {
+      "title": "Track and remind",
+      "body": "The Training results page charts scores and bands, shows pass rates and open tasks, and emails a summary plus reminders for certificates that expire soon."
+    }
+  ],
+  "sample_input": {
+    "course": "ISEC-101",
+    "course_title": "Information security basics",
+    "trainer": "Avery Example",
+    "pass_mark": 80,
+    "validity_months": 12,
+    "learner_name": "Jordan Sample",
+    "completed_on": "2026-10-30",
+    "trainer_rating": 5,
+    "content_rating": 4,
+    "quality": {
+      "the_course_objectives_were_clear": 5,
+      "the_content_is_relevant_to_my_job": 4,
+      "the_pace_was_about_right": 3,
+      "i_can_apply_what_i_learned_straight_away": 4
+    },
+    "feedback": "More real phishing examples would help.",
+    "q1": "Report it as phishing and delete it",
+    "q2": "A long passphrase of four or more random words",
+    "q3": "Hand it to IT or security without plugging it in",
+    "q4": "Whenever you leave your desk",
+    "q5": "Deny it and report it to IT or security",
+    "q6": "Only in approved company systems",
+    "attest": true
+  },
+  "expect": "completed",
+  "icon": "graduation-cap",
+  "verify_mocks": {
+    "uploads": {
+      "signature": [
+        "signature.png"
+      ]
+    },
+    "expect_outputs": [
+      "score_pct",
+      "certificate_no",
+      "certificate_expires",
+      "certificate_pdf"
+    ]
+  },
+  "id": "a258b8f8-8166-56c7-b117-667f963973fa",
+  "slug": "training-quiz-certification"
+}

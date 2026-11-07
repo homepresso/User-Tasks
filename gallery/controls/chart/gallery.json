@@ -1,0 +1,53 @@
+{
+  "id": "cbc49a7c-488a-4e2d-a7de-beb13084f874",
+  "asset_id": "f8272d7e-5a63-4dd6-883c-f26846b19b5e",
+  "slug": "chart",
+  "title": "Chart",
+  "kind": "display",
+  "summary": "Bar, line, area, pie or doughnut chart of static data, another field's rows, lookup results or a saved report, with keyboard-navigable points.",
+  "description": "Put a chart on any form: a budget breakdown beside the approval buttons, monthly volumes on a review step, the rows someone just typed into an editable table, open cases per region from a data table lookup, or a saved report. Choose bar, horizontal bar, line, area, pie or doughnut, stack series, group rows by label (sum, count or average) and pick colours, or let it follow the form theme in light and dark mode.\n\nThe chart is accessible without the picture: the plot is one Tab stop where the arrow keys walk the points and a screen reader announces each one (\"Mar: 18 (Sales)\"), and the Show data table button lays every value out in a real table. Turn on Selectable points and a click or Enter makes the chosen point the field's value ({ label, value, series }), so a workflow can branch on what someone picked.",
+  "icon": "bar-chart",
+  "tags": ["chart", "graph", "dashboard", "report", "visualisation"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: data, chart_title can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Workflow output: a picked point is its label (text), with <key>_value, <key>_series and <key>_raw." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Budget or cost breakdown beside an approval decision",
+    "Live chart of the rows entered in an editable table on the same form",
+    "Open cases per region from a data table, or a saved report on a review step",
+    "Let a reviewer pick the month or category to investigate"
+  ],
+  "setup": [
+    "Install the package: Chart appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Chart onto a form and choose the chart type and the data source in the properties panel.",
+    "Static data: paste the data as JSON. Another field: map the Data context entry to the field with the rows (e.g. an editable table) and set Label field / Value field.",
+    "Lookup source: set the field's lookup source (a data table or API reference) with Min characters 0, then Label field / Value field to the lookup's columns.",
+    "Saved report: set Saved report (report_id) to the report's id. People only see the report if it is theirs or shared with them."
+  ],
+  "systems": [],
+  "preview": {
+    "props": {
+      "chart_title": "Sales vs costs",
+      "chart_type": "bar",
+      "selectable": true,
+      "data": { "labels": ["Jan", "Feb", "Mar", "Apr", "May"], "datasets": [{ "label": "Sales", "data": [12, 15, 18, 22, 19] }, { "label": "Costs", "data": [8, 9, 11, 10, 13] }] }
+    },
+    "value": { "label": "Mar", "value": 18, "series": "Sales" },
+    "label": "Monthly sales",
+    "height": 380,
+    "context": {},
+    "fixtures": {
+      "lookup": { "items": [
+        { "value": "42", "label": "Auckland", "fields": { "region": "Auckland", "open_cases": 42 } },
+        { "value": "17", "label": "Wellington", "fields": { "region": "Wellington", "open_cases": 17 } },
+        { "value": "23", "label": "Christchurch", "fields": { "region": "Christchurch", "open_cases": 23 } }
+      ] },
+      "report": {
+        "report": { "id": "rep-1", "name": "Tickets by priority", "description": null, "visualization": "bar" },
+        "columns": [{ "key": "priority", "label": "Priority", "type": "text" }, { "key": "count", "label": "Tickets", "type": "number" }],
+        "rows": [{ "priority": "High", "count": 14 }, { "priority": "Medium", "count": 31 }, { "priority": "Low", "count": 9 }],
+        "total": 3, "truncated": false
+      }
+    },
+    "note": "Use the arrow keys on the chart, or press Show data table."
+  }
+}

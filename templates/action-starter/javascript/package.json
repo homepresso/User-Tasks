@@ -1,0 +1,18 @@
+{
+  "name": "acme-tax-action-js",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A UserTasks custom workflow action in plain JavaScript",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/build.mjs && node scripts/test.mjs",
+    "package": "npm run build && npm test && node scripts/package.mjs"
+  },
+  "devDependencies": {
+    "@jitl/quickjs-singlefile-cjs-release-sync": "0.32.0",
+    "esbuild": "^0.27.7",
+    "quickjs-emscripten-core": "0.32.0"
+  }
+}

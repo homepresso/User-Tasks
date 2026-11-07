@@ -1,0 +1,182 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "565c5cd0-8ff7-559a-8ab3-d11cf7cd63c6",
+  "asset": {
+    "id": "565c5cd0-8ff7-559a-8ab3-d11cf7cd63c6",
+    "name": "Meeting recording",
+    "description": "Upload a meeting recording to get a transcript, AI-drafted minutes you approve, and tasks for the action owners.",
+    "tags": [
+      "meetings",
+      "transcription"
+    ],
+    "fields": [
+      {
+        "key": "meeting_title",
+        "label": "Meeting",
+        "type": "text",
+        "required": true,
+        "placeholder": "Weekly operations review"
+      },
+      {
+        "key": "meeting_date",
+        "label": "Date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "attendees",
+        "label": "Attendees",
+        "type": "text",
+        "placeholder": "Names, as people were addressed in the meeting"
+      },
+      {
+        "key": "recording",
+        "label": "Recording (audio or video)",
+        "type": "attachments",
+        "required": true,
+        "attachments": {
+          "max_files": 1,
+          "max_file_mb": 40,
+          "custom_types": [
+            ".mp3",
+            ".wav",
+            ".mp4",
+            ".mov",
+            ".m4v",
+            ".m4a"
+          ]
+        }
+      },
+      {
+        "key": "share_with",
+        "label": "Send the minutes to",
+        "type": "text",
+        "required": true,
+        "placeholder": "team@example.com, lead@example.com"
+      },
+      {
+        "key": "language",
+        "label": "Spoken language (optional)",
+        "type": "choice",
+        "options": [
+          "Detect",
+          "en",
+          "es",
+          "fr",
+          "de",
+          "pt",
+          "mi"
+        ]
+      },
+      {
+        "key": "consent",
+        "label": "Everyone in the recording agreed to it being recorded and transcribed",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "meeting_title",
+              "span": 2
+            },
+            {
+              "field_key": "meeting_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "attendees",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "recording",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "share_with",
+              "span": 2
+            },
+            {
+              "field_key": "language",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "consent",
+              "span": 3
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#6D28D9",
+            "background": "#FFFFFF",
+            "text": "#1B1530",
+            "page": "#F1ECFB",
+            "page_to": "#FAF8FF"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Upload and transcribe",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Recording received",
+            "screen_button": "submit_another",
+            "text": "We are transcribing {{meeting_title}}. You will get a task to check the draft minutes in a few minutes.",
+            "screen_button_label": "Upload another"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Meeting minutes from a recording",
+      "align": "left",
+      "subtitle": "Upload the recording: you will get draft minutes to check, then the owners get their action items."
+    }
+  }
+}

@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { ReportChart } from '@/components/reports/lazy-charts'
 import { ReportDataTable } from '@/components/reports/report-data-table'
@@ -63,47 +62,47 @@ export function BusinessRulesReportView({ logs, tables }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Business Rules</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <ReportDateFilter days={days} onDaysChange={setDays} />
-          <ReportExportButton data={detailRows} columns={[
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Business rules' }]}
+        title="Business rules"
+        description="How often each decision table runs and what it decides."
+        className="mb-0"
+        actions={
+          <>
+            <ReportDateFilter days={days} onDaysChange={setDays} />
+            <ReportExportButton data={detailRows} columns={[
             { key: 'decision_table_name', label: 'Rule' },
-            { key: 'rule_label', label: 'Matched Branch' },
+            { key: 'rule_label', label: 'Matched branch' },
             { key: 'workflow_name', label: 'Workflow' },
-            { key: 'run_status', label: 'Run Status' },
+            { key: 'run_status', label: 'Run status' },
             { key: 'duration_ms', label: 'Duration (ms)' },
             { key: 'created_at', label: 'Executed' },
-          ]} filename="business-rules-report" />
-        </div>
-      </div>
+            ]} filename="business-rules-report" />
+          </>
+        }
+      />
 
       <ReportMetricRow metrics={[
         { label: 'Executions', value: filtered.length },
-        { label: 'Rules Hit', value: uniqueRules },
-        { label: 'Workflows Using Rules', value: uniqueWorkflows },
-        { label: 'Avg Duration', value: `${avgDuration}ms` },
+        { label: 'Rules hit', value: uniqueRules },
+        { label: 'Workflows using rules', value: uniqueWorkflows },
+        { label: 'Avg duration', value: `${avgDuration}ms` },
       ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ReportChart type="bar" data={byRule} xKey="name" yKeys={['value']} title="Executions by Business Rule" />
-        <ReportChart type="pie" data={byBranch} title="Matched Branch Distribution" />
+        <ReportChart type="bar" data={byRule} xKey="name" yKeys={['value']} title="Executions by business rule" />
+        <ReportChart type="pie" data={byBranch} title="Matched branch distribution" />
       </div>
 
       <ReportDataTable
         title={`Execution Detail (${tables.length} rules configured)`}
         columns={[
           { key: 'decision_table_name', label: 'Rule' },
-          { key: 'rule_label', label: 'Matched Branch' },
+          { key: 'rule_label', label: 'Matched branch' },
           { key: 'matched', label: 'Result' },
           { key: 'workflow_name', label: 'Workflow' },
           { key: 'run_title', label: 'Run' },
-          { key: 'run_status', label: 'Run Status' },
+          { key: 'run_status', label: 'Run status' },
           { key: 'duration_ms', label: 'Duration (ms)' },
           { key: 'created_at', label: 'Executed', type: 'date' },
         ]}

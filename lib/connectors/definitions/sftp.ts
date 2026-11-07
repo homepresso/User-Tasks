@@ -29,7 +29,24 @@ export const sftpConnector: ConnectorDefinition = {
       label: 'Default Remote Path (optional)',
       type: 'text',
       placeholder: '/home/user/uploads',
-      helpText: 'Default remote directory used when an action does not provide a path.',
+      helpText: 'Relative paths resolve against this directory. With "Restrict to default path" on, actions cannot reach anything outside it.',
+    },
+    {
+      key: 'restrict_to_default_path',
+      label: 'Restrict to default path',
+      type: 'select',
+      options: [
+        { value: 'true', label: 'Yes (recommended)' },
+        { value: 'false', label: 'No' },
+      ],
+      defaultValue: 'true',
+    },
+    {
+      key: 'host_key_fingerprint',
+      label: 'Host Key Fingerprint',
+      type: 'text',
+      placeholder: 'SHA256:AbC123…',
+      helpText: 'The server\'s SSH host key fingerprint, e.g. from: ssh-keyscan HOST | ssh-keygen -lf -. Required: a call to a server presenting another key is refused, and a call without a fingerprint fails with the fingerprint the server presented.',
     },
   ],
   credentialFields: [
@@ -56,7 +73,7 @@ export const sftpConnector: ConnectorDefinition = {
       type: 'password',
       visibleWhen: { field: 'auth_method', equals: 'password' },
       requiredWhen: { field: 'auth_method', equals: 'password' },
-      helpText: 'Use the account password for password auth, or the private key passphrase when using key-based auth.',
+      helpText: 'The account password.',
     },
     {
       key: 'private_key',
@@ -66,6 +83,12 @@ export const sftpConnector: ConnectorDefinition = {
       requiredWhen: { field: 'auth_method', equals: 'private_key' },
       placeholder: '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----',
       helpText: 'Paste a PEM or OpenSSH private key for key-based SFTP authentication.',
+    },
+    {
+      key: 'private_key_passphrase',
+      label: 'Private Key Passphrase (if encrypted)',
+      type: 'password',
+      visibleWhen: { field: 'auth_method', equals: 'private_key' },
     },
   ],
   referenceTemplates: [
@@ -78,11 +101,12 @@ export const sftpConnector: ConnectorDefinition = {
       headers: { 'Content-Type': 'application/json' },
       bodyTemplate: JSON.stringify({ path: '{{path}}' }),
       inputs: [
-        { name: 'path', type: 'string', required: true, description: 'Remote directory path (e.g. /home/user/uploads)' },
+        { name: 'path', type: 'string', required: false, description: 'Remote directory (absolute, or relative to the default path; empty = default path)' },
       ],
       outputs: [
         { name: 'files', type: 'array' },
         { name: 'count', type: 'number' },
+        { name: 'truncated', type: 'boolean' },
       ],
     },
     {
@@ -98,8 +122,10 @@ export const sftpConnector: ConnectorDefinition = {
       ],
       outputs: [
         { name: 'content', type: 'string' },
+        { name: 'encoding', type: 'string' },
         { name: 'size', type: 'number' },
         { name: 'filename', type: 'string' },
+        { name: 'file', type: 'object' },
       ],
     },
     {
@@ -109,11 +135,12 @@ export const sftpConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/sftp/upload',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ path: '{{remote_path}}', content: '{{content}}', mode: '{{mode}}' }),
+      bodyTemplate: JSON.stringify({ path: '{{remote_path}}', content: '{{content}}', encoding: '{{encoding}}', mode: '{{mode}}' }),
       inputs: [
-        { name: 'remote_path', type: 'string', required: true, description: 'Full destination path including filename (e.g. /uploads/data.csv)' },
-        { name: 'content', type: 'string', required: true, description: 'File content (text or base64)' },
-        { name: 'mode', type: 'string', required: false, description: 'overwrite or append', defaultValue: 'overwrite' },
+        { name: 'remote_path', type: 'string', required: true, description: 'Destination path including filename (e.g. /uploads/data.csv)' },
+        { name: 'content', type: 'string', required: true, description: 'File content: text, base64 (with encoding = base64, or a data: URL), or a workflow file' },
+        { name: 'encoding', type: 'string', required: false, description: 'text or base64', defaultValue: 'text' },
+        { name: 'mode', type: 'string', required: false, description: 'overwrite, append, or create (fails if the file exists — safe to retry)', defaultValue: 'overwrite' },
       ],
       outputs: [
         { name: 'path', type: 'string' },
@@ -142,10 +169,11 @@ export const sftpConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/sftp/rename',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ from_path: '{{from_path}}', to_path: '{{to_path}}' }),
+      bodyTemplate: JSON.stringify({ from_path: '{{from_path}}', to_path: '{{to_path}}', overwrite: '{{overwrite}}' }),
       inputs: [
         { name: 'from_path', type: 'string', required: true, description: 'Current file path' },
         { name: 'to_path', type: 'string', required: true, description: 'New file path' },
+        { name: 'overwrite', type: 'string', required: false, description: 'true to replace an existing file at to_path (servers with posix-rename)', defaultValue: 'false' },
       ],
       outputs: [
         { name: 'status', type: 'string' },
@@ -176,7 +204,7 @@ export const sftpConnector: ConnectorDefinition = {
       headers: { 'Content-Type': 'application/json' },
       bodyTemplate: JSON.stringify({ path: '{{path}}' }),
       inputs: [
-        { name: 'path', type: 'string', required: true, description: 'Directory path to remove (must be empty unless recursive)' },
+        { name: 'path', type: 'string', required: true, description: 'Directory path to remove (must be empty)' },
       ],
       outputs: [
         { name: 'status', type: 'string' },
@@ -245,7 +273,11 @@ export const sftpConnector: ConnectorDefinition = {
       port: Number(config.port) || 22,
       auth_method: credentials.auth_method || 'password',
       private_key: credentials.private_key || '',
+      ...(credentials.private_key_passphrase ? { private_key_passphrase: credentials.private_key_passphrase } : {}),
       default_path: config.default_path || '/',
+      // Stored connectors without these settings: restricted when a default path is set; no pin (calls fail and report the fingerprint).
+      ...(config.restrict_to_default_path !== undefined && config.restrict_to_default_path !== '' ? { restrict_to_default_path: String(config.restrict_to_default_path) } : {}),
+      ...(config.host_key_fingerprint ? { host_key_fingerprint: String(config.host_key_fingerprint).trim() } : {}),
     },
   }),
 }

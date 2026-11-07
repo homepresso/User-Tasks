@@ -1,0 +1,615 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "b9d75b68-7646-581b-8fb5-919be275831e",
+  "asset": {
+    "id": "b9d75b68-7646-581b-8fb5-919be275831e",
+    "name": "Pulse results",
+    "description": "The internal results page: engagement by department, eNPS by round and the risk-band split from the Pulse responses table, section averages and open follow-ups as saved reports, and a button that emails a round summary.",
+    "tags": [
+      "survey",
+      "dashboard",
+      "engagement"
+    ],
+    "fields": [
+      {
+        "key": "about",
+        "type": "custom",
+        "label": "How to read this page",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "info",
+            "card_title": "Engagement and eNPS",
+            "body": "Engagement is the average of all Likert answers (N/A ignored) on a 0-100 scale: 1 = 0, 5 = 100. Below 50 is at risk. eNPS = % who answered 9-10 minus % who answered 0-6. Anonymous answers count in every chart but never create a personal follow-up.",
+            "layout": "callout",
+            "format": "auto",
+            "show_icon": true
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "dept_chart",
+        "type": "custom",
+        "label": "Average engagement by department",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Engagement by department (0-100)",
+            "chart_type": "horizontal-bar",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "department",
+            "value_field": "engagement",
+            "aggregate": "average",
+            "show_legend": false,
+            "stacked": false,
+            "colors": [
+              "#BE185D"
+            ],
+            "height": 300,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "search_columns": [
+            "department",
+            "round"
+          ],
+          "display_columns": [
+            "department",
+            "engagement"
+          ],
+          "value_column": "response_ref",
+          "sort": {
+            "column": "submitted_on",
+            "direction": "desc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        },
+        "help_text": "The average engagement score of the latest 50 answers in Pulse responses, by department."
+      },
+      {
+        "key": "enps_chart",
+        "type": "custom",
+        "label": "eNPS by round",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "eNPS by survey round",
+            "chart_type": "line",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "round",
+            "value_field": "enps_points",
+            "aggregate": "average",
+            "show_legend": false,
+            "stacked": false,
+            "colors": [
+              "#0F766E"
+            ],
+            "height": 280,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "search_columns": [
+            "round",
+            "department"
+          ],
+          "display_columns": [
+            "round",
+            "enps_points"
+          ],
+          "value_column": "response_ref",
+          "sort": {
+            "column": "submitted_on",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        },
+        "help_text": "The average eNPS points (+100, 0, -100) per round: that average is the eNPS."
+      },
+      {
+        "key": "band_chart",
+        "type": "custom",
+        "label": "Answers by risk band",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Thriving, okay and at risk",
+            "chart_type": "doughnut",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "risk_band",
+            "value_field": "engagement",
+            "aggregate": "count",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#15803D",
+              "#A16207",
+              "#B91C1C"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "search_columns": [
+            "risk_band"
+          ],
+          "display_columns": [
+            "risk_band",
+            "engagement"
+          ],
+          "value_column": "response_ref",
+          "sort": {
+            "column": "risk_band",
+            "direction": "desc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "sections_report",
+        "type": "custom",
+        "label": "Section averages by round",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "01a513e7-62fa-5847-807a-4a2b4a851030",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 300,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "open_report",
+        "type": "custom",
+        "label": "Open follow-ups",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "a8184f96-4b0e-51bc-885d-e5853a6bb42a",
+            "view": "table",
+            "page_size": 5,
+            "max_rows": 100,
+            "height": 300,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "summary_round",
+        "label": "Email me the summary for round",
+        "type": "text",
+        "required": true,
+        "placeholder": "YYYY-MM",
+        "help_text": "A survey round as YYYY-MM."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "dept_chart",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "enps_chart",
+              "span": 1
+            },
+            {
+              "field_key": "band_chart",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "sections_report",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "open_report",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 1,
+          "cells": [
+            {
+              "field_key": "summary_round",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#BE185D",
+            "background": "#FFFFFF",
+            "text": "#1F1320",
+            "page": "#FCE7F3",
+            "page_to": "#FFF7FB"
+          }
+        },
+        "radius": 16,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Email me the round summary",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Summary on its way",
+            "screen_button": "submit_another",
+            "text": "The pulse summary for {{summary_round}} is being emailed to you.",
+            "screen_button_label": "Back to the results"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Pulse results",
+      "align": "left",
+      "subtitle": "Engagement by department, eNPS trend, section averages and open follow-ups."
+    }
+  }
+}

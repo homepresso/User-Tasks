@@ -33,3 +33,56 @@ export function workspaceInitials(name: string | null | undefined): string {
   const initials = String(name ?? '').split(' ').map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase()
   return initials || '?'
 }
+
+export interface WorkspaceMenuEntry {
+  /** null = the unified "All organizations" view. */
+  tenantId: string | null
+  name: string
+  initials: string | null
+  color: string | null
+  isHome: boolean
+  current: boolean
+}
+
+/**
+ * The workspace switcher's entries (the avatar menu in the top bar): "All
+ * organizations", then every usable membership, with the active one marked.
+ */
+export function workspaceMenuEntries(memberships: ReadonlyArray<MembershipWithTenant | null | undefined> | null | undefined, currentTenantId: string | null): WorkspaceMenuEntry[] {
+  return [
+    { tenantId: null, name: 'All organizations', initials: null, color: null, isHome: false, current: !currentTenantId },
+    ...usableMemberships(memberships).map((m) => ({
+      tenantId: m.tenant.id,
+      name: m.tenant.name,
+      initials: workspaceInitials(m.tenant.name),
+      color: ((m.tenant.branding as { primary_color?: string } | null)?.primary_color) ?? null,
+      isHome: Boolean(m.is_home),
+      current: currentTenantId === m.tenant.id,
+    })),
+  ]
+}
+
+/**
+ * Switch workspace, then drop every client cache (all of it is
+ * tenant-scoped) and re-render the server components. Returns whether the
+ * switch happened (switch_tenant checks membership).
+ */
+export async function performWorkspaceSwitch(tenantId: string | null, deps: {
+  switchWorkspace: (tenantId: string | null) => Promise<{ ok: boolean }>
+  clearCurrentTenantCache: () => void
+  invalidateQueries: () => Promise<unknown>
+  /** Re-read the signed-in profile (current workspace, role, permissions) so the shell isn't stale. */
+  refreshProfile?: () => Promise<unknown>
+  refresh: () => void
+}): Promise<boolean> {
+  const result = await deps.switchWorkspace(tenantId)
+  if (!result.ok) return false
+  // router.refresh() only re-renders server components — React Query caches
+  // (messages, tasks, notifications, ...) would keep showing the previous
+  // workspace's rows without the invalidation.
+  deps.clearCurrentTenantCache()
+  await deps.invalidateQueries()
+  await deps.refreshProfile?.()
+  deps.refresh()
+  return true
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "67020e3c-889b-5aad-9a9f-b599a2de2df0",
+  "asset": {
+    "id": "67020e3c-889b-5aad-9a9f-b599a2de2df0",
+    "name": "Meeting minutes",
+    "description": "The approved minutes, with the PDF and the subtitle file attached.",
+    "subject": "Minutes: {{form.meeting_title}} ({{form.meeting_date}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">{{form.meeting_title}}</h2><p style=\"color:#6E6759\">{{form.meeting_date}} · {{form.attendees}}</p><h3>Summary</h3><p>{{task_data.summary}}</p><h3>Decisions</h3><p style=\"white-space:pre-line\">{{task_data.decisions}}</p><h3>Actions</h3><p style=\"white-space:pre-line\">{{action_lines}}</p><p style=\"color:#6E6759;font-size:12px\">The minutes PDF and the transcript (SRT subtitles) are attached. Drafted from the recording by AI and checked by {{actioned_by_name}}.</p></div>",
+    "text_body": "Minutes: {{form.meeting_title}} ({{form.meeting_date}})\n\nSummary\n{{task_data.summary}}\n\nDecisions\n{{task_data.decisions}}\n\nActions\n{{action_lines}}",
+    "is_default": false
+  }
+}

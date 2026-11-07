@@ -161,6 +161,8 @@ export async function handleScimRequest(request: Request, segments: string[], de
       baseUrl,
       autoProvision: auth.autoProvision,
       syncGroups: auth.syncGroups,
+      importOrgUnits: auth.importOrgUnits,
+      importProfiles: auth.importProfiles,
     }
     const [head, id, ...extra] = segments.map((s) => {
       try {

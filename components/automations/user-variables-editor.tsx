@@ -4,6 +4,11 @@ import { useState } from 'react'
 import { Plus, Trash2, Variable, ChevronDown, ChevronRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CountBadge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import type { UserVariable } from './workflow-builder'
 
 interface UserVariablesEditorProps {
@@ -48,100 +53,90 @@ export function UserVariablesEditor({ variables, onChange }: UserVariablesEditor
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 w-full text-left mb-2"
+        aria-expanded={expanded}
+        className="mb-2 flex w-full items-center gap-1.5 rounded-sm text-left text-fg-muted hover:text-fg"
       >
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <Variable size={14} style={{ color: 'var(--theme-primary-text)' }} />
-        <span className="text-xs font-semibold flex-1">Workflow Variables</span>
-        <span
-          className="text-[10px] px-1.5 py-0.5 rounded-full"
-          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-        >
-          {variables.length}
-        </span>
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <Variable size={14} aria-hidden="true" />
+        <span className="flex-1 text-xs font-medium">Workflow variables</span>
+        <CountBadge count={variables.length} />
       </button>
 
       {expanded && (
         <div className="space-y-2">
-          <p className="text-[10px] leading-relaxed" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs text-fg-muted">
             Define variables that can be passed into this workflow via webhooks or triggers. Use as{' '}
-            <code className="font-mono" style={{ color: 'var(--theme-primary-text)' }}>{'{{name}}'}</code> in any field.
-            They are also the inputs of the <strong>Run</strong> dialog and API/CLI starts.
+            <code className="font-mono text-2xs text-fg">{'{{name}}'}</code> in any field.
+            They are also the inputs of the <span className="font-medium text-fg">Run</span> dialog and API/CLI starts.
           </p>
 
           {variables.map((v) => (
-            <div
+            <Card
               key={v.id}
-              className="rounded-lg border p-2.5 space-y-1.5"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}
+              variant="inset"
+              padding="sm"
+              className="space-y-1.5"
             >
               <div className="flex items-center gap-1.5">
                 <Input
                   value={v.name}
                   onChange={(e) => updateVariable(v.id, 'name', e.target.value)}
                   placeholder="variable_name"
-                  className="!text-xs !h-7 font-mono flex-1"
+                  size="sm"
+                  aria-label="Variable name"
+                  className="flex-1 font-mono"
                 />
-                <select
+                <Select
                   value={v.type === 'array' && v.format === 'attachments' ? 'attachments' : v.type}
                   onChange={(e) => {
                     // Files: a list of uploads (its limits are set in the start form designer).
                     if (e.target.value === 'attachments') onChange(variables.map((x) => (x.id === v.id ? { ...x, type: 'array', format: 'attachments', defaultValue: '' } : x)))
                     else onChange(variables.map((x) => (x.id === v.id ? { ...x, type: e.target.value as UserVariable['type'], ...(x.format === 'attachments' ? { format: undefined, attachments: undefined } : {}) } : x)))
                   }}
-                  className="text-[10px] h-7 rounded-md border px-1.5"
-                  style={{
-                    borderColor: 'var(--theme-surface-border)',
-                    backgroundColor: 'var(--theme-card-bg)',
-                    color: 'var(--theme-card-text)',
-                  }}
+                  size="sm"
+                  aria-label="Variable type"
+                  wrapperClassName="w-auto shrink-0"
                 >
                   <option value="string">String</option>
                   <option value="number">Number</option>
                   <option value="boolean">Boolean</option>
                   <option value="object">Object</option>
                   <option value="attachments">Files</option>
-                </select>
-                <button
+                </Select>
+                <IconButton
+                  size="sm"
+                  variant="danger-ghost"
+                  label="Remove variable"
+                  icon={<Trash2 />}
                   onClick={() => removeVariable(v.id)}
-                  className="p-1 rounded hover:text-red-500 shrink-0"
-                  style={{ color: 'var(--theme-muted-text)' }}
-                >
-                  <Trash2 size={12} />
-                </button>
+                />
               </div>
               <Input
                 value={v.defaultValue}
                 onChange={(e) => updateVariable(v.id, 'defaultValue', e.target.value)}
                 placeholder="Default value"
-                className="!text-xs !h-7"
+                size="sm"
               />
               <Input
                 value={v.description}
                 onChange={(e) => updateVariable(v.id, 'description', e.target.value)}
                 placeholder="Description (optional)"
-                className="!text-xs !h-7"
+                size="sm"
               />
-              <div className="flex items-center gap-1.5">
-                <label className="flex items-center gap-1 text-[10px] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(v.required)}
-                    onChange={(e) => updateVariable(v.id, 'required', e.target.checked)}
-                  />
-                  Required input
-                </label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={Boolean(v.required)}
+                  onChange={(e) => updateVariable(v.id, 'required', e.target.checked)}
+                  label="Required input"
+                  className="shrink-0 text-xs"
+                />
                 {v.type === 'string' && (
-                  <select
+                  <Select
                     value={v.format ?? 'text'}
                     onChange={(e) => updateVariable(v.id, 'format', e.target.value)}
                     aria-label="Input format"
-                    className="text-[10px] h-7 rounded-md border px-1.5 flex-1 min-w-0"
-                    style={{
-                      borderColor: 'var(--theme-surface-border)',
-                      backgroundColor: 'var(--theme-card-bg)',
-                      color: 'var(--theme-card-text)',
-                    }}
+                    size="sm"
+                    wrapperClassName="flex-1 min-w-0"
                   >
                     <option value="text">Text</option>
                     <option value="date">Date</option>
@@ -149,7 +144,7 @@ export function UserVariablesEditor({ variables, onChange }: UserVariablesEditor
                     <option value="email">Email</option>
                     <option value="url">URL</option>
                     <option value="select">Choice list</option>
-                  </select>
+                  </Select>
                 )}
               </div>
               {v.type === 'string' && v.format === 'select' && (
@@ -157,19 +152,20 @@ export function UserVariablesEditor({ variables, onChange }: UserVariablesEditor
                   value={v.options ?? ''}
                   onChange={(e) => updateVariable(v.id, 'options', e.target.value)}
                   placeholder="Choices, comma separated"
-                  className="!text-xs !h-7"
+                  size="sm"
                 />
               )}
-            </div>
+            </Card>
           ))}
 
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={addVariable}
-            className="w-full !text-xs !h-7"
+            className="w-full"
+            leadingIcon={<Plus />}
           >
-            <Plus size={12} className="mr-1" /> Add Variable
+            Add variable
           </Button>
         </div>
       )}

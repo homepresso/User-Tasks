@@ -1,7 +1,9 @@
 import {
   DirectoryApiError,
   looksLikeEmail,
+  profileValue,
   type DirectoryClient,
+  type DirectoryProfile,
   type DirectoryGroup,
   type DirectoryUser,
 } from '@/lib/directory-sync/types'
@@ -23,6 +25,23 @@ export function parseNextLink(header: string | null): string | null {
   if (!header) return null
   const match = header.match(/<([^>]+)>\s*;\s*rel="next"/)
   return match ? match[1] : null
+}
+
+/**
+ * Okta user profile → org attributes (base profile: title, department,
+ * division, organization, costCenter, employeeNumber; location from a custom
+ * officeLocation / location attribute, else city).
+ */
+export function oktaProfile(profile: Record<string, any>): DirectoryProfile {
+  return {
+    job_title: profileValue(profile.title),
+    department: profileValue(profile.department),
+    division: profileValue(profile.division),
+    company: profileValue(profile.organization),
+    cost_center: profileValue(profile.costCenter),
+    employee_id: profileValue(profile.employeeNumber),
+    location: profileValue(profile.officeLocation ?? profile.location ?? profile.city),
+  }
 }
 
 export function createOktaClient(credentials: OktaCredentials): DirectoryClient {
@@ -99,6 +118,7 @@ export function createOktaClient(credentials: OktaCredentials): DirectoryClient 
             // in a temporary credential state — only truly departed statuses
             // (SUSPENDED, DEPROVISIONED, STAGED, …) count as inactive.
             active: ['ACTIVE', 'RECOVERY', 'LOCKED_OUT', 'PASSWORD_EXPIRED'].includes(String(u.status)),
+            profile: oktaProfile(profile),
             // profile.managerId: the manager's Okta id, login or email
             // (free-form in Okta); empty string means none.
             ...(typeof profile.managerId === 'string'

@@ -1,0 +1,691 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "a6531735-7719-5383-bd5f-ca58cc2ef247",
+  "asset": {
+    "id": "a6531735-7719-5383-bd5f-ca58cc2ef247",
+    "name": "Survey response",
+    "description": "A customer answers the survey: the response is classified as promoter, passive or detractor by a decision table, saved, and low scores get a follow-up call with an SLA.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Survey answered",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "5649f51d-9584-5c41-b181-07bf5ace561e",
+          "form_name": "Customer satisfaction survey"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Response reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "response_ref",
+          "expression": "CSAT-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "month",
+        "type": "set_variable",
+        "label": "Month",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "name": "month",
+          "expression": "{{=FORMAT_DATE(NOW(), \"YYYY-MM\")}}"
+        }
+      },
+      {
+        "id": "classify",
+        "type": "decision_table",
+        "label": "NPS category",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "decision_table_id": "c9977ae0-3bb5-5220-b4b1-9f19bf4da316",
+          "decision_table_name": "NPS category and follow-up",
+          "input_mappings": {
+            "nps": "{{form.nps}}",
+            "overall": "{{form.overall}}"
+          }
+        }
+      },
+      {
+        "id": "score",
+        "type": "set_variable",
+        "label": "Experience score",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "experience_score",
+          "expression": "{{=ROUND((COALESCE(form.experience.speed_of_our_response, 0) + COALESCE(form.experience.knowledge_of_the_person_who_helped_you, 0) + COALESCE(form.experience.ease_of_getting_what_you_needed, 0) + COALESCE(form.experience.value_for_money, 0)) / MAX(1, IF(COALESCE(form.experience.speed_of_our_response, 0) > 0, 1, 0) + IF(COALESCE(form.experience.knowledge_of_the_person_who_helped_you, 0) > 0, 1, 0) + IF(COALESCE(form.experience.ease_of_getting_what_you_needed, 0) > 0, 1, 0) + IF(COALESCE(form.experience.value_for_money, 0) > 0, 1, 0)), 1)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "title": "CSAT {{form.customer_name}}: {{nps_category}} ({{form.nps}}/10, {{form.overall}}★)"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Save the response",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "table_id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+          "table_name": "Survey responses",
+          "operation": "insert",
+          "output_row_id_var": "response_row_id",
+          "column_values": {
+            "response_ref": "{{response_ref}}",
+            "submitted_on": "{{=TODAY()}}",
+            "month": "{{month}}",
+            "customer_name": "{{form.customer_name}}",
+            "customer_email": "{{form.customer_email}}",
+            "product_area": "{{form.product_area}}",
+            "channel": "{{form.channel}}",
+            "overall_rating": "{{form.overall}}",
+            "nps": "{{form.nps}}",
+            "nps_category": "{{nps_category}}",
+            "nps_points": "{{nps_points}}",
+            "experience_score": "{{experience_score}}",
+            "comment": "{{form.comment_text}}",
+            "follow_up": "{{follow_up}}",
+            "status": "{{=IF(follow_up, \"Follow-up due\", \"Closed\")}}"
+          }
+        }
+      },
+      {
+        "id": "needs",
+        "type": "condition",
+        "label": "Follow up?",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Follow up",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{follow_up}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "thanks",
+        "type": "send_email",
+        "label": "Thank the customer",
+        "position": {
+          "x": 1020,
+          "y": 1200
+        },
+        "config": {
+          "to": "{{form.customer_email}}",
+          "email_template_id": "2c23e9ff-5cc8-54c8-be7e-8fd9874e6479"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Response recorded",
+        "position": {
+          "x": 1020,
+          "y": 1340
+        },
+        "config": {
+          "reason": "{{response_ref}}: {{nps_category}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Follow-up SLA",
+        "position": {
+          "x": 300,
+          "y": 1200
+        },
+        "config": {
+          "sla_label": "Detractor follow-up ({{follow_up_hours}} h)",
+          "mode": "relative",
+          "amount": "{{follow_up_hours}}",
+          "unit": "hours",
+          "warning_amount": 4,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "call",
+        "type": "user_task",
+        "label": "Call the customer",
+        "position": {
+          "x": 300,
+          "y": 1340
+        },
+        "config": {
+          "task_title": "Follow up: {{form.customer_name}} ({{nps_category}}, {{form.nps}}/10)",
+          "task_description": "<p><strong>{{form.customer_name}}</strong> rated us <strong>{{form.overall}} of 5</strong> and <strong>{{form.nps}} of 10</strong> for recommending us ({{form.product_area}}, via {{form.channel}}).</p><p>What they said: {{form.comment_text}}</p><p>{{=IF(form.may_contact, \"They are happy to be contacted.\", \"They did not ask to be contacted: check your records before calling.\")}} Call within {{follow_up_hours}} hours, agree what happens next and record it.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Resolved",
+            "Could not reach"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_HOURS(NOW(), follow_up_hours)}}",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "c_name",
+              "label": "Customer",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.customer_name}}"
+            },
+            {
+              "key": "c_email",
+              "label": "Email",
+              "type": "email",
+              "read_only": true,
+              "default": "{{form.customer_email}}"
+            },
+            {
+              "key": "c_scores",
+              "label": "Scores",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.overall}} of 5 · {{form.nps}} of 10 · {{nps_category}}"
+            },
+            {
+              "key": "c_area",
+              "label": "About",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.product_area}} · {{form.channel}}"
+            },
+            {
+              "key": "said",
+              "type": "custom",
+              "label": "What they said",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "warning",
+                  "card_title": "{{field1}}",
+                  "body": "{{field2}}",
+                  "layout": "callout",
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "c_scores",
+                  "field2": "c_comment"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "c_comment",
+              "label": "Comment",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.comment_text}}"
+            },
+            {
+              "key": "root_cause",
+              "label": "Root cause",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Slow response",
+                "Wrong answer",
+                "Product defect",
+                "Billing error",
+                "Price",
+                "Other"
+              ]
+            },
+            {
+              "key": "call_rating",
+              "type": "custom",
+              "label": "How did the call go?",
+              "custom": {
+                "tag": "ut-rating",
+                "version": "1.1.0",
+                "name": "Rating",
+                "value_type": "number",
+                "icon": "star",
+                "value_schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "props": {
+                  "max": 5,
+                  "symbol": "star",
+                  "size": "medium",
+                  "labels": [
+                    "Still unhappy",
+                    "Unhappy",
+                    "Neutral",
+                    "Happier",
+                    "Delighted"
+                  ],
+                  "allow_clear": true
+                },
+                "display": {
+                  "template": "{{value}} of {{props.max}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "radiogroup",
+                  "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 52,
+                  "min_height": 36,
+                  "max_height": 120
+                },
+                "output": {
+                  "type": "number",
+                  "description": "The rating (1 to the maximum)"
+                }
+              }
+            },
+            {
+              "key": "call_notes",
+              "type": "custom",
+              "label": "Call notes",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "placeholder": "What did you talk about?",
+                  "max_length": 4000,
+                  "toolbar": "basic",
+                  "min_height": 160
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            },
+            {
+              "key": "agreed_action",
+              "label": "What we agreed (sent to the customer)",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "c_name",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "c_email",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "c_scores",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "c_area",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "said",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "root_cause",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "call_rating",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "call_notes",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "agreed_action",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resolved",
+              "label": "Resolved",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resolved"
+            },
+            {
+              "id": "no_contact",
+              "label": "Could not reach",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Could not reach"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Customer follow-up",
+            "align": "left",
+            "subtitle": "Reference {{response_ref}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#C2410C",
+                  "background": "#FFFFFF",
+                  "text": "#22160F",
+                  "page": "#FDF0E7",
+                  "page_to": "#FFFAF5"
+                }
+              },
+              "radius": 16,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "recovered",
+        "type": "update_data_table",
+        "label": "Mark recovered",
+        "position": {
+          "x": 120,
+          "y": 1500
+        },
+        "config": {
+          "table_id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+          "table_name": "Survey responses",
+          "operation": "update",
+          "match_column": "response_ref",
+          "match_value": "{{response_ref}}",
+          "column_values": {
+            "status": "Recovered"
+          }
+        }
+      },
+      {
+        "id": "tell",
+        "type": "send_email",
+        "label": "Email what we agreed",
+        "position": {
+          "x": 120,
+          "y": 1640
+        },
+        "config": {
+          "to": "{{form.customer_email}}",
+          "email_template_id": "e889dbb5-3b6d-5ef7-a724-3d16de0e27d3"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "no_contact",
+        "type": "update_data_table",
+        "label": "Mark no contact",
+        "position": {
+          "x": 480,
+          "y": 1500
+        },
+        "config": {
+          "table_id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+          "table_name": "Survey responses",
+          "operation": "update",
+          "match_column": "response_ref",
+          "match_value": "{{response_ref}}",
+          "column_values": {
+            "status": "No contact"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-month",
+        "source": "ref",
+        "target": "month"
+      },
+      {
+        "id": "e-month-classify",
+        "source": "month",
+        "target": "classify"
+      },
+      {
+        "id": "e-classify-score",
+        "source": "classify",
+        "target": "score"
+      },
+      {
+        "id": "e-score-title",
+        "source": "score",
+        "target": "title"
+      },
+      {
+        "id": "e-title-row",
+        "source": "title",
+        "target": "row"
+      },
+      {
+        "id": "e-row-needs",
+        "source": "row",
+        "target": "needs"
+      },
+      {
+        "id": "e-needs-sla-follow-up",
+        "source": "needs",
+        "target": "sla",
+        "label": "Follow up"
+      },
+      {
+        "id": "e-needs-thanks-else",
+        "source": "needs",
+        "target": "thanks",
+        "label": "Else"
+      },
+      {
+        "id": "e-thanks-done",
+        "source": "thanks",
+        "target": "done"
+      },
+      {
+        "id": "e-sla-call",
+        "source": "sla",
+        "target": "call"
+      },
+      {
+        "id": "e-call-recovered-resolved",
+        "source": "call",
+        "target": "recovered",
+        "label": "Resolved"
+      },
+      {
+        "id": "e-call-no_contact-could-not-reach",
+        "source": "call",
+        "target": "no_contact",
+        "label": "Could not reach"
+      },
+      {
+        "id": "e-recovered-tell",
+        "source": "recovered",
+        "target": "tell"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

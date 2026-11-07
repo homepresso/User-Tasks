@@ -248,7 +248,7 @@ export function SearchableMultiOptionPicker({
             ? `${selectedOptions.length} selected`
             : placeholder}
         </span>
-        <ChevronDown size={13} style={{ color: 'var(--theme-muted-text)' }} />
+        <ChevronDown size={13} className="text-fg-muted" />
       </button>
 
       {selectedOptions.length > 0 ? (
@@ -256,8 +256,7 @@ export function SearchableMultiOptionPicker({
           {selectedOptions.slice(0, 12).map((option) => (
             <span
               key={option.value}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-              style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium bg-primary-wash text-primary-text"
             >
               <span className="max-w-[180px] truncate">{option.label}</span>
               <button
@@ -274,8 +273,7 @@ export function SearchableMultiOptionPicker({
           ))}
           {selectedOptions.length > 12 ? (
             <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-              style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium bg-bg text-fg-muted"
             >
               +{selectedOptions.length - 12} more
             </span>
@@ -285,15 +283,11 @@ export function SearchableMultiOptionPicker({
 
       {open && !disabled ? (
         <div
-          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border shadow-lg"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-          }}
+          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border shadow-lg bg-panel border-border"
         >
           <Command shouldFilter={false} loop>
-            <div className="flex items-center gap-2 border-b px-2 py-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
-              <Search size={12} style={{ color: 'var(--theme-muted-text)' }} />
+            <div className="flex items-center gap-2 border-b px-2 py-2 border-border">
+              <Search size={12} className="text-fg-muted" />
               <Command.Input
                 value={search}
                 onValueChange={setSearch}
@@ -317,8 +311,7 @@ export function SearchableMultiOptionPicker({
               />
             </div>
             <div
-              className="flex items-center gap-2 border-b px-2 py-1.5 text-[10px]"
-              style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+              className="flex items-center gap-2 border-b px-2 py-1.5 text-2xs border-border text-fg-muted"
             >
               <button type="button" onClick={selectVisible} className="hover:underline">
                 Select visible
@@ -337,15 +330,14 @@ export function SearchableMultiOptionPicker({
             </div>
             <Command.List className="max-h-72 overflow-y-auto p-1">
               {sections.length === 0 ? (
-                <div className="px-2 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                <div className="px-2 py-3 text-xs text-fg-muted">
                   {emptyLabel}
                 </div>
               ) : (
                 sections.map((section) => (
                   <div key={section.key} className="pb-1">
                     <div
-                      className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                      style={{ color: 'var(--theme-muted-text)' }}
+                      className="px-2 py-1 text-2xs font-semibold uppercase tracking-[0.08em] text-fg-muted"
                     >
                       {section.label}
                     </div>
@@ -358,13 +350,13 @@ export function SearchableMultiOptionPicker({
                       >
                         <span className="mt-0.5 shrink-0">
                           {values.includes(option.value) ? (
-                            <Check size={12} style={{ color: 'var(--theme-primary-text)' }} />
+                            <Check size={12} className="text-primary-text" />
                           ) : (
                             <span className="block h-3 w-3" />
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate" style={{ color: 'var(--theme-card-text)' }}>
+                          <span className="block truncate text-fg">
                             {renderHighlightedText(option.label, search)}
                           </span>
                           {option.badges && option.badges.length > 0 ? (
@@ -372,11 +364,7 @@ export function SearchableMultiOptionPicker({
                               {option.badges.map((badge) => (
                                 <span
                                   key={badge}
-                                  className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium"
-                                  style={{
-                                    backgroundColor: 'var(--theme-surface)',
-                                    color: 'var(--theme-muted-text)',
-                                  }}
+                                  className="inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-medium bg-bg text-fg-muted"
                                 >
                                   {renderHighlightedText(badge, search)}
                                 </span>
@@ -384,7 +372,7 @@ export function SearchableMultiOptionPicker({
                             </span>
                           ) : null}
                           {option.subtitle ? (
-                            <span className="mt-1 block truncate text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                            <span className="mt-1 block truncate text-2xs text-fg-muted">
                               {renderHighlightedText(option.subtitle, search)}
                             </span>
                           ) : null}

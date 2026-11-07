@@ -3,10 +3,13 @@
 import { useMemo } from 'react'
 import { useWorkspaceTheme } from '@/components/providers/theme-provider'
 import { formHeaderColors, formThemeFontHref, formThemeVars, paletteScopeVars, type FormThemeOverrides } from '@/lib/forms/form-theme'
+import { normalizeFormWidth } from '@/lib/forms/form-width'
 import { resolveStorageUrl } from '@/lib/storage/refs'
 import { isDarkColor } from '@/lib/theme/colors'
 import type { ThemeMode } from '@/lib/theme/schema'
 import { cn } from '@/lib/utils'
+import { FormMotionProvider, motionAttrs, usePrefersReducedMotion } from './form-motion'
+import { motionLevel, type ResolvedFormAnimation } from '@/lib/forms/motion'
 
 /**
  * Wraps a form in its mini theme: the overrides laid onto the workspace
@@ -15,19 +18,22 @@ import { cn } from '@/lib/utils'
  * optional header. `mode` forces a palette (the designer's preview toggle).
  * Without overrides it renders a plain wrapper — the workspace theme.
  */
-export function FormThemeScope({ overrides, mode, className, children, card = true, page = false }: {
+export function FormThemeScope({ overrides, mode, className, children, card = true, page = false, motion }: {
   overrides: FormThemeOverrides | null | undefined
+  /** The form's animation (lib/forms/motion.ts, formAnimation(layout)): the card rises in and the parts inside follow it. */
+  motion?: ResolvedFormAnimation | null
   mode?: ThemeMode
   className?: string
   children: React.ReactNode
   /** Draw the form card (background, border, radius). */
   card?: boolean
   /**
-   * Also draw the page behind the card (the theme's page colour / gradient,
-   * else a soft wash of the card colour): standalone form pages, the frame
-   * of a task form, the designer preview.
+   * A page surface (standalone form pages, the frame of a task form, the
+   * designer preview): the card with elevation 1. `'viewport'` (public
+   * links) also paints the theme's page colour / gradient over the whole
+   * viewport behind it.
    */
-  page?: boolean
+  page?: boolean | 'viewport'
 }) {
   const { theme, mode: appMode } = useWorkspaceTheme()
   const active = mode ?? appMode
@@ -40,23 +46,34 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
   const header = overrides?.header?.enabled ? overrides.header : null
   const banner = formHeaderColors(overrides)
   const logo = header?.logo_url ? resolveStorageUrl(header.logo_url) : null
-  const themed = Boolean(overrides) || Boolean(mode) || page
+  const themed = Boolean(overrides) || Boolean(mode) || Boolean(page)
   // Native controls (date pickers, select menus, scrollbars) follow the form's own light / dark.
   const cardBg = vars['--theme-card-bg']
   const colorScheme = cardBg ? (isDarkColor(cardBg) ? 'dark' : 'light') : mode
+  // Form width (lib/forms/form-width.ts): narrow caps the scope here; wide / full widen the surface's container.
+  const width = normalizeFormWidth(overrides?.form_width)
+  const narrow = width === 'narrow' ? 'mx-auto w-full max-w-xl' : null
+  // The theme's own page colour / gradient (form-theme.ts pageVars).
+  const ownPage = Boolean(vars['--form-page-bg'])
+  const reduced = usePrefersReducedMotion()
+  const motionProps = motion ? { ...motionAttrs(motionLevel(motion.style, reduced)), 'data-fm-card': '' } : {}
 
   const inner = (
     <div
-      className={cn(card && themed && 'overflow-hidden border', className)}
+      className={cn(card && themed && 'overflow-hidden border', card && page && 'shadow-elev-1', !page && narrow, className)}
       data-form-theme={overrides ? 'custom' : 'workspace'}
+      data-form-width={width}
       data-form-density={overrides?.density ?? 'comfortable'}
+      data-form-font={overrides?.font ? '' : undefined}
+      {...motionProps}
       style={{
         ...vars,
         ...(colorScheme ? { colorScheme } : {}),
         ...(card && themed ? {
           backgroundColor: 'var(--theme-card-bg)',
           color: 'var(--theme-card-text)',
-          borderColor: 'var(--theme-surface-border)',
+          // The card's hairline is the subtle border (in a themed scope the surface border is the 3:1 input border).
+          borderColor: 'var(--ds-border-subtle)',
           borderRadius: 'var(--theme-border-radius)',
         } : {}),
         ...(overrides?.font ? { fontFamily: 'var(--theme-font-sans)' } : {}),
@@ -66,8 +83,8 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
       {fontHref && <link rel="stylesheet" href={fontHref} />}
       {header && (header.title || header.subtitle || logo) && (
         <div
-          className="flex items-center gap-3 px-5 py-4"
-          style={banner ? { backgroundColor: banner.background, color: banner.text } : { borderBottom: '1px solid var(--theme-surface-border)' }}
+          className={cn('flex items-center gap-3 px-5 py-4', !banner && 'border-b border-border')}
+          style={banner ? { backgroundColor: banner.background, color: banner.text } : undefined}
         >
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element -- workspace logo upload (own storage)
@@ -79,22 +96,37 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
           </div>
         </div>
       )}
-      <div className={cn(card && themed && 'p-5')}>{children}</div>
+      <div className={cn(card && themed && (page ? 'p-5 sm:p-7' : 'p-5'))}>{children}</div>
     </div>
   )
-  if (!page) return inner
+  if (!page) return <FormMotionProvider value={motion}>{inner}</FormMotionProvider>
+  // One card (elevation 1) straight on the canvas — never a tinted frame around it (UI polish §5.9).
+  // A theme's own page colour / gradient paints the canvas where the form owns it: the whole
+  // viewport of a public link (/p/); in the app the canvas is the app's (the designer previews it
+  // behind the card with useFormPageCanvas).
+  const canvas = page === 'viewport' && ownPage
+    ? <div aria-hidden className="pointer-events-none fixed inset-0" style={{ backgroundColor: vars['--form-page-bg'], backgroundImage: vars['--form-page-image'] }} data-form-canvas />
+    : null
   return (
-    <div
-      className="rounded-2xl p-3 sm:p-6"
-      data-form-page
-      style={{
-        ...vars,
-        backgroundColor: 'var(--form-page-bg, color-mix(in srgb, var(--theme-card-bg) 88%, var(--theme-card-text) 12%))',
-        backgroundImage: 'var(--form-page-image, none)',
-        color: 'var(--form-page-text, var(--theme-card-text))',
-      } as React.CSSProperties}
-    >
-      {inner}
-    </div>
+    <FormMotionProvider value={motion}>
+      <div className={cn(canvas && 'relative', narrow)} data-form-page={canvas ? 'canvas' : 'plain'}>
+        {canvas}
+        {canvas ? <div className="relative">{inner}</div> : inner}
+      </div>
+    </FormMotionProvider>
   )
+}
+
+/**
+ * The theme's page colour / gradient as a background style (null without
+ * one): the designer paints its preview pane with it, behind the card.
+ */
+export function useFormPageCanvas(overrides: FormThemeOverrides | null | undefined, mode?: ThemeMode): React.CSSProperties | null {
+  const { theme, mode: appMode } = useWorkspaceTheme()
+  const active = mode ?? appMode
+  return useMemo(() => {
+    const vars = formThemeVars(overrides, theme.colors[active], active)
+    if (!vars['--form-page-bg']) return null
+    return { backgroundColor: vars['--form-page-bg'], backgroundImage: vars['--form-page-image'] }
+  }, [overrides, theme, active])
 }

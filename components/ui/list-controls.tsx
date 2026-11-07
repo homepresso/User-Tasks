@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react'
-import { Button } from './button'
-import { Input } from './input'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { SearchInput } from './input'
 import { cn } from '@/lib/utils'
+import { pageNumbers } from '@/lib/page-numbers'
 
 // ─── Search Bar ───
 interface SearchBarProps {
@@ -15,24 +15,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ value, onChange, placeholder, className }: SearchBarProps) {
-  return (
-    <div className={cn('relative', className)}>
-      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? 'Search...'}
-        className="w-full rounded-lg border pl-9 pr-3 py-2 text-sm"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
-      />
-      {value && (
-        <button onClick={() => onChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70"
-          style={{ color: 'var(--theme-muted-text)' }}>
-          <X size={14} />
-        </button>
-      )}
-    </div>
-  )
+  return <SearchInput value={value} onValueChange={onChange} placeholder={placeholder ?? 'Search…'} wrapperClassName={className} aria-label={placeholder ?? 'Search'} />
 }
 
 // ─── Filter Chips ───
@@ -49,19 +32,16 @@ export function FilterChips({ label, options, selected, onChange }: FilterChipsP
   }
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <span className="text-xs font-medium shrink-0" style={{ color: 'var(--theme-muted-text)' }}>{label}:</span>
+      <span className="shrink-0 text-xs font-medium text-fg-muted">{label}:</span>
       {options.map(opt => (
-        <button key={opt.value} onClick={() => toggle(opt.value)}
-          className="rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors"
-          style={{
-            backgroundColor: selected.includes(opt.value) ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-            color: selected.includes(opt.value) ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-          }}>
+        <button key={opt.value} type="button" onClick={() => toggle(opt.value)} aria-pressed={selected.includes(opt.value)}
+          className={cn('h-6 rounded-full border px-2.5 text-xs font-medium transition-colors',
+            selected.includes(opt.value) ? 'border-transparent bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg-muted hover:text-fg')}>
           {opt.label}
         </button>
       ))}
       {selected.length > 0 && (
-        <button onClick={() => onChange([])} className="text-[10px] hover:underline" style={{ color: 'var(--theme-muted-text)' }}>
+        <button type="button" onClick={() => onChange([])} className="text-xs text-fg-muted hover:text-fg hover:underline">
           Clear
         </button>
       )}
@@ -76,40 +56,60 @@ interface PaginationProps {
   total: number
   onPageChange: (page: number) => void
   onPageSizeChange?: (size: number) => void
+  /** The page size selector's options (default 10 / 25 / 50 / 100). */
+  pageSizeOptions?: readonly number[]
+  /**
+   * Numbered page buttons (first, last and around the current one) instead
+   * of "2 / 5"; the bar also stays while a smaller page size would still page.
+   */
+  showPageNumbers?: boolean
+  /** Calls onPageChange(1) after a size change (default). Off when onPageSizeChange already resets the page. */
+  pageSizeResetsPage?: boolean
+  /** What the total counts: "1–24 of 130 workflows". */
+  noun?: string
 }
 
-export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChange }: PaginationProps) {
+const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const
+
+export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions = DEFAULT_PAGE_SIZES, showPageNumbers = false, pageSizeResetsPage = true, noun }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const start = (page - 1) * pageSize + 1
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1
   const end = Math.min(page * pageSize, total)
 
-  if (total <= pageSize) return null
+  if (total <= (showPageNumbers && onPageSizeChange ? Math.min(pageSize, ...pageSizeOptions) : pageSize)) return null
 
   return (
-    <div className="flex items-center justify-between pt-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-      <span>{start}–{end} of {total}</span>
+    <nav aria-label="Pagination" className="flex items-center justify-between pt-3 text-xs text-fg-muted">
+      <span data-testid="pagination-summary" className="num">{start}–{end} of {total}{noun ? ` ${noun}` : ''}</span>
       <div className="flex items-center gap-1">
         {onPageSizeChange && (
-          <select value={pageSize} onChange={(e) => { onPageSizeChange(Number(e.target.value)); onPageChange(1) }}
-            className="rounded border px-1.5 py-0.5 text-[10px] mr-2"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
+          <label className="mr-2 flex items-center gap-1.5">
+            {showPageNumbers && <span>Per page</span>}
+            <select value={pageSize} aria-label="Page size" onChange={(e) => { onPageSizeChange(Number(e.target.value)); if (pageSizeResetsPage) onPageChange(1) }}
+              className="num h-7 rounded-md border border-input-border bg-input px-1.5 text-xs text-fg hover:border-border-strong">
+              {pageSizeOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
         )}
-        <button disabled={page <= 1} onClick={() => onPageChange(page - 1)}
-          className="p-1 rounded hover:opacity-70 disabled:opacity-30" style={{ color: 'var(--theme-card-text)' }}>
+        <button disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page"
+          className="inline-flex size-7 items-center justify-center rounded-md text-fg hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-45">
           <ChevronLeft size={14} />
         </button>
-        <span className="px-2 font-medium">{page} / {totalPages}</span>
-        <button disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}
-          className="p-1 rounded hover:opacity-70 disabled:opacity-30" style={{ color: 'var(--theme-card-text)' }}>
+        {showPageNumbers ? pageNumbers(page, totalPages).map((p, i) => p === null
+          ? <span key={`gap-${i}`} className="px-1">…</span>
+          : (
+            <button key={p} onClick={() => onPageChange(p)} aria-current={p === page ? 'page' : undefined} aria-label={`Page ${p}`}
+              className={cn('num h-7 min-w-7 rounded-md px-1.5 font-medium', p === page ? 'bg-muted text-fg' : 'text-fg-muted hover:bg-subtle hover:text-fg')}>
+              {p}
+            </button>
+          ))
+          : <span className="num px-2 font-medium">{page} / {totalPages}</span>}
+        <button disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page"
+          className="inline-flex size-7 items-center justify-center rounded-md text-fg hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-45">
           <ChevronRight size={14} />
         </button>
       </div>
-    </div>
+    </nav>
   )
 }
 

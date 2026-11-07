@@ -1,0 +1,119 @@
+{
+  "title": "Meeting recording to minutes and action items",
+  "summary": "Upload a meeting recording: transcript with speakers, AI-drafted minutes the organiser checks, a task for each action owner and the minutes emailed with an SRT.",
+  "description": "Meeting recording to minutes starts from a form page where the organiser uploads an audio or video recording with the meeting name, date, attendees and who should get the minutes, and confirms everyone agreed to being recorded.\n\nTranscribe Audio / Video turns the recording into a transcript with speaker labels and timestamps and writes SRT, VTT and text files. The Minutes writer agent reads the transcript and drafts a summary, the decisions and up to three action items with the owner and due date mentioned in the meeting.\n\nThe organiser gets a task with the draft in a grid form: they correct the summary and decisions, pick the owner of each action from the workspace people (the agent only suggests names, it never assigns) and send. Each owner then gets their own task with the due date, the Action items table tracks them, and the minutes go out by email as a PDF with the SRT subtitle file attached.",
+  "trigger": "form",
+  "entry_workflow": "b05c34f8-5312-5dd5-a7f1-174400a50789",
+  "entry_form": "565c5cd0-8ff7-559a-8ab3-d11cf7cd63c6",
+  "start": "Starts from a form page: the organiser uploads the recording on the Meeting recording form (/f/<id>).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "meetings",
+    "transcription",
+    "minutes",
+    "action items",
+    "AI agent",
+    "media"
+  ],
+  "needs": [
+    "media_ai",
+    "ai_model",
+    "email"
+  ],
+  "optional_needs": [],
+  "systems": [
+    "Google Gemini"
+  ],
+  "setup": [
+    "Google Gemini (media AI): paste your Gemini API key; it transcribes the recording with speakers. Any provider that can transcribe (OpenAI, Azure AI Speech, Deepgram, AssemblyAI, ElevenLabs, AWS) can be chosen on the Transcribe step instead.",
+    "AI model (OpenAI-compatible): set the base URL and API key of the chat model the Minutes writer agent uses.",
+    "Share the Meeting recording form with organisers. Recordings longer than five minutes are transcribed in the background (FFmpeg and the process-media job).",
+    "Set EMAIL_PROVIDER so the minutes are delivered."
+  ],
+  "steps": [
+    {
+      "title": "Upload the recording",
+      "body": "The organiser uploads audio or video with the meeting name, date, attendees and recipients, and confirms consent."
+    },
+    {
+      "title": "Transcribe with speakers",
+      "body": "Transcribe Audio / Video returns timed segments with speaker labels and SRT, VTT and text files."
+    },
+    {
+      "title": "AI drafts the minutes",
+      "body": "The Minutes writer agent writes a summary, decisions and up to three action items with suggested owners and dates."
+    },
+    {
+      "title": "Organiser checks",
+      "body": "The organiser edits the draft and picks each action owner from the workspace people, then sends or discards."
+    },
+    {
+      "title": "Tasks for owners",
+      "body": "Each action becomes a task for its owner with the due date (an async sub-workflow), tracked in the Action items table."
+    },
+    {
+      "title": "Minutes emailed",
+      "body": "The minutes are emailed as a PDF with the SRT subtitles attached and the meeting row is marked sent."
+    }
+  ],
+  "sample_input": {
+    "meeting_title": "Weekly operations review",
+    "meeting_date": "2026-10-30",
+    "attendees": "Avery, Jordan, Sam",
+    "share_with": "ops-team@example.com",
+    "language": "en",
+    "consent": true
+  },
+  "expect": "completed",
+  "icon": "captions",
+  "verify_mocks": {
+    "uploads": {
+      "recording": [
+        "meeting-recording.mp3"
+      ]
+    },
+    "media": {
+      "transcript": "meeting"
+    },
+    "agent_outputs": {
+      "summary": "The team reviewed the warehouse cutover and the supplier forecast. The cutover moves to the fourteenth. Two follow-ups were agreed.",
+      "decisions": "Move the warehouse cutover to the 14th.",
+      "action_1": "Update the rollout plan",
+      "action_1_owner": "Jordan",
+      "action_1_due": "2026-11-06",
+      "action_2": "Send the supplier the revised forecast",
+      "action_2_owner": "Speaker 3 (name not said)",
+      "action_2_due": "2026-11-13",
+      "action_3": "",
+      "action_3_owner": "",
+      "action_3_due": "",
+      "minutes_text": "Summary: cutover moves to the 14th. Actions: rollout plan (Jordan), supplier forecast."
+    },
+    "tasks": [
+      {
+        "outcome": "Send minutes",
+        "button": "send",
+        "values": {
+          "owner_1": "$owner",
+          "owner_2": "$owner"
+        }
+      }
+    ],
+    "expect_outputs": [
+      "transcript_srt",
+      "minutes_pdf"
+    ]
+  },
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-30",
+      "notes": "First release."
+    }
+  ],
+  "category": "media-evidence",
+  "id": "097ef9c9-1765-5a62-bdb6-df61d71acd31",
+  "slug": "meeting-recording-minutes"
+}

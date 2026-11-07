@@ -40,6 +40,31 @@ export const CONNECTOR_LOGO_SOURCES: Record<string, ConnectorLogoSource> = {
     sourceUrl: "https://www.deepseek.com/",
     sourceLabel: "DeepSeek official site icon",
   },
+  adobe_sign: {
+    src: "https://www.google.com/s2/favicons?domain=adobe.com&sz=64",
+    sourceUrl: "https://www.adobe.com/acrobat/business/sign.html",
+    sourceLabel: "Adobe official site icon",
+  },
+  dropbox_sign: {
+    src: "https://www.google.com/s2/favicons?domain=sign.dropbox.com&sz=64",
+    sourceUrl: "https://sign.dropbox.com/",
+    sourceLabel: "Dropbox Sign official site icon",
+  },
+  pandadoc: {
+    src: "https://www.google.com/s2/favicons?domain=pandadoc.com&sz=64",
+    sourceUrl: "https://www.pandadoc.com/",
+    sourceLabel: "PandaDoc official site icon",
+  },
+  signnow: {
+    src: "https://www.google.com/s2/favicons?domain=signnow.com&sz=64",
+    sourceUrl: "https://www.signnow.com/",
+    sourceLabel: "SignNow official site icon",
+  },
+  boldsign: {
+    src: "https://www.google.com/s2/favicons?domain=boldsign.com&sz=64",
+    sourceUrl: "https://boldsign.com/",
+    sourceLabel: "BoldSign official site icon",
+  },
   docusign: {
     src: "https://www.docusign.com/favicon.ico",
     sourceUrl: "https://www.docusign.com/",

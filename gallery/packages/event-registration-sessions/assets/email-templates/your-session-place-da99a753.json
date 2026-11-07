@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "da99a753-62cb-56fa-837c-2bbc0618ab2a",
+  "asset": {
+    "id": "da99a753-62cb-56fa-837c-2bbc0618ab2a",
+    "name": "Your session place",
+    "description": "Sent to each attendee of a confirmed registration.",
+    "subject": "You are booked: {{assigned_session}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1B2E\">\n  <div style=\"height:4px;background:#7C3AED;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">See you at {{event_row.title}}</h2>\n  <p>Hi {{attendee.name}},</p>\n  <p>{{form.contact_name}} registered you for <strong>{{event_row.title}}</strong> on <strong>{{event_row.event_date}}</strong> at {{event_row.venue}}.</p>\n  <p>Your session: <strong>{{assigned_session}}</strong> ({{seat_row.starts}}, {{seat_row.room}}, with {{seat_row.speaker}}).</p>\n  <p>Dietary needs: {{attendee.dietary}}. {{=IF(IS_EMPTY(attendee.accessibility), \"\", CONCAT(\"Accessibility: \", attendee.accessibility, \" (passed to the venue).\"))}}</p>\n  <p style=\"color:#6B6680;font-size:13px;margin-top:20px\">Registration {{reg_ref}} · sent by the event registration workflow</p>\n</div>",
+    "text_body": "See you at {{event_row.title}}\n\nHi {{attendee.name}},\nYou are registered for {{event_row.title}} on {{event_row.event_date}} at {{event_row.venue}}.\nSession: {{assigned_session}} ({{seat_row.starts}}, {{seat_row.room}}).\nDietary needs: {{attendee.dietary}}.",
+    "is_default": false
+  }
+}

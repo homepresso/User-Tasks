@@ -4,13 +4,23 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Pencil, Trash2, Share2, Star, StarOff } from 'lucide-react'
+import { BarChart3, FileDown, MoreHorizontal, Pencil, Trash2, Share2, Star, StarOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ReportChart } from '@/components/reports/lazy-charts'
+import { IconButton } from '@/components/ui/icon-button'
+import { PageHeader } from '@/components/ui/page-header'
+import { Badge, Tag } from '@/components/ui/badge'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { InlineNotice } from '@/components/ui/inline-notice'
+import { Skeleton } from '@/components/ui/skeleton'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { plural } from '@/lib/format/plural'
+import { ReportChart, ReportSummaryCharts } from '@/components/reports/lazy-charts'
+import type { ReportChartResult } from '@/lib/report-charts'
 import { ReportDataTable } from '@/components/reports/report-data-table'
 import { ReportExportButton } from '@/components/reports/report-export'
-import { ExportAssetButton } from '@/components/shared/config-transfer'
-import { REPORT_SOURCES, buildJoinedReportColumns, resolveDrillHref } from '@/lib/report-sources'
+import { ExportAssetDialog } from '@/components/shared/config-transfer'
+import { REPORT_SOURCES, buildJoinedReportColumns, resolveDrillHref, reportResultColumnLabel } from '@/lib/report-sources'
 import { deleteReport, toggleFavorite, toggleShare } from '@/app/actions/reports'
 
 interface Props {
@@ -38,7 +48,14 @@ export function SavedReportView({ report }: Props) {
   }, [sourceDef, config.joins, allSources])
 
   const [data, setData] = useState<any[] | null>(null)
+  // Columns as the report service resolved them (a workflow's variable
+  // columns carry their labels and types only there).
+  const [resolvedColumns, setResolvedColumns] = useState<Array<{ key: string; label: string; type?: string }>>([])
+  const [chartResults, setChartResults] = useState<ReportChartResult[] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const mountedRef = useRef(true)
 
@@ -56,7 +73,9 @@ export function SavedReportView({ report }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/v1/reports/preview', {
+      // Summary chart time buckets follow the viewer's own time zone.
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const res = await fetch(`/api/v1/reports/preview${timezone ? `?timezone=${encodeURIComponent(timezone)}` : ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
@@ -65,6 +84,8 @@ export function SavedReportView({ report }: Props) {
       if (!mountedRef.current) return
       if (!res.ok) throw new Error(json.error ?? 'Query failed')
       setData(json.data)
+      setChartResults(Array.isArray(json.charts) ? json.charts : null)
+      setResolvedColumns(Array.isArray(json.available_columns) ? json.available_columns : [])
     } catch (err: any) {
       if (!mountedRef.current) return
       setError(err.message)
@@ -77,12 +98,12 @@ export function SavedReportView({ report }: Props) {
   const columns = data && data.length > 0
     ? (() => {
         const configuredColumns = Array.isArray(config.columns) ? config.columns as string[] : []
-        const sourceColumns = displayColumns
+        const sourceColumns = [...resolvedColumns, ...displayColumns]
         const fallbackColumns = Object.keys(data[0])
           .filter(k => k !== '_count' && typeof data[0][k] !== 'object')
           .map(k => {
             const col = sourceColumns.find((c) => c.key === k)
-            return { key: k, label: col?.label ?? k.replace(/^data_/, '').replace(/_/g, ' '), type: col?.type }
+            return { key: k, label: reportResultColumnLabel(k, sourceColumns), type: col?.type ?? (/^(COUNT|SUM|AVG)_/.test(k) ? 'number' : undefined) }
           })
 
         if ((config.group_by?.length ?? 0) > 0 || (config.aggregations?.length ?? 0) > 0) {
@@ -105,57 +126,77 @@ export function SavedReportView({ report }: Props) {
     : []
 
   const viz = config.visualization ?? 'table'
+  const chartSpecs = Array.isArray(config.charts) ? config.charts : []
+
+  async function onDelete() {
+    setDeleting(true)
+    try {
+      await deleteReport(report.id)
+      router.push('/reports')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>{report.name}</h1>
-            {report.description && <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>{report.description}</p>}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => { toggleFavorite(report.id); router.refresh() }} className="p-2 rounded-lg hover:bg-[var(--theme-surface)]" style={{ color: 'var(--theme-muted-text)' }} title="Favorite">
-            {report.is_favorite ? <Star size={16} className="text-amber-500 fill-amber-500" /> : <StarOff size={16} />}
-          </button>
-          <button onClick={() => { toggleShare(report.id); router.refresh() }} className="p-2 rounded-lg hover:bg-[var(--theme-surface)]" style={{ color: report.is_shared ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }} title="Share">
-            <Share2 size={16} />
-          </button>
-          <Link href={`/reports/builder?edit=${report.id}`}>
-            <Button size="sm" variant="outline"><Pencil size={13} className="mr-1" /> Edit</Button>
-          </Link>
-          {data && data.length > 0 && (
-            <ReportExportButton data={data} columns={columns.map(c => ({ key: c.key, label: c.label }))} filename={report.name} />
-          )}
-          <ExportAssetButton ids={[report.id]} name={report.name} label="Export definition" />
-          <button
-            onClick={async () => { if (confirm('Delete this report?')) { await deleteReport(report.id); router.push('/reports') } }}
-            className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: report.name }]}
+        title={report.name}
+        description={report.description || undefined}
+        badge={report.is_shared ? <Badge tone="info">Shared</Badge> : undefined}
+        actions={
+          <>
+            <Button asChild variant="secondary" leadingIcon={<Pencil />}>
+              <Link href={`/reports/builder?edit=${report.id}`}>Edit</Link>
+            </Button>
+            {data && data.length > 0 && (
+              <ReportExportButton data={data} columns={columns.map(c => ({ key: c.key, label: c.label }))} filename={report.name} />
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <IconButton label="More actions" icon={<MoreHorizontal />} variant="secondary" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem icon={<FileDown />} onSelect={() => setExportOpen(true)}>Export definition</DropdownMenuItem>
+                <DropdownMenuItem icon={<Share2 />} onSelect={async () => { await toggleShare(report.id); router.refresh() }}>
+                  {report.is_shared ? 'Stop sharing' : 'Share with workspace'}
+                </DropdownMenuItem>
+                <DropdownMenuItem icon={report.is_favorite ? <StarOff /> : <Star />} onSelect={async () => { await toggleFavorite(report.id); router.refresh() }}>
+                  {report.is_favorite ? 'Unpin' : 'Pin'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem danger icon={<Trash2 />} onSelect={() => setConfirmDelete(true)}>Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
+      <ExportAssetDialog ids={[report.id]} name={report.name} open={exportOpen} onOpenChange={setExportOpen} />
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        destructive
+        title={`Delete '${report.name}'?`}
+        description="The saved report is removed for everyone it is shared with. Its data is not affected."
+        confirmLabel="Delete report"
+        busy={deleting}
+        onConfirm={onDelete}
+      />
 
-      {loading && <div className="text-center py-16 text-sm" style={{ color: 'var(--theme-muted-text)' }}>Loading report data...</div>}
-      {error && (
-        <div
-          className="rounded-lg border px-4 py-3 text-sm"
-          style={{
-            borderColor: 'var(--status-error)',
-            backgroundColor: 'var(--status-error-bg)',
-            color: 'var(--status-error)',
-          }}
-        >
-          {error}
-        </div>
+      {chartSpecs.length > 0 && !error && (
+        <ReportSummaryCharts specs={chartSpecs} results={loading ? null : chartResults} loading={loading} />
       )}
 
-      {data && !loading && (
+      {loading && (
+        <div className="space-y-3" aria-busy="true" aria-label="Loading report data">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      )}
+      {error && <InlineNotice tone="danger" title="Couldn't run this report" message={error} actions={<Button size="sm" variant="ghost" onClick={() => void fetchData()}>Try again</Button>} />}
+
+      {data && !loading && data.length > 0 && (
         <>
           {viz !== 'table' && columns.length > 0 && (
             <ReportChart
@@ -165,34 +206,39 @@ export function SavedReportView({ report }: Props) {
               yKeys={[columns.find(c => c.type === 'number')?.key || columns[1]?.key || 'value']}
               nameKey={columns[0]?.key || 'name'}
               valueKey={columns.find(c => c.type === 'number')?.key || 'value'}
-              height={400}
+              height={360}
               title={config.chart_style?.chart_title}
               style={config.chart_style}
+              seriesLabels={Object.fromEntries(columns.map((c) => [c.key, c.label]))}
             />
           )}
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-              {data.length} row{data.length !== 1 ? 's' : ''}
-              {isDynamic && <span className="ml-1.5 px-1 py-0.5 rounded bg-purple-50 text-purple-600 text-[9px]">Data Table</span>}
-            </span>
+          <div className="space-y-2">
+            <p className="flex items-center gap-2 text-xs text-fg-muted">
+              <span className="num">{plural(data.length, 'row')}</span>
+              {isDynamic && <Tag>Data table</Tag>}
+            </p>
+            <ReportDataTable
+              columns={columns.map(c => ({ key: c.key, label: c.label, type: c.type as 'text' | 'number' | 'date' | 'boolean' | undefined }))}
+              data={data}
+              pageSize={25}
+              rowHref={config.drill_target?.href_template
+                ? (row) => resolveDrillHref(config.drill_target.href_template, row)
+                : undefined}
+            />
           </div>
-
-          <ReportDataTable
-            columns={columns.map(c => ({ key: c.key, label: c.label, type: c.type as any }))}
-            data={data}
-            pageSize={25}
-            rowHref={config.drill_target?.href_template
-              ? (row) => resolveDrillHref(config.drill_target.href_template, row)
-              : undefined}
-          />
         </>
       )}
 
       {data && data.length === 0 && !loading && (
-        <div className="text-center py-16 text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-          No data returned. Try adjusting your filters.
-        </div>
+        <EmptyState
+          size="md"
+          variant="no-results"
+          icon={BarChart3}
+          title="This report returned no rows"
+          description="Try widening its filters in the report builder."
+          action={{ label: 'Edit report', href: `/reports/builder?edit=${report.id}` }}
+        />
       )}
     </div>
   )

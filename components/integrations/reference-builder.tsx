@@ -9,6 +9,7 @@ import { Save, Trash2, Plus, X, Play, Variable, ArrowRight, Search, Database, Ta
 import { uploadReferenceIcon } from '@/app/actions/uploads'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Badge } from '@/components/ui/badge'
 import { resolveStorageUrl } from "@/lib/storage/refs"
 import { captureResponseSample, referenceResponseSchema, schemaAtPath, schemaFromOutputs, type ResponseSchema } from '@/lib/response-schema'
 import { ResponseModelTree, describeModel, outputNameFor } from '@/components/automations/response-model-editor'
@@ -248,19 +249,17 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
 
       {/* Icon */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg border flex items-center justify-center overflow-hidden shrink-0"
-          style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+        <div className="w-9 h-9 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 border-border bg-bg">
           {iconUrl ? (
             <img src={resolveStorageUrl(iconUrl)} alt="" className="w-6 h-6 object-contain" />
           ) : defaultIcon ? (
             <img src={defaultIcon} alt="" className="w-6 h-6 object-contain" />
           ) : (
-            <Image size={14} style={{ color: 'var(--theme-muted-text)' }} />
+            <Image size={14} className="text-fg-muted" />
           )}
         </div>
         <div>
-          <label className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border hover:opacity-70"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+          <label className="cursor-pointer inline-flex items-center gap-1 text-2xs font-medium px-2 py-1 rounded-lg border hover:opacity-70 border-border text-fg">
             <Upload size={10} />
             {iconUploading ? 'Uploading...' : iconUrl ? 'Change icon' : 'Upload icon'}
             <input ref={iconInputRef} type="file" accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png" className="hidden"
@@ -269,7 +268,7 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
           </label>
           {iconUrl && (
             <button onClick={() => { setIconUrl(null); setConfig({ ...config, icon_url: undefined } as any) }}
-              className="ml-1 text-[9px] hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+              className="ml-1 text-2xs hover:opacity-70 text-fg-muted">
               Remove
             </button>
           )}
@@ -292,15 +291,14 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
       ) : (
         // HTTP reference UI
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+          <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 text-fg-muted">
             Request
           </h4>
           <div className="flex gap-2 mb-2">
             <select
               value={config.method}
               onChange={(e) => setConfig({ ...config, method: e.target.value })}
-              className="rounded-lg border px-2 py-2 text-xs font-bold w-24"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+              className="rounded-lg border px-2 py-2 text-xs font-bold w-24 bg-panel border-border"
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
@@ -315,7 +313,7 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
               className="flex-1 font-mono !text-xs"
             />
           </div>
-          <div className="text-[10px] font-mono px-2 py-1.5 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+          <div className="text-2xs font-mono px-2 py-1.5 rounded bg-bg text-fg-muted">
             {previewUrl}
           </div>
           {config.method !== 'GET' && (
@@ -326,8 +324,7 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
                 onChange={(e) => setConfig({ ...config, body_template: e.target.value })}
                 placeholder={'{\n  "name": "{{name}}",\n  "email": "{{email}}"\n}'}
                 rows={4}
-                className="w-full rounded-lg border px-3 py-2 text-xs font-mono"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                className="w-full rounded-lg border px-3 py-2 text-xs font-mono bg-panel border-border text-fg"
               />
             </div>
           )}
@@ -337,16 +334,16 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
       {/* Inputs */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             <Variable size={10} className="inline mr-1" />
             Inputs
           </h4>
-          <Button variant="ghost" size="sm" onClick={addInput} className="!text-[10px] !h-6">
+          <Button variant="ghost" size="sm" onClick={addInput} className="!text-2xs !h-6">
             <Plus size={10} className="mr-1" /> Add Input
           </Button>
         </div>
         {inputs.length === 0 ? (
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>No inputs. Add parameters that callers must provide.</p>
+          <p className="text-2xs text-fg-muted">No inputs. Add parameters that callers must provide.</p>
         ) : (
           <div className="space-y-2">
             {inputs.map(input => (
@@ -355,13 +352,12 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
                   value={input.name}
                   onChange={(e) => updateInput(input.id, 'name', e.target.value)}
                   placeholder="param_name"
-                  className="!h-6 !text-[10px] font-mono w-24"
+                  className="!h-6 !text-2xs font-mono w-24"
                 />
                 <select
                   value={input.type}
                   onChange={(e) => updateInput(input.id, 'type', e.target.value)}
-                  className="rounded border px-1 py-0.5 text-[10px]"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+                  className="rounded border px-1 py-0.5 text-2xs bg-panel border-border"
                 >
                   <option value="string">String</option>
                   <option value="number">Number</option>
@@ -371,8 +367,7 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
                 <select
                   value={input.source}
                   onChange={(e) => updateInput(input.id, 'source', e.target.value)}
-                  className="rounded border px-1 py-0.5 text-[10px]"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+                  className="rounded border px-1 py-0.5 text-2xs bg-panel border-border"
                 >
                   <option value="variable">Variable</option>
                   <option value="static">Static</option>
@@ -381,13 +376,13 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
                   value={input.default_value}
                   onChange={(e) => updateInput(input.id, 'default_value', e.target.value)}
                   placeholder={input.source === 'static' ? 'Fixed value' : 'Default'}
-                  className="!h-6 !text-[10px] flex-1"
+                  className="!h-6 !text-2xs flex-1"
                 />
-                <label className="flex items-center gap-0.5 text-[10px] shrink-0">
+                <label className="flex items-center gap-0.5 text-2xs shrink-0">
                   <input type="checkbox" checked={input.required} onChange={(e) => updateInput(input.id, 'required', e.target.checked)} className="rounded" />
                   Req
                 </label>
-                <button onClick={() => removeInput(input.id)} className="shrink-0 hover:text-red-500" style={{ color: 'var(--theme-muted-text)' }}>
+                <button onClick={() => removeInput(input.id)} className="shrink-0 hover:text-red-500 text-fg-muted">
                   <X size={10} />
                 </button>
               </div>
@@ -399,16 +394,16 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
       {/* Outputs */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             <ArrowRight size={10} className="inline mr-1" />
             Outputs
           </h4>
-          <Button variant="ghost" size="sm" onClick={addOutput} className="!text-[10px] !h-6">
+          <Button variant="ghost" size="sm" onClick={addOutput} className="!text-2xs !h-6">
             <Plus size={10} className="mr-1" /> Add Output
           </Button>
         </div>
         {outputs.length === 0 ? (
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>No outputs. Map response values to named outputs.</p>
+          <p className="text-2xs text-fg-muted">No outputs. Map response values to named outputs.</p>
         ) : (
           <div className="space-y-2">
             {outputs.map(output => (
@@ -417,27 +412,26 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
                   value={output.name}
                   onChange={(e) => updateOutput(output.id, 'name', e.target.value)}
                   placeholder="output_name"
-                  className="!h-6 !text-[10px] font-mono w-24"
+                  className="!h-6 !text-2xs font-mono w-24"
                 />
-                <span style={{ color: 'var(--theme-muted-text)' }}>&#8592;</span>
+                <span className="text-fg-muted">&#8592;</span>
                 <Input
                   value={output.path}
                   onChange={(e) => updateOutput(output.id, 'path', e.target.value)}
                   placeholder="data.items[0].name"
-                  className="!h-6 !text-[10px] font-mono flex-1"
+                  className="!h-6 !text-2xs font-mono flex-1"
                 />
                 <select
                   value={output.type}
                   onChange={(e) => updateOutput(output.id, 'type', e.target.value)}
-                  className="rounded border px-1 py-0.5 text-[10px]"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+                  className="rounded border px-1 py-0.5 text-2xs bg-panel border-border"
                 >
                   <option value="string">String</option>
                   <option value="number">Number</option>
                   <option value="array">Array</option>
                   <option value="object">Object</option>
                 </select>
-                <button onClick={() => removeOutput(output.id)} className="shrink-0 hover:text-red-500" style={{ color: 'var(--theme-muted-text)' }}>
+                <button onClick={() => removeOutput(output.id)} className="shrink-0 hover:text-red-500 text-fg-muted">
                   <X size={10} />
                 </button>
               </div>
@@ -449,13 +443,13 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
       {/* Response model */}
       <div>
         <div className="flex items-center justify-between mb-2 gap-2">
-          <button type="button" onClick={() => setModelOpen((v) => !v)} aria-expanded={modelOpen} className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+          <button type="button" onClick={() => setModelOpen((v) => !v)} aria-expanded={modelOpen} className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
             <Eye size={10} className="inline mr-1" />
             Response model
           </button>
-          <span className="text-[10px] truncate" style={{ color: 'var(--theme-muted-text)' }}>{describeModel(responseSchema)}</span>
+          <span className="text-2xs truncate text-fg-muted">{describeModel(responseSchema)}</span>
           {responseSchema && responseSchema.source !== 'outputs' && (
-            <Button variant="ghost" size="sm" className="!text-[10px] !h-6" onClick={() => {
+            <Button variant="ghost" size="sm" className="!text-2xs !h-6" onClick={() => {
               const derived = schemaFromOutputs(outputs)
               setResponseSchema(derived ? { version: 1, source: 'outputs', root: derived } : null)
             }}>
@@ -465,14 +459,14 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
         </div>
         {modelOpen && (
           <div className="space-y-1.5">
-            <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-2xs text-fg-muted">
               The shape of the response. Workflows browse it in the data picker, so designers click fields instead of writing JSON paths.
               Run <span className="font-medium">Test</span> to capture it from a real response; + adds a named output.
             </p>
             {responseSchema ? (
               <ResponseModelTree schema={responseSchema} rootPath="response" onAddOutput={(item, relativePath) => addOutputFromModel(item.path, relativePath)} />
             ) : (
-              <p className="text-[10px] rounded-lg px-2.5 py-2" style={{ color: 'var(--theme-muted-text)', backgroundColor: 'var(--theme-surface)' }}>No model yet — test the reference to capture one.</p>
+              <p className="text-2xs rounded-lg px-2.5 py-2 text-fg-muted bg-bg">No model yet — test the reference to capture one.</p>
             )}
           </div>
         )}
@@ -493,7 +487,7 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
 
       {/* Test result */}
       {testResult && !testResult.loading && (
-        <div className="rounded-lg border p-3 text-xs font-mono overflow-auto max-h-48" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+        <div className="rounded-lg border p-3 text-xs font-mono overflow-auto max-h-48 border-border bg-bg">
           {testResult.error ? (
             <span className="text-red-500">Error: {testResult.error}</span>
           ) : (
@@ -503,12 +497,12 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
                   Status: {testResult.status}
                 </span>
                 {testResult.status < 400 && testResult.data != null && (
-                  <Button size="sm" variant="outline" className="!h-6 !text-[10px] ml-auto font-sans" onClick={captureFromTest}>
+                  <Button size="sm" variant="outline" className="!h-6 !text-2xs ml-auto font-sans" onClick={captureFromTest}>
                     Capture from test response
                   </Button>
                 )}
               </div>
-              <pre className="mt-2 whitespace-pre-wrap" style={{ color: 'var(--theme-card-text)' }}>
+              <pre className="mt-2 whitespace-pre-wrap text-fg">
                 {JSON.stringify(testResult.data, null, 2)}
               </pre>
             </>
@@ -770,16 +764,12 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
       {!browsing && !pickingOperation && (
         <div className="flex items-center gap-2">
           {selectedObj && (
-            <span className="text-[9px] font-medium px-2 py-0.5 rounded-full capitalize flex items-center gap-1"
-              style={{
-                backgroundColor: selectedObj.type === 'procedure' ? '#F5F3FF' : selectedObj.type === 'view' ? '#ECFEFF' : 'var(--theme-primary-light)',
-                color: selectedObj.type === 'procedure' ? '#7C3AED' : selectedObj.type === 'view' ? '#0891B2' : 'var(--theme-primary-text)',
-              }}>
-              {typeIcon(selectedObj.type)} {selectedObj.type} — {selectedObj.fullName}
-            </span>
+            <Badge tone={selectedObj.type === 'procedure' ? 'brand' : selectedObj.type === 'view' ? 'info' : 'neutral'} className="gap-1 capitalize">
+              {typeIcon(selectedObj.type)} {selectedObj.type}: <span className="font-mono normal-case">{selectedObj.fullName}</span>
+            </Badge>
           )}
           {!browsing && config.path_template && (
-            <button onClick={() => setBrowsing(true)} className="text-[10px] hover:opacity-70 ml-auto" style={{ color: 'var(--theme-primary-text)' }}>
+            <button onClick={() => setBrowsing(true)} className="text-2xs hover:opacity-70 ml-auto text-primary-text">
               Change
             </button>
           )}
@@ -787,9 +777,9 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
       )}
       {browsing && (
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Select a table, view, or stored procedure</span>
+          <span className="text-2xs font-medium text-fg-muted">Select a table, view, or stored procedure</span>
           {config.path_template && (
-            <button onClick={() => { setBrowsing(false); setPickingOperation(false) }} className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+            <button onClick={() => { setBrowsing(false); setPickingOperation(false) }} className="text-2xs hover:opacity-70 text-fg-muted">
               Cancel
             </button>
           )}
@@ -797,7 +787,7 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
       )}
 
       {configuring && (
-        <div className="flex items-center gap-2 py-4 justify-center" style={{ color: 'var(--theme-muted-text)' }}>
+        <div className="flex items-center gap-2 py-4 justify-center text-fg-muted">
           <Loader2 size={14} className="animate-spin" />
           <span className="text-xs">Discovering schema...</span>
         </div>
@@ -807,14 +797,14 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
       {pickingOperation && selectedObj && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-surface-border)' }}>
-            <span style={{ color: 'var(--theme-primary-text)' }}>{typeIcon(selectedObj.type)}</span>
-            <span className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>{selectedObj.fullName}</span>
-            <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <span className="text-primary-text">{typeIcon(selectedObj.type)}</span>
+            <span className="text-xs font-semibold text-fg">{selectedObj.fullName}</span>
+            <span className="text-2xs text-fg-muted">
               {discoveredCols.length} columns{discoveredPK.length > 0 ? ` · PK: ${discoveredPK.join(', ')}` : ''}
               {identityCol ? ` · Auto: ${identityCol}` : ''}
             </span>
           </div>
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-2xs text-fg-muted">
             What operation do you want to perform?
           </p>
           <div className="grid grid-cols-2 gap-1.5">
@@ -830,8 +820,8 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
                 style={{ backgroundColor: 'var(--theme-card-bg)', border: '1px solid var(--theme-surface-border)' }}>
                 <span className="text-sm mt-0.5">{o.icon}</span>
                 <div>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>{o.label}</p>
-                  <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>{o.desc}</p>
+                  <p className="text-xs font-semibold text-fg">{o.label}</p>
+                  <p className="text-2xs text-fg-muted">{o.desc}</p>
                 </div>
               </button>
             ))}
@@ -842,7 +832,7 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
       {/* Current SQL summary — shown when object is configured and not browsing */}
       {!browsing && !selectedObj && config.path_template && (
         <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-surface-border)' }}>
-          <pre className="text-[10px] font-mono whitespace-pre-wrap" style={{ color: 'var(--theme-card-text)' }}>
+          <pre className="text-2xs font-mono whitespace-pre-wrap text-fg">
             {config.path_template}
           </pre>
         </div>
@@ -850,20 +840,19 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
 
       {/* Object browser — shown when browsing */}
       {browsing && !configuring && (
-        <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="rounded-lg border overflow-hidden border-border">
           {/* Search + filter */}
           <div className="p-2 space-y-1.5" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
             <div className="relative">
-              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search tables, views, procedures..."
-                className="w-full rounded border pl-7 pr-2 py-1.5 text-[10px]"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }} />
+                className="w-full rounded border pl-7 pr-2 py-1.5 text-2xs bg-panel border-border" />
             </div>
             <div className="flex gap-1">
               {(['all', 'table', 'view', 'procedure'] as const).map(t => (
                 <button key={t} onClick={() => setTypeFilter(t)}
-                  className="text-[9px] font-medium px-2 py-0.5 rounded-full transition-colors"
+                  className="text-2xs font-medium px-2 py-0.5 rounded-full transition-colors"
                   style={{
                     backgroundColor: typeFilter === t ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
                     color: typeFilter === t ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
@@ -877,28 +866,26 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
           {/* Object list */}
           <div className="max-h-56 overflow-y-auto">
             {loading ? (
-              <div className="flex items-center justify-center py-6 gap-1.5" style={{ color: 'var(--theme-muted-text)' }}>
+              <div className="flex items-center justify-center py-6 gap-1.5 text-fg-muted">
                 <Loader2 size={14} className="animate-spin" />
                 <span className="text-xs">Discovering database objects...</span>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="py-4 text-center text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+              <div className="py-4 text-center text-xs text-fg-muted">
                 {objects?.length === 0 ? 'No objects found. Check database permissions.' : 'No matches'}
               </div>
             ) : (
               filtered.map(obj => (
                 <button key={`${obj.schema}.${obj.name}`} type="button" onClick={() => selectObject(obj)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:opacity-80 transition-opacity"
-                  style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-                  <span style={{ color: obj.type === 'procedure' ? '#8B5CF6' : obj.type === 'view' ? '#0891B2' : 'var(--theme-primary-text)' }}>
+                  className="w-full flex items-center gap-2 border-b border-border-subtle px-3 py-2 text-left hover:bg-subtle">
+                  <span className={obj.type === 'procedure' ? 'text-accent-text' : obj.type === 'view' ? 'text-info' : 'text-primary-text'}>
                     {typeIcon(obj.type)}
                   </span>
-                  <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--theme-card-text)' }}>
+                  <span className="text-xs font-medium flex-1 truncate text-fg">
                     {obj.name}
                   </span>
-                  <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>{obj.schema}</span>
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full capitalize"
-                    style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                  <span className="text-2xs text-fg-muted">{obj.schema}</span>
+                  <span className="text-2xs px-1.5 py-0.5 rounded-full capitalize bg-bg text-fg-muted">
                     {obj.type}
                   </span>
                 </button>
@@ -910,16 +897,15 @@ function DbReferenceBuilder({ integrationId, config, setConfig, inputs, setInput
 
       {/* Editable SQL — only shown when an object is selected */}
       {selectedObj && !browsing && config.path_template && (
-        <details className="text-[10px]">
-          <summary className="cursor-pointer font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+        <details className="text-2xs">
+          <summary className="cursor-pointer font-medium text-fg-muted">
             Edit SQL
           </summary>
           <textarea
             value={config.path_template}
             onChange={(e) => setConfig({ ...config, path_template: e.target.value })}
             rows={4}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-[10px] font-mono"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-2xs font-mono bg-panel border-border text-fg"
           />
         </details>
       )}

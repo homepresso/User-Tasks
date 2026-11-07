@@ -74,9 +74,9 @@ describe('scanAssetReferences', () => {
       custom_activity_key: '   ',
       tools: 'not-an-array',
     })
-    expect(result).toEqual({ refs: [], activityKeys: [], people: [] })
-    expect(scanAssetReferences(null)).toEqual({ refs: [], activityKeys: [], people: [] })
-    expect(scanAssetReferences('x')).toEqual({ refs: [], activityKeys: [], people: [] })
+    expect(result).toEqual({ refs: [], activityKeys: [], controlTags: [], people: [] })
+    expect(scanAssetReferences(null)).toEqual({ refs: [], activityKeys: [], controlTags: [], people: [] })
+    expect(scanAssetReferences('x')).toEqual({ refs: [], activityKeys: [], controlTags: [], people: [] })
   })
 })
 
@@ -198,5 +198,15 @@ describe('resolveDependencyClosure', () => {
     expect(closure.items.map((i) => i.id)).toEqual([u(1)])
     expect(closure.missing).toEqual([])
     expect(exportMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('scanAssetReferences — custom form controls', () => {
+  it('collects custom control tags from form fields and start-form variables', () => {
+    const result = scanAssetReferences({
+      fields: [{ key: 'rating', type: 'custom', custom: { tag: 'ut-star-rating', version: '1.0.0' } }, { key: 'x', type: 'text' }],
+      user_variables: [{ name: 'sig', format: 'custom', custom: { tag: 'acme-signature', version: '2.0.0' } }],
+    })
+    expect(result.controlTags).toEqual(['ut-star-rating', 'acme-signature'])
   })
 })

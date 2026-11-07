@@ -1,0 +1,178 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "42109ff1-2d9f-507e-94cf-576c57e3e465",
+  "asset": {
+    "id": "42109ff1-2d9f-507e-94cf-576c57e3e465",
+    "name": "Verify your identity",
+    "description": "Customers upload a photo of their ID and a selfie; the document is read, checked and redacted for storage, and a person decides.",
+    "tags": [
+      "KYC",
+      "identity"
+    ],
+    "fields": [
+      {
+        "key": "full_name",
+        "label": "Full name (as on your ID)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "date_of_birth",
+        "label": "Date of birth",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "document_type",
+        "label": "Document",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Driver license",
+          "Passport",
+          "National ID card"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "id_photo",
+        "label": "Photo of your ID (front)",
+        "type": "attachments",
+        "required": true,
+        "attachments": {
+          "max_files": 1,
+          "max_file_mb": 10,
+          "types": [
+            "images"
+          ]
+        },
+        "camera": true,
+        "help_text": "The whole card, flat, in good light, no glare."
+      },
+      {
+        "key": "selfie",
+        "label": "A selfie",
+        "type": "attachments",
+        "required": true,
+        "attachments": {
+          "max_files": 1,
+          "max_file_mb": 10,
+          "types": [
+            "images"
+          ]
+        },
+        "camera": true,
+        "help_text": "Face the camera; no hat or sunglasses."
+      },
+      {
+        "key": "consent",
+        "label": "I agree that my ID and selfie are processed to verify my identity, and that a redacted copy is kept",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "full_name",
+              "span": 2
+            },
+            {
+              "field_key": "date_of_birth",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "email",
+              "span": 2
+            },
+            {
+              "field_key": "document_type",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "id_photo",
+              "span": 1
+            },
+            {
+              "field_key": "selfie",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "consent",
+              "span": 3
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0F766E",
+            "background": "#FFFFFF",
+            "text": "#0F1F1C",
+            "page": "#E4F3F0",
+            "page_to": "#F8FCFB"
+          }
+        },
+        "radius": 14,
+        "density": "comfortable",
+        "button_placement": "full",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit for verification",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thanks, {{full_name}}",
+            "screen_button": "none",
+            "text": "We will email you when your identity has been checked, usually within one working day."
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Verify your identity",
+      "align": "center",
+      "subtitle": "Two photos: your ID and a selfie. A person checks them; we keep only a redacted copy."
+    }
+  }
+}

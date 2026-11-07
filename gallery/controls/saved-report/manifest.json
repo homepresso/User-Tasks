@@ -1,0 +1,49 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-saved-report",
+  "name": "Saved report",
+  "description": "Shows a saved report as a sortable, paginated table or a chart, run with the permissions of the person filling in the form. Optionally pick a row as the field's value.",
+  "icon": "table",
+  "version": "1.1.0",
+  "entry": "ut-saved-report.js",
+  "value": {
+    "type": "json",
+    "schema": { "type": "object" }
+  },
+  "props": [
+    { "name": "report_id", "label": "Saved report", "type": "string", "required": true, "description": "The report's id (open it in Reports — the id is in the address bar). People see only what they can see in Reports: their own or shared reports, with their permissions." },
+    { "name": "view", "label": "View", "type": "select", "default": "auto", "options": [
+      { "value": "auto", "label": "Automatic (the report's chart, else a table)" },
+      { "value": "table", "label": "Table" },
+      { "value": "chart", "label": "Chart" }
+    ] },
+    { "name": "page_size", "label": "Rows per page", "type": "number", "default": 10, "min": 1, "max": 200 },
+    { "name": "max_rows", "label": "Maximum rows", "type": "number", "default": 100, "min": 1, "max": 1000, "description": "Rows fetched from the report (at most 1,000). A note says when there are more." },
+    { "name": "height", "label": "Chart height (px)", "type": "number", "default": 280, "min": 120, "max": 1000 },
+    { "name": "show_title", "label": "Show the report's name", "type": "boolean", "default": true },
+    { "name": "selectable", "label": "Selectable rows", "type": "boolean", "default": false, "description": "Picking a row makes that row (an object of its columns) the field's value. Otherwise the field stays empty." }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 420, "min_height": 80, "max_height": 1600, "full_width": true },
+  "capabilities": ["reports"],
+  "context": [],
+  "display": { "format": "json" },
+  "output": { "type": "object", "description": "The row picked (Selectable rows)" },
+  "accessibility": {
+    "role": "table",
+    "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/saved-report",
+  "dependencies": {
+    "@kurkle/color": "0.3.4",
+    "@lit/reactive-element": "2.1.2",
+    "chart.js": "4.5.1",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- manifests and untyped table rows are free-form JSON */
 
+import { createHash } from 'node:crypto'
 import { getConnectorDefinition } from '@/lib/connectors/registry'
 import { GITHUB_CONNECTOR_KEY } from '@/lib/github-sync/connection'
 import { logDestinationManifestRow } from '@/lib/services/log-destinations'
@@ -56,17 +57,33 @@ export async function buildManifestExport(
 
   if (idsByType.workflow?.length) {
     const { data } = await (supabase as any).from('workflows')
-      .select('id, name, description, trigger_type, trigger_config, nodes, edges, user_variables, swimlanes, is_active')
+      .select('id, name, description, trigger_type, trigger_config, nodes, edges, user_variables, swimlanes, is_active, published_version_id')
       .in('id', idsByType.workflow)
       .eq('tenant_id', tenantId)
-    payload.workflows = data ?? []
+    // Version refs: the agent version each Run Agent step of the published
+    // version is pinned to (informational — an import pins again on publish).
+    const versionIds = ((data ?? []) as any[]).map((w) => w.published_version_id).filter(Boolean)
+    const pinsByVersion = new Map<string, unknown>()
+    if (versionIds.length) {
+      const { data: versions } = await (supabase as any).from('workflow_versions').select('id, version_number, nodes').eq('tenant_id', tenantId).in('id', versionIds)
+      const { agentPins } = await import('@/lib/agents/pins')
+      for (const v of (versions ?? []) as any[]) {
+        const pins = agentPins(v.nodes).filter((p) => p.version !== null).map((p) => ({ node_id: p.node_id, agent_id: p.agent_id, agent_version: p.version }))
+        if (pins.length) pinsByVersion.set(String(v.id), { version_number: v.version_number, agents: pins })
+      }
+    }
+    payload.workflows = ((data ?? []) as any[]).map(({ published_version_id, ...w }) => {
+      const pins = published_version_id ? pinsByVersion.get(String(published_version_id)) : undefined
+      return pins ? { ...w, published_agent_pins: pins } : w
+    })
   }
   if (idsByType.workflow_activity?.length) {
     const { data } = await (supabase as any).from('custom_workflow_activities')
-      .select('id, name, description, key, status, source_kind, version, icon_name, color, source_code, manifest, demo_inputs, tags, source_filename')
+      .select('id, name, description, key, status, source_kind, version, icon_name, color, source_code, manifest, demo_inputs, tags, source_filename, runtime, sha256, enabled')
       .in('id', idsByType.workflow_activity)
       .eq('tenant_id', tenantId)
-    payload.workflow_activities = data ?? []
+    // The checksum is always the code's own (rows written before 20261203 have none stored).
+    payload.workflow_activities = ((data ?? []) as any[]).map((row) => ({ ...row, sha256: createHash('sha256').update(String(row.source_code ?? '').trim()).digest('hex') }))
   }
   if (idsByType.data_table?.length) {
     const { data } = await (supabase as any).from('custom_tables')
@@ -185,6 +202,25 @@ export async function buildManifestExport(
       }
     })
   }
+  if (idsByType.form_control?.length) {
+    // Custom form controls travel with every version (module, checksum,
+    // signature record); approved hosts and the trusted flag stay behind.
+    const { data: controls } = await (supabase as any).from('form_controls')
+      .select('id, tag, name, description, icon, enabled')
+      .in('id', idsByType.form_control)
+      .eq('tenant_id', tenantId)
+      .order('tag')
+    const ids = ((controls ?? []) as any[]).map((c) => c.id)
+    const { data: versions } = ids.length
+      ? await (supabase as any).from('form_control_versions').select('control_id, version, manifest, bundle, sha256, signature').eq('tenant_id', tenantId).in('control_id', ids)
+      : { data: [] }
+    payload.form_controls = ((controls ?? []) as any[]).map((c) => ({
+      ...c,
+      versions: ((versions ?? []) as any[]).filter((v) => v.control_id === c.id)
+        .sort((a, b) => String(a.version).localeCompare(String(b.version), undefined, { numeric: true }))
+        .map(({ control_id: _c, ...v }) => v),
+    }))
+  }
   if (idsByType.form_theme?.length) {
     const { data } = await (supabase as any).from('form_themes')
       .select('id, name, description, overrides')
@@ -197,7 +233,7 @@ export async function buildManifestExport(
     // The version number is per environment (every import of a content
     // change is a new version there), so it never travels.
     const { data } = await (supabase as any).from('forms')
-      .select('id, name, description, tags, fields, layout, theme, buttons, header, submission_retention_days')
+      .select('id, name, description, tags, fields, layout, theme, buttons, header, submission_retention_days, available_in_menu, retention_policy_id')
       .in('id', idsByType.form)
       .eq('tenant_id', tenantId)
       .order('name')
@@ -207,10 +243,17 @@ export async function buildManifestExport(
   }
   if (idsByType.agent?.length) {
     const { data } = await (supabase as any).from('agents')
-      .select('id, name, description, model, system_prompt, role, task, boundaries, tools, integration_id, output_config, is_active')
+      .select('id, name, description, model, system_prompt, role, task, boundaries, tools, integration_id, output_config, temperature, max_tokens, max_iterations, is_active, version')
       .in('id', idsByType.agent)
       .eq('tenant_id', tenantId)
-    payload.agents = data ?? []
+    // Data grants are always explicit in a file: a row without data_access has
+    // none at runtime (since 20261124000000), and a file without it is read as
+    // the old "all tables" (lib/portability/import.ts).
+    const { normalizeDataAccess } = await import('@/lib/agent-knowledge')
+    payload.agents = ((data ?? []) as any[]).map((agent) => {
+      const config = agent.output_config && typeof agent.output_config === 'object' ? agent.output_config : { variables: [] }
+      return 'data_access' in config ? agent : { ...agent, output_config: { ...config, data_access: normalizeDataAccess(undefined) } }
+    })
   }
   if (idsByType.decision_table?.length) {
     const { data } = await (supabase as any).from('decision_tables')
@@ -314,6 +357,7 @@ export async function buildTenantExport(supabase: any, tenantId: string, opts?: 
     // Service-role only table: a member-scoped client simply exports none.
     log_destination: await selectTenantIds('log_destinations').catch(() => []),
     // Reusable task forms and their saved themes (versions stay behind).
+    form_control: await selectTenantIds('form_controls').catch(() => []),
     form_theme: await selectTenantIds('form_themes').catch(() => []),
     form: await selectTenantIds('forms').catch(() => []),
   }

@@ -1,7 +1,7 @@
 // Asset id maps and deep id-remapping used when importing manifests into a
 // tenant.
 
-export type AssetIdMaps = Record<'workflow' | 'workflow_activity' | 'data_table' | 'retention_policy' | 'integration' | 'agent' | 'decision_table' | 'reference' | 'report' | 'role' | 'mcp_server' | 'email_template' | 'connector' | 'log_destination' | 'form' | 'form_theme', Record<string, string>>
+export type AssetIdMaps = Record<'workflow' | 'workflow_activity' | 'data_table' | 'retention_policy' | 'integration' | 'agent' | 'decision_table' | 'reference' | 'report' | 'role' | 'mcp_server' | 'email_template' | 'connector' | 'log_destination' | 'form' | 'form_theme' | 'form_control', Record<string, string>>
 
 export function createEmptyAssetIdMaps(): AssetIdMaps {
   return {
@@ -21,6 +21,7 @@ export function createEmptyAssetIdMaps(): AssetIdMaps {
     log_destination: {},
     form: {},
     form_theme: {},
+    form_control: {},
   }
 }
 
@@ -44,6 +45,8 @@ export const ID_KEY_TO_MAP: Record<string, keyof AssetIdMaps> = {
   dataSource: 'data_table',
   retention_policy_id: 'retention_policy',
   integration_id: 'integration',
+  // Redact Video's speech provider (media steps) when it differs from the main one.
+  transcribe_integration_id: 'integration',
   agent_id: 'agent',
   decision_table_id: 'decision_table',
   decisionTableId: 'decision_table',
@@ -88,6 +91,12 @@ export function remapKnownIds<T>(value: T, idMaps: AssetIdMaps): T {
     // Log destination filters list the workflows they export.
     if (key === 'workflow_ids' && Array.isArray(child)) {
       output[key] = child.map((id) => typeof id === 'string' ? (idMaps.workflow[id] ?? id) : id)
+      continue
+    }
+
+    // Agents list data tables (data_access / knowledge scopes).
+    if (key === 'table_ids' && Array.isArray(child)) {
+      output[key] = child.map((id) => typeof id === 'string' ? (idMaps.data_table[id] ?? id) : id)
       continue
     }
 

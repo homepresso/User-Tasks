@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { isCloud, publicBaseUrl } from '@/lib/deployment'
 import { ALL_DOC_PAGES } from '@/lib/docs/registry'
-import { GALLERY_PACKAGES, GALLERY_UPDATED } from '@/lib/gallery/site'
+import { GALLERY_ACTIONS, GALLERY_CONTROLS, GALLERY_PACKAGES, GALLERY_UPDATED } from '@/lib/gallery/site'
 import { SEO_PAGES } from '@/lib/seo-pages'
 import { USE_CASES } from '@/lib/use-cases'
 
@@ -12,14 +12,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: baseUrl, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     ...SEO_PAGES.map((page) => ({ url: `${baseUrl}/${page.slug}`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.9 })),
+    { url: `${baseUrl}/workflows`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${baseUrl}/connectors`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/forms`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/documents`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${baseUrl}/media`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/deploy-anywhere`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/use-cases`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     ...USE_CASES.map((useCase) => ({ url: `${baseUrl}/use-cases/${useCase.slug}`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.85 })),
     { url: `${baseUrl}/gallery`, lastModified: new Date(`${GALLERY_UPDATED}T00:00:00Z`), changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/gallery/share`, lastModified: new Date(`${GALLERY_UPDATED}T00:00:00Z`), changeFrequency: 'monthly', priority: 0.6 },
     ...GALLERY_PACKAGES.map((pkg) => ({ url: `${baseUrl}/gallery/${pkg.slug}`, lastModified: new Date(`${pkg.released}T00:00:00Z`), changeFrequency: 'monthly' as const, priority: 0.8 })),
+    ...(GALLERY_CONTROLS.length ? [{ url: `${baseUrl}/gallery/controls`, lastModified: new Date(`${GALLERY_UPDATED}T00:00:00Z`), changeFrequency: 'weekly' as const, priority: 0.8 }] : []),
+    ...GALLERY_CONTROLS.map((control) => ({ url: `${baseUrl}/gallery/controls/${control.slug}`, lastModified: new Date(`${control.released}T00:00:00Z`), changeFrequency: 'monthly' as const, priority: 0.7 })),
+    ...(GALLERY_ACTIONS.length ? [{ url: `${baseUrl}/gallery/actions`, lastModified: new Date(`${GALLERY_UPDATED}T00:00:00Z`), changeFrequency: 'weekly' as const, priority: 0.8 }] : []),
+    ...GALLERY_ACTIONS.map((action) => ({ url: `${baseUrl}/gallery/actions/${action.slug}`, lastModified: new Date(`${action.released}T00:00:00Z`), changeFrequency: 'monthly' as const, priority: 0.7 })),
     { url: `${baseUrl}/docs`, lastModified: now, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${baseUrl}/open-source`, lastModified: now, changeFrequency: 'yearly', priority: 0.6 },
     { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: 'yearly', priority: 0.7 },

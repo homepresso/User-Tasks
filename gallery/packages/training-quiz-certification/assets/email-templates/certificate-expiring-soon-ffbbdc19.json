@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "ffbbdc19-dba4-588d-b063-71b6a9ed9821",
+  "asset": {
+    "id": "ffbbdc19-dba4-588d-b063-71b6a9ed9821",
+    "name": "Certificate expiring soon",
+    "description": "The reminder each learner gets from the Training results page when their certificate expires soon.",
+    "subject": "Your {{cert.course_title}} certificate expires on {{cert.certificate_expires}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#13202B\">\n  <h2 style=\"margin:0 0 12px\">Time to refresh your training</h2>\n  <p>Hi {{cert.learner_name}},</p>\n  <p>Your certificate <strong>{{cert.certificate_no}}</strong> for <strong>{{cert.course_title}}</strong> expires on <strong>{{cert.certificate_expires}}</strong>. Take the course and its quiz again before then to stay certified.</p>\n</div>",
+    "text_body": "Time to refresh your training\n\nHi {{cert.learner_name}},\nYour certificate {{cert.certificate_no}} for {{cert.course_title}} expires on {{cert.certificate_expires}}. Take the course and its quiz again before then to stay certified.",
+    "is_default": false
+  }
+}

@@ -12,7 +12,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), usePathname: () => '/integrations' }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), usePathname: () => '/integrations', useSearchParams: () => new URLSearchParams() }))
 vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({ from: () => ({}) }) }))
 vi.mock('@/app/actions/integration-references', () => ({ deleteReference: vi.fn() }))
 vi.mock('@/app/actions/integrations', () => ({ deleteIntegration: vi.fn() }))

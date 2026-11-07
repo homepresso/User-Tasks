@@ -96,6 +96,10 @@ describe('JOBS registry', () => {
       'process-schedules': 'every minute',
       'process-workflows': 'every minute',
       'process-agents': 'every minute',
+      // Background media jobs (lib/media/jobs), new with the media steps.
+      'process-media': 'every minute',
+      // Wait for signature steps (lib/esign/waits), new with the e-sign connectors.
+      'esign-poll': 'every minute',
       'github-sync-push': 'every minute',
       'github-sync-deploy': 'every minute',
       'ship-events': 'every minute',
@@ -127,10 +131,10 @@ describe('JOBS registry', () => {
   it('due sets at typical minutes', () => {
     const names = (iso: string, history?: Map<string, Date | null>) => dueJobs(at(iso), history).map((job) => job.name)
     expect(names('2026-10-25T07:01:00Z')).toEqual([
-      'process-schedules', 'process-workflows', 'process-agents', 'github-sync-push', 'github-sync-deploy', 'ship-events', 'provider-switches', 'user-jobs',
+      'process-schedules', 'process-workflows', 'process-agents', 'process-media', 'esign-poll', 'github-sync-push', 'github-sync-deploy', 'ship-events', 'provider-switches', 'user-jobs',
     ])
-    expect(names('2026-10-25T07:05:00Z')).toHaveLength(11)
-    expect(names('2026-10-25T07:10:00Z')).toHaveLength(15)
+    expect(names('2026-10-25T07:05:00Z')).toHaveLength(13)
+    expect(names('2026-10-25T07:10:00Z')).toHaveLength(17)
     expect(names('2026-10-25T03:00:00Z')).toContain('process-retention')
     expect(names('2026-10-25T04:00:00Z')).toContain('cleanup-logs')
     expect(names('2026-10-25T04:00:00Z')).not.toContain('process-retention')
@@ -153,6 +157,8 @@ describe('isEnabled', () => {
     ['process-schedules', 'schedules'],
     ['process-workflows', 'workflow_queue'],
     ['process-agents', 'agent_queue'],
+    ['process-media', 'media_jobs'],
+    ['esign-poll', 'esign_waits'],
     ['github-sync-push', 'github_sync'],
     ['github-sync-deploy', 'github_deployments'],
     ['ship-events', 'log_destinations'],

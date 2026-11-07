@@ -1,0 +1,138 @@
+{
+  "title": "Employee pulse survey",
+  "category": "surveys-assessments",
+  "summary": "A stepped engagement survey with Likert sections, an eNPS slider and mood rating; scores and risk bands are worked out, and named at-risk answers get a manager follow-up with an action plan.",
+  "description": "Employee pulse survey is a monthly engagement check built only from UserTasks features and the official form controls. The survey page has six steps with a progress bar and a review step: four Likert scale matrices (wellbeing, manager & team, growth, workload; agree / disagree with N/A), a 0-10 Slider for how likely the employee is to recommend working here (eNPS), a heart Rating for mood, the department, an \"Answer anonymously\" option and a Rich text box for one thing to change. The manager Person field only shows when the answer is not anonymous.\n\nEvery answer starts the Pulse response workflow. Set Variable expressions average each section (ignoring N/A) and turn all the answers into an engagement score out of 100; a decision table maps engagement, mood and eNPS to Thriving, Okay or At risk and decides whether a follow-up is needed. The answer is saved in the Pulse responses data table, without a name when anonymous; the table ships with 30 sample answers across six departments and three monthly rounds.\n\nNamed at-risk answers become a private follow-up task for the manager (or the person who installed the package when no manager was picked) with an SLA, a reminder and escalation. The task shows the scores on an Info card and a Progress bar, and records an action plan in a Table control (action, owner, due date) plus conversation notes, which are emailed to the employee. Anonymous at-risk answers never create a personal task: they are logged and counted in the HR aggregate.\n\nThe Pulse results page is a dashboard: Chart controls for average engagement by department, eNPS by round and the risk-band split from the data table, Saved report controls for section averages and open follow-ups, an Info card explaining the scores, and a button that emails a round summary.",
+  "trigger": "form",
+  "entry_workflow": "a5aa7080-4df2-526a-83a1-dbb9697644e4",
+  "entry_form": "2c34a291-69d5-5afc-8877-9972dc60ca63",
+  "start": "Starts from a form page: share the Employee pulse survey page (/f/<id>) with signed-in employees each month, or submit it from your own app through the forms API.",
+  "difficulty": "intermediate",
+  "setup_minutes": 5,
+  "tags": [
+    "survey",
+    "engagement",
+    "enps",
+    "hr",
+    "form controls",
+    "no integrations"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "Uses the 1.1.0 form controls: no visible loading, and rich-text answers reach the workflow as text (<key> is HTML, <key>_text plain text)."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open Forms → Employee pulse survey (share its /f/ link each month) and Forms → Pulse results.",
+    "The Likert scale, Slider, Rating, Rich text, Progress, Info card, Table, Chart and Saved report controls install with the package (Extensibility → Form controls).",
+    "Follow-ups go to the manager the employee picks; without one they go to the person who installed the package (an HR partner, for example).",
+    "Edit the Engagement risk band decision table to change the thresholds or follow-up days; delete the sample rows in Pulse responses when you go live.",
+    "Optional: apply the \"Pulse responses: 18 months\" retention policy, and set EMAIL_PROVIDER so the thank-you, plan and summary emails are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Employee answers",
+      "body": "Six steps with a progress bar: four Likert sections, the eNPS slider, mood, department and one thing to change, then the anonymous choice and an optional manager, with a review step."
+    },
+    {
+      "title": "Score",
+      "body": "Set Variable expressions average each section (N/A ignored) and work out an engagement score out of 100 and eNPS points."
+    },
+    {
+      "title": "Band",
+      "body": "A decision table maps engagement, mood and eNPS to Thriving, Okay or At risk and decides whether a follow-up is needed and how fast."
+    },
+    {
+      "title": "Save",
+      "body": "The answer goes into Pulse responses with its round and department; anonymous answers are stored without a name."
+    },
+    {
+      "title": "Follow up",
+      "body": "Named at-risk answers get a manager task with an SLA, the scores on an Info card and Progress bar, and an action plan table that is emailed to the employee. Anonymous ones are logged for the HR aggregate only."
+    },
+    {
+      "title": "Watch the trend",
+      "body": "The Pulse results page charts engagement by department and eNPS by round, shows section averages and open follow-ups, and emails a round summary."
+    }
+  ],
+  "sample_input": {
+    "wellbeing": {
+      "i_feel_energised_by_my_work_most_days": 2,
+      "i_can_switch_off_from_work_when_i_need_to": 1,
+      "i_feel_supported_when_things_get_stressful": 2,
+      "i_feel_valued_for_the_work_i_do": 3
+    },
+    "manager_team": {
+      "my_manager_gives_me_useful_regular_feedback": 2,
+      "i_trust_the_people_i_work_with": 4,
+      "i_feel_safe_to_speak_up_and_disagree": 0
+    },
+    "growth": {
+      "i_am_learning_and_developing_in_my_role": 2,
+      "i_can_see_a_future_for_myself_here": 2,
+      "i_have_the_tools_and_training_i_need": 3
+    },
+    "workload": {
+      "my_workload_is_manageable": 1,
+      "i_have_enough_time_to_do_good_quality_work": 1,
+      "our_priorities_are_clear": 2
+    },
+    "enps": 4,
+    "mood": 2,
+    "department": "Operations",
+    "anonymous": false,
+    "manager": "$owner",
+    "change": {
+      "html": "<p>Fewer priorities at once, and time to finish things properly.</p>",
+      "text": "Fewer priorities at once, and time to finish things properly."
+    }
+  },
+  "expect": "completed",
+  "icon": "heart-pulse",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Plan agreed",
+        "button": "agreed",
+        "values": {
+          "action_plan": [
+            {
+              "action": "Weekly 30-minute one-to-one for the next month",
+              "owner": "Manager",
+              "due": "2026-11-14"
+            },
+            {
+              "action": "Agree the top three priorities for the quarter",
+              "owner": "Employee",
+              "due": "2026-11-21"
+            }
+          ],
+          "conversation_notes": {
+            "html": "<p>Talked through workload; two projects will move to the next quarter.</p>",
+            "text": "Talked through workload; two projects will move to the next quarter."
+          }
+        }
+      }
+    ],
+    "expect_outputs": [
+      "engagement_score",
+      "enps_points",
+      "follow_up_owner",
+      "plan_summary"
+    ]
+  },
+  "id": "9f0dec00-4d8d-5e2d-8f94-dbfc10fc9d92",
+  "slug": "employee-pulse-survey"
+}

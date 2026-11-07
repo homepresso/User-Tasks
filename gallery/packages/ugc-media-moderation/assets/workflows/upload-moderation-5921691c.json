@@ -1,0 +1,748 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "5921691c-72c9-5b24-b03f-fbd6804cfa0a",
+  "asset": {
+    "id": "5921691c-72c9-5b24-b03f-fbd6804cfa0a",
+    "name": "Upload moderation",
+    "description": "An image or video upload from your platform is checked by AI for safety, the moderation thresholds approve or reject the clear cases, borderline ones go to a moderator, the uploader is told and the platform publishes or hides it.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Upload received",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "title": "Moderation {{upload_id}} ({{media_type}})"
+        }
+      },
+      {
+        "id": "kind",
+        "type": "condition",
+        "label": "Image or video?",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Video",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{media_type}}",
+                  "operator": "equals",
+                  "value": "video"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "video",
+        "type": "media_analyze_video",
+        "label": "Analyze Video: safety",
+        "position": {
+          "x": 920,
+          "y": 480
+        },
+        "config": {
+          "integration_id": "247f5ac3-9906-5243-be52-6851e7a2aeda",
+          "provider_label": "Google Gemini",
+          "source": "{{media_url}}",
+          "features": [
+            "summary",
+            "labels",
+            "text"
+          ],
+          "prompt": "Moderate this user upload against typical community guidelines (no sexual content, graphic violence, hate, harassment, self-harm promotion, illegal drugs or weapons sales, spam). Do not identify people. Score the risk and name the top category.",
+          "fields": [
+            {
+              "name": "risk_score",
+              "type": "number",
+              "description": "0 (clearly fine) to 1 (clearly against the guidelines)"
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "description": "none, nudity, violence, hate, harassment, self_harm, drugs, weapons, spam or other"
+            },
+            {
+              "name": "minor_safety",
+              "type": "boolean",
+              "description": "Any possible child safety concern"
+            },
+            {
+              "name": "contains_people",
+              "type": "boolean",
+              "description": "People are visible"
+            },
+            {
+              "name": "reason",
+              "type": "string",
+              "description": "One sentence explaining the score"
+            }
+          ],
+          "max_frames": 12,
+          "output_var": "video_check",
+          "run_mode": "auto"
+        }
+      },
+      {
+        "id": "video_keep",
+        "type": "set_variable",
+        "label": "Video verdict",
+        "position": {
+          "x": 920,
+          "y": 620
+        },
+        "config": {
+          "name": "verdict",
+          "expression": "{{video_check_answer}}"
+        }
+      },
+      {
+        "id": "image",
+        "type": "media_analyze_image",
+        "label": "Analyze Image: safety",
+        "position": {
+          "x": 280,
+          "y": 480
+        },
+        "config": {
+          "integration_id": "247f5ac3-9906-5243-be52-6851e7a2aeda",
+          "provider_label": "Google Gemini",
+          "source": "{{media_url}}",
+          "features": [
+            "description",
+            "labels",
+            "text"
+          ],
+          "prompt": "Moderate this user upload against typical community guidelines (no sexual content, graphic violence, hate, harassment, self-harm promotion, illegal drugs or weapons sales, spam). Do not identify people. Score the risk and name the top category.",
+          "fields": [
+            {
+              "name": "risk_score",
+              "type": "number",
+              "description": "0 (clearly fine) to 1 (clearly against the guidelines)"
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "description": "none, nudity, violence, hate, harassment, self_harm, drugs, weapons, spam or other"
+            },
+            {
+              "name": "minor_safety",
+              "type": "boolean",
+              "description": "Any possible child safety concern"
+            },
+            {
+              "name": "contains_people",
+              "type": "boolean",
+              "description": "People are visible"
+            },
+            {
+              "name": "reason",
+              "type": "string",
+              "description": "One sentence explaining the score"
+            }
+          ],
+          "output_var": "image_check"
+        }
+      },
+      {
+        "id": "image_keep",
+        "type": "set_variable",
+        "label": "Image verdict",
+        "position": {
+          "x": 280,
+          "y": 620
+        },
+        "config": {
+          "name": "verdict",
+          "expression": "{{image_check_answer}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Moderation thresholds",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "decision_table_id": "7d88728f-9cf3-5ce9-aeb4-f072ea109614",
+          "decision_table_name": "Moderation thresholds",
+          "input_mappings": {
+            "risk_score": "{{verdict.risk_score}}",
+            "category": "{{=LOWER(verdict.category)}}",
+            "minor_safety": "{{=TO_STRING(verdict.minor_safety)}}"
+          }
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Log the check",
+        "position": {
+          "x": 600,
+          "y": 920
+        },
+        "config": {
+          "table_id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+          "table_name": "Moderation log",
+          "operation": "insert",
+          "output_row_id_var": "log_row_id",
+          "column_values": {
+            "upload_id": "{{upload_id}}",
+            "uploader": "{{uploader_email}}",
+            "media_type": "{{media_type}}",
+            "channel": "{{channel}}",
+            "risk_score": "{{verdict.risk_score}}",
+            "category": "{{verdict.category}}",
+            "ai_reason": "{{verdict.reason}}",
+            "decision": "{{=IF(action == \"Review\", \"Queued\", action)}}"
+          }
+        }
+      },
+      {
+        "id": "retain",
+        "type": "retention_policies",
+        "label": "Apply 1-year retention",
+        "position": {
+          "x": 600,
+          "y": 1060
+        },
+        "config": {
+          "operation": "assign_policy",
+          "retention_policy_id": "7cf58004-b978-5dfd-8d69-211cd61b78eb",
+          "target_type": "data_row",
+          "target_id": "{{log_row_id}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "route",
+        "type": "condition",
+        "label": "Route",
+        "position": {
+          "x": 600,
+          "y": 1200
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Approve",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{action}}",
+                  "operator": "equals",
+                  "value": "Approve"
+                }
+              ]
+            },
+            {
+              "label": "Reject",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{action}}",
+                  "operator": "equals",
+                  "value": "Reject"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "queue",
+        "type": "user_task",
+        "label": "Moderate the upload",
+        "position": {
+          "x": 600,
+          "y": 1380
+        },
+        "config": {
+          "task_title": "{{priority}}: {{upload_id}} ({{verdict.category}}, risk {{verdict.risk_score}})",
+          "task_description": "<p><strong>{{reason}}</strong></p><p>AI: {{verdict.reason}} · category <strong>{{verdict.category}}</strong> · risk {{verdict.risk_score}} · people visible {{verdict.contains_people}}</p><p>Caption: \"{{caption}}\" · channel {{channel}} · uploader {{uploader_email}}</p><p><a href=\"{{media_url}}\">Open the {{media_type}}</a> (the link expires; it is not stored).</p><p>The AI score is a triage aid. Decide against your guidelines; possible child safety issues follow your legal reporting process.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "fae55be2-9777-53eb-a20d-cf2cddb01142",
+          "due_date_mode": "relative",
+          "due_offset_amount": 4,
+          "due_offset_unit": "hours",
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 480,
+          "fields": [
+            {
+              "key": "guideline",
+              "label": "Guideline (for a rejection)",
+              "type": "choice",
+              "options": [
+                "Nudity or sexual content",
+                "Violence or gore",
+                "Hate or harassment",
+                "Self-harm",
+                "Illegal goods",
+                "Spam or scam",
+                "Other"
+              ]
+            },
+            {
+              "key": "note",
+              "label": "Note to the uploader",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "guideline",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Moderation: {{upload_id}}",
+            "align": "left",
+            "subtitle": "{{media_type}} · {{verdict.category}} · risk {{verdict.risk_score}}"
+          }
+        }
+      },
+      {
+        "id": "ok_reason",
+        "type": "set_variable",
+        "label": "Decision note",
+        "position": {
+          "x": 180,
+          "y": 1560
+        },
+        "config": {
+          "name": "decision_reason",
+          "expression": "{{=COALESCE(task_data.note, reason)}}"
+        }
+      },
+      {
+        "id": "pub",
+        "type": "call_reference",
+        "label": "Publish upload",
+        "position": {
+          "x": 180,
+          "y": 1700
+        },
+        "config": {
+          "reference_id": "793281a7-54b7-53a1-b18f-253efe196c9a",
+          "reference_name": "Publish upload",
+          "reference_method": "POST",
+          "input_mappings": {
+            "upload_id": "{{upload_id}}",
+            "decided_by": "{{=COALESCE(actioned_by_name, \"Automatic\")}}",
+            "note": "{{decision_reason}}"
+          },
+          "output_mappings": {
+            "public_url": {
+              "enabled": true,
+              "variableName": "public_url"
+            },
+            "status": {
+              "enabled": true,
+              "variableName": "platform_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "ok_mail",
+        "type": "send_email",
+        "label": "Email: published",
+        "position": {
+          "x": 180,
+          "y": 1840
+        },
+        "config": {
+          "to": "{{uploader_email}}",
+          "email_template_id": "a88ceb3e-3fba-599c-967e-e78d7d98f0dd"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ok_row",
+        "type": "update_data_table",
+        "label": "Log: approved",
+        "position": {
+          "x": 180,
+          "y": 1980
+        },
+        "config": {
+          "table_id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+          "table_name": "Moderation log",
+          "operation": "update",
+          "row_id": "{{log_row_id}}",
+          "column_values": {
+            "decision": "Approved",
+            "decided_by": "{{=COALESCE(actioned_by_name, \"Automatic\")}}",
+            "reason": "{{decision_reason}}",
+            "decided_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "ok_end",
+        "type": "end_workflow",
+        "label": "Published",
+        "position": {
+          "x": 180,
+          "y": 2120
+        },
+        "config": {
+          "reason": "{{upload_id}} published"
+        }
+      },
+      {
+        "id": "no_reason",
+        "type": "set_variable",
+        "label": "Rejection reason",
+        "position": {
+          "x": 1020,
+          "y": 1560
+        },
+        "config": {
+          "name": "decision_reason",
+          "expression": "{{=COALESCE(task_data.guideline, reason)}}"
+        }
+      },
+      {
+        "id": "rej",
+        "type": "call_reference",
+        "label": "Reject upload",
+        "position": {
+          "x": 1020,
+          "y": 1700
+        },
+        "config": {
+          "reference_id": "46448616-845d-5cf5-b872-4fcb66e09366",
+          "reference_name": "Reject upload",
+          "reference_method": "POST",
+          "input_mappings": {
+            "upload_id": "{{upload_id}}",
+            "reason": "{{decision_reason}}",
+            "decided_by": "{{=COALESCE(actioned_by_name, \"Automatic\")}}"
+          },
+          "output_mappings": {
+            "status": {
+              "enabled": true,
+              "variableName": "platform_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "no_mail",
+        "type": "send_email",
+        "label": "Email: not published",
+        "position": {
+          "x": 1020,
+          "y": 1840
+        },
+        "config": {
+          "to": "{{uploader_email}}",
+          "email_template_id": "9cbed29e-8eac-5e7e-91fc-bc597da10ed0"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "no_row",
+        "type": "update_data_table",
+        "label": "Log: rejected",
+        "position": {
+          "x": 1020,
+          "y": 1980
+        },
+        "config": {
+          "table_id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+          "table_name": "Moderation log",
+          "operation": "update",
+          "row_id": "{{log_row_id}}",
+          "column_values": {
+            "decision": "Rejected",
+            "decided_by": "{{=COALESCE(actioned_by_name, \"Automatic\")}}",
+            "reason": "{{decision_reason}}",
+            "decided_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "no_end",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 1020,
+          "y": 2120
+        },
+        "config": {
+          "reason": "{{upload_id}} rejected"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-kind",
+        "source": "title",
+        "target": "kind"
+      },
+      {
+        "id": "e-kind-video-video",
+        "source": "kind",
+        "target": "video",
+        "label": "Video"
+      },
+      {
+        "id": "e-kind-image-else",
+        "source": "kind",
+        "target": "image",
+        "label": "Else"
+      },
+      {
+        "id": "e-video-video_keep",
+        "source": "video",
+        "target": "video_keep"
+      },
+      {
+        "id": "e-image-image_keep",
+        "source": "image",
+        "target": "image_keep"
+      },
+      {
+        "id": "e-video_keep-rules",
+        "source": "video_keep",
+        "target": "rules"
+      },
+      {
+        "id": "e-image_keep-rules",
+        "source": "image_keep",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-row",
+        "source": "rules",
+        "target": "row"
+      },
+      {
+        "id": "e-row-retain",
+        "source": "row",
+        "target": "retain"
+      },
+      {
+        "id": "e-retain-route",
+        "source": "retain",
+        "target": "route"
+      },
+      {
+        "id": "e-route-ok_reason-approve",
+        "source": "route",
+        "target": "ok_reason",
+        "label": "Approve"
+      },
+      {
+        "id": "e-route-no_reason-reject",
+        "source": "route",
+        "target": "no_reason",
+        "label": "Reject"
+      },
+      {
+        "id": "e-route-queue-else",
+        "source": "route",
+        "target": "queue",
+        "label": "Else"
+      },
+      {
+        "id": "e-queue-ok_reason-approve",
+        "source": "queue",
+        "target": "ok_reason",
+        "label": "Approve"
+      },
+      {
+        "id": "e-queue-no_reason-reject",
+        "source": "queue",
+        "target": "no_reason",
+        "label": "Reject"
+      },
+      {
+        "id": "e-ok_reason-pub",
+        "source": "ok_reason",
+        "target": "pub"
+      },
+      {
+        "id": "e-pub-ok_mail",
+        "source": "pub",
+        "target": "ok_mail"
+      },
+      {
+        "id": "e-ok_mail-ok_row",
+        "source": "ok_mail",
+        "target": "ok_row"
+      },
+      {
+        "id": "e-ok_row-ok_end",
+        "source": "ok_row",
+        "target": "ok_end"
+      },
+      {
+        "id": "e-no_reason-rej",
+        "source": "no_reason",
+        "target": "rej"
+      },
+      {
+        "id": "e-rej-no_mail",
+        "source": "rej",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-no_mail-no_row",
+        "source": "no_mail",
+        "target": "no_row"
+      },
+      {
+        "id": "e-no_row-no_end",
+        "source": "no_row",
+        "target": "no_end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-upload_id",
+        "name": "upload_id",
+        "type": "string",
+        "description": "The id of the upload in your platform",
+        "defaultValue": "",
+        "required": true,
+        "label": "Upload id"
+      },
+      {
+        "id": "v-media_url",
+        "name": "media_url",
+        "type": "string",
+        "description": "Where the image or video can be downloaded (signed URL)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Media URL",
+        "format": "url"
+      },
+      {
+        "id": "v-media_type",
+        "name": "media_type",
+        "type": "string",
+        "description": "image or video",
+        "defaultValue": "",
+        "required": true,
+        "label": "Media type",
+        "options": [
+          "image",
+          "video"
+        ]
+      },
+      {
+        "id": "v-uploader_email",
+        "name": "uploader_email",
+        "type": "string",
+        "description": "Who to tell about the decision",
+        "defaultValue": "",
+        "required": false,
+        "label": "Uploader email",
+        "format": "email"
+      },
+      {
+        "id": "v-uploader_name",
+        "name": "uploader_name",
+        "type": "string",
+        "description": "Shown in the emails",
+        "defaultValue": "",
+        "required": false,
+        "label": "Uploader name"
+      },
+      {
+        "id": "v-caption",
+        "name": "caption",
+        "type": "string",
+        "description": "The caption or title the uploader gave",
+        "defaultValue": "",
+        "required": false,
+        "label": "Caption"
+      },
+      {
+        "id": "v-channel",
+        "name": "channel",
+        "type": "string",
+        "description": "Where it was uploaded (community, reviews, profile …)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Channel"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

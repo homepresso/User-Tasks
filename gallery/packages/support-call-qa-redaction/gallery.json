@@ -1,0 +1,107 @@
+{
+  "title": "Support call QA and PII-safe archiving",
+  "summary": "Each finished call is transcribed, card numbers and IDs are bleeped and masked, an AI agent scores it on your QA rubric, and low scores go to a supervisor.",
+  "description": "Support call QA and PII-safe archiving starts when your telephony or contact-centre platform posts a finished call to the workflow: the call id, a download URL for the recording, the agent and the queue.\n\nTranscribe Audio / Video separates the agent and the customer. Redact Video, used on the audio, bleeps card numbers, social security numbers, dates of birth and other personal details from the recording at the times they were spoken, and Redact Document masks the same values in the transcript. The Call QA scorer agent only ever sees the masked transcript: it scores greeting, verification, understanding, resolution, tone and closing, gives the customer sentiment and writes coaching notes.\n\nThe QA thresholds decision table sends calls with a low score, a negative customer or an account change without verification to a supervisor, who listens to the redacted recording, sets the final score and records the coaching. Only the redacted recording and transcript are archived, with a two-year retention policy.",
+  "trigger": "api",
+  "entry_workflow": "d7725113-5fa0-5a08-9482-b84b3a8fd2b4",
+  "start": "Headless: your telephony platform calls the start API (or an inbound webhook) when a call recording is ready.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "contact centre",
+    "call QA",
+    "transcription",
+    "PCI",
+    "redaction",
+    "AI agent",
+    "media"
+  ],
+  "needs": [
+    "media_ai",
+    "ai_model",
+    "assignees"
+  ],
+  "optional_needs": [
+    "webhook",
+    "email"
+  ],
+  "systems": [
+    "Google Gemini"
+  ],
+  "setup": [
+    "Google Gemini (media AI): paste your Gemini API key (transcription with speakers and the speech used for bleeping).",
+    "AI model (OpenAI-compatible): base URL and API key for the QA scorer agent.",
+    "Assignees: pick the QA supervisor.",
+    "Create an inbound webhook for the workflow (or call the start API) from your telephony platform with call_id, recording_url, agent_name, agent_email, queue and call_date. Recording URLs must be reachable from UserTasks (signed URLs work).",
+    "Tune the QA thresholds; apply the \"Call QA archive: 2 years\" retention policy to the archive table. FFmpeg is needed for the bleeping (Docker image or FFMPEG_PATH)."
+  ],
+  "steps": [
+    {
+      "title": "Call recording ready",
+      "body": "Your platform posts the call id, recording URL, agent and queue."
+    },
+    {
+      "title": "Transcribe",
+      "body": "Transcribe Audio / Video returns the conversation with speaker labels and an SRT file."
+    },
+    {
+      "title": "Bleep and mask",
+      "body": "Card numbers, SSNs, dates of birth and contact details are bleeped in the audio and masked in the transcript."
+    },
+    {
+      "title": "AI QA score",
+      "body": "The QA scorer agent reads only the masked transcript and returns the rubric score, sentiment and coaching notes."
+    },
+    {
+      "title": "Thresholds",
+      "body": "The QA thresholds decision table decides whether a supervisor reviews it and how urgently."
+    },
+    {
+      "title": "Archive and review",
+      "body": "The redacted recording and transcript are archived with a retention policy; flagged calls go to the supervisor, who sets the final score."
+    }
+  ],
+  "sample_input": {
+    "call_id": "CALL-2026-1030-0042",
+    "agent_name": "Casey Example",
+    "agent_email": "casey.example@example.com",
+    "queue": "Billing",
+    "call_date": "2026-10-30"
+  },
+  "expect": "waiting",
+  "icon": "headset",
+  "verify_mocks": {
+    "files": {
+      "recording_url": "support-call.mp3"
+    },
+    "media": {
+      "transcript": "call"
+    },
+    "agent_outputs": {
+      "qa_score": 58,
+      "greeting": true,
+      "verified_identity": true,
+      "resolved": false,
+      "sentiment": "neutral",
+      "coaching_notes": "Confirm the customer's identity before reading back any details. Summarise the next step before closing.",
+      "summary": "The customer asked to update their payment card. The agent took the details but did not confirm the change."
+    },
+    "expect_outputs": [
+      "redacted_call_file",
+      "redacted_transcript_file",
+      "call_srt",
+      "qa_score"
+    ]
+  },
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-30",
+      "notes": "First release."
+    }
+  ],
+  "category": "media-evidence",
+  "id": "f727bfba-619d-5273-910f-43654ed0b35a",
+  "slug": "support-call-qa-redaction"
+}

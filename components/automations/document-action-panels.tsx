@@ -2,16 +2,25 @@
 
 /**
  * Designer settings for the document actions (lib/documents): Read, Compare,
- * Convert, PDF tools, Extract, Redact and Inspect. Config keys match
+ * Convert, PDF tools, Extract, Redact (and detect sensitive information) and Inspect. Config keys match
  * lib/documents/handlers.ts; docs at /docs/workflows/documents.
  */
 
 import { useQuery } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Select as UiSelect } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { Card } from "@/components/ui/card"
+import { InlineNotice } from "@/components/ui/inline-notice"
 import { AutocompleteSelect } from "@/components/ui/autocomplete-select"
-import { serverRead } from "@/lib/server-read"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { serverQuery, serverRead } from "@/lib/server-read"
 import { VariableInput } from "./variable-input"
+import { INFO_CATEGORIES, INFO_REGIONS, INFO_TYPE_BY_ID, PATTERN_INFO_TYPES, inRegions, resolveInfoTypes } from "@/lib/documents/pii/catalog"
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
@@ -23,45 +32,47 @@ interface PanelProps {
   extraVariables?: { name: string; group: string; label?: string }[]
 }
 
-const selectStyle = { backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }
-const muted = { color: "var(--theme-muted-text)" }
-
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
-  return <label htmlFor={htmlFor} className="block text-xs font-medium">{children}</label>
+  return <label htmlFor={htmlFor} className="block text-xs font-medium text-fg">{children}</label>
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] leading-snug" style={muted}>{children}</p>
+  return <p className="text-xs leading-snug text-fg-muted">{children}</p>
 }
 
 function Select({ value, onChange, options, label }: { value: string; onChange: (v: string) => void; options: Array<[string, string]>; label: string }) {
   return (
-    <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border px-2 py-1.5 text-xs" style={selectStyle}>
+    <UiSelect size="sm" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
       {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-    </select>
+    </UiSelect>
   )
 }
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <label className="flex items-center gap-2 text-xs cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="rounded" />
-      {label}
-    </label>
-  )
+  return <Checkbox checked={checked} onChange={(e) => onChange(e.target.checked)} label={label} className="flex text-xs" />
 }
 
 function Segmented({ value, onChange, options, label }: { value: string; onChange: (v: string) => void; options: Array<[string, string]>; label: string }) {
   return (
-    <div className="flex flex-wrap gap-0.5" role="radiogroup" aria-label={label}>
+    <div className="flex flex-wrap gap-0.5 rounded-md bg-muted p-0.5" role="radiogroup" aria-label={label}>
       {options.map(([v, l]) => (
         <button key={v} type="button" role="radio" aria-checked={value === v} onClick={() => onChange(v)}
-          className="flex-1 min-w-[3rem] text-[10px] font-medium py-1.5 px-1 rounded transition-colors"
-          style={{ backgroundColor: value === v ? "var(--theme-primary)" : "var(--theme-surface)", color: value === v ? "var(--theme-on-primary)" : "var(--theme-muted-text)" }}>
+          className={cn(
+            "flex-1 min-w-[3rem] rounded-[calc(var(--ds-radius-sm)-2px)] px-1.5 py-1 text-xs font-medium transition-colors",
+            value === v ? "bg-panel text-fg shadow-elev-1" : "text-fg-muted hover:text-fg",
+          )}>
           {l}
         </button>
       ))}
     </div>
+  )
+}
+
+/** A toggle pill (aria-pressed): brand wash when on. */
+function chipClass(on: boolean) {
+  return cn(
+    "rounded-full border px-2 py-0.5 text-xs font-medium transition-colors",
+    on ? "border-primary bg-primary-wash text-primary-text" : "border-border text-fg-muted hover:border-border-strong hover:text-fg",
   )
 }
 
@@ -73,14 +84,22 @@ function Chips({ value, onChange, options, label }: { value: string[]; onChange:
         const on = set.has(v)
         return (
           <button key={v} type="button" aria-pressed={on} onClick={() => onChange(on ? value.filter((x) => x !== v) : [...value, v])}
-            className="text-[10px] font-medium px-2 py-1 rounded-full border transition-colors"
-            style={{ borderColor: on ? "var(--theme-primary)" : "var(--theme-surface-border)", backgroundColor: on ? "var(--theme-primary)" : "transparent", color: on ? "var(--theme-on-primary)" : "var(--theme-muted-text)" }}>
+            className={chipClass(on)}>
             {l}
           </button>
         )
       })}
     </div>
   )
+}
+
+/** "Add …" text action under a repeated list. */
+function AddButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return <Button type="button" variant="link" size="sm" leadingIcon={<Plus />} onClick={onClick}>{children}</Button>
+}
+
+function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return <IconButton type="button" size="sm" label={label} icon={<X />} onClick={onClick} />
 }
 
 function FileSource({ config, onUpdate, extraVariables, field = "source", label = "Document", allowText = true, hint = true }: PanelProps & { field?: string; label?: string; allowText?: boolean; hint?: boolean }) {
@@ -101,7 +120,7 @@ function OutputVar({ config, onUpdate, fallback }: { config: Record<string, any>
   return (
     <div className="space-y-1">
       <Label>Output variable</Label>
-      <Input value={config.output_var ?? ""} onChange={(e) => onUpdate("output_var", e.target.value.replace(/[^\w]/g, ""))} placeholder={fallback} className="!text-xs font-mono" />
+      <Input value={config.output_var ?? ""} onChange={(e) => onUpdate("output_var", e.target.value.replace(/[^\w]/g, ""))} placeholder={fallback} size="sm" className="font-mono" />
     </div>
   )
 }
@@ -123,18 +142,37 @@ function OcrOptions(props: PanelProps) {
       <Segmented label="OCR" value={config.ocr ?? "off"} onChange={(v) => onUpdate("ocr", v)} options={[["off", "Off"], ["auto", "Pages without text"], ["force", "Every page"]]} />
       {(config.ocr ?? "off") !== "off" && (
         <>
-          <Input value={config.ocr_languages ?? ""} onChange={(e) => onUpdate("ocr_languages", e.target.value)} placeholder="eng (eng+deu for several)" className="!text-xs font-mono" aria-label="OCR languages" />
-          <Hint>Each page reports a confidence (0–100). The provider and page limit are instance settings (DOCUMENT_OCR_PROVIDER, DOCUMENT_OCR_MAX_PAGES).</Hint>
+          <Input value={config.ocr_languages ?? ""} onChange={(e) => onUpdate("ocr_languages", e.target.value)} placeholder="eng (eng+deu for several)" size="sm" className="font-mono" aria-label="OCR languages" />
+          <OcrSetupNotice />
+          <Hint>Each page reports a confidence (0–100) and the step output counts the pages sent. The provider is a workspace setting (Settings → Document OCR); the page limit is DOCUMENT_OCR_MAX_PAGES.</Hint>
         </>
       )}
     </div>
   )
 }
 
+/** A gentle warning when this workspace has no OCR provider (the step would fail at run time). */
+function OcrSetupNotice() {
+  const { data } = useQuery({
+    queryKey: ["document-ocr-status"],
+    queryFn: () => serverQuery("settings.documentOcrStatus"),
+    staleTime: 60_000,
+  })
+  if (!data || data.status === "ready") return null
+  return (
+    <div data-testid="ocr-not-configured">
+      <InlineNotice tone="warning" className="px-2.5 py-2 text-xs leading-snug">
+        {data.status === "off" ? "OCR is turned off for this workspace." : "OCR isn't set up for this workspace yet, so this step will fail on scanned pages."}{" "}
+        <Link href={data.settings_path} className="font-medium text-primary-text underline underline-offset-2" target="_blank">Set up Document OCR</Link>
+      </InlineNotice>
+    </div>
+  )
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <details className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--theme-surface-border)" }}>
-      <summary className="text-xs font-medium cursor-pointer select-none">{title}</summary>
+    <details className="rounded-lg border border-border px-2 py-1.5">
+      <summary className="cursor-pointer select-none text-xs font-medium text-fg">{title}</summary>
       <div className="space-y-2 pt-2">{children}</div>
     </details>
   )
@@ -159,7 +197,7 @@ function ReadPanel(props: PanelProps) {
         <Label>Header row</Label>
         <Select label="Header row" value={String(config.header_row ?? "auto")} onChange={(v) => onUpdate("header_row", v)} options={[["auto", "Detect"], ["first", "First row"], ["none", "No header (column_1, …)"], ["2", "Row 2"], ["3", "Row 3"]]} />
         <Label>Max rows</Label>
-        <Input type="number" min={1} value={config.max_rows ?? ""} onChange={(e) => onUpdate("max_rows", e.target.value ? Number(e.target.value) : "")} placeholder="All" className="!text-xs" />
+        <Input type="number" min={1} value={config.max_rows ?? ""} onChange={(e) => onUpdate("max_rows", e.target.value ? Number(e.target.value) : "")} placeholder="All" size="sm" />
       </Section>
       <Section title="Content options">
         <Toggle checked={config.include_tables !== false} onChange={(v) => onUpdate("include_tables", v)} label="Tables (and tables found in text PDFs)" />
@@ -167,7 +205,7 @@ function ReadPanel(props: PanelProps) {
         <Label>Tracked changes (Word)</Label>
         <Select label="Tracked changes" value={config.tracked_changes ?? "accept"} onChange={(v) => onUpdate("tracked_changes", v)} options={[["accept", "Read as accepted"], ["show", "Show insertions and deletions"]]} />
         <Label>Max characters</Label>
-        <Input type="number" min={1000} value={config.max_chars ?? ""} onChange={(e) => onUpdate("max_chars", e.target.value ? Number(e.target.value) : "")} placeholder="2,000,000" className="!text-xs" />
+        <Input type="number" min={1000} value={config.max_chars ?? ""} onChange={(e) => onUpdate("max_chars", e.target.value ? Number(e.target.value) : "")} placeholder="2,000,000" size="sm" />
       </Section>
       <OcrOptions {...props} />
       <OutputVar config={config} onUpdate={onUpdate} fallback="document" />
@@ -202,13 +240,13 @@ function ComparePanel(props: PanelProps) {
           <Label>Sheet</Label>
           <VariableInput value={config.sheet ?? ""} onChange={(v) => onUpdate("sheet", v)} placeholder="First sheet" extraVariables={extraVariables} />
           <Label>Number tolerance</Label>
-          <Input type="number" step="any" min={0} value={config.numeric_tolerance ?? ""} onChange={(e) => onUpdate("numeric_tolerance", e.target.value)} placeholder="0" className="!text-xs" />
+          <Input type="number" step="any" min={0} value={config.numeric_tolerance ?? ""} onChange={(e) => onUpdate("numeric_tolerance", e.target.value)} placeholder="0" size="sm" />
         </Section>
       )}
       {mode === "json" && (
         <>
           <Label>Match list items by</Label>
-          <Input value={config.array_key ?? ""} onChange={(e) => onUpdate("array_key", e.target.value)} placeholder="id (empty = position)" className="!text-xs font-mono" />
+          <Input value={config.array_key ?? ""} onChange={(e) => onUpdate("array_key", e.target.value)} placeholder="id (empty = position)" size="sm" className="font-mono" />
         </>
       )}
       <div className="space-y-1">
@@ -302,7 +340,7 @@ function PdfPanel(props: PanelProps) {
           <Label>Ranges</Label>
           <VariableInput value={config.ranges ?? ""} onChange={(v) => onUpdate("ranges", v)} placeholder="1-3; 4-6 (empty = every N pages)" extraVariables={extraVariables} />
           <Label>Every N pages</Label>
-          <Input type="number" min={1} value={config.every_n ?? ""} onChange={(e) => onUpdate("every_n", e.target.value ? Number(e.target.value) : "")} placeholder="1" className="!text-xs" />
+          <Input type="number" min={1} value={config.every_n ?? ""} onChange={(e) => onUpdate("every_n", e.target.value ? Number(e.target.value) : "")} placeholder="1" size="sm" />
         </>
       )}
       {op === "watermark" && (
@@ -312,9 +350,9 @@ function PdfPanel(props: PanelProps) {
           <Label>Position</Label>
           <Select label="Position" value={config.position ?? "center"} onChange={(v) => onUpdate("position", v)} options={[["center", "Diagonal across the page"], ["top", "Top centre"], ["bottom", "Bottom centre"], ["top-left", "Top left"], ["top-right", "Top right"], ["bottom-left", "Bottom left"], ["bottom-right", "Bottom right"]]} />
           <div className="grid grid-cols-3 gap-1.5">
-            <Input type="number" min={4} value={config.font_size ?? ""} onChange={(e) => onUpdate("font_size", e.target.value)} placeholder="Size" aria-label="Font size" className="!text-xs" />
-            <Input type="number" min={0.05} max={1} step={0.05} value={config.opacity ?? ""} onChange={(e) => onUpdate("opacity", e.target.value)} placeholder="Opacity" aria-label="Opacity" className="!text-xs" />
-            <Input value={config.color ?? ""} onChange={(e) => onUpdate("color", e.target.value)} placeholder="#999999" aria-label="Colour" className="!text-xs font-mono" />
+            <Input type="number" min={4} value={config.font_size ?? ""} onChange={(e) => onUpdate("font_size", e.target.value)} placeholder="Size" aria-label="Font size" size="sm" />
+            <Input type="number" min={0.05} max={1} step={0.05} value={config.opacity ?? ""} onChange={(e) => onUpdate("opacity", e.target.value)} placeholder="Opacity" aria-label="Opacity" size="sm" />
+            <Input value={config.color ?? ""} onChange={(e) => onUpdate("color", e.target.value)} placeholder="#999999" aria-label="Colour" size="sm" className="font-mono" />
           </div>
         </>
       )}
@@ -329,12 +367,12 @@ function PdfPanel(props: PanelProps) {
           <Label>Fields</Label>
           {fields.map((f, i) => (
             <div key={i} className="flex gap-1.5 items-start">
-              <Input value={f.name} onChange={(e) => { const u = [...fields]; u[i] = { ...u[i], name: e.target.value }; onUpdate("fields", u) }} placeholder="Field name" className="!text-xs font-mono flex-1 min-w-0" />
+              <Input value={f.name} onChange={(e) => { const u = [...fields]; u[i] = { ...u[i], name: e.target.value }; onUpdate("fields", u) }} placeholder="Field name" size="sm" className="font-mono flex-1 min-w-0" />
               <VariableInput value={f.value ?? ""} onChange={(v) => { const u = [...fields]; u[i] = { ...u[i], value: v }; onUpdate("fields", u) }} placeholder="{{value}}" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-              <button type="button" aria-label="Remove field" onClick={() => onUpdate("fields", fields.filter((_, j) => j !== i))} className="p-1 hover:opacity-70" style={muted}><X size={12} /></button>
+              <RemoveButton label="Remove field" onClick={() => onUpdate("fields", fields.filter((_, j) => j !== i))} />
             </div>
           ))}
-          <button type="button" onClick={() => onUpdate("fields", [...fields, { name: "", value: "" }])} className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: "var(--theme-primary-text)" }}><Plus size={10} /> Add field</button>
+          <AddButton onClick={() => onUpdate("fields", [...fields, { name: "", value: "" }])}>Add field</AddButton>
           <Label>Or all values at once</Label>
           <VariableInput value={config.field_values ?? ""} onChange={(v) => onUpdate("field_values", v)} placeholder="{{applicant}} (an object: field name → value)" extraVariables={extraVariables} />
           <Toggle checked={Boolean(config.flatten)} onChange={(v) => onUpdate("flatten", v)} label="Flatten (make the form read-only)" />
@@ -371,26 +409,26 @@ function ExtractPanel(props: PanelProps) {
       <FileSource {...props} />
       <Toggle checked={config.extract_tables !== false} onChange={(v) => onUpdate("extract_tables", v)} label="Tables (Word, PDF, HTML, Markdown; spreadsheet sheets)" />
       <Label>Rows from</Label>
-      <Input value={config.table_index ?? ""} onChange={(e) => onUpdate("table_index", e.target.value)} placeholder="First table (or 2, or all)" className="!text-xs" />
+      <Input value={config.table_index ?? ""} onChange={(e) => onUpdate("table_index", e.target.value)} placeholder="First table (or 2, or all)" size="sm" />
       <Label>Key values (regular expressions)</Label>
       {patterns.map((p, i) => (
-        <div key={i} className="space-y-1 rounded-lg p-2" style={{ backgroundColor: "var(--theme-surface)" }}>
+        <Card key={i} variant="inset" padding="sm" className="space-y-1.5">
           <div className="flex gap-1.5">
-            <Input value={p.name} onChange={(e) => { const u = [...patterns]; u[i] = { ...u[i], name: e.target.value.replace(/[^\w]/g, "_") }; onUpdate("patterns", u) }} placeholder="invoice_number" aria-label="Value name" className="!text-xs font-mono w-1/3" />
-            <Input value={p.pattern} onChange={(e) => { const u = [...patterns]; u[i] = { ...u[i], pattern: e.target.value }; onUpdate("patterns", u) }} placeholder="Invoice\s*#?\s*(\w+)" aria-label="Pattern" className="!text-xs font-mono flex-1 min-w-0" />
-            <button type="button" aria-label="Remove pattern" onClick={() => onUpdate("patterns", patterns.filter((_, j) => j !== i))} className="p-1 hover:opacity-70" style={muted}><X size={12} /></button>
+            <Input value={p.name} onChange={(e) => { const u = [...patterns]; u[i] = { ...u[i], name: e.target.value.replace(/[^\w]/g, "_") }; onUpdate("patterns", u) }} placeholder="invoice_number" aria-label="Value name" size="sm" className="font-mono w-1/3" />
+            <Input value={p.pattern} onChange={(e) => { const u = [...patterns]; u[i] = { ...u[i], pattern: e.target.value }; onUpdate("patterns", u) }} placeholder="Invoice\s*#?\s*(\w+)" aria-label="Pattern" size="sm" className="font-mono flex-1 min-w-0" />
+            <RemoveButton label="Remove pattern" onClick={() => onUpdate("patterns", patterns.filter((_, j) => j !== i))} />
           </div>
           <Toggle checked={Boolean(p.all)} onChange={(v) => { const u = [...patterns]; u[i] = { ...u[i], all: v }; onUpdate("patterns", u) }} label="Every match (a list)" />
-        </div>
+        </Card>
       ))}
-      <button type="button" onClick={() => onUpdate("patterns", [...patterns, { name: "", pattern: "" }])} className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: "var(--theme-primary-text)" }}><Plus size={10} /> Add pattern</button>
+      <AddButton onClick={() => onUpdate("patterns", [...patterns, { name: "", pattern: "" }])}>Add pattern</AddButton>
       <Hint>The first capture group is returned (or the whole match). Patterns match within one line.</Hint>
       <Label>Find</Label>
       <Chips label="Finders" value={Array.isArray(config.finders) ? config.finders : []} onChange={(v) => onUpdate("finders", v)} options={[["emails", "Emails"], ["urls", "URLs"], ["phones", "Phone numbers"], ["dates", "Dates"], ["amounts", "Amounts"], ["percentages", "Percentages"]]} />
       {Array.isArray(config.finders) && config.finders.includes("dates") && (
         <Select label="Date order" value={config.date_order ?? "DMY"} onChange={(v) => onUpdate("date_order", v)} options={[["DMY", "Day first (31/12/2026)"], ["MDY", "Month first (12/31/2026)"]]} />
       )}
-      <div className="rounded-lg border px-2 py-2 space-y-2" style={{ borderColor: "var(--theme-surface-border)" }}>
+      <Card variant="inset" padding="sm" className="space-y-2">
         <Toggle checked={Boolean(config.to_table)} onChange={(v) => onUpdate("to_table", v)} label="Insert the rows into a data table" />
         {config.to_table && (
           <>
@@ -403,20 +441,20 @@ function ExtractPanel(props: PanelProps) {
             <Label>Column mapping</Label>
             {mapping.map((m, i) => (
               <div key={i} className="flex gap-1.5 items-center">
-                <select aria-label="Table column" value={m.column} onChange={(e) => { const u = [...mapping]; u[i] = { ...u[i], column: e.target.value }; onUpdate("column_mapping", u) }} className="flex-1 min-w-0 rounded border px-1.5 py-1 text-[11px]" style={selectStyle}>
+                <UiSelect size="sm" wrapperClassName="flex-1 min-w-0" aria-label="Table column" value={m.column} onChange={(e) => { const u = [...mapping]; u[i] = { ...u[i], column: e.target.value }; onUpdate("column_mapping", u) }}>
                   <option value="">Column…</option>
                   {columns.map((c) => <option key={c.key} value={c.key}>{c.label ?? c.key}</option>)}
-                </select>
-                <span className="text-[10px]" style={muted}>←</span>
-                <Input value={m.field} onChange={(e) => { const u = [...mapping]; u[i] = { ...u[i], field: e.target.value }; onUpdate("column_mapping", u) }} placeholder="Source header" aria-label="Source header" className="!text-xs flex-1 min-w-0" />
-                <button type="button" aria-label="Remove mapping" onClick={() => onUpdate("column_mapping", mapping.filter((_, j) => j !== i))} className="p-1 hover:opacity-70" style={muted}><X size={12} /></button>
+                </UiSelect>
+                <span className="text-xs text-fg-muted" aria-hidden="true">←</span>
+                <Input value={m.field} onChange={(e) => { const u = [...mapping]; u[i] = { ...u[i], field: e.target.value }; onUpdate("column_mapping", u) }} placeholder="Source header" aria-label="Source header" size="sm" className="flex-1 min-w-0" />
+                <RemoveButton label="Remove mapping" onClick={() => onUpdate("column_mapping", mapping.filter((_, j) => j !== i))} />
               </div>
             ))}
-            <button type="button" onClick={() => onUpdate("column_mapping", [...mapping, { column: "", field: "" }])} className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: "var(--theme-primary-text)" }}><Plus size={10} /> Map a column</button>
+            <AddButton onClick={() => onUpdate("column_mapping", [...mapping, { column: "", field: "" }])}>Map a column</AddButton>
             <Hint>Without a mapping, headers that match a column&apos;s key or label (ignoring case and spaces) are used. At most 5,000 rows per run; each insert fires the table&apos;s row-created workflows.</Hint>
           </>
         )}
-      </div>
+      </Card>
       <Section title="Spreadsheet and PDF options">
         <Label>Sheet</Label>
         <VariableInput value={config.sheet ?? ""} onChange={(v) => onUpdate("sheet", v)} placeholder="All sheets" extraVariables={extraVariables} />
@@ -429,35 +467,161 @@ function ExtractPanel(props: PanelProps) {
   )
 }
 
-/* ── Redact ────────────────────────────────────────────────────────── */
+/* ── Redact / detect sensitive information ──────────────────────────── */
+
+const STYLE_OPTIONS: Array<[string, string]> = [["block", "█████"], ["label", "[SSN]"], ["partial", "███-1120"], ["hash", "Hash"], ["text", "Custom"]]
+
+function useAgents() {
+  return useQuery({
+    queryKey: ["agents-for-config"],
+    queryFn: async () => ((await serverRead("automations.agentOptions")).data ?? []) as Array<{ id: string; name: string; is_active: boolean }>,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+function InfoTypePicker({ config, onUpdate, onBatchUpdate }: PanelProps) {
+  const raw = (Array.isArray(config.info_types) ? config.info_types : []) as string[]
+  const regions = (Array.isArray(config.regions) ? config.regions : []) as string[]
+  const selected = new Set(resolveInfoTypes(raw, regions))
+  const visible = PATTERN_INFO_TYPES.filter((t) => inRegions(t, regions))
+  const setTypes = (ids: string[]) => onUpdate("info_types", PATTERN_INFO_TYPES.map((t) => t.id).filter((id) => ids.includes(id)))
+  const toggle = (id: string, on: boolean) => setTypes(on ? [...selected, id] : [...selected].filter((x) => x !== id))
+  const quick = raw.includes("@high") ? "high" : raw.includes("*") ? "all" : ""
+  return (
+    <div className="space-y-1.5">
+      <Label>Information types</Label>
+      <div className="flex flex-wrap gap-1">
+        <button type="button" aria-pressed={quick === "high"} onClick={() => onBatchUpdate({ info_types: ["@high"], min_confidence: "high" })}
+          className={chipClass(quick === "high")}>
+          All high-confidence types
+        </button>
+        <button type="button" aria-pressed={quick === "all"} onClick={() => onUpdate("info_types", ["*"])}
+          className={chipClass(quick === "all")}>
+          Every type
+        </button>
+        {selected.size > 0 && <Button type="button" variant="ghost" size="sm" className="h-auto py-0.5" onClick={() => onUpdate("info_types", [])}>Clear ({selected.size})</Button>}
+      </div>
+      <Label>Regions</Label>
+      <Chips label="Regions" value={regions} onChange={(v) => onUpdate("regions", v)} options={INFO_REGIONS.filter((r) => r.id !== "global").map((r) => [r.id, r.label])} />
+      <Hint>No region chosen: every region. Global types (cards, IBANs, emails, dates of birth, keys…) always apply.</Hint>
+      {INFO_CATEGORIES.map((cat) => {
+        const types = visible.filter((t) => t.category === cat.id)
+        if (!types.length) return null
+        const on = types.filter((t) => selected.has(t.id)).length
+        return (
+          <details key={cat.id} className="rounded-lg border border-border px-2 py-1.5" open={cat.id === "identity" && on > 0}>
+            <summary className="flex cursor-pointer select-none items-center gap-2 text-xs font-medium text-fg">
+              <span className="flex-1">{cat.label}</span>
+              <span className="text-2xs font-normal text-fg-muted num">{on}/{types.length}</span>
+            </summary>
+            <div className="space-y-1 pt-1.5">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-fg">
+                <Checkbox checked={on === types.length} ref={(el) => { if (el) el.indeterminate = on > 0 && on < types.length }}
+                  onChange={(e) => setTypes(e.target.checked ? [...selected, ...types.map((t) => t.id)] : [...selected].filter((id) => !types.some((t) => t.id === id)))} />
+                All {cat.label.toLowerCase()}
+              </label>
+              {types.map((t) => (
+                <label key={t.id} className="flex cursor-pointer items-start gap-2 text-xs text-fg" title={`${t.format}. ${t.validation}.`}>
+                  <Checkbox className="mt-0.5" checked={selected.has(t.id)} onChange={(e) => toggle(t.id, e.target.checked)} aria-label={t.label} />
+                  <span className="flex-1 min-w-0">
+                    {t.label}
+                    <span className="block text-2xs leading-snug text-fg-muted">{t.regions.join(", ")} · {t.confidence}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </details>
+        )
+      })}
+      <Label>Minimum confidence</Label>
+      <Segmented label="Minimum confidence" value={config.min_confidence ?? "medium"} onChange={(v) => onUpdate("min_confidence", v)} options={[["low", "Low"], ["medium", "Medium"], ["high", "High"]]} />
+      <Hint>High: a check digit passed or a context word (&quot;SSN&quot;, &quot;DOB&quot;, &quot;IRD&quot;) is next to it. Low adds bare numbers that only pass a checksum — more matches, more false positives.</Hint>
+    </div>
+  )
+}
 
 function RedactPanel(props: PanelProps) {
   const { config, onUpdate, extraVariables } = props
   const patterns = (Array.isArray(config.patterns) ? config.patterns : []) as Array<{ pattern: string }>
+  const detect = config.mode === "detect_only"
+  const ov = config.output_var || (detect ? "detected" : "redacted")
+  const types = resolveInfoTypes(Array.isArray(config.info_types) ? config.info_types : [], Array.isArray(config.regions) ? config.regions : [])
+  const styles = (config.styles && typeof config.styles === "object" ? config.styles : {}) as Record<string, string>
+  const agents = useAgents()
   return (
     <>
       <FileSource {...props} />
-      <Label>Remove</Label>
-      <Chips label="Presets" value={Array.isArray(config.presets) ? config.presets : []} onChange={(v) => onUpdate("presets", v)} options={[["email", "Emails"], ["phone", "Phone numbers"], ["credit_card", "Card numbers"], ["iban", "IBANs"], ["ssn", "US SSNs"], ["ip_address", "IP addresses"], ["url", "URLs"], ["date", "Dates"]]} />
+      <Label>Action</Label>
+      <Segmented label="Action" value={detect ? "detect_only" : "redact"} onChange={(v) => onUpdate("mode", v)} options={[["redact", "Redact a copy"], ["detect_only", "Detect only (no changes)"]]} />
+      <InfoTypePicker {...props} />
+      {Array.isArray(config.presets) && config.presets.length > 0 && (
+        <>
+          <Label>Presets</Label>
+          <Chips label="Presets" value={config.presets} onChange={(v) => onUpdate("presets", v)} options={[["email", "Emails"], ["phone", "Phone numbers"], ["credit_card", "Card numbers"], ["iban", "IBANs"], ["ssn", "US SSNs"], ["ip_address", "IP addresses"], ["url", "URLs"], ["date", "Dates"]]} />
+          <Hint>The original presets keep working; the information types above cover them with checks and confidence.</Hint>
+        </>
+      )}
       <Label>Words and phrases</Label>
       <VariableInput value={config.terms ?? ""} onChange={(v) => onUpdate("terms", v)} placeholder="Project Falcon, {{customer.name}}" extraVariables={extraVariables} />
       <Label>Patterns</Label>
       {patterns.map((p, i) => (
         <div key={i} className="flex gap-1.5">
-          <Input value={p.pattern} onChange={(e) => { const u = [...patterns]; u[i] = { pattern: e.target.value }; onUpdate("patterns", u) }} placeholder="ACC-\d{6}" aria-label="Pattern" className="!text-xs font-mono flex-1 min-w-0" />
-          <button type="button" aria-label="Remove pattern" onClick={() => onUpdate("patterns", patterns.filter((_, j) => j !== i))} className="p-1 hover:opacity-70" style={muted}><X size={12} /></button>
+          <Input value={p.pattern} onChange={(e) => { const u = [...patterns]; u[i] = { pattern: e.target.value }; onUpdate("patterns", u) }} placeholder="ACC-\d{6}" aria-label="Pattern" size="sm" className="font-mono flex-1 min-w-0" />
+          <RemoveButton label="Remove pattern" onClick={() => onUpdate("patterns", patterns.filter((_, j) => j !== i))} />
         </div>
       ))}
-      <button type="button" onClick={() => onUpdate("patterns", [...patterns, { pattern: "" }])} className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: "var(--theme-primary-text)" }}><Plus size={10} /> Add pattern</button>
-      <Label>Replace with</Label>
-      <Segmented label="Replacement" value={config.replacement ?? "block"} onChange={(v) => onUpdate("replacement", v)} options={[["block", "█████"], ["label", "[EMAIL]"], ["text", "Custom"]]} />
-      {config.replacement === "text" && <Input value={config.replacement_text ?? ""} onChange={(e) => onUpdate("replacement_text", e.target.value)} placeholder="[REDACTED]" aria-label="Replacement text" className="!text-xs" />}
-      <Label>Redacted copy</Label>
-      <Select label="Output format" value={config.output ?? "same"} onChange={(v) => onUpdate("output", v)} options={[["same", "Same format (Word, PowerPoint, Excel, text formats)"], ["pdf", "PDF"], ["html", "HTML"], ["text", "Plain text"]]} />
-      <Hint>Word, PowerPoint and Excel copies keep their formatting. PDFs are rebuilt from the redacted text, so nothing redacted can be recovered from them, but their layout is not kept.</Hint>
-      <Toggle checked={config.clear_author !== false} onChange={(v) => onUpdate("clear_author", v)} label="Clear the author in the file properties" />
-      <OutputName {...props} placeholder="<source>-redacted" />
-      <OutputVar config={config} onUpdate={onUpdate} fallback="redacted" />
+      <AddButton onClick={() => onUpdate("patterns", [...patterns, { pattern: "" }])}>Add pattern</AddButton>
+      <Section title="AI: names and addresses (optional)">
+        <Toggle checked={Boolean(config.ai_detection)} onChange={(v) => onUpdate("ai_detection", v)} label="Use AI to find names of people and addresses" />
+        {config.ai_detection && (
+          <>
+            <Label>Agent (its model is used)</Label>
+            <Select label="Agent" value={config.ai_agent_id ?? ""} onChange={(v) => onUpdate("ai_agent_id", v)} options={[["", agents.isLoading ? "Loading…" : "Choose an agent"], ...(agents.data ?? []).filter((a) => a.is_active !== false).map((a) => [a.id, a.name] as [string, string])]} />
+          </>
+        )}
+        <Hint>Probabilistic: the model&apos;s judgement, not a pattern, so check the findings. The first 40,000 characters are sent to the agent&apos;s model provider. Off by default.</Hint>
+      </Section>
+      {!detect && (
+        <>
+          <Label>Replace with</Label>
+          <Segmented label="Replacement" value={config.replacement ?? "block"} onChange={(v) => onUpdate("replacement", v)} options={STYLE_OPTIONS} />
+          {config.replacement === "text" && <Input value={config.replacement_text ?? ""} onChange={(e) => onUpdate("replacement_text", e.target.value)} placeholder="[REDACTED]" aria-label="Replacement text" size="sm" />}
+          {config.replacement === "hash" && <Hint>A short keyed hash per value (<code>[SSN:3f9a0c21b7]</code>): the same value gets the same token across this workspace&apos;s documents, so you can still match records.</Hint>}
+          {types.length > 0 && (
+            <Section title={`Style per type${Object.keys(styles).length ? ` (${Object.keys(styles).length})` : ""}`}>
+              {types.map((id) => (
+                <div key={id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-xs text-fg">{INFO_TYPE_BY_ID[id]?.label ?? id}</span>
+                  <UiSelect aria-label={`Style for ${INFO_TYPE_BY_ID[id]?.label ?? id}`} value={styles[id] ?? ""} onChange={(e) => { const next = { ...styles }; if (e.target.value) next[id] = e.target.value; else delete next[id]; onUpdate("styles", next) }} size="sm" wrapperClassName="w-32 shrink-0">
+                    <option value="">Default</option>
+                    <option value="block">Mask █</option>
+                    <option value="label">[{INFO_TYPE_BY_ID[id]?.token ?? id.toUpperCase()}]</option>
+                    <option value="partial">Keep last 4</option>
+                    <option value="hash">Hash</option>
+                  </UiSelect>
+                </div>
+              ))}
+            </Section>
+          )}
+        </>
+      )}
+      <Toggle checked={Boolean(config.include_values)} onChange={(v) => onUpdate("include_values", v)} label="Include the values in the findings variable" />
+      <Hint>Off: each finding&apos;s <code>text</code> is masked (•••-••-••••). The run history and Save &amp; Test always show masked findings and counts, never the values.</Hint>
+      <OcrOptions {...props} />
+      {!detect && (
+        <>
+          <Label>Redacted copy</Label>
+          <Select label="Output format" value={config.output ?? "same"} onChange={(v) => onUpdate("output", v)} options={[["same", "Same format (Word, PowerPoint, Excel, text formats)"], ["pdf", "PDF"], ["html", "HTML"], ["text", "Plain text"]]} />
+          <Hint>Word, PowerPoint and Excel copies keep their formatting. PDFs are rebuilt from the redacted text, so nothing redacted can be recovered from them, but their layout is not kept.</Hint>
+          <Toggle checked={config.clear_author !== false} onChange={(v) => onUpdate("clear_author", v)} label="Clear the author in the file properties" />
+          <OutputName {...props} placeholder="<source>-redacted" />
+        </>
+      )}
+      <OutputVar config={config} onUpdate={onUpdate} fallback={detect ? "detected" : "redacted"} />
+      <Hint>
+        Loop over <code>{`{{${ov}_findings}}`}</code> (type, confidence, page / sheet / slide, masked context) or branch on <code>{`{{${ov}.counts_by_type.us_ssn}}`}</code>{detect ? "" : <>; the copy is <code>{`{{${ov}_file}}`}</code></>}.
+      </Hint>
     </>
   )
 }
@@ -488,7 +652,7 @@ function InspectPanel(props: PanelProps) {
             <Toggle checked={Boolean(config.regex)} onChange={(v) => onUpdate("regex", v)} label="Regular expression" />
           </div>
           <Label>Context characters</Label>
-          <Input type="number" min={0} max={500} value={config.context_chars ?? ""} onChange={(e) => onUpdate("context_chars", e.target.value)} placeholder="60" className="!text-xs" />
+          <Input type="number" min={0} max={500} value={config.context_chars ?? ""} onChange={(e) => onUpdate("context_chars", e.target.value)} placeholder="60" size="sm" />
         </>
       )}
       <OutputVar config={config} onUpdate={onUpdate} fallback="inspection" />

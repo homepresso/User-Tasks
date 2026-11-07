@@ -1,0 +1,296 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "80f829cc-8ec7-5631-aa01-39248e3ae9cc",
+  "asset": {
+    "id": "80f829cc-8ec7-5631-aa01-39248e3ae9cc",
+    "name": "Training summary and expiry reminders",
+    "description": "From the Training results page: works out the pass rate and average score from Quiz results, finds certificates that expire within the chosen number of days, reminds each of those learners by email and emails the summary to whoever asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Summary requested",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "0981e32a-923f-5726-b7ea-46aa3eb46dee",
+          "form_name": "Training results"
+        }
+      },
+      {
+        "id": "all",
+        "type": "update_data_table",
+        "label": "All results",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "list",
+          "limit": 1000,
+          "output_rows_var": "all_rows",
+          "output_count_var": "result_count"
+        }
+      },
+      {
+        "id": "p",
+        "type": "set_variable",
+        "label": "Passes",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "name": "passes",
+          "expression": "{{=COUNT(FILTER_WHERE(all_rows, \"band\", \"Pass\"))}}"
+        }
+      },
+      {
+        "id": "r",
+        "type": "set_variable",
+        "label": "Retakes",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "name": "retakes",
+          "expression": "{{=COUNT(FILTER_WHERE(all_rows, \"band\", \"Retake\"))}}"
+        }
+      },
+      {
+        "id": "f",
+        "type": "set_variable",
+        "label": "Sessions",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "fails",
+          "expression": "{{=COUNT(FILTER_WHERE(all_rows, \"band\", \"Fail\"))}}"
+        }
+      },
+      {
+        "id": "rate",
+        "type": "set_variable",
+        "label": "Pass rate",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "name": "pass_rate",
+          "expression": "{{=IF(result_count > 0, ROUND(passes * 100 / result_count, 0), 0)}}"
+        }
+      },
+      {
+        "id": "avg",
+        "type": "set_variable",
+        "label": "Average score",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "avg_score",
+          "expression": "{{=IF(result_count > 0, ROUND(AVG(PLUCK(all_rows, \"score_pct\")), 0), \"-\")}}"
+        }
+      },
+      {
+        "id": "exp",
+        "type": "update_data_table",
+        "label": "Certificates expiring soon",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "certificate_expires",
+              "operator": "gte",
+              "value": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+            },
+            {
+              "column": "certificate_expires",
+              "operator": "lte",
+              "value": "{{=FORMAT_DATE(ADD_DAYS(NOW(), form.days_ahead), \"YYYY-MM-DD\")}}"
+            }
+          ],
+          "limit": 200,
+          "output_rows_var": "expiring_rows",
+          "output_count_var": "expiring_count"
+        }
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Who",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "name": "expiring_names",
+          "expression": "{{=IF(expiring_count > 0, JOIN(\", \", PLUCK(expiring_rows, \"learner_name\")), \"nobody\")}}"
+        }
+      },
+      {
+        "id": "remind",
+        "type": "condition",
+        "label": "Remind learners?",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Remind",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.remind_learners}}",
+                  "operator": "is_true",
+                  "value": ""
+                },
+                {
+                  "field": "{{expiring_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each expiring certificate",
+        "position": {
+          "x": 300,
+          "y": 1460
+        },
+        "config": {
+          "items": "{{expiring_rows}}",
+          "item_var": "cert"
+        }
+      },
+      {
+        "id": "remind_mail",
+        "type": "send_email",
+        "label": "Remind the learner",
+        "position": {
+          "x": 300,
+          "y": 1600
+        },
+        "config": {
+          "to": "{{cert.learner_email}}",
+          "email_template_id": "ffbbdc19-dba4-588d-b063-71b6a9ed9821"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the summary",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "61aa813f-41cc-5046-8a04-c3d4f2d5f509"
+        },
+        "onError": "continue"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-all",
+        "source": "trigger",
+        "target": "all"
+      },
+      {
+        "id": "e-all-p",
+        "source": "all",
+        "target": "p"
+      },
+      {
+        "id": "e-p-r",
+        "source": "p",
+        "target": "r"
+      },
+      {
+        "id": "e-r-f",
+        "source": "r",
+        "target": "f"
+      },
+      {
+        "id": "e-f-rate",
+        "source": "f",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-avg",
+        "source": "rate",
+        "target": "avg"
+      },
+      {
+        "id": "e-avg-exp",
+        "source": "avg",
+        "target": "exp"
+      },
+      {
+        "id": "e-exp-names",
+        "source": "exp",
+        "target": "names"
+      },
+      {
+        "id": "e-names-remind",
+        "source": "names",
+        "target": "remind"
+      },
+      {
+        "id": "e-remind-each-remind",
+        "source": "remind",
+        "target": "each",
+        "label": "Remind"
+      },
+      {
+        "id": "e-remind-mail-else",
+        "source": "remind",
+        "target": "mail",
+        "label": "Else"
+      },
+      {
+        "id": "e-each-remind_mail-each-item",
+        "source": "each",
+        "target": "remind_mail",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-each-mail-done",
+        "source": "each",
+        "target": "mail",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

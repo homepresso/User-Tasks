@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "8c343c81-903c-5307-a188-4a1c3a90ab7d",
+  "asset": {
+    "id": "8c343c81-903c-5307-a188-4a1c3a90ab7d",
+    "name": "Attendee list",
+    "description": "From the Organiser dashboard: reads the chosen event, lists its confirmed and waitlisted attendees, works out the catering numbers and emails the list to the organiser who asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Attendee list requested",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "5ed124e1-38ec-5863-a7a0-95bf3a103bf7",
+          "form_name": "Organiser dashboard"
+        }
+      },
+      {
+        "id": "ev",
+        "type": "update_data_table",
+        "label": "Read the event",
+        "position": {
+          "x": 600,
+          "y": 180
+        },
+        "config": {
+          "table_id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+          "table_name": "Events",
+          "operation": "get",
+          "match_column": "event_code",
+          "match_value": "{{form.event}}",
+          "output_row_var": "list_event"
+        }
+      },
+      {
+        "id": "conf",
+        "type": "update_data_table",
+        "label": "Confirmed attendees",
+        "position": {
+          "x": 600,
+          "y": 300
+        },
+        "config": {
+          "table_id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+          "table_name": "Attendees",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "event_code",
+              "operator": "eq",
+              "value": "{{form.event}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Confirmed"
+            }
+          ],
+          "sort_column": "session",
+          "sort_direction": "asc",
+          "limit": 1000,
+          "output_rows_var": "confirmed_rows",
+          "output_count_var": "confirmed_count"
+        }
+      },
+      {
+        "id": "wait",
+        "type": "update_data_table",
+        "label": "Waitlisted attendees",
+        "position": {
+          "x": 600,
+          "y": 420
+        },
+        "config": {
+          "table_id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+          "table_name": "Attendees",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "event_code",
+              "operator": "eq",
+              "value": "{{form.event}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Waitlisted"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "waitlisted_rows",
+          "output_count_var": "waitlisted_count"
+        }
+      },
+      {
+        "id": "diet",
+        "type": "set_variable",
+        "label": "Catering summary",
+        "position": {
+          "x": 600,
+          "y": 540
+        },
+        "config": {
+          "name": "diet_summary",
+          "expression": "{{=COUNT(FILTER_WHERE(confirmed_rows, \"dietary\", \"None\"))}} none, {{=COUNT(FILTER_WHERE(confirmed_rows, \"dietary\", \"Vegetarian\"))}} vegetarian, {{=COUNT(FILTER_WHERE(confirmed_rows, \"dietary\", \"Vegan\"))}} vegan, {{=COUNT(FILTER_WHERE(confirmed_rows, \"dietary\", \"Gluten free\"))}} gluten free, {{=COUNT(FILTER_WHERE(confirmed_rows, \"dietary\", \"Halal\"))}} halal, {{=COUNT(FILTER_WHERE(confirmed_rows, \"dietary\", \"Other\"))}} other"
+        }
+      },
+      {
+        "id": "acc",
+        "type": "set_variable",
+        "label": "Accessibility needs",
+        "position": {
+          "x": 600,
+          "y": 660
+        },
+        "config": {
+          "name": "access_count",
+          "expression": "{{=confirmed_count - COUNT(FILTER_WHERE(confirmed_rows, \"accessibility\", \"\"))}}"
+        }
+      },
+      {
+        "id": "lines",
+        "type": "set_variable",
+        "label": "Attendee lines",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "name": "attendee_lines",
+          "expression": "{{=JOIN(\"<br>\", PLUCK(confirmed_rows, \"summary\"))}}"
+        }
+      },
+      {
+        "id": "text",
+        "type": "set_variable",
+        "label": "Attendee text",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "attendee_text",
+          "expression": "{{=JOIN(\"\\n\", PLUCK(confirmed_rows, \"summary\"))}}"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the attendee list",
+        "position": {
+          "x": 600,
+          "y": 1020
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "bb759c27-4294-5ed8-bdfd-3bd55ab1a1ce"
+        },
+        "onError": "continue"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ev",
+        "source": "trigger",
+        "target": "ev"
+      },
+      {
+        "id": "e-ev-conf",
+        "source": "ev",
+        "target": "conf"
+      },
+      {
+        "id": "e-conf-wait",
+        "source": "conf",
+        "target": "wait"
+      },
+      {
+        "id": "e-wait-diet",
+        "source": "wait",
+        "target": "diet"
+      },
+      {
+        "id": "e-diet-acc",
+        "source": "diet",
+        "target": "acc"
+      },
+      {
+        "id": "e-acc-lines",
+        "source": "acc",
+        "target": "lines"
+      },
+      {
+        "id": "e-lines-text",
+        "source": "lines",
+        "target": "text"
+      },
+      {
+        "id": "e-text-mail",
+        "source": "text",
+        "target": "mail"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

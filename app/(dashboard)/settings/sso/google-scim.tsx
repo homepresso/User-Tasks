@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useMutation } from '@tanstack/react-query'
 import { Copy, KeyRound, Network, RotateCw, Trash2, Unplug } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -19,7 +20,7 @@ import {
   type DirectoryConnectionSummary,
   type ScimTokenRow,
 } from '@/app/actions/directory-sync'
-import { errText, Field, OptionCheckbox, SummaryItem, TextArea, unwrap } from './shared'
+import { errText, Field, OptionCheckbox, OrgImportOptions, SummaryItem, TextArea, unwrap } from './shared'
 
 // ── Google Workspace ─────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ export function GoogleConnectCard({ onConnected }: { onConnected: () => void }) 
         <Network size={14} style={{ color: 'var(--theme-primary-text)' }} />
         Connect Google Workspace
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Create a service account, grant it domain-wide delegation in the Admin console for{' '}
         <code>admin.directory.user.readonly</code>, <code>admin.directory.group.readonly</code> and{' '}
         <code>admin.directory.group.member.readonly</code>, and paste its JSON key with the email of a Workspace admin to act as.
@@ -108,6 +109,9 @@ export function ScimCard({
   const [confirmRevoke, setConfirmRevoke] = useState<ScimTokenRow | null>(null)
   const enabled = Boolean(connection?.isEnabled)
 
+  // isPending only renders after the click: a synchronous guard stops a
+  // double click minting two tokens (only the last one would be shown).
+  const createGuard = useSubmitGuard()
   const createMutation = useMutation({
     mutationFn: () => unwrap(createScimToken({ name: name.trim() || 'Identity provider' })),
     onMutate: () => { setError(null); setShown(null) },
@@ -126,7 +130,7 @@ export function ScimCard({
     onError: (e) => { setConfirmRevoke(null); setError(errText(e)) },
   })
   const optionsMutation = useMutation({
-    mutationFn: (options: { syncGroups?: boolean; autoProvision?: boolean }) => unwrap(updateDirectoryOptions('scim', options)),
+    mutationFn: (options: { syncGroups?: boolean; autoProvision?: boolean; importOrgUnits?: boolean; importProfiles?: boolean }) => unwrap(updateDirectoryOptions('scim', options)),
     onSuccess: onChanged,
     onError: (e) => setError(errText(e)),
   })
@@ -144,7 +148,7 @@ export function ScimCard({
             <KeyRound size={14} style={{ color: 'var(--theme-primary-text)' }} />
             SCIM provisioning
           </h3>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-0.5 text-fg-muted">
             Let Microsoft Entra ID, Okta, OneLogin, JumpCloud or another identity provider push users and groups here (SCIM 2.0).
           </p>
         </div>
@@ -186,7 +190,7 @@ export function ScimCard({
         {tokens.length > 0 && (
           <div className="space-y-1.5">
             {tokens.map((token) => (
-              <div key={token.id} className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: 'var(--theme-surface)' }}>
+              <div key={token.id} className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs bg-subtle">
                 <span className="font-medium">{token.name}</span>
                 <code style={{ color: 'var(--theme-muted-text)' }}>{token.token_prefix}…</code>
                 <span style={{ color: 'var(--theme-muted-text)' }}>
@@ -216,16 +220,24 @@ export function ScimCard({
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Entra ID provisioning" />
               </Field>
             </div>
-            <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+            <Button onClick={() => { void createGuard.run(() => createMutation.mutateAsync()).catch(() => { /* shown by onError */ }) }} disabled={createMutation.isPending || createGuard.pending}>
               {createMutation.isPending ? 'Creating…' : 'Create token'}
             </Button>
           </div>
         )}
 
         {enabled && connection && (
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <OptionCheckbox label="Pushed groups become teams" checked={connection.syncGroups} disabled={!canEdit || optionsMutation.isPending} onChange={(checked) => optionsMutation.mutate({ syncGroups: checked })} />
-            <OptionCheckbox label="Automatically create accounts for pushed users" checked={connection.autoProvision} disabled={!canEdit || optionsMutation.isPending} onChange={(checked) => optionsMutation.mutate({ autoProvision: checked })} />
+          <div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <OptionCheckbox label="Pushed groups become teams" checked={connection.syncGroups} disabled={!canEdit || optionsMutation.isPending} onChange={(checked) => optionsMutation.mutate({ syncGroups: checked })} />
+              <OptionCheckbox label="Automatically create accounts for pushed users" checked={connection.autoProvision} disabled={!canEdit || optionsMutation.isPending} onChange={(checked) => optionsMutation.mutate({ autoProvision: checked })} />
+            </div>
+            <OrgImportOptions
+              importOrgUnits={connection.importOrgUnits}
+              importProfiles={connection.importProfiles}
+              disabled={!canEdit || optionsMutation.isPending}
+              onChange={(options) => optionsMutation.mutate(options)}
+            />
           </div>
         )}
       </div>

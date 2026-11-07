@@ -19,6 +19,426 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
+    "operationId": "getHomeMetrics",
+    "method": "GET",
+    "path": "/home/metrics",
+    "resource": "home",
+    "verb": "metrics",
+    "summary": "The Home cards: my tasks, my submissions in progress, runs I follow",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getHomeStats",
+    "method": "GET",
+    "path": "/home/stats",
+    "resource": "home",
+    "verb": "stats",
+    "summary": "My activity over 7, 30 or 90 days: tasks completed, decisions, durations, on time, submissions",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "period",
+        "flag": "period",
+        "description": "7d, 30d (default) or 90d",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "7d",
+          "30d",
+          "90d"
+        ]
+      },
+      {
+        "name": "timezone",
+        "flag": "timezone",
+        "description": "IANA time zone for day / week buckets, e.g. Pacific/Auckland",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listMyHomeTasks",
+    "method": "GET",
+    "path": "/home/tasks",
+    "resource": "home",
+    "verb": "tasks",
+    "summary": "My open tasks with their process and stage",
+    "permission": "tasks.view_own",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Title contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "due (default, soonest first), priority, newest",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "due",
+          "priority",
+          "newest"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "tasks",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listHomeQueue",
+    "method": "GET",
+    "path": "/home/queue",
+    "resource": "home",
+    "verb": "queue",
+    "summary": "Tasks I can take: waiting for my acceptance, or unassigned in my teams",
+    "permission": "tasks.view_own",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Title contains",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "tasks",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listMySubmissions",
+    "method": "GET",
+    "path": "/home/submissions",
+    "resource": "home",
+    "verb": "submissions",
+    "summary": "Forms I submitted, with the process each one started and where it is now",
+    "permission": "forms.submit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Form or process name contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "all (default), active (running, waiting or starting), completed, failed (failed or cancelled)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "all",
+          "active",
+          "completed",
+          "failed"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "submissions",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getRunProgress",
+    "method": "GET",
+    "path": "/home/runs/{id}/progress",
+    "resource": "home",
+    "verb": "progress",
+    "summary": "A run's progress (the submitter-safe flow view)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listFollowedRuns",
+    "method": "GET",
+    "path": "/home/following",
+    "resource": "home",
+    "verb": "following",
+    "summary": "Workflow runs I follow, with where they are and who has them",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Process name or run title contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "all (default), active (running, waiting or starting), completed, failed (failed or cancelled)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "all",
+          "active",
+          "completed",
+          "failed"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "runs",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "followRun",
+    "method": "PUT",
+    "path": "/home/following/{id}",
+    "resource": "home",
+    "verb": "follow",
+    "summary": "Follow a workflow run",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "unfollowRun",
+    "method": "DELETE",
+    "path": "/home/following/{id}",
+    "resource": "home",
+    "verb": "unfollow",
+    "summary": "Stop following a workflow run",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "listFavoriteForms",
+    "method": "GET",
+    "path": "/home/favorite-forms",
+    "resource": "home",
+    "verb": "favorites",
+    "summary": "My favourite forms (that I can still open), alphabetical",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "forms",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "favoriteForm",
+    "method": "PUT",
+    "path": "/home/favorite-forms/{id}",
+    "resource": "home",
+    "verb": "favorite",
+    "summary": "Star a form",
+    "permission": "forms.submit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "unfavoriteForm",
+    "method": "DELETE",
+    "path": "/home/favorite-forms/{id}",
+    "resource": "home",
+    "verb": "unfavorite",
+    "summary": "Unstar a form",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getHomePreferences",
+    "method": "GET",
+    "path": "/home/preferences",
+    "resource": "home",
+    "verb": "preferences",
+    "summary": "My Home preferences (auto-follow)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateHomePreferences",
+    "method": "PATCH",
+    "path": "/home/preferences",
+    "resource": "home",
+    "verb": "set-preferences",
+    "summary": "Change my Home preferences",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "auto_follow_runs",
+          "type": "boolean",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getHomeLayout",
+    "method": "GET",
+    "path": "/home/layout",
+    "resource": "home",
+    "verb": "layout",
+    "summary": "My Home layout in this workspace: widget order, sizes and hidden widgets",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateHomeLayout",
+    "method": "PUT",
+    "path": "/home/layout",
+    "resource": "home",
+    "verb": "set-layout",
+    "summary": "Save my Home layout in this workspace",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Visible widgets in reading order"
+        },
+        {
+          "name": "hidden",
+          "type": "array",
+          "required": false,
+          "description": "Widgets to hide"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "resetHomeLayout",
+    "method": "DELETE",
+    "path": "/home/layout",
+    "resource": "home",
+    "verb": "reset-layout",
+    "summary": "Reset my Home layout in this workspace to the default",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "claimTask",
+    "method": "POST",
+    "path": "/tasks/{id}/claim",
+    "resource": "tasks",
+    "verb": "claim",
+    "summary": "Claim an unassigned team task (a member of its team becomes its assignee)",
+    "permission": "tasks.complete",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "listWorkflows",
     "method": "GET",
     "path": "/workflows",
@@ -424,7 +844,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "resource": "runs",
     "verb": "list",
     "summary": "List workflow runs",
-    "permission": "workflows.view_runs",
+    "permission": "workflows.view_queue",
     "positional": [],
     "pathFlags": [],
     "query": [
@@ -461,8 +881,8 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "path": "/workflows/runs/{id}",
     "resource": "runs",
     "verb": "get",
-    "summary": "Get a workflow run with its logs",
-    "permission": "workflows.view_runs",
+    "summary": "Get a workflow run with its logs and User Tasks",
+    "permission": "workflows.view_queue",
     "positional": [
       "id"
     ],
@@ -517,7 +937,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "resource": "queue",
     "verb": "list",
     "summary": "List queued workflow jobs",
-    "permission": "workflows.view_runs",
+    "permission": "workflows.view_queue",
     "positional": [],
     "pathFlags": [],
     "query": [
@@ -649,7 +1069,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "resource": "workflows",
     "verb": "instances",
     "summary": "List live instances (waiting or paused runs) with their current node and version",
-    "permission": "workflows.view_runs",
+    "permission": "workflows.view_queue",
     "positional": [
       "id"
     ],
@@ -1148,6 +1568,69 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "The form's current values, for {{task_data.<key>}} placeholders in the lookup's filters or reference inputs"
+        },
+        {
+          "name": "resolve",
+          "type": "array",
+          "required": false,
+          "description": "Resolve these stored values to their items (display labels) instead of searching — same source, filters and permissions as a search"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "queryTaskDataTable",
+    "method": "POST",
+    "path": "/tasks/{id}/data-table",
+    "resource": "tasks",
+    "verb": "data-table",
+    "summary": "Rows of a Data table field of an open task (search, filters, sort, page)",
+    "permission": "tasks.complete",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "field_key",
+          "type": "string",
+          "required": true,
+          "description": "Key of a Data table field of the form"
+        },
+        {
+          "name": "query",
+          "type": "object",
+          "required": false
+        },
+        {
+          "name": "values",
+          "type": "object",
+          "required": false,
+          "description": "The form's current values, for {{form.<key>}} in the base filter / API inputs"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "required": false,
+          "description": "Reusable forms: the form's parameters by name ({{param.<name>}} in the base filter / API inputs), re-validated against the declarations; a task form uses the parameters its workflow step passed and ignores these"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
         }
       ]
     },
@@ -1220,6 +1703,226 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "paginated": false,
     "envelope": false,
     "destructive": false
+  },
+  {
+    "operationId": "listTaskAttachments",
+    "method": "GET",
+    "path": "/tasks/{id}/attachments",
+    "resource": "tasks",
+    "verb": "attachments",
+    "summary": "List a task's attachments",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "attachments",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addTaskAttachment",
+    "method": "POST",
+    "path": "/tasks/{id}/attachments",
+    "resource": "tasks",
+    "verb": "attachment-add",
+    "summary": "Attach a file to a task (or start a direct upload)",
+    "permission": "tasks.complete",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "file_name",
+          "type": "string",
+          "required": true,
+          "description": "File name (its extension must be an allowed type)"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "Display name (default: the file name without its extension)"
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "description": "Type, free text (default Other). Suggested: Contract, Invoice, Receipt, Evidence, Image, Other"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "Description"
+        },
+        {
+          "name": "size",
+          "type": "integer",
+          "required": false,
+          "description": "Size in bytes: without content_base64, starts a direct upload to storage"
+        },
+        {
+          "name": "content_base64",
+          "type": "string",
+          "required": false,
+          "description": "The file itself, base64 (small files; the request body limit applies). Omit to get a signed upload URL"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "completeTaskAttachment",
+    "method": "POST",
+    "path": "/tasks/{id}/attachments/{attachmentId}/complete",
+    "resource": "tasks",
+    "verb": "attachment-complete",
+    "summary": "Finish a direct upload of a task attachment",
+    "permission": "tasks.complete",
+    "positional": [
+      "id",
+      "attachmentId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteTaskAttachment",
+    "method": "DELETE",
+    "path": "/tasks/{id}/attachments/{attachmentId}",
+    "resource": "tasks",
+    "verb": "attachment-delete",
+    "summary": "Delete a task attachment",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id",
+      "attachmentId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getTaskAttachmentDownloadUrl",
+    "method": "GET",
+    "path": "/tasks/{id}/attachments/{attachmentId}/download",
+    "resource": "tasks",
+    "verb": "attachment-download",
+    "summary": "A short-lived download link for a task attachment",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id",
+      "attachmentId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listFollowedTasks",
+    "method": "GET",
+    "path": "/tasks/following",
+    "resource": "tasks",
+    "verb": "following",
+    "summary": "Tasks I follow (the Task tracker's Following tab)",
+    "permission": "tasks.view_own",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Task name, ID, workflow, people, team, status or priority contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Task statuses (comma-separated)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "priority",
+        "flag": "priority",
+        "description": "Priorities (comma-separated)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "hide_completed",
+        "flag": "hide-completed",
+        "description": "true: leave out completed and cancelled tasks",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "tasks",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "followTask",
+    "method": "PUT",
+    "path": "/tasks/{id}/follow",
+    "resource": "tasks",
+    "verb": "follow",
+    "summary": "Follow a task",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "unfollowTask",
+    "method": "DELETE",
+    "path": "/tasks/{id}/follow",
+    "resource": "tasks",
+    "verb": "unfollow",
+    "summary": "Stop following a task",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
   },
   {
     "operationId": "listAgents",
@@ -1301,12 +2004,14 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "tools",
           "type": "array",
-          "required": false
+          "required": false,
+          "description": "Tool objects: {type:\"builtin\",name} | {type:\"reference\",referenceId} | {type:\"mcp\",mcpServerId,mcpToolName}; add requiresApproval:true to need a person's approval per call"
         },
         {
           "name": "output_config",
           "type": "object",
-          "required": false
+          "required": false,
+          "description": "variables (typed outputs: name, type, required, enum, description), strict_outputs, document_access, data_access {grants: [{table_id, read, insert, update, delete}]} (default: no tables), task_access/task_scope, workflow_access/workflow_scope, knowledge {table_ids, files}, limits {max_run_tokens, max_tool_calls, daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency}, approval {tools, assignee_user_id, assignee_team_id}, egress {allowed_hosts}"
         },
         {
           "name": "integration_id",
@@ -1314,7 +2019,6 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "temperature",
-          "type": "number",
           "required": false
         },
         {
@@ -1416,12 +2120,14 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "tools",
           "type": "array",
-          "required": false
+          "required": false,
+          "description": "Tool objects: {type:\"builtin\",name} | {type:\"reference\",referenceId} | {type:\"mcp\",mcpServerId,mcpToolName}; add requiresApproval:true to need a person's approval per call"
         },
         {
           "name": "output_config",
           "type": "object",
-          "required": false
+          "required": false,
+          "description": "variables (typed outputs: name, type, required, enum, description), strict_outputs, document_access, data_access {grants: [{table_id, read, insert, update, delete}]} (default: no tables), task_access/task_scope, workflow_access/workflow_scope, knowledge {table_ids, files}, limits {max_run_tokens, max_tool_calls, daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency}, approval {tools, assignee_user_id, assignee_team_id}, egress {allowed_hosts}"
         },
         {
           "name": "integration_id",
@@ -1429,7 +2135,6 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "temperature",
-          "type": "number",
           "required": false
         },
         {
@@ -1459,7 +2164,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "path": "/agents/{id}",
     "resource": "agents",
     "verb": "delete",
-    "summary": "Delete an agent (deactivates workflows that reference it)",
+    "summary": "Delete an agent (queued; deactivates workflows that reference it)",
     "permission": "agents.delete",
     "positional": [
       "id"
@@ -1494,13 +2199,26 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "shared_context",
-          "required": false
+          "required": false,
+          "description": "{ messages, facts } from earlier agents (only user / assistant text is used)"
+        },
+        {
+          "name": "history",
+          "type": "array",
+          "required": false,
+          "description": "Earlier turns of this conversation"
         },
         {
           "name": "async",
           "type": "boolean",
           "required": false,
           "description": "Queue the run and return a job id (202)"
+        },
+        {
+          "name": "stream",
+          "type": "boolean",
+          "required": false,
+          "description": "Stream Server-Sent Events: the reply token by token, then done / error / awaiting_approval"
         },
         {
           "name": "max_iterations",
@@ -1540,6 +2258,386 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "body": null,
     "listKey": "jobs",
     "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAgentQueueJob",
+    "method": "GET",
+    "path": "/agents/queue/{id}",
+    "resource": "agents",
+    "verb": "job",
+    "summary": "Get a queued agent job (status, result, run id)",
+    "permission": "agents.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listAgentRuns",
+    "method": "GET",
+    "path": "/agents/runs",
+    "resource": "agents",
+    "verb": "runs",
+    "summary": "List agent runs (newest first)",
+    "permission": "agents.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "agent_id",
+        "flag": "agent-id",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "completed | failed | awaiting_approval | running",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "caller_type",
+        "flag": "caller-type",
+        "description": "manual | api | queued | workflow_node | eval",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "runs",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAgentRun",
+    "method": "GET",
+    "path": "/agents/runs/{id}",
+    "resource": "agents",
+    "verb": "run",
+    "summary": "Get an agent run with its step trace (LLM calls, tool calls, tokens, latency)",
+    "permission": "agents.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAgentUsage",
+    "method": "GET",
+    "path": "/agents/{id}/usage",
+    "resource": "agents",
+    "verb": "usage",
+    "summary": "Tokens and cost per day, last 24 hours, this month, and the agent's limits and budgets",
+    "permission": "agents.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "days",
+        "flag": "days",
+        "required": false,
+        "type": "integer"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWorkspaceAgentUsage",
+    "method": "GET",
+    "path": "/agents/usage",
+    "resource": "agents",
+    "verb": "workspace-usage",
+    "summary": "Workspace agent usage: tokens and cost per day and per agent, workspace budgets, and the price table in effect",
+    "permission": "agents.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "days",
+        "flag": "days",
+        "required": false,
+        "type": "integer"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateAgentCostSettings",
+    "method": "PUT",
+    "path": "/agents/cost-settings",
+    "resource": "agents",
+    "verb": "cost-settings",
+    "summary": "Set the workspace's model price overrides and agent budgets",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "model_prices",
+          "type": "array",
+          "required": false,
+          "description": "[{provider, model, input_per_1m, output_per_1m, cached_input_per_1m, currency, effective_date}] — win over the instance's and the shipped list prices"
+        },
+        {
+          "name": "budgets",
+          "type": "object",
+          "required": false,
+          "description": "{daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency} — 0 = none"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listAgentVersions",
+    "method": "GET",
+    "path": "/agents/{id}/versions",
+    "resource": "agents",
+    "verb": "versions",
+    "summary": "List an agent's saved versions (newest first)",
+    "permission": "agents.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "versions",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "restoreAgentVersion",
+    "method": "POST",
+    "path": "/agents/{id}/versions/{version}/restore",
+    "resource": "agents",
+    "verb": "restore",
+    "summary": "Restore an earlier version (saved as a new version)",
+    "permission": "agents.edit",
+    "positional": [
+      "id",
+      "version"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listAgentEvalCases",
+    "method": "GET",
+    "path": "/agents/{id}/evals/cases",
+    "resource": "agents",
+    "verb": "cases",
+    "summary": "List an agent's evaluation test cases",
+    "permission": "agents.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "cases",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createAgentEvalCase",
+    "method": "POST",
+    "path": "/agents/{id}/evals/cases",
+    "resource": "agents",
+    "verb": "case-create",
+    "summary": "Add an evaluation test case",
+    "permission": "agents.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "input_message",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "expected",
+          "type": "object",
+          "required": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateAgentEvalCase",
+    "method": "PUT",
+    "path": "/agents/{id}/evals/cases/{caseId}",
+    "resource": "agents",
+    "verb": "case-update",
+    "summary": "Update an evaluation test case",
+    "permission": "agents.edit",
+    "positional": [
+      "id",
+      "caseId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "input_message",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "expected",
+          "type": "object",
+          "required": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteAgentEvalCase",
+    "method": "DELETE",
+    "path": "/agents/{id}/evals/cases/{caseId}",
+    "resource": "agents",
+    "verb": "case-delete",
+    "summary": "Delete an evaluation test case",
+    "permission": "agents.edit",
+    "positional": [
+      "id",
+      "caseId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "listAgentEvalRuns",
+    "method": "GET",
+    "path": "/agents/{id}/evals/runs",
+    "resource": "agents",
+    "verb": "eval-runs",
+    "summary": "List evaluation runs (newest first)",
+    "permission": "agents.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "runs",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "runAgentEvals",
+    "method": "POST",
+    "path": "/agents/{id}/evals/runs",
+    "resource": "agents",
+    "verb": "eval",
+    "summary": "Run the evaluation suite (side-effecting tools simulated); poll the run",
+    "permission": "agents.test",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "case_ids",
+          "type": "array",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAgentEvalRun",
+    "method": "GET",
+    "path": "/agents/{id}/evals/runs/{runId}",
+    "resource": "agents",
+    "verb": "eval-run",
+    "summary": "Get an evaluation run with per-case checks",
+    "permission": "agents.view",
+    "positional": [
+      "id",
+      "runId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
     "envelope": true,
     "destructive": false
   },
@@ -2442,7 +3540,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "request_config",
           "type": "object",
           "required": false,
-          "description": "Full request config; overrides the shorthand fields"
+          "description": "Full request config; overrides the shorthand fields. Custom reference: { origin: 'custom', custom: { kind: 'list'|'read'|'create'|'update'|'upsert'|'delete'|'execute', source: { type: 'operation', reference_id | from: 'template'|'openapi', key | from: 'endpoint', method, path_template; params: [{ name, value }] } | { type: 'table', schema?, table, columns }, inputs: [{ name, type, mode: 'ask'|'fixed', required?, default_value?, fixed_value? | fixed_setting? }], rows_path?, columns: [{ path, alias?, type? }], filter?: { op: 'and'|'or', conditions: [{ field, operator, value?, api_param? } | group] }, sort?, distinct?, page_size?, max_rows?, paging_inputs?, include_total?, api?, read?, write?: { method?, body?: { mode: 'source'|'none'|'inputs'|'mapped', fields?: [{ path, value?, type? }] }, idempotency?: { input, header? }, success_statuses?, set?: [{ column, value }], key?: [{ column, value }], returning?, procedure?: { schema?, name, params: [{ name, value? }] }, max_affected? (default 1, ≤ 1000), not_found?: 'error'|'noop', id_field? } } } — the server builds the request, public inputs (Fixed ones hidden), outputs and response model. Write kinds: Update/Delete need a key or conditions (never unbounded); database writes run in a transaction rolled back past max_affected; output { status, affected_rows, id, record }."
         },
         {
           "name": "inputs",
@@ -2522,7 +3620,8 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "request_config",
           "type": "object",
-          "required": false
+          "required": false,
+          "description": "Replaces the request config. Custom reference: { origin: 'custom', custom: { kind: 'list'|'read'|'create'|'update'|'upsert'|'delete'|'execute', source: { type: 'operation', reference_id | from: 'template'|'openapi', key | from: 'endpoint', method, path_template; params: [{ name, value }] } | { type: 'table', schema?, table, columns }, inputs: [{ name, type, mode: 'ask'|'fixed', required?, default_value?, fixed_value? | fixed_setting? }], rows_path?, columns: [{ path, alias?, type? }], filter?: { op: 'and'|'or', conditions: [{ field, operator, value?, api_param? } | group] }, sort?, distinct?, page_size?, max_rows?, paging_inputs?, include_total?, api?, read?, write?: { method?, body?: { mode: 'source'|'none'|'inputs'|'mapped', fields?: [{ path, value?, type? }] }, idempotency?: { input, header? }, success_statuses?, set?: [{ column, value }], key?: [{ column, value }], returning?, procedure?: { schema?, name, params: [{ name, value? }] }, max_affected? (default 1, ≤ 1000), not_found?: 'error'|'noop', id_field? } } } — the server builds the request, public inputs (Fixed ones hidden), outputs and response model. Write kinds: Update/Delete need a key or conditions (never unbounded); database writes run in a transaction rolled back past max_affected; output { status, affected_rows, id, record }."
         },
         {
           "name": "inputs",
@@ -2854,6 +3953,18 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "Connector credential fields (write-only)"
+        },
+        {
+          "name": "reference_mode",
+          "type": "string",
+          "required": false,
+          "description": "Which catalogue operations become references: 'all' (default), 'none' (start empty and build custom references) or 'selected' (reference_template_keys)"
+        },
+        {
+          "name": "reference_template_keys",
+          "type": "array",
+          "required": false,
+          "description": "Operation keys to generate when reference_mode is 'selected' (see the catalog's reference_templates)"
         }
       ]
     },
@@ -3308,6 +4419,16 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "submission_retention_days",
           "required": false,
           "description": "Delete submissions older than this many days (null = keep)"
+        },
+        {
+          "name": "available_in_menu",
+          "required": false,
+          "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
+        },
+        {
+          "name": "system_name",
+          "required": false,
+          "description": "Friendly link name: /form/<system_name> on the workspace address (https://<subdomain>.<base domain>/form/<system_name>). Lowercase a-z, 0-9 and hyphens, 3-60 characters, no leading, trailing or double hyphen; unique in the workspace (409 when taken). A setting: no new version. Renaming keeps the old name as a redirect. Omitted = suggested from the name (\"Employee onboarding\" → employee-onboarding, then -2, -3, …)."
         }
       ]
     },
@@ -3392,6 +4513,17 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "submission_retention_days",
           "required": false,
           "description": "Delete submissions older than this many days (null = keep)"
+        },
+        {
+          "name": "available_in_menu",
+          "required": false,
+          "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
+        },
+        {
+          "name": "system_name",
+          "type": "string",
+          "required": false,
+          "description": "Friendly link name: /form/<system_name> on the workspace address (https://<subdomain>.<base domain>/form/<system_name>). Lowercase a-z, 0-9 and hyphens, 3-60 characters, no leading, trailing or double hyphen; unique in the workspace (409 when taken). A setting: no new version. Renaming keeps the old name as a redirect."
         }
       ]
     },
@@ -3405,7 +4537,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "path": "/forms/{id}",
     "resource": "forms",
     "verb": "delete",
-    "summary": "Delete a form (409 with the usages while a workflow uses it)",
+    "summary": "Delete a form with its versions, submissions, stored files and grants (409 with the usages while a workflow uses it, or while it is on legal hold)",
     "permission": "forms.delete",
     "positional": [
       "id"
@@ -3502,6 +4634,57 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
+    "operationId": "getFormGovernance",
+    "method": "GET",
+    "path": "/forms/{id}/governance",
+    "resource": "forms",
+    "verb": "governance",
+    "summary": "A form's retention policy, legal hold and submission count",
+    "permission": "forms.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "setFormLegalHold",
+    "method": "POST",
+    "path": "/forms/{id}/legal-hold",
+    "resource": "forms",
+    "verb": "legal-hold",
+    "summary": "Place or release a legal hold on a form (nothing of it is purged or deleted while held)",
+    "permission": "team.change_roles",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "hold",
+          "type": "boolean",
+          "required": true,
+          "description": "true places the form on legal hold, false releases it"
+        },
+        {
+          "name": "reason",
+          "required": false,
+          "description": "Why the form is held (case or matter reference)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "listFormThemes",
     "method": "GET",
     "path": "/form-themes",
@@ -3553,7 +4736,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "overrides",
           "type": "object",
           "required": true,
-          "description": "Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, header"
+          "description": "Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
         }
       ]
     },
@@ -3666,6 +4849,18 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "string",
           "required": false,
           "description": "Repeating a key returns the first submission instead of submitting again"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "required": false,
+          "description": "The form's parameters by name ({{param.<name>}}), as a link would pass them (/f/<id>?customer=ALFKI). Unknown names are ignored; values are coerced to the declared type and validated; defaults fill the rest. Untrusted: they only fill placeholders in the saved form, so they can narrow a base filter but never widen it"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
         }
       ]
     },
@@ -3703,13 +4898,14 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       {
         "name": "source",
         "flag": "source",
-        "description": "Where it was submitted",
+        "description": "Where it was submitted (anonymous: a public form link)",
         "required": false,
         "type": "string",
         "enum": [
           "standalone",
           "task",
-          "api"
+          "api",
+          "anonymous"
         ]
       },
       {
@@ -3781,9 +4977,702 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "values",
           "type": "object",
           "required": false
+        },
+        {
+          "name": "resolve",
+          "type": "array",
+          "required": false,
+          "description": "Resolve these stored values to their items (display labels) instead of searching"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "required": false,
+          "description": "The form's parameters by name ({{param.<name>}}), as a link would pass them (/f/<id>?customer=ALFKI). Unknown names are ignored; values are coerced to the declared type and validated; defaults fill the rest. Untrusted: they only fill placeholders in the saved form, so they can narrow a base filter but never widen it"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
         }
       ]
     },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "queryFormDataTable",
+    "method": "POST",
+    "path": "/forms/{id}/data-table",
+    "resource": "forms",
+    "verb": "data-table",
+    "summary": "Rows of a Data table field of a reusable form (search, filters, sort, page)",
+    "permission": "forms.submit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "field_key",
+          "type": "string",
+          "required": true,
+          "description": "Key of a Data table field of the form"
+        },
+        {
+          "name": "query",
+          "type": "object",
+          "required": false
+        },
+        {
+          "name": "values",
+          "type": "object",
+          "required": false,
+          "description": "The form's current values, for {{form.<key>}} in the base filter / API inputs"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "required": false,
+          "description": "Reusable forms: the form's parameters by name ({{param.<name>}} in the base filter / API inputs), re-validated against the declarations; a task form uses the parameters its workflow step passed and ignores these"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "checkFormAccessibility",
+    "method": "POST",
+    "path": "/forms/{id}/accessibility",
+    "resource": "forms",
+    "verb": "check-accessibility",
+    "summary": "Check a form against WCAG 2.2 AA (score, findings, fixes)",
+    "permission": "forms.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "definition",
+          "required": false,
+          "description": "An unsaved definition to check instead of the latest version: { fields, layout?, theme?, buttons?, header? }"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "checkFormSystemName",
+    "method": "GET",
+    "path": "/forms/system-name-check",
+    "resource": "forms",
+    "verb": "check-system-name",
+    "summary": "Check a form system name (format and availability)",
+    "permission": "forms.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "system_name",
+        "flag": "system-name",
+        "description": "The name to check",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "form_id",
+        "flag": "form-id",
+        "description": "The form being renamed (omit for a new form)",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormLinks",
+    "method": "GET",
+    "path": "/forms/{id}/links",
+    "resource": "forms",
+    "verb": "links",
+    "summary": "The links of a form: friendly link, form page and public link",
+    "permission": "forms.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listWizardForms",
+    "method": "GET",
+    "path": "/forms/wizard",
+    "resource": "forms",
+    "verb": "wizard-list",
+    "summary": "List the caller's wizard forms and drafts (newest first)",
+    "permission": "forms.wizard",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "projects",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createWizardForm",
+    "method": "POST",
+    "path": "/forms/wizard",
+    "resource": "forms",
+    "verb": "wizard-create",
+    "summary": "Create a form with the wizard: the form, a responses data table, an optional review / approval workflow and a results page",
+    "permission": "forms.wizard",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "spec",
+          "type": "object",
+          "required": true,
+          "description": "The wizard spec: { name, description?, template? (request | survey | quiz | registration | feedback | incident | blank), questions: [{ id, kind (short_text, long_text, number, money, date, choice, choices, rating (stars), nps, yes_no, email, phone, file, heading, page_break, likert (agreement scale), matrix (grid of statements), slider, csat (smiley faces), ranking, image_choice (picture choice), yes_no_maybe), label, help?, required?, options? (choice / choices / likert scale points lowest first / matrix columns / ranking / image_choice), rows? (matrix: the statements), settings? { max (rating 2–10; slider highest), min, step, unit (slider), icon star|heart|thumb, half (rating), faces 3|5 (csat), bands (nps), low_label, high_label, multiple (image_choice), icons { <option>: <icon name> } (image_choice) }, currency? (money, ISO code), show_if? { question: <id of an earlier question>, op: is | is_not | contains | answered | not_answered | gt | lt, value? }, score? { correct: [answers], points? } (quizzes), key? (kept from an earlier create: the field and column key) }], look? { theme { kind: workspace } | { kind: saved, theme_id } | { kind: accent, color: #rrggbb }, header { show, logo, title?, subtitle? }, layout: single | steps | one_at_a_time, success { heading?, message? } }, audience? { internal, who: everyone | selected, role_ids, team_ids, show_in_menu, public_link (needs the workspace's anonymous forms switch), multiple_responses (false = one per signed-in person), opens_at?, closes_at? }, approval? { mode: none | single | manager | team | multi, stages: [{ id, name, assignee { kind: person, user_id } | { kind: manager, fallback_user_id } | { kind: team, team_id } | { kind: group, group_id, group_name? }, outcomes: [approve, decline?, changes?] }] (single / manager / team: 1 stage; multi: 2-5), notify_requester, due_days }, results? { charts, role_ids, team_ids } (who besides the owner opens the results page) }."
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "description": "Validate and describe what would be created (the plan) without creating anything"
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": false,
+          "description": "A wizard draft of the caller to turn into the created form"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWizardForm",
+    "method": "GET",
+    "path": "/forms/wizard/{id}",
+    "resource": "forms",
+    "verb": "wizard-get",
+    "summary": "Get a wizard form: its spec, the manifest of created objects and links (owner, or forms.edit)",
+    "permission": "forms.wizard",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateWizardForm",
+    "method": "PATCH",
+    "path": "/forms/wizard/{id}",
+    "resource": "forms",
+    "verb": "wizard-update",
+    "summary": "Update a wizard form and the objects it made (new columns are added, nothing is dropped; the workflow is published again)",
+    "permission": "forms.wizard",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "spec",
+          "type": "object",
+          "required": true,
+          "description": "The wizard spec: { name, description?, template? (request | survey | quiz | registration | feedback | incident | blank), questions: [{ id, kind (short_text, long_text, number, money, date, choice, choices, rating (stars), nps, yes_no, email, phone, file, heading, page_break, likert (agreement scale), matrix (grid of statements), slider, csat (smiley faces), ranking, image_choice (picture choice), yes_no_maybe), label, help?, required?, options? (choice / choices / likert scale points lowest first / matrix columns / ranking / image_choice), rows? (matrix: the statements), settings? { max (rating 2–10; slider highest), min, step, unit (slider), icon star|heart|thumb, half (rating), faces 3|5 (csat), bands (nps), low_label, high_label, multiple (image_choice), icons { <option>: <icon name> } (image_choice) }, currency? (money, ISO code), show_if? { question: <id of an earlier question>, op: is | is_not | contains | answered | not_answered | gt | lt, value? }, score? { correct: [answers], points? } (quizzes), key? (kept from an earlier create: the field and column key) }], look? { theme { kind: workspace } | { kind: saved, theme_id } | { kind: accent, color: #rrggbb }, header { show, logo, title?, subtitle? }, layout: single | steps | one_at_a_time, success { heading?, message? } }, audience? { internal, who: everyone | selected, role_ids, team_ids, show_in_menu, public_link (needs the workspace's anonymous forms switch), multiple_responses (false = one per signed-in person), opens_at?, closes_at? }, approval? { mode: none | single | manager | team | multi, stages: [{ id, name, assignee { kind: person, user_id } | { kind: manager, fallback_user_id } | { kind: team, team_id } | { kind: group, group_id, group_name? }, outcomes: [approve, decline?, changes?] }] (single / manager / team: 1 stage; multi: 2-5), notify_requester, due_days }, results? { charts, role_ids, team_ids } (who besides the owner opens the results page) }. Send the questions with their ids (and keys) from the earlier create: kept questions keep their columns; new ones add columns; a removed question's column and data stay."
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWizardResults",
+    "method": "GET",
+    "path": "/forms/wizard/{id}/results",
+    "resource": "forms",
+    "verb": "wizard-results",
+    "summary": "A wizard form's results: summary (counts, this week, approval rate), charts per question and a page of responses",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Responses containing this text",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Only responses with this status (Pending, Approved, Declined, Changes requested)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "newest",
+          "oldest"
+        ]
+      },
+      {
+        "name": "page",
+        "flag": "page",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "page_size",
+        "flag": "page-size",
+        "required": false,
+        "type": "integer"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormAnonymous",
+    "method": "GET",
+    "path": "/forms/{id}/anonymous",
+    "resource": "forms",
+    "verb": "anonymous",
+    "summary": "A form's public (anonymous) link, options and what anonymous visitors would not get",
+    "permission": "forms.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateFormAnonymous",
+    "method": "PATCH",
+    "path": "/forms/{id}/anonymous",
+    "resource": "forms",
+    "verb": "anonymous-set",
+    "summary": "Turn a form's anonymous responses on / off and set its visitor limits",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "description": "Allow anonymous responses (turning on needs the workspace switch)"
+        },
+        {
+          "name": "settings",
+          "type": "object",
+          "required": false,
+          "description": "Visitor limits, clamped to the platform limits"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "regenerateFormAnonymousLink",
+    "method": "POST",
+    "path": "/forms/{id}/anonymous/regenerate",
+    "resource": "forms",
+    "verb": "anonymous-regenerate",
+    "summary": "Make a new public link for a form (every earlier link stops working)",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAnonymousFormsSettings",
+    "method": "GET",
+    "path": "/anonymous-forms",
+    "resource": "anonymous-forms",
+    "verb": "get",
+    "summary": "The workspace's \"Allow anonymous forms\" switch and bot protection (never the secret)",
+    "permission": "settings.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateAnonymousFormsSettings",
+    "method": "PATCH",
+    "path": "/anonymous-forms",
+    "resource": "anonymous-forms",
+    "verb": "update",
+    "summary": "Set the workspace's \"Allow anonymous forms\" switch and bot protection",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "description": "Allow anonymous forms in this workspace (off stops every public link at once)"
+        },
+        {
+          "name": "captcha",
+          "required": false,
+          "description": "Optional bot protection (null turns it off)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listFormControls",
+    "method": "GET",
+    "path": "/form-controls",
+    "resource": "form-controls",
+    "verb": "list",
+    "summary": "List custom form controls (with their versions)",
+    "permission": "extensibility.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Name, tag or description contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "enabled",
+        "flag": "enabled",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "form_controls",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createFormControl",
+    "method": "POST",
+    "path": "/form-controls",
+    "resource": "form-controls",
+    "verb": "create",
+    "summary": "Upload a form control package (or import one from a URL): a new control, or a new version of the one with the same tag",
+    "permission": "extensibility.create",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "package_base64",
+          "type": "string",
+          "required": false,
+          "description": "A zip package (manifest.json + the module), base64"
+        },
+        {
+          "name": "package_name",
+          "type": "string",
+          "required": false,
+          "description": "File name of the uploaded package (multipart)"
+        },
+        {
+          "name": "module",
+          "type": "string",
+          "required": false,
+          "description": "Or: the ES module source (one file, dependencies bundled)"
+        },
+        {
+          "name": "manifest",
+          "required": false,
+          "description": "With `module`: manifest.json (object or JSON text)"
+        },
+        {
+          "name": "signature",
+          "type": "object",
+          "required": false,
+          "description": "Optional { alg: \"ed25519\", public_key, signature } over the module SHA-256 (hex)"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "description": "Or: import from an https URL (zip or module); fetched once through the egress guard"
+        },
+        {
+          "name": "manifest_url",
+          "type": "string",
+          "required": false,
+          "description": "With `url` (a module): its manifest.json URL (default: next to the module)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "importFormControl",
+    "method": "POST",
+    "path": "/form-controls/import",
+    "resource": "form-controls",
+    "verb": "import",
+    "summary": "Import a portable export: creates the control and adds the versions it lacks (checksums verified)",
+    "permission": "extensibility.create",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "form_control",
+          "type": "object",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormControl",
+    "method": "GET",
+    "path": "/form-controls/{id}",
+    "resource": "form-controls",
+    "verb": "get",
+    "summary": "Get a form control: latest manifest, versions (checksums, signatures), approved hosts",
+    "permission": "extensibility.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateFormControl",
+    "method": "PATCH",
+    "path": "/form-controls/{id}",
+    "resource": "form-controls",
+    "verb": "update",
+    "summary": "Enable / disable a control, rename it, or approve its network hosts",
+    "permission": "extensibility.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "description": "false = hidden from the designer and its frames stop loading"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "required": false
+        },
+        {
+          "name": "approved_hosts",
+          "type": "array",
+          "required": false,
+          "description": "Network hosts to allow (only hosts a version's manifest asks for)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteFormControl",
+    "method": "DELETE",
+    "path": "/form-controls/{id}",
+    "resource": "form-controls",
+    "verb": "delete",
+    "summary": "Delete a control (or one version with ?only_version=) — refused (409, with the usages) while a form, workflow or open task uses it",
+    "permission": "extensibility.delete",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "only_version",
+        "flag": "only-version",
+        "description": "Delete just this version",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getFormControlVersion",
+    "method": "GET",
+    "path": "/form-controls/{id}/versions/{version}",
+    "resource": "form-controls",
+    "verb": "version",
+    "summary": "Get one version: manifest, checksum and (with include_module=true) the module source",
+    "permission": "extensibility.view",
+    "positional": [
+      "id",
+      "version"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "include_module",
+        "flag": "include-module",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormControlUsages",
+    "method": "GET",
+    "path": "/form-controls/{id}/usages",
+    "resource": "form-controls",
+    "verb": "usages",
+    "summary": "Where a control is used: reusable forms (any version), workflow drafts and published versions, open tasks",
+    "permission": "extensibility.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "usages",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "exportFormControl",
+    "method": "GET",
+    "path": "/form-controls/{id}/export",
+    "resource": "form-controls",
+    "verb": "export",
+    "summary": "Export a control with every version (modules included) as portable JSON",
+    "permission": "extensibility.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
     "paginated": false,
     "envelope": true,
     "destructive": false
@@ -3864,6 +5753,172 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "pathFlags": [],
     "query": [],
     "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "uploadWorkflowAction",
+    "method": "POST",
+    "path": "/workflow-activities/upload",
+    "resource": "activities",
+    "verb": "upload",
+    "summary": "Upload a packaged action (manifest v1 + one ES module): a new action, or a new version of the one with the same key",
+    "permission": "extensibility.create",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "package_base64",
+          "type": "string",
+          "required": false,
+          "description": "A zip package (manifest.json + dist/action.js, optional signature.json), base64"
+        },
+        {
+          "name": "package_name",
+          "type": "string",
+          "required": false,
+          "description": "File name of the uploaded package (multipart)"
+        },
+        {
+          "name": "module",
+          "type": "string",
+          "required": false,
+          "description": "Or: the ES module source (one file, dependencies bundled, default export defineAction(...))"
+        },
+        {
+          "name": "manifest",
+          "required": false,
+          "description": "With `module`: manifest.json (v1, object or JSON text)"
+        },
+        {
+          "name": "signature",
+          "type": "object",
+          "required": false,
+          "description": "Optional { alg: \"ed25519\", public_key, signature } over the module SHA-256 (hex)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWorkflowActivityUsages",
+    "method": "GET",
+    "path": "/workflow-activities/{id}/usages",
+    "resource": "activities",
+    "verb": "usages",
+    "summary": "Workflow steps that run the action (drafts and active published versions)",
+    "permission": "extensibility.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "usages",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWorkflowActivityVersion",
+    "method": "GET",
+    "path": "/workflow-activities/{id}/versions/{version}",
+    "resource": "activities",
+    "verb": "version",
+    "summary": "Get one stored version: manifest, SHA-256, signature and (with include_source=true) the module",
+    "permission": "extensibility.view",
+    "positional": [
+      "id",
+      "version"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "include_source",
+        "flag": "include-source",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "setWorkflowActivitySecrets",
+    "method": "PUT",
+    "path": "/workflow-activities/{id}/secrets",
+    "resource": "activities",
+    "verb": "secrets",
+    "summary": "Set or clear the secrets the action declares (encrypted; never returned)",
+    "permission": "extensibility.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "values",
+          "type": "object",
+          "required": true,
+          "description": "Declared secret name → value (null or \"\" clears it). Values are encrypted and never returned."
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "testWorkflowActivity",
+    "method": "POST",
+    "path": "/workflow-activities/{id}/test",
+    "resource": "activities",
+    "verb": "test",
+    "summary": "Run one operation with the given inputs in the sandbox and return outputs, logs, warnings and stats",
+    "permission": "extensibility.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "operation",
+          "type": "string",
+          "required": false,
+          "description": "Operation id (default: the first)"
+        },
+        {
+          "name": "inputs",
+          "type": "object",
+          "required": false,
+          "description": "Input values (default: the operation's sample)"
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "required": false,
+          "description": "Run a stored version instead of the current one"
+        }
+      ]
+    },
     "paginated": false,
     "envelope": true,
     "destructive": false
@@ -4133,6 +6188,24 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "source_filename",
           "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "description": "Kill switch: false = steps using the action fail fast and the designer hides it"
+        },
+        {
+          "name": "approved_hosts",
+          "type": "array",
+          "required": false,
+          "description": "HTTP hosts to allow (only hosts the manifest declares in capabilities.http.hosts)"
+        },
+        {
+          "name": "data_grants",
+          "type": "array",
+          "required": false,
+          "description": "Data tables the action may use (needs capabilities.data; write needs data.write)"
         }
       ]
     },
@@ -4146,7 +6219,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "path": "/workflow-activities/{id}",
     "resource": "activities",
     "verb": "delete",
-    "summary": "Delete an activity",
+    "summary": "Delete an activity — refused (409, with the usages) while a workflow uses it",
     "permission": "extensibility.delete",
     "positional": [
       "id"
@@ -4249,7 +6322,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "config",
           "type": "object",
           "required": false,
-          "description": "Report configuration (data_source, columns, filters, ...)"
+          "description": "Report configuration (data_source, columns, filters, ..., charts)"
         }
       ]
     },
@@ -4312,7 +6385,8 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "config",
           "type": "object",
-          "required": false
+          "required": false,
+          "description": "Report configuration (data_source, columns, filters, ..., charts)"
         }
       ]
     },
@@ -4348,7 +6422,15 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "permission": "reports.view",
     "positional": [],
     "pathFlags": [],
-    "query": [],
+    "query": [
+      {
+        "name": "timezone",
+        "flag": "timezone",
+        "description": "IANA time zone for summary chart time buckets",
+        "required": false,
+        "type": "string"
+      }
+    ],
     "body": {
       "required": true,
       "fields": [
@@ -4357,6 +6439,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "string",
           "required": true,
           "description": "Report source key"
+        },
+        {
+          "name": "charts",
+          "type": "array",
+          "required": false,
+          "description": "Summary charts drawn above the report's table (at most 8); each is aggregated on the server from the report's own rows"
         }
       ]
     },
@@ -4375,7 +6463,15 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "permission": "reports.view",
     "positional": [],
     "pathFlags": [],
-    "query": [],
+    "query": [
+      {
+        "name": "workflow_id",
+        "flag": "workflow-id",
+        "description": "Scope Workflow runs / Tasks to this workflow and list its variable columns",
+        "required": false,
+        "type": "string"
+      }
+    ],
     "body": null,
     "listKey": "sources",
     "paginated": false,
@@ -5007,7 +7103,27 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "parent_id",
           "required": false,
-          "description": "Parent team id"
+          "description": "Parent team id (loops are refused)"
+        },
+        {
+          "name": "lead_user_id",
+          "required": false,
+          "description": "Team lead (an active member)"
+        },
+        {
+          "name": "org_unit_id",
+          "required": false,
+          "description": "Org unit the team belongs to"
+        },
+        {
+          "name": "colour",
+          "required": false,
+          "description": "Hex colour like #3366FF"
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "description": "team (default), squad, guild or any custom kind"
         }
       ]
     },
@@ -5061,7 +7177,27 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "parent_id",
           "required": false,
-          "description": "Parent team id"
+          "description": "Parent team id (loops are refused)"
+        },
+        {
+          "name": "lead_user_id",
+          "required": false,
+          "description": "Team lead (an active member)"
+        },
+        {
+          "name": "org_unit_id",
+          "required": false,
+          "description": "Org unit the team belongs to"
+        },
+        {
+          "name": "colour",
+          "required": false,
+          "description": "Hex colour like #3366FF"
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "description": "team (default), squad, guild or any custom kind"
         }
       ]
     },
@@ -5245,7 +7381,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       {
         "name": "object_type",
         "flag": "object-type",
-        "description": "e.g. workflow, role, api_key, webhook",
+        "description": "e.g. workflow, data_table, form, role, api_key, webhook",
         "required": false,
         "type": "string"
       },
@@ -5265,7 +7401,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       {
         "name": "action",
         "flag": "action",
-        "description": "e.g. create, update, delete, grant, revoke",
+        "description": "e.g. create, update, delete, grant, revoke, toggle, retention, purge, legal_hold",
         "required": false,
         "type": "string"
       },
@@ -5289,6 +7425,1228 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "paginated": true,
     "envelope": true,
     "destructive": false
+  },
+  {
+    "operationId": "listObjectPermissions",
+    "method": "GET",
+    "path": "/object-permissions",
+    "resource": "object-permissions",
+    "verb": "list",
+    "summary": "List the grants on an object",
+    "permission": "team.change_roles",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "object_type",
+        "flag": "object-type",
+        "required": true,
+        "type": "string",
+        "enum": [
+          "workflow",
+          "data_table",
+          "agent",
+          "integration",
+          "api_key",
+          "report",
+          "form"
+        ]
+      },
+      {
+        "name": "object_id",
+        "flag": "object-id",
+        "required": true,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "permissions",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "setObjectPermission",
+    "method": "POST",
+    "path": "/object-permissions",
+    "resource": "object-permissions",
+    "verb": "set",
+    "summary": "Add or change one grantee's grant on an object",
+    "permission": "team.change_roles",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "object_type",
+          "type": "string",
+          "required": true,
+          "description": "Type of the object"
+        },
+        {
+          "name": "object_id",
+          "type": "string",
+          "required": true,
+          "description": "Object id"
+        },
+        {
+          "name": "role_id",
+          "required": false,
+          "description": "Grant to a role (give exactly one of role_id, team_id, user_id)"
+        },
+        {
+          "name": "team_id",
+          "required": false,
+          "description": "Grant to a team"
+        },
+        {
+          "name": "user_id",
+          "required": false,
+          "description": "Grant to a person"
+        },
+        {
+          "name": "can_view",
+          "type": "boolean",
+          "required": false,
+          "description": "View (default true)"
+        },
+        {
+          "name": "can_edit",
+          "type": "boolean",
+          "required": false,
+          "description": "Edit (not used by forms)"
+        },
+        {
+          "name": "can_delete",
+          "type": "boolean",
+          "required": false,
+          "description": "Delete (not used by forms)"
+        },
+        {
+          "name": "can_execute",
+          "type": "boolean",
+          "required": false,
+          "description": "Execute; Submit for forms"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeObjectPermission",
+    "method": "DELETE",
+    "path": "/object-permissions/{id}",
+    "resource": "object-permissions",
+    "verb": "remove",
+    "summary": "Remove a grant",
+    "permission": "team.change_roles",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getOrgChart",
+    "method": "GET",
+    "path": "/org/chart",
+    "resource": "org",
+    "verb": "chart",
+    "summary": "The org chart: every active member with manager, attributes and report counts",
+    "permission": "org.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "people",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getOrgPerson",
+    "method": "GET",
+    "path": "/org/people/{id}",
+    "resource": "org",
+    "verb": "person",
+    "summary": "One person in context: attributes, manager chain, direct reports, peers, teams, org units and projects",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateOrgPerson",
+    "method": "PATCH",
+    "path": "/org/people/{id}",
+    "resource": "org",
+    "verb": "update-person",
+    "summary": "Edit a member's job title, department, location, employee id, cost centre and/or manager",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "job_title",
+          "required": false,
+          "description": "Job title"
+        },
+        {
+          "name": "department",
+          "required": false,
+          "description": "Department"
+        },
+        {
+          "name": "location",
+          "required": false,
+          "description": "Office / location"
+        },
+        {
+          "name": "employee_id",
+          "required": false,
+          "description": "Employee id / number"
+        },
+        {
+          "name": "cost_center",
+          "required": false,
+          "description": "Cost centre"
+        },
+        {
+          "name": "manager_user_id",
+          "required": false,
+          "description": "Manager (null clears it). Needs org.manage or team.change_roles; loops and non-members are refused"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "detachOrgPerson",
+    "method": "POST",
+    "path": "/org/people/{id}/detach",
+    "resource": "org",
+    "verb": "detach-person",
+    "summary": "Detach a member's attributes from the directory (editable here; sync stops updating them)",
+    "permission": "org.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgSubordinates",
+    "method": "GET",
+    "path": "/org/people/{id}/subordinates",
+    "resource": "org",
+    "verb": "reports",
+    "summary": "People who report to a member: direct, or every level (depth=all, up to 10 levels)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "depth",
+        "flag": "depth",
+        "description": "direct (default) or all levels",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "direct",
+          "all"
+        ]
+      },
+      {
+        "name": "include_self",
+        "flag": "include-self",
+        "description": "Include the person first (depth 0)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "people",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getOrgManagerChain",
+    "method": "GET",
+    "path": "/org/people/{id}/manager-chain",
+    "resource": "org",
+    "verb": "manager-chain",
+    "summary": "A member's managers, nearest first",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "chain",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgPeers",
+    "method": "GET",
+    "path": "/org/people/{id}/peers",
+    "resource": "org",
+    "verb": "peers",
+    "summary": "Others with the same manager",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "peers",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgPersonTeams",
+    "method": "GET",
+    "path": "/org/people/{id}/teams",
+    "resource": "org",
+    "verb": "teams",
+    "summary": "Teams a member is in, with the teams above them",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "teams",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgPersonProjects",
+    "method": "GET",
+    "path": "/org/people/{id}/projects",
+    "resource": "org",
+    "verb": "projects",
+    "summary": "Projects a member is on (member, owner, sponsor or through a team)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "include_archived",
+        "flag": "include-archived",
+        "description": "Include archived projects",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "projects",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "resolveOrgScope",
+    "method": "GET",
+    "path": "/org/scope",
+    "resource": "org",
+    "verb": "scope",
+    "summary": "The people a scope covers: me, my direct / all reports, a team, an org unit or a project",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "scope",
+        "flag": "scope",
+        "description": "Which people",
+        "required": true,
+        "type": "string",
+        "enum": [
+          "me",
+          "direct_reports",
+          "all_reports",
+          "team",
+          "org_unit",
+          "project"
+        ]
+      },
+      {
+        "name": "id",
+        "flag": "id",
+        "description": "Team, org unit or project id (scope team / org_unit / project)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "recursive",
+        "flag": "recursive",
+        "description": "team / org_unit: include sub-teams / sub-units",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "include_self",
+        "flag": "include-self",
+        "description": "direct_reports / all_reports: include the caller",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "include_teams",
+        "flag": "include-teams",
+        "description": "project: include attached teams' members (default true)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "people",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgUnits",
+    "method": "GET",
+    "path": "/org/units",
+    "resource": "org-units",
+    "verb": "list",
+    "summary": "Every org unit with head, depth, children and headcounts",
+    "permission": "org.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "units",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createOrgUnit",
+    "method": "POST",
+    "path": "/org/units",
+    "resource": "org-units",
+    "verb": "create",
+    "summary": "Create an org unit",
+    "permission": "org.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "description": "company, division, department, unit (default) or any custom kind"
+        },
+        {
+          "name": "parent_id",
+          "required": false,
+          "description": "Parent org unit id (loops are refused)"
+        },
+        {
+          "name": "head_user_id",
+          "required": false,
+          "description": "Head of the unit (an active member)"
+        },
+        {
+          "name": "description",
+          "required": false
+        },
+        {
+          "name": "sort",
+          "required": false,
+          "description": "Order among siblings (then name)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getOrgUnit",
+    "method": "GET",
+    "path": "/org/units/{id}",
+    "resource": "org-units",
+    "verb": "get",
+    "summary": "An org unit with its path, children, members, teams and projects",
+    "permission": "org.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateOrgUnit",
+    "method": "PATCH",
+    "path": "/org/units/{id}",
+    "resource": "org-units",
+    "verb": "update",
+    "summary": "Rename, move (parent_id), set the head of or describe an org unit",
+    "permission": "org.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "description": "company, division, department, unit (default) or any custom kind"
+        },
+        {
+          "name": "parent_id",
+          "required": false,
+          "description": "Parent org unit id (loops are refused)"
+        },
+        {
+          "name": "head_user_id",
+          "required": false,
+          "description": "Head of the unit (an active member)"
+        },
+        {
+          "name": "description",
+          "required": false
+        },
+        {
+          "name": "sort",
+          "required": false,
+          "description": "Order among siblings (then name)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteOrgUnit",
+    "method": "DELETE",
+    "path": "/org/units/{id}",
+    "resource": "org-units",
+    "verb": "delete",
+    "summary": "Delete an org unit (its sub-units move up to its parent)",
+    "permission": "org.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "detachOrgUnit",
+    "method": "POST",
+    "path": "/org/units/{id}/detach",
+    "resource": "org-units",
+    "verb": "detach",
+    "summary": "Detach an imported org unit (editable here; its source stops updating it)",
+    "permission": "org.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgUnitMembers",
+    "method": "GET",
+    "path": "/org/units/{id}/members",
+    "resource": "org-units",
+    "verb": "members",
+    "summary": "Members of an org unit (recursive=true adds everyone in the units below)",
+    "permission": "org.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "recursive",
+        "flag": "recursive",
+        "description": "Include members of every unit below",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "members",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addOrgUnitMember",
+    "method": "PUT",
+    "path": "/org/units/{id}/members/{userId}",
+    "resource": "org-units",
+    "verb": "add-member",
+    "summary": "Add a member to an org unit, or update their role / primary flag (idempotent)",
+    "permission": "org.manage",
+    "positional": [
+      "id",
+      "userId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "role",
+          "required": false,
+          "description": "Role in the unit, e.g. \"Deputy\""
+        },
+        {
+          "name": "is_primary",
+          "type": "boolean",
+          "required": false,
+          "description": "Make this the person's primary unit (one per person)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeOrgUnitMember",
+    "method": "DELETE",
+    "path": "/org/units/{id}/members/{userId}",
+    "resource": "org-units",
+    "verb": "remove-member",
+    "summary": "Remove a member from an org unit",
+    "permission": "org.manage",
+    "positional": [
+      "id",
+      "userId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getOrgTeamTree",
+    "method": "GET",
+    "path": "/org/teams",
+    "resource": "org",
+    "verb": "team-tree",
+    "summary": "The team tree: every team with lead, org unit, member counts, a member preview and projects",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "teams",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listOrgTeamMembers",
+    "method": "GET",
+    "path": "/org/teams/{id}/members",
+    "resource": "org",
+    "verb": "team-members",
+    "summary": "Members of a team (recursive=true adds everyone in its sub-teams)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "recursive",
+        "flag": "recursive",
+        "description": "Include members of every sub-team",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "members",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "exportOrg",
+    "method": "GET",
+    "path": "/org/export",
+    "resource": "org",
+    "verb": "export",
+    "summary": "The org structure as CSV (the import format, one row per active member)",
+    "permission": "org.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "format",
+        "flag": "format",
+        "description": "json (default) or csv (the file)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "json",
+          "csv"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getOrgImportTemplate",
+    "method": "GET",
+    "path": "/org/import/template",
+    "resource": "org",
+    "verb": "import-template",
+    "summary": "The CSV import template",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "format",
+        "flag": "format",
+        "description": "json (default) or csv (the file)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "json",
+          "csv"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "importOrg",
+    "method": "POST",
+    "path": "/org/import",
+    "resource": "org",
+    "verb": "import",
+    "summary": "Import people attributes, managers, departments and teams from CSV (dry run by default)",
+    "permission": "org.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "csv",
+          "type": "string",
+          "required": true,
+          "description": "The CSV text (UTF-8, header row first; max 5 MB)"
+        },
+        {
+          "name": "mapping",
+          "type": "object",
+          "required": false,
+          "description": "Field → CSV header (null skips the field)"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "description": "true (default): return the plan without writing; false: apply it"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listProjects",
+    "method": "GET",
+    "path": "/projects",
+    "resource": "projects",
+    "verb": "list",
+    "summary": "List projects with owner, team, counts and a member preview (archived hidden by default)",
+    "permission": "projects.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "active, on_hold, completed, archived (comma-separated)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "include_archived",
+        "flag": "include-archived",
+        "description": "Include archived projects",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "team_id",
+        "flag": "team-id",
+        "description": "Projects the team is attached to (or owns)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "org_unit_id",
+        "flag": "org-unit-id",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Name or key contains",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "projects",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createProject",
+    "method": "POST",
+    "path": "/projects",
+    "resource": "projects",
+    "verb": "create",
+    "summary": "Create a project",
+    "permission": "projects.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "key",
+          "required": false,
+          "description": "Short unique key, e.g. APOLLO (generated from the name when omitted)"
+        },
+        {
+          "name": "description",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "description": "active (default), on_hold, completed or archived"
+        },
+        {
+          "name": "owner_user_id",
+          "required": false,
+          "description": "Owner (default: the caller)"
+        },
+        {
+          "name": "sponsor_user_id",
+          "required": false
+        },
+        {
+          "name": "team_id",
+          "required": false,
+          "description": "Owning team (its members count as project people)"
+        },
+        {
+          "name": "org_unit_id",
+          "required": false
+        },
+        {
+          "name": "start_date",
+          "required": false,
+          "description": "Start date (YYYY-MM-DD)"
+        },
+        {
+          "name": "end_date",
+          "required": false,
+          "description": "End date (YYYY-MM-DD, on or after the start)"
+        },
+        {
+          "name": "colour",
+          "required": false,
+          "description": "Hex colour like #3366FF"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getProject",
+    "method": "GET",
+    "path": "/projects/{id}",
+    "resource": "projects",
+    "verb": "get",
+    "summary": "A project with its people (direct members and attached teams' members) and teams",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateProject",
+    "method": "PATCH",
+    "path": "/projects/{id}",
+    "resource": "projects",
+    "verb": "update",
+    "summary": "Update a project",
+    "permission": "projects.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "key",
+          "required": false,
+          "description": "Short unique key, e.g. APOLLO (generated from the name when omitted)"
+        },
+        {
+          "name": "description",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "description": "active (default), on_hold, completed or archived"
+        },
+        {
+          "name": "owner_user_id",
+          "required": false,
+          "description": "Owner (default: the caller)"
+        },
+        {
+          "name": "sponsor_user_id",
+          "required": false
+        },
+        {
+          "name": "team_id",
+          "required": false,
+          "description": "Owning team (its members count as project people)"
+        },
+        {
+          "name": "org_unit_id",
+          "required": false
+        },
+        {
+          "name": "start_date",
+          "required": false,
+          "description": "Start date (YYYY-MM-DD)"
+        },
+        {
+          "name": "end_date",
+          "required": false,
+          "description": "End date (YYYY-MM-DD, on or after the start)"
+        },
+        {
+          "name": "colour",
+          "required": false,
+          "description": "Hex colour like #3366FF"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteProject",
+    "method": "DELETE",
+    "path": "/projects/{id}",
+    "resource": "projects",
+    "verb": "delete",
+    "summary": "Delete a project with its memberships (archive it to keep the history)",
+    "permission": "projects.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "archiveProject",
+    "method": "POST",
+    "path": "/projects/{id}/archive",
+    "resource": "projects",
+    "verb": "archive",
+    "summary": "Archive (or restore with archived=false) a project",
+    "permission": "projects.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "archived",
+          "type": "boolean",
+          "required": false,
+          "description": "true (default) archives, false restores (status active)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listProjectMembers",
+    "method": "GET",
+    "path": "/projects/{id}/members",
+    "resource": "projects",
+    "verb": "members",
+    "summary": "A project's people: direct members and (include_teams, default true) attached teams' members",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "include_teams",
+        "flag": "include-teams",
+        "description": "Include attached teams' members (default true)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "members",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addProjectMember",
+    "method": "PUT",
+    "path": "/projects/{id}/members/{userId}",
+    "resource": "projects",
+    "verb": "add-member",
+    "summary": "Add a member to a project, or update their role / allocation (idempotent)",
+    "permission": "projects.manage",
+    "positional": [
+      "id",
+      "userId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "role",
+          "required": false,
+          "description": "Role on the project, e.g. Lead, Member (default Member)"
+        },
+        {
+          "name": "allocation_percent",
+          "required": false,
+          "description": "Share of their time (0–100)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeProjectMember",
+    "method": "DELETE",
+    "path": "/projects/{id}/members/{userId}",
+    "resource": "projects",
+    "verb": "remove-member",
+    "summary": "Remove a member from a project",
+    "permission": "projects.manage",
+    "positional": [
+      "id",
+      "userId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "attachProjectTeam",
+    "method": "PUT",
+    "path": "/projects/{id}/teams/{teamId}",
+    "resource": "projects",
+    "verb": "attach-team",
+    "summary": "Attach a whole team to a project (its members and sub-teams' members join; idempotent)",
+    "permission": "projects.manage",
+    "positional": [
+      "id",
+      "teamId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "detachProjectTeam",
+    "method": "DELETE",
+    "path": "/projects/{id}/teams/{teamId}",
+    "resource": "projects",
+    "verb": "detach-team",
+    "summary": "Detach a team from a project",
+    "permission": "projects.manage",
+    "positional": [
+      "id",
+      "teamId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
   },
   {
     "operationId": "getWorkspaceTheme",
@@ -5455,6 +8813,406 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "string",
           "required": false,
           "description": "CSS family name to register (letters, digits, spaces, hyphens); derived from the file name when omitted"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWorkspaceAddress",
+    "method": "GET",
+    "path": "/workspace/address",
+    "resource": "workspace-address",
+    "verb": "get",
+    "summary": "Get the workspace address (any member)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateWorkspaceAddress",
+    "method": "PATCH",
+    "path": "/workspace/address",
+    "resource": "workspace-address",
+    "verb": "set",
+    "summary": "Change the workspace address",
+    "permission": "settings.edit",
+    "positional": [],
+    "bodyPositional": [
+      "subdomain"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "subdomain",
+          "required": true,
+          "description": "The new subdomain, or null to remove it"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "checkWorkspaceAddress",
+    "method": "GET",
+    "path": "/workspace/address/check",
+    "resource": "workspace-address",
+    "verb": "check",
+    "summary": "Check whether a workspace subdomain is valid and available",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "subdomain",
+        "flag": "subdomain",
+        "description": "The subdomain to check",
+        "required": true,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getTaskCompletionSettings",
+    "method": "GET",
+    "path": "/workspace/task-completion",
+    "resource": "task-completion",
+    "verb": "get",
+    "summary": "Get the Task completed screen settings (any member)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateTaskCompletionSettings",
+    "method": "PATCH",
+    "path": "/workspace/task-completion",
+    "resource": "task-completion",
+    "verb": "update",
+    "summary": "Change the Task completed screen settings",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "description": "Show the Task completed screen after a task is actioned (default true)"
+        },
+        {
+          "name": "heading",
+          "type": "string",
+          "required": false,
+          "description": "Heading template (default \"{{outcome}}: {{task.title}}\")"
+        },
+        {
+          "name": "subheading",
+          "type": "string",
+          "required": false,
+          "description": "Subheading template (default \"Thanks, {{user.name}}. Your response is recorded.\")"
+        },
+        {
+          "name": "next_assigned",
+          "type": "string",
+          "required": false,
+          "description": "What happens next when the process moved on to someone (default \"Now with {{next.assignee}}\")"
+        },
+        {
+          "name": "next_complete",
+          "type": "string",
+          "required": false,
+          "description": "What happens next when the process finished (default \"Process complete\")"
+        },
+        {
+          "name": "next_waiting",
+          "type": "string",
+          "required": false,
+          "description": "What happens next on a timer, an event or an unassigned step (default \"Waiting on {{next.step}}\")"
+        },
+        {
+          "name": "show_next_task",
+          "type": "boolean",
+          "required": false,
+          "description": "Show the Next task button (hidden anyway when there is no next task)"
+        },
+        {
+          "name": "next_task_label",
+          "type": "string",
+          "required": false,
+          "description": "Next task button label"
+        },
+        {
+          "name": "show_back",
+          "type": "boolean",
+          "required": false,
+          "description": "Show the Back button"
+        },
+        {
+          "name": "back_label",
+          "type": "string",
+          "required": false,
+          "description": "Back button label; blank: \"Back to my tasks\" or \"Back to Home\" by back_target"
+        },
+        {
+          "name": "back_target",
+          "type": "string",
+          "required": false,
+          "description": "Where Back (and Esc) goes"
+        },
+        {
+          "name": "show_view_flow",
+          "type": "boolean",
+          "required": false,
+          "description": "Show Process view (workflow tasks only; opens the run view the person may see)"
+        },
+        {
+          "name": "view_flow_label",
+          "type": "string",
+          "required": false,
+          "description": "Process view button label"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getTaskNextStep",
+    "method": "GET",
+    "path": "/tasks/{id}/next",
+    "resource": "tasks",
+    "verb": "next",
+    "summary": "What happens next after a task was actioned",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormSignInPage",
+    "method": "GET",
+    "path": "/workspace/form-sign-in-page",
+    "resource": "form-sign-in-page",
+    "verb": "get",
+    "summary": "Get the form sign-in page settings (any member)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateFormSignInPage",
+    "method": "PATCH",
+    "path": "/workspace/form-sign-in-page",
+    "resource": "form-sign-in-page",
+    "verb": "update",
+    "summary": "Change the form sign-in page settings",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "design",
+          "type": "integer",
+          "required": false,
+          "description": "The design, 1–10: 1 UserTasks, 2 Split screen, 3 Minimal, 4 Gradient, 5 Brand rail, 6 Glass, 7 Top banner, 8 Dark elegant, 9 Soft shapes, 10 Compact. Embedded in another site the page always uses 10 (Compact)."
+        },
+        {
+          "name": "logo_url",
+          "required": false,
+          "description": "The logo: an image uploaded to this workspace's logos (variant form-sign-in, Settings → Forms); null shows the workspace name"
+        },
+        {
+          "name": "heading",
+          "type": "string",
+          "required": false,
+          "description": "Heading (default \"Sign in to continue\")"
+        },
+        {
+          "name": "subheading",
+          "type": "string",
+          "required": false,
+          "description": "Welcome message under the heading; may be empty"
+        },
+        {
+          "name": "button_label",
+          "type": "string",
+          "required": false,
+          "description": "The sign-in button label (default \"Sign in\")"
+        },
+        {
+          "name": "footer_text",
+          "type": "string",
+          "required": false,
+          "description": "Small print under the form; empty for none"
+        },
+        {
+          "name": "support_link_label",
+          "type": "string",
+          "required": false,
+          "description": "Support link text (blank: \"Get help\")"
+        },
+        {
+          "name": "support_link_url",
+          "required": false,
+          "description": "Support link: https:// or mailto:; null for none"
+        },
+        {
+          "name": "accent_color",
+          "required": false,
+          "description": "#rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on"
+        },
+        {
+          "name": "use_workspace_theme",
+          "type": "boolean",
+          "required": false,
+          "description": "Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getDocumentOcr",
+    "method": "GET",
+    "path": "/document-ocr",
+    "resource": "document-ocr",
+    "verb": "get",
+    "summary": "Get the workspace OCR provider",
+    "permission": "settings.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateDocumentOcr",
+    "method": "PUT",
+    "path": "/document-ocr",
+    "resource": "document-ocr",
+    "verb": "update",
+    "summary": "Set the workspace OCR provider",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "provider",
+          "type": "string",
+          "required": true,
+          "description": "azure_document_intelligence = your own Azure resource; tesseract = built-in (only where the instance offers it); instance_default = the instance configuration (self-hosted; on the cloud this means not configured); off"
+        },
+        {
+          "name": "endpoint",
+          "required": false,
+          "description": "Azure: the resource endpoint (https), e.g. https://my-resource.cognitiveservices.azure.com. Omit to keep the stored one"
+        },
+        {
+          "name": "key",
+          "required": false,
+          "description": "Azure: KEY 1 or KEY 2 (write-only). Omit, empty or \"__SECRET__\" keeps the stored key"
+        },
+        {
+          "name": "api_version",
+          "required": false,
+          "description": "Azure: API version (default 2024-11-30); empty resets to the default"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteDocumentOcrKey",
+    "method": "DELETE",
+    "path": "/document-ocr",
+    "resource": "document-ocr",
+    "verb": "remove-key",
+    "summary": "Remove the workspace Azure OCR key",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "testDocumentOcr",
+    "method": "POST",
+    "path": "/document-ocr/test",
+    "resource": "document-ocr",
+    "verb": "test",
+    "summary": "Test the workspace Azure OCR connection",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "endpoint",
+          "required": false,
+          "description": "Test this endpoint instead of the saved one"
+        },
+        {
+          "name": "key",
+          "required": false,
+          "description": "Test this key instead of the saved one (write-only)"
+        },
+        {
+          "name": "api_version",
+          "required": false
         }
       ]
     },
@@ -6053,6 +9811,18 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "boolean",
           "required": false,
           "description": "Create accounts for directory users without one (default true)"
+        },
+        {
+          "name": "import_org_units",
+          "type": "boolean",
+          "required": false,
+          "description": "Build org units from company / division / department (Google: organizational units) (default true)"
+        },
+        {
+          "name": "import_profiles",
+          "type": "boolean",
+          "required": false,
+          "description": "Import members' job title, department, location, employee id and cost centre (default true)"
         }
       ]
     },
@@ -6119,6 +9889,16 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "auto_provision",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "import_org_units",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "import_profiles",
           "type": "boolean",
           "required": false
         }
@@ -6336,6 +10116,55 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       ]
     },
     "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getDirectoryCapabilities",
+    "method": "GET",
+    "path": "/directory-sync/capabilities",
+    "resource": "directory-sync",
+    "verb": "capabilities",
+    "summary": "What the directory connections make available to workflows (AAD group task assignment)",
+    "permission": "workflows.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "searchEntraGroups",
+    "method": "GET",
+    "path": "/directory-sync/entra/groups",
+    "resource": "directory-sync",
+    "verb": "groups",
+    "summary": "Search the workspace's Entra ID groups (for AAD group task assignment)",
+    "permission": "workflows.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Matches group display names",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "cursor",
+        "flag": "cursor",
+        "description": "next_cursor of the previous page",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "groups",
+    "paginated": false,
+    "cursor": true,
     "envelope": true,
     "destructive": false
   },
@@ -7289,6 +11118,98 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "permission": "settings.edit",
     "positional": [
       "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createAdminWorkspace",
+    "method": "POST",
+    "path": "/admin/workspaces",
+    "resource": "admin-workspaces",
+    "verb": "create",
+    "summary": "Create a workspace with its owner (instance admin; idempotent on slug)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "slug",
+          "type": "string",
+          "required": true,
+          "description": "Lowercase a-z, 0-9 and hyphens, 3-40 characters, no leading, trailing or double hyphen, not a reserved name (admin, api, www, …) and not personal-…; the workspace address follows it."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Workspace name"
+        },
+        {
+          "name": "owner_email",
+          "type": "string",
+          "required": true,
+          "description": "The owner. An existing user is added as owner; otherwise an account is created (email confirmed)"
+        },
+        {
+          "name": "owner_name",
+          "type": "string",
+          "required": false,
+          "description": "Display name of a new owner account (default: the email's local part)"
+        },
+        {
+          "name": "owner_password",
+          "type": "string",
+          "required": false,
+          "description": "Password of a new owner account; omitted: a random one nobody knows (the owner signs in with SSO or resets it). Ignored for an existing user"
+        },
+        {
+          "name": "create_api_key",
+          "type": "boolean",
+          "required": false,
+          "description": "Also mint a workspace API key (returned once, as `key`). Also on an existing workspace, where it mints another one"
+        },
+        {
+          "name": "api_key_name",
+          "type": "string",
+          "required": false,
+          "description": "Name of the minted key (default \"Provisioning\")"
+        },
+        {
+          "name": "api_key_permissions",
+          "type": "array",
+          "required": false,
+          "description": "Permission keys of the minted key (default: every permission, like an owner)"
+        },
+        {
+          "name": "api_key_expires_in_days",
+          "type": "integer",
+          "required": false,
+          "description": "Days until the minted key expires (default: never)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAdminWorkspace",
+    "method": "GET",
+    "path": "/admin/workspaces/{slug}",
+    "resource": "admin-workspaces",
+    "verb": "get",
+    "summary": "Get a workspace by slug (instance admin)",
+    "permission": null,
+    "positional": [
+      "slug"
     ],
     "pathFlags": [],
     "query": [],

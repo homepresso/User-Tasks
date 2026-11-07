@@ -1,11 +1,14 @@
 'use client'
 
 import { documentNodeRoots } from '@/lib/documents/schemas'
+import { mediaNodeRoots } from '@/lib/media/schemas'
+import { setVariableNames } from '@/lib/workflow-set-variable'
 import { useState } from 'react'
 import { TASK_VARIABLE_CATALOG } from '@/lib/task-data'
 import { ChevronDown, ChevronRight, Variable, Globe, Zap, Database } from 'lucide-react'
 import type { WorkflowNode } from '@/lib/workflow-schema'
 import { cn } from '@/lib/utils'
+import { runAgentOutputPrefix } from '@/lib/agent-knowledge'
 
 interface ContextViewerProps {
   nodes: WorkflowNode[]
@@ -123,9 +126,16 @@ export function ContextViewer({ nodes, triggerType }: ContextViewerProps) {
       variables.push({ name: root.path, source: n.label, sourceIcon: 'variable', type: k === 0 ? 'dynamic' : 'auto' })
     })
 
+    // Media actions (images, audio, video)
+    mediaNodeRoots(n.type, n.config ?? {}).forEach((root, k) => {
+      variables.push({ name: root.path, source: n.label, sourceIcon: 'variable', type: k === 0 ? 'dynamic' : 'auto' })
+    })
+
     // Set Variable
-    if (n.type === 'set_variable' && n.config.name) {
-      variables.push({ name: n.config.name, source: n.label, sourceIcon: 'variable', type: 'dynamic' })
+    if (n.type === 'set_variable') {
+      for (const name of setVariableNames(n.config)) {
+        variables.push({ name, source: n.label, sourceIcon: 'variable', type: 'dynamic' })
+      }
     }
 
     if (n.type === 'custom_activity') {
@@ -141,7 +151,7 @@ export function ContextViewer({ nodes, triggerType }: ContextViewerProps) {
 
     if (n.type === 'run_agent') {
       const outputVar = n.config.output_variable || 'agent_response'
-      const prefix = n.config._output_prefix || n.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30)
+      const prefix = runAgentOutputPrefix(n.config)
       variables.push({ name: outputVar, source: `Agent: ${n.label}`, sourceIcon: 'variable', type: 'dynamic' })
       variables.push({ name: `${outputVar}_status`, source: `Agent: ${n.label}`, sourceIcon: 'variable', type: 'auto' })
       variables.push({ name: `${outputVar}_duration_ms`, source: `Agent: ${n.label}`, sourceIcon: 'variable', type: 'auto' })
@@ -235,35 +245,34 @@ export function ContextViewer({ nodes, triggerType }: ContextViewerProps) {
   if (variables.length === 0) return null
 
   return (
-    <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)' }}>
+    <div className="overflow-hidden rounded-lg border border-border">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold"
-        style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
+        aria-expanded={expanded}
+        className="flex h-8 w-full items-center justify-between bg-subtle px-3 text-xs font-medium text-fg-muted hover:text-fg"
       >
         <span className="flex items-center gap-1.5">
-          <Variable size={12} style={{ color: 'var(--theme-primary-text)' }} />
-          Context Variables ({variables.length})
+          <Variable size={14} aria-hidden="true" />
+          Context variables <span className="num">({variables.length})</span>
         </span>
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </button>
 
       {expanded && (
-        <div className="max-h-48 overflow-y-auto" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
+        <div className="max-h-48 overflow-y-auto bg-panel">
           {variables.map((v, i) => {
             const Icon = sourceIcons[v.sourceIcon] ?? Variable
             return (
               <div
                 key={i}
-                className="flex items-center gap-2 px-3 py-1.5 text-[10px] border-t"
-                style={{ borderColor: 'var(--theme-surface-border)' }}
+                className="flex min-h-7 items-center gap-2 border-t border-border-subtle px-3 py-1 hover:bg-subtle"
               >
-                <Icon size={10} style={{ color: 'var(--theme-primary-text)' }} />
-                <code className="font-mono font-medium" style={{ color: 'var(--theme-primary-text)' }}>
+                <Icon size={12} className="shrink-0 text-fg-muted" aria-hidden="true" />
+                <code className="truncate font-mono text-2xs text-fg">
                   {`{{${v.name}}}`}
                 </code>
                 <span className="flex-1" />
-                <span style={{ color: 'var(--theme-muted-text)' }}>
+                <span className="shrink-0 truncate text-2xs text-fg-subtle">
                   {v.source}
                 </span>
               </div>

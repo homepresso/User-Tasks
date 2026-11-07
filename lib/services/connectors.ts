@@ -22,7 +22,9 @@ import { decryptSensitiveFields, encryptSensitiveFields } from '@/lib/secret-fie
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyPage, audit, dbError, maskSecrets, resolveSecretPlaceholders, SECRET_PLACEHOLDER, syncChange, type Page } from './_shared'
 import { normalizeReferenceInput, normalizeReferenceOutput } from './references'
-import { schemaFromOutputs } from '@/lib/response-schema'
+import { normalizeResponseSchema, schemaFromOutputs } from '@/lib/response-schema'
+import { connectorTemplateVars } from '@/lib/connectors/template-vars'
+import { templateHash } from '@/lib/connectors/reference-upgrade'
 import { presentIntegration } from './integrations'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- connector config/credentials are free-form JSON */
@@ -44,6 +46,8 @@ export function listConnectorCatalog(ctx: ServiceContext, filters: { category?: 
       fields: connector.fields,
       credential_fields: connector.credentialFields,
       reference_template_count: connector.referenceTemplates.length,
+      // Keys for reference_mode 'selected' on create.
+      reference_templates: connector.referenceTemplates.map((template) => ({ key: template.key, name: template.name, method: template.method })),
     }))
   return { connectors, count: connectors.length }
 }
@@ -68,11 +72,22 @@ function validateValues(definition: ConnectorDefinition, config: Values, credent
 
 function integrationConfigFor(definition: ConnectorDefinition, config: Values, credentials: Values) {
   const built = definition.buildIntegrationConfig(config, credentials)
-  return { ...built, headers: { ...(built.headers ?? {}) } }
+  // Non-secret settings (account ids, API versions …) the reference templates use as {{placeholders}}.
+  return { ...built, headers: { ...(built.headers ?? {}) }, template_vars: connectorTemplateVars(definition, config, credentials) }
 }
 
-function referenceRowsFor(definition: ConnectorDefinition, ctx: ServiceContext, integrationId: string, label: string) {
-  return definition.referenceTemplates.map((template) => ({
+/**
+ * Which catalogue operations become references: every one (default), none
+ * ("Start empty" — build custom references instead) or the selected keys.
+ */
+export function selectTemplates(definition: ConnectorDefinition, keys?: string[] | null) {
+  if (!keys) return definition.referenceTemplates
+  const wanted = new Set(keys.map(String))
+  return definition.referenceTemplates.filter((template) => wanted.has(template.key))
+}
+
+function referenceRowsFor(definition: ConnectorDefinition, ctx: ServiceContext, integrationId: string, label: string, keys?: string[] | null) {
+  return selectTemplates(definition, keys).map((template) => ({
     integration_id: integrationId,
     tenant_id: ctx.tenantId,
     name: `${label}: ${template.name}`,
@@ -84,6 +99,11 @@ function referenceRowsFor(definition: ConnectorDefinition, ctx: ServiceContext, 
       path_template: template.pathTemplate,
       body_template: template.bodyTemplate ?? '',
       headers: template.headers ?? {},
+      // Unquoted {{x}} in JSON bodies follows the input's declared type.
+      typed_placeholders: true,
+      // Untouched generated references follow later template fixes (lib/connectors/reference-upgrade).
+      connector_template: { key: template.key, hash: templateHash(template) },
+      ...(template.baseUrl ? { base_url: template.baseUrl } : {}),
       // The catalogue's declared outputs are the response's top-level fields.
       ...(template.outputs.length ? { response_schema: { version: 1, source: 'connector', root: schemaFromOutputs(template.outputs.map((output) => ({ ...output, path: output.name }))) } } : {}),
     },
@@ -168,6 +188,25 @@ export interface ConnectorCreateInput {
   display_name?: string
   config?: Values
   credentials?: Values
+  /**
+   * 'all' (default) generates every catalogue operation; 'none' starts empty
+   * (custom references only); 'selected' generates `reference_template_keys`.
+   */
+  reference_mode?: 'all' | 'none' | 'selected'
+  reference_template_keys?: string[]
+}
+
+/** Template keys to generate for a create request (null = all). */
+export function templateKeysFor(definition: ConnectorDefinition, input: Pick<ConnectorCreateInput, 'reference_mode' | 'reference_template_keys'>): string[] | null {
+  if (input.reference_mode === 'none') return []
+  if (input.reference_mode === 'selected' || (input.reference_template_keys && !input.reference_mode)) {
+    const keys = (input.reference_template_keys ?? []).map(String)
+    const known = new Set(definition.referenceTemplates.map((t) => t.key))
+    const unknown = keys.filter((key) => !known.has(key))
+    if (unknown.length) throw ServiceError.validation(`Unknown ${definition.name} operation${unknown.length === 1 ? '' : 's'}: ${unknown.slice(0, 5).join(', ')}`)
+    return keys
+  }
+  return null
 }
 
 /**
@@ -182,6 +221,7 @@ async function insertConnector(
   config: Values,
   credentials: Values,
   enabled: boolean,
+  templateKeys?: string[] | null,
 ) {
   const { data: integration, error: intError } = await ctx.supabase.from('integrations').insert({
     tenant_id: ctx.tenantId,
@@ -208,7 +248,7 @@ async function insertConnector(
     }).select('id').single()
     if (connError || !connector) throw dbError(connError, 'Failed to create connector')
 
-    const rows = referenceRowsFor(definition, ctx, integration.id, label)
+    const rows = referenceRowsFor(definition, ctx, integration.id, label, templateKeys)
     let references: Array<{ id: string; name: string }> = []
     if (rows.length > 0) {
       const { data: inserted, error: refError } = await ctx.supabase.from('integration_references').insert(rows).select('id, name')
@@ -234,7 +274,7 @@ export async function createConnector(ctx: ServiceContext, input: ConnectorCreat
   validateValues(definition, config, credentials)
   const label = input.display_name?.trim() || definition.name
 
-  const created = await insertConnector(ctx, definition, label, config, credentials, true)
+  const created = await insertConnector(ctx, definition, label, config, credentials, true, templateKeysFor(definition, input))
   await audit(ctx, {
     objectType: 'integration', objectId: created.connectorId, action: 'create',
     summary: `Enabled ${definition.name} connector "${label}"`,
@@ -256,13 +296,57 @@ export interface ConnectorUpdateInput {
   regenerate_references?: boolean
 }
 
+/**
+ * Bring the generated references in line with the current template set
+ * WITHOUT changing the ids of references that still exist: workflows,
+ * agents, reports and forms point at those ids. Matched by template name
+ * ("<label>: <template>"); new templates are inserted, templates that no
+ * longer exist are deleted.
+ */
+/**
+ * A regenerated reference keeps the response model captured from real calls
+ * ("Load sample", Test): the catalogue's model only names top-level fields.
+ */
+export function keepCapturedModel(next: Record<string, any>, current: Record<string, any> | null | undefined): Record<string, any> {
+  const stored = normalizeResponseSchema(current?.response_schema)
+  if (!stored || !(stored.samples || stored.source === 'sample' || stored.source === 'manual')) return next
+  return { ...next, response_schema: stored }
+}
+
 async function replaceReferences(ctx: ServiceContext, definition: ConnectorDefinition, integrationId: string, label: string) {
-  const { error: deleteError } = await ctx.supabase.from('integration_references')
-    .delete().eq('integration_id', integrationId).eq('tenant_id', ctx.tenantId)
-  if (deleteError) throw dbError(deleteError)
   const rows = referenceRowsFor(definition, ctx, integrationId, label)
-  if (rows.length > 0) {
-    const { error } = await ctx.supabase.from('integration_references').insert(rows)
+  const { data: existing, error: loadError } = await ctx.supabase.from('integration_references')
+    .select('id, name, inputs, request_config').eq('integration_id', integrationId).eq('tenant_id', ctx.tenantId)
+  if (loadError) throw dbError(loadError)
+  // Custom references (request_config.origin = 'custom') are the designer's
+  // own: regeneration never matches, overwrites or deletes them.
+  const generated = ((existing ?? []) as any[]).filter((ref) => ref?.request_config?.origin !== 'custom')
+  const byName = new Map<string, any>()
+  for (const ref of generated) {
+    const suffix = templateSuffix(String(ref.name ?? ''), label)
+    if (!byName.has(suffix)) byName.set(suffix, ref)
+  }
+  const keep = new Set<string>()
+  const inserts: typeof rows = []
+  for (const row of rows) {
+    const current = byName.get(templateSuffix(row.name, label))
+    if (!current) { inserts.push(row); continue }
+    keep.add(String(current.id))
+    // Keep input ids stable too (workflow input mappings may refer to them).
+    const oldInputs = new Map<string, any>(((current.inputs ?? []) as any[]).map((input: any) => [String(input.name), input]))
+    const inputs = row.inputs.map((input: any) => ({ ...input, id: oldInputs.get(String(input.name))?.id ?? input.id }))
+    const { error } = await ctx.supabase.from('integration_references')
+      .update({ name: row.name, description: row.description, inputs, outputs: row.outputs, request_config: keepCapturedModel(row.request_config, current.request_config) })
+      .eq('id', current.id).eq('tenant_id', ctx.tenantId)
+    if (error) throw dbError(error)
+  }
+  if (inserts.length > 0) {
+    const { error } = await ctx.supabase.from('integration_references').insert(inserts)
+    if (error) throw dbError(error)
+  }
+  const stale = generated.map((ref) => String(ref.id)).filter((id) => !keep.has(id))
+  if (stale.length > 0) {
+    const { error } = await ctx.supabase.from('integration_references').delete().in('id', stale).eq('tenant_id', ctx.tenantId)
     if (error) throw dbError(error)
   }
   return rows.length
@@ -431,9 +515,10 @@ export async function testConnector(
   const definition = requireDefinition(input.connector_key)
   const owned = input.connector_id ? await loadOwned(ctx, input.connector_id) : null
   if (owned && owned.connector_key !== input.connector_key) throw ServiceError.validation('connector_key does not match the connector')
-  // Edit UIs round-trip stored (encrypted-at-rest) values — decrypt before validating/probing
-  const config = decryptSensitiveFields(input.config ?? {})
-  const credentials = decryptSensitiveFields(input.credentials ?? {})
+  // Edit UIs send '__SECRET__' (or ciphertext) for stored secrets — restore
+  // them from the saved connector, then decrypt before validating/probing.
+  const config = decryptSensitiveFields(owned ? resolveSecretPlaceholders(input.config ?? {}, owned.config ?? {}) : (input.config ?? {}))
+  const credentials = decryptSensitiveFields(owned ? resolveSecretPlaceholders(input.credentials ?? {}, owned.credentials ?? {}) : (input.credentials ?? {}))
   validateValues(definition, config, credentials)
 
   const record = async (result: ConnectorTestResult) => {
@@ -462,7 +547,15 @@ export async function testConnector(
       DATABASE_CONNECTOR_KEYS.includes(input.connector_key) ||
       /^(postgresql|mssql|mysql|oracle|mongodb|snowflake):\/\//.test(integrationConfig.base_url ?? '')
 
-    if (isDatabase) {
+    if (integrationConfig.auth_config?._executor === 'sftp') {
+      // SSH handshake + login; reports the host key fingerprint to pin.
+      const { testSftpConnection } = await import('@/lib/sftp-executor')
+      const sftp = await testSftpConnection(integrationConfig.auth_config)
+      const message = sftp.fingerprint && !sftp.message.includes(sftp.fingerprint)
+        ? `${sftp.message} Host key fingerprint: ${sftp.fingerprint}`
+        : sftp.message
+      result = buildConnectorTestResult(input.connector_key, message, sftp.success ? 'success' : 'error') as ConnectorTestResult
+    } else if (isDatabase) {
       const { parseDbConfig, testConnection } = await import('@/lib/db-connector')
       const dbConfig = parseDbConfig({
         ...integrationConfig,

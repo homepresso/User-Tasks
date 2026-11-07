@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { getInitials, formatRelativeDate } from '@/lib/utils'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
+import { cn } from '@/lib/utils'
 import { serverRead } from '@/lib/server-read'
-import { useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardHeader } from '@/components/ui/card'
+import { IconButton } from '@/components/ui/icon-button'
+import { Input } from '@/components/ui/input'
+import { Tooltip } from '@/components/ui/tooltip'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { plural } from '@/lib/format/plural'
 import { Send, MessageSquare } from 'lucide-react'
 
 interface TimelineEvent {
@@ -41,92 +47,80 @@ const eventLabels: Record<string, string> = {
   task_data_saved: 'updated the task fields',
 }
 
-const eventColors: Record<string, string> = {
-  created: 'var(--theme-primary)',
-  started: 'var(--status-info)',
-  completed: 'var(--theme-success)',
-  reassigned: 'var(--theme-warning)',
-  escalated: 'var(--theme-danger)',
-  blocked: 'var(--theme-danger)',
-  unblocked: 'var(--theme-success)',
-  cancelled: 'var(--theme-muted-text)',
-  comment_added: 'var(--theme-accent)',
-  task_accepted: 'var(--theme-success)',
-  task_held: 'var(--theme-warning)',
-  task_rejected: 'var(--theme-danger)',
+/** Timeline dot per event: semantic tone, neutral by default. */
+const eventDots: Record<string, string> = {
+  created: 'bg-primary',
+  started: 'bg-info',
+  completed: 'bg-success',
+  reassigned: 'bg-warning',
+  escalated: 'bg-danger',
+  blocked: 'bg-danger',
+  unblocked: 'bg-success',
+  cancelled: 'bg-fg-subtle',
+  comment_added: 'bg-primary',
+  task_accepted: 'bg-success',
+  task_held: 'bg-warning',
+  task_rejected: 'bg-danger',
 }
 
-export function ActivityTimeline({ events, taskId, tenantId }: TimelineProps) {
+export function ActivityTimeline({ events, taskId }: TimelineProps) {
   const [comment, setComment] = useState('')
   const [sending, setSending] = useState(false)
+  // Synchronous guard: a double Enter / click in one frame would post the comment twice.
+  const commentGuard = useSubmitGuard()
   const [localEvents, setLocalEvents] = useState<TimelineEvent[]>([])
-  const queryClient = useQueryClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!comment.trim()) return
+    await commentGuard.run(async () => {
+      if (!comment.trim()) return
 
-    setSending(true)
-    const { data: profile } = await serverRead('tasks.myProfile')
+      setSending(true)
+      const { data: profile } = await serverRead('tasks.myProfile')
 
-    const { addTaskComment } = await import('@/app/actions/tasks')
-    const result = await addTaskComment(taskId, comment.trim())
+      const { addTaskComment } = await import('@/app/actions/tasks')
+      const result = await addTaskComment(taskId, comment.trim())
 
-    if (!result.ok) {
-} else {
-      setLocalEvents(prev => [{
-        id: crypto.randomUUID(),
-        event_type: 'comment_added',
-        created_at: new Date().toISOString(),
-        metadata: { message: comment.trim(), source: 'user' },
-        actor: {
-          display_name: (profile as any)?.display_name ?? 'You',
-          avatar_url: (profile as any)?.avatar_url ?? null,
-        },
-      }, ...prev])
-      setComment('')
-    }
-    setSending(false)
+      if (!result.ok) {
+  } else {
+        setLocalEvents(prev => [{
+          id: crypto.randomUUID(),
+          event_type: 'comment_added',
+          created_at: new Date().toISOString(),
+          metadata: { message: comment.trim(), source: 'user' },
+          actor: {
+            display_name: (profile as any)?.display_name ?? 'You',
+            avatar_url: (profile as any)?.avatar_url ?? null,
+          },
+        }, ...prev])
+        setComment('')
+      }
+      setSending(false)
+    })
   }
 
   const allEvents = [...localEvents, ...events]
 
   return (
-    <div className="mt-6">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-        Activity
-      </h3>
+    <Card padding="none" data-task-activity>
+      <CardHeader title="Comments and activity" />
 
-      {/* Comment input */}
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <MessageSquare
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              style={{ color: 'var(--theme-muted-text)' }}
-            />
-            <input
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Add a comment..."
-              className="w-full rounded-lg border pl-9 pr-3 py-2 text-sm"
-              style={{
-                backgroundColor: 'var(--theme-card-bg)',
-                borderColor: 'var(--theme-surface-border)',
-                color: 'var(--theme-card-text)',
-              }}
-            />
-          </div>
-          <Button type="submit" size="sm" disabled={sending || !comment.trim()}>
-            <Send size={14} />
-          </Button>
-        </div>
+      {/* Comment input: stays in view on a phone while the thread scrolls. */}
+      <form onSubmit={handleSubmit} className="flex gap-2 px-4 pb-4 max-md:sticky max-md:top-0 max-md:z-10 max-md:bg-panel max-md:pt-2" data-task-comment-composer>
+        <Input
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Add a comment…"
+          aria-label="Add a comment"
+          leading={<MessageSquare />}
+          wrapperClassName="flex-1"
+        />
+        <IconButton type="submit" variant="primary" label="Post comment" icon={<Send />} disabled={!comment.trim()} loading={sending} />
       </form>
 
       {/* Events */}
       {allEvents.length > 0 && (
-        <div className="space-y-3">
+        <ol className="space-y-3 border-t border-border-subtle px-4 py-4">
           {allEvents.map((event) => {
             const isComment = event.event_type === 'comment_added'
             const message = event.metadata?.message || event.metadata?.comment
@@ -139,6 +133,7 @@ export function ActivityTimeline({ events, taskId, tenantId }: TimelineProps) {
             const effortHours = event.metadata?.hours
             const effortNotes = event.metadata?.notes
             const effortDuration = event.metadata?.duration
+            const breakGlass = event.metadata?.acted_as === 'break_glass'
 
             // Determine display label
             let eventLabel: string
@@ -152,83 +147,66 @@ export function ActivityTimeline({ events, taskId, tenantId }: TimelineProps) {
               eventLabel = eventLabels[event.event_type] ?? event.event_type.replace(/_/g, ' ')
             }
 
-            // Determine dot color
-            const dotColor = isEffortEvent
-              ? 'var(--theme-accent)'
-              : isTaskMessageEvent
-                ? 'var(--theme-primary-hover)'
-                : (eventColors[event.event_type] ?? 'var(--theme-muted-text)')
+            const dot = isEffortEvent || isTaskMessageEvent ? 'bg-primary' : (eventDots[event.event_type] ?? 'bg-fg-subtle')
 
             return (
-              <div key={event.id} className="flex gap-3 text-sm items-start">
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5"
-                  style={{ backgroundColor: dotColor }}
-                />
-                <div className="flex-1 min-w-0">
+              <li key={event.id} className="flex items-start gap-3 text-ui">
+                <span aria-hidden className={cn('mt-1.5 size-2 shrink-0 rounded-full', dot)} />
+                <div className="min-w-0 flex-1">
                   <div>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-fg">
                       {event.actor?.display_name ?? 'System'}
                     </span>{' '}
-                    <span className="text-gray-500">{eventLabel}</span>
+                    <span className="text-fg-muted">{eventLabel}</span>
                     {event.metadata?.on_behalf_of && (
-                      <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold" data-on-behalf-event
-                        style={{ backgroundColor: event.metadata?.acted_as === 'break_glass' ? 'var(--status-blocked-bg)' : 'var(--status-info-bg, var(--theme-primary-light))', color: event.metadata?.acted_as === 'break_glass' ? 'var(--status-blocked)' : 'var(--theme-primary-text)' }}>
-                        {event.metadata?.acted_as === 'break_glass' ? 'break-glass · ' : ''}on behalf of {event.on_behalf_of_name ?? 'the assignee'}
-                      </span>
+                      <Badge tone={breakGlass ? 'danger' : 'info'} className="ml-1" data-on-behalf-event>
+                        {breakGlass ? 'break-glass · ' : ''}on behalf of {event.on_behalf_of_name ?? 'the assignee'}
+                      </Badge>
                     )}
                     {isEffortEvent && (
-                      <span className="text-xs font-semibold ml-1" style={{ color: 'var(--theme-accent-text)' }}>
+                      <span className="num ml-1 text-xs font-semibold text-fg">
                         {effortHours}h
-                        {effortDuration && <span className="font-normal ml-1">({effortDuration})</span>}
+                        {effortDuration && <span className="ml-1 font-normal text-fg-muted">({effortDuration})</span>}
                       </span>
                     )}
                     {subtaskTitle && (
-                      <span className="text-xs font-medium ml-1" style={{ color: 'var(--theme-primary-text)' }}>
+                      <span className="ml-1 text-xs font-medium text-primary-text">
                         &ldquo;{subtaskTitle}&rdquo;
                       </span>
                     )}
                     {isTaskMessageEvent && messageRecipientCount > 0 && (
-                      <span className="text-xs font-medium ml-1" style={{ color: 'var(--theme-primary-hover)' }}>
-                        to {messageRecipientCount} recipient{messageRecipientCount === 1 ? '' : 's'}
+                      <span className="ml-1 text-xs font-medium text-fg-muted">
+                        to {plural(messageRecipientCount, 'recipient')}
                       </span>
                     )}
                   </div>
                   {event.metadata?.on_behalf_note && (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="mt-0.5 text-xs text-fg-muted">
                       Reason: {String(event.metadata.on_behalf_note)}
                     </p>
                   )}
                   {isEffortEvent && effortNotes && (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      {effortNotes}
-                    </p>
+                    <p className="mt-0.5 text-xs text-fg-muted">{effortNotes}</p>
                   )}
                   {isTaskMessageEvent && messageSubject && (
-                    <p className="mt-1 text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
-                      Subject: {messageSubject}
-                    </p>
+                    <p className="mt-1 text-xs font-medium text-fg">Subject: {messageSubject}</p>
                   )}
                   {isComment && message && (
-                    <p
-                      className="mt-1 text-xs rounded-lg px-3 py-2"
-                      style={{
-                        backgroundColor: isTaskMessageEvent ? 'color-mix(in srgb, var(--theme-primary-hover) 10%, var(--theme-surface))' : 'var(--theme-surface)',
-                        color: 'var(--theme-card-text)',
-                      }}
-                    >
+                    <p className={cn('mt-1 rounded-md px-3 py-2 text-ui text-fg', isTaskMessageEvent ? 'bg-primary-wash' : 'bg-subtle')}>
                       {message}
                     </p>
                   )}
                 </div>
-                <span className="text-xs shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
-                  {formatRelativeDate(event.created_at)}
-                </span>
-              </div>
+                <Tooltip content={formatAbsolute(event.created_at)}>
+                  <time dateTime={event.created_at} className="shrink-0 text-xs text-fg-muted">
+                    {formatRelative(event.created_at)}
+                  </time>
+                </Tooltip>
+              </li>
             )
           })}
-        </div>
+        </ol>
       )}
-    </div>
+    </Card>
   )
 }

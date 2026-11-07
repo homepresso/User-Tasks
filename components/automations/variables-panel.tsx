@@ -1,15 +1,21 @@
 'use client'
 
 import { documentNodeRoots } from '@/lib/documents/schemas'
+import { mediaNodeRoots } from '@/lib/media/schemas'
+import { isMediaNodeType } from '@/lib/media/catalog'
 import { useState, useMemo } from 'react'
 import { TASK_VARIABLE_CATALOG } from '@/lib/task-data'
 import { Variable, Search, X, Copy, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { IconButton } from '@/components/ui/icon-button'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Tag } from '@/components/ui/badge'
 import { buildDataTree, type PickerEdgeLike, type PickerNodeLike } from '@/lib/workflow-data-picker'
 import { DataTree } from './data-picker'
 import { useActiveInput } from './active-input'
 import { useLinkedForms } from './linked-forms'
 import { DATA_DRAG_MIME, encodeDragPayload } from '@/lib/workflow-data-drop'
+import { setVariableAssignments } from '@/lib/workflow-set-variable'
 
 const CONTEXT_VARIABLES = [
   { group: 'Quick Reference', vars: [
@@ -19,6 +25,7 @@ const CONTEXT_VARIABLES = [
     { name: 'workflow_started_by', description: 'User who started the run (the owner when no one did)' },
     { name: 'workflow_started_via', description: 'How the run started: ui, form, api, cli, mcp, task, schedule, …' },
     { name: 'workflow_owner_id', description: "The workflow's creator" },
+    { name: 'workflow_initiator_user_id', description: 'The person who started the run (empty for schedules, webhooks, public forms)' },
   ]},
   { group: 'Task', vars: TASK_VARIABLE_CATALOG.filter(v => v.group === 'Task').map(({ name, description }) => ({ name, description })) },
   { group: 'Task Data', vars: TASK_VARIABLE_CATALOG.filter(v => v.group === 'Task Data').map(({ name, description }) => ({ name, description })) },
@@ -121,12 +128,15 @@ interface VariablesPanelProps {
   onInsertLoopBefore?: (nodeId: string, itemsExpression: string) => void
   userVariables?: UserVariable[]
   triggerType?: string
+  /** Hosted in the designer inspector's Variables tab: the flat list only, no frame, header or close. */
+  embedded?: boolean
 }
 
-export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, onInsertLoopBefore, userVariables, triggerType }: VariablesPanelProps) {
+export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, onInsertLoopBefore, userVariables, triggerType, embedded = false }: VariablesPanelProps) {
   const [search, setSearch] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
-  const [tab, setTab] = useState<'data' | 'all'>('data')
+  const [tabState, setTab] = useState<'data' | 'all'>('data')
+  const tab = embedded ? 'all' : tabState
   const { insertIntoActive } = useActiveInput()
   const linkedForms = useLinkedForms()
   const pickerNodes = useMemo(() => (nodes ?? []).filter((n) => n.id) as PickerNodeLike[], [nodes])
@@ -226,8 +236,11 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
       }
 
       // Set Variable
-      if (node.type === 'set_variable' && c.name) {
-        groups.push({ group: `📌 ${nodeLabel}`, vars: [{ name: c.name, description: c.expression || 'set variable' }] })
+      if (node.type === 'set_variable') {
+        const vars = setVariableAssignments(c)
+          .filter((a) => a.name)
+          .map((a) => ({ name: a.name, description: (typeof a.expression === 'string' ? a.expression : '') || 'set variable' }))
+        if (vars.length) groups.push({ group: `📌 ${nodeLabel}`, vars })
       }
 
       if (node.type === 'custom_activity') {
@@ -308,6 +321,12 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
       if (node.type.startsWith('doc_') && !['doc_word', 'doc_excel', 'doc_powerpoint'].includes(node.type)) {
         const roots = documentNodeRoots(node.type, c)
         if (roots.length) groups.push({ group: `📑 ${nodeLabel}`, vars: roots.map((r) => ({ name: r.path, description: r.description ?? r.schema.description ?? r.label })) })
+      }
+
+      // Media actions (Transcribe / Analyze / Redact / Generate / Text to Speech / Utilities)
+      if (isMediaNodeType(node.type)) {
+        const roots = mediaNodeRoots(node.type, c)
+        if (roots.length) groups.push({ group: `🎞️ ${nodeLabel}`, vars: roots.map((r) => ({ name: r.path, description: r.description ?? r.schema.description ?? r.label })) })
       }
 
       // JSON operations
@@ -476,53 +495,35 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
 
   return (
     <div
-      className="absolute top-14 right-3 z-30 w-[min(20rem,calc(100vw-2rem))] max-h-[520px] flex flex-col rounded-xl shadow-xl border overflow-hidden"
-      style={{
-        backgroundColor: 'var(--theme-card-bg)',
-        borderColor: 'var(--theme-surface-border)',
-      }}
+      className={embedded
+        ? 'flex h-full min-h-0 flex-col'
+        : 'absolute top-14 right-3 z-30 flex max-h-[520px] w-[min(20rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-elevated shadow-elev-2'}
     >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2.5 shrink-0"
-        style={{ borderBottom: '1px solid var(--theme-surface-border)' }}
-      >
-        <div className="flex items-center gap-1.5">
-          <Variable size={14} style={{ color: 'var(--theme-primary-text)' }} />
-          <span className="text-xs font-semibold">Context Variables</span>
-          {triggerType && <span className="text-[8px] ml-1 px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{triggerType}</span>}
+      {!embedded && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border-subtle px-3 py-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Variable size={14} className="text-fg-muted" aria-hidden="true" />
+            <span className="text-ui font-semibold text-fg">Context variables</span>
+            {triggerType && <Tag mono className="ml-1">{triggerType}</Tag>}
+          </div>
+          <IconButton size="sm" label="Close variables" icon={<X />} onClick={onClose} />
         </div>
-        <button onClick={onClose} className="p-0.5 rounded hover:opacity-70">
-          <X size={14} style={{ color: 'var(--theme-muted-text)' }} />
-        </button>
-      </div>
+      )}
 
       {/* Tabs: Data (tree of upstream outputs) | All variables (flat list) */}
-      <div role="tablist" aria-label="Variable views" className="flex gap-1 px-3 pt-2 shrink-0">
-        {(['data', 'all'] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            onClick={() => setTab(key)}
-            className="rounded-md px-2 py-1 text-[11px] font-medium"
-            style={{
-              backgroundColor: tab === key ? 'var(--theme-primary-light)' : 'transparent',
-              color: tab === key ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-            }}
-          >
-            {key === 'data' ? 'Data' : 'All variables'}
-          </button>
-        ))}
-      </div>
+      {!embedded && (
+        <div className="shrink-0 px-3 pt-2">
+          <SegmentedControl aria-label="Variable views" size="sm" value={tab} onValueChange={(v) => setTab(v as 'data' | 'all')}
+            options={[{ value: 'data', text: 'Data' }, { value: 'all', text: 'All variables' }]} />
+        </div>
+      )}
 
       {tab === 'data' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <p className="px-3 pt-1.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            {selectedLabel ? <>Data available at <strong style={{ color: 'var(--theme-card-text)' }}>{selectedLabel}</strong>. Drag a field onto an input, or click to insert it into the field you last edited (or copy).</> : 'Select a step to see only the data available to it.'}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <p className="px-3 pt-1.5 text-xs text-fg-muted">
+            {selectedLabel ? <>Data available at <strong className="font-medium text-fg">{selectedLabel}</strong>. Drag a field onto an input, or click to insert it into the field you last edited (or copy).</> : 'Select a step to see only the data available to it.'}
           </p>
-          {copied && <p role="status" className="px-3 text-[10px]" style={{ color: 'var(--theme-primary-text)' }}>Inserted {copied}</p>}
+          {copied && <p role="status" className="px-3 text-xs text-primary-text">Inserted {copied}</p>}
           <DataTree
             groups={dataGroups}
             maxHeight={300}
@@ -533,37 +534,32 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
       )}
 
       {tab === 'all' && (<>
-      {/* Search */}
-      <div className="px-3 py-2 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-        <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search variables..."
-            className="!text-xs !pl-7 !h-8"
-          />
-        </div>
+      <div className={embedded ? 'shrink-0 pb-2' : 'shrink-0 border-b border-border-subtle px-3 py-2'}>
+        <Input
+          size="sm"
+          leading={<Search />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search variables…"
+          aria-label="Search variables"
+        />
       </div>
 
-      {/* Variable list */}
-      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-3">
+      <div className={embedded ? 'min-h-0 flex-1 space-y-3 overflow-y-auto' : 'min-h-0 flex-1 space-y-3 overflow-y-auto px-2 py-2'}>
         {filtered.length === 0 ? (
-          <p className="text-xs text-center py-4" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="py-4 text-center text-xs text-fg-muted">
             No variables matching &ldquo;{search}&rdquo;
           </p>
         ) : (
           filtered.map((group, idx) => (
             <div key={`${group.group}-${idx}`}>
-              <p
-                className="text-[9px] font-semibold uppercase tracking-wider px-1.5 mb-1"
-                style={{ color: 'var(--theme-muted-text)' }}
-              >
+              <p className="mb-1 px-1.5 text-xs font-medium text-fg-muted">
                 {group.group}
               </p>
               {group.vars.map((v) => (
                 <button
                   key={v.name}
+                  type="button"
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', `{{${v.name}}}`)
@@ -571,22 +567,18 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
                     e.dataTransfer.effectAllowed = 'copy'
                   }}
                   onClick={() => copyVariable(v.name)}
-                  className="flex items-center gap-2 w-full text-left px-1.5 py-1.5 rounded text-[11px] transition-colors hover:opacity-80 cursor-grab active:cursor-grabbing"
-                  style={{ backgroundColor: copied === v.name ? 'var(--theme-primary-light)' : 'transparent' }}
+                  className={`group flex min-h-7 w-full cursor-grab items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-subtle active:cursor-grabbing ${copied === v.name ? 'bg-primary-wash' : ''}`}
                 >
-                  <code
-                    className="font-mono shrink-0"
-                    style={{ color: 'var(--theme-primary-text)', fontSize: '10px' }}
-                  >
+                  <code className="shrink-0 font-mono text-2xs text-primary-text">
                     {`{{${v.name}}}`}
                   </code>
-                  <span className="flex-1 truncate" style={{ color: 'var(--theme-muted-text)', fontSize: '10px' }}>
+                  <span className="flex-1 truncate text-2xs text-fg-muted">
                     {v.description}
                   </span>
                   {copied === v.name ? (
-                    <Check size={10} className="shrink-0 text-[color:var(--theme-card-text)]" />
+                    <Check size={12} className="shrink-0 text-success" />
                   ) : (
-                    <Copy size={10} className="shrink-0 opacity-0 group-hover:opacity-100" style={{ color: 'var(--theme-muted-text)' }} />
+                    <Copy size={12} className="shrink-0 text-fg-muted opacity-0 group-hover:opacity-100" />
                   )}
                 </button>
               ))}
@@ -597,12 +589,8 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
 
       </>)}
 
-      {/* Footer */}
-      <div
-        className="px-3 py-1.5 shrink-0"
-        style={{ borderTop: '1px solid var(--theme-surface-border)' }}
-      >
-        <p className="text-[9px] italic" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className={embedded ? 'shrink-0 pt-2' : 'shrink-0 border-t border-border-subtle px-3 py-1.5'}>
+        <p className="text-2xs text-fg-muted">
           {tab === 'data' ? 'Arrow keys move, Enter inserts. Lists offer first item, find, count or loop.' : 'Click to copy, or drag into any input field.'}
         </p>
       </div>

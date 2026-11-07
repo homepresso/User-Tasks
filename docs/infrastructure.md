@@ -215,7 +215,7 @@ database (`DATABASE_URL` = its direct or session-pooler connection string).
 
 ## Realtime
 
-Live updates — the task list, the task queue, tasks you assigned, a task's
+Live updates — the task list (queued tasks included), tasks you assigned, a task's
 subtasks and timeline, the notification bell and the live log tail — arrive
 through the realtime provider. Every change names the table, the operation
 and the changed row ids; the page then re-reads what it shows through the

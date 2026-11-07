@@ -1,0 +1,3220 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "19a97b16-c469-5a1d-8507-b252595eeee1",
+  "asset": {
+    "id": "19a97b16-c469-5a1d-8507-b252595eeee1",
+    "name": "Document review and sign-off",
+    "description": "A policy, contract or procedure from submission to publication: reference number, review route from a decision table, reviewer tasks with the PDF in a viewer and rich-text redlines, a revision loop back to the submitter with an SLA, optional legal review, owner e-sign, a sign-off certificate PDF, the Documents register and a step-by-step Audit log with 7-year retention.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Document submitted",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "ba6108cc-686d-5bfe-8bb1-9a3e05ef8135",
+          "form_name": "Document review request"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Reference number",
+        "position": {
+          "x": 600,
+          "y": 180
+        },
+        "config": {
+          "name": "reference",
+          "expression": "DOC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "started",
+        "type": "set_variable",
+        "label": "Started at",
+        "position": {
+          "x": 600,
+          "y": 300
+        },
+        "config": {
+          "name": "started_at",
+          "expression": "{{=NOW()}}"
+        }
+      },
+      {
+        "id": "ver",
+        "type": "set_variable",
+        "label": "Version 1",
+        "position": {
+          "x": 600,
+          "y": 420
+        },
+        "config": {
+          "name": "version",
+          "expression": "{{=1}}"
+        }
+      },
+      {
+        "id": "doc",
+        "type": "set_variable",
+        "label": "Current document",
+        "position": {
+          "x": 600,
+          "y": 540
+        },
+        "config": {
+          "name": "current_document",
+          "expression": "{{form.document}}"
+        }
+      },
+      {
+        "id": "status0",
+        "type": "set_variable",
+        "label": "Status: in review",
+        "position": {
+          "x": 600,
+          "y": 660
+        },
+        "config": {
+          "name": "doc_status",
+          "expression": "In review"
+        }
+      },
+      {
+        "id": "route",
+        "type": "decision_table",
+        "label": "Review route",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "decision_table_id": "5f426f85-80ff-5cb0-b52c-adb538376fcc",
+          "decision_table_name": "Review route",
+          "input_mappings": {
+            "doc_type": "{{form.doc_type}}",
+            "change_size": "{{form.change_size}}"
+          }
+        }
+      },
+      {
+        "id": "type_row",
+        "type": "update_data_table",
+        "label": "Document type settings",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "table_id": "faf4dcab-ed96-5e25-b5e0-6d4acbbe1bed",
+          "table_name": "Document types",
+          "operation": "get",
+          "match_column": "type",
+          "match_value": "{{form.doc_type}}",
+          "output_row_var": "type_settings"
+        }
+      },
+      {
+        "id": "rev_days",
+        "type": "set_variable",
+        "label": "Revision days",
+        "position": {
+          "x": 600,
+          "y": 1020
+        },
+        "config": {
+          "name": "revision_days",
+          "expression": "{{=5}}"
+        }
+      },
+      {
+        "id": "dtitle",
+        "type": "set_variable",
+        "label": "Document title",
+        "position": {
+          "x": 920,
+          "y": 1080
+        },
+        "config": {
+          "name": "doc_title",
+          "expression": "{{form.title}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 1140
+        },
+        "config": {
+          "title": "{{reference}} · {{form.title}} ({{form.doc_type}})"
+        }
+      },
+      {
+        "id": "reg_in",
+        "type": "update_data_table",
+        "label": "Add to Documents register",
+        "position": {
+          "x": 600,
+          "y": 1260
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "insert",
+          "output_row_id_var": "register_row_id",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "title": "{{form.title}}",
+            "doc_type": "{{form.doc_type}}",
+            "owner_name": "{{form.doc_owner_name}}",
+            "status": "In review",
+            "version": "{{version}}",
+            "effective_date": "{{form.effective_date}}",
+            "document_name": "{{current_document[0].name}}"
+          }
+        }
+      },
+      {
+        "id": "a_sub",
+        "type": "update_data_table",
+        "label": "Audit: submitted",
+        "position": {
+          "x": 600,
+          "y": 1380
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Submitted",
+            "actor": "{{submitted_by_name}}",
+            "outcome": "Submitted",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "{{form.doc_type}} · {{form.change_size}} · route {{route_name}} · effective {{form.effective_date}}"
+          }
+        }
+      },
+      {
+        "id": "ack",
+        "type": "send_email",
+        "label": "Confirm to the submitter",
+        "position": {
+          "x": 600,
+          "y": 1500
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "40edb255-fb74-5a72-a469-d7d88b55391e"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Review SLA",
+        "position": {
+          "x": 600,
+          "y": 1620
+        },
+        "config": {
+          "sla_label": "Review and sign-off ({{route_name}})",
+          "mode": "relative",
+          "amount": "{{=review_days * (reviewers_needed + IF(legal_review, 1, 0)) + 2}}",
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "review1",
+        "type": "user_task",
+        "label": "Review",
+        "position": {
+          "x": 600,
+          "y": 1760
+        },
+        "config": {
+          "task_title": "Review: {{form.title}} v{{version}} ({{reference}})",
+          "task_description": "<p>Please review <strong>{{form.title}}</strong> ({{form.doc_type}}, version {{version}}), submitted by {{submitted_by_name}}. Route: {{route_name}}.</p><p>Read the PDF below, add redline comments (section, what to change, why) and choose <strong>Approve</strong> or <strong>Request changes</strong>. Requested changes go back to the submitter with your comments.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Request changes"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.reviewer}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), review_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 7200,
+          "fields": [
+            {
+              "key": "t_title",
+              "label": "Document",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.title}}"
+            },
+            {
+              "key": "t_ref",
+              "label": "Reference",
+              "type": "text",
+              "read_only": true,
+              "default": "{{reference}}"
+            },
+            {
+              "key": "t_type",
+              "label": "Type",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_type}} · {{form.change_size}}"
+            },
+            {
+              "key": "t_version",
+              "label": "Version",
+              "type": "text",
+              "read_only": true,
+              "default": "v{{version}} · effective {{form.effective_date}}"
+            },
+            {
+              "key": "t_owner",
+              "label": "Owner",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_owner_name}}"
+            },
+            {
+              "key": "t_card",
+              "type": "custom",
+              "label": "The document",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "info",
+                  "card_title": "{{field1}}",
+                  "body": "Read the version below, then approve it or request changes with redline comments that quote the clause.",
+                  "layout": "key-value",
+                  "labels": [
+                    "Document",
+                    "Reference",
+                    "Type",
+                    "Version",
+                    "Owner"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "t_title",
+                  "field2": "t_ref",
+                  "field3": "t_type",
+                  "field4": "t_version",
+                  "field5": "t_owner"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "doc_view",
+              "type": "custom",
+              "label": "Document",
+              "custom": {
+                "tag": "ut-pdf-viewer",
+                "version": "1.1.0",
+                "name": "PDF viewer",
+                "value_type": "files",
+                "icon": "file-text",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "props": {
+                  "allow_upload": false
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "region",
+                  "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 560,
+                  "min_height": 200,
+                  "max_height": 1000,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The PDF as an uploaded file (a list of one)"
+                }
+              },
+              "read_only": true,
+              "default": "{{current_document}}",
+              "help_text": "The version under review. Page through it, zoom or rotate here."
+            },
+            {
+              "key": "t_changes",
+              "label": "Summary of changes",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.change_summary_text}}"
+            },
+            {
+              "key": "redline",
+              "type": "custom",
+              "label": "Redline comments",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "placeholder": "Section 3.2: replace \"should\" with \"must\" because …",
+                  "max_length": 8000,
+                  "toolbar": "full",
+                  "min_height": 180
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "doc_view",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_changes",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "redline",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "changes",
+              "label": "Request changes",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request changes"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Review: {{doc_title}}",
+            "align": "left",
+            "subtitle": "{{reference}} · version {{version}} · reviewer"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#16152B",
+                  "page": "#ECEDFB",
+                  "page_to": "#F8F8FE"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "a_r1",
+        "type": "update_data_table",
+        "label": "Audit: review 1",
+        "position": {
+          "x": 600,
+          "y": 1900
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Review 1",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "{{outcome}}",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "{{=COALESCE(task_data.redline.text, \"No comments\")}}"
+          }
+        }
+      },
+      {
+        "id": "need2",
+        "type": "condition",
+        "label": "Second reviewer needed?",
+        "position": {
+          "x": 600,
+          "y": 2020
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Two reviewers",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{reviewers_needed}}",
+                  "operator": "greater_than_or_equal",
+                  "value": "2"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "review2",
+        "type": "user_task",
+        "label": "Second review",
+        "position": {
+          "x": 280,
+          "y": 2160
+        },
+        "config": {
+          "task_title": "Second review: {{form.title}} v{{version}} ({{reference}})",
+          "task_description": "<p>Please review <strong>{{form.title}}</strong> ({{form.doc_type}}, version {{version}}), submitted by {{submitted_by_name}}. Route: {{route_name}}.</p><p>Read the PDF below, add redline comments (section, what to change, why) and choose <strong>Approve</strong> or <strong>Request changes</strong>. Requested changes go back to the submitter with your comments.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Request changes"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=IF(IS_EMPTY(form.second_reviewer), workflow_owner_id, form.second_reviewer)}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), review_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 7200,
+          "fields": [
+            {
+              "key": "t_title",
+              "label": "Document",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.title}}"
+            },
+            {
+              "key": "t_ref",
+              "label": "Reference",
+              "type": "text",
+              "read_only": true,
+              "default": "{{reference}}"
+            },
+            {
+              "key": "t_type",
+              "label": "Type",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_type}} · {{form.change_size}}"
+            },
+            {
+              "key": "t_version",
+              "label": "Version",
+              "type": "text",
+              "read_only": true,
+              "default": "v{{version}} · effective {{form.effective_date}}"
+            },
+            {
+              "key": "t_owner",
+              "label": "Owner",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_owner_name}}"
+            },
+            {
+              "key": "t_card",
+              "type": "custom",
+              "label": "The document",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "info",
+                  "card_title": "{{field1}}",
+                  "body": "Read the version below, then approve it or request changes with redline comments that quote the clause.",
+                  "layout": "key-value",
+                  "labels": [
+                    "Document",
+                    "Reference",
+                    "Type",
+                    "Version",
+                    "Owner"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "t_title",
+                  "field2": "t_ref",
+                  "field3": "t_type",
+                  "field4": "t_version",
+                  "field5": "t_owner"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "doc_view",
+              "type": "custom",
+              "label": "Document",
+              "custom": {
+                "tag": "ut-pdf-viewer",
+                "version": "1.1.0",
+                "name": "PDF viewer",
+                "value_type": "files",
+                "icon": "file-text",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "props": {
+                  "allow_upload": false
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "region",
+                  "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 560,
+                  "min_height": 200,
+                  "max_height": 1000,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The PDF as an uploaded file (a list of one)"
+                }
+              },
+              "read_only": true,
+              "default": "{{current_document}}",
+              "help_text": "The version under review. Page through it, zoom or rotate here."
+            },
+            {
+              "key": "t_changes",
+              "label": "Summary of changes",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.change_summary_text}}"
+            },
+            {
+              "key": "redline",
+              "type": "custom",
+              "label": "Redline comments",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "placeholder": "Section 3.2: replace \"should\" with \"must\" because …",
+                  "max_length": 8000,
+                  "toolbar": "full",
+                  "min_height": 180
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "doc_view",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_changes",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "redline",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "changes",
+              "label": "Request changes",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request changes"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Second review: {{doc_title}}",
+            "align": "left",
+            "subtitle": "{{reference}} · version {{version}} · second reviewer"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#16152B",
+                  "page": "#ECEDFB",
+                  "page_to": "#F8F8FE"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "a_r2",
+        "type": "update_data_table",
+        "label": "Audit: review 2",
+        "position": {
+          "x": 280,
+          "y": 2300
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Review 2",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "{{outcome}}",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "{{=COALESCE(task_data.redline.text, \"No comments\")}}"
+          }
+        }
+      },
+      {
+        "id": "needlegal",
+        "type": "condition",
+        "label": "Legal review?",
+        "position": {
+          "x": 600,
+          "y": 2440
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Legal",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{legal_review}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "legal",
+        "type": "user_task",
+        "label": "Legal review",
+        "position": {
+          "x": 920,
+          "y": 2580
+        },
+        "config": {
+          "task_title": "Legal review: {{form.title}} v{{version}} ({{reference}})",
+          "task_description": "<p><strong>{{form.title}}</strong> ({{form.doc_type}}, {{form.change_size}}) has passed {{reviewers_needed}} review(s) and needs legal review before {{form.doc_owner_name}} signs it off.</p><p>Check obligations, liability, data protection and anything that conflicts with other policies or contracts.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Request changes"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), review_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 7200,
+          "fields": [
+            {
+              "key": "t_title",
+              "label": "Document",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.title}}"
+            },
+            {
+              "key": "t_ref",
+              "label": "Reference",
+              "type": "text",
+              "read_only": true,
+              "default": "{{reference}}"
+            },
+            {
+              "key": "t_type",
+              "label": "Type",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_type}} · {{form.change_size}}"
+            },
+            {
+              "key": "t_version",
+              "label": "Version",
+              "type": "text",
+              "read_only": true,
+              "default": "v{{version}} · effective {{form.effective_date}}"
+            },
+            {
+              "key": "t_owner",
+              "label": "Owner",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_owner_name}}"
+            },
+            {
+              "key": "t_card",
+              "type": "custom",
+              "label": "The document",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "info",
+                  "card_title": "{{field1}}",
+                  "body": "Read the version below, then approve it or request changes with redline comments that quote the clause.",
+                  "layout": "key-value",
+                  "labels": [
+                    "Document",
+                    "Reference",
+                    "Type",
+                    "Version",
+                    "Owner"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "t_title",
+                  "field2": "t_ref",
+                  "field3": "t_type",
+                  "field4": "t_version",
+                  "field5": "t_owner"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "doc_view",
+              "type": "custom",
+              "label": "Document",
+              "custom": {
+                "tag": "ut-pdf-viewer",
+                "version": "1.1.0",
+                "name": "PDF viewer",
+                "value_type": "files",
+                "icon": "file-text",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "props": {
+                  "allow_upload": false
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "region",
+                  "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 560,
+                  "min_height": 200,
+                  "max_height": 1000,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The PDF as an uploaded file (a list of one)"
+                }
+              },
+              "read_only": true,
+              "default": "{{current_document}}",
+              "help_text": "The version under review. Page through it, zoom or rotate here."
+            },
+            {
+              "key": "t_changes",
+              "label": "Summary of changes",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.change_summary_text}}"
+            },
+            {
+              "key": "legal_risk",
+              "label": "Legal risk",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "display": "radio"
+            },
+            {
+              "key": "redline",
+              "type": "custom",
+              "label": "Legal comments",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "placeholder": "Clause, issue, suggested wording",
+                  "max_length": 8000,
+                  "toolbar": "full",
+                  "min_height": 160
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "doc_view",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_changes",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "legal_risk",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "redline",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "changes",
+              "label": "Request changes",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request changes"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Legal review: {{doc_title}}",
+            "align": "left",
+            "subtitle": "{{reference}} · version {{version}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#16152B",
+                  "page": "#ECEDFB",
+                  "page_to": "#F8F8FE"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "a_legal",
+        "type": "update_data_table",
+        "label": "Audit: legal review",
+        "position": {
+          "x": 920,
+          "y": 2720
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Legal review",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "{{outcome}}",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "Risk {{task_data.legal_risk}} · {{=COALESCE(task_data.redline.text, \"No comments\")}}"
+          }
+        }
+      },
+      {
+        "id": "checksum",
+        "type": "doc_inspect",
+        "label": "Checksum of the document",
+        "position": {
+          "x": 600,
+          "y": 2860
+        },
+        "config": {
+          "source": "{{current_document}}",
+          "operation": "checksum",
+          "algorithms": [
+            "sha256"
+          ],
+          "output_var": "doc_check"
+        }
+      },
+      {
+        "id": "reg_sign",
+        "type": "update_data_table",
+        "label": "Register: awaiting sign-off",
+        "position": {
+          "x": 600,
+          "y": 2980
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Awaiting sign-off",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "checksum_sha256": "{{doc_check.checksums.sha256}}"
+          }
+        }
+      },
+      {
+        "id": "status_s",
+        "type": "set_variable",
+        "label": "Status: awaiting sign-off",
+        "position": {
+          "x": 600,
+          "y": 3100
+        },
+        "config": {
+          "name": "doc_status",
+          "expression": "Awaiting sign-off"
+        }
+      },
+      {
+        "id": "signoff",
+        "type": "user_task",
+        "label": "Owner sign-off (e-sign)",
+        "position": {
+          "x": 600,
+          "y": 3240
+        },
+        "config": {
+          "task_title": "Sign off: {{form.title}} v{{version}} ({{reference}})",
+          "task_description": "<p>Every review of <strong>{{form.title}}</strong> is complete ({{route_name}}). As the document owner, read the final version and sign it off for publication from {{form.effective_date}}.</p><p>File <code>{{current_document[0].name}}</code>, SHA-256 <code>{{doc_check.checksums.sha256}}</code>. Your name, the time, this checksum and your signature are recorded in the Audit log and on the sign-off certificate.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Sign off",
+            "Request changes"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.doc_owner}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), 3)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "t_title",
+              "label": "Document",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.title}}"
+            },
+            {
+              "key": "t_ref",
+              "label": "Reference",
+              "type": "text",
+              "read_only": true,
+              "default": "{{reference}}"
+            },
+            {
+              "key": "t_type",
+              "label": "Type",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_type}} · {{form.change_size}}"
+            },
+            {
+              "key": "t_version",
+              "label": "Version",
+              "type": "text",
+              "read_only": true,
+              "default": "v{{version}} · effective {{form.effective_date}}"
+            },
+            {
+              "key": "t_owner",
+              "label": "Owner",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.doc_owner_name}}"
+            },
+            {
+              "key": "t_card",
+              "type": "custom",
+              "label": "The document",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "info",
+                  "card_title": "{{field1}}",
+                  "body": "Read the version below, then approve it or request changes with redline comments that quote the clause.",
+                  "layout": "key-value",
+                  "labels": [
+                    "Document",
+                    "Reference",
+                    "Type",
+                    "Version",
+                    "Owner"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "t_title",
+                  "field2": "t_ref",
+                  "field3": "t_type",
+                  "field4": "t_version",
+                  "field5": "t_owner"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "doc_view",
+              "type": "custom",
+              "label": "Document",
+              "custom": {
+                "tag": "ut-pdf-viewer",
+                "version": "1.1.0",
+                "name": "PDF viewer",
+                "value_type": "files",
+                "icon": "file-text",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "props": {
+                  "allow_upload": false
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "region",
+                  "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 560,
+                  "min_height": 200,
+                  "max_height": 1000,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The PDF as an uploaded file (a list of one)"
+                }
+              },
+              "read_only": true,
+              "default": "{{current_document}}",
+              "help_text": "The version under review. Page through it, zoom or rotate here."
+            },
+            {
+              "key": "t_changes",
+              "label": "Summary of changes",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.change_summary_text}}"
+            },
+            {
+              "key": "t_checksum",
+              "label": "SHA-256 of this file",
+              "type": "text",
+              "read_only": true,
+              "default": "{{doc_check.checksums.sha256}}"
+            },
+            {
+              "key": "approve_statement",
+              "label": "I approve this version for publication",
+              "type": "boolean",
+              "required": true,
+              "help_text": "Required to sign off."
+            },
+            {
+              "key": "signature",
+              "type": "custom",
+              "label": "Signature",
+              "custom": {
+                "tag": "ut-signature",
+                "version": "1.1.0",
+                "name": "Signature",
+                "value_type": "files",
+                "icon": "signature",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "size": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 100
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  }
+                },
+                "props": {
+                  "background": "white",
+                  "height": 180,
+                  "allow_typed": true,
+                  "prompt": "Sign to approve this version for publication"
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "group",
+                  "keyboard": "Tab to the drawing area and the buttons. Keyboard users choose \"Type your name instead\", type their name and press Enter (or \"Use this signature\"). Undo removes the last stroke, Clear empties the pad, \"Sign again\" replaces a saved signature.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 222,
+                  "min_height": 140,
+                  "max_height": 640,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The signature image as an uploaded file (a list of one, like Attachments)"
+                }
+              },
+              "required": true
+            },
+            {
+              "key": "redline",
+              "type": "custom",
+              "label": "Comments (if you request changes)",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "max_length": 4000,
+                  "toolbar": "basic",
+                  "min_height": 120
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "doc_view",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_changes",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_checksum",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "approve_statement",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "signature",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "redline",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "sign",
+              "label": "Sign off",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Sign off"
+            },
+            {
+              "id": "changes",
+              "label": "Request changes",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request changes"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Sign off: {{doc_title}}",
+            "align": "left",
+            "subtitle": "{{reference}} · version {{version}} · {{type_settings.sign_off_role}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#16152B",
+                  "page": "#ECEDFB",
+                  "page_to": "#F8F8FE"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "signer",
+        "type": "set_variable",
+        "label": "Signer",
+        "position": {
+          "x": 600,
+          "y": 3380
+        },
+        "config": {
+          "name": "signer_name",
+          "expression": "{{actioned_by_name}}"
+        }
+      },
+      {
+        "id": "signed_at",
+        "type": "set_variable",
+        "label": "Signed at",
+        "position": {
+          "x": 600,
+          "y": 3500
+        },
+        "config": {
+          "name": "signed_at",
+          "expression": "{{=NOW()}}"
+        }
+      },
+      {
+        "id": "signed_txt",
+        "type": "set_variable",
+        "label": "Signed at (text)",
+        "position": {
+          "x": 600,
+          "y": 3620
+        },
+        "config": {
+          "name": "signed_at_text",
+          "expression": "{{=FORMAT_DATE(signed_at, \"YYYY-MM-DD HH:mm\")}} UTC"
+        }
+      },
+      {
+        "id": "sig_file",
+        "type": "set_variable",
+        "label": "Keep the signature",
+        "position": {
+          "x": 600,
+          "y": 3740
+        },
+        "config": {
+          "name": "signature_file",
+          "expression": "{{task_data.signature}}"
+        }
+      },
+      {
+        "id": "cycle",
+        "type": "set_variable",
+        "label": "Cycle time (days)",
+        "position": {
+          "x": 600,
+          "y": 3860
+        },
+        "config": {
+          "name": "cycle_days",
+          "expression": "{{=ROUND(DAY_DIFF(started_at, signed_at), 1)}}"
+        }
+      },
+      {
+        "id": "next_review",
+        "type": "set_variable",
+        "label": "Next review date",
+        "position": {
+          "x": 600,
+          "y": 3980
+        },
+        "config": {
+          "name": "next_review_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(form.effective_date, ROUND(type_settings.review_cycle_months * 30.4, 0)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "a_sign",
+        "type": "update_data_table",
+        "label": "Audit: signed off",
+        "position": {
+          "x": 600,
+          "y": 4100
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Sign-off (e-sign)",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "Signed",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "Signed by {{signer_name}} at {{signed_at}} · \"I approve this version for publication\" · file {{current_document[0].name}} · SHA-256 {{doc_check.checksums.sha256}} · signature {{signature_file[0].name}}"
+          }
+        }
+      },
+      {
+        "id": "reg_pub",
+        "type": "update_data_table",
+        "label": "Register: published",
+        "position": {
+          "x": 600,
+          "y": 4220
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Published",
+            "signed_by": "{{signer_name}}",
+            "signed_at": "{{signed_at}}",
+            "next_review_date": "{{next_review_date}}",
+            "review_days": "{{cycle_days}}"
+          }
+        }
+      },
+      {
+        "id": "retain",
+        "type": "update_data_table",
+        "label": "Apply 7-year retention to the register row",
+        "position": {
+          "x": 600,
+          "y": 4340
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "set_retention",
+          "row_id": "{{register_row_id}}",
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b"
+        }
+      },
+      {
+        "id": "status_p",
+        "type": "set_variable",
+        "label": "Status: published",
+        "position": {
+          "x": 600,
+          "y": 4460
+        },
+        "config": {
+          "name": "doc_status",
+          "expression": "Published"
+        }
+      },
+      {
+        "id": "cert_text",
+        "type": "text_template",
+        "label": "Sign-off certificate",
+        "position": {
+          "x": 600,
+          "y": 4580
+        },
+        "config": {
+          "output_var": "certificate_html",
+          "template": "<h1>Sign-off certificate</h1><p><strong>{{form.title}}</strong><br>{{form.doc_type}} · version {{version}} {{form.version_label}} · reference {{reference}}</p><table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"><tr><th align=\"left\">Document file</th><td>{{current_document[0].name}}</td></tr><tr><th align=\"left\">SHA-256</th><td>{{doc_check.checksums.sha256}}</td></tr><tr><th align=\"left\">Effective date</th><td>{{form.effective_date}}</td></tr><tr><th align=\"left\">Next review</th><td>{{next_review_date}}</td></tr><tr><th align=\"left\">Review route</th><td>{{route_name}} ({{reviewers_needed}} reviewer(s), legal review: {{=IF(legal_review, \"yes\", \"no\")}})</td></tr><tr><th align=\"left\">Submitted by</th><td>{{submitted_by_name}} on {{=FORMAT_DATE(started_at, \"YYYY-MM-DD\")}}</td></tr><tr><th align=\"left\">Signed off by</th><td>{{signer_name}} ({{type_settings.sign_off_role}}) on {{signed_at_text}}</td></tr><tr><th align=\"left\">Statement</th><td>I approve this version for publication.</td></tr><tr><th align=\"left\">Signature image</th><td>{{signature_file[0].name}}</td></tr><tr><th align=\"left\">Days to sign-off</th><td>{{cycle_days}}</td></tr></table><h2>Summary of changes</h2><p>{{form.change_summary_text}}</p><p>Every review step, its outcome and comments are recorded in the Audit log under {{reference}}, kept for {{type_settings.retention_years}} years.</p>"
+        }
+      },
+      {
+        "id": "cert_pdf",
+        "type": "doc_convert",
+        "label": "Certificate to PDF",
+        "position": {
+          "x": 600,
+          "y": 4700
+        },
+        "config": {
+          "source": "{{certificate_html}}",
+          "target": "pdf",
+          "title": "Sign-off certificate {{reference}}",
+          "output_name": "{{reference}}-sign-off-certificate",
+          "output_var": "certificate_pdf",
+          "page_size": "A4"
+        }
+      },
+      {
+        "id": "pack",
+        "type": "json_build_array",
+        "label": "Signed pack parts",
+        "position": {
+          "x": 600,
+          "y": 4820
+        },
+        "config": {
+          "output_var": "pack_parts",
+          "items": [
+            {
+              "value": "{{certificate_pdf}}"
+            },
+            {
+              "value": "{{current_document[0]}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "merge",
+        "type": "doc_pdf",
+        "label": "Certificate + document PDF",
+        "position": {
+          "x": 600,
+          "y": 4940
+        },
+        "config": {
+          "operation": "merge",
+          "sources": "{{pack_parts}}",
+          "output_var": "signed_pack",
+          "output_name": "{{reference}}-v{{version}}-signed"
+        }
+      },
+      {
+        "id": "mail_sub",
+        "type": "send_email",
+        "label": "Email the certificate to the submitter",
+        "position": {
+          "x": 600,
+          "y": 5060
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "e3875201-c95c-5499-be55-67774fbca2db",
+          "attachments": "{{certificate_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "mail_owner",
+        "type": "send_email",
+        "label": "Email the signed pack to the owner",
+        "position": {
+          "x": 600,
+          "y": 5180
+        },
+        "config": {
+          "to": "{{form.doc_owner_email}}",
+          "email_template_id": "e3875201-c95c-5499-be55-67774fbca2db",
+          "attachments": "{{signed_pack}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "a_pub",
+        "type": "update_data_table",
+        "label": "Audit: published",
+        "position": {
+          "x": 600,
+          "y": 5300
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Published",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "Published",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "Certificate {{certificate_pdf.name}} · next review {{next_review_date}} · {{cycle_days}} days from submission"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Published",
+        "position": {
+          "x": 600,
+          "y": 5420
+        },
+        "config": {
+          "reason": "{{reference}} v{{version}} signed off by {{signer_name}}"
+        }
+      },
+      {
+        "id": "ch_req",
+        "type": "set_variable",
+        "label": "What was asked",
+        "position": {
+          "x": 1500,
+          "y": 2000
+        },
+        "config": {
+          "name": "change_request",
+          "expression": "{{=COALESCE(task_data.redline.text, \"No comments were given.\")}}"
+        }
+      },
+      {
+        "id": "ch_step",
+        "type": "set_variable",
+        "label": "Which step",
+        "position": {
+          "x": 1500,
+          "y": 2120
+        },
+        "config": {
+          "name": "changes_step",
+          "expression": "{{user_task_title}}"
+        }
+      },
+      {
+        "id": "status_c",
+        "type": "set_variable",
+        "label": "Status: changes requested",
+        "position": {
+          "x": 1500,
+          "y": 2240
+        },
+        "config": {
+          "name": "doc_status",
+          "expression": "Changes requested"
+        }
+      },
+      {
+        "id": "reg_ch",
+        "type": "update_data_table",
+        "label": "Register: changes requested",
+        "position": {
+          "x": 1500,
+          "y": 2360
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Changes requested"
+          }
+        }
+      },
+      {
+        "id": "mail_ch",
+        "type": "send_email",
+        "label": "Tell the submitter",
+        "position": {
+          "x": 1500,
+          "y": 2480
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "0f46a894-5325-5a6f-a514-d2347ee965c1"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "rev_sla",
+        "type": "set_sla",
+        "label": "Revision SLA",
+        "position": {
+          "x": 1500,
+          "y": 2600
+        },
+        "config": {
+          "sla_label": "Revised version ({{revision_days}} days)",
+          "mode": "relative",
+          "amount": "{{revision_days}}",
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "revise",
+        "type": "user_task",
+        "label": "Upload a revised version",
+        "position": {
+          "x": 1500,
+          "y": 2740
+        },
+        "config": {
+          "task_title": "Revise: {{form.title}} v{{version}} ({{reference}})",
+          "task_description": "<p>{{actioned_by_name}} asked for changes to <strong>{{form.title}}</strong> (version {{version}}):</p><blockquote>{{change_request}}</blockquote><p>Upload the revised PDF and summarise what you changed. It goes back to the first reviewer as version {{=version + 1}}. Choose <strong>Withdraw</strong> to stop the review.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Upload revision",
+            "Withdraw"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), revision_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 10080,
+          "fields": [
+            {
+              "key": "t_request",
+              "label": "Changes requested",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{change_request}}"
+            },
+            {
+              "key": "doc_view",
+              "type": "custom",
+              "label": "Current version",
+              "custom": {
+                "tag": "ut-pdf-viewer",
+                "version": "1.1.0",
+                "name": "PDF viewer",
+                "value_type": "files",
+                "icon": "file-text",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "props": {
+                  "allow_upload": false
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "region",
+                  "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 560,
+                  "min_height": 200,
+                  "max_height": 1000,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The PDF as an uploaded file (a list of one)"
+                }
+              },
+              "read_only": true,
+              "default": "{{current_document}}"
+            },
+            {
+              "key": "revised_document",
+              "label": "Revised document (PDF)",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 1,
+                "max_file_mb": 20,
+                "custom_types": [
+                  ".pdf"
+                ]
+              },
+              "help_text": "Required unless you withdraw the document."
+            },
+            {
+              "key": "revised_preview",
+              "type": "custom",
+              "label": "Preview of the revision",
+              "custom": {
+                "tag": "ut-pdf-viewer",
+                "version": "1.1.0",
+                "name": "PDF viewer",
+                "value_type": "files",
+                "icon": "file-text",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "props": {
+                  "allow_upload": false
+                },
+                "context_map": {
+                  "document": "revised_document"
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "region",
+                  "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 560,
+                  "min_height": 200,
+                  "max_height": 1000,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The PDF as an uploaded file (a list of one)"
+                }
+              }
+            },
+            {
+              "key": "response",
+              "type": "custom",
+              "label": "What you changed",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "placeholder": "Section 4 now covers personal devices …",
+                  "max_length": 4000,
+                  "toolbar": "basic",
+                  "min_height": 140
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_request",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "doc_view",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "revised_document",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "revised_preview",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "response",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "upload",
+              "label": "Send the revision",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Upload revision"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Withdraw"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Revise: {{doc_title}}",
+            "align": "left",
+            "subtitle": "{{reference}} · version {{version}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#16152B",
+                  "page": "#ECEDFB",
+                  "page_to": "#F8F8FE"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "has_rev",
+        "type": "condition",
+        "label": "Revision attached?",
+        "position": {
+          "x": 1500,
+          "y": 2880
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Attached",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{task_data.revised_document}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "new_doc",
+        "type": "set_variable",
+        "label": "Use the revision",
+        "position": {
+          "x": 1300,
+          "y": 3020
+        },
+        "config": {
+          "name": "current_document",
+          "expression": "{{task_data.revised_document}}"
+        }
+      },
+      {
+        "id": "new_ver",
+        "type": "set_variable",
+        "label": "Next version",
+        "position": {
+          "x": 1300,
+          "y": 3140
+        },
+        "config": {
+          "name": "version",
+          "expression": "{{=version + 1}}"
+        }
+      },
+      {
+        "id": "status_r",
+        "type": "set_variable",
+        "label": "Status: in review again",
+        "position": {
+          "x": 1300,
+          "y": 3260
+        },
+        "config": {
+          "name": "doc_status",
+          "expression": "In review"
+        }
+      },
+      {
+        "id": "reg_rev",
+        "type": "update_data_table",
+        "label": "Register: new version in review",
+        "position": {
+          "x": 1300,
+          "y": 3380
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "In review",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}"
+          }
+        }
+      },
+      {
+        "id": "a_rev",
+        "type": "update_data_table",
+        "label": "Audit: revision uploaded",
+        "position": {
+          "x": 1300,
+          "y": 3500
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Revision",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "Uploaded",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "{{=COALESCE(task_data.response.text, \"No summary\")}}"
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to the first review",
+        "position": {
+          "x": 1300,
+          "y": 3620
+        },
+        "config": {
+          "target_node_id": "review1",
+          "target_node_label": "Review"
+        }
+      },
+      {
+        "id": "status_w",
+        "type": "set_variable",
+        "label": "Status: withdrawn",
+        "position": {
+          "x": 1720,
+          "y": 3020
+        },
+        "config": {
+          "name": "doc_status",
+          "expression": "Withdrawn"
+        }
+      },
+      {
+        "id": "reg_w",
+        "type": "update_data_table",
+        "label": "Register: withdrawn",
+        "position": {
+          "x": 1720,
+          "y": 3140
+        },
+        "config": {
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "table_name": "Documents register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Withdrawn"
+          }
+        }
+      },
+      {
+        "id": "a_w",
+        "type": "update_data_table",
+        "label": "Audit: withdrawn",
+        "position": {
+          "x": 1720,
+          "y": 3260
+        },
+        "config": {
+          "table_id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+          "table_name": "Audit log",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+          "column_values": {
+            "reference": "{{reference}}",
+            "at": "{{=NOW()}}",
+            "step": "Withdrawn",
+            "actor": "{{=COALESCE(actioned_by_name, \"Workflow\")}}",
+            "outcome": "Withdrawn",
+            "version": "{{version}}",
+            "document_name": "{{current_document[0].name}}",
+            "detail": "{{=COALESCE(task_data.response.text, \"Withdrawn by the submitter\")}}"
+          }
+        }
+      },
+      {
+        "id": "end_w",
+        "type": "end_workflow",
+        "label": "Withdrawn",
+        "position": {
+          "x": 1720,
+          "y": 3380
+        },
+        "config": {
+          "reason": "{{reference}} withdrawn"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-started",
+        "source": "ref",
+        "target": "started"
+      },
+      {
+        "id": "e-started-ver",
+        "source": "started",
+        "target": "ver"
+      },
+      {
+        "id": "e-ver-doc",
+        "source": "ver",
+        "target": "doc"
+      },
+      {
+        "id": "e-doc-status0",
+        "source": "doc",
+        "target": "status0"
+      },
+      {
+        "id": "e-status0-route",
+        "source": "status0",
+        "target": "route"
+      },
+      {
+        "id": "e-route-type_row",
+        "source": "route",
+        "target": "type_row"
+      },
+      {
+        "id": "e-type_row-rev_days",
+        "source": "type_row",
+        "target": "rev_days"
+      },
+      {
+        "id": "e-rev_days-dtitle",
+        "source": "rev_days",
+        "target": "dtitle"
+      },
+      {
+        "id": "e-dtitle-title",
+        "source": "dtitle",
+        "target": "title"
+      },
+      {
+        "id": "e-title-reg_in",
+        "source": "title",
+        "target": "reg_in"
+      },
+      {
+        "id": "e-reg_in-a_sub",
+        "source": "reg_in",
+        "target": "a_sub"
+      },
+      {
+        "id": "e-a_sub-ack",
+        "source": "a_sub",
+        "target": "ack"
+      },
+      {
+        "id": "e-ack-sla",
+        "source": "ack",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-review1",
+        "source": "sla",
+        "target": "review1"
+      },
+      {
+        "id": "e-review1-a_r1-approve",
+        "source": "review1",
+        "target": "a_r1",
+        "label": "Approve"
+      },
+      {
+        "id": "e-review1-ch_req-request-changes",
+        "source": "review1",
+        "target": "ch_req",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-a_r1-need2",
+        "source": "a_r1",
+        "target": "need2"
+      },
+      {
+        "id": "e-need2-review2-two-reviewers",
+        "source": "need2",
+        "target": "review2",
+        "label": "Two reviewers"
+      },
+      {
+        "id": "e-need2-needlegal-else",
+        "source": "need2",
+        "target": "needlegal",
+        "label": "Else"
+      },
+      {
+        "id": "e-review2-a_r2-approve",
+        "source": "review2",
+        "target": "a_r2",
+        "label": "Approve"
+      },
+      {
+        "id": "e-review2-ch_req-request-changes",
+        "source": "review2",
+        "target": "ch_req",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-a_r2-needlegal",
+        "source": "a_r2",
+        "target": "needlegal"
+      },
+      {
+        "id": "e-needlegal-legal-legal",
+        "source": "needlegal",
+        "target": "legal",
+        "label": "Legal"
+      },
+      {
+        "id": "e-needlegal-checksum-else",
+        "source": "needlegal",
+        "target": "checksum",
+        "label": "Else"
+      },
+      {
+        "id": "e-legal-a_legal-approve",
+        "source": "legal",
+        "target": "a_legal",
+        "label": "Approve"
+      },
+      {
+        "id": "e-legal-ch_req-request-changes",
+        "source": "legal",
+        "target": "ch_req",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-a_legal-checksum",
+        "source": "a_legal",
+        "target": "checksum"
+      },
+      {
+        "id": "e-checksum-reg_sign",
+        "source": "checksum",
+        "target": "reg_sign"
+      },
+      {
+        "id": "e-reg_sign-status_s",
+        "source": "reg_sign",
+        "target": "status_s"
+      },
+      {
+        "id": "e-status_s-signoff",
+        "source": "status_s",
+        "target": "signoff"
+      },
+      {
+        "id": "e-signoff-signer-sign-off",
+        "source": "signoff",
+        "target": "signer",
+        "label": "Sign off"
+      },
+      {
+        "id": "e-signoff-ch_req-request-changes",
+        "source": "signoff",
+        "target": "ch_req",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-signer-signed_at",
+        "source": "signer",
+        "target": "signed_at"
+      },
+      {
+        "id": "e-signed_at-signed_txt",
+        "source": "signed_at",
+        "target": "signed_txt"
+      },
+      {
+        "id": "e-signed_txt-sig_file",
+        "source": "signed_txt",
+        "target": "sig_file"
+      },
+      {
+        "id": "e-sig_file-cycle",
+        "source": "sig_file",
+        "target": "cycle"
+      },
+      {
+        "id": "e-cycle-next_review",
+        "source": "cycle",
+        "target": "next_review"
+      },
+      {
+        "id": "e-next_review-a_sign",
+        "source": "next_review",
+        "target": "a_sign"
+      },
+      {
+        "id": "e-a_sign-reg_pub",
+        "source": "a_sign",
+        "target": "reg_pub"
+      },
+      {
+        "id": "e-reg_pub-retain",
+        "source": "reg_pub",
+        "target": "retain"
+      },
+      {
+        "id": "e-retain-status_p",
+        "source": "retain",
+        "target": "status_p"
+      },
+      {
+        "id": "e-status_p-cert_text",
+        "source": "status_p",
+        "target": "cert_text"
+      },
+      {
+        "id": "e-cert_text-cert_pdf",
+        "source": "cert_text",
+        "target": "cert_pdf"
+      },
+      {
+        "id": "e-cert_pdf-pack",
+        "source": "cert_pdf",
+        "target": "pack"
+      },
+      {
+        "id": "e-pack-merge",
+        "source": "pack",
+        "target": "merge"
+      },
+      {
+        "id": "e-merge-mail_sub",
+        "source": "merge",
+        "target": "mail_sub"
+      },
+      {
+        "id": "e-mail_sub-mail_owner",
+        "source": "mail_sub",
+        "target": "mail_owner"
+      },
+      {
+        "id": "e-mail_owner-a_pub",
+        "source": "mail_owner",
+        "target": "a_pub"
+      },
+      {
+        "id": "e-a_pub-done",
+        "source": "a_pub",
+        "target": "done"
+      },
+      {
+        "id": "e-ch_req-ch_step",
+        "source": "ch_req",
+        "target": "ch_step"
+      },
+      {
+        "id": "e-ch_step-status_c",
+        "source": "ch_step",
+        "target": "status_c"
+      },
+      {
+        "id": "e-status_c-reg_ch",
+        "source": "status_c",
+        "target": "reg_ch"
+      },
+      {
+        "id": "e-reg_ch-mail_ch",
+        "source": "reg_ch",
+        "target": "mail_ch"
+      },
+      {
+        "id": "e-mail_ch-rev_sla",
+        "source": "mail_ch",
+        "target": "rev_sla"
+      },
+      {
+        "id": "e-rev_sla-revise",
+        "source": "rev_sla",
+        "target": "revise"
+      },
+      {
+        "id": "e-revise-has_rev-upload-revision",
+        "source": "revise",
+        "target": "has_rev",
+        "label": "Upload revision"
+      },
+      {
+        "id": "e-revise-status_w-withdraw",
+        "source": "revise",
+        "target": "status_w",
+        "label": "Withdraw"
+      },
+      {
+        "id": "e-has_rev-new_doc-attached",
+        "source": "has_rev",
+        "target": "new_doc",
+        "label": "Attached"
+      },
+      {
+        "id": "e-has_rev-revise-else",
+        "source": "has_rev",
+        "target": "revise",
+        "label": "Else"
+      },
+      {
+        "id": "e-new_doc-new_ver",
+        "source": "new_doc",
+        "target": "new_ver"
+      },
+      {
+        "id": "e-new_ver-status_r",
+        "source": "new_ver",
+        "target": "status_r"
+      },
+      {
+        "id": "e-status_r-reg_rev",
+        "source": "status_r",
+        "target": "reg_rev"
+      },
+      {
+        "id": "e-reg_rev-a_rev",
+        "source": "reg_rev",
+        "target": "a_rev"
+      },
+      {
+        "id": "e-a_rev-back",
+        "source": "a_rev",
+        "target": "back"
+      },
+      {
+        "id": "e-status_w-reg_w",
+        "source": "status_w",
+        "target": "reg_w"
+      },
+      {
+        "id": "e-reg_w-a_w",
+        "source": "reg_w",
+        "target": "a_w"
+      },
+      {
+        "id": "e-a_w-end_w",
+        "source": "a_w",
+        "target": "end_w"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

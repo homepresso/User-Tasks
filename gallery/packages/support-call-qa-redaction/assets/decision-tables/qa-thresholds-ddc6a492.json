@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "ddc6a492-4da6-52c2-9dbb-88151ce1ca62",
+  "asset": {
+    "id": "ddc6a492-4da6-52c2-9dbb-88151ce1ca62",
+    "name": "QA thresholds",
+    "description": "Which scored calls a supervisor reviews, and how urgently. Tune the score bands to your QA programme.",
+    "inputs": [
+      {
+        "key": "qa_score",
+        "label": "QA score",
+        "type": "number",
+        "id": "c8d78b86-3bc8-572c-9563-c0fc8432b98d"
+      },
+      {
+        "key": "sentiment",
+        "label": "Sentiment",
+        "type": "string",
+        "id": "bbd9c0f5-095c-5d31-a1fa-aa21eb916100"
+      },
+      {
+        "key": "verified",
+        "label": "Identity verified",
+        "type": "string",
+        "id": "2ca6dc19-1af5-5911-bfc1-405126f6b251"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "review",
+        "label": "Supervisor review",
+        "type": "string",
+        "id": "c120195e-9af1-56b2-be1b-825ba4d58a9d"
+      },
+      {
+        "key": "priority",
+        "label": "Priority",
+        "type": "string",
+        "id": "33e16607-f859-56a6-b7a0-04a4b3920fdc"
+      },
+      {
+        "key": "reason",
+        "label": "Reason",
+        "type": "string",
+        "id": "4846c68a-0304-5268-9df0-c1ae1c8e1a0c"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Account change without verification",
+        "conditions": [
+          {
+            "inputKey": "verified",
+            "operator": "equals",
+            "value": "false",
+            "id": "5cf33ed5-6aa4-54a7-b62a-a8a8198aca7b"
+          }
+        ],
+        "outputs": {
+          "review": "yes",
+          "priority": "high",
+          "reason": "Identity was not verified"
+        },
+        "id": "c00e34e7-42bb-5ea6-b0ad-cb6962bcb89c",
+        "enabled": true
+      },
+      {
+        "label": "Low score",
+        "conditions": [
+          {
+            "inputKey": "qa_score",
+            "operator": "less_than",
+            "value": 70,
+            "id": "415eb548-7eed-5709-b4fd-0788772a5970"
+          }
+        ],
+        "outputs": {
+          "review": "yes",
+          "priority": "high",
+          "reason": "QA score under 70"
+        },
+        "id": "4024797a-a2c9-5a8b-bfc6-158ca8b045d6",
+        "enabled": true
+      },
+      {
+        "label": "Negative customer",
+        "conditions": [
+          {
+            "inputKey": "sentiment",
+            "operator": "equals",
+            "value": "negative",
+            "id": "beafb548-07dd-5ff4-8341-5296539746ef"
+          }
+        ],
+        "outputs": {
+          "review": "yes",
+          "priority": "medium",
+          "reason": "Customer ended negative"
+        },
+        "id": "28dcd57e-d36a-5f25-b4f1-e4e40d680ea3",
+        "enabled": true
+      },
+      {
+        "label": "Pass",
+        "conditions": [],
+        "outputs": {
+          "review": "no",
+          "priority": "low",
+          "reason": "Meets the bar"
+        },
+        "id": "2696a224-1208-5c25-ac55-6492c3aed2b7",
+        "enabled": true
+      }
+    ]
+  }
+}

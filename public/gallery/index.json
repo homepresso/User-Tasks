@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "generator": "usertasks-gallery",
-  "updated": "2026-10-28",
+  "updated": "2026-12-06",
   "signing": {
     "signed": true,
     "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
@@ -38,18 +38,42 @@
       "id": "operations-compliance",
       "title": "Operations & Compliance",
       "summary": "Contracts, attestations, audits, supplier risk and privacy requests.",
-      "count": 10
+      "count": 14
     },
     {
       "id": "workplace",
       "title": "Workplace & Facilities",
       "summary": "Visitors, rooms, vehicles, equipment, events and the everyday office processes.",
+      "count": 5
+    },
+    {
+      "id": "surveys-assessments",
+      "title": "Surveys & Assessments",
+      "summary": "Customer and employee surveys, questionnaires, quizzes and inspections built on ratings, Likert scales, sliders, signatures and charts.",
       "count": 4
+    },
+    {
+      "id": "media-evidence",
+      "title": "Media & Evidence",
+      "summary": "Recordings, photos and video: transcripts, redaction, records requests, claims, identity checks and moderation.",
+      "count": 6
     },
     {
       "id": "headless-integration",
       "title": "Headless & Integration",
       "summary": "API-first orchestration, sync, reconciliation, documents, AI and ETL with no UI at all.",
+      "count": 6
+    },
+    {
+      "id": "form-controls",
+      "title": "Form controls",
+      "summary": "Web components for your forms: charts, saved reports, address search, maps, signatures, ratings, rich text, tables, surveys and PDF viewing.",
+      "count": 14
+    },
+    {
+      "id": "workflow-actions",
+      "title": "Workflow actions",
+      "summary": "Custom workflow steps that run sandboxed: math and statistics, text, business calendars, data transforms, validation and formatting, crypto and IDs.",
       "count": 6
     }
   ],
@@ -99,14 +123,18 @@
       "category": "hr-people",
       "summary": "HR enters a new hire; the HR record, laptop, accounts, buddy and first-week plan are all arranged before day one, with a 30-day check-in.",
       "trigger": "form",
-      "version": "1.1.0",
-      "released": "2026-10-28",
+      "version": "1.2.0",
+      "released": "2026-11-01",
       "tags": [
         "onboarding",
         "new hire",
         "it provisioning",
         "sub-workflow",
-        "hr"
+        "hr",
+        "steps & progress",
+        "application mode",
+        "data table",
+        "form rules"
       ],
       "needs": [
         "rest_api",
@@ -116,14 +144,14 @@
       "optional_needs": [],
       "difficulty": "intermediate",
       "setup_minutes": 20,
-      "file": "/gallery/employee-onboarding-1.1.0.utpkg",
-      "file_name": "employee-onboarding-1.1.0.utpkg",
-      "size_bytes": 20581,
-      "sha256": "fab82fd5892a44a35d0e6f14b6f6b60a3ed3c15cb282e99ef7e01e3206a38d6f",
-      "checksum": "sha256:b3a2630d92e94b1b2991d3bbdc03c6a03a631f8971dea122dbe263e5a2deea49",
+      "file": "/gallery/employee-onboarding-1.2.0.utpkg",
+      "file_name": "employee-onboarding-1.2.0.utpkg",
+      "size_bytes": 31557,
+      "sha256": "e845d0abe7c544ee6ec6cca143a36cf888d7c4e9a47b60b523f0bc7adb8f30fa",
+      "checksum": "sha256:27ab0c4026c3e48d3381aff26ad48a27f4043eeaf4a17be4868038d9548a8714",
       "signed": true,
       "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
-      "asset_count": 10,
+      "asset_count": 13,
       "requirement_count": 4,
       "page": "/gallery/employee-onboarding",
       "source": "official",
@@ -611,15 +639,19 @@
       "category": "finance",
       "summary": "A themed petty cash claim form with a cost-centre lookup and receipt link, float and limit rules, budget-holder approval and a ledger.",
       "trigger": "form",
-      "version": "1.0.0",
-      "released": "2026-10-28",
+      "version": "1.1.0",
+      "released": "2026-11-01",
       "tags": [
         "petty cash",
         "expenses",
         "decision table",
         "forms",
         "lookup",
-        "no integrations"
+        "no integrations",
+        "steps & progress",
+        "application mode",
+        "data table",
+        "form rules"
       ],
       "needs": [],
       "optional_needs": [
@@ -627,14 +659,14 @@
       ],
       "difficulty": "starter",
       "setup_minutes": 10,
-      "file": "/gallery/petty-cash-1.0.0.utpkg",
-      "file_name": "petty-cash-1.0.0.utpkg",
-      "size_bytes": 15446,
-      "sha256": "907cb130b1cb2135150ea998167cd45fb06504606b9126ad2797aa36b99a95db",
-      "checksum": "sha256:e03972daa8fc8106c7d6540bc2597ed1339b83c75c5c3684ad9bcfeb700219d3",
+      "file": "/gallery/petty-cash-1.1.0.utpkg",
+      "file_name": "petty-cash-1.1.0.utpkg",
+      "size_bytes": 19736,
+      "sha256": "5de473b7ede8ef9590085e03e12c49f165670982c011cbddf5f5990285ce354a",
+      "checksum": "sha256:d8570329dcdc19daa53b16201aa67925434834fa9388e8af8f8460a309796203",
       "signed": true,
       "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
-      "asset_count": 7,
+      "asset_count": 8,
       "requirement_count": 0,
       "page": "/gallery/petty-cash",
       "source": "official",
@@ -810,14 +842,18 @@
       "category": "finance",
       "summary": "Screen new vendors for sanctions, registry and adverse media, tier the risk, review and verify bank details, then create the vendor in the ERP.",
       "trigger": "form",
-      "version": "1.1.0",
-      "released": "2026-10-28",
+      "version": "1.2.0",
+      "released": "2026-11-01",
       "tags": [
         "vendors",
         "kyc",
         "sanctions screening",
         "bank verification",
-        "risk"
+        "risk",
+        "steps & progress",
+        "application mode",
+        "data table",
+        "form rules"
       ],
       "needs": [
         "rest_api",
@@ -827,14 +863,14 @@
       "optional_needs": [],
       "difficulty": "intermediate",
       "setup_minutes": 20,
-      "file": "/gallery/vendor-onboarding-kyc-1.1.0.utpkg",
-      "file_name": "vendor-onboarding-kyc-1.1.0.utpkg",
-      "size_bytes": 19100,
-      "sha256": "28c81b443c9a0cc8c05e17c03271078d47625edac9ab106d790a7192102771e6",
-      "checksum": "sha256:5464eab0c7e8e2ee0d94db23ff2750af3be3fc17598f2133993beea5e445fbad",
+      "file": "/gallery/vendor-onboarding-kyc-1.2.0.utpkg",
+      "file_name": "vendor-onboarding-kyc-1.2.0.utpkg",
+      "size_bytes": 30993,
+      "sha256": "bc84ebd53a5225e7fdd2bc56b8f1c098f4e06e37d4c974923d3690cea62e5cff",
+      "checksum": "sha256:958e5cc02d5e2a2c21832647b1f78d9eb7516f5b5ad4e78d28cb863ea7aa3bbf",
       "signed": true,
       "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
-      "asset_count": 9,
+      "asset_count": 12,
       "requirement_count": 3,
       "page": "/gallery/vendor-onboarding-kyc",
       "source": "official",
@@ -1314,8 +1350,8 @@
       "category": "customer-sales",
       "summary": "A themed registration form with an event lookup, capacity check and waitlist, confirmation emails and an organiser task for special requests.",
       "trigger": "form",
-      "version": "1.0.1",
-      "released": "2026-10-28",
+      "version": "1.1.0",
+      "released": "2026-11-04",
       "tags": [
         "events",
         "registration",
@@ -1330,11 +1366,11 @@
       ],
       "difficulty": "starter",
       "setup_minutes": 10,
-      "file": "/gallery/event-registration-1.0.1.utpkg",
-      "file_name": "event-registration-1.0.1.utpkg",
-      "size_bytes": 14520,
-      "sha256": "ebb76d21084e8127566fecd364aeacbc85391d73ba77b1f2423c4f54472a77d1",
-      "checksum": "sha256:fe987e8d31e9a60933f46dc677dffb69b989e3ae2ce555d113377432dd61b108",
+      "file": "/gallery/event-registration-1.1.0.utpkg",
+      "file_name": "event-registration-1.1.0.utpkg",
+      "size_bytes": 14612,
+      "sha256": "3c3ae1786eb729fe4d093166874e2d6a74c813b22e3cb9407d9b35f4551405b6",
+      "checksum": "sha256:dee7ec760e329293cb2c90590697c174365173c229c59d71e0521ae1de5d93d7",
       "signed": true,
       "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
       "asset_count": 7,
@@ -1502,6 +1538,87 @@
       "native": false
     },
     {
+      "id": "6031bf30-ede3-5150-b36e-1be5a969a688",
+      "slug": "contract-policy-review-esign",
+      "title": "Contract and policy review with internal e-sign",
+      "category": "operations-compliance",
+      "summary": "Submit a policy, contract or procedure as a PDF; reviewers read it in a PDF viewer and redline it, legal checks it when needed, and the owner e-signs. Every step is audit-logged.",
+      "trigger": "form",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "document control",
+        "policy",
+        "contract",
+        "review",
+        "e-signature",
+        "audit trail",
+        "form controls",
+        "no integrations"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 10,
+      "file": "/gallery/contract-policy-review-esign-1.1.0.utpkg",
+      "file_name": "contract-policy-review-esign-1.1.0.utpkg",
+      "size_bytes": 679688,
+      "sha256": "a8abf4803f34e98ebe57d10a36aafc23864233686252886e15846ec1af0b734c",
+      "checksum": "sha256:67a12e30407eea17e05e288c6860f3f207314a5281a2da2687d4f8c42713c69d",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 22,
+      "requirement_count": 0,
+      "page": "/gallery/contract-policy-review-esign",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "id": "fc12c18e-5d97-502d-a3d9-b885c8db567d",
+      "slug": "contract-approval-esign",
+      "title": "Contract approval and e-signature",
+      "category": "operations-compliance",
+      "summary": "Approve a contract internally, send it for signature through DocuSign, wait for the signer and record the signed PDF, with a follow-up task when it is declined or expires.",
+      "trigger": "api",
+      "version": "1.0.0",
+      "released": "2026-12-06",
+      "tags": [
+        "e-signature",
+        "docusign",
+        "contracts",
+        "approval",
+        "legal"
+      ],
+      "needs": [
+        "rest_api",
+        "assignees",
+        "webhook"
+      ],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 20,
+      "file": "/gallery/contract-approval-esign-1.0.0.utpkg",
+      "file_name": "contract-approval-esign-1.0.0.utpkg",
+      "size_bytes": 10198,
+      "sha256": "19f238e8fdf894ca3051bace693ff0b6ddb5879246c2207d2422167499c887e5",
+      "checksum": "sha256:c0f35ca4849a5a955547dcec69beebeab87a15c285d528b9f32b120228233b43",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 4,
+      "requirement_count": 2,
+      "page": "/gallery/contract-approval-esign",
+      "source": "official",
+      "systems": [
+        "DocuSign"
+      ],
+      "native": false
+    },
+    {
       "id": "5bdee3d0-b3c3-4eea-bc32-6bf793eb9340",
       "slug": "contract-renewal-reminders",
       "title": "Contract renewal reminders",
@@ -1537,6 +1654,48 @@
       "source": "official",
       "systems": [],
       "native": false
+    },
+    {
+      "id": "814e0fa2-9be0-52df-b536-c555f31d7447",
+      "slug": "contract-review-approval",
+      "title": "Contract review & approval",
+      "category": "operations-compliance",
+      "summary": "Contract owners submit a draft on a stepped form; legal checks it against a clause playbook, redlines revisions, the right people approve it and a register tracks renewals.",
+      "trigger": "form",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "legal",
+        "contracts",
+        "clause playbook",
+        "redline",
+        "approvals",
+        "renewals",
+        "no integrations",
+        "steps & progress",
+        "application mode",
+        "data table",
+        "form rules"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 15,
+      "file": "/gallery/contract-review-approval-1.0.0.utpkg",
+      "file_name": "contract-review-approval-1.0.0.utpkg",
+      "size_bytes": 26819,
+      "sha256": "0ef6dd027a972be62ad7ba4bc8eb08bca4b2f5bb08a6a9b422bde692017d738e",
+      "checksum": "sha256:33f1fe1cc2b17aa03af05d867ab56f9e3874f5fe118543723ca0a30c4b3bcb6d",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 9,
+      "requirement_count": 0,
+      "page": "/gallery/contract-review-approval",
+      "source": "official",
+      "systems": [],
+      "native": true
     },
     {
       "id": "25aa751f-5cb1-4607-af75-831e197aedfb",
@@ -1611,6 +1770,48 @@
       "asset_count": 5,
       "requirement_count": 0,
       "page": "/gallery/inventory-reorder",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "id": "0f2b91cb-9ec1-5f94-91ec-ea0f79b99922",
+      "slug": "legal-request-intake",
+      "title": "Legal request intake & triage",
+      "category": "operations-compliance",
+      "summary": "One front door for NDAs, contract reviews, legal questions and disputes: a stepped intake form, routing to the right queue with an SLA, and a Data table for the legal team.",
+      "trigger": "form",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "legal",
+        "intake",
+        "triage",
+        "nda",
+        "contract review",
+        "sla",
+        "no integrations",
+        "steps & progress",
+        "application mode",
+        "data table",
+        "form rules"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/legal-request-intake-1.0.0.utpkg",
+      "file_name": "legal-request-intake-1.0.0.utpkg",
+      "size_bytes": 24225,
+      "sha256": "ba48d12409e66e2a566cc2785451decc2e52e2520b568cdb3da2ea3fde6bf488",
+      "checksum": "sha256:bfac88191a5da4f6996d75474e5b949ef9bef4b56e914797df017447b3651fee",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 8,
+      "requirement_count": 0,
+      "page": "/gallery/legal-request-intake",
       "source": "official",
       "systems": [],
       "native": true
@@ -1916,6 +2117,43 @@
       "native": true
     },
     {
+      "id": "b806c9e9-f5d0-5c55-a71c-7bce505cf13d",
+      "slug": "event-registration-sessions",
+      "title": "Event registration with session choices",
+      "category": "workplace",
+      "summary": "A four-step registration page with an attendee table, first and second session choices, slider, rating and rich text; seats are checked by a decision table and waitlisted groups go to the organiser.",
+      "trigger": "form",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "events",
+        "registration",
+        "sessions",
+        "waitlist",
+        "form controls",
+        "no integrations"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 10,
+      "file": "/gallery/event-registration-sessions-1.2.0.utpkg",
+      "file_name": "event-registration-sessions-1.2.0.utpkg",
+      "size_bytes": 284087,
+      "sha256": "df58d9595c2ff3f6f63859240af6487d05d73d5d8f585e64433aeb159e0afa8e",
+      "checksum": "sha256:7478c34ab1fe34f28bbae5262ea6730a005f3d98d19228c30606cfcc87bf25a2",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 25,
+      "requirement_count": 0,
+      "page": "/gallery/event-registration-sessions",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
       "id": "4e43d9de-932e-575d-aa18-ddd65344c088",
       "slug": "meeting-room-booking",
       "title": "Meeting room booking",
@@ -1986,6 +2224,409 @@
       "source": "official",
       "systems": [],
       "native": true
+    },
+    {
+      "id": "752b0f7b-85e6-50a6-a0c4-74475088c7e5",
+      "slug": "csat-nps-survey",
+      "title": "Customer satisfaction (CSAT / NPS) survey",
+      "category": "surveys-assessments",
+      "summary": "A three-step survey page with star rating, 0-10 NPS slider, Likert matrix and rich-text comment; a decision table classifies each answer and detractors get a follow-up call with an SLA.",
+      "trigger": "form",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "survey",
+        "csat",
+        "nps",
+        "customer feedback",
+        "form controls",
+        "no integrations"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 5,
+      "file": "/gallery/csat-nps-survey-1.1.0.utpkg",
+      "file_name": "csat-nps-survey-1.1.0.utpkg",
+      "size_bytes": 258434,
+      "sha256": "c39c6327b51d9595c5e319093dce0b1addd627a18ddf6578b3713dc1f2c41a38",
+      "checksum": "sha256:70e6a336be3a25862e972b47227bc4998d73ff647676585924bb597dd7febdf5",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 20,
+      "requirement_count": 0,
+      "page": "/gallery/csat-nps-survey",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "id": "9f0dec00-4d8d-5e2d-8f94-dbfc10fc9d92",
+      "slug": "employee-pulse-survey",
+      "title": "Employee pulse survey",
+      "category": "surveys-assessments",
+      "summary": "A stepped engagement survey with Likert sections, an eNPS slider and mood rating; scores and risk bands are worked out, and named at-risk answers get a manager follow-up with an action plan.",
+      "trigger": "form",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "survey",
+        "engagement",
+        "enps",
+        "hr",
+        "form controls",
+        "no integrations"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 5,
+      "file": "/gallery/employee-pulse-survey-1.1.0.utpkg",
+      "file_name": "employee-pulse-survey-1.1.0.utpkg",
+      "size_bytes": 292270,
+      "sha256": "3798a63668eb55b79a1b0600471cbfac022af5a34de0e26d3e3ef4b2468b5da4",
+      "checksum": "sha256:e326181bf3fa7d28754c7a25fe68cb54c607ffbe69d798498164b4c0e3ba74f7",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 23,
+      "requirement_count": 0,
+      "page": "/gallery/employee-pulse-survey",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "id": "159ae591-32f3-5214-a185-534c8695c680",
+      "slug": "site-inspection-corrective-actions",
+      "title": "Site inspection with corrective actions",
+      "category": "surveys-assessments",
+      "summary": "A four-step inspection page with a checklist table, star rating, photos and signature; a decision table sets the outcome band and every failed item becomes a signed-off corrective action.",
+      "trigger": "form",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "health and safety",
+        "inspections",
+        "checklist",
+        "corrective actions",
+        "form controls",
+        "no integrations"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 10,
+      "file": "/gallery/site-inspection-corrective-actions-1.1.0.utpkg",
+      "file_name": "site-inspection-corrective-actions-1.1.0.utpkg",
+      "size_bytes": 292445,
+      "sha256": "26b026e4ab9f1ce1b242d5bd92016d3a852031212e657d87926469906d5781e5",
+      "checksum": "sha256:614919b1511578336da6c5e99f411ef5072bfa57431293866a701a59a0370b04",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 25,
+      "requirement_count": 0,
+      "page": "/gallery/site-inspection-corrective-actions",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "id": "a258b8f8-8166-56c7-b117-667f963973fa",
+      "slug": "training-quiz-certification",
+      "title": "Training feedback, quiz and certificate",
+      "category": "surveys-assessments",
+      "summary": "Course feedback with ratings and a Likert matrix, a scored six-question quiz and a signed attestation; passes get a PDF certificate by email, near misses a retake task and fails a booked session.",
+      "trigger": "form",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "training",
+        "quiz",
+        "certificate",
+        "learning",
+        "form controls",
+        "no integrations"
+      ],
+      "needs": [],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 10,
+      "file": "/gallery/training-quiz-certification-1.1.0.utpkg",
+      "file_name": "training-quiz-certification-1.1.0.utpkg",
+      "size_bytes": 265290,
+      "sha256": "5d972f652e00b76d6f6bc5cc45001a1a5bcb753d3b246b64164f20a69c35f7fb",
+      "checksum": "sha256:74cece1c02d612dce3ced1c56f5621c0befc48df2186db8971853acaad8f2785",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 22,
+      "requirement_count": 0,
+      "page": "/gallery/training-quiz-certification",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "id": "6ee39276-a71f-5153-91cf-17ba05665a3f",
+      "slug": "foia-records-request-redaction",
+      "title": "FOIA / public records request: evidence redaction and release",
+      "category": "media-evidence",
+      "summary": "Public records requests from a form to release: statutory SLA, evidence gathering, AI-assisted redaction of video, photos, audio and documents, legal approval and an exemptions log.",
+      "trigger": "form",
+      "version": "1.0.0",
+      "released": "2026-10-30",
+      "tags": [
+        "FOIA",
+        "public records",
+        "OIA",
+        "redaction",
+        "evidence",
+        "body-worn camera",
+        "media"
+      ],
+      "needs": [
+        "media_ai",
+        "rest_api",
+        "assignees",
+        "email"
+      ],
+      "optional_needs": [],
+      "difficulty": "advanced",
+      "setup_minutes": 30,
+      "file": "/gallery/foia-records-request-redaction-1.0.0.utpkg",
+      "file_name": "foia-records-request-redaction-1.0.0.utpkg",
+      "size_bytes": 31351,
+      "sha256": "72f39a50fbe5a48de3aec0377a3e6c516600296be44204877713daf6fe8bdce1",
+      "checksum": "sha256:4278287c42e5aa8519fffa2c1a182764591653beec5aeaa8e4508c2e96fa792a",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 16,
+      "requirement_count": 3,
+      "page": "/gallery/foia-records-request-redaction",
+      "source": "official",
+      "systems": [
+        "Google Gemini"
+      ],
+      "native": false
+    },
+    {
+      "id": "e713fc45-f619-52a7-83c5-2846c1f02477",
+      "slug": "kyc-id-document-redaction",
+      "title": "Identity document capture (KYC) with redaction for storage",
+      "category": "media-evidence",
+      "summary": "Customers upload an ID photo and a selfie: the document is read, checked by rules, the number blacked out for storage, and a person compares the photos and decides.",
+      "trigger": "form",
+      "version": "1.0.0",
+      "released": "2026-10-30",
+      "tags": [
+        "KYC",
+        "identity verification",
+        "OCR",
+        "redaction",
+        "onboarding",
+        "media"
+      ],
+      "needs": [
+        "media_ai",
+        "assignees",
+        "email"
+      ],
+      "optional_needs": [],
+      "difficulty": "intermediate",
+      "setup_minutes": 20,
+      "file": "/gallery/kyc-id-document-redaction-1.0.0.utpkg",
+      "file_name": "kyc-id-document-redaction-1.0.0.utpkg",
+      "size_bytes": 16415,
+      "sha256": "17d5713327dd5d814df4d181f57f8de51789c3398a867d352cc4b2bbb39c293b",
+      "checksum": "sha256:c3261ff95a085e19f0b89e93fb5cac61b3c945bbefc3facf314ca1dbab2e6d6a",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 9,
+      "requirement_count": 2,
+      "page": "/gallery/kyc-id-document-redaction",
+      "source": "official",
+      "systems": [
+        "Google Gemini"
+      ],
+      "native": false
+    },
+    {
+      "id": "289260ab-1fdb-5554-a055-8e7583e3ecfe",
+      "slug": "insurance-claim-photo-assessment",
+      "title": "Insurance claim photo assessment",
+      "category": "media-evidence",
+      "summary": "Motor claims with damage photos: AI damage assessment, decision-table triage and SLA, adjuster review, letters, and photos with faces and plates blurred for repairers.",
+      "trigger": "form",
+      "version": "1.0.0",
+      "released": "2026-10-30",
+      "tags": [
+        "insurance",
+        "claims",
+        "image analysis",
+        "redaction",
+        "triage",
+        "media"
+      ],
+      "needs": [
+        "media_ai",
+        "assignees",
+        "email"
+      ],
+      "optional_needs": [],
+      "difficulty": "intermediate",
+      "setup_minutes": 20,
+      "file": "/gallery/insurance-claim-photo-assessment-1.0.0.utpkg",
+      "file_name": "insurance-claim-photo-assessment-1.0.0.utpkg",
+      "size_bytes": 19137,
+      "sha256": "234dce9c257e83e978b8549a26bed40ac29e19bf9ee3dd6d2d2c8073a298cad2",
+      "checksum": "sha256:6dccd44e18915ba3f3b2ff5b9dc338dceb742503a3873bca1f40ad5139f7c235",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 11,
+      "requirement_count": 2,
+      "page": "/gallery/insurance-claim-photo-assessment",
+      "source": "official",
+      "systems": [
+        "Google Gemini"
+      ],
+      "native": false
+    },
+    {
+      "id": "097ef9c9-1765-5a62-bdb6-df61d71acd31",
+      "slug": "meeting-recording-minutes",
+      "title": "Meeting recording to minutes and action items",
+      "category": "media-evidence",
+      "summary": "Upload a meeting recording: transcript with speakers, AI-drafted minutes the organiser checks, a task for each action owner and the minutes emailed with an SRT.",
+      "trigger": "form",
+      "version": "1.0.0",
+      "released": "2026-10-30",
+      "tags": [
+        "meetings",
+        "transcription",
+        "minutes",
+        "action items",
+        "AI agent",
+        "media"
+      ],
+      "needs": [
+        "media_ai",
+        "ai_model",
+        "email"
+      ],
+      "optional_needs": [],
+      "difficulty": "intermediate",
+      "setup_minutes": 15,
+      "file": "/gallery/meeting-recording-minutes-1.0.0.utpkg",
+      "file_name": "meeting-recording-minutes-1.0.0.utpkg",
+      "size_bytes": 16087,
+      "sha256": "0d521cef5e0e230f29468b5b1533ea54dad35a732d19af4bf29d5f5d09716230",
+      "checksum": "sha256:8e87f800c34e62816c2a6f39b70d58e576cbc81b4f84ca0059676e3c221a87a4",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 9,
+      "requirement_count": 2,
+      "page": "/gallery/meeting-recording-minutes",
+      "source": "official",
+      "systems": [
+        "Google Gemini"
+      ],
+      "native": false
+    },
+    {
+      "id": "f727bfba-619d-5273-910f-43654ed0b35a",
+      "slug": "support-call-qa-redaction",
+      "title": "Support call QA and PII-safe archiving",
+      "category": "media-evidence",
+      "summary": "Each finished call is transcribed, card numbers and IDs are bleeped and masked, an AI agent scores it on your QA rubric, and low scores go to a supervisor.",
+      "trigger": "api",
+      "version": "1.0.0",
+      "released": "2026-10-30",
+      "tags": [
+        "contact centre",
+        "call QA",
+        "transcription",
+        "PCI",
+        "redaction",
+        "AI agent",
+        "media"
+      ],
+      "needs": [
+        "media_ai",
+        "ai_model",
+        "assignees"
+      ],
+      "optional_needs": [
+        "webhook",
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 20,
+      "file": "/gallery/support-call-qa-redaction-1.0.0.utpkg",
+      "file_name": "support-call-qa-redaction-1.0.0.utpkg",
+      "size_bytes": 14311,
+      "sha256": "8834dd9e64928ed27b6e0757f33f1f9a54e4fd635cb66487cb946224895306a1",
+      "checksum": "sha256:693cabc2800d31139bffb720aea2e85edc637fe829132a771d1f0b08fc140d55",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 8,
+      "requirement_count": 3,
+      "page": "/gallery/support-call-qa-redaction",
+      "source": "official",
+      "systems": [
+        "Google Gemini"
+      ],
+      "native": false
+    },
+    {
+      "id": "8c975944-dba9-55ce-a2f5-d9685a168d3d",
+      "slug": "ugc-media-moderation",
+      "title": "User-generated media moderation",
+      "category": "media-evidence",
+      "summary": "Uploads arrive by API: AI safety analysis of images and videos, threshold rules that auto-approve or reject clear cases, a moderator queue for the rest, and the uploader is told.",
+      "trigger": "api",
+      "version": "1.0.0",
+      "released": "2026-10-30",
+      "tags": [
+        "moderation",
+        "trust and safety",
+        "user-generated content",
+        "image analysis",
+        "video analysis",
+        "media"
+      ],
+      "needs": [
+        "media_ai",
+        "rest_api",
+        "assignees"
+      ],
+      "optional_needs": [
+        "webhook",
+        "email"
+      ],
+      "difficulty": "intermediate",
+      "setup_minutes": 20,
+      "file": "/gallery/ugc-media-moderation-1.0.0.utpkg",
+      "file_name": "ugc-media-moderation-1.0.0.utpkg",
+      "size_bytes": 16589,
+      "sha256": "f7b807aa3c782696f268af78e3272c84bfb7ddfc4a848bed8603a1f5fc88387e",
+      "checksum": "sha256:6c24e21f21a3067dcebe0f57ba66f7d35ff00f96022dad0c09a706daf7a28178",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 10,
+      "requirement_count": 3,
+      "page": "/gallery/ugc-media-moderation",
+      "source": "official",
+      "systems": [
+        "Google Gemini"
+      ],
+      "native": false
     },
     {
       "id": "b9c1bafe-2b1b-48d2-b022-e48713acc244",
@@ -2218,6 +2859,1265 @@
       "source": "official",
       "systems": [],
       "native": false
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-address",
+          "ut-map"
+        ],
+        "kind": "input",
+        "value_types": [
+          "json"
+        ],
+        "capabilities": [
+          "lookup",
+          "network"
+        ],
+        "hosts": [
+          "tile.openstreetmap.org"
+        ],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "leaflet 1.9.4 (BSD-2-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 239105
+      },
+      "id": "ff7d2d58-2d90-41ce-a66e-b4e0f05150e5",
+      "slug": "form-control-address",
+      "title": "Address",
+      "category": "form-controls",
+      "summary": "Address search with suggestions from Google Places (key kept on the server) or a data table, saved as street, city, postcode, country and coordinates.",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "address",
+        "location",
+        "google places",
+        "geocoding",
+        "autocomplete"
+      ],
+      "needs": [
+        "rest_api"
+      ],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/form-control-address-1.1.0.utpkg",
+      "file_name": "form-control-address-1.1.0.utpkg",
+      "size_bytes": 86773,
+      "sha256": "a4dd69f9d7d9273226c6dd46bfe330ef6dd7518fb8901dfbfae6bc9efba15451",
+      "checksum": "sha256:4d6ae322f25fcfd82011fd0630fed73658aef3aa6f6cda7996f97712edf76087",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 5,
+      "requirement_count": 1,
+      "page": "/gallery/controls/address",
+      "source": "official",
+      "systems": [
+        "Google Maps Platform"
+      ],
+      "native": false
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-chart"
+        ],
+        "kind": "display",
+        "value_types": [
+          "json"
+        ],
+        "capabilities": [
+          "lookup",
+          "reports"
+        ],
+        "hosts": [],
+        "libraries": [
+          "@kurkle/color 0.3.4 (MIT)",
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "chart.js 4.5.1 (MIT)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 230454
+      },
+      "id": "cbc49a7c-488a-4e2d-a7de-beb13084f874",
+      "slug": "form-control-chart",
+      "title": "Chart",
+      "category": "form-controls",
+      "summary": "Bar, line, area, pie or doughnut chart of static data, another field's rows, lookup results or a saved report, with keyboard-navigable points.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "chart",
+        "graph",
+        "dashboard",
+        "report",
+        "visualisation"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/form-control-chart-1.2.0.utpkg",
+      "file_name": "form-control-chart-1.2.0.utpkg",
+      "size_bytes": 88481,
+      "sha256": "544e5c0b614de58e8a537c4004adda5bcf32077d8c3da2c0d167e015b995ca8f",
+      "checksum": "sha256:4d41363cb185ac60ffe0ebb4bd19a36f1c912b04c7fedb132196c5b4864a4d34",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/chart",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-info-card"
+        ],
+        "kind": "display",
+        "value_types": [
+          "string"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 27164
+      },
+      "id": "09434d96-867d-4ff9-b734-d179caa32d58",
+      "slug": "form-control-info-card",
+      "title": "Info card",
+      "category": "form-controls",
+      "summary": "Info, success, warning, error or neutral callout that can show up to six other form values, formatted for the reader, as text or a key / value list.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "callout",
+        "alert",
+        "note",
+        "summary",
+        "display"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-info-card-1.2.0.utpkg",
+      "file_name": "form-control-info-card-1.2.0.utpkg",
+      "size_bytes": 15413,
+      "sha256": "482f7ade1d32f4792c9ccf5f6745afbc165a934c44ee3de2e6d0f7ce15ca5cbd",
+      "checksum": "sha256:da2f4e93f9ee8a3f8834f35f5c50fa33b91c911d61e6a6a935a02a79165db04d",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/info-card",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-likert"
+        ],
+        "kind": "input",
+        "value_types": [
+          "json"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 29719
+      },
+      "id": "4ac13acf-6449-42ba-ba20-fee9c9ab79d9",
+      "slug": "form-control-likert",
+      "title": "Likert scale",
+      "category": "form-controls",
+      "summary": "Survey matrix that rates several statements on one agree, satisfaction, frequency or custom scale, with optional N/A. Cards on phones.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "survey",
+        "likert",
+        "feedback",
+        "satisfaction",
+        "questionnaire"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-likert-1.2.0.utpkg",
+      "file_name": "form-control-likert-1.2.0.utpkg",
+      "size_bytes": 16161,
+      "sha256": "14257f8b67efc261cec0ac0d8c18fe16001ad8159480c39f9b4621770e2a6c81",
+      "checksum": "sha256:b3a256385ec921c8e836d4de24474f26f3036928dc093a864fd0b1400ca664f4",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/likert",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-map"
+        ],
+        "kind": "input",
+        "value_types": [
+          "json"
+        ],
+        "capabilities": [
+          "network"
+        ],
+        "hosts": [
+          "tile.openstreetmap.org"
+        ],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "leaflet 1.9.4 (BSD-2-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 199749
+      },
+      "id": "000aef06-b55e-4b8f-9052-fd40f137c80a",
+      "slug": "form-control-map",
+      "title": "Map",
+      "category": "form-controls",
+      "summary": "Shows an address or coordinates from another field on an OpenStreetMap map, and can let people drop a pin to record a location.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "map",
+        "location",
+        "coordinates",
+        "pin",
+        "openstreetmap",
+        "geo"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/form-control-map-1.2.0.utpkg",
+      "file_name": "form-control-map-1.2.0.utpkg",
+      "size_bytes": 65259,
+      "sha256": "51ab5f10af9f7c8855f09270a2fff9d4154d02843f9e3c7f10867a61c75f9d58",
+      "checksum": "sha256:6ffec599096fb15ac0556b58ce7ad54ed2f12b8d004591bbccb664162f454529",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/map",
+      "source": "official",
+      "systems": [
+        "OpenStreetMap"
+      ],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-pdf-viewer"
+        ],
+        "kind": "display",
+        "value_types": [
+          "files"
+        ],
+        "capabilities": [
+          "files"
+        ],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)",
+          "pdfjs-dist 5.4.624 (Apache-2.0)"
+        ],
+        "module_bytes": 1442029
+      },
+      "id": "aa4772f1-431a-4fd6-afb1-405cf442aa22",
+      "slug": "form-control-pdf-viewer",
+      "title": "PDF viewer",
+      "category": "form-controls",
+      "summary": "Shows a PDF inside the form, from an Attachments field or an upload, page by page with zoom, rotation and the text read out to screen readers.",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "pdf",
+        "document",
+        "viewer",
+        "attachments",
+        "contract",
+        "preview"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-pdf-viewer-1.1.0.utpkg",
+      "file_name": "form-control-pdf-viewer-1.1.0.utpkg",
+      "size_bytes": 434090,
+      "sha256": "c0a9522ab36b72677ff2f2123e1ecf73e2c9d0074c8f2b15efee1764e00bcbaa",
+      "checksum": "sha256:38b08eefe45a670cd061da9af28944aa58dd39e179f960757b615fa0312ca7ad",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/pdf-viewer",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-progress"
+        ],
+        "kind": "display",
+        "value_types": [
+          "number"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 29159
+      },
+      "id": "b1cdccd7-796e-427c-9c98-d4fa1e04ab1f",
+      "slug": "form-control-progress",
+      "title": "Progress",
+      "category": "form-controls",
+      "summary": "Show progress as a bar, a ring or named steps from two fields of the form or fixed values, with warning and on-track colours.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "progress",
+        "status",
+        "steps",
+        "kpi",
+        "dashboard"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-progress-1.2.0.utpkg",
+      "file_name": "form-control-progress-1.2.0.utpkg",
+      "size_bytes": 15696,
+      "sha256": "ec9362f52d8a41a64e9f94da8d969b44a2969211338b631f5a27fa29c03457a3",
+      "checksum": "sha256:5e4c81356fc8f5417cf7f0c265456b1e1d771b4f3e272d727cb58696371b4a36",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/progress",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-rating"
+        ],
+        "kind": "input",
+        "value_types": [
+          "number"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 25756
+      },
+      "id": "03865824-a38f-466c-9c22-debdba1720e4",
+      "slug": "form-control-rating",
+      "title": "Rating",
+      "category": "form-controls",
+      "summary": "Star, heart or circle rating from 1 to 10 with optional labels such as Poor to Excellent, for satisfaction scores and quality checks.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "rating",
+        "stars",
+        "satisfaction",
+        "survey",
+        "feedback"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-rating-1.2.0.utpkg",
+      "file_name": "form-control-rating-1.2.0.utpkg",
+      "size_bytes": 14098,
+      "sha256": "a404a94e978482dd7921d4f20a8b3a4e7097666c0dadb4c712eeda267e90c94c",
+      "checksum": "sha256:548258bd86a14d4bb15929257345a2a6fe1374ff181893465d9bcd08751dc613",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/rating",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-rich-text"
+        ],
+        "kind": "input",
+        "value_types": [
+          "json"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 43246
+      },
+      "id": "02508da5-dd88-419a-b8b1-75a61d19d11a",
+      "slug": "form-control-rich-text",
+      "title": "Rich text",
+      "category": "form-controls",
+      "summary": "A rich-text editor with bold, italic, underline, headings, lists, quotes and links, a character counter and strict sanitising of everything pasted in.",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "rich text",
+        "editor",
+        "formatting",
+        "notes",
+        "description",
+        "wysiwyg"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-rich-text-1.1.0.utpkg",
+      "file_name": "form-control-rich-text-1.1.0.utpkg",
+      "size_bytes": 21865,
+      "sha256": "c4e43b74761fd2b852df29ef43ee5f5cdb30eabb720b78b9aa9ebb0d591ca690",
+      "checksum": "sha256:350e9319322a6d534228a0f3e3dab9f30060a7b8cddfdedd38fd7f4168f32d29",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/rich-text",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-saved-report"
+        ],
+        "kind": "display",
+        "value_types": [
+          "json"
+        ],
+        "capabilities": [
+          "reports"
+        ],
+        "hosts": [],
+        "libraries": [
+          "@kurkle/color 0.3.4 (MIT)",
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "chart.js 4.5.1 (MIT)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 231654
+      },
+      "id": "0c2b53ff-281d-4307-8aba-b7246d07ca0f",
+      "slug": "form-control-saved-report",
+      "title": "Saved report",
+      "category": "form-controls",
+      "summary": "Show a saved report inside a form as a sortable, paginated table or chart, with the permissions of the person filling it in. Optionally pick a row.",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "report",
+        "table",
+        "dashboard",
+        "data"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/form-control-saved-report-1.1.0.utpkg",
+      "file_name": "form-control-saved-report-1.1.0.utpkg",
+      "size_bytes": 86940,
+      "sha256": "ee528a9b1c45fd1392566ba1caa4bcc09afd8c12cbf5706a7a13e40c1561d9a9",
+      "checksum": "sha256:e24c975c739fb0f7b72d65ab49a0fd4ebed33c824568d602585891e1e20e43ce",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/saved-report",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-signature"
+        ],
+        "kind": "input",
+        "value_types": [
+          "files"
+        ],
+        "capabilities": [
+          "files"
+        ],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)",
+          "signature_pad 5.1.4 (MIT)"
+        ],
+        "module_bytes": 50700
+      },
+      "id": "f051d047-035f-44d6-a7cb-b8494e5ada54",
+      "slug": "form-control-signature",
+      "title": "Signature",
+      "category": "form-controls",
+      "summary": "Sign with a finger, pen or mouse, or type a name. The signature is saved as a trimmed PNG with the task's attachments.",
+      "version": "1.1.0",
+      "released": "2026-11-04",
+      "tags": [
+        "signature",
+        "sign",
+        "approval",
+        "consent",
+        "delivery"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-signature-1.1.0.utpkg",
+      "file_name": "form-control-signature-1.1.0.utpkg",
+      "size_bytes": 21906,
+      "sha256": "1b67e9bfe5b5e25139a3aac1a5c87e19198e886f4dd0288f2dcb6239f6626e2e",
+      "checksum": "sha256:929c4b5dedc29bd8a1ec4a065288776ed3140049abf9f7332a878c376ee6cda0",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/signature",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-slider"
+        ],
+        "kind": "input",
+        "value_types": [
+          "number"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 30828
+      },
+      "id": "1c8ea46a-8ac9-46e4-8ab4-89f868755c3c",
+      "slug": "form-control-slider",
+      "title": "Slider",
+      "category": "form-controls",
+      "summary": "A range slider for numbers with a value bubble, mark labels such as Low, Medium and High, a unit or currency prefix and an optional exact-entry box.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "slider",
+        "range",
+        "number",
+        "score",
+        "percentage",
+        "budget"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-slider-1.2.0.utpkg",
+      "file_name": "form-control-slider-1.2.0.utpkg",
+      "size_bytes": 16282,
+      "sha256": "7175fccd3df8167a4bdb7397632243503d7ce3e140320ed93d98f8123c9625e4",
+      "checksum": "sha256:823904c593e22d79ed55a7d072b830086bf804041c1284ac03b2e2f2c8b990ef",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/slider",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "form_control",
+      "control": {
+        "tags": [
+          "ut-table"
+        ],
+        "kind": "input",
+        "value_types": [
+          "array"
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "libraries": [
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)"
+        ],
+        "module_bytes": 43233
+      },
+      "id": "b884ee06-70fa-4fc9-a6e9-de63f7be7b02",
+      "slug": "form-control-table",
+      "title": "Table",
+      "category": "form-controls",
+      "summary": "An editable table for line items, attendees or readings, with typed columns, per-cell validation, totals and spreadsheet-style keyboard editing.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "table",
+        "grid",
+        "line items",
+        "repeating rows",
+        "spreadsheet",
+        "editable"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/form-control-table-1.2.0.utpkg",
+      "file_name": "form-control-table-1.2.0.utpkg",
+      "size_bytes": 21410,
+      "sha256": "de475c7614bc112a9d48d407f974539d0dbb47d17c926444c0f893213602c2f8",
+      "checksum": "sha256:c9f474f8e3c8ab70118243722601abb595d6b27fc297f750c8dee43f95fc62c6",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 1,
+      "requirement_count": 0,
+      "page": "/gallery/controls/table",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "control_bundle",
+      "control": {
+        "tags": [
+          "ut-chart",
+          "ut-saved-report",
+          "ut-address",
+          "ut-map",
+          "ut-signature",
+          "ut-rating",
+          "ut-slider",
+          "ut-rich-text",
+          "ut-table",
+          "ut-likert",
+          "ut-progress",
+          "ut-info-card",
+          "ut-pdf-viewer"
+        ],
+        "value_types": [
+          "array",
+          "files",
+          "json",
+          "number",
+          "string"
+        ],
+        "capabilities": [
+          "files",
+          "lookup",
+          "network",
+          "reports"
+        ],
+        "hosts": [
+          "tile.openstreetmap.org"
+        ],
+        "libraries": [
+          "@kurkle/color 0.3.4 (MIT)",
+          "@lit/reactive-element 2.1.2 (BSD-3-Clause)",
+          "chart.js 4.5.1 (MIT)",
+          "leaflet 1.9.4 (BSD-2-Clause)",
+          "lit 3.3.3 (BSD-3-Clause)",
+          "lit-element 4.2.2 (BSD-3-Clause)",
+          "lit-html 3.3.3 (BSD-3-Clause)",
+          "pdfjs-dist 5.4.624 (Apache-2.0)",
+          "signature_pad 5.1.4 (MIT)"
+        ],
+        "module_bytes": 2423047
+      },
+      "id": "5d1f7c2a-9b3e-4f61-8a0d-2c7e4b9f1a36",
+      "slug": "form-controls-starter-pack",
+      "title": "Form controls starter pack",
+      "category": "form-controls",
+      "summary": "Every official form control in one package: chart, saved report, address search, map, signature, rating, slider, rich text, table, survey and more.",
+      "version": "1.2.0",
+      "released": "2026-11-04",
+      "tags": [
+        "form controls",
+        "web components",
+        "starter pack",
+        "bundle"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/form-controls-starter-pack-1.2.0.utpkg",
+      "file_name": "form-controls-starter-pack-1.2.0.utpkg",
+      "size_bytes": 787666,
+      "sha256": "042db0725b767dd246450c811db1947b55d89d8d82ba4f0de6f19a8ff805ef72",
+      "checksum": "sha256:39e54e4a6debf07f8fcf37d463b481723efe2f81f7a3edf443c7f235fddd59df",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 13,
+      "requirement_count": 0,
+      "page": "/gallery/controls/starter-pack",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "workflow_action",
+      "action": {
+        "key": "ut_crypto",
+        "operations": [
+          {
+            "id": "uuid",
+            "label": "UUID"
+          },
+          {
+            "id": "ulid",
+            "label": "ULID"
+          },
+          {
+            "id": "hash",
+            "label": "Hash"
+          },
+          {
+            "id": "hmac",
+            "label": "HMAC signature"
+          },
+          {
+            "id": "encode",
+            "label": "Encode"
+          },
+          {
+            "id": "decode",
+            "label": "Decode"
+          },
+          {
+            "id": "random_code",
+            "label": "Random code"
+          },
+          {
+            "id": "otp",
+            "label": "One-time code"
+          },
+          {
+            "id": "sign_token",
+            "label": "Sign token (JWT)"
+          },
+          {
+            "id": "verify_token",
+            "label": "Verify token (JWT)"
+          }
+        ],
+        "capabilities": [
+          "secrets"
+        ],
+        "hosts": [],
+        "secrets": [
+          "hmac_key",
+          "token_secret"
+        ],
+        "module_bytes": 15913,
+        "sha256": "23f2ecd97ba497b8a995a59f48345697550e24b5be1ac923d2c9dc8e642e437d"
+      },
+      "id": "8bb99258-583e-45c4-8c92-87547bca70a4",
+      "slug": "workflow-action-crypto-ids",
+      "title": "Crypto & IDs",
+      "category": "workflow-actions",
+      "summary": "UUID v4/v7 and ULIDs, SHA hashes, HMAC webhook signatures with a stored secret, base64/hex/URL encoding, random and one-time codes, and HS256 JWTs.",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "uuid",
+        "hmac",
+        "jwt",
+        "webhook",
+        "otp",
+        "hash"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 5,
+      "file": "/gallery/workflow-action-crypto-ids-1.0.0.utpkg",
+      "file_name": "workflow-action-crypto-ids-1.0.0.utpkg",
+      "size_bytes": 20080,
+      "sha256": "b55b65f891b59019f04a64a34615c8c2e3ea588c2450ec0a209124e0a2b0c4be",
+      "checksum": "sha256:86f9a2ef35eda492850d4f4328c8df1d30f9313ebed3364baa26e20f5c2e062d",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 2,
+      "requirement_count": 0,
+      "page": "/gallery/actions/crypto-ids",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "workflow_action",
+      "action": {
+        "key": "ut_data",
+        "operations": [
+          {
+            "id": "select",
+            "label": "Select (JSON path)"
+          },
+          {
+            "id": "map",
+            "label": "Map fields"
+          },
+          {
+            "id": "filter",
+            "label": "Filter"
+          },
+          {
+            "id": "sort",
+            "label": "Sort"
+          },
+          {
+            "id": "group",
+            "label": "Group & aggregate"
+          },
+          {
+            "id": "pivot",
+            "label": "Pivot"
+          },
+          {
+            "id": "unpivot",
+            "label": "Unpivot"
+          },
+          {
+            "id": "dedupe",
+            "label": "Remove duplicates"
+          },
+          {
+            "id": "join",
+            "label": "Join"
+          },
+          {
+            "id": "csv_to_json",
+            "label": "CSV to JSON"
+          },
+          {
+            "id": "json_to_csv",
+            "label": "JSON to CSV"
+          }
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "secrets": [],
+        "module_bytes": 30384,
+        "sha256": "d0401d975e2f88d541f9ba45202facd27aaaf4e4f6775b0c41f14ae1c72b9119"
+      },
+      "id": "e67e8683-e7ba-44cb-be96-60e88fe27ce5",
+      "slug": "workflow-action-data-transform",
+      "title": "Data transform",
+      "category": "workflow-actions",
+      "summary": "Select by JSON path, map, filter, sort, group and aggregate, pivot, de-duplicate and join lists of records, and convert CSV to JSON and back.",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "data",
+        "json",
+        "csv",
+        "group by",
+        "pivot",
+        "join"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/workflow-action-data-transform-1.0.0.utpkg",
+      "file_name": "workflow-action-data-transform-1.0.0.utpkg",
+      "size_bytes": 25607,
+      "sha256": "b53345e5b00f2bec410e92473940f049a177e501d56a898819cf39ea5baf55ed",
+      "checksum": "sha256:fb15dff8f4a7c81dddb1e96479981369538feeb661be57f536eb03177b5cce1c",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 2,
+      "requirement_count": 0,
+      "page": "/gallery/actions/data-transform",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "workflow_action",
+      "action": {
+        "key": "ut_dates",
+        "operations": [
+          {
+            "id": "add_business_days",
+            "label": "Add business days"
+          },
+          {
+            "id": "sla_due",
+            "label": "SLA due time"
+          },
+          {
+            "id": "duration",
+            "label": "Duration / age"
+          },
+          {
+            "id": "convert_timezone",
+            "label": "Convert time zone"
+          },
+          {
+            "id": "next_occurrence",
+            "label": "Next occurrences"
+          },
+          {
+            "id": "fiscal_period",
+            "label": "Fiscal period"
+          }
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "secrets": [],
+        "module_bytes": 19206,
+        "sha256": "99a445fcad96eea94723b1140ccadb368b110fb7f7eed64dedd88e80a488b177"
+      },
+      "id": "455e1136-29e4-495a-b209-6f9e08dc3d7c",
+      "slug": "workflow-action-date-business-calendar",
+      "title": "Dates & business calendar",
+      "category": "workflow-actions",
+      "summary": "Business days around holidays, SLA due times in working hours across time zones and DST, durations and ages, recurring schedules and fiscal periods.",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "dates",
+        "business days",
+        "sla",
+        "time zones",
+        "holidays",
+        "fiscal year"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/workflow-action-date-business-calendar-1.0.0.utpkg",
+      "file_name": "workflow-action-date-business-calendar-1.0.0.utpkg",
+      "size_bytes": 20382,
+      "sha256": "206af8a9bafad301cb1f7cd44235430faab2c81396781ba882fd39ed1ec7a515",
+      "checksum": "sha256:879a4cff578eaa6224a34bf76295c4a406f3097f7a9092fe070d6cb7ec405076",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 2,
+      "requirement_count": 0,
+      "page": "/gallery/actions/date-business-calendar",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "workflow_action",
+      "action": {
+        "key": "ut_math",
+        "operations": [
+          {
+            "id": "evaluate",
+            "label": "Evaluate formula"
+          },
+          {
+            "id": "round",
+            "label": "Round"
+          },
+          {
+            "id": "stats",
+            "label": "Statistics"
+          },
+          {
+            "id": "percentile",
+            "label": "Percentile"
+          },
+          {
+            "id": "compound_interest",
+            "label": "Compound interest"
+          },
+          {
+            "id": "loan_schedule",
+            "label": "Loan schedule"
+          },
+          {
+            "id": "convert_units",
+            "label": "Convert units"
+          }
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "secrets": [],
+        "module_bytes": 26551,
+        "sha256": "5cb2c6c7a87f89a49f3c787008d7ca67ec8657fa94656f96857e0de7c6487a64"
+      },
+      "id": "fcba02a3-00e4-461c-8828-86ec61322734",
+      "slug": "workflow-action-math-statistics",
+      "title": "Math & statistics",
+      "category": "workflow-actions",
+      "summary": "Safe formulas with variables, exact rounding, statistics and percentiles, compound interest, loan schedules and unit conversion in one workflow step.",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "math",
+        "statistics",
+        "finance",
+        "loan",
+        "interest",
+        "rounding",
+        "units"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/workflow-action-math-statistics-1.0.0.utpkg",
+      "file_name": "workflow-action-math-statistics-1.0.0.utpkg",
+      "size_bytes": 22812,
+      "sha256": "c023f7679ada75ed362df77c743c6fe2fe7ea652b64f0a6187566aea1267dd81",
+      "checksum": "sha256:9cd7fb1e83d7c896729926a168961db5e72e5ae0dc01fcabde7073459c058a3a",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 2,
+      "requirement_count": 0,
+      "page": "/gallery/actions/math-statistics",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "workflow_action",
+      "action": {
+        "key": "ut_text",
+        "operations": [
+          {
+            "id": "slugify",
+            "label": "Slugify"
+          },
+          {
+            "id": "change_case",
+            "label": "Change case"
+          },
+          {
+            "id": "template",
+            "label": "Fill template"
+          },
+          {
+            "id": "truncate",
+            "label": "Truncate"
+          },
+          {
+            "id": "extract_between",
+            "label": "Extract between"
+          },
+          {
+            "id": "similarity",
+            "label": "Similarity / fuzzy match"
+          },
+          {
+            "id": "word_count",
+            "label": "Word count"
+          },
+          {
+            "id": "mask",
+            "label": "Mask"
+          }
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "secrets": [],
+        "module_bytes": 20209,
+        "sha256": "393bb9c0379ccfa3d8b0871b041a32cdf7ca72f39fc37566022d39c300883b4e"
+      },
+      "id": "7eb7092f-c473-4a02-9bef-f584a95e8a7d",
+      "slug": "workflow-action-text-toolkit",
+      "title": "Text toolkit",
+      "category": "workflow-actions",
+      "summary": "Slugs, case conversion, {{placeholder}} templates, truncation, extraction, fuzzy matching, word counts and masking for workflow text.",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "text",
+        "slug",
+        "template",
+        "fuzzy match",
+        "mask",
+        "case"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/workflow-action-text-toolkit-1.0.0.utpkg",
+      "file_name": "workflow-action-text-toolkit-1.0.0.utpkg",
+      "size_bytes": 20546,
+      "sha256": "aaaa3b20dfd3e1166f441f30ae62b19dda7df50c77cab177c74cfe3d5477010e",
+      "checksum": "sha256:9c16b3fc932b8552c4aa4ed8857cea5f961922266d7e358a1bd9261f4ffe9556",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 2,
+      "requirement_count": 0,
+      "page": "/gallery/actions/text-toolkit",
+      "source": "official",
+      "systems": [],
+      "native": true
+    },
+    {
+      "kind": "workflow_action",
+      "action": {
+        "key": "ut_validate",
+        "operations": [
+          {
+            "id": "validate",
+            "label": "Validate"
+          },
+          {
+            "id": "validate_many",
+            "label": "Validate many"
+          },
+          {
+            "id": "format_number",
+            "label": "Format number"
+          },
+          {
+            "id": "format_currency",
+            "label": "Format currency"
+          },
+          {
+            "id": "parse_number",
+            "label": "Parse number"
+          },
+          {
+            "id": "format_phone",
+            "label": "Format phone"
+          }
+        ],
+        "capabilities": [],
+        "hosts": [],
+        "secrets": [],
+        "module_bytes": 34684,
+        "sha256": "2f214f537ebc8bc9cab611955e978a2783ac97420c3624180f3908d14aa1f00c"
+      },
+      "id": "c0753421-cd8a-428f-a284-d7a414110b81",
+      "slug": "workflow-action-validation-formatting",
+      "title": "Validation & formatting",
+      "category": "workflow-actions",
+      "summary": "Validate IBAN, BIC, cards, emails, phones, postcodes and national IDs with check digits; format and parse numbers, money and phone numbers by locale.",
+      "version": "1.0.0",
+      "released": "2026-11-01",
+      "tags": [
+        "validation",
+        "iban",
+        "credit card",
+        "phone",
+        "postcode",
+        "currency"
+      ],
+      "needs": [],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 2,
+      "file": "/gallery/workflow-action-validation-formatting-1.0.0.utpkg",
+      "file_name": "workflow-action-validation-formatting-1.0.0.utpkg",
+      "size_bytes": 25300,
+      "sha256": "242b544172d3ab82251b00aec82d6e8d665954261b862cdf5d76d8bf14a2b271",
+      "checksum": "sha256:1923884035e108b5cbf16b867c64884a576635c347d088820d5fb6274a9698eb",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 2,
+      "requirement_count": 0,
+      "page": "/gallery/actions/validation-formatting",
+      "source": "official",
+      "systems": [],
+      "native": true
     }
   ]
 }

@@ -32,12 +32,12 @@
 import { createHash } from 'node:crypto'
 import {
   LOOKUP_LIMITS, LOOKUP_ROW_ID, isLookupColumn, lookupFillValues, lookupItemKey, lookupMaxResults, lookupMinChars, lookupResultsArray,
-  lookupTableColumns, lookupValueField, lookupValues, normalizeLookupConfig, resolveLookupTemplate, toLookupItem,
+  lookupLabelKey, lookupStoredLabels, lookupTableColumns, lookupValueField, lookupValues, normalizeLookupConfig, resolveLookupTemplate, toLookupItem,
   type LookupConfig, type LookupFilter, type LookupItem,
 } from '@/lib/forms/lookup'
-import { normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { answersLookups, normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
-import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
+import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { serviceRoleClient } from './_shared'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- task metadata and table rows are free-form JSON */
@@ -53,6 +53,32 @@ export interface LookupInput {
   query?: string
   /** The form's current values (for {{task_data.<key>}} in filters / inputs). */
   values?: Record<string, unknown>
+  /**
+   * Resolve these stored values to their items (labels) instead of
+   * searching: a form opening with a value (default, task data, draft)
+   * shows its display label. Same source, filters and permission rules as a
+   * search; at most LOOKUP_LIMITS.maxSelections values.
+   */
+  resolve?: string[]
+  /** The form's parameters by name ({{param.<name>}}; a task form's come from the task, never from here). */
+  params?: Record<string, unknown>
+  /** The form's variables by name ({{var.<name>}}). */
+  variables?: Record<string, unknown>
+}
+
+/**
+ * The form's parameters and variables for {{param.x}} / {{var.x}}, re-validated
+ * against the saved declarations (lib/forms/form-params.ts) — a task form's
+ * parameters are what the workflow passed, never the request's. Untrusted
+ * input like any value: they only fill placeholders in the saved config.
+ */
+export async function contextScope(layout: unknown, input: { values?: unknown; params?: unknown; variables?: unknown }, storedParams?: unknown, fields: TaskFieldDef[] = []): Promise<Record<string, unknown>> {
+  const { hasFormContext, serverFormContext } = await import('@/lib/forms/form-params')
+  const { serverControlEntries } = await import('@/lib/forms/rule-variables')
+  // {{control.*}}: rebuilt from the request (declared controls, declared columns, bounded).
+  const controls = serverControlEntries(layout, fields, input.values)
+  if (!hasFormContext(layout)) return controls
+  return { ...serverFormContext(layout, input, { storedParams: storedParams ?? null }).entries, ...controls }
 }
 
 export interface LookupResult {
@@ -131,7 +157,12 @@ export function buildTableQueryPlan(
   } else if (input.search) {
     const pattern = config.match === 'prefix' ? `${likeEscape(input.search)}%` : `%${likeEscape(input.search)}%`
     const columns = (config.search_columns ?? []).filter((c) => c !== LOOKUP_ROW_ID)
-    if (columns.length) search = columns.map((c) => `${columnRef(c)}.ilike.${orValue(pattern)}`).join(',')
+    const valueColumn = lookupValueField(config)
+    if (config.search_value && valueColumn !== LOOKUP_ROW_ID && !columns.includes(valueColumn)) columns.push(valueColumn)
+    const terms = columns.map((c) => `${columnRef(c)}.ilike.${orValue(pattern)}`)
+    // The row id can't be pattern-matched: a typed id matches exactly.
+    if (config.search_value && valueColumn === LOOKUP_ROW_ID && UUID_RE.test(input.search)) terms.push(`id.eq.${input.search.toLowerCase()}`)
+    if (terms.length) search = terms.join(',')
   }
   const sort = config.sort ? { column: columnRef(config.sort.column), ascending: config.sort.direction !== 'desc' } : null
   const limit = options.byValues ? Math.max(1, options.byValues.length) : lookupMaxResults(config) + 1
@@ -251,6 +282,7 @@ async function runReference(db: AnySupabaseClient, tenantId: string, config: Loo
       timeout: REFERENCE_TIMEOUT_MS,
       expectedTenantId: tenantId,
       caller: { traceId: newTraceId(), callerType: 'form_lookup', callerId },
+      readOnly: true,
     })
     data = result.data
     status = result.status ?? 200
@@ -322,6 +354,25 @@ export function lookupScopeValues(fields: TaskFieldDef[], stored: Record<string,
   return out
 }
 
+/** The values a resolve request names (strings, de-duplicated, bounded). */
+export function resolveRequestValues(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null
+  const out: string[] = []
+  for (const v of raw) {
+    const s = typeof v === 'string' || typeof v === 'number' ? String(v).trim().slice(0, 1000) : ''
+    if (s && !out.includes(s)) out.push(s)
+    if (out.length >= LOOKUP_LIMITS.maxSelections) break
+  }
+  return out
+}
+
+/** Items for stored values (labels for a form that opens with a value): only from the field's own source. */
+async function resolveItems(db: AnySupabaseClient, tenantId: string, field: TaskFieldDef, config: LookupConfig, values: string[], scope: Record<string, unknown>, options: { taskId?: string | null; task?: Record<string, unknown> | null }): Promise<LookupResult> {
+  if (!values.length) return { items: [] }
+  const found = await findByValues(db, tenantId, field, config, values, scope, options)
+  return { items: values.map((v) => found.get(v)).filter((i): i is LookupItem => Boolean(i)) }
+}
+
 async function runLookup(db: AnySupabaseClient, tenantId: string, config: LookupConfig, input: { search: string; values: Record<string, unknown>; task?: Record<string, unknown> | null }, callerId: string | null): Promise<LookupResult> {
   if (input.search.length < lookupMinChars(config)) return { items: [], too_short: true }
   if (config.source === 'reference') {
@@ -334,7 +385,7 @@ async function runLookup(db: AnySupabaseClient, tenantId: string, config: Lookup
 
 async function rateLimited(ctx: ServiceContext) {
   const { rateLimit } = await import('@/lib/rate-limit')
-  const who = ctx.actorId ?? ctx.credentialId ?? 'tenant'
+  const who = rateSubject(ctx)
   const hit = await rateLimit(`form-lookup:${ctx.tenantId}:${who}`, LOOKUP_RATE)
   if (!hit.ok) throw new ServiceError('rate_limited', 'Too many lookups — wait a moment and try again', { details: { retry_after_ms: hit.retryAfterMs } })
 }
@@ -379,11 +430,13 @@ export async function lookupTaskField(ctx: ServiceContext, taskId: string, input
   const task = await loadLookupTask(ctx, db, taskId)
   const meta = (task.metadata ?? {}) as Record<string, any>
   const fields = normalizeTaskFields(meta.fields)
-  const field = fields.find((f) => f.key === input.field_key && f.type === 'lookup')
+  const field = fields.find((f) => f.key === input.field_key && answersLookups(f))
   if (!field?.lookup) throw ServiceError.notFound(`The task's form has no lookup field "${String(input.field_key).slice(0, 64)}"`)
   await rateLimited(ctx)
   const stored = isPlainObject(meta.template_values) ? meta.template_values : {}
-  const values = lookupScopeValues(fields, stored, isPlainObject(input.values) ? input.values : undefined)
+  const values = { ...lookupScopeValues(fields, stored, isPlainObject(input.values) ? input.values : undefined), ...await contextScope(meta.form_layout, input, isPlainObject(meta.form_params) ? meta.form_params : {}, fields) }
+  const resolve = resolveRequestValues(input.resolve)
+  if (resolve) return resolveItems(db, ctx.tenantId, field, field.lookup, resolve, values, { taskId: task.id, task: taskScope(task) })
   const result = await runLookup(db, ctx.tenantId, field.lookup, { search: lookupSearchTerm(input.query), values, task: taskScope(task) }, task.id)
   if (field.lookup.source === 'reference' && result.items.length) void rememberServed(task.id, field.key, result.items)
   return result
@@ -399,17 +452,33 @@ export async function lookupFormField(ctx: ServiceContext, formId: string, input
   requirePerm(ctx, 'forms.submit')
   if (!UUID_RE.test(formId)) throw ServiceError.notFound('Form not found')
   const db = await serviceRoleClient(ctx)
-  const { data: form } = await (db as any).from('forms').select('id, fields').eq('id', formId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  const { data: form } = await (db as any).from('forms').select('id, fields, layout').eq('id', formId).eq('tenant_id', ctx.tenantId).maybeSingle()
   if (!form) throw ServiceError.notFound('Form not found')
   const fields = normalizeTaskFields(form.fields)
-  const field = fields.find((f) => f.key === input.field_key && f.type === 'lookup')
+  const field = fields.find((f) => f.key === input.field_key && answersLookups(f))
   if (!field?.lookup) throw ServiceError.notFound(`The form has no lookup field "${String(input.field_key).slice(0, 64)}"`)
+  // Anonymous visitors (lib/services/anonymous-forms.ts): only this link's form, only a lookup
+  // the author opened with "Allow anonymous read", never a custom control's, results capped.
+  let lookup = field.lookup
+  if (isAnonymous(ctx)) {
+    if (ctx.anonymous.formId !== formId) throw ServiceError.notFound('Form not found')
+    if (field.type !== 'lookup' || lookup.anonymous_read !== true) throw ServiceError.forbidden('This lookup is not available on a public form')
+    const { ANONYMOUS_LIMITS } = await import('@/lib/forms/anonymous')
+    lookup = { ...lookup, max_results: Math.min(lookup.max_results ?? LOOKUP_LIMITS.defaultMaxResults, ANONYMOUS_LIMITS.maxLookupResults) }
+  }
   await rateLimited(ctx)
-  const values = lookupScopeValues(fields, {}, isPlainObject(input.values) ? input.values : undefined)
-  const scope = formLookupScope(formId, ctx.actorId)
-  const result = await runLookup(db, ctx.tenantId, field.lookup, { search: lookupSearchTerm(input.query), values, task: null }, scope)
+  const values = { ...lookupScopeValues(fields, {}, isPlainObject(input.values) ? input.values : undefined), ...await contextScope(form.layout, input, undefined, fields) }
+  const scope = formLookupScope(formId, lookupSubject(ctx))
+  const resolve = resolveRequestValues(input.resolve)
+  if (resolve) return resolveItems(db, ctx.tenantId, field, lookup, resolve.slice(0, isAnonymous(ctx) ? 20 : resolve.length), values, { taskId: scope, task: null })
+  const result = await runLookup(db, ctx.tenantId, lookup, { search: lookupSearchTerm(input.query), values, task: null }, scope)
   if (field.lookup.source === 'reference' && result.items.length) void rememberServed(scope, field.key, result.items)
   return result
+}
+
+/** Whose served items a form lookup remembers: the user, or an anonymous visitor's IP hash. */
+export function lookupSubject(ctx: ServiceContext): string | null {
+  return ctx.actorId ?? (ctx.anonymous ? `anon-${ctx.anonymous.ipHash}` : null)
 }
 
 /** The served-items scope of a standalone form (form + submitter), used instead of a task id. */
@@ -421,15 +490,17 @@ export function formLookupScope(formId: string, actorId: string | null): string 
  * Designer preview: the real lookup on a config that isn't saved yet.
  * Requires workflows.edit or forms.edit; tenant-scoped; rate limited.
  */
-export async function previewLookup(ctx: ServiceContext, input: { field: unknown; query?: string; values?: Record<string, unknown> }): Promise<LookupResult> {
+export async function previewLookup(ctx: ServiceContext, input: { field: unknown; query?: string; values?: Record<string, unknown>; resolve?: string[] }): Promise<LookupResult> {
   if (!hasPerm(ctx, 'workflows.edit') && !hasPerm(ctx, 'forms.edit')) {
     throw ServiceError.forbidden("Forbidden: previewing a lookup needs the 'workflows.edit' or 'forms.edit' permission")
   }
   const [field] = normalizeTaskFields([input.field])
-  if (!field || field.type !== 'lookup' || !field.lookup) throw ServiceError.validation('Not a lookup field')
+  if (!field || !answersLookups(field) || !field.lookup) throw ServiceError.validation('Not a lookup field')
   await rateLimited(ctx)
   const db = await serviceRoleClient(ctx)
   const values = isPlainObject(input.values) ? input.values : {}
+  const resolve = resolveRequestValues(input.resolve)
+  if (resolve) return resolveItems(db, ctx.tenantId, field, field.lookup, resolve, values, { taskId: null, task: null })
   return runLookup(db, ctx.tenantId, field.lookup, { search: lookupSearchTerm(input.query), values, task: null }, null)
 }
 
@@ -480,11 +551,14 @@ export async function resolveLookupSelections(
     const config = normalizeLookupConfig(field.lookup)
     const selected = lookupValues(values[field.key], config.multiple)
     const itemKey = lookupItemKey(field.key)
-    if (!selected.length) { items[itemKey] = config.multiple ? [] : null; Object.assign(fills, fillsFrom(config, null)); continue }
+    // `<key>_label` — unless another field already owns that key (older forms keep their field).
+    const labelKey = fields.some((f) => f.key === lookupLabelKey(field.key)) ? `\u0000skip` : lookupLabelKey(field.key)
+    if (!selected.length) { items[itemKey] = config.multiple ? [] : null; items[labelKey] = config.multiple ? [] : null; Object.assign(fills, fillsFrom(config, null)); continue }
     const prevValues = lookupValues(options.previous?.[field.key], config.multiple)
     const prevItem = options.previous?.[itemKey]
     if (prevItem !== undefined && prevValues.length === selected.length && prevValues.every((v, i) => v === selected[i])) {
       items[itemKey] = prevItem
+      items[labelKey] = lookupStoredLabels(config, selected, prevItem)
       Object.assign(fills, fillsFrom(config, lastItem(prevItem)))
       continue
     }
@@ -496,6 +570,7 @@ export async function resolveLookupSelections(
         errors[field.key] = `${field.label}: ${error instanceof ServiceError ? error.message : 'the lookup could not confirm the value'}`
       }
       items[itemKey] = config.multiple ? [] : null
+      items[labelKey] = lookupStoredLabels(config, selected, null)
       Object.assign(fills, fillsFrom(config, null))
       continue
     }
@@ -507,8 +582,12 @@ export async function resolveLookupSelections(
     }
     const chosen = selected.map((v) => found.get(v)).filter((i): i is LookupItem => Boolean(i)).map(itemFields)
     items[itemKey] = config.multiple ? chosen : (chosen[0] ?? null)
+    // The display label(s) beside the value: what read-only views, submissions and workflows ({{<key>_label}}) show.
+    items[labelKey] = selected.map((v) => found.get(v)?.label ?? v).slice(0, LOOKUP_LIMITS.maxSelections)
+    if (!config.multiple) items[labelKey] = (items[labelKey] as string[])[0] ?? null
     Object.assign(fills, fillsFrom(config, config.multiple ? chosen[chosen.length - 1] : chosen[0]))
   }
+  delete items['\u0000skip']
   return { errors, items, fills }
 }
 

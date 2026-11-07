@@ -4,10 +4,11 @@
   "title": "Vendor onboarding with KYC",
   "category": "finance",
   "summary": "Screen new vendors for sanctions, registry and adverse media, tier the risk, review and verify bank details, then create the vendor in the ERP.",
-  "description": "Vendor onboarding with KYC is a controlled path for adding a supplier. Procurement fills in the start form with the vendor's legal name, registration number, country, website, bank account, contact email, spend category and expected annual spend.\n\nThe workflow reads the country rating from the Country risk table and sends the company to your KYC screening service for sanctions, registry and adverse-media checks. The Vendor risk tier decision table turns the results and the expected spend into a tier (low, medium, high or blocked), the approvals needed and when to re-screen. Blocked vendors stop with an email to the requester. Medium and high risk vendors go to a compliance review, which can approve, approve with conditions or reject.\n\nEvery approved vendor then goes to finance to verify the bank account by calling a number from an independent source; the step repeats until the call-back is recorded. The vendor is created in the ERP with its tier and re-screen date, and the vendor contact gets a welcome email. Adapt the country ratings, the tier rules and the two API calls to your providers.",
+  "description": "Vendor onboarding with KYC is a controlled path for adding a supplier. Procurement fills in the Vendor application, a four-step form page with a progress bar: Company details (the country is an autocomplete that stores the ISO code, shows the country name and fills the country risk), Banking (account and an independently sourced phone number), Spend & compliance (category, expected annual spend, a justification that appears only for NZD 100,000 or more, and any conflict of interest) and Review & submit. The form is in Application mode: its own Next, Back and Submit application buttons move people along, and form rules check the justification, the conflict details and that the vendor contact is not the requester before it is sent.\n\nSubmitting starts the workflow and adds the application to the Vendor applications table. The workflow reads the country rating from the Country risk table and sends the company to your KYC screening service for sanctions, registry and adverse-media checks. The Vendor risk tier decision table turns the results and the expected spend into a tier (low, medium, high or blocked), the approvals needed and when to re-screen. Blocked vendors stop with an email to the requester. Medium and high risk vendors go to a compliance review, which can approve, approve with conditions or reject.\n\nEvery approved vendor then goes to finance to verify the bank account by calling a number from an independent source; the step repeats until the call-back is recorded. The vendor is created in the ERP with its tier and re-screen date, and the vendor contact gets a welcome email. The application's row follows each step (screening, compliance review, bank verification, approved or declined), and the Vendor applications page lists them all in a Data table: formatted amounts, dates and status badges, search, filters and sorting; a click on a row opens its details, and procurement can update a status or note and save it back. Adapt the country ratings, the tier rules and the two API calls to your providers.",
   "trigger": "form",
   "entry_workflow": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
-  "start": "Starts from a form: procurement fills in the vendor details (Run dialog in the app, or your supplier request page posting to the start API).",
+  "entry_form": "ee5b8d4c-face-546e-b519-c2665f251d31",
+  "start": "Starts from a form page: procurement fills in the four-step Vendor application (Forms, or its /f/<id> link); its Submit application button starts the workflow. The Run dialog and the start API still work.",
   "difficulty": "intermediate",
   "setup_minutes": 20,
   "tags": [
@@ -15,10 +16,19 @@
     "kyc",
     "sanctions screening",
     "bank verification",
-    "risk"
+    "risk",
+    "steps & progress",
+    "application mode",
+    "data table",
+    "form rules"
   ],
-  "version": "1.1.0",
+  "version": "1.2.0",
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-01",
+      "notes": "A stepped Vendor application form page (Company details → Banking → Spend & compliance → Review & submit) with a progress bar, Application mode and in-form Next / Back / Submit buttons, a country autocomplete that stores the ISO code and shows the name, and form rules (justification for large spend, conflict-of-interest details, vendor contact is not the requester). Every application is written to a new Vendor applications table that the workflow keeps up to date, listed on a Vendor applications page: a Data table with currency, date and badge formats, search, filters and sorting, a 12-month base filter, a row click that opens a details tab, and editable status and notes saved back for each changed row."
+    },
     {
       "version": "1.1.0",
       "date": "2026-10-28",
@@ -44,8 +54,8 @@
   ],
   "steps": [
     {
-      "title": "Vendor requested",
-      "body": "Procurement enters the legal name, registration number, country, website, bank account, contact, spend category and expected spend."
+      "title": "Vendor application",
+      "body": "Procurement completes the four steps (company, banking, spend & compliance, review); rules check the justification, conflict details and contact before it is sent, and the application is added to the Vendor applications table."
     },
     {
       "title": "Screen the company",
@@ -66,6 +76,10 @@
     {
       "title": "Create the vendor",
       "body": "The vendor is created in the ERP with its tier and re-screen date and the vendor contact gets a welcome email."
+    },
+    {
+      "title": "Track every application",
+      "body": "The Vendor applications page lists every application with its tier and status badges; click a row for its details, or change a status and save it back."
     }
   ],
   "sample_input": {
@@ -78,8 +92,16 @@
     "contact_phone": "+64 9 555 0142",
     "spend_category": "Logistics",
     "expected_annual_spend": 120000,
-    "requester_email": "casey.ng@example.com"
+    "spend_justification": "Three quotes compared; Harbourline was cheapest with next-day coverage to the South Island.",
+    "conflict_of_interest": false,
+    "requester_email": "casey.ng@example.com",
+    "declaration": true
   },
   "expect": "waiting",
-  "icon": "building-2"
+  "icon": "building-2",
+  "verify_mocks": {
+    "expect_outputs": [
+      "application_row_id"
+    ]
+  }
 }

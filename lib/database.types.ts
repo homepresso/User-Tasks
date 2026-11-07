@@ -3931,6 +3931,7 @@ export type Database = {
           tenant_id: string
           title: string | null
           trace_id: string | null
+          variables: Json | null
           version_id: string | null
           workflow_id: string
         }
@@ -3958,6 +3959,7 @@ export type Database = {
           tenant_id: string
           title?: string | null
           trace_id?: string | null
+          variables?: Json | null
           version_id?: string | null
           workflow_id: string
         }
@@ -3985,6 +3987,7 @@ export type Database = {
           tenant_id?: string
           title?: string | null
           trace_id?: string | null
+          variables?: Json | null
           version_id?: string | null
           workflow_id?: string
         }
@@ -4734,6 +4737,8 @@ export type Database = {
         | "task_response"
         | "task_unanimous_failed"
         | "task_data_saved"
+        | "attachment_added"
+        | "attachment_deleted"
       task_priority: "critical" | "high" | "medium" | "low" | "none"
       task_status:
         | "draft"
@@ -4908,6 +4913,8 @@ export const Constants = {
         "task_response",
         "task_unanimous_failed",
         "task_data_saved",
+        "attachment_added",
+        "attachment_deleted",
       ],
       task_priority: ["critical", "high", "medium", "low", "none"],
       task_status: [

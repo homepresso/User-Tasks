@@ -8,6 +8,7 @@ import { kmsSeconds } from '@/lib/providers/kms/options'
 import { ciphertextInventory, listRewrapRuns, rewrapSecrets, type RewrapResult } from '@/lib/providers/kms/rewrap'
 import { dataKeyContext, describeError, KmsError } from '@/lib/providers/kms/types'
 import { decodeSettings, readSettingRows, tableExists, type SqlClient } from './instance-db'
+import { apiOf } from './service-sql'
 
 /**
  * `usertasks-admin kms …`: data keys and envelope encryption, over the CLI's
@@ -56,7 +57,15 @@ export async function loadCliKeyring(db: SqlClient): Promise<string[]> {
 }
 
 export async function listDataKeys(db: SqlClient): Promise<DataKeyRow[]> {
-  return (await hasKmsSchema(db)) ? sqlDataKeys(db).list() : []
+  if (!(await hasKmsSchema(db))) return []
+  const api = apiOf(db)
+  if (api) {
+    // Without a direct connection: app_kms_data_keys() (service role only), as the app reads them.
+    const { data, error } = await api.rpc('app_kms_data_keys')
+    if (error) throw new Error(error.message)
+    return ((Array.isArray(data) ? data : []) as DataKeyRow[]).map((r) => ({ ...r, id: Number(r.id) }))
+  }
+  return sqlDataKeys(db).list()
 }
 
 export interface CreatedKey {

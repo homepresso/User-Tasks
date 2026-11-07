@@ -1,0 +1,1009 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "ab56df6e-6d2b-5e37-a08d-73073d18f5a4",
+  "asset": {
+    "id": "ab56df6e-6d2b-5e37-a08d-73073d18f5a4",
+    "name": "Legal request",
+    "description": "The intake form for legal requests: About you → The request → Urgency → Review & send, with a progress bar and in-form Next / Back / Send to legal buttons (Application mode). The questions change with the request type (NDA, contract review, legal question, dispute), documents can be attached, and rules ask for the contract on a contract review, a reason for High or Critical urgency and a needed-by date that is not in the past. Submitting starts the Legal request workflow through its Form submitted trigger.",
+    "tags": [
+      "legal",
+      "intake",
+      "requests"
+    ],
+    "fields": [
+      {
+        "key": "requester_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true,
+        "autocomplete": "name"
+      },
+      {
+        "key": "requester_email",
+        "label": "Your work email",
+        "type": "email",
+        "required": true,
+        "autocomplete": "email"
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Sales",
+          "Procurement",
+          "People",
+          "Finance",
+          "Operations",
+          "Product",
+          "Marketing",
+          "Other"
+        ]
+      },
+      {
+        "key": "request_type",
+        "label": "What do you need?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "NDA",
+          "Contract review",
+          "Legal question",
+          "Dispute or claim"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "title",
+        "label": "Short title",
+        "type": "text",
+        "required": true,
+        "placeholder": "Mutual NDA with Kauri Analytics",
+        "max_length": 120
+      },
+      {
+        "key": "counterparty",
+        "label": "Other party",
+        "type": "text",
+        "help_text": "The company or person on the other side",
+        "visible_when": {
+          "field": "request_type",
+          "operator": "not_equals",
+          "value": "Legal question"
+        }
+      },
+      {
+        "key": "h_nda",
+        "label": "NDA details",
+        "type": "heading"
+      },
+      {
+        "key": "nda_direction",
+        "label": "Who shares confidential information?",
+        "type": "choice",
+        "options": [
+          "Both of us (mutual)",
+          "Only we do",
+          "Only they do"
+        ]
+      },
+      {
+        "key": "nda_paper",
+        "label": "Whose template?",
+        "type": "choice",
+        "options": [
+          "Ours",
+          "Theirs"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "h_contract",
+        "label": "Contract details",
+        "type": "heading"
+      },
+      {
+        "key": "contract_type",
+        "label": "Contract type",
+        "type": "choice",
+        "options": [
+          "Customer agreement",
+          "Supplier agreement",
+          "Partnership",
+          "Licence",
+          "Other"
+        ]
+      },
+      {
+        "key": "contract_value",
+        "label": "Total contract value",
+        "type": "currency",
+        "currency": "NZD",
+        "min": 0
+      },
+      {
+        "key": "personal_data",
+        "label": "The contract involves personal data",
+        "type": "boolean"
+      },
+      {
+        "key": "h_question",
+        "label": "Your question",
+        "type": "heading"
+      },
+      {
+        "key": "question_area",
+        "label": "Area of law",
+        "type": "choice",
+        "options": [
+          "Employment",
+          "Privacy",
+          "Intellectual property",
+          "Regulatory",
+          "Commercial",
+          "Other"
+        ]
+      },
+      {
+        "key": "h_dispute",
+        "label": "The dispute",
+        "type": "heading"
+      },
+      {
+        "key": "dispute_amount",
+        "label": "Amount in dispute",
+        "type": "currency",
+        "currency": "NZD",
+        "min": 0
+      },
+      {
+        "key": "response_deadline",
+        "label": "Deadline to respond (if any)",
+        "type": "date"
+      },
+      {
+        "key": "h_details",
+        "label": "In your words",
+        "type": "heading"
+      },
+      {
+        "key": "details",
+        "label": "Describe what you need",
+        "type": "textarea",
+        "required": true,
+        "help_text": "Background, what you want to achieve, anything already agreed"
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "type": "attachments",
+        "help_text": "The draft, the other side’s paper, letters or emails (PDF or Word, up to 5 files). Required for a contract review.",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents"
+          ]
+        }
+      },
+      {
+        "key": "urgency",
+        "label": "Urgency",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Low",
+          "Normal",
+          "High",
+          "Critical"
+        ],
+        "display": "radio",
+        "default": "Normal"
+      },
+      {
+        "key": "needed_by",
+        "label": "Needed by",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "urgency_reason",
+        "label": "Why is it urgent?",
+        "type": "textarea",
+        "help_text": "High and Critical requests jump the queue: say what happens if it waits"
+      },
+      {
+        "key": "acknowledge",
+        "label": "I understand legal advice is given to the company, not to me personally, and that I should not forward it outside the company",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "about_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "request_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "request_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "docs_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "docs_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "review_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "review_submit",
+        "label": "Send to legal",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "submit",
+              "button": "submit"
+            }
+          ],
+          "icon": "send",
+          "align": "right",
+          "icon_after": true
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "about",
+          "title": "About you",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "requester_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "requester_email",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "department",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "about_next",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "user",
+          "description": "Who is asking."
+        },
+        {
+          "id": "request",
+          "title": "The request",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "request_type",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "title",
+                  "span": 1
+                },
+                {
+                  "field_key": "counterparty",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "h_nda",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "nda_direction",
+                  "span": 1
+                },
+                {
+                  "field_key": "nda_paper",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "h_contract",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "contract_type",
+                  "span": 1
+                },
+                {
+                  "field_key": "contract_value",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "personal_data",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "h_question",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "question_area",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "h_dispute",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "dispute_amount",
+                  "span": 1
+                },
+                {
+                  "field_key": "response_deadline",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "h_details",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "details",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "documents",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "request_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "request_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "file-text",
+          "description": "What you need, with the documents: the questions change with the type of request."
+        },
+        {
+          "id": "documents",
+          "title": "Urgency",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "urgency",
+                  "span": 1
+                },
+                {
+                  "field_key": "needed_by",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "urgency_reason",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "docs_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "docs_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "clock",
+          "description": "How urgent it is, and when you need it."
+        },
+        {
+          "id": "review",
+          "title": "Review & send",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "acknowledge",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "review_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "review_submit",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "check-circle",
+          "description": "One last confirmation."
+        }
+      ],
+      "page_settings": {
+        "indicator": "progress",
+        "next_label": "Next",
+        "back_label": "Back",
+        "resume": true
+      },
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_sec_nda",
+          "name": "NDA questions only for NDAs",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "section:h_nda"
+              ]
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "neq",
+                "value": "NDA"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_sec_contract",
+          "name": "Contract questions only for contract reviews",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "section:h_contract"
+              ]
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "neq",
+                "value": "Contract review"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_sec_question",
+          "name": "The area of law only for legal questions",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "section:h_question"
+              ]
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "neq",
+                "value": "Legal question"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_sec_dispute",
+          "name": "Dispute questions only for disputes",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "section:h_dispute"
+              ]
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "neq",
+                "value": "Dispute or claim"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_nda_required",
+          "name": "An NDA needs its direction and template",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "nda_direction",
+              "text": "Say who shares confidential information."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "eq",
+                "value": "NDA"
+              },
+              {
+                "column": "nda_direction",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_nda_paper",
+          "name": "An NDA needs its template",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "nda_paper",
+              "text": "Say whose template we use."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "eq",
+                "value": "NDA"
+              },
+              {
+                "column": "nda_paper",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_contract_type",
+          "name": "A contract review needs the contract type",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "contract_type",
+              "text": "Pick the contract type."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "eq",
+                "value": "Contract review"
+              },
+              {
+                "column": "contract_type",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_question_area",
+          "name": "A legal question needs the area of law",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "question_area",
+              "text": "Pick the area of law."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "eq",
+                "value": "Legal question"
+              },
+              {
+                "column": "question_area",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_reason_hide",
+          "name": "Ask why only for High and Critical",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "field:urgency_reason"
+              ]
+            }
+          ],
+          "if": {
+            "match": "any",
+            "conditions": [
+              {
+                "column": "urgency",
+                "operator": "in",
+                "value": "Low,Normal"
+              },
+              {
+                "column": "urgency",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_reason_required",
+          "name": "High and Critical need a reason",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "urgency_reason",
+              "text": "Say why it is urgent: High and Critical requests jump the queue."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "urgency",
+                "operator": "in",
+                "value": "High,Critical"
+              },
+              {
+                "column": "urgency_reason",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_contract_docs",
+          "name": "A contract review needs the contract",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "documents",
+              "text": "Attach the contract you want reviewed."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "eq",
+                "value": "Contract review"
+              },
+              {
+                "column": "documents",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_needed_by",
+          "name": "Needed by is not in the past",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "needed_by",
+              "text": "Pick today or a later date."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "needed_by",
+                "operator": "is_set"
+              },
+              {
+                "column": "needed_by",
+                "operator": "lt",
+                "value": "{{today}}"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_dispute_urgent",
+          "name": "Disputes start as High",
+          "event": "value_change",
+          "then": [
+            {
+              "type": "set_values",
+              "assign": {
+                "urgency": "High"
+              }
+            },
+            {
+              "type": "message",
+              "text": "Disputes usually have deadlines, so urgency is set to High. Change it if there is no rush."
+            }
+          ],
+          "target": "request_type",
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "request_type",
+                "operator": "eq",
+                "value": "Dispute or claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send to legal",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Sent to legal",
+            "screen_button": "submit_another",
+            "screen_button_label": "Send another request",
+            "text": "Thanks {{requester_name}}. \"{{title}}\" is being routed now; you will get an email with the reference, the queue and when to expect an answer."
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#4338CA",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#ECEDFB",
+            "page_to": "#F8F8FE"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "Ask legal",
+          "subtitle": "NDAs, contract reviews, legal questions and disputes: four short steps, and the right lawyer picks it up."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Ask legal",
+      "align": "left",
+      "subtitle": "NDAs, contract reviews, legal questions and disputes: four short steps, and the right lawyer picks it up."
+    }
+  }
+}

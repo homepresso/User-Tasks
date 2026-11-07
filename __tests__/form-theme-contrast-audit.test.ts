@@ -106,5 +106,5 @@ describe('form theme contrast audit', () => {
       if (banner && (contrastRatio(banner.text, banner.background) ?? 0) < 4.5) failures.push(`#${i} banner ${banner.text} on ${banner.background}`)
     }
     expect(failures).toEqual([])
-  })
+  }, 30_000) // deterministic (seeded); only slow when the full suite runs in parallel
 })

@@ -1,0 +1,490 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "ce0c84b2-7f78-5cf6-bbe3-71f964a09eff",
+  "asset": {
+    "id": "ce0c84b2-7f78-5cf6-bbe3-71f964a09eff",
+    "name": "Document register",
+    "description": "The document control dashboard: register by status and type (charts from the Documents register table), review cycle time and open review tasks (saved reports), and a button that emails the reviews due soon.",
+    "tags": [
+      "documents",
+      "dashboard"
+    ],
+    "fields": [
+      {
+        "key": "about",
+        "type": "custom",
+        "label": "About this page",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "neutral",
+            "card_title": "Document control",
+            "body": "Every policy, contract and procedure is reviewed, signed off by its owner with an e-signature and logged step by step in the Audit log (kept 7 years). Published documents come back for review on their next review date.",
+            "layout": "callout",
+            "format": "auto",
+            "show_icon": true
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "by_status",
+        "type": "custom",
+        "label": "Register by status",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Documents by status",
+            "chart_type": "doughnut",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "status",
+            "value_field": "version",
+            "aggregate": "count",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#15803D",
+              "#4338CA",
+              "#A16207",
+              "#B91C1C",
+              "#6B7280"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "search_columns": [
+            "status",
+            "title"
+          ],
+          "display_columns": [
+            "status",
+            "version"
+          ],
+          "value_column": "reference",
+          "sort": {
+            "column": "status",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "by_type",
+        "type": "custom",
+        "label": "Register by type",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Documents by type",
+            "chart_type": "bar",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "doc_type",
+            "value_field": "version",
+            "aggregate": "count",
+            "show_legend": false,
+            "stacked": false,
+            "colors": [
+              "#4338CA"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+          "search_columns": [
+            "doc_type",
+            "title"
+          ],
+          "display_columns": [
+            "doc_type",
+            "version"
+          ],
+          "value_column": "reference",
+          "sort": {
+            "column": "doc_type",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "cycle",
+        "type": "custom",
+        "label": "Review cycle time",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "7c7cfbdb-9586-5000-b741-d4051a691a63",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "open_tasks",
+        "type": "custom",
+        "label": "Open review tasks",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "91756c5b-5559-5ccb-84be-ebc5c55ddbbd",
+            "view": "table",
+            "page_size": 5,
+            "max_rows": 100,
+            "height": 300,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "days_ahead",
+        "label": "Email me the reviews due in the next … days",
+        "type": "number",
+        "required": true,
+        "default": "30",
+        "min": 1,
+        "max": 365
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "by_status",
+              "span": 1
+            },
+            {
+              "field_key": "by_type",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "cycle",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "open_tasks",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 1,
+          "cells": [
+            {
+              "field_key": "days_ahead",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#4338CA",
+            "background": "#FFFFFF",
+            "text": "#16152B",
+            "page": "#ECEDFB",
+            "page_to": "#F8F8FE"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Email me the reviews due",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Summary on its way",
+            "screen_button": "submit_another",
+            "text": "The reviews due in the next {{days_ahead}} days are being emailed to you.",
+            "screen_button_label": "Back to the register"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Document register",
+      "align": "left",
+      "subtitle": "Status of every controlled document, review cycle time and open reviews."
+    }
+  }
+}

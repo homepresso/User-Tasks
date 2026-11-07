@@ -3,43 +3,35 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 
 const MCP_TIMEOUT_MS = 30_000
 
-function isUrlSafe(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false
-    const host = parsed.hostname.toLowerCase()
-    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1') return false
-    if (host === 'metadata.google.internal') return false
-    const parts = host.split('.').map(Number)
-    if (parts.length === 4 && parts.every(n => !isNaN(n))) {
-      if (parts[0] === 10) return false
-      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false
-      if (parts[0] === 192 && parts[1] === 168) return false
-      if (parts[0] === 169 && parts[1] === 254) return false
-    }
-    return true
-  } catch { return false }
-}
-
 /** Execute a tool on a remote MCP server */
 export async function executeMcpTool(
   supabase: any,
   mcpServerId: string,
   toolName: string,
   args: Record<string, any>,
+  options: { tenantId: string },
 ): Promise<any> {
+  // Scoped to the agent's tenant: an agent can only call its own workspace's servers.
   const { data: server } = await supabase.from('mcp_servers')
-    .select('id, url, auth_type, auth_config').eq('id', mcpServerId).single()
+    .select('id, url, auth_type, auth_config, is_active').eq('id', mcpServerId).eq('tenant_id', options.tenantId).maybeSingle()
   if (!server) return { error: 'MCP server not found' }
-  if (!isUrlSafe(server.url)) return { error: 'MCP server URL is not allowed (private network)' }
+  if (server.is_active === false) return { error: 'MCP server is inactive' }
+  try {
+    const { assertSafeEgressUrl } = await import('@/lib/egress-guard')
+    await assertSafeEgressUrl(server.url)
+  } catch (err: any) {
+    return { error: err?.message ?? 'MCP server URL is not allowed' }
+  }
 
   let client: Client | null = null
   try {
+    const { decryptSensitiveFields } = await import('@/lib/secret-fields')
+    const auth = decryptSensitiveFields(server.auth_config ?? {}) as Record<string, any>
     const headers: Record<string, string> = {}
-    if (server.auth_type === 'bearer' && server.auth_config?.token) {
-      headers['Authorization'] = `Bearer ${server.auth_config.token}`
-    } else if (server.auth_type === 'api_key' && server.auth_config?.key_name) {
-      headers[server.auth_config.key_name] = server.auth_config.key_value ?? ''
+    if (server.auth_type === 'bearer' && auth?.token) {
+      headers['Authorization'] = `Bearer ${auth.token}`
+    } else if (server.auth_type === 'api_key' && auth?.key_name) {
+      headers[auth.key_name] = auth.key_value ?? ''
     }
 
     const transport = new StreamableHTTPClientTransport(

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, FileUp, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { usePermissions } from '@/lib/permissions-context'
 import { publishStartFormPage, syncStartFormPage, unpublishStartFormPage } from '@/app/actions/form-pages'
 import type { StartFormPageInfo } from '@/lib/services/form-pages'
 import { FormPageLink, useWorkflowFormEntries } from '@/components/automations/workflow-form-links'
+import { cn } from '@/lib/utils'
 
 /**
  * "Publish as form page" for a workflow's START form (lib/services/form-pages):
@@ -21,6 +23,8 @@ export function StartFormPagePanel({ workflowId, info, compact = false }: { work
   const { can } = usePermissions()
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
+  // Synchronous guard: a double click must not publish twice.
+  const actGuard = useSubmitGuard()
   const [message, setMessage] = useState<{ tone: 'error' | 'success'; text: string } | null>(null)
   const [confirm, setConfirm] = useState<'overwrite' | 'unpublish' | null>(null)
   const canPublish = can('forms.edit') && can('workflows.activate')
@@ -34,36 +38,37 @@ export function StartFormPagePanel({ workflowId, info, compact = false }: { work
   ])
 
   async function act(run: () => Promise<{ ok: true; data: unknown } | { ok: false; error: string }>, success: string) {
-    setBusy(true); setMessage(null)
-    try {
-      const result = await run()
-      setMessage(result.ok ? { tone: 'success', text: success } : { tone: 'error', text: result.error })
-      await refresh()
-    } finally { setBusy(false); setConfirm(null) }
+    await actGuard.run(async () => {
+      setBusy(true); setMessage(null)
+      try {
+        const result = await run()
+        setMessage(result.ok ? { tone: 'success', text: success } : { tone: 'error', text: result.error })
+        await refresh()
+      } finally { setBusy(false); setConfirm(null) }
+    })
   }
 
   if (!page && !info.eligible) return null
-  const muted = { color: 'var(--theme-muted-text)' }
-  const text = compact ? 'text-[10px]' : 'text-xs'
+  const text = compact ? 'text-2xs' : 'text-xs'
 
   return (
     <div className={`space-y-1.5 ${text}`} data-start-form-page={page ? page.status : 'unpublished'} onClick={(e) => e.stopPropagation()}>
       {page ? (
         <>
-          <p className="font-medium" style={{ color: 'var(--theme-card-text)' }}>
-            Published as form page: <span className="font-mono" style={{ color: 'var(--theme-primary-text)' }}>{page.path}</span>
+          <p className="font-medium text-fg">
+            Published as form page: <span className="font-mono text-primary-text">{page.path}</span>
           </p>
-          <p style={muted}>{page.form_name} · v{page.version}</p>
+          <p className="text-fg-muted">{page.form_name} · v{page.version}</p>
           <FormPageLink formId={page.form_id} compact={compact} />
           {(page.status === 'start_form_changed' || page.status === 'both_changed') && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5" style={{ borderColor: 'var(--theme-warning)', backgroundColor: 'var(--theme-surface)' }} data-start-form-changed>
-              <AlertTriangle size={12} style={{ color: 'var(--theme-warning)' }} aria-hidden />
-              <span className="flex-1" style={{ color: 'var(--theme-card-text)' }}>
+            <div className="flex flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 border-warning bg-bg" data-start-form-changed>
+              <AlertTriangle className="text-warning" size={12} aria-hidden />
+              <span className="flex-1 text-fg">
                 Start form changed — update form page?
-                {page.status === 'both_changed' && <span style={muted}> The form page was also edited; updating replaces those edits.</span>}
+                {page.status === 'both_changed' && <span className="text-fg-muted"> The form page was also edited; updating replaces those edits.</span>}
               </span>
               {canPublish && (
-                <Button type="button" size="sm" variant="outline" className="!h-6 !px-2 !text-[11px]" disabled={busy} data-sync-form-page
+                <Button type="button" size="sm" variant="outline" className="!h-6 !px-2 !text-2xs" disabled={busy} data-sync-form-page
                   onClick={() => (page.status === 'both_changed' ? setConfirm('overwrite') : void act(() => syncStartFormPage(workflowId), 'Form page updated (new form version)'))}>
                   <RefreshCw size={11} /> Update form page
                 </Button>
@@ -71,32 +76,32 @@ export function StartFormPagePanel({ workflowId, info, compact = false }: { work
             </div>
           )}
           {page.status === 'form_edited' && (
-            <p style={muted} data-form-page-edited>
+            <p className="text-fg-muted" data-form-page-edited>
               The form page was edited in the Forms library (fields, layout, theme or input mapping); it keeps those edits.
-              {canPublish && <> <button type="button" className="underline underline-offset-2" style={{ color: 'var(--theme-primary-text)' }} onClick={() => setConfirm('overwrite')}>Reset it to the start form</button></>}
+              {canPublish && <> <button type="button" className="underline underline-offset-2 text-primary-text" onClick={() => setConfirm('overwrite')}>Reset it to the start form</button></>}
             </p>
           )}
-          {!info.workflow_active && <p style={{ color: 'var(--theme-warning)' }}>The workflow is inactive: submissions can&apos;t start runs until it is activated.</p>}
+          {!info.workflow_active && <p className="text-warning">The workflow is inactive: submissions can&apos;t start runs until it is activated.</p>}
           {canUnpublish && (
-            <button type="button" className="inline-flex items-center gap-1 text-[10px] font-medium hover:opacity-80" style={{ color: 'var(--status-blocked)' }} disabled={busy} onClick={() => setConfirm('unpublish')} data-unpublish-form-page>
+            <button type="button" className="inline-flex items-center gap-1 text-2xs font-medium hover:opacity-80 text-(--status-blocked)" disabled={busy} onClick={() => setConfirm('unpublish')} data-unpublish-form-page>
               <Trash2 size={11} /> Unpublish
             </button>
           )}
         </>
       ) : (
         <>
-          <p style={muted}>
+          <p className="text-fg-muted">
             Give this start form a shareable page: a reusable form whose Submit starts this workflow with the fields mapped to its inputs, as the person who submits. Run, API and CLI starts keep working.
           </p>
-          {info.skipped.length > 0 && <p style={{ color: 'var(--theme-warning)' }}>Left off the page (names a form can&apos;t map): {info.skipped.join(', ')}</p>}
-          <Button type="button" size="sm" variant="outline" className={compact ? '!h-7 !text-[11px]' : '!h-7 !text-xs'} disabled={busy || !canPublish} data-publish-form-page
+          {info.skipped.length > 0 && <p className="text-warning">Left off the page (names a form can&apos;t map): {info.skipped.join(', ')}</p>}
+          <Button type="button" size="sm" variant="outline" className={compact ? '!h-7 !text-2xs' : '!h-7 !text-xs'} disabled={busy || !canPublish} data-publish-form-page
             title={canPublish ? 'Create a reusable form from the start form' : "Needs the 'forms.edit' and 'workflows.activate' permissions"}
             onClick={() => void act(() => publishStartFormPage(workflowId), 'Published as a form page')}>
             <FileUp size={12} /> {busy ? 'Publishing…' : 'Publish as form page'}
           </Button>
         </>
       )}
-      {message && <p role="status" style={{ color: message.tone === 'error' ? 'var(--status-blocked)' : 'var(--theme-success)' }}>{message.text}</p>}
+      {message && <p className={cn(message.tone === 'error' ? 'text-(--status-blocked)' : 'text-success')} role="status">{message.text}</p>}
       <ConfirmDialog
         open={confirm === 'overwrite'}
         onOpenChange={(open) => { if (!open) setConfirm(null) }}
@@ -126,10 +131,10 @@ export function StartFormPageSection({ workflowId }: { workflowId: string }) {
   const info = data?.start_form_page
   if (!info || (!info.page && !info.eligible)) return null
   return (
-    <div className="space-y-1 rounded-lg p-2.5" style={{ backgroundColor: 'var(--theme-surface)' }} data-testid="start-form-page-section">
-      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Form page</p>
+    <div className="space-y-1 rounded-lg p-2.5 bg-bg" data-testid="start-form-page-section">
+      <p className="text-2xs font-semibold text-fg-muted">Form page</p>
       <StartFormPagePanel workflowId={workflowId} info={info} compact />
-      <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Follows the start form of the published version: publish the workflow, then update the page.</p>
+      <p className="text-2xs text-fg-muted">Follows the start form of the published version: publish the workflow, then update the page.</p>
     </div>
   )
 }

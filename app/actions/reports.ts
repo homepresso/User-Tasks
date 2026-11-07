@@ -8,6 +8,7 @@ import { writeAudit } from '@/lib/audit-log'
 import { enqueueDeletionJob, kickDeletionProcessor } from '@/lib/deletion-queue'
 import { normalizeReportConfig } from '@/lib/report-config'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -20,11 +21,14 @@ async function getAuthContext() {
 }
 
 export async function getReport(id: string) {
-  const { supabase } = await getAuthContext()
+  await requirePermission('reports.view')
+  const { supabase, userId } = await getAuthContext()
+  // Own or shared reports only (as reports_select RLS and the reports.get read).
   const { data, error } = await (supabase as any)
     .from('reports')
     .select('*')
     .eq('id', id)
+    .or(`created_by.eq.${userId},is_shared.eq.true`)
     .single()
   if (error || !data) throw new Error('Report not found')
   return data as any
@@ -39,6 +43,10 @@ export async function createReport(input: {
 }) {
   const { supabase, userId, tenantId } = await getAuthContext()
   await requirePermission('reports.create')
+
+  // A repeated save (double click, retry) reuses the report this user just created.
+  const recent = await findRecentDuplicate<{ id: string }>(supabase, 'reports', { tenant_id: tenantId, created_by: userId, name: input.name })
+  if (recent) return recent
 
   const { data, error } = await (supabase as any)
     .from('reports')
@@ -80,15 +88,19 @@ export async function updateReport(id: string, input: {
   if (input.config !== undefined) updates.config = normalizeReportConfig(input.config)
   if (input.category !== undefined) updates.category = input.category
 
-  const { error } = await (supabase as any)
+  const { data: changed, error } = await (supabase as any)
     .from('reports')
     .update(updates)
     .eq('id', id)
     .eq('created_by', userId)
+    .select('id')
 
   if (error) throw new Error('Failed to update report')
+  // Only the creator edits a report: anyone else's is left as it was (the builder then saves a copy).
+  if (!changed?.length) return { updated: false }
   void recordAssetChange({ supabase, tenantId, assetType: 'report', assetId: id, assetName: input.name ?? null, action: 'save', actorId: userId })
   revalidatePath('/reports')
+  return { updated: true }
 }
 
 export async function deleteReport(id: string) {
@@ -200,6 +212,7 @@ export async function toggleFavorite(id: string) {
 }
 
 export async function toggleShare(id: string) {
+  await requirePermission('reports.share')
   const { supabase, userId } = await getAuthContext()
   const { data: current } = await (supabase as any)
     .from('reports')

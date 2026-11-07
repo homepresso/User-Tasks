@@ -42,8 +42,12 @@ export type AuditObjectType =
   | 'package_install'
   | 'form'
   | 'form_theme'
+  | 'form_control'
   | 'task'
   | 'member'
+  | 'org_unit'
+  | 'project'
+  | 'org'
 
 export type AuditAction =
   | 'create'

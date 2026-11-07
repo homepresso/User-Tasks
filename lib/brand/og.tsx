@@ -26,11 +26,11 @@ type Font = { name: string; data: Buffer; weight: 500 | 700; style: 'normal' }
 
 let fonts: Promise<Font[]> | undefined
 
-/** DM Sans + Fraunces, bundled in lib/brand/fonts (SIL OFL). */
+/** Inter (the UI face) + Fraunces (headlines), bundled in lib/brand/fonts (SIL OFL). */
 function loadFonts(): Promise<Font[]> {
   fonts ??= Promise.all([
-    ['DM Sans', 'DMSans-Medium.ttf', 500],
-    ['DM Sans', 'DMSans-Bold.ttf', 700],
+    ['Inter', 'Inter-Medium.ttf', 500],
+    ['Inter', 'Inter-Bold.ttf', 700],
     ['Fraunces', 'Fraunces-Bold.ttf', 700],
   ].map(async ([name, file, weight]) => ({
     name: name as string,
@@ -79,7 +79,7 @@ function Brand({ mark, text }: { mark: number; text: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: mark * 0.3 }}>
       <Mark size={mark} />
-      <div style={{ display: 'flex', fontFamily: 'DM Sans', fontWeight: 700, fontSize: text, letterSpacing: -text * 0.025, color: INK }}>
+      <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 700, fontSize: text, letterSpacing: -text * 0.025, color: INK }}>
         user<span style={{ color: BRONZE_TEXT }}>tasks</span>
       </div>
     </div>
@@ -106,7 +106,7 @@ export async function renderHomeOgImage(): Promise<ImageResponse> {
           <span>The headless</span>
           <span>workflow engine</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 34, fontFamily: 'DM Sans', fontWeight: 500, fontSize: 32, color: MUTED }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 34, fontFamily: 'Inter', fontWeight: 500, fontSize: 32, color: MUTED }}>
           {['API', 'MCP', 'CLI', 'open source'].flatMap((label, i) => [
             ...(i ? [<div key={`dot-${label}`} style={{ width: 8, height: 8, borderRadius: 8, background: BRONZE }} />] : []),
             <span key={label}>{label}</span>,
@@ -133,7 +133,7 @@ export async function renderOgImage({ eyebrow, title, subtitle }: OgCard): Promi
           <Brand mark={56} text={42} />
         </div>
         {eyebrow && (
-          <div style={{ display: 'flex', marginTop: 44, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 24, letterSpacing: 4, textTransform: 'uppercase', color: BRONZE_TEXT }}>
+          <div style={{ display: 'flex', marginTop: 44, fontFamily: 'Inter', fontWeight: 700, fontSize: 24, letterSpacing: 4, textTransform: 'uppercase', color: BRONZE_TEXT }}>
             {truncate(eyebrow, 48)}
           </div>
         )}
@@ -141,7 +141,7 @@ export async function renderOgImage({ eyebrow, title, subtitle }: OgCard): Promi
           {heading}
         </div>
         {subtitle && (
-          <div style={{ display: 'flex', justifyContent: 'center', textAlign: 'center', textWrap: 'balance', maxWidth: 900, marginTop: 22, fontFamily: 'DM Sans', fontWeight: 500, fontSize: 28, lineHeight: 1.35, color: MUTED }}>
+          <div style={{ display: 'flex', justifyContent: 'center', textAlign: 'center', textWrap: 'balance', maxWidth: 900, marginTop: 22, fontFamily: 'Inter', fontWeight: 500, fontSize: 28, lineHeight: 1.35, color: MUTED }}>
             {truncate(subtitle, 120)}
           </div>
         )}

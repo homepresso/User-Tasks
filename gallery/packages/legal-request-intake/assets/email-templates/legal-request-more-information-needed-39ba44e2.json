@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "39ba44e2-094a-5127-ac0a-c8a4bf22c3f4",
+  "asset": {
+    "id": "39ba44e2-094a-5127-ac0a-c8a4bf22c3f4",
+    "name": "Legal request: more information needed",
+    "description": "Sent to the requester when legal asks for more information.",
+    "subject": "More information needed for {{request_ref}}: {{form.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#4338CA;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Legal needs a little more information</h2>\n  <p style=\"margin:0 0 12px\">Hi {{form.requester_name}},</p>\n  <p style=\"margin:0 0 12px\">About <strong>{{form.title}}</strong> ({{request_ref}}), {{actioned_by_name}} asks:</p>\n  <p style=\"margin:0 0 12px\"><em>{{task_data.question_for_requester}}</em></p>\n  <p style=\"margin:0 0 12px\">Open the task <strong>More information for {{request_ref}}</strong> in UserTasks to answer.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the legal request workflow</p>\n</div>",
+    "text_body": "Hi {{form.requester_name}},\nAbout \"{{form.title}}\" ({{request_ref}}), legal asks: {{task_data.question_for_requester}}\nAnswer in the task \"More information for {{request_ref}}\".",
+    "is_default": false
+  }
+}

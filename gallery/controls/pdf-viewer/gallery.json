@@ -1,0 +1,64 @@
+{
+  "id": "aa4772f1-431a-4fd6-afb1-405cf442aa22",
+  "asset_id": "97212010-82fd-491d-bf7c-5d8fe195b00c",
+  "slug": "pdf-viewer",
+  "title": "PDF viewer",
+  "kind": "display",
+  "summary": "Shows a PDF inside the form, from an Attachments field or an upload, page by page with zoom, rotation and the text read out to screen readers.",
+  "description": "Put the document people need to read right next to the questions about it: the contract to approve, the quote to check, the policy to acknowledge, the invoice to code. Map an Attachments field in the designer and the viewer shows its first PDF, or allow uploads so people can choose a PDF themselves; the uploaded file becomes the field's value.\n\nPages render one at a time, sharp on high-density screens, with previous and next page, zoom in and out, fit to width and rotate. The viewer is keyboard friendly (Page Up and Page Down turn pages, + and - zoom, Home and End jump to the first and last page) and each page is announced as \"Page 2 of 7, contract.pdf\" followed by the page's text, so screen-reader users can read the document too.\n\nPDF.js runs entirely inside the form's sandbox: no worker, no network access and no script evaluation, and the file is read through the form's own file service, which only hands over files that belong to the form. Password-protected, damaged and non-PDF files show a clear message instead of a broken page.",
+  "icon": "file-text",
+  "tags": [
+    "pdf",
+    "document",
+    "viewer",
+    "attachments",
+    "contract",
+    "preview"
+  ],
+  "version": "1.1.0",
+  "changelog": [{ "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: a file list (unchanged)." },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "The contract or quote to review on an approval step",
+    "A policy document to read before acknowledging it",
+    "An uploaded invoice shown beside the fields that code it"
+  ],
+  "setup": [
+    "Install the package: the control appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag PDF viewer onto a form and map its Document context to an Attachments field of the form (the first PDF in it is shown).",
+    "Optionally turn on Allow uploading a PDF so people can choose a PDF themselves; the uploaded file is stored as this field's value."
+  ],
+  "preview": {
+    "props": {
+      "allow_upload": false
+    },
+    "value": null,
+    "label": "Service agreement",
+    "height": 560,
+    "context": {
+      "document": [
+        {
+          "id": "f1",
+          "name": "sample.pdf",
+          "size": 1406,
+          "type": "application/pdf"
+        }
+      ]
+    },
+    "fixtures": {
+      "file": {
+        "id": "f1",
+        "name": "sample.pdf",
+        "size": 1406,
+        "type": "application/pdf",
+        "__bytes": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs1IDAgUiA3IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggMzEzID4+CnN0cmVhbQpCVAovRjEgMjIgVGYgMSAwIDAgMSA3MiA3NjAgVG0gKFNlcnZpY2UgYWdyZWVtZW50KSBUagovRjEgMTMgVGYgMSAwIDAgMSA3MiA3MjAgVG0gKFBhZ2Ugb25lOiB0aGUgcGFydGllcyBhZ3JlZSB0byB0aGUgdGVybXMgYmVsb3cuKSBUagovRjEgMTMgVGYgMSAwIDAgMSA3MiA2OTYgVG0gKDEuIFNjb3BlIG9mIHdvcmsgYW5kIGRlbGl2ZXJhYmxlcy4pIFRqCi9GMSAxMyBUZiAxIDAgMCAxIDcyIDY3MiBUbSAoMi4gRmVlcyBhcmUgZHVlIHdpdGhpbiAzMCBkYXlzLikgVGoKRVQKMC4xOCAwLjM3IDAuODIgUkcgMiB3IDcyIDc0MiBtIDU0MCA3NDIgbCBTCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA0IDAgUiA+PgplbmRvYmoKNiAwIG9iago8PCAvTGVuZ3RoIDI5MSA+PgpzdHJlYW0KQlQKL0YxIDIyIFRmIDEgMCAwIDEgNzIgNzYwIFRtIChTY2hlZHVsZSBBKSBUagovRjEgMTMgVGYgMSAwIDAgMSA3MiA3MjAgVG0gKFBhZ2UgdHdvOiBzaWduYXR1cmVzIGFuZCBkYXRlcy4pIFRqCi9GMSAxMyBUZiAxIDAgMCAxIDcyIDY5NiBUbSAoU2lnbmVkIGZvciB0aGUgY3VzdG9tZXI6IF9fX19fX19fKSBUagovRjEgMTMgVGYgMSAwIDAgMSA3MiA2NzIgVG0gKFNpZ25lZCBmb3IgdGhlIHN1cHBsaWVyOiBfX19fX19fXykgVGoKRVQKMC4xOCAwLjM3IDAuODIgUkcgMiB3IDcyIDc0MiBtIDU0MCA3NDIgbCBTCmVuZHN0cmVhbQplbmRvYmoKNyAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA2IDAgUiA+PgplbmRvYmoKeHJlZgowIDgKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjQgMDAwMDAgbiAKMDAwMDAwMDEyNyAwMDAwMCBuIAowMDAwMDAwMjI0IDAwMDAwIG4gCjAwMDAwMDA1ODggMDAwMDAgbiAKMDAwMDAwMDcxNCAwMDAwMCBuIAowMDAwMDAxMDU2IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgOCAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTE4MgolJUVPRgo="
+      }
+    },
+    "note": "Shows a two-page sample PDF from a mapped Attachments field."
+  }
+}

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { getSessionDbWithUser } from '@/lib/providers/db/session'
 import { loadInfrastructureView, viewerCanSeeInfrastructure } from '@/lib/admin/infrastructure'
 import { InfrastructureView } from '@/components/settings/infrastructure-view'
+import { instancePrices } from '@/lib/agents/costs'
 
 /**
  * Settings → Infrastructure: the provider per area, health from the doctor
@@ -17,5 +18,6 @@ export default async function InfrastructurePage({ searchParams }: { searchParam
   if (!(await viewerCanSeeInfrastructure(user))) notFound()
   const refresh = (await searchParams).refresh === '1'
   const view = await loadInfrastructureView({ refresh })
-  return <InfrastructureView view={view} />
+  const aiPrices = await instancePrices()
+  return <InfrastructureView view={view} aiPrices={aiPrices} />
 }

@@ -2,34 +2,51 @@
 
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { Card } from "@/components/ui/card"
 import { VariableInput } from "./variable-input"
-import { Plus, Search, Loader2 } from "lucide-react"
+import { Plus, Search, Loader2, X } from "lucide-react"
 import { serverRead } from "@/lib/server-read"
+import { formatDate, formatDay, formatTime } from "@/lib/format/date"
+import { cn } from "@/lib/utils"
 
 interface DocConfigProps {
   config: Record<string, any>
   onUpdate: (key: string, value: any) => void
 }
 
+const labelClass = "block text-xs font-medium text-fg"
+const hintClass = "text-xs text-fg-muted"
+
+/** One option of a mode switch: neutral track, the selected option lifted. */
+function modeOptionClass(selected: boolean) {
+  return cn(
+    "rounded-[calc(var(--ds-radius-sm)-2px)] px-2 py-1 text-xs font-medium transition-colors",
+    selected ? "bg-panel text-fg shadow-elev-1" : "text-fg-muted hover:text-fg",
+  )
+}
+
 // ─── Shared: Template Source ───
 function TemplateSource({ config, onUpdate }: DocConfigProps) {
   return (
     <>
-      <label className="block text-xs font-medium">Template Source</label>
-      <select value={config.source_mode ?? "url"} onChange={e => onUpdate("source_mode", e.target.value)}
-        className="w-full rounded-lg border px-2 py-1.5 text-xs"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+      <label className={labelClass}>Template source</label>
+      <Select size="sm" value={config.source_mode ?? "url"} onChange={e => onUpdate("source_mode", e.target.value)}>
         <option value="url">File URL</option>
-        <option value="ref">File Reference (from API / workflow)</option>
-        <option value="table">Data Table (query by ID)</option>
-      </select>
+        <option value="ref">File reference (from API / workflow)</option>
+        <option value="table">Data table (query by ID)</option>
+      </Select>
 
       {config.source_mode === 'table' ? (
         <TableRowPicker config={config} onUpdate={onUpdate} />
       ) : (
         <>
-          <label className="block text-xs font-medium">
-            {config.source_mode === 'ref' ? 'File Variable' : 'Template URL'}
+          <label className={labelClass}>
+            {config.source_mode === 'ref' ? 'File variable' : 'Template URL'}
           </label>
           <VariableInput
             value={config.template_url ?? ''}
@@ -46,16 +63,25 @@ function TemplateSource({ config, onUpdate }: DocConfigProps) {
 function OutputConfig({ config, onUpdate, defaultName }: DocConfigProps & { defaultName: string }) {
   return (
     <>
-      <label className="block text-xs font-medium">Output Filename</label>
+      <label className={labelClass}>Output filename</label>
       <VariableInput
         value={config.output_filename ?? ''}
         onChange={v => onUpdate("output_filename", v)}
         placeholder={defaultName}
       />
-      <label className="block text-xs font-medium">Output Variable</label>
-      <Input value={config.output_var ?? ''} onChange={e => onUpdate("output_var", e.target.value)}
-        placeholder="doc_file" className="!text-xs font-mono" />
+      <label className={labelClass}>Output variable</label>
+      <Input size="sm" value={config.output_var ?? ''} onChange={e => onUpdate("output_var", e.target.value)}
+        placeholder="doc_file" className="font-mono" />
     </>
+  )
+}
+
+/** "Add …" text action under a repeated list. */
+function AddButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Button variant="link" size="sm" leadingIcon={<Plus />} onClick={onClick}>
+      {children}
+    </Button>
   )
 }
 
@@ -68,22 +94,18 @@ function FindReplacePairs({ config, onUpdate }: DocConfigProps) {
   }
   return (
     <>
-      <label className="block text-xs font-medium">Find & Replace</label>
-      <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <label className={labelClass}>Find &amp; replace</label>
+      <p className={hintClass}>
         Type the exact text to find in the document e.g. [TITLE], {'{{CompanyName}}'}, %placeholder% — it is matched as written (not resolved). Replace accepts expressions.
       </p>
       {pairs.map((p, i) => (
-        <div key={i} className="flex gap-1.5">
-          <Input value={p.find} onChange={e => update(i, 'find', e.target.value)} placeholder="Find placeholder" className="!text-xs font-mono flex-1 min-w-0" />
+        <div key={i} className="flex items-start gap-1.5">
+          <Input size="sm" value={p.find} onChange={e => update(i, 'find', e.target.value)} placeholder="Find placeholder" className="font-mono flex-1 min-w-0" />
           <VariableInput value={p.replace} onChange={v => update(i, 'replace', v)} placeholder="Replace with" />
-          <button onClick={() => onUpdate("replacements", pairs.filter((_, j) => j !== i))}
-            className="text-xs px-1 shrink-0 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+          <IconButton size="sm" label="Remove pair" icon={<X />} onClick={() => onUpdate("replacements", pairs.filter((_, j) => j !== i))} />
         </div>
       ))}
-      <button onClick={() => onUpdate("replacements", [...pairs, { find: '', replace: '' }])}
-        className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--theme-primary-text)' }}>
-        <Plus size={10} /> Add pair
-      </button>
+      <AddButton onClick={() => onUpdate("replacements", [...pairs, { find: '', replace: '' }])}>Add pair</AddButton>
     </>
   )
 }
@@ -93,22 +115,18 @@ function TableEntries({ config, onUpdate }: DocConfigProps) {
   const tables = (config.tables ?? [{ placeholder: '', data_var: '' }]) as { placeholder: string; data_var: string }[]
   return (
     <>
-      <label className="block text-xs font-medium">Tables</label>
-      <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <label className={labelClass}>Tables</label>
+      <p className={hintClass}>
         Use {'{{#placeholder}}...{{/placeholder}}'} loop tags in your template for tables.
       </p>
       {tables.map((t, i) => (
-        <div key={i} className="flex gap-1.5">
+        <div key={i} className="flex items-start gap-1.5">
           <VariableInput value={t.placeholder} onChange={v => { const u = [...tables]; u[i] = { ...u[i], placeholder: v }; onUpdate("tables", u) }} placeholder="Placeholder tag" />
           <VariableInput value={t.data_var} onChange={v => { const u = [...tables]; u[i] = { ...u[i], data_var: v }; onUpdate("tables", u) }} placeholder="{{json_array}}" />
-          <button onClick={() => onUpdate("tables", tables.filter((_, j) => j !== i))}
-            className="text-xs px-1 shrink-0 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+          <IconButton size="sm" label="Remove table" icon={<X />} onClick={() => onUpdate("tables", tables.filter((_, j) => j !== i))} />
         </div>
       ))}
-      <button onClick={() => onUpdate("tables", [...tables, { placeholder: '', data_var: '' }])}
-        className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--theme-primary-text)' }}>
-        <Plus size={10} /> Add table
-      </button>
+      <AddButton onClick={() => onUpdate("tables", [...tables, { placeholder: '', data_var: '' }])}>Add table</AddButton>
     </>
   )
 }
@@ -118,27 +136,22 @@ function ListEntries({ config, onUpdate }: DocConfigProps) {
   const lists = (config.lists ?? [{ placeholder: '', items_var: '', delimiter: 'linebreak' }]) as { placeholder: string; items_var: string; delimiter: string }[]
   return (
     <>
-      <label className="block text-xs font-medium">Lists</label>
+      <label className={labelClass}>Lists</label>
       {lists.map((l, i) => (
-        <div key={i} className="space-y-1 rounded-lg p-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-          <div className="flex gap-1.5">
+        <Card key={i} variant="inset" padding="sm" className="space-y-1.5">
+          <div className="flex items-start gap-1.5">
             <VariableInput value={l.placeholder} onChange={v => { const u = [...lists]; u[i] = { ...u[i], placeholder: v }; onUpdate("lists", u) }} placeholder="Placeholder" />
             <VariableInput value={l.items_var} onChange={v => { const u = [...lists]; u[i] = { ...u[i], items_var: v }; onUpdate("lists", u) }} placeholder="{{items}}" />
-            <button onClick={() => onUpdate("lists", lists.filter((_, j) => j !== i))}
-              className="text-xs px-1 shrink-0 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+            <IconButton size="sm" label="Remove list" icon={<X />} onClick={() => onUpdate("lists", lists.filter((_, j) => j !== i))} />
           </div>
-          <select value={l.delimiter ?? 'linebreak'} onChange={e => { const u = [...lists]; u[i] = { ...u[i], delimiter: e.target.value }; onUpdate("lists", u) }}
-            className="w-full rounded border px-2 py-1 text-[10px]" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+          <Select size="sm" value={l.delimiter ?? 'linebreak'} onChange={e => { const u = [...lists]; u[i] = { ...u[i], delimiter: e.target.value }; onUpdate("lists", u) }}>
             <option value="linebreak">Line break separated</option>
             <option value="comma">Comma separated</option>
             <option value="semicolon">Semicolon separated</option>
-          </select>
-        </div>
+          </Select>
+        </Card>
       ))}
-      <button onClick={() => onUpdate("lists", [...lists, { placeholder: '', items_var: '', delimiter: 'linebreak' }])}
-        className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--theme-primary-text)' }}>
-        <Plus size={10} /> Add list
-      </button>
+      <AddButton onClick={() => onUpdate("lists", [...lists, { placeholder: '', items_var: '', delimiter: 'linebreak' }])}>Add list</AddButton>
     </>
   )
 }
@@ -148,27 +161,23 @@ function ImageEntries({ config, onUpdate }: DocConfigProps) {
   const images = (config.images ?? [{ placeholder: '', image_url: '' }]) as { placeholder: string; image_url: string; width_px?: number; height_px?: number }[]
   return (
     <>
-      <label className="block text-xs font-medium">Images</label>
+      <label className={labelClass}>Images</label>
       {images.map((img, i) => (
-        <div key={i} className="space-y-1 rounded-lg p-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-          <div className="flex gap-1.5">
+        <Card key={i} variant="inset" padding="sm" className="space-y-1.5">
+          <div className="flex items-start gap-1.5">
             <VariableInput value={img.placeholder} onChange={v => { const u = [...images]; u[i] = { ...u[i], placeholder: v }; onUpdate("images", u) }} placeholder="Placeholder" />
             <VariableInput value={img.image_url} onChange={v => { const u = [...images]; u[i] = { ...u[i], image_url: v }; onUpdate("images", u) }} placeholder="{{image_url}}" />
-            <button onClick={() => onUpdate("images", images.filter((_, j) => j !== i))}
-              className="text-xs px-1 shrink-0 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+            <IconButton size="sm" label="Remove image" icon={<X />} onClick={() => onUpdate("images", images.filter((_, j) => j !== i))} />
           </div>
           <div className="flex gap-1.5">
-            <Input type="number" value={img.width_px ?? ''} onChange={e => { const u = [...images]; u[i] = { ...u[i], width_px: Number(e.target.value) || undefined }; onUpdate("images", u) }}
-              placeholder="Width (px)" className="!text-[10px] flex-1" />
-            <Input type="number" value={img.height_px ?? ''} onChange={e => { const u = [...images]; u[i] = { ...u[i], height_px: Number(e.target.value) || undefined }; onUpdate("images", u) }}
-              placeholder="Height (px)" className="!text-[10px] flex-1" />
+            <Input size="sm" type="number" value={img.width_px ?? ''} onChange={e => { const u = [...images]; u[i] = { ...u[i], width_px: Number(e.target.value) || undefined }; onUpdate("images", u) }}
+              placeholder="Width (px)" className="flex-1" />
+            <Input size="sm" type="number" value={img.height_px ?? ''} onChange={e => { const u = [...images]; u[i] = { ...u[i], height_px: Number(e.target.value) || undefined }; onUpdate("images", u) }}
+              placeholder="Height (px)" className="flex-1" />
           </div>
-        </div>
+        </Card>
       ))}
-      <button onClick={() => onUpdate("images", [...images, { placeholder: '', image_url: '' }])}
-        className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--theme-primary-text)' }}>
-        <Plus size={10} /> Add image
-      </button>
+      <AddButton onClick={() => onUpdate("images", [...images, { placeholder: '', image_url: '' }])}>Add image</AddButton>
     </>
   )
 }
@@ -187,17 +196,15 @@ function FindReplaceSection({ config, onUpdate }: DocConfigProps) {
 
   return (
     <>
-      <label className="block text-xs font-medium">Replacements</label>
-      <div className="flex gap-0.5 rounded-lg p-0.5" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <button type="button" onClick={() => onUpdate("fr_input_mode", "pairs")}
-          className="flex-1 text-[10px] font-medium py-1.5 px-2 rounded transition-colors"
-          style={{ backgroundColor: inputMode === 'pairs' ? 'var(--theme-card-bg)' : 'transparent', color: inputMode === 'pairs' ? 'var(--theme-card-text)' : 'var(--theme-muted-text)', boxShadow: inputMode === 'pairs' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none' }}>
-          Find &amp; Replace Pairs
+      <label className={labelClass}>Replacements</label>
+      <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
+        <button type="button" onClick={() => onUpdate("fr_input_mode", "pairs")} aria-pressed={inputMode === 'pairs'}
+          className={cn("flex-1", modeOptionClass(inputMode === 'pairs'))}>
+          Find &amp; replace pairs
         </button>
-        <button type="button" onClick={() => onUpdate("fr_input_mode", "json")}
-          className="flex-1 text-[10px] font-medium py-1.5 px-2 rounded transition-colors"
-          style={{ backgroundColor: inputMode === 'json' ? 'var(--theme-card-bg)' : 'transparent', color: inputMode === 'json' ? 'var(--theme-card-text)' : 'var(--theme-muted-text)', boxShadow: inputMode === 'json' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none' }}>
-          JSON Body
+        <button type="button" onClick={() => onUpdate("fr_input_mode", "json")} aria-pressed={inputMode === 'json'}
+          className={cn("flex-1", modeOptionClass(inputMode === 'json'))}>
+          JSON body
         </button>
       </div>
 
@@ -205,19 +212,19 @@ function FindReplaceSection({ config, onUpdate }: DocConfigProps) {
         <FindReplacePairs config={config} onUpdate={onUpdate} />
       ) : (
         <>
-          <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className={hintClass}>
             Keys are the find placeholders, values are the replacements.
           </p>
-          <textarea
+          <Textarea
             value={typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2)}
             onChange={e => validateJson(e.target.value)}
             placeholder={'{\n  "[TITLE]": "My Document",\n  "[DATE]": "2026-03-30"\n}'}
             rows={6}
             spellCheck={false}
-            className="w-full rounded-lg border px-2 py-1.5 text-xs font-mono"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: jsonError ? '#ef4444' : 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            aria-invalid={jsonError ? true : undefined}
+            className="text-xs font-mono"
           />
-          {jsonError && <p className="text-[9px] text-red-500">Invalid JSON: {jsonError}</p>}
+          {jsonError && <p className="text-xs text-danger">Invalid JSON: {jsonError}</p>}
         </>
       )}
     </>
@@ -266,84 +273,75 @@ function TableRowPicker({ config, onUpdate }: DocConfigProps) {
 
   return (
     <>
-      <label className="block text-xs font-medium">Table</label>
-      <select value={config.table_id ?? ''} onChange={e => { onUpdate("table_id", e.target.value); onUpdate("table_row_id", ''); setOpen(false) }}
-        className="w-full rounded-lg border px-2 py-1.5 text-xs"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+      <label className={labelClass}>Table</label>
+      <Select size="sm" value={config.table_id ?? ''} onChange={e => { onUpdate("table_id", e.target.value); onUpdate("table_row_id", ''); setOpen(false) }}>
         <option value="">Select table...</option>
         {tables?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-      </select>
+      </Select>
 
       {config.table_id && (
         <>
-          <label className="block text-xs font-medium">Row ID</label>
-          <div className="flex gap-1.5">
+          <label className={labelClass}>Row ID</label>
+          <div className="flex items-start gap-1.5">
             <VariableInput
               value={config.table_row_id ?? ''}
               onChange={v => onUpdate("table_row_id", v)}
               placeholder="{{row_id}} or pick below"
             />
-            <button
-              type="button"
-              onClick={() => setOpen(!open)}
-              className="shrink-0 rounded-lg border px-2 py-1 text-[10px] hover:opacity-70"
-              style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-primary-text)' }}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(!open)}>
               {open ? 'Close' : 'Browse'}
-            </button>
+            </Button>
           </div>
 
           {selectedRow && !open && (
-            <div className="text-[9px] rounded-lg px-2 py-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-              Selected: {selectedRow.id.slice(0, 8)} — {new Date(selectedRow.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
-              {new Date(selectedRow.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            <div className="rounded-md bg-subtle px-2 py-1 text-xs text-fg-muted">
+              Selected: <span className="font-mono">{selectedRow.id.slice(0, 8)}</span> — {formatDate(selectedRow.created_at)}{' '}
+              {formatTime(selectedRow.created_at)}
             </div>
           )}
 
           {open && (
-            <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-              <div className="relative">
-                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search by ID, data..."
-                  className="w-full border-b pl-7 pr-2 py-1.5 text-[10px]"
-                  style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-                />
-              </div>
+            <div className="overflow-hidden rounded-lg border border-border bg-panel">
+              <Input
+                size="sm"
+                leading={<Search />}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by ID, data..."
+                className="rounded-none border-0 border-b border-border-subtle hover:border-border-subtle"
+              />
               <div className="max-h-48 overflow-y-auto overflow-x-auto">
                 {loading ? (
-                  <div className="flex items-center justify-center py-4 gap-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    <Loader2 size={12} className="animate-spin" /> Loading rows...
+                  <div className="flex items-center justify-center gap-1.5 py-4 text-xs text-fg-muted">
+                    <Loader2 size={14} className="animate-spin" /> Loading rows...
                   </div>
                 ) : filteredRows.length === 0 ? (
-                  <div className="py-3 text-center text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                  <div className="py-3 text-center text-xs text-fg-muted">
                     {search ? 'No matching rows' : 'No rows in table'}
                   </div>
                 ) : (
-                  <table className="w-full min-w-[420px] text-[10px]">
+                  <table className="w-full min-w-[420px] text-xs">
                     <thead>
-                      <tr style={{ backgroundColor: 'var(--theme-surface)' }}>
-                        <th className="px-2 py-1 text-left font-medium" style={{ color: 'var(--theme-muted-text)' }}>ID</th>
-                        <th className="px-2 py-1 text-left font-medium" style={{ color: 'var(--theme-muted-text)' }}>Created</th>
-                        <th className="px-2 py-1 text-left font-medium" style={{ color: 'var(--theme-muted-text)' }}>Data</th>
+                      <tr className="bg-subtle">
+                        <th className="px-2 py-1 text-left font-medium text-fg-muted">ID</th>
+                        <th className="px-2 py-1 text-left font-medium text-fg-muted">Created</th>
+                        <th className="px-2 py-1 text-left font-medium text-fg-muted">Data</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredRows.map(r => (
                         <tr key={r.id}
-                          className="cursor-pointer hover:opacity-80"
-                          style={{ borderTop: '1px solid var(--theme-surface-border)', backgroundColor: config.table_row_id === r.id ? 'var(--theme-primary-light)' : undefined }}
+                          className={cn("cursor-pointer border-t border-border-subtle", config.table_row_id === r.id ? "bg-primary-wash" : "hover:bg-subtle")}
                           onClick={() => { onUpdate("table_row_id", r.id); setOpen(false) }}>
-                          <td className="px-2 py-1 font-mono" style={{ color: 'var(--theme-muted-text)' }}>{r.id.slice(0, 8)}</td>
-                          <td className="px-2 py-1 whitespace-nowrap" style={{ color: 'var(--theme-muted-text)' }}>
-                            {new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}{' '}
-                            {new Date(r.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                          <td className="px-2 py-1 font-mono text-fg-muted">{r.id.slice(0, 8)}</td>
+                          <td className="px-2 py-1 whitespace-nowrap text-fg-muted num">
+                            {formatDay(r.created_at)}{' '}
+                            {formatTime(r.created_at)}
                           </td>
-                          <td className="px-2 py-1 truncate max-w-[200px]">
+                          <td className="px-2 py-1 truncate max-w-[200px] text-fg">
                             {Object.entries(r.data).filter(([k]) => k !== 'id' && k !== 'Date Created').slice(0, 3).map(([k, v]) => (
                               <span key={k} className="mr-1.5">
-                                <span style={{ color: 'var(--theme-muted-text)' }}>{k}:</span>{' '}
+                                <span className="text-fg-muted">{k}:</span>{' '}
                                 {typeof v === 'object' && v?.name ? v.name : String(v ?? '').slice(0, 30)}
                               </span>
                             ))}
@@ -354,20 +352,18 @@ function TableRowPicker({ config, onUpdate }: DocConfigProps) {
                   </table>
                 )}
               </div>
-              {!loading && <div className="text-[9px] px-2 py-1 border-t" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
+              {!loading && <div className="border-t border-border-subtle px-2 py-1 text-xs text-fg-muted num">
                 {filteredRows.length} of {rows.length} rows
               </div>}
             </div>
           )}
 
-          <label className="block text-xs font-medium">File Column</label>
+          <label className={labelClass}>File column</label>
           {fileColumns.length > 0 ? (
-            <select value={config.table_file_column ?? ''} onChange={e => onUpdate("table_file_column", e.target.value)}
-              className="w-full rounded-lg border px-2 py-1.5 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+            <Select size="sm" value={config.table_file_column ?? ''} onChange={e => onUpdate("table_file_column", e.target.value)}>
               <option value="">Select file column...</option>
               {fileColumns.map((c: any) => <option key={c.key ?? c.name} value={c.key ?? c.name}>{c.label ?? c.name ?? c.key}</option>)}
-            </select>
+            </Select>
           ) : (
             <VariableInput
               value={config.table_file_column ?? ''}
@@ -384,11 +380,10 @@ function TableRowPicker({ config, onUpdate }: DocConfigProps) {
 // ─── Mode toggle ───
 function ModeToggle({ modes, current, onChange }: { modes: { value: string; label: string }[]; current: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex gap-0.5 flex-wrap">
+    <div className="flex flex-wrap gap-0.5 rounded-md bg-muted p-0.5">
       {modes.map(m => (
-        <button key={m.value} type="button" onClick={() => onChange(m.value)}
-          className="text-[10px] font-medium py-1.5 px-2 rounded transition-colors"
-          style={{ backgroundColor: current === m.value ? 'var(--theme-primary)' : 'var(--theme-surface)', color: current === m.value ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}>
+        <button key={m.value} type="button" onClick={() => onChange(m.value)} aria-pressed={current === m.value}
+          className={cn("flex-1 whitespace-nowrap", modeOptionClass(current === m.value))}>
           {m.label}
         </button>
       ))}
@@ -405,7 +400,7 @@ export function DocWordConfig({ config, onUpdate }: DocConfigProps) {
   return (
     <div className="space-y-2" onPointerDown={e => e.stopPropagation()}>
       <ModeToggle current={mode} onChange={v => onUpdate("mode", v)} modes={[
-        { value: 'find_replace', label: 'Find & Replace' },
+        { value: 'find_replace', label: 'Find & replace' },
         { value: 'create_table', label: 'Tables' },
         { value: 'update_list', label: 'Lists' },
         { value: 'insert_image', label: 'Images' },
@@ -428,23 +423,19 @@ function CellEntries({ config, onUpdate, valueField }: DocConfigProps & { valueF
   const cells = (config.cells ?? [{ cell: '', [valueField]: '', sheet: '' }]) as any[]
   return (
     <>
-      <label className="block text-xs font-medium">{valueField === 'value' ? 'Cell Values' : 'Cell Text'}</label>
+      <label className={labelClass}>{valueField === 'value' ? 'Cell values' : 'Cell text'}</label>
       {cells.map((c: any, i: number) => (
-        <div key={i} className="flex gap-1">
-          <Input value={c.cell ?? ''} onChange={e => { const u = [...cells]; u[i] = { ...u[i], cell: e.target.value }; onUpdate("cells", u) }}
-            placeholder="A1" className="!text-[10px] font-mono w-14" />
+        <div key={i} className="flex items-start gap-1">
+          <Input size="sm" value={c.cell ?? ''} onChange={e => { const u = [...cells]; u[i] = { ...u[i], cell: e.target.value }; onUpdate("cells", u) }}
+            placeholder="A1" className="font-mono w-14" />
           <VariableInput value={c[valueField] ?? ''} onChange={v => { const u = [...cells]; u[i] = { ...u[i], [valueField]: v }; onUpdate("cells", u) }}
             placeholder={valueField === 'value' ? '{{number}}' : '{{text}}'} />
-          <Input value={c.sheet ?? ''} onChange={e => { const u = [...cells]; u[i] = { ...u[i], sheet: e.target.value }; onUpdate("cells", u) }}
-            placeholder="Sheet" className="!text-[10px] font-mono w-16" />
-          <button onClick={() => onUpdate("cells", cells.filter((_: any, j: number) => j !== i))}
-            className="text-xs px-1 shrink-0 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+          <Input size="sm" value={c.sheet ?? ''} onChange={e => { const u = [...cells]; u[i] = { ...u[i], sheet: e.target.value }; onUpdate("cells", u) }}
+            placeholder="Sheet" className="font-mono w-16" />
+          <IconButton size="sm" label="Remove cell" icon={<X />} onClick={() => onUpdate("cells", cells.filter((_: any, j: number) => j !== i))} />
         </div>
       ))}
-      <button onClick={() => onUpdate("cells", [...cells, { cell: '', [valueField]: '', sheet: '' }])}
-        className="text-[10px] hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--theme-primary-text)' }}>
-        <Plus size={10} /> Add cell
-      </button>
+      <AddButton onClick={() => onUpdate("cells", [...cells, { cell: '', [valueField]: '', sheet: '' }])}>Add cell</AddButton>
     </>
   )
 }
@@ -454,37 +445,34 @@ export function DocExcelConfig({ config, onUpdate }: DocConfigProps) {
   return (
     <div className="space-y-2" onPointerDown={e => e.stopPropagation()}>
       <ModeToggle current={mode} onChange={v => onUpdate("mode", v)} modes={[
-        { value: 'find_replace', label: 'Find & Replace' },
-        { value: 'update_cell_text', label: 'Cell Text' },
-        { value: 'update_cell_value', label: 'Cell Value' },
-        { value: 'insert_data', label: 'Insert Data' },
+        { value: 'find_replace', label: 'Find & replace' },
+        { value: 'update_cell_text', label: 'Cell text' },
+        { value: 'update_cell_value', label: 'Cell value' },
+        { value: 'insert_data', label: 'Insert data' },
       ]} />
       <TemplateSource config={config} onUpdate={onUpdate} />
       {mode === 'find_replace' && (
         <>
           <FindReplaceSection config={config} onUpdate={onUpdate} />
-          <label className="block text-xs font-medium">Sheet (optional)</label>
-          <Input value={config.sheet ?? ''} onChange={e => onUpdate("sheet", e.target.value)}
-            placeholder="All sheets" className="!text-xs font-mono" />
+          <label className={labelClass}>Sheet <span className="font-normal text-fg-muted">(optional)</span></label>
+          <Input size="sm" value={config.sheet ?? ''} onChange={e => onUpdate("sheet", e.target.value)}
+            placeholder="All sheets" className="font-mono" />
         </>
       )}
       {mode === 'update_cell_text' && <CellEntries config={config} onUpdate={onUpdate} valueField="text" />}
       {mode === 'update_cell_value' && <CellEntries config={config} onUpdate={onUpdate} valueField="value" />}
       {mode === 'insert_data' && (
         <>
-          <label className="block text-xs font-medium">Data Variable (JSON array)</label>
+          <label className={labelClass}>Data variable (JSON array)</label>
           <VariableInput value={config.data_var ?? ''} onChange={v => onUpdate("data_var", v)} placeholder="{{json_array}}" />
-          <label className="block text-xs font-medium">Start Cell</label>
-          <Input value={config.placeholder ?? ''} onChange={e => onUpdate("placeholder", e.target.value)}
-            placeholder="A1" className="!text-xs font-mono" />
-          <label className="block text-xs font-medium">Sheet (optional)</label>
-          <Input value={config.sheet ?? ''} onChange={e => onUpdate("sheet", e.target.value)}
-            placeholder="First sheet" className="!text-xs font-mono" />
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={config.include_headers !== false}
-              onChange={e => onUpdate("include_headers", e.target.checked)} />
-            Include headers
-          </label>
+          <label className={labelClass}>Start cell</label>
+          <Input size="sm" value={config.placeholder ?? ''} onChange={e => onUpdate("placeholder", e.target.value)}
+            placeholder="A1" className="font-mono" />
+          <label className={labelClass}>Sheet <span className="font-normal text-fg-muted">(optional)</span></label>
+          <Input size="sm" value={config.sheet ?? ''} onChange={e => onUpdate("sheet", e.target.value)}
+            placeholder="First sheet" className="font-mono" />
+          <Checkbox label="Include headers" checked={config.include_headers !== false}
+            onChange={e => onUpdate("include_headers", e.target.checked)} />
         </>
       )}
       <OutputConfig config={config} onUpdate={onUpdate} defaultName="spreadsheet.xlsx" />
@@ -501,7 +489,7 @@ export function DocPowerPointConfig({ config, onUpdate }: DocConfigProps) {
   return (
     <div className="space-y-2" onPointerDown={e => e.stopPropagation()}>
       <ModeToggle current={mode} onChange={v => onUpdate("mode", v)} modes={[
-        { value: 'find_replace', label: 'Find & Replace' },
+        { value: 'find_replace', label: 'Find & replace' },
         { value: 'update_table', label: 'Tables' },
         { value: 'update_list', label: 'Lists' },
         { value: 'insert_image', label: 'Images' },

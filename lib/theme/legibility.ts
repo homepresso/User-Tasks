@@ -64,6 +64,32 @@ function hslToRgba(h: number, s: number, l: number): Rgba {
   return { r: Math.round(f(0) * 255), g: Math.round(f(8) * 255), b: Math.round(f(4) * 255), a: 1 }
 }
 
+/** `color-mix(in srgb, a w, b)` for opaque colours (the CSS the design-system tokens use). */
+export function mixSrgb(a: Rgba, b: Rgba, w: number): Rgba {
+  const m = (x: number, y: number) => x * w + y * (1 - w)
+  return { r: m(a.r, b.r), g: m(a.g, b.g), b: m(a.b, b.b), a: 1 }
+}
+
+/**
+ * The design-system tokens app/globals.css derives from a palette
+ * (DS_DERIVED_VARS in to-css.ts), as opaque colours, so they can be held to
+ * contrast targets: neutral fills (table header / hover row, selected
+ * neutral, the neutral pill), the strong hairline and subtle (disabled) text.
+ */
+export function dsTokenColors(p: Pick<ThemePalette, 'surface' | 'cardBg' | 'cardText' | 'mutedText'>) {
+  const surface = flatten(p.surface)!
+  const card = flatten(p.cardBg, surface)!
+  const text = flatten(p.cardText, card)!
+  const muted = flatten(p.mutedText, card)!
+  return {
+    card,
+    bgSubtle: mixSrgb(text, card, 0.04),
+    bgMuted: mixSrgb(text, card, 0.07),
+    borderStrong: mixSrgb(text, card, 0.24),
+    fgSubtle: mixSrgb(muted, card, 0.8),
+  }
+}
+
 /** Lowest contrast of `fg` (composited over each background) against the backgrounds. */
 export function worstContrast(fg: Rgba, bgs: Rgba[]): number {
   return Math.min(...bgs.map((b) => ratio(fg.a < 1 ? composite(fg, b) : fg, b)))
@@ -223,7 +249,9 @@ export function legiblePalette(input: ThemePalette, chrome?: Chrome): ThemePalet
   const rowStrong = on(p.rowHighlightStrong)
   const rowStrongS = onS(p.rowHighlightStrong)
   p.cardText = ensureContrast(p.cardText, [card, surface, on(p.primaryLight), onS(p.primaryLight), on(p.accentLight), onS(p.accentLight), rowStrong, rowStrongS], AA_TEXT)
-  p.mutedText = ensureContrast(p.mutedText, [card, surface, on(p.rowHighlight), onS(p.rowHighlight), rowStrong, rowStrongS, inputBg, on(p.primaryLight), on(p.accentLight)], AA_TEXT)
+  // Neutral design-system fills (table headers, hover rows, the neutral pill) carry muted text too.
+  const ds = dsTokenColors(p)
+  p.mutedText = ensureContrast(p.mutedText, [card, surface, on(p.rowHighlight), onS(p.rowHighlight), rowStrong, rowStrongS, inputBg, on(p.primaryLight), on(p.accentLight), ds.bgSubtle, ds.bgMuted], AA_TEXT)
 
   // Semantic text, alone on a card and on its own soft badge.
   s.todo = ensureContrast(s.todo, [card, on(s.todoBg), onS(s.todoBg)], AA_TEXT)
@@ -288,7 +316,14 @@ export function derivedTokens(p: ThemePalette, chrome?: Chrome) {
     sidebarAccent: sidebarAccentFor(p, chrome),
     sidebarMuted: softText(p.sidebarText, sidebarBackgrounds(p, chrome)),
     topbarMuted: softText(p.topbarText, topbarBackgrounds(p, chrome)),
+    ...dsTokenHex(p),
   }
+}
+
+/** dsTokenColors() as hex strings (contrast pairs, designer swatches). */
+export function dsTokenHex(p: ThemePalette) {
+  const t = dsTokenColors(p)
+  return { dsBgSubtle: toHex(t.bgSubtle), dsBgMuted: toHex(t.bgMuted), dsBorderStrong: toHex(t.borderStrong), dsFgSubtle: toHex(t.fgSubtle) }
 }
 
 /** Secondary text on the sidebar / top bar (section headings, dates): its text colour softened toward the background, still AA. */

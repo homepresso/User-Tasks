@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "4e72e332-c85b-5fce-8ef9-0a0ffe994072",
+  "asset": {
+    "id": "4e72e332-c85b-5fce-8ef9-0a0ffe994072",
+    "name": "DocuSign",
+    "type": "docusign",
+    "description": "Your DocuSign account (developer sandbox by default). On install paste an access token, or switch the connection to JWT Grant or OAuth in Connectors → DocuSign and set the base URL of your account (www.docusign.net or your region's host for production). Register the Connect webhook afterwards so signatures arrive at once (see /docs/integrations/e-signature); without it the Wait for signature step polls every 5 minutes.",
+    "config": {
+      "base_url": "https://demo.docusign.net/restapi",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "template_vars": {
+        "environment": "demo",
+        "base_url": "auto"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "e-signature",
+      "contracts"
+    ]
+  }
+}

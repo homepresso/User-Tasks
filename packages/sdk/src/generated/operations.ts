@@ -29,6 +29,119 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": false
   },
   {
+    "operationId": "getHomeMetrics",
+    "method": "GET",
+    "path": "/home/metrics",
+    "envelope": true
+  },
+  {
+    "operationId": "getHomeStats",
+    "method": "GET",
+    "path": "/home/stats",
+    "envelope": true
+  },
+  {
+    "operationId": "listMyHomeTasks",
+    "method": "GET",
+    "path": "/home/tasks",
+    "envelope": true,
+    "listKey": "tasks"
+  },
+  {
+    "operationId": "listHomeQueue",
+    "method": "GET",
+    "path": "/home/queue",
+    "envelope": true,
+    "listKey": "tasks"
+  },
+  {
+    "operationId": "listMySubmissions",
+    "method": "GET",
+    "path": "/home/submissions",
+    "envelope": true,
+    "listKey": "submissions"
+  },
+  {
+    "operationId": "getRunProgress",
+    "method": "GET",
+    "path": "/home/runs/{id}/progress",
+    "envelope": true
+  },
+  {
+    "operationId": "listFollowedRuns",
+    "method": "GET",
+    "path": "/home/following",
+    "envelope": true,
+    "listKey": "runs"
+  },
+  {
+    "operationId": "followRun",
+    "method": "PUT",
+    "path": "/home/following/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "unfollowRun",
+    "method": "DELETE",
+    "path": "/home/following/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "listFavoriteForms",
+    "method": "GET",
+    "path": "/home/favorite-forms",
+    "envelope": true,
+    "listKey": "forms"
+  },
+  {
+    "operationId": "favoriteForm",
+    "method": "PUT",
+    "path": "/home/favorite-forms/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "unfavoriteForm",
+    "method": "DELETE",
+    "path": "/home/favorite-forms/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "getHomePreferences",
+    "method": "GET",
+    "path": "/home/preferences",
+    "envelope": true
+  },
+  {
+    "operationId": "updateHomePreferences",
+    "method": "PATCH",
+    "path": "/home/preferences",
+    "envelope": true
+  },
+  {
+    "operationId": "getHomeLayout",
+    "method": "GET",
+    "path": "/home/layout",
+    "envelope": true
+  },
+  {
+    "operationId": "updateHomeLayout",
+    "method": "PUT",
+    "path": "/home/layout",
+    "envelope": true
+  },
+  {
+    "operationId": "resetHomeLayout",
+    "method": "DELETE",
+    "path": "/home/layout",
+    "envelope": true
+  },
+  {
+    "operationId": "claimTask",
+    "method": "POST",
+    "path": "/tasks/{id}/claim",
+    "envelope": true
+  },
+  {
     "operationId": "listWorkflows",
     "method": "GET",
     "path": "/workflows",
@@ -200,10 +313,66 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "queryTaskDataTable",
+    "method": "POST",
+    "path": "/tasks/{id}/data-table",
+    "envelope": true
+  },
+  {
     "operationId": "ingestTask",
     "method": "POST",
     "path": "/tasks/ingest",
     "envelope": false
+  },
+  {
+    "operationId": "listTaskAttachments",
+    "method": "GET",
+    "path": "/tasks/{id}/attachments",
+    "envelope": true,
+    "listKey": "attachments"
+  },
+  {
+    "operationId": "addTaskAttachment",
+    "method": "POST",
+    "path": "/tasks/{id}/attachments",
+    "envelope": true
+  },
+  {
+    "operationId": "completeTaskAttachment",
+    "method": "POST",
+    "path": "/tasks/{id}/attachments/{attachmentId}/complete",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteTaskAttachment",
+    "method": "DELETE",
+    "path": "/tasks/{id}/attachments/{attachmentId}",
+    "envelope": true
+  },
+  {
+    "operationId": "getTaskAttachmentDownloadUrl",
+    "method": "GET",
+    "path": "/tasks/{id}/attachments/{attachmentId}/download",
+    "envelope": true
+  },
+  {
+    "operationId": "listFollowedTasks",
+    "method": "GET",
+    "path": "/tasks/following",
+    "envelope": true,
+    "listKey": "tasks"
+  },
+  {
+    "operationId": "followTask",
+    "method": "PUT",
+    "path": "/tasks/{id}/follow",
+    "envelope": true
+  },
+  {
+    "operationId": "unfollowTask",
+    "method": "DELETE",
+    "path": "/tasks/{id}/follow",
+    "envelope": true
   },
   {
     "operationId": "listAgents",
@@ -254,6 +423,100 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "path": "/agents/queue",
     "envelope": true,
     "listKey": "jobs"
+  },
+  {
+    "operationId": "getAgentQueueJob",
+    "method": "GET",
+    "path": "/agents/queue/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "listAgentRuns",
+    "method": "GET",
+    "path": "/agents/runs",
+    "envelope": true,
+    "listKey": "runs"
+  },
+  {
+    "operationId": "getAgentRun",
+    "method": "GET",
+    "path": "/agents/runs/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "getAgentUsage",
+    "method": "GET",
+    "path": "/agents/{id}/usage",
+    "envelope": true
+  },
+  {
+    "operationId": "getWorkspaceAgentUsage",
+    "method": "GET",
+    "path": "/agents/usage",
+    "envelope": true
+  },
+  {
+    "operationId": "updateAgentCostSettings",
+    "method": "PUT",
+    "path": "/agents/cost-settings",
+    "envelope": true
+  },
+  {
+    "operationId": "listAgentVersions",
+    "method": "GET",
+    "path": "/agents/{id}/versions",
+    "envelope": true,
+    "listKey": "versions"
+  },
+  {
+    "operationId": "restoreAgentVersion",
+    "method": "POST",
+    "path": "/agents/{id}/versions/{version}/restore",
+    "envelope": true
+  },
+  {
+    "operationId": "listAgentEvalCases",
+    "method": "GET",
+    "path": "/agents/{id}/evals/cases",
+    "envelope": true,
+    "listKey": "cases"
+  },
+  {
+    "operationId": "createAgentEvalCase",
+    "method": "POST",
+    "path": "/agents/{id}/evals/cases",
+    "envelope": true
+  },
+  {
+    "operationId": "updateAgentEvalCase",
+    "method": "PUT",
+    "path": "/agents/{id}/evals/cases/{caseId}",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteAgentEvalCase",
+    "method": "DELETE",
+    "path": "/agents/{id}/evals/cases/{caseId}",
+    "envelope": true
+  },
+  {
+    "operationId": "runAgentEvals",
+    "method": "POST",
+    "path": "/agents/{id}/evals/runs",
+    "envelope": true
+  },
+  {
+    "operationId": "listAgentEvalRuns",
+    "method": "GET",
+    "path": "/agents/{id}/evals/runs",
+    "envelope": true,
+    "listKey": "runs"
+  },
+  {
+    "operationId": "getAgentEvalRun",
+    "method": "GET",
+    "path": "/agents/{id}/evals/runs/{runId}",
+    "envelope": true
   },
   {
     "operationId": "listDecisionTables",
@@ -653,6 +916,18 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "listKey": "usages"
   },
   {
+    "operationId": "getFormGovernance",
+    "method": "GET",
+    "path": "/forms/{id}/governance",
+    "envelope": true
+  },
+  {
+    "operationId": "setFormLegalHold",
+    "method": "POST",
+    "path": "/forms/{id}/legal-hold",
+    "envelope": true
+  },
+  {
     "operationId": "listFormThemes",
     "method": "GET",
     "path": "/form-themes",
@@ -709,6 +984,147 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "queryFormDataTable",
+    "method": "POST",
+    "path": "/forms/{id}/data-table",
+    "envelope": true
+  },
+  {
+    "operationId": "checkFormAccessibility",
+    "method": "POST",
+    "path": "/forms/{id}/accessibility",
+    "envelope": true
+  },
+  {
+    "operationId": "checkFormSystemName",
+    "method": "GET",
+    "path": "/forms/system-name-check",
+    "envelope": true
+  },
+  {
+    "operationId": "getFormLinks",
+    "method": "GET",
+    "path": "/forms/{id}/links",
+    "envelope": true
+  },
+  {
+    "operationId": "createWizardForm",
+    "method": "POST",
+    "path": "/forms/wizard",
+    "envelope": true
+  },
+  {
+    "operationId": "listWizardForms",
+    "method": "GET",
+    "path": "/forms/wizard",
+    "envelope": true,
+    "listKey": "projects"
+  },
+  {
+    "operationId": "getWizardForm",
+    "method": "GET",
+    "path": "/forms/wizard/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateWizardForm",
+    "method": "PATCH",
+    "path": "/forms/wizard/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "getWizardResults",
+    "method": "GET",
+    "path": "/forms/wizard/{id}/results",
+    "envelope": true
+  },
+  {
+    "operationId": "getFormAnonymous",
+    "method": "GET",
+    "path": "/forms/{id}/anonymous",
+    "envelope": true
+  },
+  {
+    "operationId": "updateFormAnonymous",
+    "method": "PATCH",
+    "path": "/forms/{id}/anonymous",
+    "envelope": true
+  },
+  {
+    "operationId": "regenerateFormAnonymousLink",
+    "method": "POST",
+    "path": "/forms/{id}/anonymous/regenerate",
+    "envelope": true
+  },
+  {
+    "operationId": "getAnonymousFormsSettings",
+    "method": "GET",
+    "path": "/anonymous-forms",
+    "envelope": true
+  },
+  {
+    "operationId": "updateAnonymousFormsSettings",
+    "method": "PATCH",
+    "path": "/anonymous-forms",
+    "envelope": true
+  },
+  {
+    "operationId": "listFormControls",
+    "method": "GET",
+    "path": "/form-controls",
+    "envelope": true,
+    "listKey": "form_controls"
+  },
+  {
+    "operationId": "createFormControl",
+    "method": "POST",
+    "path": "/form-controls",
+    "envelope": true
+  },
+  {
+    "operationId": "importFormControl",
+    "method": "POST",
+    "path": "/form-controls/import",
+    "envelope": true
+  },
+  {
+    "operationId": "getFormControl",
+    "method": "GET",
+    "path": "/form-controls/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateFormControl",
+    "method": "PATCH",
+    "path": "/form-controls/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteFormControl",
+    "method": "DELETE",
+    "path": "/form-controls/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "getFormControlVersion",
+    "method": "GET",
+    "path": "/form-controls/{id}/versions/{version}",
+    "envelope": true
+  },
+  {
+    "operationId": "getFormControlUsages",
+    "method": "GET",
+    "path": "/form-controls/{id}/usages",
+    "envelope": true,
+    "listKey": "usages"
+  },
+  {
+    "operationId": "exportFormControl",
+    "method": "GET",
+    "path": "/form-controls/{id}/export",
+    "envelope": true
+  },
+  {
     "operationId": "uploadFile",
     "method": "POST",
     "path": "/files/uploads",
@@ -718,6 +1134,37 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "completeFileUpload",
     "method": "POST",
     "path": "/files/uploads/{id}/complete",
+    "envelope": true
+  },
+  {
+    "operationId": "uploadWorkflowAction",
+    "method": "POST",
+    "path": "/workflow-activities/upload",
+    "envelope": true
+  },
+  {
+    "operationId": "getWorkflowActivityUsages",
+    "method": "GET",
+    "path": "/workflow-activities/{id}/usages",
+    "envelope": true,
+    "listKey": "usages"
+  },
+  {
+    "operationId": "getWorkflowActivityVersion",
+    "method": "GET",
+    "path": "/workflow-activities/{id}/versions/{version}",
+    "envelope": true
+  },
+  {
+    "operationId": "setWorkflowActivitySecrets",
+    "method": "PUT",
+    "path": "/workflow-activities/{id}/secrets",
+    "envelope": true
+  },
+  {
+    "operationId": "testWorkflowActivity",
+    "method": "POST",
+    "path": "/workflow-activities/{id}/test",
     "envelope": true
   },
   {
@@ -1020,6 +1467,248 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "listKey": "events"
   },
   {
+    "operationId": "listObjectPermissions",
+    "method": "GET",
+    "path": "/object-permissions",
+    "envelope": true,
+    "listKey": "permissions"
+  },
+  {
+    "operationId": "setObjectPermission",
+    "method": "POST",
+    "path": "/object-permissions",
+    "envelope": true
+  },
+  {
+    "operationId": "removeObjectPermission",
+    "method": "DELETE",
+    "path": "/object-permissions/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "getOrgChart",
+    "method": "GET",
+    "path": "/org/chart",
+    "envelope": true,
+    "listKey": "people"
+  },
+  {
+    "operationId": "getOrgPerson",
+    "method": "GET",
+    "path": "/org/people/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateOrgPerson",
+    "method": "PATCH",
+    "path": "/org/people/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "detachOrgPerson",
+    "method": "POST",
+    "path": "/org/people/{id}/detach",
+    "envelope": true
+  },
+  {
+    "operationId": "listOrgSubordinates",
+    "method": "GET",
+    "path": "/org/people/{id}/subordinates",
+    "envelope": true,
+    "listKey": "people"
+  },
+  {
+    "operationId": "getOrgManagerChain",
+    "method": "GET",
+    "path": "/org/people/{id}/manager-chain",
+    "envelope": true,
+    "listKey": "chain"
+  },
+  {
+    "operationId": "listOrgPeers",
+    "method": "GET",
+    "path": "/org/people/{id}/peers",
+    "envelope": true,
+    "listKey": "peers"
+  },
+  {
+    "operationId": "listOrgPersonTeams",
+    "method": "GET",
+    "path": "/org/people/{id}/teams",
+    "envelope": true,
+    "listKey": "teams"
+  },
+  {
+    "operationId": "listOrgPersonProjects",
+    "method": "GET",
+    "path": "/org/people/{id}/projects",
+    "envelope": true,
+    "listKey": "projects"
+  },
+  {
+    "operationId": "resolveOrgScope",
+    "method": "GET",
+    "path": "/org/scope",
+    "envelope": true,
+    "listKey": "people"
+  },
+  {
+    "operationId": "listOrgUnits",
+    "method": "GET",
+    "path": "/org/units",
+    "envelope": true,
+    "listKey": "units"
+  },
+  {
+    "operationId": "createOrgUnit",
+    "method": "POST",
+    "path": "/org/units",
+    "envelope": true
+  },
+  {
+    "operationId": "getOrgUnit",
+    "method": "GET",
+    "path": "/org/units/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateOrgUnit",
+    "method": "PATCH",
+    "path": "/org/units/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteOrgUnit",
+    "method": "DELETE",
+    "path": "/org/units/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "detachOrgUnit",
+    "method": "POST",
+    "path": "/org/units/{id}/detach",
+    "envelope": true
+  },
+  {
+    "operationId": "listOrgUnitMembers",
+    "method": "GET",
+    "path": "/org/units/{id}/members",
+    "envelope": true,
+    "listKey": "members"
+  },
+  {
+    "operationId": "addOrgUnitMember",
+    "method": "PUT",
+    "path": "/org/units/{id}/members/{userId}",
+    "envelope": true
+  },
+  {
+    "operationId": "removeOrgUnitMember",
+    "method": "DELETE",
+    "path": "/org/units/{id}/members/{userId}",
+    "envelope": true
+  },
+  {
+    "operationId": "getOrgTeamTree",
+    "method": "GET",
+    "path": "/org/teams",
+    "envelope": true,
+    "listKey": "teams"
+  },
+  {
+    "operationId": "listOrgTeamMembers",
+    "method": "GET",
+    "path": "/org/teams/{id}/members",
+    "envelope": true,
+    "listKey": "members"
+  },
+  {
+    "operationId": "exportOrg",
+    "method": "GET",
+    "path": "/org/export",
+    "envelope": true
+  },
+  {
+    "operationId": "getOrgImportTemplate",
+    "method": "GET",
+    "path": "/org/import/template",
+    "envelope": true
+  },
+  {
+    "operationId": "importOrg",
+    "method": "POST",
+    "path": "/org/import",
+    "envelope": true
+  },
+  {
+    "operationId": "listProjects",
+    "method": "GET",
+    "path": "/projects",
+    "envelope": true,
+    "listKey": "projects"
+  },
+  {
+    "operationId": "createProject",
+    "method": "POST",
+    "path": "/projects",
+    "envelope": true
+  },
+  {
+    "operationId": "getProject",
+    "method": "GET",
+    "path": "/projects/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateProject",
+    "method": "PATCH",
+    "path": "/projects/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteProject",
+    "method": "DELETE",
+    "path": "/projects/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "archiveProject",
+    "method": "POST",
+    "path": "/projects/{id}/archive",
+    "envelope": true
+  },
+  {
+    "operationId": "listProjectMembers",
+    "method": "GET",
+    "path": "/projects/{id}/members",
+    "envelope": true,
+    "listKey": "members"
+  },
+  {
+    "operationId": "addProjectMember",
+    "method": "PUT",
+    "path": "/projects/{id}/members/{userId}",
+    "envelope": true
+  },
+  {
+    "operationId": "removeProjectMember",
+    "method": "DELETE",
+    "path": "/projects/{id}/members/{userId}",
+    "envelope": true
+  },
+  {
+    "operationId": "attachProjectTeam",
+    "method": "PUT",
+    "path": "/projects/{id}/teams/{teamId}",
+    "envelope": true
+  },
+  {
+    "operationId": "detachProjectTeam",
+    "method": "DELETE",
+    "path": "/projects/{id}/teams/{teamId}",
+    "envelope": true
+  },
+  {
     "operationId": "getWorkspaceTheme",
     "method": "GET",
     "path": "/workspace-theme",
@@ -1048,6 +1737,78 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "uploadWorkspaceThemeFont",
     "method": "POST",
     "path": "/workspace-theme/fonts",
+    "envelope": true
+  },
+  {
+    "operationId": "getWorkspaceAddress",
+    "method": "GET",
+    "path": "/workspace/address",
+    "envelope": true
+  },
+  {
+    "operationId": "updateWorkspaceAddress",
+    "method": "PATCH",
+    "path": "/workspace/address",
+    "envelope": true
+  },
+  {
+    "operationId": "checkWorkspaceAddress",
+    "method": "GET",
+    "path": "/workspace/address/check",
+    "envelope": true
+  },
+  {
+    "operationId": "getTaskCompletionSettings",
+    "method": "GET",
+    "path": "/workspace/task-completion",
+    "envelope": true
+  },
+  {
+    "operationId": "updateTaskCompletionSettings",
+    "method": "PATCH",
+    "path": "/workspace/task-completion",
+    "envelope": true
+  },
+  {
+    "operationId": "getTaskNextStep",
+    "method": "GET",
+    "path": "/tasks/{id}/next",
+    "envelope": true
+  },
+  {
+    "operationId": "getFormSignInPage",
+    "method": "GET",
+    "path": "/workspace/form-sign-in-page",
+    "envelope": true
+  },
+  {
+    "operationId": "updateFormSignInPage",
+    "method": "PATCH",
+    "path": "/workspace/form-sign-in-page",
+    "envelope": true
+  },
+  {
+    "operationId": "getDocumentOcr",
+    "method": "GET",
+    "path": "/document-ocr",
+    "envelope": true
+  },
+  {
+    "operationId": "updateDocumentOcr",
+    "method": "PUT",
+    "path": "/document-ocr",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteDocumentOcrKey",
+    "method": "DELETE",
+    "path": "/document-ocr",
+    "envelope": true
+  },
+  {
+    "operationId": "testDocumentOcr",
+    "method": "POST",
+    "path": "/document-ocr/test",
     "envelope": true
   },
   {
@@ -1254,6 +2015,19 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "method": "POST",
     "path": "/directory-sync/scim-tokens/{id}/rotate",
     "envelope": true
+  },
+  {
+    "operationId": "getDirectoryCapabilities",
+    "method": "GET",
+    "path": "/directory-sync/capabilities",
+    "envelope": true
+  },
+  {
+    "operationId": "searchEntraGroups",
+    "method": "GET",
+    "path": "/directory-sync/entra/groups",
+    "envelope": true,
+    "listKey": "groups"
   },
   {
     "operationId": "exportConfig",
@@ -1508,6 +2282,18 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "testLogDestination",
     "method": "POST",
     "path": "/log-destinations/{id}/test",
+    "envelope": true
+  },
+  {
+    "operationId": "createAdminWorkspace",
+    "method": "POST",
+    "path": "/admin/workspaces",
+    "envelope": true
+  },
+  {
+    "operationId": "getAdminWorkspace",
+    "method": "GET",
+    "path": "/admin/workspaces/{slug}",
     "envelope": true
   }
 ]

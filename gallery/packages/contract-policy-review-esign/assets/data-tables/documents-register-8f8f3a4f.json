@@ -1,0 +1,103 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+  "asset": {
+    "id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+    "name": "Documents register",
+    "description": "Every controlled document: its current version, status (In review, Changes requested, Awaiting sign-off, Published, Withdrawn), effective date, who signed it off and when it is next reviewed.",
+    "columns": [
+      {
+        "id": "e10cdfad-d3c1-56a4-a9d2-9d7703171998",
+        "required": true,
+        "key": "reference",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "ca50418b-3a9e-5a58-b4c8-da7f5d550bc6",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "fb128c2b-3430-5a51-9938-dbbe551e10e4",
+        "required": false,
+        "key": "doc_type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "580a8c42-b4b9-56d1-98ea-a721825a04ae",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "ac5adc0d-b8b0-5691-8a2d-a568a0f285dc",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "f2861a57-b77c-550b-9d6e-a55397160fcc",
+        "required": false,
+        "key": "version",
+        "name": "Version",
+        "type": "number"
+      },
+      {
+        "id": "e0da1f7e-a173-541b-aca8-a03f3917a4d6",
+        "required": false,
+        "key": "effective_date",
+        "name": "Effective",
+        "type": "date"
+      },
+      {
+        "id": "e328649a-1fcd-5014-9e09-ab28cbb265ae",
+        "required": false,
+        "key": "next_review_date",
+        "name": "Next review",
+        "type": "date"
+      },
+      {
+        "id": "ad71f4bd-db29-5ce7-b829-0be62503a0a8",
+        "required": false,
+        "key": "signed_by",
+        "name": "Signed off by",
+        "type": "text"
+      },
+      {
+        "id": "945f3d5c-beb6-56ed-bb9f-3b2008cb5959",
+        "required": false,
+        "key": "signed_at",
+        "name": "Signed",
+        "type": "datetime"
+      },
+      {
+        "id": "2f3ef4de-24ca-553d-be2e-1d85c6fa3ef0",
+        "required": false,
+        "key": "review_days",
+        "name": "Review cycle (days)",
+        "type": "number"
+      },
+      {
+        "id": "3afad7c5-1006-5eba-95d9-925064448c6c",
+        "required": false,
+        "key": "document_name",
+        "name": "File",
+        "type": "text"
+      },
+      {
+        "id": "10051d17-67e2-535c-a0e9-92c1b9b72b2c",
+        "required": false,
+        "key": "checksum_sha256",
+        "name": "SHA-256",
+        "type": "text"
+      }
+    ]
+  }
+}

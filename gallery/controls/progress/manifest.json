@@ -1,0 +1,51 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-progress",
+  "name": "Progress",
+  "description": "Progress as a bar, a ring or named steps, from two mapped fields (current and total) or fixed values, with optional warning / good thresholds.",
+  "icon": "gauge",
+  "version": "1.2.0",
+  "entry": "ut-progress.js",
+  "value": {
+    "type": "number"
+  },
+  "props": [
+    { "name": "appearance", "label": "Style", "type": "select", "default": "bar", "options": [
+      { "value": "bar", "label": "Bar" },
+      { "value": "ring", "label": "Ring" },
+      { "value": "steps", "label": "Steps" }
+    ] },
+    { "name": "current_value", "bindable": true, "label": "Current", "type": "number", "description": "Used when the Current context entry is not mapped." },
+    { "name": "total_value", "bindable": true, "label": "Total", "type": "number", "default": 100, "description": "Used when the Total context entry is not mapped. For Steps, the number of steps." },
+    { "name": "steps", "bindable": true, "label": "Step names", "type": "string[]", "description": "For the Steps style, in order (e.g. Submitted, Review, Approval, Done). Current may be the step number (1 = first) or its name." },
+    { "name": "unit", "label": "Unit", "type": "string", "description": "e.g. tasks, hours, $" },
+    { "name": "show_percentage", "label": "Show percentage", "type": "boolean", "default": true },
+    { "name": "label_template", "label": "Label", "type": "string", "description": "Text with {{current}}, {{total}}, {{unit}}, {{percent}}, {{remaining}}, {{step}}. Default: {{current}} of {{total}} {{unit}}." },
+    { "name": "warn_below", "label": "Warn below (%)", "type": "number", "min": 0, "max": 100, "description": "Below this percentage the progress uses the error colour and says Needs attention." },
+    { "name": "good_above", "label": "Good from (%)", "type": "number", "min": 0, "max": 100, "description": "From this percentage the progress uses the success colour and says On track." }
+  ],
+  "events": [],
+  "validation": {},
+  "size": { "default_height": 60, "min_height": 32, "max_height": 600 },
+  "capabilities": [],
+  "context": [
+    { "name": "current", "label": "Current", "description": "The field with the progress so far (a number, a step number or name, or a list whose length counts)." },
+    { "name": "total", "label": "Total", "description": "The field with the target or total (a number, or a list whose length counts)." }
+  ],
+  "display": { "format": "text" },
+  "output": { "type": "number", "description": "Display only: stays empty" },
+  "accessibility": {
+    "role": "progressbar",
+    "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/progress",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

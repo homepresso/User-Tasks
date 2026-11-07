@@ -39,7 +39,7 @@ const SECTION_LABEL: Record<string, string> = {
   workflows: 'Workflow', integrations: 'Integration', connectors: 'Connector', mcp_servers: 'MCP server',
   log_destinations: 'Log destination', agents: 'Agent', references: 'Reference', decision_tables: 'Decision table',
   workflow_activities: 'Custom step', reports: 'Report', email_templates: 'Email template', data_tables: 'Data table',
-  forms: 'Form', form_themes: 'Form theme',
+  forms: 'Form', form_themes: 'Form theme', form_controls: 'Form control',
 }
 
 function humanize(key: string): string {

@@ -174,7 +174,7 @@ export function normalizeReferenceInputPayload(
 
 // ─── Serialising input values into a request ───
 
-function isFileRef(value: any): boolean {
+export function isFileRef(value: any): boolean {
   return value != null && typeof value === 'object' && !Array.isArray(value) && (value._file === true || typeof value.url === 'string')
 }
 

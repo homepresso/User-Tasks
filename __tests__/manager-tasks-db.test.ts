@@ -143,10 +143,10 @@ describe.skipIf(!DB_URL)('manager tasks migration (local DB)', () => {
     expect(rows[0].manager_user_id).toBe(MIA)
   })
 
-  it('tasks.complete_any: Owner only', async () => {
+  it('tasks.complete_any: Owner and Admin', async () => {
     await db.query(`DELETE FROM public.roles WHERE tenant_id = $1`, [TENANT])
     await db.query(`SELECT public.seed_tenant_roles($1)`, [TENANT])
     const { rows } = await db.query(`SELECT slug, 'tasks.complete_any' = ANY (permissions) AS has FROM public.roles WHERE tenant_id = $1 ORDER BY slug`, [TENANT])
-    expect(Object.fromEntries(rows.map((r) => [r.slug, r.has]))).toEqual({ admin: false, manager: false, member: false, owner: true, viewer: false })
+    expect(Object.fromEntries(rows.map((r) => [r.slug, r.has]))).toEqual({ admin: true, manager: false, member: false, owner: true, viewer: false })
   })
 })

@@ -234,13 +234,12 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Database size={16} style={{ color: "var(--theme-primary-text)" }} />
+          <Database size={16} className="text-primary-text" />
           <h4 className="text-sm font-semibold">Database Connection</h4>
         </div>
         <button
           onClick={() => setShowConnString(!showConnString)}
-          className="text-[10px] font-medium hover:underline"
-          style={{ color: "var(--theme-primary-text)" }}
+          className="text-2xs font-medium hover:underline text-primary-text"
         >
           {showConnString ? "Cancel" : "Paste connection string"}
         </button>
@@ -248,7 +247,7 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
 
       {showConnString && (
         <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "var(--theme-surface)", border: "1px solid var(--theme-surface-border)" }}>
-          <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+          <p className="text-xs text-fg-muted">
             Paste a .NET / ADO.NET connection string to auto-fill all fields
           </p>
           <textarea
@@ -256,8 +255,7 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
             onChange={(e) => setConnString(e.target.value)}
             placeholder="Server=tcp:server.database.windows.net,1433;Initial Catalog=mydb;Encrypt=True;..."
             rows={3}
-            className="w-full rounded-lg border px-3 py-2 text-xs font-mono"
-            style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+            className="w-full rounded-lg border px-3 py-2 text-xs font-mono bg-panel border-border text-fg"
           />
           <Button size="sm" onClick={() => parseConnectionString(connString)} disabled={!connString.trim()}>
             Parse & Fill
@@ -353,7 +351,7 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
                 }}
               >
                 <p className="text-xs font-medium">{m.label}</p>
-                <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>{m.desc}</p>
+                <p className="text-2xs text-fg-muted">{m.desc}</p>
               </button>
             ))}
           </div>
@@ -385,8 +383,8 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
 
       {/* Entra ID Password (user's Azure AD credentials) */}
       {authMethod === "entra_password" && dbType === "mssql" && (
-        <div className="space-y-3 rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-          <p className="text-xs font-medium" style={{ color: "var(--theme-muted-text)" }}>Entra ID (Password)</p>
+        <div className="space-y-3 rounded-lg p-3 bg-bg">
+          <p className="text-xs font-medium text-fg-muted">Entra ID (Password)</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium mb-1">Azure AD Username</label>
@@ -399,11 +397,11 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1">Client/App ID <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>(optional)</span></label>
+              <label className="block text-xs font-medium mb-1">Client/App ID <span className="text-2xs text-fg-muted">(optional)</span></label>
               <Input value={entraClientId} onChange={(e) => setEntraClientId(e.target.value)} placeholder="App registration client ID" />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Tenant ID <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>(optional)</span></label>
+              <label className="block text-xs font-medium mb-1">Tenant ID <span className="text-2xs text-fg-muted">(optional)</span></label>
               <Input value={entraTenantId} onChange={(e) => setEntraTenantId(e.target.value)} placeholder="Azure AD tenant ID" />
             </div>
           </div>
@@ -412,8 +410,8 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
 
       {/* Entra ID Service Principal */}
       {authMethod === "entra_client_secret" && dbType === "mssql" && (
-        <div className="space-y-3 rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-          <p className="text-xs font-medium" style={{ color: "var(--theme-muted-text)" }}>Entra ID (Service Principal)</p>
+        <div className="space-y-3 rounded-lg p-3 bg-bg">
+          <p className="text-xs font-medium text-fg-muted">Entra ID (Service Principal)</p>
           <div>
             <label className="block text-xs font-medium mb-1">Tenant ID</label>
             <Input value={entraTenantId} onChange={(e) => setEntraTenantId(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
@@ -431,18 +429,18 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
 
       {/* Entra ID Default Credential */}
       {authMethod === "entra_default" && dbType === "mssql" && (
-        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "var(--theme-surface)" }}>
-          <p className="text-xs font-medium" style={{ color: "var(--theme-muted-text)" }}>Entra ID (Default Credential)</p>
-          <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+        <div className="rounded-lg p-3 space-y-2 bg-bg">
+          <p className="text-xs font-medium text-fg-muted">Entra ID (Default Credential)</p>
+          <p className="text-2xs text-fg-muted">
             Uses DefaultAzureCredential which tries these sources in order:
           </p>
-          <ol className="text-[10px] list-decimal list-inside space-y-0.5" style={{ color: "var(--theme-muted-text)" }}>
+          <ol className="text-2xs list-decimal list-inside space-y-0.5 text-fg-muted">
             <li>Environment variables (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET)</li>
             <li>Managed Identity (when deployed to Azure)</li>
             <li>Azure CLI (<code className="font-mono">az login</code>)</li>
             <li>Visual Studio Code Azure extension</li>
           </ol>
-          <p className="text-[10px] font-medium" style={{ color: "var(--theme-primary-text)" }}>
+          <p className="text-2xs font-medium text-primary-text">
             For local development: run <code className="font-mono bg-white/10 px-1 rounded">az login</code> in your terminal first.
           </p>
         </div>
@@ -450,17 +448,16 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
 
       {/* MSSQL-specific options */}
       {dbType === "mssql" && (
-        <div className="space-y-3 rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
+        <div className="space-y-3 rounded-lg p-3 bg-bg">
           <p
-            className="text-xs font-medium"
-            style={{ color: "var(--theme-muted-text)" }}
+            className="text-xs font-medium text-fg-muted"
           >
             SQL Server Options
           </p>
           <div>
             <label className="block text-xs font-medium mb-1">
               Instance Name{" "}
-              <span style={{ color: "var(--theme-muted-text)" }}>
+              <span className="text-fg-muted">
                 (optional)
               </span>
             </label>
@@ -506,11 +503,7 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
 
       {/* Connection string preview */}
       <div
-        className="rounded-lg p-3 text-xs font-mono break-all"
-        style={{
-          backgroundColor: "var(--theme-surface)",
-          color: "var(--theme-muted-text)",
-        }}
+        className="rounded-lg p-3 text-xs font-mono break-all bg-bg text-fg-muted"
       >
         {dbType === "mssql" ? (
           <>
@@ -569,7 +562,7 @@ export function DbConnectionForm({ integration }: DbConnectionFormProps) {
             </p>
             <p className="text-xs mt-0.5">{testResult.message}</p>
             {testResult.serverVersion && (
-              <p className="text-[10px] mt-1 opacity-70 font-mono">
+              <p className="text-2xs mt-1 opacity-70 font-mono">
                 {testResult.serverVersion}
               </p>
             )}

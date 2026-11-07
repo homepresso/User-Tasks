@@ -1,0 +1,131 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "92a5d8a3-f48b-5520-bc76-781619fc25ed",
+  "asset": {
+    "id": "92a5d8a3-f48b-5520-bc76-781619fc25ed",
+    "name": "Clause playbook rows",
+    "rows": [
+      {
+        "id": "9bcc1b0d-f386-5567-afab-653207f8d10c",
+        "data": {
+          "clause": "Liability cap",
+          "our_position": "Capped at 12 months of fees; no cap for fraud or wilful misconduct",
+          "fallback": "24 months of fees",
+          "must_have": true,
+          "risk_if_missing": "High"
+        }
+      },
+      {
+        "id": "807bd5a0-76ac-5dbf-830b-9e7ddc1f36b3",
+        "data": {
+          "clause": "Indemnities",
+          "our_position": "Mutual, limited to third-party IP and data breaches",
+          "fallback": "One-way from the supplier for IP",
+          "must_have": true,
+          "risk_if_missing": "High"
+        }
+      },
+      {
+        "id": "805f26b7-35aa-50dc-b934-7d700e81371d",
+        "data": {
+          "clause": "Data protection",
+          "our_position": "Our data processing terms; data stays in NZ or AU",
+          "fallback": "Their DPA if it meets the Privacy Act 2020",
+          "must_have": true,
+          "risk_if_missing": "High"
+        }
+      },
+      {
+        "id": "47557e8d-459e-58c8-9845-47999fa45b59",
+        "data": {
+          "clause": "Termination for convenience",
+          "our_position": "Either party on 90 days notice",
+          "fallback": "Only us, on 60 days notice",
+          "must_have": false,
+          "risk_if_missing": "Medium"
+        }
+      },
+      {
+        "id": "03b12b39-7e3b-5bd4-975b-8dd705494a92",
+        "data": {
+          "clause": "Auto-renewal",
+          "our_position": "No auto-renewal; or renewal with 90 days notice",
+          "fallback": "Auto-renewal with 60 days notice",
+          "must_have": false,
+          "risk_if_missing": "Medium"
+        }
+      },
+      {
+        "id": "3d3fc9fd-d3a8-5ee4-aa25-51c659ec4a71",
+        "data": {
+          "clause": "Price increases",
+          "our_position": "Fixed for the term; CPI after the first year",
+          "fallback": "Capped at CPI + 2%",
+          "must_have": false,
+          "risk_if_missing": "Medium"
+        }
+      },
+      {
+        "id": "7b57981a-9578-54de-b74f-7f494fcbe757",
+        "data": {
+          "clause": "Governing law",
+          "our_position": "New Zealand law and courts",
+          "fallback": "Australian law (NSW)",
+          "must_have": true,
+          "risk_if_missing": "Medium"
+        }
+      },
+      {
+        "id": "666c64c3-eabb-5a0a-bf58-203bb883c1d7",
+        "data": {
+          "clause": "Payment terms",
+          "our_position": "20th of the month following invoice",
+          "fallback": "30 days from invoice",
+          "must_have": false,
+          "risk_if_missing": "Low"
+        }
+      },
+      {
+        "id": "fd7a7c07-03f3-5526-bcbf-97599e70dc70",
+        "data": {
+          "clause": "Audit rights",
+          "our_position": "We may audit once a year on 30 days notice",
+          "fallback": "Third-party audit report (SOC 2 / ISO 27001)",
+          "must_have": false,
+          "risk_if_missing": "Medium"
+        }
+      },
+      {
+        "id": "7a6753da-383f-5cdb-9397-7f6c892071af",
+        "data": {
+          "clause": "Exclusivity",
+          "our_position": "None",
+          "fallback": "Time-limited and territory-limited",
+          "must_have": false,
+          "risk_if_missing": "High"
+        }
+      },
+      {
+        "id": "4738278b-b044-58bd-beeb-05b42bb745de",
+        "data": {
+          "clause": "Assignment",
+          "our_position": "Neither party without consent",
+          "fallback": "Assignment to a group company",
+          "must_have": false,
+          "risk_if_missing": "Low"
+        }
+      },
+      {
+        "id": "1c7cd0f4-9294-57cd-9cae-a928384317bb",
+        "data": {
+          "clause": "Confidentiality",
+          "our_position": "Mutual, five years after the end",
+          "fallback": "Three years after the end",
+          "must_have": true,
+          "risk_if_missing": "Medium"
+        }
+      }
+    ]
+  }
+}

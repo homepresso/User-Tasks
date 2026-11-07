@@ -35,12 +35,13 @@ export type Endpoint = ExplorerEndpoint;
 
 export const ENDPOINT_GROUPS = explorerGroups as ExplorerGroup[];
 
-const METHOD_COLORS: Record<string, string> = {
-  GET: "#22C55E",
-  POST: "#3B82F6",
-  PUT: "#F59E0B",
-  PATCH: "#A855F7",
-  DELETE: "#EF4444",
+/** HTTP method chips: status washes, so every theme keeps them legible. */
+const METHOD_CLASS: Record<string, string> = {
+  GET: "bg-success-wash text-success",
+  POST: "bg-info-wash text-info",
+  PUT: "bg-warning-wash text-warning",
+  PATCH: "bg-primary-wash text-primary-text",
+  DELETE: "bg-danger-wash text-danger",
 };
 
 export function ApiExplorer({
@@ -291,12 +292,7 @@ export function ApiExplorer({
         <select
           value={selectedKeyId}
           onChange={(e) => setSelectedKeyId(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
-          style={{
-            backgroundColor: "var(--theme-card-bg)",
-            borderColor: "var(--theme-surface-border)",
-            color: "var(--theme-card-text)",
-          }}
+          className="w-full rounded-lg border px-3 py-2 text-sm bg-panel border-border text-fg"
         >
           <option value="">Select an API key...</option>
           {activeKeys.map((k) => (
@@ -308,8 +304,7 @@ export function ApiExplorer({
         </select>
         {selectedKeyId && !selectedKey?.key_plain && (
           <p
-            className="text-[10px] mt-1"
-            style={{ color: "var(--theme-warning, #F59E0B)" }}
+            className="text-2xs mt-1 text-warning"
           >
             This key was created before reveal was available. Delete and
             recreate it to use the explorer.
@@ -346,8 +341,7 @@ export function ApiExplorer({
             <div key={group.label}>
               <button
                 onClick={() => toggleGroup(group.label)}
-                className="flex items-center gap-1 w-full text-left py-1.5 px-2 text-xs font-semibold uppercase tracking-wider rounded"
-                style={{ color: "var(--theme-muted-text)" }}
+                className="flex items-center gap-1 w-full text-left py-1.5 px-2 text-xs font-semibold rounded text-fg-muted"
               >
                 {expandedGroups.has(group.label) ? (
                   <ChevronDown size={12} />
@@ -377,13 +371,7 @@ export function ApiExplorer({
                             : "var(--theme-card-text)",
                         }}
                       >
-                        <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
-                          style={{
-                            backgroundColor: METHOD_COLORS[ep.method] + "20",
-                            color: METHOD_COLORS[ep.method],
-                          }}
-                        >
+                        <span className={`num shrink-0 rounded px-1.5 py-0.5 font-mono text-2xs font-semibold ${METHOD_CLASS[ep.method] ?? "bg-muted text-fg"}`}>
                           {ep.method}
                         </span>
                         <span className="truncate">{ep.label}</span>
@@ -403,12 +391,10 @@ export function ApiExplorer({
               <div className="text-center py-12">
                 <Play
                   size={32}
-                  className="mx-auto mb-2"
-                  style={{ color: "var(--theme-muted-text)" }}
+                  className="mx-auto mb-2 text-fg-muted"
                 />
                 <p
-                  className="text-sm"
-                  style={{ color: "var(--theme-muted-text)" }}
+                  className="text-sm text-fg-muted"
                 >
                   Select an endpoint from the left to get started
                 </p>
@@ -419,26 +405,17 @@ export function ApiExplorer({
               {/* Endpoint header */}
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded"
-                    style={{
-                      backgroundColor:
-                        METHOD_COLORS[selectedEndpoint.method] + "20",
-                      color: METHOD_COLORS[selectedEndpoint.method],
-                    }}
-                  >
+                  <span className={`rounded px-2 py-0.5 font-mono text-xs font-semibold ${METHOD_CLASS[selectedEndpoint.method] ?? "bg-muted text-fg"}`}>
                     {selectedEndpoint.method}
                   </span>
                   <code
-                    className="text-sm font-mono"
-                    style={{ color: "var(--theme-card-text)" }}
+                    className="text-sm font-mono text-fg"
                   >
                     {buildUrl(selectedEndpoint)}
                   </code>
                 </div>
                 <p
-                  className="text-xs"
-                  style={{ color: "var(--theme-muted-text)" }}
+                  className="text-xs text-fg-muted"
                 >
                   {selectedEndpoint.description}
                 </p>
@@ -448,8 +425,7 @@ export function ApiExplorer({
               {selectedEndpoint.params.length > 0 && (
                 <Card className="!p-4">
                   <h4
-                    className="text-xs font-semibold uppercase tracking-wider mb-3"
-                    style={{ color: "var(--theme-muted-text)" }}
+                    className="text-xs font-semibold mb-3 text-fg-muted"
                   >
                     Parameters
                   </h4>
@@ -459,18 +435,13 @@ export function ApiExplorer({
                         <label className="flex items-center gap-1.5 text-xs font-medium mb-1">
                           <span>{p.name}</span>
                           <span
-                            className="text-[9px] font-normal px-1 py-0.5 rounded"
-                            style={{
-                              backgroundColor: "var(--theme-surface)",
-                              color: "var(--theme-muted-text)",
-                            }}
+                            className="text-2xs font-normal px-1 py-0.5 rounded bg-subtle text-fg-muted"
                           >
                             {p.type}
                           </span>
                           {p.required && (
                             <span
-                              className="text-[9px]"
-                              style={{ color: "var(--theme-danger)" }}
+                              className="text-2xs text-danger"
                             >
                               required
                             </span>
@@ -485,12 +456,7 @@ export function ApiExplorer({
                                 [p.name]: e.target.value,
                               }))
                             }
-                            className="w-full rounded-lg border px-3 py-1.5 text-xs font-mono"
-                            style={{
-                              backgroundColor: "var(--theme-card-bg)",
-                              borderColor: "var(--theme-surface-border)",
-                              color: "var(--theme-card-text)",
-                            }}
+                            className="w-full rounded-lg border px-3 py-1.5 text-xs font-mono bg-panel border-border text-fg"
                           >
                             <option value="">Select...</option>
                             {p.options.map((o) => (
@@ -514,8 +480,7 @@ export function ApiExplorer({
                         )}
                         {p.description && (
                           <p
-                            className="text-[10px] mt-0.5"
-                            style={{ color: "var(--theme-muted-text)" }}
+                            className="text-2xs mt-0.5 text-fg-muted"
                           >
                             {p.description}
                           </p>
@@ -559,34 +524,32 @@ export function ApiExplorer({
               {response && (
                 <Card className="!p-0 overflow-hidden">
                   <div
-                    className="flex items-center justify-between px-4 py-2 border-b"
-                    style={{ borderColor: "var(--theme-surface-border)" }}
+                    className="flex items-center justify-between px-4 py-2 border-b border-border"
                   >
                     <div className="flex items-center gap-2">
                       {response.status >= 200 && response.status < 300 ? (
                         <CheckCircle2
                           size={14}
-                          style={{ color: "var(--theme-success, #22C55E)" }}
+                          className="text-success"
                         />
                       ) : (
                         <AlertCircle
                           size={14}
-                          style={{ color: "var(--theme-danger, #EF4444)" }}
+                          className="text-danger"
                         />
                       )}
                       <span
                         className={cn(
                           "text-xs font-bold",
                           response.status >= 200 && response.status < 300
-                            ? "text-green-500"
-                            : "text-red-500",
+                            ? "text-success"
+                            : "text-danger",
                         )}
                       >
                         {response.status || "Error"}
                       </span>
                       <span
-                        className="text-[10px]"
-                        style={{ color: "var(--theme-muted-text)" }}
+                        className="text-2xs text-fg-muted"
                       >
                         {response.status >= 200 && response.status < 300
                           ? "OK"
@@ -598,8 +561,7 @@ export function ApiExplorer({
                       </span>
                     </div>
                     <div
-                      className="flex items-center gap-1 text-[10px]"
-                      style={{ color: "var(--theme-muted-text)" }}
+                      className="flex items-center gap-1 text-2xs text-fg-muted"
                     >
                       <Clock size={10} />
                       {response.duration}ms

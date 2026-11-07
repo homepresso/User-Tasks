@@ -2,8 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Download, Moon, Redo2, RotateCcw, Sun, Undo2, Upload } from "lucide-react"
+import { Download, Moon, MoreHorizontal, Redo2, RotateCcw, Sun, Undo2, Upload } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { PageHeader } from "@/components/ui/page-header"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { Tooltip } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { useWorkspaceTheme } from "@/components/providers/theme-provider"
@@ -12,7 +19,7 @@ import { blockingContrastIssues } from "@/lib/theme/contrast"
 import { designerReducer, exportThemeJson, initDesigner, isDirty, parseThemeImport, type ThemePath } from "@/lib/theme/designer-state"
 import { presetToWorkspaceTheme } from "@/lib/theme/presets"
 import { WorkspaceThemeSchema, formatThemeIssues, type ThemeMode } from "@/lib/theme/schema"
-import { ChromeSection, BrandingSection, ColorsSection, LayoutSection, ShapeSection, TemplateSection, TypographySection } from "./sections"
+import { ChromeSection, BrandingSection, ColorsSection, DensityField, LayoutSection, ShapeSection, TemplateSection, TypographySection } from "./sections"
 import { SegmentedField, TextField } from "./controls"
 import { ThemePreview } from "./theme-preview"
 
@@ -39,6 +46,7 @@ export function ThemeDesigner({ initial, editable, workspaceLogoUrl }: { initial
   const validation = useMemo(() => WorkspaceThemeSchema.safeParse(theme), [theme])
   const blocking = useMemo(() => (validation.success ? blockingContrastIssues(validation.data) : []), [validation])
   const canSave = editable && dirty && validation.success && blocking.length === 0 && !saving
+  const saveBlockedReason = !dirty ? "No unsaved changes" : !validation.success ? "Fix the draft's errors first" : blocking.length ? "Fix the contrast errors first" : null
 
   const set = useCallback((path: ThemePath, value: unknown) => dispatch({ type: "set", path, value }), [])
 
@@ -137,56 +145,82 @@ export function ThemeDesigner({ initial, editable, workspaceLogoUrl }: { initial
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold">Theme</h1>
-          <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>
-            The brand theme everyone in this workspace sees.{" "}
-            {state.version > 0 ? `Version ${state.version}${initial.updatedAt && state.version === initial.version ? `, saved ${new Date(initial.updatedAt).toLocaleString()}` : ""}.` : "Not customised yet (platform default)."}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Theme actions">
-          {editable && (
-            <>
-              <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "undo" })} disabled={!state.past.length} aria-label="Undo" title="Undo (Ctrl/⌘ Z)"><Undo2 size={15} aria-hidden /></Button>
-              <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "redo" })} disabled={!state.future.length} aria-label="Redo" title="Redo (Ctrl/⌘ Shift Z)"><Redo2 size={15} aria-hidden /></Button>
-              <Button variant="ghost" size="sm" onClick={resetToTemplate} disabled={!theme.meta.basePreset} title="Reset colours, fonts and layout to the template this theme started from">
-                <RotateCcw size={14} aria-hidden /> Reset to template
-              </Button>
-              <input ref={importRef} type="file" accept="application/json,.json" className="hidden" onChange={importJson} aria-label="Import a theme JSON file" />
-              <Button variant="outline" size="sm" onClick={() => importRef.current?.click()}><Upload size={14} aria-hidden /> Import</Button>
-            </>
-          )}
-          <Button variant="outline" size="sm" onClick={exportJson}><Download size={14} aria-hidden /> Export</Button>
-          {editable && (
-            <>
-              {dirty && <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "revert" })}>Discard changes</Button>}
-              <Button size="sm" onClick={() => setConfirming(true)} disabled={!canSave}>{saving ? "Saving…" : "Save for workspace"}</Button>
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        className="mb-2"
+        breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Theme" }]}
+        title="Theme"
+        badge={dirty ? <Badge tone="warning" dot>Unsaved</Badge> : undefined}
+        description={<>
+          The brand theme everyone in this workspace sees.{" "}
+          {state.version > 0
+            ? <>Version <span className="num">{state.version}</span>{initial.updatedAt && state.version === initial.version ? <>, saved <Tooltip content={formatAbsolute(initial.updatedAt)}><span tabIndex={0}>{formatRelative(initial.updatedAt)}</span></Tooltip></> : null}.</>
+            : "Not customised yet (platform default)."}
+        </>}
+        actions={
+          <div className="flex items-center gap-1.5" role="toolbar" aria-label="Theme actions">
+            {editable && (
+              <>
+                <IconButton label="Undo" kbd="⌘Z" icon={<Undo2 />} onClick={() => dispatch({ type: "undo" })} disabled={!state.past.length} />
+                <IconButton label="Redo" kbd="⇧⌘Z" icon={<Redo2 />} onClick={() => dispatch({ type: "redo" })} disabled={!state.future.length} />
+                <input ref={importRef} type="file" accept="application/json,.json" className="hidden" onChange={importJson} aria-label="Import a theme JSON file" />
+              </>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <IconButton label="More theme actions" icon={<MoreHorizontal />} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {editable && <DropdownMenuItem icon={<Upload />} onSelect={() => importRef.current?.click()}>Import JSON…</DropdownMenuItem>}
+                <DropdownMenuItem icon={<Download />} onSelect={exportJson}>Export JSON</DropdownMenuItem>
+                {editable && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem icon={<RotateCcw />} disabled={!theme.meta.basePreset} onSelect={resetToTemplate}>Reset to template</DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {editable && (
+              <>
+                {dirty && <Button variant="ghost" onClick={() => dispatch({ type: "revert" })}>Discard</Button>}
+                <Tooltip content={saveBlockedReason} enabled={!canSave && !saving && saveBlockedReason != null}>
+                  <span className="inline-flex" tabIndex={!canSave && !saving ? 0 : undefined}>
+                    {/* Clean or blocked: a disabled secondary button, so it can't be mistaken for an enabled primary. */}
+                    <Button variant={canSave || saving ? "primary" : "secondary"} onClick={() => setConfirming(true)} disabled={!canSave} loading={saving}>
+                      {saving ? "Saving…" : "Save for workspace"}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </>
+            )}
+          </div>
+        }
+      />
 
       {!editable && (
         <InlineNotice tone="warning" message="You can look at the workspace theme. Members who can edit workspace settings can change it." />
       )}
       {notice && <div role="status"><InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} /></div>}
       {conflict && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span>Someone else saved the theme while you were editing.</span>
-          <Button size="sm" variant="outline" onClick={loadLatest}>Load their version</Button>
-          <Button size="sm" variant="destructive" onClick={overwrite}>Overwrite with mine</Button>
-        </div>
+        <InlineNotice
+          tone="warning"
+          message="Someone else saved the theme while you were editing."
+          actions={<>
+            <Button size="sm" variant="secondary" onClick={loadLatest}>Load their version</Button>
+            <Button size="sm" variant="danger" onClick={overwrite}>Overwrite with mine</Button>
+          </>}
+        />
       )}
       {editable && !validation.success && (
         <InlineNotice tone="error" message={`The draft can't be saved: ${formatThemeIssues(validation.error)}`} />
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(340px,440px)_minmax(0,1fr)]">
-        <div className="min-w-0 rounded-xl border lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto" style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)" }}>
+      {/* The preview is the hero: it takes the wide column; the settings pane is a narrow, scrolling rail. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(340px,420px)_minmax(0,1fr)]">
+        <div className="min-w-0 rounded-lg border border-border bg-panel lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto scrollbar-thin">
           <fieldset disabled={!editable} className="m-0 min-w-0 border-0 p-0">
             <legend className="sr-only">Theme settings</legend>
-            <div className="space-y-3 border-b p-4" style={{ borderColor: "var(--theme-surface-border)" }}>
+            <div className="space-y-3 border-b border-border-subtle p-4">
               <TextField
                 label="Theme name"
                 value={theme.meta.name}
@@ -197,9 +231,10 @@ export function ThemeDesigner({ initial, editable, workspaceLogoUrl }: { initial
               <SegmentedField
                 label="Appearance"
                 value={theme.meta.mode}
-                options={[{ value: "auto", label: "Follow device" }, { value: "light", label: "Always light" }, { value: "dark", label: "Always dark" }]}
+                options={[{ value: "auto", label: "Follow device" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }]}
                 onChange={(v) => { set(["meta", "mode"], v); if (v !== "auto") setMode(v) }}
               />
+              <DensityField theme={theme} set={set} />
             </div>
             <TemplateSection theme={theme} mode={mode} onApply={applyTemplate} />
             <ColorsSection theme={theme} set={set} mode={mode} onModeChange={setMode} />
@@ -211,23 +246,16 @@ export function ThemeDesigner({ initial, editable, workspaceLogoUrl }: { initial
           </fieldset>
         </div>
 
-        <div className="min-w-0 space-y-2 lg:sticky lg:top-4 lg:self-start">
+        <div className="min-w-0 space-y-3 lg:sticky lg:top-0 lg:self-start">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">Live preview{dirty ? " (unsaved)" : ""}</h2>
-            <div className="flex gap-1 rounded-lg border p-0.5" role="group" aria-label="Preview mode" style={{ borderColor: "var(--theme-surface-border)" }}>
-              {(["light", "dark"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={mode === m}
-                  onClick={() => setMode(m)}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2"
-                  style={{ backgroundColor: mode === m ? "var(--theme-primary-light)" : "transparent", color: mode === m ? "var(--theme-primary-text)" : "var(--theme-card-text)", ["--tw-ring-color" as string]: "var(--theme-focus-ring, var(--theme-primary))" }}
-                >
-                  {m === "light" ? <Sun size={13} aria-hidden /> : <Moon size={13} aria-hidden />} {m === "light" ? "Light" : "Dark"}
-                </button>
-              ))}
-            </div>
+            <h2 className="text-base font-semibold text-fg">Live preview{dirty ? <span className="ml-1.5 text-ui font-normal text-fg-muted">unsaved draft</span> : null}</h2>
+            <SegmentedControl<ThemeMode>
+              aria-label="Preview mode"
+              size="sm"
+              value={mode}
+              onValueChange={setMode}
+              options={[{ value: "light", text: "Light", icon: <Sun /> }, { value: "dark", text: "Dark", icon: <Moon /> }]}
+            />
           </div>
           <ThemePreview theme={theme} mode={mode} appBaseSize={appTheme.typography.baseSize} logoUrl={workspaceLogoUrl} />
         </div>

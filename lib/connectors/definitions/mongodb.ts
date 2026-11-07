@@ -16,7 +16,7 @@ export const mongodbConnector: ConnectorDefinition = {
       placeholder: 'mongodb+srv://cluster0.xxxxx.mongodb.net',
       required: true,
       validation: { type: 'mongo_connection' },
-      helpText: 'MongoDB connection URI (without credentials)',
+      helpText: 'MongoDB connection URI without credentials (put them below). Replica sets: mongodb://host1:27017,host2:27017/?replicaSet=rs0',
       setupHint: 'Self-hosted: needs the optional mongodb package (npm install mongodb, then rebuild; Docker: build with INCLUDE_OPTIONAL_DB_DRIVERS=true). See /docs/self-hosting/optional-drivers.',
     },
     {
@@ -138,11 +138,12 @@ export const mongodbConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/db/execute',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ operation: 'updateMany', collection: '{{collection}}', filter: '{{filter}}', update: '{{update}}' }),
+      bodyTemplate: JSON.stringify({ operation: 'updateMany', collection: '{{collection}}', filter: '{{filter}}', update: '{{update}}', allow_all: '{{allow_all}}' }),
       inputs: [
         { name: 'collection', type: 'string', required: true, description: 'Collection name' },
         { name: 'filter', type: 'string', required: true, description: 'JSON filter' },
-        { name: 'update', type: 'string', required: true, description: 'Update operations' },
+        { name: 'update', type: 'string', required: true, description: 'Update operations (e.g. {"$set": {"status": "closed"}})' },
+        { name: 'allow_all', type: 'string', required: false, description: 'Set to true to allow an empty filter ({}) that updates every document', defaultValue: 'false' },
       ],
       outputs: [
         { name: 'matchedCount', type: 'number' },
@@ -172,10 +173,11 @@ export const mongodbConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/db/execute',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ operation: 'deleteMany', collection: '{{collection}}', filter: '{{filter}}' }),
+      bodyTemplate: JSON.stringify({ operation: 'deleteMany', collection: '{{collection}}', filter: '{{filter}}', allow_all: '{{allow_all}}' }),
       inputs: [
         { name: 'collection', type: 'string', required: true, description: 'Collection name' },
-        { name: 'filter', type: 'string', required: true, description: 'JSON filter' },
+        { name: 'filter', type: 'string', required: true, description: 'JSON filter (an empty filter {} is refused unless allow_all is true)' },
+        { name: 'allow_all', type: 'string', required: false, description: 'Set to true to allow an empty filter ({}) that deletes every document', defaultValue: 'false' },
       ],
       outputs: [
         { name: 'deletedCount', type: 'number' },
@@ -229,18 +231,55 @@ export const mongodbConnector: ConnectorDefinition = {
       ],
     },
   ],
-  buildIntegrationConfig: (config, credentials) => ({
-    base_url: config.connection_string || '',
-    auth_type: 'basic',
-    auth_config: {
-      username: credentials.username,
-      password: credentials.password,
-    },
-    headers: {
-      _executor: 'database',
-      db_type: 'mongodb',
-      connection_string: config.connection_string,
-      database: config.database,
-    },
-  }),
+  buildIntegrationConfig: (config, credentials) => {
+    // Credentials typed into the URI are moved to auth_config (encrypted),
+    // never kept in base_url / headers (plaintext, shown in the UI).
+    const split = splitMongoUri(String(config.connection_string || ''))
+    return {
+      base_url: split.uri,
+      auth_type: 'basic',
+      auth_config: {
+        username: credentials.username || split.username || '',
+        password: credentials.password || split.password || '',
+      },
+      headers: {
+        _executor: 'database',
+        db_type: 'mongodb',
+        connection_string: split.uri,
+        database: config.database,
+      },
+    }
+  },
+  upgradeIntegrationConfig: (stored) => {
+    const headers = stored?.headers ?? {}
+    const raw = String(headers.connection_string || stored?.base_url || '')
+    const split = splitMongoUri(raw)
+    if (!split.username && !split.password) return stored
+    const auth = stored?.auth_config ?? {}
+    return {
+      ...stored,
+      base_url: split.uri,
+      headers: { ...headers, connection_string: split.uri },
+      auth_config: {
+        ...auth,
+        username: auth.username || split.username || '',
+        password: auth.password || split.password || '',
+      },
+    }
+  },
+}
+
+/** Split userinfo out of a mongodb:// URI (decoded). */
+export function splitMongoUri(uri: string): { uri: string; username?: string; password?: string } {
+  const m = /^(mongodb(?:\+srv)?:\/\/)(?:([^@/]*)@)?(.*)$/i.exec(uri.trim())
+  if (!m) return { uri }
+  const [, scheme, userinfo, rest] = m
+  if (!userinfo) return { uri: `${scheme}${rest}` }
+  const idx = userinfo.indexOf(':')
+  const dec = (s: string) => { try { return decodeURIComponent(s) } catch { return s } }
+  return {
+    uri: `${scheme}${rest}`,
+    username: dec(idx >= 0 ? userinfo.slice(0, idx) : userinfo),
+    password: idx >= 0 ? dec(userinfo.slice(idx + 1)) : undefined,
+  }
 }

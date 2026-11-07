@@ -148,6 +148,14 @@ describe('buildTenantExport', () => {
     expect(queried).not.toContain('custom_table_rows')
   })
 
+  it('never queries task attachments (runtime data, like submissions)', async () => {
+    const queried: string[] = []
+    await buildTenantExport(makeSupabase(makeRows(), queried), TENANT_ID)
+
+    expect(queried).not.toContain('task_attachments')
+    expect(queried).not.toContain('task_attachment_purges')
+  })
+
   it('scrubs integration credentials to the __SECRET__ sentinel by default', async () => {
     const queried: string[] = []
     const manifest = await buildTenantExport(makeSupabase(makeRows(), queried), TENANT_ID)

@@ -7,7 +7,8 @@
 
 import catalogJson from './catalog.json'
 import indexJson from '@/public/gallery/index.json'
-import type { CatalogEntry, GalleryCatalog } from './catalog'
+import type { CatalogEntry, ControlCatalogEntry, GalleryCatalog } from './catalog'
+import type { ActionCatalogEntry } from './actions'
 import { GALLERY_CATEGORIES, GALLERY_NEEDS, GALLERY_TRIGGERS, type GalleryCategoryId, type GalleryIndex, type GalleryIndexEntry, type GalleryNeed, type GalleryOrigin, type GalleryTrigger } from './types'
 
 const catalog = catalogJson as unknown as GalleryCatalog
@@ -21,6 +22,70 @@ const files = new Map(index.packages.map((entry) => [entry.slug, entry]))
 export const GALLERY_PACKAGES: GalleryPackage[] = catalog.packages
   .filter((entry) => files.has(entry.slug))
   .map((entry) => ({ ...entry, file: files.get(entry.slug)! }))
+
+export type GalleryControl = ControlCatalogEntry & { file: GalleryIndexEntry }
+
+/** Official form controls (and control bundles) with their file entries: /gallery/controls. */
+export const GALLERY_CONTROLS: GalleryControl[] = (catalog.controls ?? [])
+  .filter((entry) => files.has(entry.package_slug))
+  .map((entry) => ({ ...entry, file: files.get(entry.package_slug)! }))
+
+export function getGalleryControl(slug: string): GalleryControl | undefined {
+  return GALLERY_CONTROLS.find((entry) => entry.slug === slug)
+}
+
+/** The card data of a form control (the controls browser, the /forms page, the gallery teaser). */
+export interface ControlCard {
+  href: string
+  slug: string
+  title: string
+  summary: string
+  kind: 'form_control' | 'control_bundle'
+  control_kind: 'input' | 'display' | null
+  icon: string | null
+  tags: string[]
+  /** Element tags (`ut-chart`). */
+  elements: string[]
+  value_types: string[]
+  capabilities: string[]
+  hosts: string[]
+  systems: string[]
+  needs_setup: boolean
+  version: string
+  module_bytes: number
+}
+
+export function controlCards(): ControlCard[] {
+  return GALLERY_CONTROLS.map((entry) => ({
+    href: `/gallery/controls/${entry.slug}`,
+    slug: entry.slug,
+    title: entry.title,
+    summary: entry.summary,
+    kind: entry.kind,
+    control_kind: entry.control_kind,
+    icon: entry.icon,
+    tags: entry.tags,
+    elements: entry.controls.map((c) => c.tag),
+    value_types: [...new Set(entry.controls.map((c) => c.value.type))],
+    capabilities: [...new Set(entry.controls.flatMap((c) => c.capabilities))],
+    hosts: [...new Set(entry.controls.flatMap((c) => c.hosts))],
+    systems: entry.systems,
+    needs_setup: entry.requirements.length > 0 || entry.controls.some((c) => c.hosts.length > 0 || c.capabilities.includes('lookup') || c.capabilities.includes('reports')),
+    version: entry.version,
+    module_bytes: entry.controls.reduce((sum, c) => sum + c.module_bytes, 0),
+  }))
+}
+
+export type GalleryAction = ActionCatalogEntry & { file: GalleryIndexEntry }
+
+/** Official custom workflow actions with their file entries: /gallery/actions. */
+export const GALLERY_ACTIONS: GalleryAction[] = (catalog.actions ?? [])
+  .filter((entry) => files.has(entry.package_slug))
+  .map((entry) => ({ ...entry, file: files.get(entry.package_slug)! }))
+
+export function getGalleryAction(slug: string): GalleryAction | undefined {
+  return GALLERY_ACTIONS.find((entry) => entry.slug === slug)
+}
 
 export const GALLERY_SIGNING = index.signing
 
@@ -44,6 +109,12 @@ export function needLabel(need: GalleryNeed): string {
 
 export function formatBytes(bytes: number): string {
   return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+}
+
+/** Workflow packages whose forms use any of these controls (element tags): "Used in" on a control page. */
+export function packagesUsingControls(tags: string[]): GalleryPackage[] {
+  const wanted = new Set(tags)
+  return GALLERY_PACKAGES.filter((pkg) => (pkg.controls ?? []).some((c) => wanted.has(c.tag)))
 }
 
 /** Packages that share the category (then the trigger), for "related" links. */

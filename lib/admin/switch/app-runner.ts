@@ -1,3 +1,4 @@
+import os from 'node:os'
 import path from 'node:path'
 import type { InstanceConfig } from '@/lib/config'
 import { databaseUrl, readEnv } from '@/lib/config/bootstrap'
@@ -8,24 +9,43 @@ import { clearInfrastructureHealthCache, viewerCanSeeInfrastructure } from '../i
 import { NoDatabaseError, backgroundRuntime, type InfrastructureSwitchDeps } from '../infrastructure-switching'
 import { CHUNKED_AREAS } from '../switch-runtime'
 import { connect, type SqlClient } from '../ops/instance-db'
+import { serviceSqlClient } from '../ops/service-sql'
+import type { SwitchAccess } from '../switch-runtime'
 import { uiSwitchingGateFor } from './gate'
 import { runQueuedSwitches } from './jobs'
 import { SWITCH_PLANS } from './plans'
 
 /**
  * The app process's side of switching from Settings → Infrastructure: a
- * direct connection per call (DATABASE_URL), the feature gate, the
- * in-process background runner, and the deps the server actions bind.
+ * direct connection per call (DATABASE_URL) or, without one on the Supabase
+ * provider, the service-role API (config-only changes; ../ops/service-sql),
+ * the feature gate, the in-process background runner, and the deps the
+ * server actions bind.
  */
 
-/** BACKUP_DIR, else ./backups/switches (mount a volume there in containers). */
+/** BACKUP_DIR, else ./backups/switches (mount a volume there in containers); on serverless the temp directory (the switch log row is the record). */
 export function appBackupRoot(): string {
-  return path.resolve(/*turbopackIgnore: true*/ readEnv('BACKUP_DIR') || 'backups/switches')
+  const configured = readEnv('BACKUP_DIR')
+  if (configured) return path.resolve(/*turbopackIgnore: true*/ configured)
+  if (!backgroundRuntime().available) return path.join(os.tmpdir(), 'usertasks-switches')
+  return path.resolve(/*turbopackIgnore: true*/ 'backups/switches')
+}
+
+/** How this process reaches the instance for Settings → Infrastructure. */
+export async function switchAccess(): Promise<SwitchAccess> {
+  if (databaseUrl()) return 'direct'
+  const { activeDbProvider, hasServiceDb } = await import('@/lib/providers/db')
+  return activeDbProvider() === 'supabase' && hasServiceDb() ? 'api' : 'none'
 }
 
 async function withDb<T>(fn: (db: SqlClient, dbUrl: string) => Promise<T>): Promise<T> {
   const url = databaseUrl()
-  if (!url) throw new NoDatabaseError()
+  if (!url) {
+    if ((await switchAccess()) !== 'api') throw new NoDatabaseError()
+    const { getServiceDb } = await import('@/lib/providers/db')
+    // No direct connection: the service-role API (dbUrl '' — nothing may dump or open second connections).
+    return fn(serviceSqlClient(getServiceDb()), '')
+  }
   const client = await connect(url, 'usertasks-infrastructure')
   try {
     return await fn(client, url)

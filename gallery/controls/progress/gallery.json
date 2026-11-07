@@ -1,0 +1,32 @@
+{
+  "id": "b1cdccd7-796e-427c-9c98-d4fa1e04ab1f",
+  "asset_id": "3bd09802-651c-44ac-a545-f0b3e587cd16",
+  "slug": "progress",
+  "title": "Progress",
+  "kind": "display",
+  "summary": "Show progress as a bar, a ring or named steps from two fields of the form or fixed values, with warning and on-track colours.",
+  "description": "Show people where things stand without making them do the maths: tasks done out of the onboarding checklist, hours used of a budget, items received of an order, or the stage a request has reached (Submitted, Review, Approval, Done). Map the Current and Total context entries to fields of the form (numbers, a step name, or a list whose length counts), or type fixed values.\n\nChoose a bar, a ring or a row of steps, a unit and your own label (\"{{remaining}} hours left\"). Set Warn below and Good from to turn the progress red with Needs attention or green with On track, so colour is never the only signal. Screen readers hear a real progressbar with the full text (\"7 of 12 tasks, 58%\"), and the steps style is an ordered list with the current step marked (\"Step 2 of 5: Review\"). It is display only and never changes the form's data.",
+  "icon": "gauge",
+  "tags": ["progress", "status", "steps", "kpi", "dashboard"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: current_value, total_value, steps can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: a number (display only)." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Onboarding checklist: tasks done out of the total",
+    "Budget or hours used against the allowance, red when nearly exhausted",
+    "Where a request is in its approval stages"
+  ],
+  "setup": [
+    "Install the package: Progress appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Progress onto a form and choose the style (bar, ring or steps).",
+    "Map the Current (and optionally Total) context entries to fields of the form, or type Current / Total values. For steps, list the step names.",
+    "Optionally set the unit, the label, and the Warn below / Good from thresholds."
+  ],
+  "preview": {
+    "props": { "appearance": "bar", "current_value": 7, "total_value": 12, "unit": "tasks", "warn_below": 25, "good_above": 80 },
+    "value": null,
+    "label": "Onboarding checklist",
+    "height": 70,
+    "context": {},
+    "fixtures": {}
+  }
+}

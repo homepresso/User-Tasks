@@ -1,0 +1,115 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+  "asset": {
+    "id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+    "name": "Registrations",
+    "description": "One row per registration: the contact, the number of attendees, the first and second session choices, the session they got (or the waitlist), how many sessions they plan to attend and their interest in networking.",
+    "columns": [
+      {
+        "id": "a4681a70-9513-54ca-a13e-7da40ec12910",
+        "required": true,
+        "key": "reg_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "ef199275-4357-5413-962d-fab5227d452e",
+        "required": false,
+        "key": "event_code",
+        "name": "Event code",
+        "type": "text"
+      },
+      {
+        "id": "aa6f0623-7836-597b-be63-db53b1809c31",
+        "required": false,
+        "key": "event_title",
+        "name": "Event",
+        "type": "text"
+      },
+      {
+        "id": "42171af1-d920-5a86-a6b0-8f6fa2791906",
+        "required": false,
+        "key": "contact_name",
+        "name": "Contact",
+        "type": "text"
+      },
+      {
+        "id": "553b8631-8458-5398-82e9-4ded1cf6c452",
+        "required": false,
+        "key": "contact_email",
+        "name": "Contact email",
+        "type": "email"
+      },
+      {
+        "id": "181619e2-5af0-52d8-80b1-7effa1fe1006",
+        "required": false,
+        "key": "attendees",
+        "name": "Attendees",
+        "type": "number"
+      },
+      {
+        "id": "6798bb02-d3e1-5fc6-a500-7050cc7af0a5",
+        "required": false,
+        "key": "first_choice",
+        "name": "First choice",
+        "type": "text"
+      },
+      {
+        "id": "07fcf1d1-0c3a-5fae-b1f5-ee4a60794084",
+        "required": false,
+        "key": "second_choice",
+        "name": "Second choice",
+        "type": "text"
+      },
+      {
+        "id": "ae4e28fc-276f-51c4-9d30-b7f1bfb8c27c",
+        "required": false,
+        "key": "assigned_session",
+        "name": "Session",
+        "type": "text"
+      },
+      {
+        "id": "e65ddbb0-dc52-5c4a-8058-e6e87044678a",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Confirmed",
+          "Waitlisted",
+          "Confirmed (alternative)"
+        ]
+      },
+      {
+        "id": "765673fa-81ab-5794-85c8-bda7d7b95295",
+        "required": false,
+        "key": "sessions_planned",
+        "name": "Sessions planned",
+        "type": "number"
+      },
+      {
+        "id": "8b5b9cac-513e-5c5d-97b5-64466301feff",
+        "required": false,
+        "key": "networking_interest",
+        "name": "Networking interest (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "282b8016-7a95-540c-b6f3-0779b051a197",
+        "required": false,
+        "key": "questions",
+        "name": "Questions for the speakers",
+        "type": "text"
+      },
+      {
+        "id": "64b63bec-f087-5b73-8a56-6095271c3a5d",
+        "required": false,
+        "key": "registered_on",
+        "name": "Registered",
+        "type": "date"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "dbced234-582c-5651-92de-c32e73f77191",
+  "asset": {
+    "id": "dbced234-582c-5651-92de-c32e73f77191",
+    "name": "Call QA archive: 2 years",
+    "description": "Scored calls with redacted recordings are kept for two years, then purged. Adjust to your recording retention rules.",
+    "policy_mode": "purge_on",
+    "duration_value": 2,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

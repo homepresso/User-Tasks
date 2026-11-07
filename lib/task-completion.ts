@@ -171,6 +171,11 @@ export interface ResumePayload {
   /** Who submitted it: the assignee, or the manager acting on their behalf. */
   actioned_by: string | null;
   actioned_by_name: string;
+  /** Who completed the task (as actioned_by; "" for automation) and when (ISO 8601, server time). */
+  completed_by: string;
+  completed_by_name: string;
+  completed_by_email: string;
+  completed_at: string;
   /** The assignee a manager acted for (empty when the assignee acted). */
   actioned_on_behalf_of: string;
   actioned_on_behalf_of_name: string;
@@ -181,6 +186,12 @@ export interface ResumePayload {
   outcome_counts: Record<string, number>;
   /** The task's field values (metadata.template_values) — `{{task_data.<key>}}` after the node. */
   task_data: Record<string, unknown>;
+  /**
+   * Files attached on the task's Attachments tab before it completed
+   * (lib/task-attachments.ts) — `{{attachments}}` after the node, a list a
+   * Loop can walk and file steps can read.
+   */
+  attachments: import("@/lib/task-attachments").TaskAttachment[];
 }
 
 export type RecordTaskResponseResult =
@@ -220,7 +231,7 @@ export async function recordTaskResponse(params: {
    * the assignee (their response is the one counted) and `actorId` the
    * manager / break-glass holder who submitted it.
    */
-  onBehalf?: { actorId: string; note: string | null; actedAs: "on_behalf" | "break_glass" } | null;
+  onBehalf?: { actorId: string; note: string | null; actedAs: "on_behalf" | "break_glass"; basis?: string | null } | null;
   /** How the caller was authorised (lifecycle metadata), e.g. 'credential'. */
   actedAs?: string | null;
 }): Promise<RecordTaskResponseResult> {
@@ -230,7 +241,7 @@ export async function recordTaskResponse(params: {
   // The person who clicked (audit actor); userId is whose response it is.
   const actorId = onBehalf ? onBehalf.actorId : userId;
   const behalfMeta = onBehalf
-    ? { on_behalf_of: userId, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs }
+    ? { on_behalf_of: userId, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs, ...(onBehalf.basis ? { on_behalf_basis: onBehalf.basis } : {}) }
     : params.actedAs ? { acted_as: params.actedAs } : {};
   const taskId = String(task.id);
   const tenantId = String(task.tenant_id);
@@ -238,7 +249,11 @@ export async function recordTaskResponse(params: {
   const taskMeta = (task.metadata ?? {}) as Record<string, any>;
   const completionRule = taskMeta.completion_rule ?? "first_response";
 
-  const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, taskMeta, values, { taskId, task });
+  // Before-submit rules aimed at a bar button apply to that button only (lib/forms/form-rules.ts):
+  // the pressed button, else the bar's submitting buttons that complete with this outcome.
+  const { submissionButtonIds } = await import("@/lib/forms/buttons");
+  const buttonIds = submissionButtonIds(taskMeta.form_buttons, { buttonId: params.buttonId ?? null, outcome, outcomes: (task.available_outcomes ?? []) as string[] });
+  const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, taskMeta, values, { taskId, task, actorId: userId, buttonIds });
   if (Object.keys(errors).length > 0) return { status: "invalid", errors };
   const meta = {
     ...taskMeta,
@@ -394,17 +409,34 @@ export async function recordTaskResponse(params: {
     });
   }
 
-  const nameOf = async (id: string | null, fallback: string) => {
-    if (!id) return fallback;
+  const profileOf = async (id: string | null) => {
+    if (!id) return null;
     const { data: profile } = await (supabase as any)
       .from("users")
       .select("display_name, email")
       .eq("id", id)
       .maybeSingle();
-    return (profile as any)?.display_name ?? (profile as any)?.email ?? "Unknown";
+    return (profile ?? null) as { display_name?: string | null; email?: string | null } | null;
   };
-  const actionedByName = await nameOf(actorId, "Automation");
+  const nameOf = async (id: string | null, fallback: string) => {
+    if (!id) return fallback;
+    const profile = await profileOf(id);
+    return profile?.display_name ?? profile?.email ?? "Unknown";
+  };
+  const actorProfile = await profileOf(actorId);
+  const actionedByName = actorId ? (actorProfile?.display_name ?? actorProfile?.email ?? "Unknown") : "Automation";
   const onBehalfOfName = onBehalf ? await nameOf(userId, "") : "";
+  // The Attachments tab's files flow downstream with the outcome.
+  let attachments: ResumePayload["attachments"] = [];
+  try {
+    const [{ listTaskAttachmentsForWorkflow }, { createServiceClient }] = await Promise.all([
+      import("@/lib/services/task-attachments"),
+      import("@/lib/cron-auth"),
+    ]);
+    attachments = await listTaskAttachmentsForWorkflow(createServiceClient() as any, tenantId, taskId);
+  } catch {
+    attachments = [];
+  }
 
   return {
     status: "completed",
@@ -415,6 +447,11 @@ export async function recordTaskResponse(params: {
       outcome_notes: outcomeNotes || "",
       actioned_by: actorId,
       actioned_by_name: actionedByName,
+      // Who completed the task and when (server-set; the clicker, as actioned_by).
+      completed_by: actorId ?? "",
+      completed_by_name: actionedByName,
+      completed_by_email: actorProfile?.email ?? "",
+      completed_at: now,
       actioned_on_behalf_of: onBehalf ? (userId ?? "") : "",
       actioned_on_behalf_of_name: onBehalfOfName,
       on_behalf_note: onBehalf?.note ?? "",
@@ -422,6 +459,7 @@ export async function recordTaskResponse(params: {
       response_count: evaluation.responseCount,
       outcome_counts: evaluation.outcomeCounts,
       task_data: templateValues,
+      attachments,
     },
   };
 }

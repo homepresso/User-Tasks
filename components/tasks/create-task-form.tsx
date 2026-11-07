@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { SubmitButton } from '@/components/ui/submit-button'
 import { createTask } from '@/app/actions/tasks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import { Plus, X, GripVertical } from 'lucide-react'
 import { OUTCOME_PRESETS } from '@/components/tasks/task-outcome-dialog'
 import { MultiAssigneePicker } from '@/components/tasks/multi-assignee-picker'
@@ -26,9 +28,7 @@ function AssigneePicker() {
       id="assignee_id"
       name="assignee_id"
       defaultValue=""
-      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-        focus:border-[color:var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--theme-primary)]
-        dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+      className="w-full rounded-md border border-input-border bg-input px-2.5 py-1.5 text-ui text-fg placeholder:text-fg-subtle"
     >
       <option value="">Unassigned (self)</option>
       {isLoading && <option disabled>Loading...</option>}
@@ -140,9 +140,7 @@ export function CreateTaskForm() {
   return (
     <form action={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
-          {error}
-        </div>
+        <InlineNotice tone="danger">{error}</InlineNotice>
       )}
 
       {/* Task Details */}
@@ -150,7 +148,7 @@ export function CreateTaskForm() {
         <div>
           <label
             htmlFor="title"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-fg mb-1"
           >
             Title
           </label>
@@ -165,7 +163,7 @@ export function CreateTaskForm() {
         <div>
           <label
             htmlFor="description"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-fg mb-1"
           >
             Description
           </label>
@@ -173,9 +171,7 @@ export function CreateTaskForm() {
             id="description"
             name="description"
             rows={3}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-              placeholder:text-gray-400 focus:border-[color:var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--theme-primary)]
-              dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="w-full rounded-md border border-input-border bg-input px-2.5 py-1.5 text-ui text-fg placeholder:text-fg-subtle"
             placeholder="Add details..."
           />
         </div>
@@ -184,7 +180,7 @@ export function CreateTaskForm() {
           <div>
             <label
               htmlFor="priority"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-fg mb-1"
             >
               Priority
             </label>
@@ -192,9 +188,7 @@ export function CreateTaskForm() {
               id="priority"
               name="priority"
               defaultValue="medium"
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-                focus:border-[color:var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--theme-primary)]
-                dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              className="w-full rounded-md border border-input-border bg-input px-2.5 py-1.5 text-ui text-fg placeholder:text-fg-subtle"
             >
               <option value="critical">Critical</option>
               <option value="high">High</option>
@@ -207,7 +201,7 @@ export function CreateTaskForm() {
           <div>
             <label
               htmlFor="due_date"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-fg mb-1"
             >
               Due date
             </label>
@@ -217,7 +211,7 @@ export function CreateTaskForm() {
           <div>
             <label
               htmlFor="estimated_effort"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-fg mb-1"
             >
               Effort (minutes)
             </label>
@@ -242,15 +236,13 @@ export function CreateTaskForm() {
 
       {/* Task Outcomes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Completion Options
+        <label className="block text-sm font-medium text-fg mb-1">
+          Completion options
         </label>
         <select
           value={selectedOutcomePreset}
           onChange={(e) => setSelectedOutcomePreset(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-            focus:border-[color:var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--theme-primary)]
-            dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          className="w-full rounded-md border border-input-border bg-input px-2.5 py-1.5 text-ui text-fg placeholder:text-fg-subtle"
         >
           {OUTCOME_PRESETS.map((preset) => (
             <option key={preset.id} value={preset.id}>
@@ -259,13 +251,13 @@ export function CreateTaskForm() {
           ))}
           <option value="custom">Custom Options...</option>
         </select>
-        <p className="text-xs mt-1" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs mt-1 text-fg-muted">
           Determines what buttons the assignee sees when completing this task
         </p>
 
         {selectedOutcomePreset === "custom" && (
-          <div className="mt-3 space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+          <div className="mt-3 space-y-2 rounded-lg border border-border p-3">
+            <p className="text-xs font-medium text-fg-muted">
               Add custom completion options
             </p>
             {customOutcomes.map((outcome, idx) => (
@@ -284,7 +276,8 @@ export function CreateTaskForm() {
                   <button
                     type="button"
                     onClick={() => setCustomOutcomes(prev => prev.filter((_, i) => i !== idx))}
-                    className="text-gray-400 hover:text-red-500"
+                    aria-label="Remove option"
+                    className="text-fg-muted hover:text-danger"
                   >
                     <X size={14} />
                   </button>
@@ -303,17 +296,17 @@ export function CreateTaskForm() {
           </div>
         )}
       </div>
-      <div className="space-y-4 rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+      <div className="space-y-4 rounded-lg border p-4 border-border bg-subtle">
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-            Redirect & Invite
+          <h3 className="text-sm font-semibold text-fg">
+            Redirect and invite
           </h3>
-          <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="mt-1 text-xs text-fg-muted">
             Let assignees reroute an ad hoc task to another person directly from the task form or queue.
           </p>
         </div>
 
-        <label className="flex items-start gap-3 rounded-lg border px-3 py-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+        <label className="flex items-start gap-3 rounded-lg border px-3 py-3 border-border bg-panel">
           <input
             type="checkbox"
             checked={allowRedirect}
@@ -327,24 +320,24 @@ export function CreateTaskForm() {
                 setRedirectRecipientLimit('2')
               }
             }}
-            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[color:var(--theme-card-text)] focus:ring-[color:var(--theme-primary)]"
+            className="mt-0.5 size-4 rounded-sm accent-[color:var(--theme-primary)]"
           />
           <span className="space-y-1">
-            <span className="block text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>
+            <span className="block text-sm font-medium text-fg">
               Allow redirect
             </span>
-            <span className="block text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <span className="block text-xs text-fg-muted">
               Assignees can pass the task to someone else without needing a workflow-backed activity.
             </span>
           </span>
         </label>
 
         {allowRedirect && (
-          <div className="space-y-4 rounded-lg border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="space-y-4 rounded-lg border p-4 border-border bg-panel">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
-                  Redirect Mode
+                <label className="mb-1 block text-xs font-medium text-fg-muted">
+                  Redirect mode
                 </label>
                 <select
                   value={redirectAssignmentMode}
@@ -355,30 +348,28 @@ export function CreateTaskForm() {
                       setRedirectRecipientLimitMode('unlimited')
                     }
                   }}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-                    focus:border-[color:var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--theme-primary)]
-                    dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  className="w-full rounded-md border border-input-border bg-input px-2.5 py-1.5 text-ui text-fg placeholder:text-fg-subtle"
                 >
                   <option value="single">Single person</option>
                   <option value="many">Multiple people</option>
                 </select>
-                <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="mt-1 text-xs text-fg-muted">
                   Choose whether the task can be redirected to one user or shared with several users at once.
                 </p>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
-                  Invite Support
+                <label className="mb-1 block text-xs font-medium text-fg-muted">
+                  Invite support
                 </label>
-                <label className="flex items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                <label className="flex items-center gap-2 rounded-lg border px-3 py-2 border-border">
                   <input
                     type="checkbox"
                     checked={allowInviteOnRedirect}
                     onChange={(e) => setAllowInviteOnRedirect(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-[color:var(--theme-card-text)] focus:ring-[color:var(--theme-primary)]"
+                    className="size-4 rounded-sm accent-[color:var(--theme-primary)]"
                   />
-                  <span className="text-sm" style={{ color: 'var(--theme-card-text)' }}>
+                  <span className="text-sm text-fg">
                     Allow invite users by email during redirect
                   </span>
                 </label>
@@ -388,28 +379,26 @@ export function CreateTaskForm() {
             {redirectAssignmentMode === 'many' && (
               <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
                 <div>
-                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
-                    Recipient Limit
+                  <label className="mb-1 block text-xs font-medium text-fg-muted">
+                    Recipient limit
                   </label>
                   <select
                     value={redirectRecipientLimitMode}
                     onChange={(e) => setRedirectRecipientLimitMode(e.target.value === 'capped' ? 'capped' : 'unlimited')}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-                      focus:border-[color:var(--theme-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--theme-primary)]
-                      dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                    className="w-full rounded-md border border-input-border bg-input px-2.5 py-1.5 text-ui text-fg placeholder:text-fg-subtle"
                   >
                     <option value="unlimited">Unlimited recipients</option>
                     <option value="capped">Cap recipients</option>
                   </select>
-                  <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="mt-1 text-xs text-fg-muted">
                     Useful when a task can be invited broadly versus staying within a controlled group size.
                   </p>
                 </div>
 
                 {redirectRecipientLimitMode === 'capped' && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
-                      Max Users
+                    <label className="mb-1 block text-xs font-medium text-fg-muted">
+                      Max users
                     </label>
                     <Input
                       type="number"
@@ -429,7 +418,7 @@ export function CreateTaskForm() {
       {/* Subtask Builder */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-sm font-semibold text-fg">
             Subtasks
           </h3>
           <Button type="button" variant="outline" size="sm" onClick={addSubtask}>
@@ -439,11 +428,11 @@ export function CreateTaskForm() {
         </div>
 
         {subtasks.length > 0 && (
-          <div className="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+          <div className="space-y-2 rounded-lg border border-border p-3">
             {subtasks.map((subtask, index) => (
               <div key={subtask.id} className="flex items-center gap-2">
-                <GripVertical size={14} className="text-gray-400 shrink-0" />
-                <span className="text-xs text-gray-400 w-5">{index + 1}</span>
+                <GripVertical size={14} className="text-fg-muted shrink-0" />
+                <span className="text-xs text-fg-muted w-5">{index + 1}</span>
                 <Input
                   value={subtask.title}
                   onChange={(e) =>
@@ -468,7 +457,8 @@ export function CreateTaskForm() {
                 <button
                   type="button"
                   onClick={() => removeSubtask(subtask.id)}
-                  className="p-1 text-gray-400 hover:text-red-500"
+                  aria-label="Remove subtask"
+                  className="p-1 text-fg-muted hover:text-danger"
                 >
                   <X size={14} />
                 </button>
@@ -480,9 +470,7 @@ export function CreateTaskForm() {
 
       {/* Submit */}
       <div className="flex justify-end gap-3">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating...' : 'Create Task'}
-        </Button>
+        <SubmitButton pending={isSubmitting} pendingLabel="Creating…">Create task</SubmitButton>
       </div>
     </form>
   )

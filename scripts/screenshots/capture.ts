@@ -66,18 +66,24 @@ async function scrollMain(page: Page, selectorOrY: string | number, offset = 0) 
 }
 
 async function zoomCanvas(page: Page, clicks: number) {
-  const button = page.locator(clicks < 0 ? 'button[title="Zoom out"]' : 'button[title="Zoom in"]').first()
+  const button = page.locator(clicks < 0 ? 'button[aria-label^="Zoom out"]' : 'button[aria-label^="Zoom in"]').first()
   for (let i = 0; i < Math.abs(clicks); i++) await button.click()
 }
 
 /** Open the live instances panel (and the migration wizard up to `step`) on a workflow page. */
 async function openMigration(page: Page, step: 'panel' | 'nodes' | 'review') {
-  await page.getByText(/live instances? on older versions|live instances?$/).first().click()
+  // The designer shows a "Migrate…" banner for instances on older versions; otherwise the ⋯ menu lists them.
+  const migrate = page.getByRole('button', { name: 'Migrate…' })
+  if (await migrate.count()) await migrate.first().click()
+  else {
+    await page.getByRole('button', { name: 'More workflow actions' }).click()
+    await page.getByRole('menuitem', { name: /live instances?…/ }).click()
+  }
   await page.getByRole('checkbox', { name: 'Select all' }).waitFor({ timeout: 15_000 })
   await page.getByRole('checkbox', { name: 'Select all' }).check()
   if (step === 'panel') return
   await page.getByRole('button', { name: /Migrate to version/ }).click()
-  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByRole('button', { name: 'Next', exact: true }).click()
   await page.waitForTimeout(400)
   if (step === 'nodes') return
   await page.getByRole('button', { name: /Review plan/ }).click()
@@ -86,6 +92,9 @@ async function openMigration(page: Page, step: 'panel' | 'nodes' | 'review') {
 
 /** Open the Run dialog of the "Customer welcome pack" workflow from the workflow list and fill the required input. */
 async function openRunDialog(page: Page) {
+  // The list pages (and opens as a table past 12 workflows): search so the row is on screen.
+  await page.getByRole('searchbox', { name: 'Search workflows' }).or(page.getByLabel('Search workflows')).first().fill('Customer welcome pack')
+  await page.waitForTimeout(1200)
   await page.getByRole('button', { name: 'Run Customer welcome pack' }).first().click()
   await page.getByLabel(/^Customer name/).waitFor({ timeout: 15_000 })
   await page.getByLabel(/^Customer name/).fill('Harbourside Traders Ltd')
@@ -98,7 +107,10 @@ const SHOTS_LIST: Shot[] = [
     path: `/automations/${state.workflow_id}`,
     collapseSidebar: true,
     async prepare(page) {
-      await zoomCanvas(page, -4) // 60%
+      // The designer opens fitted; pick 75% from the zoom menu so the cards are legible.
+      await page.getByRole('button', { name: /^Zoom level/ }).first().click()
+      await page.getByRole('menuitem', { name: /^75%/ }).click()
+      await page.waitForTimeout(400)
       await page.getByText('Approve invoice', { exact: true }).first().click()
       await page.waitForTimeout(600)
       // Scroll the config panel (not the page) to the outcomes + fields.
@@ -146,7 +158,7 @@ const SHOTS_LIST: Shot[] = [
   { name: 'log-export', path: '/settings/log-export' },
   { name: 'reports', path: `/reports/${state.report_id}` },
   // Nice to have
-  { name: 'tasks-queue', path: '/tasks/queue' },
+  { name: 'tasks-queue', path: '/tasks?status=queued' },
   {
     name: 'email-template',
     path: '/automations/email-templates',
@@ -187,7 +199,7 @@ async function customiseTheme(page: Page, mode: 'light' | 'dark') {
   // Collapse the template list, open Colours, Typography stays closed.
   await page.getByRole('button', { name: /^Start from template/ }).click()
   await page.getByRole('button', { name: /^Colours/ }).click()
-  if (mode === 'dark') await page.locator('label', { hasText: /^Dark$/ }).first().click()
+  if (mode === 'dark') await page.getByRole('radio', { name: 'Dark', exact: true }).first().click()
   const colour = async (label: string, value: string) => page.getByRole('textbox', { name: label, exact: true }).fill(value)
   if (mode === 'light') {
     await colour('Primary', '#1D4ED8')
@@ -202,9 +214,9 @@ async function customiseTheme(page: Page, mode: 'light' | 'dark') {
   await page.getByRole('button', { name: /^Typography/ }).click()
   await page.getByRole('combobox', { name: 'Body & UI', exact: true }).selectOption('google:Plus Jakarta Sans')
   await page.getByRole('combobox', { name: 'Display (headings)', exact: true }).selectOption('google:Fraunces')
-  await page.locator('label', { hasText: /^Display font$/ }).first().click()
+  await page.getByRole('radio', { name: 'Display font', exact: true }).first().click()
   await page.getByRole('button', { name: /^Typography/ }).click()
-  await page.getByRole('button', { name: mode === 'dark' ? 'Dark' : 'Light', exact: true }).click()
+  await page.getByRole('radiogroup', { name: 'Preview mode' }).getByRole('radio', { name: mode === 'dark' ? 'Dark' : 'Light', exact: true }).click()
   // Settings pane back to the top of Colours (the page itself stays at the top).
   await page.evaluate(() => {
     const heading = [...document.querySelectorAll('button[aria-expanded]')].find((b) => b.textContent?.trim().startsWith('Colours')) as HTMLElement | undefined
@@ -270,6 +282,8 @@ async function capture(browser: any, shot: Shot, scale: number) {
   if (shot.prepare) await shot.prepare(page)
   await page.waitForLoadState('networkidle', { timeout: shot.waitUntil === 'load' ? 3_000 : 30_000 }).catch(() => {})
   await page.waitForTimeout(800)
+  // A dev server's Next.js badge lives in a shadow root that CLEAN_CSS can't reach.
+  await page.evaluate(() => document.querySelectorAll('nextjs-portal').forEach((el) => el.remove()))
   const png: Buffer = await page.screenshot({ type: 'png' })
   await context.close()
   return { png, errors }

@@ -1,11 +1,15 @@
 /* Report source definitions — maps data sources to their queryable columns */
 
+import type { ReportChartSpec } from "./report-charts";
+
 export interface ReportColumn {
   key: string;
   label: string;
   type: "text" | "number" | "date" | "boolean" | "json";
   /** If present, this column requires a join */
   join?: string;
+  /** Picker group (workflow variable columns: "Workflow inputs", a task form, a step). */
+  group?: string;
 }
 
 export interface ReportSourceInput {
@@ -39,6 +43,14 @@ export interface ReportSource {
   schemaFlexible?: boolean;
   /** Optional input definitions for reference-backed or virtual sources */
   inputs?: ReportSourceInput[];
+  /**
+   * The source can be scoped to one workflow (`source_inputs.workflow_id`):
+   * its rows are that workflow's, and its variable columns (`vars.*` on
+   * workflow runs, `fields.*` on tasks) are added (lib/report-workflow-variables).
+   */
+  workflowScoped?: boolean;
+  /** The workflow a scoped source was resolved for. */
+  workflow?: { id: string; name: string };
 }
 
 export interface ReportFilter {
@@ -126,6 +138,12 @@ export interface ReportConfig {
     /** Hide gridlines — minimalist look. */
     hide_grid?: boolean;
   };
+  /**
+   * Summary charts drawn as a grid of cards above the report's table /
+   * visualization (lib/report-charts.ts). Each is aggregated on the server
+   * from the report's own rows (same source, filters and permissions).
+   */
+  charts?: ReportChartSpec[];
 }
 
 export const REFERENCE_REPORT_SOURCE_PREFIX = "reference_";
@@ -435,6 +453,42 @@ export const DRILL_TARGETS: {
   { source: "users", label: "User profile", href_template: "/team" },
 ];
 
+/**
+ * A report row's value for a column key: a flat key first (grouped rows,
+ * workflow variable columns such as `vars.amount`), then a joined alias with
+ * a flat key (`run.vars.amount`), then the dotted path (`workflow.name`).
+ */
+export function getReportValue(row: any, key: string): any {
+  if (row == null || typeof row !== "object") return undefined;
+  if (Object.prototype.hasOwnProperty.call(row, key)) return row[key];
+  const dot = key.indexOf(".");
+  if (dot > 0) {
+    const head = row[key.slice(0, dot)];
+    const rest = key.slice(dot + 1);
+    if (head && typeof head === "object" && Object.prototype.hasOwnProperty.call(head, rest)) return head[rest];
+  }
+  return key.split(".").reduce((o: any, k: string) => o?.[k], row);
+}
+
+const AGGREGATE_LABELS: Record<string, string> = { COUNT: "Count", SUM: "Sum", AVG: "Average", MIN: "Min", MAX: "Max" };
+
+/**
+ * A result column's label: the column's own label, "Sum of <label>" for an
+ * aggregate key (`SUM_vars.task_data.approved_amount`), else the key made readable.
+ */
+export function reportResultColumnLabel(key: string, columns: ReadonlyArray<{ key: string; label: string }>): string {
+  const own = columns.find((column) => column.key === key);
+  if (own) return own.label;
+  const aggregate = /^(COUNT|SUM|AVG|MIN|MAX)_(.+)$/.exec(key);
+  if (aggregate) {
+    if (aggregate[1] === "COUNT" && aggregate[2] === "id") return "Count";
+    const base = columns.find((column) => column.key === aggregate[2]);
+    const baseLabel = base?.label ?? (aggregate[2] === "id" ? "" : aggregate[2].replace(/^(vars|fields)\./, "").replace(/[._]/g, " "));
+    return baseLabel ? `${AGGREGATE_LABELS[aggregate[1]]} of ${baseLabel}` : AGGREGATE_LABELS[aggregate[1]];
+  }
+  return key.replace(/^data_/, "").replace(/^(vars|fields)\./, "").replace(/_/g, " ");
+}
+
 /** Resolve a href_template against a row by substituting {column} placeholders. */
 export function resolveDrillHref(
   template: string | undefined,
@@ -445,7 +499,7 @@ export function resolveDrillHref(
   const placeholders = template.match(/\{([^}]+)\}/g) ?? [];
   for (const ph of placeholders) {
     const key = ph.slice(1, -1);
-    const value = key.split(".").reduce((o: any, k: string) => o?.[k], row);
+    const value = getReportValue(row, key);
     if (value == null || value === "") return null; // missing value — can't drill
     result = result.replaceAll(ph, String(value));
   }
@@ -461,9 +515,12 @@ export const REPORT_SOURCES: ReportSource[] = [
     table: "tasks",
     label: "Tasks",
     category: "Tasks",
+    description:
+      "Tasks in your workspace. Pick a workflow to report on the tasks it created, with their form fields as columns.",
     select:
       "*, assignee:users!tasks_assignee_id_fkey(id, display_name), tenant:tenants(id, name)",
     defaultSort: { field: "created_at", direction: "desc" },
+    workflowScoped: true,
     columns: [
       { key: "id", label: "ID", type: "text" },
       { key: "title", label: "Title", type: "text" },
@@ -486,6 +543,7 @@ export const REPORT_SOURCES: ReportSource[] = [
       { key: "actual_effort", label: "Actual Effort", type: "number" },
       { key: "progress_pct", label: "Progress %", type: "number" },
       { key: "is_workflow_task", label: "Workflow Task", type: "boolean" },
+      { key: "workflow_id", label: "Workflow ID", type: "text" },
       { key: "acceptance_status", label: "Acceptance", type: "text" },
       { key: "outcome", label: "Outcome", type: "text" },
       { key: "child_count", label: "Subtask Count", type: "number" },
@@ -602,10 +660,15 @@ export const REPORT_SOURCES: ReportSource[] = [
     table: "workflow_runs",
     label: "Workflow Runs",
     category: "Workflows",
+    description:
+      "Runs of your workflows. Pick a workflow to add its variables (inputs, task form values, step outputs) as columns.",
     select: "*, workflow:workflows(id, name)",
     defaultSort: { field: "started_at", direction: "desc" },
+    workflowScoped: true,
     columns: [
       { key: "id", label: "ID", type: "text" },
+      { key: "workflow_id", label: "Workflow ID", type: "text" },
+      { key: "task_id", label: "Task ID", type: "text" },
       { key: "status", label: "Status", type: "text" },
       { key: "sla_status", label: "SLA Status", type: "text" },
       { key: "sla_label", label: "SLA Label", type: "text" },

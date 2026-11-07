@@ -1,0 +1,23 @@
+{
+  "name": "@usertasks/gallery-controls",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sources of the official UserTasks gallery form controls (web components): one folder per control, bundled into single ES modules",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/build.mjs --check",
+    "test": "node scripts/browser-test.mjs"
+  },
+  "devDependencies": {
+    "chart.js": "4.5.1",
+    "esbuild": "0.27.7",
+    "leaflet": "1.9.4",
+    "lit": "3.3.3",
+    "pdfjs-dist": "5.4.624",
+    "playwright-core": "1.56.1",
+    "signature_pad": "5.1.4",
+    "typescript": "5.9.3"
+  }
+}

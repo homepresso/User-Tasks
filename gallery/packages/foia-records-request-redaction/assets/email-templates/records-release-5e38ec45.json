@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "5e38ec45-f439-5d34-8f03-1328271ad64a",
+  "asset": {
+    "id": "5e38ec45-f439-5d34-8f03-1328271ad64a",
+    "name": "Records release",
+    "description": "Sent with the release package: cover letter, exemption log and the redacted records (or a download link).",
+    "subject": "Records released for your request {{reference}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Your records</h2><p>Dear {{form.requester_name}},</p><p>{{release_sentence}}</p><p>{{delivery_sentence}}</p><p>The cover letter and exemption log list every item, what was redacted and why.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Reference {{reference}} · sent by the public records workflow</p></div>",
+    "text_body": "{{release_sentence}}\n{{delivery_sentence}}",
+    "is_default": false
+  }
+}

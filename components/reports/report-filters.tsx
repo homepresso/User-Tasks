@@ -1,8 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { Calendar, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 
 const PRESETS = [
   { label: '7 days', days: 7 },
@@ -19,21 +17,13 @@ interface ReportFiltersProps {
 
 export function ReportDateFilter({ days, onDaysChange }: ReportFiltersProps) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Calendar size={13} style={{ color: 'var(--theme-muted-text)' }} />
-      {PRESETS.map(p => (
-        <button
-          key={p.label}
-          onClick={() => onDaysChange(p.days)}
-          className={cn(
-            'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-            days === p.days ? 'bg-[color:var(--theme-accent-light)] text-[color:var(--theme-card-text)]' : 'text-gray-500 hover:bg-gray-100',
-          )}
-        >
-          {p.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      aria-label="Period"
+      size="sm"
+      value={String(days)}
+      onValueChange={(v) => onDaysChange(Number(v))}
+      options={PRESETS.map((p) => ({ value: String(p.days), text: p.label }))}
+    />
   )
 }
 

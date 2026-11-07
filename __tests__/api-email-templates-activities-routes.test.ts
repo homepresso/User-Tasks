@@ -141,7 +141,7 @@ describe('/api/v1/workflow-activities', () => {
     const created = await createActivity(req('/workflow-activities', { method: 'POST', body: { name: 'Shout', source_code: SOURCE, manifest: MANIFEST } }))
     expect(created.status).toBe(201)
     const activity = (await created.json()).data.workflow_activity
-    expect(activity).toMatchObject({ key: 'shout', status: 'draft', code_execution_enabled: false })
+    expect(activity).toMatchObject({ key: 'shout', status: 'draft', code_execution_enabled: true })
 
     const patched = await patchActivity(req(`/workflow-activities/${activity.id}`, { method: 'PATCH', body: { status: 'active' } }), params({ id: activity.id }))
     expect((await patched.json()).data.workflow_activity).toMatchObject({ status: 'active', name: 'Shout' })

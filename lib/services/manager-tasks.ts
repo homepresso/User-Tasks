@@ -15,6 +15,8 @@
 
 import { listReports, loadReportingIndex, managerChain, wouldCreateCycle, isInManagerChain, MAX_REPORTING_DEPTH, type ReportingIndex } from '@/lib/reporting-lines'
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
+import { acceptanceForAssignee } from '@/lib/tasks/queue-rules-server'
+import { QUEUE_TASK_COLUMNS, queueFactsFromTask } from '@/lib/tasks/queue-rules'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { audit, dbError, serviceRoleClient } from './_shared'
 
@@ -164,6 +166,19 @@ export interface ReportTaskFilters {
   overdue?: boolean
   sla_breached?: boolean
   limit?: number | null
+  /**
+   * Include closed tasks (completed / cancelled) — the My team page's "Show
+   * completed". The workload counts stay open tasks only.
+   */
+  include_closed?: boolean
+  /**
+   * The person whose reports to list (default: the caller). Someone else
+   * needs tasks.view_all, or must be in the caller's own reporting subtree
+   * (the reporting-line view: a VP's directors).
+   */
+  root_user_id?: string | null
+  /** Title contains (case-insensitive). */
+  search?: string | null
 }
 
 export interface ReportTaskRow {
@@ -185,6 +200,11 @@ export interface ReportTaskRow {
   is_overdue: boolean
   sla_breached: boolean
   depth: number
+  progress_pct: number | null
+  child_count: number
+  completed_child_count: number
+  updated_at: string | null
+  workflow_run_id: string | null
 }
 
 export interface ReportWorkload {
@@ -207,7 +227,11 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
   if (!hasPerm(ctx, 'tasks.view_own') && !hasPerm(ctx, 'tasks.view_all')) requirePerm(ctx, 'tasks.view_own')
   const db = await serviceRoleClient(ctx)
   const index = await loadReportingIndex(db, ctx.tenantId)
-  const reports = listReports(index, ctx.actorId, { indirect: filters.indirect })
+  const root = filters.root_user_id && filters.root_user_id !== ctx.actorId ? String(filters.root_user_id) : ctx.actorId
+  if (root !== ctx.actorId && !hasPerm(ctx, 'tasks.view_all') && !isInManagerChain(index, ctx.actorId, root)) {
+    throw ServiceError.validation('That person is not in your reporting line')
+  }
+  const reports = listReports(index, root, { indirect: filters.indirect })
   const depthOf = new Map(reports.map((r) => [r.user_id, r]))
   const byId = await people(db, reports.map((r) => r.user_id))
   const empty = { manager_user_id: ctx.actorId, indirect: filters.indirect === true, reports: [] as ReportWorkload[], tasks: [] as ReportTaskRow[], truncated: false }
@@ -219,17 +243,21 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
     ids = [filters.person]
   }
   const limit = Math.max(1, Math.min(Number(filters.limit ?? REPORT_TASK_LIMIT), REPORT_TASK_LIMIT))
-  const statuses = (filters.status?.length ? filters.status : [...OPEN_TASK_STATUSES]).filter((s) => s !== 'completed' && s !== 'cancelled')
+  const closed = new Set(['completed', 'cancelled'])
+  const includeClosed = filters.include_closed === true
+  const statuses = (filters.status?.length ? filters.status : includeClosed ? [] : [...OPEN_TASK_STATUSES]).filter((s) => includeClosed || !closed.has(s))
   let query = (db as any).from('tasks')
-    .select('id, title, status, priority, due_date, created_at, assignee_id, is_workflow_task, workflow_id, event_id, available_outcomes, acceptance_status, allow_reassign')
+    .select('id, title, status, priority, due_date, created_at, updated_at, assignee_id, is_workflow_task, workflow_id, workflow_run_id, event_id, available_outcomes, acceptance_status, allow_reassign, progress_pct, child_count, completed_child_count')
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .in('assignee_id', ids)
-    .in('status', statuses.length ? statuses : [...OPEN_TASK_STATUSES])
     .order('due_date', { ascending: true, nullsFirst: false })
     .limit(limit + 1)
+  if (statuses.length) query = query.in('status', statuses)
+  else if (!includeClosed) query = query.in('status', [...OPEN_TASK_STATUSES])
   if (filters.priority?.length) query = query.in('priority', filters.priority)
   if (filters.workflow_id) query = query.eq('workflow_id', filters.workflow_id)
+  if (filters.search?.trim()) query = query.ilike('title', `%${filters.search.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
   const { data, error } = await query
   if (error) throw dbError(error)
   let rows = (data ?? []) as any[]
@@ -270,9 +298,14 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
       is_workflow_task: Boolean(t.is_workflow_task), workflow_id: t.workflow_id ?? null, workflow_name: t.workflow_id ? workflowName.get(String(t.workflow_id)) ?? null : null,
       event_id: t.event_id ?? null, available_outcomes: Array.isArray(t.available_outcomes) ? t.available_outcomes : null,
       acceptance_status: t.acceptance_status ?? null, allow_reassign: t.allow_reassign === true,
-      is_overdue: due !== null && due < now,
+      is_overdue: due !== null && due < now && !closed.has(String(t.status)),
       sla_breached: (t.event_id && breachedEvents.has(String(t.event_id))) || escalated.has(String(t.id)),
       depth: depthOf.get(String(t.assignee_id))?.depth ?? 1,
+      progress_pct: t.progress_pct == null ? null : Number(t.progress_pct),
+      child_count: Number(t.child_count ?? 0),
+      completed_child_count: Number(t.completed_child_count ?? 0),
+      updated_at: t.updated_at ?? null,
+      workflow_run_id: t.workflow_run_id ?? null,
     }
   })
 
@@ -283,7 +316,7 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
   }
   for (const t of tasks) {
     const w = workload.get(t.assignee_id)
-    if (!w) continue
+    if (!w || closed.has(t.status)) continue
     w.open++
     if (t.is_overdue) w.overdue++
     if (t.sla_breached) w.sla_breached++
@@ -308,7 +341,7 @@ export async function reassignReportTask(ctx: ServiceContext, taskId: string, in
   if (!target) throw ServiceError.validation('target_user_id is required')
   const db = await serviceRoleClient(ctx)
   const { data: task, error } = await (db as any).from('tasks')
-    .select('id, tenant_id, title, status, assignee_id, assigned_team_id, is_workflow_task, event_id, allow_reassign')
+    .select(`id, tenant_id, status, assignee_id, event_id, allow_reassign, ${QUEUE_TASK_COLUMNS}`)
     .eq('id', taskId).eq('tenant_id', ctx.tenantId).is('deleted_at', null).maybeSingle()
   if (error) throw dbError(error)
   if (!task) throw ServiceError.notFound('Task not found')
@@ -328,7 +361,7 @@ export async function reassignReportTask(ctx: ServiceContext, taskId: string, in
   await requireMember(db, ctx.tenantId, target)
 
   const { error: updateError } = await (db as any).from('tasks')
-    .update({ assignee_id: target, acceptance_status: 'pending' })
+    .update({ assignee_id: target, acceptance_status: await acceptanceForAssignee(db, target, queueFactsFromTask(task, { assignedBy: ctx.actorId ?? null, origins: ['reassign'] }), undefined, { tenantId: ctx.tenantId }) })
     .eq('id', taskId).eq('tenant_id', ctx.tenantId)
   if (updateError) throw dbError(updateError)
   const comment = typeof input.comment === 'string' && input.comment.trim() ? input.comment.trim().slice(0, 2000) : null

@@ -1,0 +1,159 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "33844456-4e3b-531b-b566-e8feaa23c3d0",
+  "asset": {
+    "id": "33844456-4e3b-531b-b566-e8feaa23c3d0",
+    "name": "Contract approval route",
+    "description": "Who approves a contract after legal review, by the risk legal found, the total value and the number of playbook deviations. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "risk_level",
+        "label": "Risk (from legal)",
+        "type": "text",
+        "id": "8f9cba49-cc87-58b0-937f-ef24e599d71e"
+      },
+      {
+        "key": "contract_value",
+        "label": "Total value (NZD)",
+        "type": "number",
+        "id": "a697e27e-3c0d-59fb-8e49-eb53fe7109f1"
+      },
+      {
+        "key": "deviation_count",
+        "label": "Playbook deviations",
+        "type": "number",
+        "id": "11827435-5626-5412-abe9-44ac0f4664bb"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "needs_finance",
+        "label": "Finance approves",
+        "type": "boolean",
+        "id": "3d496d69-ff9e-5a8b-9fe2-e7aae9264a37"
+      },
+      {
+        "key": "needs_gc",
+        "label": "General counsel approves",
+        "type": "boolean",
+        "id": "9feac918-2a54-5c8c-977f-bdb3cee24793"
+      },
+      {
+        "key": "approval_path",
+        "label": "Approval path",
+        "type": "text",
+        "id": "3509b298-6ef9-5da8-b2d9-75d7094acf15"
+      }
+    ],
+    "rules": [
+      {
+        "label": "High risk, large value",
+        "conditions": [
+          {
+            "inputKey": "risk_level",
+            "operator": "equals",
+            "value": "High",
+            "id": "2cc2f844-f705-5594-9de0-0b8679752632"
+          },
+          {
+            "inputKey": "contract_value",
+            "operator": "greater_than_or_equal",
+            "value": "250000",
+            "id": "54b01329-c06b-5c14-817a-83af4a5e7900"
+          }
+        ],
+        "outputs": {
+          "needs_finance": true,
+          "needs_gc": true,
+          "approval_path": "Legal → Finance → General counsel"
+        },
+        "id": "864c8888-70f1-5dc5-a8bd-fb54eddd9ac1",
+        "enabled": true
+      },
+      {
+        "label": "High risk",
+        "conditions": [
+          {
+            "inputKey": "risk_level",
+            "operator": "equals",
+            "value": "High",
+            "id": "ca4015cf-8be3-5b0c-b5f6-2c24e34fe1f9"
+          }
+        ],
+        "outputs": {
+          "needs_finance": false,
+          "needs_gc": true,
+          "approval_path": "Legal → General counsel"
+        },
+        "id": "259fd922-383b-5c0b-9a49-d4fe55651e3e",
+        "enabled": true
+      },
+      {
+        "label": "One million or more",
+        "conditions": [
+          {
+            "inputKey": "contract_value",
+            "operator": "greater_than_or_equal",
+            "value": "1000000",
+            "id": "fcea763a-79de-57f1-bc3d-58c7d362049e"
+          }
+        ],
+        "outputs": {
+          "needs_finance": true,
+          "needs_gc": true,
+          "approval_path": "Legal → Finance → General counsel"
+        },
+        "id": "018188ae-0755-56c3-a72b-be9b3eb39fd8",
+        "enabled": true
+      },
+      {
+        "label": "Large value",
+        "conditions": [
+          {
+            "inputKey": "contract_value",
+            "operator": "greater_than_or_equal",
+            "value": "250000",
+            "id": "ac7d0c21-0b8b-5a2f-89a5-51fc79ca705a"
+          }
+        ],
+        "outputs": {
+          "needs_finance": true,
+          "needs_gc": false,
+          "approval_path": "Legal → Finance"
+        },
+        "id": "46c8afa9-deb9-5524-a2e2-efe15fc2ad5a",
+        "enabled": true
+      },
+      {
+        "label": "Many deviations",
+        "conditions": [
+          {
+            "inputKey": "deviation_count",
+            "operator": "greater_than_or_equal",
+            "value": "3",
+            "id": "1cc29368-e689-591d-bcff-17b2238cc3e4"
+          }
+        ],
+        "outputs": {
+          "needs_finance": false,
+          "needs_gc": true,
+          "approval_path": "Legal → General counsel"
+        },
+        "id": "21f5c0b6-eb54-5b07-be8d-271a7474acc1",
+        "enabled": true
+      },
+      {
+        "label": "Standard",
+        "conditions": [],
+        "outputs": {
+          "needs_finance": false,
+          "needs_gc": false,
+          "approval_path": "Legal"
+        },
+        "id": "7bb3aa71-77df-51b9-b3c8-f24d55f74ae8",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 'use client'
 
+import { isPaged } from '@/lib/forms/layout'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -14,6 +15,9 @@ import { TASK_FIELD_TYPE_LABELS, valueFields } from '@/lib/task-field-schema'
 import { FormDesignerDialog, type DesignerAction, type DesignerSaveContext } from './designer/form-designer-dialog'
 import type { SavedFormTheme } from './designer/theme-editor'
 import { FIELD_ICONS } from './designer/field-icons'
+import { VariableInput } from '@/components/automations/variable-input'
+import { layoutFormParams } from '@/lib/forms/form-params'
+import { cn } from '@/lib/utils'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
@@ -116,19 +120,19 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
   return (
     <div className="space-y-2" data-testid="node-form-section">
       {link && (
-        <div className="rounded-lg border px-2.5 py-2 text-[11px]" style={{ borderColor: 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' }} data-testid="linked-form-badge">
-          <p className="flex items-center gap-1.5 font-medium" style={{ color: 'var(--theme-card-text)' }}>
+        <div className="rounded-lg border px-2.5 py-2 text-2xs border-primary bg-primary-wash" data-testid="linked-form-badge">
+          <p className="flex items-center gap-1.5 font-medium text-fg">
             <Link2 size={12} /> Linked to form &ldquo;{link.form_name ?? linkedForm?.name ?? 'form'}&rdquo; v{linkedForm?.version ?? link.cached_version ?? '?'}
           </p>
-          <p className="mt-0.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="mt-0.5 text-2xs text-fg-muted">
             The draft follows the latest version; publishing pins the version in use. Edits to the form create a new version.
           </p>
-          {!linkedForm && canView && <p className="mt-0.5 text-[10px]" style={{ color: 'var(--theme-warning)' }}>Loading the form… (a deleted form falls back to the copy on this step)</p>}
+          {!linkedForm && canView && <p className="mt-0.5 text-2xs text-warning">Loading the form… (a deleted form falls back to the copy on this step)</p>}
         </div>
       )}
 
       {fields.length === 0 ? (
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-2xs text-fg-muted">
           {variant === 'user_task'
             ? 'No fields — the assignee just picks an outcome. Design a form to collect values on the task.'
             : 'Optional: describe the form fields the triggering task carries, so they appear in the data picker as {{task.data.<key>}}.'}
@@ -138,19 +142,19 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
           {fields.map((field) => {
             const Icon = FIELD_ICONS[field.type]
             return (
-              <li key={field.key} className="flex items-center gap-1.5 rounded border px-2 py-1 text-[11px]" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                <Icon size={11} style={{ color: 'var(--theme-primary-text)' }} aria-hidden />
-                <span className="min-w-0 flex-1 truncate">{field.label}{field.required && <span style={{ color: 'var(--status-blocked)' }}>*</span>}</span>
-                <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>{TASK_FIELD_TYPE_LABELS[field.type]}</span>
+              <li key={field.key} className="flex items-center gap-1.5 rounded border px-2 py-1 text-2xs border-border">
+                <Icon className="text-primary-text" size={11} aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{field.label}{field.required && <span className="text-danger">*</span>}</span>
+                <span className="text-2xs text-fg-muted">{TASK_FIELD_TYPE_LABELS[field.type]}</span>
               </li>
             )
           })}
         </ul>
       )}
       {fields.length > 0 && (
-        <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
-          Downstream: <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${prefix}.<key>}}`}</code> — every field appears in the data picker, typed.
-          {def.layout && ` · ${def.layout.rows.length}-row grid`}
+        <p className="text-2xs text-fg-muted">
+          Downstream: <code className="text-primary-text">{`{{${prefix}.<key>}}`}</code> — every field appears in the data picker, typed.
+          {def.layout && (isPaged(def.layout) ? ` · ${def.layout.pages.length} ${def.layout.mode === 'tabs' ? 'tabs' : 'steps'}` : ` · ${def.layout.rows.length}-row grid`)}
           {def.theme.source !== 'workspace' && ' · custom theme'}
         </p>
       )}
@@ -171,6 +175,25 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
         )}
       </div>
 
+      {variant === 'user_task' && layoutFormParams(def.layout).length > 0 && (
+        <div className="space-y-1.5 rounded-lg border px-2.5 py-2 border-border" data-testid="task-form-params">
+          <p className="text-2xs font-semibold">Form parameters</p>
+          <p className="text-2xs text-fg-muted">Values the form opens with ({'{{param.<name>}}'}), resolved when the task is created and kept on the task.</p>
+          {layoutFormParams(def.layout).map((p) => (
+            <div key={p.name}>
+              <p className="text-2xs font-medium">{p.label ?? p.name}{p.required ? ' *' : ''} <span className="font-mono font-normal opacity-70">param.{p.name}</span></p>
+              <VariableInput value={String((node.config?.form_params ?? {})[p.name] ?? '')} placeholder={p.default ? `Default: ${p.default}` : '{{variable}} or a value'}
+                onChange={(v) => {
+                  const next: Record<string, string> = { ...(node.config?.form_params ?? {}) }
+                  if (v) next[p.name] = v
+                  else delete next[p.name]
+                  onPatch({ form_params: Object.keys(next).length ? next : undefined })
+                }} />
+            </div>
+          ))}
+        </div>
+      )}
+
       <FormDesignerDialog
         open={designerOpen}
         onClose={() => setDesignerOpen(false)}
@@ -182,6 +205,7 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
         canSaveTheme={canEdit}
         onSaveTheme={saveTheme}
         findReferences={(key) => findFieldReferences(allNodes, key, node.id)}
+        pageOptions={{ resume: false }}
         formSettings={variant === 'user_task' ? { outcomes: Array.isArray(node.config?.outcomes) ? (node.config.outcomes as string[]) : undefined, showDraft: true } : false}
         saveAsReusable={canEdit ? {
           run: async (next, meta) => {
@@ -232,24 +256,23 @@ export function SavedFormPicker({ open, onOpenChange, currentId, replacing, onPi
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dialog-overlay" />
-        <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(36rem,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl shadow-xl dialog-content" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} data-testid="saved-form-picker">
-          <div className="flex items-center gap-2 border-b px-4 py-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(36rem,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl shadow-xl dialog-content bg-panel text-fg" data-testid="saved-form-picker">
+          <div className="flex items-center gap-2 border-b px-4 py-3 border-border">
             <Dialog.Title className="flex-1 text-sm font-semibold">Use a saved form</Dialog.Title>
             <Dialog.Close className="rounded p-1" aria-label="Close"><X size={14} /></Dialog.Close>
           </div>
           <div className="px-4 pt-3">
             <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} aria-hidden />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden />
               <input autoFocus aria-label="Search forms" placeholder="Search by name, description or tag" value={search} onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-lg border pl-8 pr-2 text-sm outline-none focus-visible:ring-2"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-topbar)', color: 'var(--theme-topbar-text)', ['--tw-ring-color' as string]: 'var(--theme-primary)' }} />
+                className="h-9 w-full rounded-lg border pl-8 pr-2 text-sm border-border bg-input text-fg" />
             </div>
-            {replacing && <p className="mt-2 text-[11px]" style={{ color: 'var(--theme-warning)' }}>This step already has its own fields: linking a form replaces them.</p>}
-            {error && <p className="mt-2 text-[11px]" style={{ color: 'var(--status-blocked)' }}>{error}</p>}
+            {replacing && <p className="mt-2 text-2xs text-warning">This step already has its own fields: linking a form replaces them.</p>}
+            {error && <p className="mt-2 text-2xs text-danger">{error}</p>}
           </div>
           <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4" role="listbox" aria-label="Saved forms">
-            {isLoading && <li className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>Loading…</li>}
-            {!isLoading && forms.length === 0 && <li className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>No saved forms{q ? ' match' : ' yet — design a form and choose “Save as reusable form”'}.</li>}
+            {isLoading && <li className="text-xs text-fg-muted">Loading…</li>}
+            {!isLoading && forms.length === 0 && <li className="text-xs text-fg-muted">No saved forms{q ? ' match' : ' yet — design a form and choose “Save as reusable form”'}.</li>}
             {forms.map((form) => (
               <li key={form.id}>
                 <button
@@ -257,12 +280,11 @@ export function SavedFormPicker({ open, onOpenChange, currentId, replacing, onPi
                   role="option"
                   aria-selected={form.id === currentId}
                   onClick={async () => { setError(null); const message = await onPick(form); if (message) setError(message); else onOpenChange(false) }}
-                  className="w-full rounded-lg border px-3 py-2 text-left hover:opacity-90"
-                  style={{ borderColor: form.id === currentId ? 'var(--theme-primary)' : 'var(--theme-surface-border)' }}
+                  className={cn('w-full rounded-lg border px-3 py-2 text-left hover:opacity-90', form.id === currentId ? 'border-primary' : 'border-border')}
                 >
-                  <p className="text-sm font-medium">{form.name} <span className="text-[10px] font-normal" style={{ color: 'var(--theme-muted-text)' }}>v{form.version} · {form.field_count} field{form.field_count === 1 ? '' : 's'} · used {form.usage_count}×</span></p>
-                  {form.description && <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>{form.description}</p>}
-                  {form.tags.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{form.tags.map((t) => <span key={t} className="rounded-full border px-1.5 text-[9px]" style={{ borderColor: 'var(--theme-surface-border)' }}>{t}</span>)}</p>}
+                  <p className="text-sm font-medium">{form.name} <span className="text-2xs font-normal text-fg-muted">v{form.version} · {form.field_count} field{form.field_count === 1 ? '' : 's'} · used {form.usage_count}×</span></p>
+                  {form.description && <p className="text-2xs text-fg-muted">{form.description}</p>}
+                  {form.tags.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{form.tags.map((t) => <span key={t} className="rounded-full border px-1.5 text-2xs border-border">{t}</span>)}</p>}
                 </button>
               </li>
             ))}

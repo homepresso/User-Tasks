@@ -18,17 +18,19 @@ import type { ConnectorDefinition, ReferenceTemplate } from '../registry'
  *      /ccx/api/{service}/{version}/{tenant}/{resource} route, so every other
  *      documented endpoint (any service, any version) is still reachable.
  *
- * Base URL is the tenant's data-centre host; the Workday tenant name is passed
- * per call because it sits mid-path in Workday's REST routes.
+ * Base URL is the tenant's data-centre host; the Workday tenant name sits
+ * mid-path in Workday's REST routes — the "tenant" input defaults to the
+ * connector's Tenant setting. REST (/ccx/api) needs OAuth 2.0; ISU Basic auth
+ * only works for RaaS custom reports.
  *
  * Reference: https://community.workday.com/sites/default/files/file-hosting/restapi/index.html
  */
 
 // ── Reusable input fragments ──────────────────────────────────────────────
-const TENANT = { name: 'tenant', type: 'string', required: true, description: 'Workday tenant name' }
+const TENANT = { name: 'tenant', type: 'string', required: false, description: 'Workday tenant name (defaults to the connector Tenant setting)' }
 const WORKER = { name: 'worker_id', type: 'string', required: true, description: 'Worker WID or employee ID' }
 const ID = (desc: string) => ({ name: 'id', type: 'string', required: true, description: desc })
-const LIMIT = { name: 'limit', type: 'number', required: false, description: 'Max rows to return', defaultValue: '100' }
+const LIMIT = { name: 'limit', type: 'number', required: false, description: 'Max rows to return (most services allow up to 100)', defaultValue: '100' }
 const OFFSET = { name: 'offset', type: 'number', required: false, description: 'Rows to skip (pagination)', defaultValue: '0' }
 const BODY = { name: 'body_json', type: 'string', required: true, description: 'JSON request body' }
 const LIST_OUT = [{ name: 'total', type: 'number' }, { name: 'data', type: 'array' }]
@@ -287,11 +289,11 @@ export const workdayConnector: ConnectorDefinition = {
       helpText: 'Your Workday data-centre host (without https://). Find it in the URL you use to sign in.',
     },
     {
-      key: 'default_tenant',
-      label: 'Tenant (reference)',
+      key: 'tenant',
+      label: 'Tenant',
       type: 'text',
       placeholder: 'acme_pilot',
-      helpText: 'Your Workday tenant name — shown here for reference; pass it as the "tenant" input on each call.',
+      helpText: 'Your Workday tenant name — used by every action unless a call passes its own "tenant" input.',
     },
   ],
   credentialFields: [
@@ -300,8 +302,8 @@ export const workdayConnector: ConnectorDefinition = {
       label: 'Authentication Type',
       type: 'select',
       options: [
-        { value: 'bearer', label: 'OAuth 2.0 Bearer Token (recommended)' },
-        { value: 'basic', label: 'Basic Auth (ISU username / password)' },
+        { value: 'bearer', label: 'OAuth 2.0 (REST API — recommended)' },
+        { value: 'basic', label: 'Basic Auth (ISU) — RaaS custom reports only; REST endpoints require OAuth' },
       ],
       required: true,
       defaultValue: 'bearer',
@@ -312,14 +314,35 @@ export const workdayConnector: ConnectorDefinition = {
       type: 'password',
       visibleWhen: { field: 'auth_type', equals: 'bearer' },
       requiredWhen: { field: 'auth_type', equals: 'bearer' },
-      helpText: 'Bearer token from your Workday OAuth 2.0 API client. Use a refresh token to renew it automatically.',
+      helpText: 'Bearer token from your Workday OAuth 2.0 API client (expires in about an hour — add the client and refresh token below for automatic renewal).',
+    },
+    {
+      key: 'client_id',
+      label: 'API Client ID (optional)',
+      type: 'text',
+      visibleWhen: { field: 'auth_type', equals: 'bearer' },
+      helpText: 'Client ID of the Workday API Client (Register API Client for Integrations).',
+    },
+    {
+      key: 'client_secret',
+      label: 'API Client Secret (optional)',
+      type: 'password',
+      visibleWhen: { field: 'auth_type', equals: 'bearer' },
     },
     {
       key: 'refresh_token',
       label: 'Refresh Token (optional)',
       type: 'password',
       visibleWhen: { field: 'auth_type', equals: 'bearer' },
-      helpText: 'OAuth refresh token used to renew the access token automatically.',
+      helpText: 'Non-expiring refresh token generated for the integration system user.',
+    },
+    {
+      key: 'token_url',
+      label: 'Token Endpoint (optional)',
+      type: 'text',
+      placeholder: 'https://wd2-impl-services1.workday.com/ccx/oauth2/acme_pilot/token',
+      visibleWhen: { field: 'auth_type', equals: 'bearer' },
+      helpText: 'Defaults to https://{host}/ccx/oauth2/{tenant}/token.',
     },
     {
       key: 'username',
@@ -351,6 +374,22 @@ export const workdayConnector: ConnectorDefinition = {
         auth_config: {
           username: credentials.username || '',
           password: credentials.password || '',
+        },
+      }
+    }
+    const tenant = String(config.tenant || config.default_tenant || '').trim()
+    const tokenUrl = String(credentials.token_url || '').trim() || (host && tenant ? `${baseUrl}/ccx/oauth2/${encodeURIComponent(tenant)}/token` : '')
+    if (credentials.refresh_token && credentials.client_id && tokenUrl) {
+      return {
+        base_url: baseUrl,
+        auth_type: 'bearer',
+        auth_config: {
+          _executor: 'oauth_refresh',
+          token: credentials.access_token || credentials.token || '',
+          refresh_token: credentials.refresh_token,
+          client_id: credentials.client_id,
+          client_secret: credentials.client_secret || '',
+          token_url: tokenUrl,
         },
       }
     }

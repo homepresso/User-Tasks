@@ -168,11 +168,11 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
       {/* Stats bar */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5">
-          <Plug size={14} style={{ color: 'var(--theme-primary-text)' }} />
-          <span className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+          <Plug size={14} className="text-primary-text" />
+          <span className="text-xs font-semibold text-fg">
             {enabledCount} active
           </span>
-          <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+          <span className="text-xs text-fg-muted">
             · {localConnectors.length} instance{localConnectors.length !== 1 ? 's' : ''} across {CONNECTOR_CATALOG.length} connectors
           </span>
         </div>
@@ -182,19 +182,18 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
       <div className="flex flex-col gap-2">
         <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search connectors..."
-            className="w-full rounded-lg border pl-9 pr-3 py-2 text-sm"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            className="w-full rounded-lg border pl-9 pr-3 py-2 text-sm bg-panel border-border text-fg"
           />
         </div>
         <div className="flex gap-1 flex-wrap">
           <button
             onClick={() => setCategory('all')}
-            className="text-[10px] font-medium px-2.5 py-1.5 rounded-full transition-colors"
+            className="text-2xs font-medium px-2.5 py-1.5 rounded-full transition-colors"
             style={{
               backgroundColor: category === 'all' ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
               color: category === 'all' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
@@ -206,7 +205,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
             <button
               key={cat.value}
               onClick={() => setCategory(cat.value)}
-              className="text-[10px] font-medium px-2.5 py-1.5 rounded-full transition-colors"
+              className="text-2xs font-medium px-2.5 py-1.5 rounded-full transition-colors"
               style={{
                 backgroundColor: category === cat.value ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
                 color: category === cat.value ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
@@ -222,8 +221,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'name' | 'category' | 'instances' | 'status')}
-              className="rounded-lg border px-3 py-2 text-xs"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+              className="rounded-lg border px-3 py-2 text-xs border-border bg-panel text-fg"
             >
               <option value="name">Sort by name</option>
               <option value="category">Sort by category</option>
@@ -232,14 +230,13 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
             </select>
             <button
               onClick={() => setSortDir((dir) => dir === 'asc' ? 'desc' : 'asc')}
-              className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}
+              className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium border-border bg-panel text-fg-muted"
             >
               {sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
               {sortDir === 'asc' ? 'Ascending' : 'Descending'}
             </button>
           </div>
-          <div className="inline-flex items-center rounded-lg border p-1" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+          <div className="inline-flex items-center rounded-lg border p-1 border-border bg-bg">
             <button onClick={() => setViewMode('cards')} className="rounded-md p-1.5" style={viewMode === 'cards' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }} title="Card view"><Grid3x3 size={14} /></button>
             <button onClick={() => setViewMode('list')} className="rounded-md p-1.5" style={viewMode === 'list' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }} title="List view"><List size={14} /></button>
           </div>
@@ -250,7 +247,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
       {sorted.length === 0 ? (
         <div className="text-center py-12">
           <Plug size={32} className="mx-auto mb-3" style={{ color: 'var(--theme-muted-text)', opacity: 0.4 }} />
-          <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-sm text-fg-muted">
             {search ? 'No connectors match your search' : 'No connectors in this category'}
           </p>
         </div>
@@ -286,12 +283,11 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
 
                 {/* Expanded instance list for multi-instance connectors */}
                 {expandedKey === def.key && instances.length > 0 && (
-                  <div className="mt-1 ml-4 space-y-1 rounded-lg border p-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+                  <div className="mt-1 ml-4 space-y-1 rounded-lg border p-2 border-border bg-bg">
                     {instances.map(inst => (
                       <div
                         key={inst.id}
-                        className="flex items-center gap-2 rounded-lg px-3 py-2 hover:opacity-80 transition-opacity"
-                        style={{ backgroundColor: 'var(--theme-card-bg)' }}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 hover:opacity-80 transition-opacity bg-panel"
                       >
                         <button
                           type="button"
@@ -307,10 +303,10 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                                 : 'var(--theme-muted-text)',
                             }}
                           />
-                          <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--theme-card-text)' }}>
+                          <span className="text-xs font-medium flex-1 truncate text-fg">
                             {inst.display_name || def.name}
                           </span>
-                          <span className="text-[9px] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
+                          <span className="text-2xs shrink-0 text-fg-muted">
                             {inst.is_enabled ? 'Active' : 'Disabled'}
                           </span>
                         </button>
@@ -320,15 +316,14 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                               type="button"
                               onClick={() => handleDeleteInstance(inst.id)}
                               disabled={deletingId === inst.id}
-                              className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+                              className="text-2xs font-medium px-1.5 py-0.5 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
                             >
                               {deletingId === inst.id ? <Loader2 size={10} className="animate-spin" /> : 'Yes'}
                             </button>
                             <button
                               type="button"
                               onClick={() => setConfirmDeleteId(null)}
-                              className="text-[9px] font-medium px-1.5 py-0.5 rounded hover:opacity-70"
-                              style={{ color: 'var(--theme-muted-text)' }}
+                              className="text-2xs font-medium px-1.5 py-0.5 rounded hover:opacity-70 text-fg-muted"
                             >
                               No
                             </button>
@@ -337,8 +332,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(inst.id) }}
-                            className="shrink-0 hover:opacity-70 transition-opacity"
-                            style={{ color: 'var(--theme-muted-text)' }}
+                            className="shrink-0 hover:opacity-70 transition-opacity text-fg-muted"
                             title="Delete instance and its references"
                           >
                             <Trash2 size={12} />
@@ -349,7 +343,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                     <button
                       type="button"
                       onClick={() => { setExpandedKey(null); setSetupKey(def.key) }}
-                      className="w-full flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-medium hover:opacity-70"
+                      className="w-full flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-2xs font-medium hover:opacity-70"
                       style={{ color: def.color }}
                     >
                       <Plus size={10} /> Add another {def.name} instance
@@ -362,8 +356,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSetupKey(def.key) }}
-                    className="mt-0.5 ml-4 flex items-center gap-1 text-[9px] font-medium hover:opacity-70"
-                    style={{ color: 'var(--theme-muted-text)' }}
+                    className="mt-0.5 ml-4 flex items-center gap-1 text-2xs font-medium hover:opacity-70 text-fg-muted"
                   >
                     <Plus size={8} /> Add another instance
                   </button>
@@ -373,9 +366,9 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
           })}
         </div>
         ) : (
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="rounded-xl border overflow-hidden border-border bg-panel">
             <div
-              className="grid items-center text-[11px] font-semibold uppercase tracking-wide"
+              className="grid items-center text-2xs font-semibold"
               style={{
                 gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,0.8fr) 110px 110px 56px',
                 backgroundColor: 'var(--theme-row-highlight-strong)',
@@ -411,13 +404,13 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                   }}
                 >
                   <div className="px-4 py-3 min-w-0">
-                    <div className="text-sm font-semibold truncate" style={{ color: 'var(--theme-card-text)' }}>{def.name}</div>
-                    <div className="text-[11px] truncate" style={{ color: 'var(--theme-muted-text)' }}>{def.description}</div>
+                    <div className="text-sm font-semibold truncate text-fg">{def.name}</div>
+                    <div className="text-2xs truncate text-fg-muted">{def.description}</div>
                   </div>
-                  <div className="px-3 py-3 text-xs capitalize" style={{ color: 'var(--theme-muted-text)' }}>{def.category}</div>
-                  <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{statusLabel}</div>
-                  <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{instances.length}</div>
-                  <div className="px-3 py-3 text-right text-xs" style={{ color: 'var(--theme-primary-text)' }}>
+                  <div className="px-3 py-3 text-xs capitalize text-fg-muted">{def.category}</div>
+                  <div className="px-3 py-3 text-xs text-fg-muted">{statusLabel}</div>
+                  <div className="px-3 py-3 text-xs text-fg-muted">{instances.length}</div>
+                  <div className="px-3 py-3 text-right text-xs text-primary-text">
                     {hasAny ? 'Open' : 'Setup'}
                   </div>
                 </button>

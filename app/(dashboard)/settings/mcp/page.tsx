@@ -33,7 +33,7 @@ export default function McpSettingsPage() {
   })
 
   if (!can('settings.view')) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
 
   if (isLoading && !data) {

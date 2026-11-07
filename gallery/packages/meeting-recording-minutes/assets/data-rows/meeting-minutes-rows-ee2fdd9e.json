@@ -1,0 +1,25 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+  "asset": {
+    "id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+    "name": "Meeting minutes rows",
+    "rows": [
+      {
+        "id": "7741e25b-457e-53d3-949c-d177ebdbe9b3",
+        "data": {
+          "minutes_ref": "MIN-20261023-K2P9",
+          "meeting_title": "Weekly operations review",
+          "meeting_date": "2026-10-23",
+          "organiser": "Avery Example",
+          "summary": "Warehouse cutover status and supplier forecast.",
+          "decisions": "Keep the cutover date.",
+          "actions": 2,
+          "duration_min": 28,
+          "status": "Sent"
+        }
+      }
+    ]
+  }
+}

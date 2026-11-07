@@ -1,5 +1,7 @@
 import type { ConnectorDefinition } from '../registry'
 
+const DOCS_SCOPE = 'https://www.googleapis.com/auth/documents'
+
 export const googleDocsConnector: ConnectorDefinition = {
   key: 'google_docs',
   name: 'Google Docs',
@@ -8,6 +10,11 @@ export const googleDocsConnector: ConnectorDefinition = {
   icon: 'FileText',
   color: '#4285F4',
   docsUrl: 'https://developers.google.com/docs/api/reference/rest',
+  recommendedPermissions: {
+    title: 'Recommended Google Scopes',
+    items: [DOCS_SCOPE],
+    note: 'Share each document with the service account email, or set Impersonate Email and authorise the service account for this scope with domain-wide delegation. Service accounts have no Drive storage of their own, so Create Document needs impersonation.',
+  },
   fields: [],
   credentialFields: [
     {
@@ -18,8 +25,16 @@ export const googleDocsConnector: ConnectorDefinition = {
       placeholder: '{\n  "type": "service_account",\n  ...\n}',
       validation: { type: 'json_object' },
       helpText: 'Paste the full service account key JSON. The Google Docs API must be enabled, and any document you want to edit must be shared with that service account or accessed via delegation.',
-      setupHint: 'Enable the Google Docs API for the app and share editable documents with the service account email.',
-      exampleText: '{"type":"service_account","client_email":"docs-bot@my-app.iam.gserviceaccount.com"}',
+      setupHint: 'Enable the Google Docs API for the project and share editable documents with the service account email.',
+      exampleText: '{"type":"service_account","client_email":"docs-bot@my-project.iam.gserviceaccount.com"}',
+    },
+    {
+      key: 'impersonate_email',
+      label: 'Impersonate Email (optional)',
+      type: 'text',
+      placeholder: 'user@yourcompany.com',
+      validation: { type: 'email' },
+      helpText: 'Act as this Workspace user via domain-wide delegation (needed to create documents). Leave empty to act as the service account.',
     },
   ],
   referenceTemplates: [
@@ -28,20 +43,21 @@ export const googleDocsConnector: ConnectorDefinition = {
       name: 'Get Document',
       description: 'Retrieve a Google Doc by ID (full content and structure)',
       method: 'GET',
-      pathTemplate: '/v1/documents/{{document_id}}',
+      pathTemplate: '/v1/documents/{{document_id}}?includeTabsContent={{include_tabs}}',
       inputs: [
         { name: 'document_id', type: 'string', required: true, description: 'Google Doc ID' },
+        { name: 'include_tabs', type: 'boolean', required: false, description: 'Return every tab (in tabs[]) instead of only the first tab in body' },
       ],
-      outputs: [{ name: 'title', type: 'string' }, { name: 'body', type: 'object' }, { name: 'documentId', type: 'string' }],
+      outputs: [{ name: 'title', type: 'string' }, { name: 'body', type: 'object' }, { name: 'tabs', type: 'array' }, { name: 'documentId', type: 'string' }, { name: 'revisionId', type: 'string' }],
     },
     {
       key: 'create_document',
       name: 'Create Document',
-      description: 'Create a new blank Google Doc',
+      description: 'Create a new blank Google Doc (in the impersonated user\'s My Drive; needs Impersonate Email)',
       method: 'POST',
       pathTemplate: '/v1/documents',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ title: '{{title}}' }),
+      bodyTemplate: '{"title": "{{title}}"}',
       inputs: [
         { name: 'title', type: 'string', required: true, description: 'Document title' },
       ],
@@ -54,21 +70,22 @@ export const googleDocsConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/v1/documents/{{document_id}}:batchUpdate',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ requests: '{{requests_json}}' }),
+      bodyTemplate: '{"requests": {{requests_json}}, "writeControl": {{write_control}}}',
       inputs: [
         { name: 'document_id', type: 'string', required: true, description: 'Google Doc ID' },
-        { name: 'requests_json', type: 'string', required: true, description: 'JSON array of request objects (insertText, replaceAllText, deleteContentRange, etc.)' },
+        { name: 'requests_json', type: 'array', required: true, description: 'JSON array of request objects (insertText, replaceAllText, deleteContentRange, etc.)' },
+        { name: 'write_control', type: 'object', required: false, description: 'Optional {"requiredRevisionId":"…"} to fail if the document changed since you read it' },
       ],
-      outputs: [{ name: 'replies', type: 'array' }, { name: 'documentId', type: 'string' }],
+      outputs: [{ name: 'replies', type: 'array' }, { name: 'documentId', type: 'string' }, { name: 'writeControl', type: 'object' }],
     },
     {
       key: 'insert_text',
       name: 'Insert Text',
-      description: 'Insert text at a specific position in the document',
+      description: 'Insert text at a specific position in the document body',
       method: 'POST',
       pathTemplate: '/v1/documents/{{document_id}}:batchUpdate',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ requests: [{ insertText: { location: { index: '{{index}}' }, text: '{{text}}' } }] }),
+      bodyTemplate: '{"requests": [{"insertText": {"location": {"index": {{index}}}, "text": "{{text}}"}}]}',
       inputs: [
         { name: 'document_id', type: 'string', required: true, description: 'Google Doc ID' },
         { name: 'text', type: 'string', required: true, description: 'Text to insert' },
@@ -83,23 +100,23 @@ export const googleDocsConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/v1/documents/{{document_id}}:batchUpdate',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ requests: [{ replaceAllText: { containsText: { text: '{{find}}', matchCase: '{{match_case}}' }, replaceText: '{{replace}}' } }] }),
+      bodyTemplate: '{"requests": [{"replaceAllText": {"containsText": {"text": "{{find}}", "matchCase": {{match_case}}}, "replaceText": "{{replace}}"}}]}',
       inputs: [
         { name: 'document_id', type: 'string', required: true, description: 'Google Doc ID' },
         { name: 'find', type: 'string', required: true, description: 'Text to find' },
         { name: 'replace', type: 'string', required: true, description: 'Replacement text' },
-        { name: 'match_case', type: 'string', required: false, description: 'Case sensitive', defaultValue: 'true' },
+        { name: 'match_case', type: 'boolean', required: false, description: 'Case sensitive', defaultValue: 'true' },
       ],
       outputs: [{ name: 'replies', type: 'array' }],
     },
     {
       key: 'append_text',
       name: 'Append Text',
-      description: 'Append text to the end of the document',
+      description: 'Append text to the end of the document body',
       method: 'POST',
       pathTemplate: '/v1/documents/{{document_id}}:batchUpdate',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ requests: [{ insertText: { endOfSegmentLocation: { segmentId: '' }, text: '{{text}}' } }] }),
+      bodyTemplate: '{"requests": [{"insertText": {"endOfSegmentLocation": {"segmentId": ""}, "text": "{{text}}"}}]}',
       inputs: [
         { name: 'document_id', type: 'string', required: true, description: 'Google Doc ID' },
         { name: 'text', type: 'string', required: true, description: 'Text to append' },
@@ -114,7 +131,8 @@ export const googleDocsConnector: ConnectorDefinition = {
       token: '',
       _executor: 'google_service_account',
       service_account_json: credentials.service_account_json,
-      scopes: ['https://www.googleapis.com/auth/documents'],
+      scopes: [DOCS_SCOPE],
+      ...(credentials.impersonate_email ? { impersonate_email: credentials.impersonate_email } : {}),
     },
   }),
 }

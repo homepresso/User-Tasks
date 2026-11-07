@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e889dbb5-3b6d-5ef7-a724-3d16de0e27d3",
+  "asset": {
+    "id": "e889dbb5-3b6d-5ef7-a724-3d16de0e27d3",
+    "name": "Following up on your feedback",
+    "description": "Sent to the customer after someone has called them about a low score and agreed what happens next.",
+    "subject": "Following up on your feedback ({{response_ref}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Thanks for talking to us</h2>\n  <p>Hi {{form.customer_name}},</p>\n  <p>{{actioned_by_name}} followed up on your feedback about {{form.product_area}}. This is what we agreed:</p>\n  <blockquote style=\"border-left:3px solid #C2410C;margin:12px 0;padding:4px 12px;color:#33302A\">{{task_data.agreed_action}}</blockquote>\n  <p>Reply to this email if anything is still not right.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Reference {{response_ref}}</p>\n</div>",
+    "text_body": "Thanks for talking to us\n\nHi {{form.customer_name}},\n{{actioned_by_name}} followed up on your feedback about {{form.product_area}}. This is what we agreed:\n\n{{task_data.agreed_action}}\n\nReply to this email if anything is still not right.\nReference {{response_ref}}",
+    "is_default": false
+  }
+}

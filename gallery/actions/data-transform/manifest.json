@@ -1,0 +1,1499 @@
+{
+  "manifest_version": 1,
+  "key": "ut_data",
+  "name": "Data transform",
+  "version": "1.0.0",
+  "description": "Select by JSON path, map, filter, sort, group with aggregates, pivot / unpivot, de-duplicate and join lists of objects, and convert CSV to JSON and back.",
+  "icon": "shuffle",
+  "color": "#EA580C",
+  "category": "Math & data",
+  "entry": "dist/action.js",
+  "operations": [
+    {
+      "id": "select",
+      "label": "Select (JSON path)",
+      "description": "Read a value from an object or list by path: a.b[0].c, items[-1] for the last item, items[*].name for every item's name (wildcards return a list).",
+      "inputs": [
+        {
+          "name": "data",
+          "label": "Data",
+          "type": "json",
+          "description": "The object or list to read from.",
+          "required": true,
+          "example": {
+            "order": {
+              "id": "SO-1",
+              "lines": [
+                {
+                  "sku": "A1",
+                  "qty": 2
+                },
+                {
+                  "sku": "B2",
+                  "qty": 1
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "path",
+          "label": "Path",
+          "type": "string",
+          "description": "For example order.lines[0].sku or order.lines[*].sku ($. prefix optional).",
+          "required": true,
+          "example": "order.lines[*].sku"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "json",
+          "description": "The value at the path (a list when the path has a wildcard; empty when not found)."
+        },
+        {
+          "name": "values",
+          "label": "All values",
+          "type": "array",
+          "description": "Every value found, as a list.",
+          "items": {
+            "type": "json"
+          }
+        },
+        {
+          "name": "found",
+          "label": "Found",
+          "type": "boolean"
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many values were found."
+        }
+      ],
+      "sample": {
+        "data": {
+          "order": {
+            "id": "SO-1",
+            "lines": [
+              {
+                "sku": "A1",
+                "qty": 2
+              },
+              {
+                "sku": "B2",
+                "qty": 1
+              }
+            ]
+          }
+        },
+        "path": "order.lines[*].sku"
+      }
+    },
+    {
+      "id": "map",
+      "label": "Map fields",
+      "description": "Pick, rename and nest fields of every item: \"customer.name as customer\", \"total\" or { \"from\": \"a.b\", \"to\": \"c\", \"default\": 0 }.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects (rows), e.g. a data table query result or a JSON array.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "fields",
+          "label": "Fields",
+          "type": "array",
+          "description": "One per field: source path, optionally \"as\" a new name (a dotted name creates nested objects), or objects { from, to, default }.",
+          "required": true,
+          "example": [
+            "id",
+            "product as item",
+            "amount as total.value"
+          ]
+        },
+        {
+          "name": "keep_other_fields",
+          "label": "Keep other fields",
+          "type": "boolean",
+          "description": "Keep fields not listed (renamed ones move).",
+          "default": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "The mapped items.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items were returned."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          }
+        ],
+        "fields": [
+          "id",
+          "product as item",
+          "amount as total.value"
+        ]
+      }
+    },
+    {
+      "id": "filter",
+      "label": "Filter",
+      "description": "Keep the items that match conditions: eq, ne, gt, gte, lt, lte (numbers and dates compare as such), contains, not_contains, starts_with, ends_with, in, not_in, empty, not_empty; all must match or any.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects (rows), e.g. a data table query result or a JSON array.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "label": "Conditions",
+          "type": "array",
+          "description": "List of { \"field\": \"status\", \"operator\": \"eq\", \"value\": \"paid\" }; in / not_in take a list or comma-separated text.",
+          "required": true,
+          "items": {
+            "type": "object",
+            "fields": [
+              {
+                "name": "field",
+                "label": "Field",
+                "type": "string"
+              },
+              {
+                "name": "operator",
+                "label": "Operator",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "label": "Value",
+                "type": "json"
+              }
+            ]
+          },
+          "example": [
+            {
+              "field": "status",
+              "operator": "eq",
+              "value": "paid"
+            },
+            {
+              "field": "amount",
+              "operator": "gte",
+              "value": 500
+            }
+          ]
+        },
+        {
+          "name": "combine",
+          "label": "Match",
+          "type": "select",
+          "description": "Whether every condition or any condition must match.",
+          "default": "all",
+          "options": [
+            {
+              "value": "all",
+              "label": "All conditions"
+            },
+            {
+              "value": "any",
+              "label": "Any condition"
+            }
+          ]
+        },
+        {
+          "name": "case_sensitive",
+          "label": "Case sensitive",
+          "type": "boolean",
+          "description": "Compare text exactly (off: ignore case).",
+          "default": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "The matching items, in their original order.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items matched."
+        },
+        {
+          "name": "removed",
+          "label": "Removed",
+          "type": "integer",
+          "description": "How many items did not match."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "conditions": [
+          {
+            "field": "status",
+            "operator": "eq",
+            "value": "paid"
+          },
+          {
+            "field": "amount",
+            "operator": "gte",
+            "value": 500
+          }
+        ]
+      }
+    },
+    {
+      "id": "sort",
+      "label": "Sort",
+      "description": "Sort by one or more keys, ascending or descending, comparing as numbers, text or dates (auto: numbers when both values are numeric). Stable; empty values sort last.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects (rows), e.g. a data table query result or a JSON array.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "keys",
+          "label": "Sort keys",
+          "type": "array",
+          "description": "In priority order: \"amount desc\", \"-amount\", \"name asc text\", or { \"field\", \"direction\": \"asc\" | \"desc\", \"type\": \"auto\" | \"number\" | \"text\" | \"date\" }.",
+          "required": true,
+          "example": [
+            "region",
+            "amount desc"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "The sorted items.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items were returned."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "keys": [
+          "region",
+          "amount desc"
+        ]
+      }
+    },
+    {
+      "id": "group",
+      "label": "Group & aggregate",
+      "description": "Group items by one or more fields and compute aggregates per group: count, count_distinct, sum, avg, min, max, first, last or list. Each group row has the group fields, count and the aggregates.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects (rows), e.g. a data table query result or a JSON array.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "group_by",
+          "label": "Group by",
+          "type": "array",
+          "description": "The field(s) to group by.",
+          "required": true,
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "region"
+          ]
+        },
+        {
+          "name": "aggregates",
+          "label": "Aggregates",
+          "type": "array",
+          "description": "\"sum:amount\", \"avg(amount) as average\", \"count_distinct:product\" or { \"op\": \"sum\", \"field\": \"amount\", \"as\": \"total\" }. The default name is op_field (sum_amount).",
+          "example": [
+            "sum:amount",
+            "avg:amount",
+            "max:amount",
+            "count_distinct:product"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "groups",
+          "label": "Groups",
+          "type": "array",
+          "description": "One row per group, in order of first appearance: the group fields, count and each aggregate.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Number of groups",
+          "type": "integer"
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "group_by": [
+          "region"
+        ],
+        "aggregates": [
+          "sum:amount",
+          "avg:amount",
+          "count_distinct:product"
+        ]
+      }
+    },
+    {
+      "id": "pivot",
+      "label": "Pivot",
+      "description": "Turn values of one field into columns: one row per Rows key, one column per distinct Column value, aggregating Value (sum, count, avg, min, max, first, last).",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects (rows), e.g. a data table query result or a JSON array.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "rows",
+          "label": "Rows",
+          "type": "array",
+          "description": "Field(s) that identify an output row.",
+          "required": true,
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "region"
+          ]
+        },
+        {
+          "name": "column",
+          "label": "Column",
+          "type": "string",
+          "description": "Field whose values become columns.",
+          "required": true,
+          "example": "product"
+        },
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "string",
+          "description": "Field to aggregate in each cell (not needed for count).",
+          "example": "amount"
+        },
+        {
+          "name": "aggregate",
+          "label": "Aggregate",
+          "type": "select",
+          "description": "How to combine several values in one cell.",
+          "default": "sum",
+          "options": [
+            {
+              "value": "sum"
+            },
+            {
+              "value": "count"
+            },
+            {
+              "value": "avg"
+            },
+            {
+              "value": "min"
+            },
+            {
+              "value": "max"
+            },
+            {
+              "value": "first"
+            },
+            {
+              "value": "last"
+            }
+          ]
+        },
+        {
+          "name": "fill",
+          "label": "Empty cells",
+          "type": "json",
+          "description": "Value for a row/column with no items (default empty; e.g. 0).",
+          "example": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "One row per Rows key with a property per column.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "columns",
+          "label": "Columns",
+          "type": "array",
+          "description": "The column values, in order of first appearance.",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items were returned."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "rows": [
+          "region"
+        ],
+        "column": "product",
+        "value": "amount",
+        "fill": 0
+      }
+    },
+    {
+      "id": "unpivot",
+      "label": "Unpivot",
+      "description": "Turn columns into rows: for every item, one row per column with the column name and its value, keeping identifier fields.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects with one column per measure.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "keep_fields",
+          "label": "Keep fields",
+          "type": "array",
+          "description": "Identifier fields copied to every row.",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "region"
+          ]
+        },
+        {
+          "name": "columns",
+          "label": "Columns",
+          "type": "array",
+          "description": "The fields to turn into rows (default: every field not kept).",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "Desk",
+            "Chair"
+          ]
+        },
+        {
+          "name": "name_field",
+          "label": "Name field",
+          "type": "string",
+          "description": "Field that receives the column name.",
+          "default": "name"
+        },
+        {
+          "name": "value_field",
+          "label": "Value field",
+          "type": "string",
+          "description": "Field that receives the value.",
+          "default": "value"
+        },
+        {
+          "name": "skip_empty",
+          "label": "Skip empty values",
+          "type": "boolean",
+          "description": "Leave out rows whose value is empty.",
+          "default": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "One row per item and column.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items were returned."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "region": "North",
+            "Desk": 1800,
+            "Chair": 450
+          },
+          {
+            "region": "South",
+            "Desk": 0,
+            "Chair": 300
+          }
+        ],
+        "keep_fields": [
+          "region"
+        ],
+        "name_field": "product",
+        "value_field": "amount"
+      }
+    },
+    {
+      "id": "dedupe",
+      "label": "Remove duplicates",
+      "description": "Remove duplicate items, comparing chosen fields (or whole items, which also works for lists of plain values), keeping the first or the last of each.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects or plain values.",
+          "required": true,
+          "example": [
+            {
+              "email": "a@x.io",
+              "n": 1
+            },
+            {
+              "email": "A@x.io",
+              "n": 2
+            },
+            {
+              "email": "b@x.io",
+              "n": 3
+            }
+          ]
+        },
+        {
+          "name": "fields",
+          "label": "Compare fields",
+          "type": "array",
+          "description": "Fields that make an item unique (default: the whole item).",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "email"
+          ]
+        },
+        {
+          "name": "keep",
+          "label": "Keep",
+          "type": "select",
+          "description": "Which duplicate to keep (the order of the list is kept).",
+          "default": "first",
+          "options": [
+            {
+              "value": "first",
+              "label": "First"
+            },
+            {
+              "value": "last",
+              "label": "Last"
+            }
+          ]
+        },
+        {
+          "name": "case_sensitive",
+          "label": "Case sensitive",
+          "type": "boolean",
+          "description": "Off: \"A@x.io\" and \"a@x.io\" are duplicates.",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "The unique items.",
+          "items": {
+            "type": "json"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items were returned."
+        },
+        {
+          "name": "removed",
+          "label": "Removed",
+          "type": "integer",
+          "description": "How many duplicates were removed."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "email": "a@x.io",
+            "n": 1
+          },
+          {
+            "email": "A@x.io",
+            "n": 2
+          },
+          {
+            "email": "b@x.io",
+            "n": 3
+          }
+        ],
+        "fields": [
+          "email"
+        ],
+        "case_sensitive": false
+      }
+    },
+    {
+      "id": "join",
+      "label": "Join",
+      "description": "Combine two lists on matching keys (inner, left, right or full outer). Right fields whose names clash with left fields get the prefix right_ (or your own prefix on every right field).",
+      "inputs": [
+        {
+          "name": "left",
+          "label": "Left list",
+          "type": "array",
+          "description": "The main list of objects.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "right",
+          "label": "Right list",
+          "type": "array",
+          "description": "The list to look up.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "region": "North",
+              "manager": "Aroha"
+            },
+            {
+              "region": "South",
+              "manager": "Ben"
+            }
+          ]
+        },
+        {
+          "name": "left_key",
+          "label": "Left key",
+          "type": "array",
+          "description": "Key field(s) in the left list.",
+          "required": true,
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "region"
+          ]
+        },
+        {
+          "name": "right_key",
+          "label": "Right key",
+          "type": "array",
+          "description": "Key field(s) in the right list, in the same order (default: the left key names).",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "type",
+          "label": "Join type",
+          "type": "select",
+          "description": "Which unmatched rows to keep.",
+          "default": "inner",
+          "options": [
+            {
+              "value": "inner",
+              "label": "Inner (matches only)"
+            },
+            {
+              "value": "left",
+              "label": "Left (all left rows)"
+            },
+            {
+              "value": "right",
+              "label": "Right (all right rows)"
+            },
+            {
+              "value": "full",
+              "label": "Full (all rows)"
+            }
+          ]
+        },
+        {
+          "name": "right_prefix",
+          "label": "Right prefix",
+          "type": "string",
+          "description": "Optional prefix for every field from the right list.",
+          "example": "mgr_"
+        },
+        {
+          "name": "case_sensitive",
+          "label": "Case-sensitive keys",
+          "type": "boolean",
+          "description": "Off: keys match ignoring case.",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "The joined rows (one per match).",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many items were returned."
+        },
+        {
+          "name": "unmatched_left",
+          "label": "Unmatched left",
+          "type": "integer",
+          "description": "Left rows with no match."
+        },
+        {
+          "name": "unmatched_right",
+          "label": "Unmatched right",
+          "type": "integer",
+          "description": "Right rows with no match."
+        }
+      ],
+      "sample": {
+        "left": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          }
+        ],
+        "right": [
+          {
+            "region": "North",
+            "manager": "Aroha"
+          },
+          {
+            "region": "South",
+            "manager": "Ben"
+          }
+        ],
+        "left_key": [
+          "region"
+        ],
+        "type": "left"
+      }
+    },
+    {
+      "id": "csv_to_json",
+      "label": "CSV to JSON",
+      "description": "Parse CSV text (RFC 4180: quoted fields, \"\" escapes, line breaks in quotes) into a list of objects, using the header row for field names and inferring numbers and true/false.",
+      "inputs": [
+        {
+          "name": "csv",
+          "label": "CSV",
+          "type": "text",
+          "description": "The CSV text.",
+          "required": true,
+          "example": "id,name,amount\n1,\"Smith, Jo\",12.50\n2,Ana,7"
+        },
+        {
+          "name": "delimiter",
+          "label": "Delimiter",
+          "type": "string",
+          "description": "auto (detect), comma, semicolon, tab, pipe or the character(s).",
+          "default": "auto"
+        },
+        {
+          "name": "header",
+          "label": "Header row",
+          "type": "boolean",
+          "description": "The first row holds the field names (off: column_1, column_2, …).",
+          "default": true
+        },
+        {
+          "name": "infer_types",
+          "label": "Infer types",
+          "type": "boolean",
+          "description": "Turn numbers and true/false into numbers and booleans, empty cells into empty values (numbers with leading zeros stay text).",
+          "default": true
+        },
+        {
+          "name": "trim",
+          "label": "Trim",
+          "type": "boolean",
+          "description": "Trim spaces around values.",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "One object per data row.",
+          "items": {
+            "type": "object"
+          }
+        },
+        {
+          "name": "columns",
+          "label": "Columns",
+          "type": "array",
+          "description": "The field names.",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many data rows."
+        }
+      ],
+      "sample": {
+        "csv": "id,name,amount\n1,\"Smith, Jo\",12.50\n2,Ana,7"
+      }
+    },
+    {
+      "id": "json_to_csv",
+      "label": "JSON to CSV",
+      "description": "Write a list of objects as CSV (RFC 4180 quoting, CRLF line endings by default), with chosen columns and headers. Text that a spreadsheet would run as a formula is escaped by default.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "A list of objects (rows), e.g. a data table query result or a JSON array.",
+          "required": true,
+          "items": {
+            "type": "object"
+          },
+          "example": [
+            {
+              "id": "SO-1",
+              "region": "North",
+              "product": "Desk",
+              "status": "paid",
+              "amount": 1200,
+              "qty": 2
+            },
+            {
+              "id": "SO-2",
+              "region": "South",
+              "product": "Chair",
+              "status": "paid",
+              "amount": 300,
+              "qty": 3
+            },
+            {
+              "id": "SO-3",
+              "region": "North",
+              "product": "Chair",
+              "status": "open",
+              "amount": 450,
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "name": "columns",
+          "label": "Columns",
+          "type": "array",
+          "description": "Fields to write, optionally \"field as Header\" (default: every field, in order of appearance).",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "id",
+            "product as Product",
+            "amount as Amount"
+          ]
+        },
+        {
+          "name": "delimiter",
+          "label": "Delimiter",
+          "type": "string",
+          "description": "Field separator (tab for tab-separated).",
+          "default": ","
+        },
+        {
+          "name": "header",
+          "label": "Header row",
+          "type": "boolean",
+          "description": "Write the column names first.",
+          "default": true
+        },
+        {
+          "name": "line_ending",
+          "label": "Line ending",
+          "type": "select",
+          "description": "CRLF (RFC 4180, Excel) or LF.",
+          "default": "crlf",
+          "options": [
+            {
+              "value": "crlf",
+              "label": "CRLF"
+            },
+            {
+              "value": "lf",
+              "label": "LF"
+            }
+          ]
+        },
+        {
+          "name": "escape_formulas",
+          "label": "Escape formulas",
+          "type": "boolean",
+          "description": "Prefix text starting with = + - @ with ' so spreadsheets do not run it (CSV injection).",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "csv",
+          "label": "CSV",
+          "type": "text"
+        },
+        {
+          "name": "columns",
+          "label": "Columns",
+          "type": "array",
+          "description": "The header names.",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many data rows."
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          }
+        ],
+        "columns": [
+          "id",
+          "product as Product",
+          "amount as Amount"
+        ]
+      }
+    }
+  ],
+  "capabilities": {},
+  "limits": {
+    "timeout_ms": 5000,
+    "memory_mb": 32
+  },
+  "summary": "Reshape lists of records inside a workflow: pick values by JSON path, rename and select fields, filter by conditions, multi-key sort, group by with count / sum / avg / min / max, pivot and unpivot, remove duplicates, join two lists on keys and convert between CSV and JSON (RFC 4180).",
+  "purpose": "Transform API responses, data table rows and spreadsheets in one step instead of loops and many collection nodes.",
+  "recommended_for": "Integrations, reports and exports, reconciliations, imports from CSV, summarising rows before an approval or notification.",
+  "setup_notes": [
+    "Pure computation: no network, data or secrets. Nothing to configure after installing.",
+    "Paths use dots and brackets: customer.name, items[0].sku, items[-1], items[*].price, [\"field with spaces\"].",
+    "Lists hold up to 100,000 items; inputs and outputs are limited to 5 MB of JSON each."
+  ],
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "tags": [
+    "data",
+    "json",
+    "csv",
+    "transform",
+    "group by",
+    "pivot",
+    "join",
+    "filter",
+    "sort"
+  ]
+}

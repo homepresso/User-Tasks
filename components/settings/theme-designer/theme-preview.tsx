@@ -125,7 +125,7 @@ function PreviewSidebar({ logo, wordmark }: { logo: string | null; wordmark: str
             >
               <Icon size={16} />
               <span className="flex-1">{label}</span>
-              {badge ? <span className="rounded-full px-1.5 text-[10px] font-semibold" style={{ backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" }}>{badge}</span> : null}
+              {badge ? <span className="rounded-full px-1.5 text-2xs font-semibold" style={{ backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" }}>{badge}</span> : null}
             </div>
           ))}
           <div className="mt-1 rounded-lg px-3 py-2 text-sm" style={{ color: "var(--theme-sidebar-text)", backgroundColor: "var(--sidebar-hover-bg)" }}>Hovered item</div>
@@ -143,7 +143,7 @@ function PreviewTopbar() {
       </div>
       <div className="ml-auto flex items-center gap-3">
         <Bell size={16} />
-        <span className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold" style={{ backgroundColor: "var(--theme-accent)", color: "var(--theme-on-accent)" }}>AL</span>
+        <span className="flex h-7 w-7 items-center justify-center rounded-full text-2xs font-semibold" style={{ backgroundColor: "var(--theme-accent)", color: "var(--theme-on-accent)" }}>AL</span>
       </div>
     </div>
   )
@@ -161,7 +161,7 @@ function PreviewTaskList() {
     <div className="rounded-xl border bg-white" style={{ borderColor: "var(--theme-surface-border)" }}>
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="text-[11px] uppercase tracking-wide" style={{ color: "var(--theme-muted-text)" }}>
+          <tr className="text-xs font-medium" style={{ color: "var(--theme-muted-text)" }}>
             <th className="px-3 py-2 font-medium">Task</th>
             <th className="px-3 py-2 font-medium">Status</th>
             <th className="px-3 py-2 font-medium">Priority</th>
@@ -200,7 +200,7 @@ function PreviewTaskDetail() {
           <h2 className="text-base font-semibold">Approve invoice INV-2041</h2>
           <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>Invoice approval · step 2 of 3</p>
         </div>
-        <span className="rounded px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: "var(--status-info-bg)", color: "var(--status-info)" }}>SLA 4h</span>
+        <span className="rounded px-2 py-0.5 text-2xs font-semibold" style={{ backgroundColor: "var(--status-info-bg)", color: "var(--status-info)" }}>SLA 4h</span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
@@ -243,7 +243,7 @@ function PreviewChart() {
           <rect key={i} x={10 + i * 38} y={110 - h} width="26" height={h} rx="4" style={{ fill: `var(--theme-chart-${i + 1})` }} />
         ))}
       </svg>
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: "var(--theme-muted-text)" }}>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-2xs" style={{ color: "var(--theme-muted-text)" }}>
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
           <span key={d} className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: `var(--theme-chart-${i + 1})` }} />{d}</span>
         ))}

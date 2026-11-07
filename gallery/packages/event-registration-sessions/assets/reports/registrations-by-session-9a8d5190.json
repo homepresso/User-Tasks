@@ -1,0 +1,46 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "9a8d5190-6d8d-520f-b80e-49536109def4",
+  "asset": {
+    "id": "9a8d5190-6d8d-520f-b80e-49536109def4",
+    "name": "Registrations by session",
+    "description": "Registrations and attendees per session they were given (waitlisted registrations have no session), from the registration runs (workflow variables).",
+    "category": "Events",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "40d6cad7-b2d0-5b01-bbdf-ad094df25cea"
+      },
+      "columns": [
+        "vars.assigned_session",
+        "_count",
+        "SUM_vars.attendee_count"
+      ],
+      "group_by": [
+        "vars.assigned_session"
+      ],
+      "aggregations": [
+        {
+          "fn": "SUM",
+          "field": "vars.attendee_count"
+        }
+      ],
+      "sort": {
+        "field": "SUM_vars.attendee_count",
+        "direction": "desc"
+      },
+      "visualization": "horizontal-bar",
+      "chart_style": {
+        "chart_title": "Attendees by session",
+        "colors": [
+          "#7C3AED",
+          "#0EA5E9"
+        ],
+        "x_axis_label": "Attendees"
+      }
+    }
+  }
+}

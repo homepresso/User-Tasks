@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
 import { prepareRoundTripBody } from '@/lib/api-schemas/registry'
 import { validateApiKey, requireApiPermission, ok, err } from '@/lib/api-auth'
-import { normalizeAgentOutputConfig } from '@/lib/agent-knowledge'
-import { deactivateWorkflowsReferencingAgent } from '@/lib/agent-references'
+import { fromApiAuth, isServiceError } from '@/lib/services/context'
+import { deleteAgent, updateAgent } from '@/lib/services/agents'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await validateApiKey(request)
@@ -20,8 +20,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const result: any = { agent }
 
   if (includeRuns) {
-    const { data: runs } = await (supabase as any).from('agent_runs').select('id, input_message, output_response, iterations, tool_calls, usage, duration_ms, status, created_at')
-      .eq('agent_id', id).order('created_at', { ascending: false }).limit(20)
+    const { data: runs } = await (supabase as any).from('agent_runs').select('id, input_message, output_response, outputs, iterations, tool_calls, usage, total_tokens, duration_ms, status, error, caller_type, created_at')
+      .eq('agent_id', id).eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(20)
     result.runs = runs ?? []
   }
 
@@ -33,24 +33,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (!auth.success) return auth.response
   const forbidden = requireApiPermission(auth, 'agents.edit')
   if (forbidden) return forbidden
-  const { tenantId, supabase } = auth
   const { id } = await params
 
   // The GET response (`{ agent: {...} }`) is accepted as the body too.
-  const body = prepareRoundTripBody(undefined, { unwrap: 'agent' }, await request.json()) as Record<string, any>
-  const allowedFields = ['name', 'description', 'model', 'system_prompt', 'role', 'task', 'boundaries', 'tools', 'output_config', 'integration_id', 'temperature', 'max_tokens', 'max_iterations', 'is_active']
-  const updates: Record<string, any> = { updated_at: new Date().toISOString() }
-  for (const key of allowedFields) {
-    if (key in body) updates[key] = body[key]
+  const body = prepareRoundTripBody(undefined, { unwrap: 'agent' }, await request.json().catch(() => ({}))) as Record<string, any>
+  try {
+    const agent = await updateAgent(fromApiAuth(auth), id, body)
+    return ok({ agent })
+  } catch (error) {
+    if (isServiceError(error)) return err(error.message, error.status)
+    return err((error as Error)?.message ?? 'Failed to update the agent', 500)
   }
-  if ('output_config' in updates) {
-    updates.output_config = normalizeAgentOutputConfig(updates.output_config)
-  }
-
-  const { data, error } = await (supabase as any).from('agents').update(updates).eq('id', id).eq('tenant_id', tenantId).select('*').single()
-  if (error) return err(error.message, 500)
-  if (!data) return err('Agent not found', 404)
-  return ok({ agent: data })
 }
 
 /** PATCH is the same partial update as PUT. */
@@ -61,13 +54,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!auth.success) return auth.response
   const forbidden = requireApiPermission(auth, 'agents.delete')
   if (forbidden) return forbidden
-  const { tenantId, supabase } = auth
   const { id } = await params
-
-  // Deactivate any workflows that reference this agent so they don't run broken.
-  const deactivated = await deactivateWorkflowsReferencingAgent(supabase, tenantId, id)
-
-  const { error } = await (supabase as any).from('agents').delete().eq('id', id).eq('tenant_id', tenantId)
-  if (error) return err(error.message, 500)
-  return ok({ deleted: true, deactivated_workflows: deactivated })
+  try {
+    // Queued (as in the designer); referencing workflows are deactivated first.
+    return ok(await deleteAgent(fromApiAuth(auth), id))
+  } catch (error) {
+    if (isServiceError(error)) return err(error.message, error.status)
+    return err((error as Error)?.message ?? 'Failed to delete the agent', 500)
+  }
 }

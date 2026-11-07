@@ -2,6 +2,7 @@ import { getBootstrapConfig, getEnvProviderOverrides, readEnv } from './bootstra
 import { readSettingsCache } from './settings-cache'
 import { DEFAULT_PROVIDERS, providerIdSchema, type ProviderId } from './schema'
 import { publicBasesFor, storageConfigSync } from '@/lib/providers/storage/options'
+import { baseDomainFromEnv } from '@/lib/workspace-address'
 
 /**
  * Public (browser-safe) runtime config.
@@ -36,6 +37,12 @@ export interface PublicConfig {
    * by the app at /files/<bucket>/<key>.
    */
   storage?: { provider: Exclude<ProviderId<'storage'>, 'supabase'>; publicBases?: Record<string, string> }
+  /**
+   * Workspace addresses (<subdomain>.<baseDomain>, lib/workspace-address.ts).
+   * Present only when subdomains are on, so links can use a form's friendly
+   * /form/<system name> path on a workspace address.
+   */
+  baseDomain?: string
 }
 
 export const PUBLIC_CONFIG_GLOBAL = '__USERTASKS_CONFIG__'
@@ -77,6 +84,7 @@ export function buildPublicConfig(): PublicConfig {
   const cfg = getBootstrapConfig()
   const realtimeProvider = publicRealtimeProvider()
   const storage = publicStorage()
+  const baseDomain = baseDomainFromEnv()
   return {
     supabaseUrl: cfg.supabase.url ?? '',
     supabaseAnonKey: cfg.supabase.anonKey ?? '',
@@ -84,14 +92,15 @@ export function buildPublicConfig(): PublicConfig {
     ssoMicrosoft: cfg.ssoMicrosoft,
     ...(realtimeProvider !== DEFAULT_PROVIDERS.realtime ? { realtimeProvider } : {}),
     ...(storage ? { storage } : {}),
+    ...(baseDomain ? { baseDomain } : {}),
   }
 }
 
 /** Build-time values, the fallback when no runtime config reached the page. */
 function inlinedPublicConfig(): PublicConfig {
   return {
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    supabaseUrl: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim(),
+    supabaseAnonKey: (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim(),
     appUrl: process.env.NEXT_PUBLIC_APP_URL ?? '',
     ssoMicrosoft: process.env.NEXT_PUBLIC_SSO_MICROSOFT === '1',
   }

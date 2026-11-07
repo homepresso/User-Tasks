@@ -1,5 +1,5 @@
 import type { ConnectorField } from "./registry"
-import { isCiphertext } from "@/lib/secret-format"
+import { isMaskedSecret } from "@/lib/secret-format"
 
 function matchesCondition(
   value: unknown,
@@ -66,7 +66,7 @@ export function getConnectorFieldValidationError(field: ConnectorField, values: 
   // Secrets encrypted at rest round-trip through edit forms as `enc:v1:…` / `enc:v2:…`
   // envelopes the browser cannot decrypt — never reject those on format.
   // Server-side callers decrypt before validating, so real values are still checked.
-  if (isCiphertext(raw)) return null
+  if (isMaskedSecret(raw)) return null
   const validation = field.validation
   if (!validation) return null
 

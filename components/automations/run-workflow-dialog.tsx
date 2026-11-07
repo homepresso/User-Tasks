@@ -1,21 +1,30 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
+import { formAnimation } from "@/lib/forms/motion"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import Link from "next/link"
-import * as Dialog from "@radix-ui/react-dialog"
-import { Loader2, Play, X } from "lucide-react"
+import { Loader2, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogBody, DialogClose, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { plural } from "@/lib/format/plural"
 import { RunStatusBadge } from "@/components/ui/status-badge"
 import { FormThemeScope } from "@/components/forms/form-theme-scope"
 import type { FormThemeOverrides } from "@/lib/forms/form-theme"
 import { getWorkflowRunInputs, runWorkflowNow } from "@/app/actions/workflow-start"
-import { submitStandaloneForm } from "@/app/actions/forms"
+import { submitRunDialogForm } from "@/app/actions/forms"
 import { serverRead } from "@/lib/server-read"
 import { WorkflowStartFormView } from "@/components/forms/workflow-start-form-view"
+import { DraftResumePrompt, FormHeaderActions, useFormDraft } from "@/components/forms/form-header-actions"
 import { AttachmentsField, FormAttachmentsProvider } from "@/components/forms/attachments-field"
 import { planButtonEffects, type ButtonEffects, type FormButton } from "@/lib/forms/buttons"
-import { formDefaultValues, formPagePath, startFormVariable, type WorkflowStartForm } from "@/lib/forms/workflow-start-form"
+import { freshSubmissionValues } from "@/lib/forms/submitted-page"
+import { formAppPath } from "@/lib/forms/form-page-url"
+import { formDefaultValues, startFormVariable, type WorkflowStartForm } from "@/lib/forms/workflow-start-form"
 import { validateTaskFieldValues } from "@/lib/task-field-schema"
 import { isImplicitSubmitKey } from "@/lib/automations/test-form-start"
 import type { StartWorkflowResult } from "@/lib/services/workflow-start"
@@ -60,12 +69,6 @@ export function runDisabledReason(workflow: RunnableWorkflow): string | null {
   return null
 }
 
-const fieldStyle = {
-  borderColor: "var(--theme-surface-border)",
-  backgroundColor: "var(--theme-topbar)",
-  color: "var(--theme-topbar-text)",
-}
-
 type FormValues = Record<string, string | boolean>
 
 /** The input form fields (stateless; the dialog owns the values). */
@@ -82,7 +85,7 @@ export function WorkflowInputFields({ fields, values, errors, onChange, idPrefix
   layout?: NonNullable<WorkflowInputSchema["start_form"]>["layout"]
 }) {
   if (fields.length === 0) {
-    return <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>This workflow has no input parameters.</p>
+    return <p className="text-xs text-fg-muted">This workflow has no input parameters.</p>
   }
   const renderField = (field: WorkflowInputField) => {
         const id = `${idPrefix}-${field.key}`
@@ -101,19 +104,18 @@ export function WorkflowInputFields({ fields, values, errors, onChange, idPrefix
         let control: React.ReactNode
         if (field.type === "boolean") {
           control = (
-            <label htmlFor={id} className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: "var(--theme-card-text)" }}>
-              <input {...common} type="checkbox" checked={value === true} onChange={(e) => onChange(field.key, e.target.checked)} className="h-4 w-4" />
+            <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-ui text-fg">
+              <Checkbox {...common} checked={value === true} onChange={(e) => onChange(field.key, e.target.checked)} />
               {field.label}
-              {field.required && <span aria-hidden="true" style={{ color: "var(--theme-danger)" }}>*</span>}
+              {field.required && <span aria-hidden="true" className="text-danger">*</span>}
             </label>
           )
         } else if (field.type === "select") {
           control = (
-            <select {...common} value={String(value ?? "")} onChange={(e) => onChange(field.key, e.target.value)}
-              className="flex h-10 w-full rounded-lg border px-3 text-sm" style={fieldStyle}>
+            <Select {...common} value={String(value ?? "")} onChange={(e) => onChange(field.key, e.target.value)}>
               <option value="">{field.required ? "Choose…" : "(none)"}</option>
               {(field.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </Select>
           )
         } else if (field.type === "attachments") {
           // Uploaded into the workflow's start context; the value is the file list (JSON text in the form state).
@@ -129,9 +131,9 @@ export function WorkflowInputFields({ fields, values, errors, onChange, idPrefix
           )
         } else if (field.type === "json") {
           control = (
-            <textarea {...common} value={String(value ?? "")} onChange={(e) => onChange(field.key, e.target.value)}
+            <Textarea {...common} value={String(value ?? "")} onChange={(e) => onChange(field.key, e.target.value)}
               rows={4} spellCheck={false} placeholder='{"key": "value"}'
-              className="w-full rounded-lg border px-3 py-2 font-mono text-xs" style={fieldStyle} />
+              className="font-mono text-xs" />
           )
         } else {
           const type = field.type === "number" ? "number"
@@ -148,16 +150,16 @@ export function WorkflowInputFields({ fields, values, errors, onChange, idPrefix
         return (
           <div key={field.key} data-input-type={field.type}>
             {field.type !== "boolean" && (
-              <label htmlFor={id} className="mb-1 flex items-baseline gap-1 text-xs font-medium" style={{ color: "var(--theme-card-text)" }}>
+              <label htmlFor={id} className="mb-1.5 flex items-baseline gap-1 text-ui font-medium text-fg">
                 {field.label}
-                {field.required && <span aria-hidden="true" style={{ color: "var(--theme-danger)" }}>*</span>}
+                {field.required && <span aria-hidden="true" className="text-danger">*</span>}
                 {/* The key is left out on a designed grid (narrow cells); the label's title still shows it. */}
-                {!layout?.rows?.length && <span className="font-mono text-[10px] font-normal" style={{ color: "var(--theme-muted-text)" }}>{field.key}</span>}
+                {!layout?.rows?.length && <span className="font-mono text-2xs font-normal text-fg-muted">{field.key}</span>}
               </label>
             )}
             {control}
-            {field.description && <p id={help} className="mt-1 text-[11px]" style={{ color: "var(--theme-muted-text)" }}>{field.description}</p>}
-            {error && <p id={errorId} role="alert" className="mt-1 text-[11px]" style={{ color: "var(--theme-danger)" }}>{error}</p>}
+            {field.description && <p id={help} className="mt-1 text-xs text-fg-muted">{field.description}</p>}
+            {error && <p id={errorId} role="alert" className="mt-1 text-xs text-danger">{error}</p>}
           </div>
         )
   }
@@ -214,12 +216,12 @@ function ResultSummary({ result }: { result: StartWorkflowResult }) {
   if (result.mode === "async") {
     return (
       <div className="space-y-2 text-sm" role="status">
-        <p style={{ color: "var(--theme-card-text)" }}>
+        <p className="text-fg">
           {result.run_id ? "Run started in the background." : "Run queued in the background."}
         </p>
         {result.run_id
-          ? <Link href={`/automations/runs/${result.run_id}`} className="text-sm font-medium hover:underline" style={{ color: "var(--theme-primary-text)" }}>Open run →</Link>
-          : <Link href="/automations/queue" className="text-sm font-medium hover:underline" style={{ color: "var(--theme-primary-text)" }}>View queue →</Link>}
+          ? <Link href={`/automations/runs/${result.run_id}`} className="text-sm font-medium text-primary-text hover:underline">Open run →</Link>
+          : <Link href="/automations/queue" className="text-sm font-medium text-primary-text hover:underline">View queue →</Link>}
       </div>
     )
   }
@@ -228,21 +230,21 @@ function ResultSummary({ result }: { result: StartWorkflowResult }) {
   return (
     <div className="space-y-2 text-sm" role="status">
       <div className="flex items-center gap-2">
-        <span style={{ color: "var(--theme-card-text)" }}>Finished with status</span>
+        <span className="text-fg">Finished with status</span>
         <RunStatusBadge status={result.status} />
       </div>
-      {result.error && <p className="text-xs" style={{ color: "var(--theme-danger)" }}>{result.error}</p>}
-      <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>{steps.length} step{steps.length === 1 ? "" : "s"} ran.</p>
+      {result.error && <p className="text-xs text-danger">{result.error}</p>}
+      <p className="text-xs text-fg-muted">{plural(steps.length, "step")} ran.</p>
       {steps.length > 0 && (
         <details>
-          <summary className="cursor-pointer text-xs" style={{ color: "var(--theme-muted-text)" }}>Outputs</summary>
-          <pre className="mt-1 max-h-48 overflow-auto rounded-lg p-2 text-[11px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-card-text)" }}>
+          <summary className="cursor-pointer text-xs text-fg-muted">Outputs</summary>
+          <pre className="mt-1 max-h-48 overflow-auto rounded-md border border-border-subtle bg-subtle p-2 font-mono text-2xs text-fg">
             {outputs.length > 6000 ? `${outputs.slice(0, 6000)}\n…` : outputs}
           </pre>
         </details>
       )}
       {result.run_id && (
-        <Link href={`/automations/runs/${result.run_id}`} className="text-sm font-medium hover:underline" style={{ color: "var(--theme-primary-text)" }}>Open run →</Link>
+        <Link href={`/automations/runs/${result.run_id}`} className="text-sm font-medium text-primary-text hover:underline">Open run →</Link>
       )}
     </div>
   )
@@ -265,6 +267,8 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
   const [mode, setMode] = useState<"async" | "sync">("async")
   const [priority, setPriority] = useState("50")
   const [submitting, setSubmitting] = useState(false)
+  // Synchronous guard: two clicks / Enters in one frame would start two runs.
+  const runGuard = useSubmitGuard()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [result, setResult] = useState<StartWorkflowResult | null>(null)
   // The form the workflow starts from (null until loaded / none).
@@ -276,13 +280,18 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
   const [formBusy, setFormBusy] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState<{ effects: ButtonEffects; started: boolean } | null>(null)
   const keyRef = useRef(newKey())
+  // A workflow that starts from a reusable form: its favourite heart and Save draft icons, as on /f/<id>.
+  const linkedForm = startForm?.kind === "form" ? startForm.form : null
+  const drafts = useFormDraft(open ? linkedForm?.id ?? null : null, linkedForm?.layout)
+  const [draftDecided, setDraftDecided] = useState(false)
+  const offerDraft = drafts.draft && !draftDecided && !Object.keys(formValues).length ? drafts.draft : null
 
   const workflowId = workflow?.id ?? null
   useEffect(() => {
     if (!open || !workflowId) return
     let cancelled = false
     setSchema(null); setLoadError(null); setErrors([]); setSubmitError(null); setResult(null); setMode("async"); setPriority("50")
-    setStartForm(null); setStartFormLoaded(false); setView("form"); setFormValues({}); setFormErrors({}); setSubmitted(null); keyRef.current = newKey()
+    setStartForm(null); setStartFormLoaded(false); setView("form"); setFormValues({}); setFormErrors({}); setSubmitted(null); setDraftDecided(false); keyRef.current = newKey()
     void serverRead("automations.startForm", { workflow_id: workflowId }).then(({ data }) => {
       if (cancelled) return
       const spec = data as WorkflowStartForm | null
@@ -300,36 +309,38 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (!schema || !workflowId || submitting) return
-    if (startForm?.kind === "start_form" && view === "form") {
-      const formCheck = validateTaskFieldValues(startForm.fields, startFormShown())
-      if (Object.keys(formCheck).length) { setFormErrors(formCheck); return }
-      setFormErrors({})
-    }
-    const submitted = toSubmitValues(schema.fields, values)
-    const checked = validateWorkflowInputs(schema.fields, submitted)
-    const priorityNumber = Number(priority)
-    const priorityError = !Number.isInteger(priorityNumber) || priorityNumber < 0 || priorityNumber > 100
-    if (!checked.ok || priorityError) {
-      setErrors(checked.errors)
-      setSubmitError(priorityError ? "Priority must be a whole number from 0 to 100." : null)
-      document.getElementById(`${idPrefix}-${checked.errors[0]?.field}`)?.focus()
-      return
-    }
-    setErrors([]); setSubmitError(null); setSubmitting(true)
-    try {
-      const res = await runWorkflowNow({ workflowId, variables: checked.values, async: mode === "async", priority: priorityNumber })
-      if (isActionError(res)) {
-        setSubmitError(res.error)
-        if (res.fieldErrors) setErrors(res.fieldErrors)
-      } else {
-        setResult(res)
+    await runGuard.run(async () => {
+      if (!schema || !workflowId || submitting) return
+      if (startForm?.kind === "start_form" && view === "form") {
+        const formCheck = validateTaskFieldValues(startForm.fields, startFormShown(), { layout: startForm.layout })
+        if (Object.keys(formCheck).length) { setFormErrors(formCheck); return }
+        setFormErrors({})
       }
-    } catch {
-      setSubmitError("Could not start the workflow.")
-    } finally {
-      setSubmitting(false)
-    }
+      const submitted = toSubmitValues(schema.fields, values)
+      const checked = validateWorkflowInputs(schema.fields, submitted)
+      const priorityNumber = Number(priority)
+      const priorityError = !Number.isInteger(priorityNumber) || priorityNumber < 0 || priorityNumber > 100
+      if (!checked.ok || priorityError) {
+        setErrors(checked.errors)
+        setSubmitError(priorityError ? "Priority must be a whole number from 0 to 100." : null)
+        document.getElementById(`${idPrefix}-${checked.errors[0]?.field}`)?.focus()
+        return
+      }
+      setErrors([]); setSubmitError(null); setSubmitting(true)
+      try {
+        const res = await runWorkflowNow({ workflowId, variables: checked.values, async: mode === "async", priority: priorityNumber })
+        if (isActionError(res)) {
+          setSubmitError(res.error)
+          if (res.fieldErrors) setErrors(res.fieldErrors)
+        } else {
+          setResult(res)
+        }
+      } catch {
+        setSubmitError("Could not start the workflow.")
+      } finally {
+        setSubmitting(false)
+      }
+    })
   }
 
   const version = schema?.version_number ? `v${schema.version_number}` : null
@@ -345,125 +356,128 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
     return out
   }
 
+  // One object per change (a steps start form jumps to the first error when it gets new errors).
+  const startFormErrors = useMemo(() => (startForm?.kind === "start_form"
+    ? { ...Object.fromEntries(errors.map((e) => [Object.entries(startForm.name_by_key).find(([, n]) => n === e.field)?.[0] ?? e.field, e.message])), ...formErrors }
+    : formErrors), [startForm, errors, formErrors])
+
   const formShown = startForm?.kind === "form" ? { ...formDefaultValues(startForm.form.fields), ...formValues } : startFormShown()
 
   /** A button of the linked form: a real submission, as on /f/<id>. */
   async function pressFormButton(button: FormButton) {
-    if (startForm?.kind !== "form" || formBusy) return
-    setSubmitError(null)
-    if (button.kind === "cancel") {
-      const planned = planButtonEffects(button, { values: formShown })
-      setFormValues({}); setFormErrors({})
-      if (planned.close || planned.redirect || !planned.messages.length) onOpenChange(false)
-      return
-    }
-    const clientErrors = validateTaskFieldValues(startForm.form.fields, formShown)
-    if (Object.keys(clientErrors).length) { setFormErrors(clientErrors); return }
-    setFormBusy(button.id)
-    try {
-      const res = await submitStandaloneForm(startForm.form.id, { values: formShown, button_id: button.id, idempotency_key: keyRef.current })
-      if (!res.ok) {
-        if (res.fields) setFormErrors(res.fields)
-        setSubmitError(res.error)
+    await runGuard.run(async () => {
+      if (startForm?.kind !== "form" || formBusy) return
+      setSubmitError(null)
+      if (button.kind === "cancel") {
+        const planned = planButtonEffects(button, { values: formShown })
+        setFormValues({}); setFormErrors({})
+        if (planned.close || planned.redirect || !planned.messages.length) onOpenChange(false)
         return
       }
-      setFormErrors({})
-      const listens = !startForm.button_ids.length || startForm.button_ids.some((b) => b === button.id || (button.outcome && b.toLowerCase() === button.outcome.toLowerCase()))
-      setSubmitted({ effects: res.data.effects, started: listens })
-    } catch {
-      setSubmitError("Could not submit the form.")
-    } finally {
-      setFormBusy(null)
-    }
+      const clientErrors = validateTaskFieldValues(startForm.form.fields, formShown, { layout: startForm.form.layout })
+      if (Object.keys(clientErrors).length) { setFormErrors(clientErrors); return }
+      setFormBusy(button.id)
+      try {
+        const res = await submitRunDialogForm(startForm.form.id, { values: formShown, button_id: button.id, idempotency_key: keyRef.current })
+        if (!res.ok) {
+          if (res.fields) setFormErrors(res.fields)
+          setSubmitError(res.error)
+          return
+        }
+        setFormErrors({})
+        drafts.submitted()
+        setDraftDecided(true)
+        const listens = !startForm.button_ids.length || startForm.button_ids.some((b) => b === button.id || (button.outcome && b.toLowerCase() === button.outcome.toLowerCase()))
+        setSubmitted({ effects: res.data.effects, started: listens })
+      } catch {
+        setSubmitError("Could not submit the form.")
+      } finally {
+        setFormBusy(null)
+      }
+    })
   }
 
   const showForm = Boolean(startForm) && view === "form"
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next) }}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dialog-overlay" />
-        <Dialog.Content
-          className={`fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] ${showForm ? "w-[min(48rem,96vw)]" : "w-[min(34rem,94vw)]"} -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl shadow-xl dialog-content`}
-          style={{ backgroundColor: "var(--theme-card-bg)" }}
-          aria-describedby={undefined}
-        >
-          <div className="flex items-start justify-between gap-3 border-b px-5 py-4" style={{ borderColor: "var(--theme-surface-border)" }}>
-            <div className="min-w-0">
-              <Dialog.Title className="flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--theme-card-text)" }}>
-                <Play size={16} style={{ color: "var(--theme-primary-text)" }} /> Run workflow
-              </Dialog.Title>
-              <p className="truncate text-xs" style={{ color: "var(--theme-muted-text)" }}>
-                {workflow?.name}{version ? ` · ${version}` : ""}
-              </p>
-            </div>
-            <Dialog.Close asChild>
-              <button type="button" aria-label="Close" className="rounded p-1 hover:opacity-70" style={{ color: "var(--theme-muted-text)" }} disabled={submitting}>
-                <X size={16} />
-              </button>
-            </Dialog.Close>
-          </div>
-
+    <Dialog open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next) }}>
+      <DialogContent
+        size={showForm ? "lg" : "md"}
+        className="max-h-[90vh]"
+        title={<span className="flex items-center gap-2"><Play size={16} className="text-primary-text" aria-hidden="true" /> Run workflow</span>}
+        description={<span className="block truncate">{workflow?.name}{version ? ` · ${version}` : ""}</span>}
+      >
           {submitted && startForm?.kind === "form" ? (
-            <div className="space-y-4 overflow-y-auto px-5 py-4" data-run-form-submitted>
-              <WorkflowStartFormView spec={startForm} values={formShown} errors={{}} onChange={() => {}} onPress={() => {}}
-                messages={submitted.effects.messages} successScreen={submitted.effects.success_screen ?? { title: "Submitted", button: "none" }}
-                onSubmitAnother={() => { setSubmitted(null); setFormValues({}); keyRef.current = newKey() }} />
-              <p className="text-xs" role="status" style={{ color: "var(--theme-muted-text)" }}>
-                {submitted.started
-                  ? "The submission was recorded and this workflow was queued from its Form submitted trigger (started by you)."
-                  : "The submission was recorded, but this button does not start this workflow (the trigger listens to other buttons)."}
-              </p>
-              <div className="flex justify-end gap-2">
-                <Link href="/automations/queue" className="text-sm font-medium hover:underline self-center" style={{ color: "var(--theme-primary-text)" }}>View queue →</Link>
-                <Dialog.Close asChild><Button type="button" size="sm">Done</Button></Dialog.Close>
-              </div>
-            </div>
+            <>
+              <DialogBody className="space-y-4" data-run-form-submitted>
+                <WorkflowStartFormView sized spec={startForm} values={formShown} errors={{}} onChange={() => {}} onPress={() => {}}
+                  messages={submitted.effects.messages} successScreen={submitted.effects.success_screen ?? { title: "Submitted", button: "none" }}
+                  onSubmitAnother={() => { setSubmitted(null); setFormValues(freshSubmissionValues(formValues)); keyRef.current = newKey() }}
+                  onClose={() => onOpenChange(false)} />
+                <p className="text-xs text-fg-muted" role="status">
+                  {submitted.started
+                    ? "The submission was recorded and this workflow was queued from its Form submitted trigger (started by you)."
+                    : "The submission was recorded, but this button does not start this workflow (the trigger listens to other buttons)."}
+                </p>
+              </DialogBody>
+              <DialogFooter>
+                <Button asChild variant="link" size="sm"><Link href="/automations/queue">View queue →</Link></Button>
+                <DialogClose asChild><Button type="button" size="sm">Done</Button></DialogClose>
+              </DialogFooter>
+            </>
           ) : result ? (
-            <div className="space-y-4 overflow-y-auto px-5 py-4">
-              <ResultSummary result={result} />
-              {result.warnings?.map((w) => <p key={w} className="text-[11px]" style={{ color: "var(--theme-muted-text)" }}>{w}</p>)}
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setResult(null)}>Run again</Button>
-                <Dialog.Close asChild><Button type="button" size="sm">Done</Button></Dialog.Close>
-              </div>
-            </div>
+            <>
+              <DialogBody className="space-y-4">
+                <ResultSummary result={result} />
+                {result.warnings?.map((w) => <p key={w} className="text-xs text-fg-muted">{w}</p>)}
+              </DialogBody>
+              <DialogFooter>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setResult(null)}>Run again</Button>
+                <DialogClose asChild><Button type="button" size="sm">Done</Button></DialogClose>
+              </DialogFooter>
+            </>
           ) : loadError ? (
-            <p className="px-5 py-4 text-sm" style={{ color: "var(--theme-danger)" }}>{loadError}</p>
+            <DialogBody><p className="text-sm text-danger">{loadError}</p></DialogBody>
           ) : !schema || !startFormLoaded ? (
-            <div className="flex items-center gap-2 px-5 py-6 text-sm" style={{ color: "var(--theme-muted-text)" }}>
+            <DialogBody className="flex items-center gap-2 py-6 text-fg-muted">
               <Loader2 size={14} className="animate-spin" /> Loading inputs…
-            </div>
+            </DialogBody>
           ) : showForm && startForm?.kind === "form" ? (
-            <div className="space-y-3 overflow-y-auto px-5 py-4" data-run-start-form="form">
+            <DialogBody className="space-y-3" data-run-start-form="form">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
-                  This workflow starts when <Link href={formPagePath(startForm.form.id)} className="font-medium hover:underline" style={{ color: "var(--theme-primary-text)" }}>{startForm.form.name}</Link> is submitted. Submitting here is a real submission.
+                <p className="text-xs text-fg-muted">
+                  This workflow starts when <Link href={formAppPath(startForm.form.id)} className="font-medium text-primary-text hover:underline">{startForm.form.name}</Link> is submitted. Submitting here is a real submission.
                 </p>
                 <RunViewToggle view={view} onChange={setView} />
               </div>
-              <WorkflowStartFormView spec={startForm} idPrefix={`${idPrefix}-form-`} values={formShown} errors={formErrors}
+              <FormHeaderActions form={startForm.form} drafts={drafts} onSave={() => { setDraftDecided(true); void drafts.save(formValues) }} />
+              {offerDraft && (
+                <DraftResumePrompt draft={offerDraft}
+                  onResume={() => { setFormValues({ ...offerDraft.values }); setFormErrors({}); setDraftDecided(true) }}
+                  onFresh={() => { setDraftDecided(true); void drafts.discard() }} />
+              )}
+              <WorkflowStartFormView sized spec={startForm} idPrefix={`${idPrefix}-form-`} values={formShown} errors={formErrors}
                 onChange={(key, value) => { setFormValues((prev) => ({ ...prev, [key]: value })); setFormErrors((prev) => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next }) }}
                 onPress={(b) => void pressFormButton(b)} busy={formBusy} failure={submitError} />
-            </div>
+            </DialogBody>
           ) : (
-            <form onSubmit={submit} noValidate className="flex min-h-0 flex-col"
+            <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col"
               // A workflow that starts from a form runs from the Run button only:
               // Enter while filling the form in never starts it.
               onKeyDown={(e) => { if (startForm && isImplicitSubmitKey({ key: e.key, isComposing: e.nativeEvent.isComposing, target: e.target as HTMLInputElement })) e.preventDefault() }}>
-              <div className="space-y-4 overflow-y-auto px-5 py-4">
+              <DialogBody className="space-y-5">
                 {!schema.published && (
-                  <p className="text-xs" style={{ color: "var(--theme-warning)" }}>This workflow has not been published: the run uses the draft.</p>
+                  <p className="text-xs text-warning">This workflow has not been published: the run uses the draft.</p>
                 )}
                 <fieldset>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <legend className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>Inputs</legend>
+                    <legend className="text-sm font-semibold text-fg">Inputs</legend>
                     {startForm && <RunViewToggle view={view} onChange={setView} />}
                   </div>
                   <FormAttachmentsProvider source={workflowId ? { kind: "start", workflowId } : null}>
                   {showForm && startForm?.kind === "start_form" ? (
-                    <WorkflowStartFormView spec={startForm} idPrefix={`${idPrefix}-sf-`} values={startFormShown()} hideButtons
-                      errors={{ ...Object.fromEntries(errors.map((e) => [Object.entries(startForm.name_by_key).find(([, n]) => n === e.field)?.[0] ?? e.field, e.message])), ...formErrors }}
+                    <WorkflowStartFormView sized spec={startForm} idPrefix={`${idPrefix}-sf-`} values={startFormShown()} hideButtons
+                      errors={startFormErrors}
                       onChange={(key, value) => {
                         const v = startFormVariable(startForm, key, value)
                         setValues((prev) => ({ ...prev, [v.name]: typeof value === "boolean" ? value : v.value }))
@@ -471,7 +485,7 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
                       }}
                       onPress={() => {}} />
                   ) : (
-                    <FormThemeScope overrides={(schema.start_form?.theme ?? null) as FormThemeOverrides | null}>
+                    <FormThemeScope overrides={(schema.start_form?.theme ?? null) as FormThemeOverrides | null} motion={formAnimation(schema.start_form?.layout ?? null)}>
                       <WorkflowInputFields fields={schema.fields} values={values} errors={errors} idPrefix={idPrefix} layout={schema.start_form?.layout ?? null}
                         onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))} />
                     </FormThemeScope>
@@ -480,57 +494,54 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
                 </fieldset>
 
                 <fieldset className="space-y-2">
-                  <legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>Options</legend>
+                  <legend className="mb-2 text-sm font-semibold text-fg">Options</legend>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Run mode">
                     {([
                       ["async", "Run in background", "Queue it and continue"],
                       ["sync", "Wait for result", "Run now and show the outcome"],
                     ] as const).map(([value, label, hint]) => (
-                      <label key={value} className="flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-sm"
+                      <label key={value}
                         // Option cards keep sentence case even when the theme uppercases labels.
-                        style={{ borderColor: mode === value ? "var(--theme-primary)" : "var(--theme-surface-border)", color: "var(--theme-card-text)", textTransform: "none", letterSpacing: "normal" }}>
-                        <input type="radio" name={`${idPrefix}-mode`} value={value} checked={mode === value} onChange={() => setMode(value)} className="mt-1" />
+                        className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-ui text-fg normal-case tracking-normal transition-colors duration-[var(--ds-dur-fast)] ${mode === value ? "border-primary bg-primary-wash" : "border-border hover:border-border-strong"}`}>
+                        <input type="radio" name={`${idPrefix}-mode`} value={value} checked={mode === value} onChange={() => setMode(value)} className="mt-1 accent-primary" />
                         <span>
                           <span className="block font-medium">{label}</span>
-                          <span className="block text-[11px]" style={{ color: "var(--theme-muted-text)" }}>{hint}</span>
+                          <span className="block text-xs text-fg-muted">{hint}</span>
                         </span>
                       </label>
                     ))}
                   </div>
                   {mode === "async" && (
-                    <div className="flex items-center gap-2">
-                      <label htmlFor={`${idPrefix}-priority`} className="text-xs" style={{ color: "var(--theme-card-text)" }}>Queue priority</label>
-                      <Input id={`${idPrefix}-priority`} type="number" min={0} max={100} step={1} value={priority}
-                        onChange={(e) => setPriority(e.target.value)} className="!h-8 !w-20 !text-xs" />
-                      <span className="text-[11px]" style={{ color: "var(--theme-muted-text)" }}>0–100, higher runs first</span>
+                    <div className="flex items-center gap-2 pt-1">
+                      <label htmlFor={`${idPrefix}-priority`} className="text-ui text-fg">Queue priority</label>
+                      <Input id={`${idPrefix}-priority`} size="sm" type="number" min={0} max={100} step={1} value={priority}
+                        onChange={(e) => setPriority(e.target.value)} className="w-20" />
+                      <span className="text-xs text-fg-muted">0–100, higher runs first</span>
                     </div>
                   )}
                 </fieldset>
 
-                {submitError && <p role="alert" className="text-xs" style={{ color: "var(--theme-danger)" }}>{submitError}</p>}
-              </div>
-              <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--theme-surface-border)" }}>
-                <Dialog.Close asChild><Button type="button" variant="outline" size="sm" disabled={submitting}>Cancel</Button></Dialog.Close>
-                <Button type="submit" size="sm" disabled={submitting}>
-                  {submitting ? <><Loader2 size={13} className="animate-spin" /> {mode === "sync" ? "Running…" : "Starting…"}</> : <><Play size={13} /> Run</>}
+                {submitError && <p role="alert" className="text-xs text-danger">{submitError}</p>}
+              </DialogBody>
+              <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="secondary" disabled={submitting}>Cancel</Button></DialogClose>
+                <Button type="submit" disabled={submitting} loading={submitting} leadingIcon={submitting ? undefined : <Play size={14} />}>
+                  {submitting ? (mode === "sync" ? "Running…" : "Starting…") : "Run"}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 /** "Show as fields" / "Show as form". */
 function RunViewToggle({ view, onChange }: { view: "form" | "fields"; onChange: (view: "form" | "fields") => void }) {
   return (
-    <button type="button" onClick={() => onChange(view === "form" ? "fields" : "form")} data-run-form-view={view}
-      className="shrink-0 rounded px-2 py-0.5 text-[11px] font-medium hover:opacity-80"
-      style={{ color: "var(--theme-primary-text)", backgroundColor: "var(--theme-primary-light)" }}>
+    <Button type="button" variant="ghost" size="sm" onClick={() => onChange(view === "form" ? "fields" : "form")} data-run-form-view={view}>
       {view === "form" ? "Show as fields" : "Show as form"}
-    </button>
+    </Button>
   )
 }
 
@@ -552,7 +563,7 @@ export function RunWorkflowButton({ workflow, canRun, onRun, compact = false, cl
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="secondary"
       size="sm"
       aria-disabled={reason ? true : undefined}
       aria-label={compact ? label : undefined}
@@ -562,9 +573,10 @@ export function RunWorkflowButton({ workflow, canRun, onRun, compact = false, cl
         e.stopPropagation()
         if (!reason) onRun(workflow)
       }}
-      className={`${compact ? "!h-7 !px-2 !text-[11px]" : "!h-7 !text-xs"} ${reason ? "opacity-50 cursor-not-allowed" : ""} ${className ?? ""}`}
+      leadingIcon={<Play />}
+      className={`${compact ? "px-2" : ""} ${className ?? ""}`}
     >
-      <Play size={12} /> Run
+      Run
     </Button>
   )
 }

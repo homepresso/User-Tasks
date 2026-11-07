@@ -1,0 +1,53 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+  "asset": {
+    "id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+    "name": "Events rows",
+    "rows": [
+      {
+        "id": "bea45c03-46a0-51e0-bbfc-46bdd3dad2ce",
+        "data": {
+          "event_code": "OPS-26",
+          "title": "Operations Summit 2026",
+          "event_date": "2026-11-24",
+          "venue": "Harbourside Conference Centre, Wellington",
+          "capacity": 150,
+          "seats_taken": 104,
+          "organiser": "Avery Example",
+          "organiser_email": "events@example.com",
+          "status": "Open"
+        }
+      },
+      {
+        "id": "5d4d16d8-994d-5887-b27b-c3866b295e34",
+        "data": {
+          "event_code": "CUS-26",
+          "title": "Customer Day",
+          "event_date": "2026-12-02",
+          "venue": "Level 4, 12 Example Street, Auckland",
+          "capacity": 60,
+          "seats_taken": 22,
+          "organiser": "Avery Example",
+          "organiser_email": "events@example.com",
+          "status": "Open"
+        }
+      },
+      {
+        "id": "d2f8338d-e55a-5b31-b1c4-c200ec1d9bf5",
+        "data": {
+          "event_code": "PRT-27",
+          "title": "Partner briefing 2027",
+          "event_date": "2027-01-28",
+          "venue": "Online",
+          "capacity": 300,
+          "seats_taken": 41,
+          "organiser": "Avery Example",
+          "organiser_email": "events@example.com",
+          "status": "Open"
+        }
+      }
+    ]
+  }
+}

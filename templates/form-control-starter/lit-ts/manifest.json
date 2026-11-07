@@ -1,0 +1,83 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-star-rating",
+  "name": "Star rating",
+  "description": "Rate from 1 to 10 stars with the mouse, touch or keyboard.",
+  "icon": "star",
+  "version": "1.0.0",
+  "entry": "ut-star-rating.js",
+  "value": {
+    "type": "number",
+    "schema": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    }
+  },
+  "props": [
+    {
+      "name": "max",
+      "label": "Number of stars",
+      "type": "number",
+      "default": 5,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "name": "allow_clear",
+      "label": "Allow clearing the rating",
+      "type": "boolean",
+      "default": false,
+      "description": "Clicking the current star or pressing Delete removes the rating."
+    },
+    {
+      "name": "size",
+      "label": "Star size",
+      "type": "select",
+      "default": "medium",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (24 px)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (32 px)"
+        },
+        {
+          "value": "large",
+          "label": "Large (40 px)"
+        }
+      ]
+    }
+  ],
+  "events": [],
+  "validation": {
+    "reports_validity": true
+  },
+  "size": {
+    "default_height": 48,
+    "min_height": 32,
+    "max_height": 120
+  },
+  "capabilities": [],
+  "context": [],
+  "display": {
+    "template": "{{value}} of {{props.max}} stars",
+    "format": "text"
+  },
+  "output": {
+    "type": "number",
+    "description": "The number of stars chosen"
+  },
+  "accessibility": {
+    "role": "radiogroup",
+    "keyboard": "Arrow keys change the rating; Home/End jump to the first/last star; Delete clears (when clearing is allowed)",
+    "labelled_by_host": true
+  },
+  "author": "Your name",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "lit": "^3.3.1"
+  }
+}

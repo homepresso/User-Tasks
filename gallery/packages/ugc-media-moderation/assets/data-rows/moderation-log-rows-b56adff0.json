@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+  "asset": {
+    "id": "b56adff0-2748-5545-b52c-b4b452fa676f",
+    "name": "Moderation log rows",
+    "rows": [
+      {
+        "id": "cc3b54d2-7945-53db-9762-ba9b9295e53a",
+        "data": {
+          "upload_id": "UP-20261029-0007",
+          "uploader": "river@example.com",
+          "media_type": "image",
+          "channel": "community",
+          "risk_score": 0.04,
+          "category": "none",
+          "ai_reason": "A landscape photo.",
+          "decision": "Approved",
+          "decided_by": "Automatic",
+          "reason": "Low risk score",
+          "decided_at": "2026-10-29T09:00:00Z"
+        }
+      }
+    ]
+  }
+}

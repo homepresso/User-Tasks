@@ -3,17 +3,22 @@
 import { use } from 'react'
 import { serverRead } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
-import { IntegrationConfig } from '@/components/integrations/integration-config'
 import { IntegrationWizard } from '@/components/integrations/integration-wizard'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { Plug } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { StatusPill } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { PageSkeleton } from '@/components/ui/page-skeleton'
 import { ObjectPermissions } from '@/components/governance/object-permissions'
 import { ExportAssetButton } from '@/components/shared/config-transfer'
 
 export default function IntegrationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
 
-  const { data: integration } = useQuery({
+  const { data: integration, isLoading } = useQuery({
     queryKey: ['integration', id],
     queryFn: async () => (await serverRead('integrations.get', { id })).data,
   })
@@ -23,37 +28,43 @@ export default function IntegrationDetailPage({ params }: { params: Promise<{ id
     queryFn: async () => (await serverRead('integrations.referencesFor', { integrationId: id })).data ?? [],
   })
 
-  if (!integration) return null
+  if (!integration) {
+    if (isLoading) return <PageSkeleton variant="detail" />
+    return (
+      <EmptyState
+        variant="error"
+        title="Integration not found"
+        description="It may have been deleted, or you don't have access to it."
+        action={{ label: 'Back to integrations', href: '/integrations' }}
+      />
+    )
+  }
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/integrations" className="rounded-md p-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-          <ArrowLeft size={20} />
-        </Link>
-        <h1 className="text-2xl font-semibold">{integration.name}</h1>
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-          integration.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-        }`}>
-          {integration.is_active ? 'Active' : 'Inactive'}
-        </span>
-        <Link
-          href={`/integrations/${id}/calls`}
-          className="ml-auto text-xs px-2.5 py-1 rounded-md border transition-colors hover:bg-[var(--theme-row-highlight)]"
-          style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
-        >
-          View Call Logs →
-        </Link>
-        <ExportAssetButton ids={[integration.id]} name={integration.name} className="!h-7" />
-      </div>
-
+    <div className="max-w-3xl">
+      <PageHeader
+        breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: integration.name }]}
+        icon={<Plug />}
+        title={integration.name}
+        badge={<StatusPill status={integration.is_active ? 'active' : 'inactive'} />}
+        actions={
+          <>
+            <Button asChild variant="secondary" size="sm">
+              <Link href={`/integrations/${id}/calls`}>Call logs</Link>
+            </Button>
+            <ExportAssetButton ids={[integration.id]} name={integration.name} />
+          </>
+        }
+      />
+      <div className="space-y-6">
       <IntegrationWizard
         integration={integration}
         references={references ?? []}
       />
 
-      <div className="rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+      <Card padding="md">
         <ObjectPermissions objectType="integration" objectId={id} objectName={integration.name} showExecute={true} />
+      </Card>
       </div>
     </div>
   )

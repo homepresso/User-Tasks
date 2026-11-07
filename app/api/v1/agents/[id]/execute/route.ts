@@ -1,18 +1,23 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err } from '@/lib/api-auth'
-import { executeAgent, BUILTIN_TOOL_DEFS } from '@/lib/agent-executor'
-import type { AgentConfig, AgentTool } from '@/lib/agent-executor'
-import { buildAgentAccessPrompt, getAgentBuiltinToolNames, normalizeAgentOutputConfig } from '@/lib/agent-knowledge'
-import { decryptSensitiveFields } from '@/lib/secret-fields'
-import { recordAgentRun } from '@/lib/agent-run-service'
-import { kickAgentQueueProcessor } from '@/lib/process-queue'
 import { agentExecutionRateLimit } from '@/lib/rate-limit'
-import { configuredAppUrl } from '@/lib/config/bootstrap'
+import { fromApiAuth, isServiceError } from '@/lib/services/context'
+import { enqueueAgentRun } from '@/lib/services/agents'
+import { AgentRunError } from '@/lib/agents/prepare'
+import { loadAndRunAgent } from '@/lib/agents/run'
+import { newTraceId } from '@/lib/trace'
+import { coalescedAgentEvents } from '@/lib/agents/stream'
 
 // Vercel's default function timeout (10-15s) is far shorter than an agent run
 // can take. 60 is the Hobby-plan ceiling; raise to 300 once on a Pro+ plan.
 export const maxDuration = 60
 
+/**
+ * POST /api/v1/agents/{id}/execute — run an agent as the credential's user
+ * (tenant keys: no acting user, so task / workflow write tools are refused).
+ * Sync by default; `async: true` queues it (poll GET /agents/queue/{job_id});
+ * `stream: true` streams Server-Sent Events (reply tokens as `delta`).
+ */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await validateApiKey(request)
   if (!auth.success) return auth.response
@@ -26,115 +31,92 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const throttled = await agentExecutionRateLimit(String(tenantId), auth.keyId)
   if (throttled) return err(throttled.message, 429)
 
-  const body = await request.json()
-  const { message, shared_context, async: asyncMode } = body
-  if (!String(message ?? '').trim()) return err('message is required')
+  const body = await request.json().catch(() => ({}))
+  const message = String(body?.message ?? '')
+  if (!message.trim()) return err('message is required')
+  if (message.length > 100_000) return err('message exceeds the maximum length of 100000 characters')
 
-  // Load agent with tenant check
-  const { data: agent, error: agentErr } = await (supabase as any).from('agents')
-    .select('*, integration:integrations(*)')
-    .eq('id', id).eq('tenant_id', tenantId).single()
-  if (agentErr || !agent) return err('Agent not found', 404)
-
-  const a = agent as any
-  if (a.is_active === false) return err('Agent is inactive', 400)
-  const integration = a.integration
-  if (!integration?.config) return err('Agent has no integration configured', 400)
-
-  // Async mode — enqueue to agent_queue and return immediately
-  if (asyncMode) {
-    const { data: job, error: qErr } = await (supabase as any).from('agent_queue').insert({
-      agent_id: id, tenant_id: tenantId,
-      input_message: message, shared_context: shared_context ?? null,
-      created_by: auth.actingUserId ?? null,
-      status: 'pending',
-    }).select('id').single()
-
-    if (qErr) return err(`Failed to enqueue: ${qErr.message}`, 500)
-
-    kickAgentQueueProcessor(1)
-
-    return ok({ queued: true, job_id: (job as any).id, status: 'pending' }, 202)
+  if (body.async) {
+    try {
+      return ok(await enqueueAgentRun(fromApiAuth(auth), id, { message, shared_context: body.shared_context, max_iterations: body.max_iterations }), 202)
+    } catch (error) {
+      if (isServiceError(error)) return err(error.message, error.status)
+      return err(`Failed to enqueue: ${(error as Error)?.message}`, 500)
+    }
   }
 
-  // Sync mode — execute inline
-  // Credential fields are encrypted at rest — decrypt at the read boundary
-  const intConfig = decryptSensitiveFields(integration.config) as any
-  const apiKey = intConfig.auth_config?.key_value ?? intConfig.auth_config?.token ?? ''
-  const baseUrl = intConfig.base_url ?? 'https://api.openai.com/v1'
-  if (!apiKey) return err('No API key in integration', 400)
+  const history = Array.isArray(body.history)
+    ? body.history.filter((t: any) => t && (t.role === 'user' || t.role === 'assistant') && typeof t.content === 'string').slice(-20)
+    : undefined
 
-  const normalizedOutputConfig = normalizeAgentOutputConfig(a.output_config)
-  const builtinToolNames = getAgentBuiltinToolNames(normalizedOutputConfig, {
-    includeSharedContext: Boolean(shared_context),
-  })
-  const agentTools: AgentTool[] = [
-    ...(a.tools ?? []),
-    ...BUILTIN_TOOL_DEFS.filter(bt => builtinToolNames.includes(bt.name)),
-  ]
-
-  const parts: string[] = []
-  if (a.role) parts.push(`You are ${a.role}.`)
-  if (a.task) parts.push(`\nYour task: ${a.task}`)
-  if (a.boundaries) parts.push(`\nBoundaries:\n${a.boundaries}`)
-  const ov = normalizedOutputConfig.variables
-  if (ov.length > 0) { parts.push(`\nOutputs:`); for (const v of ov) parts.push(`- ${v.name} (${v.type}): ${v.description}`) }
-  let allowedTableNames: string[] = []
-  if (normalizedOutputConfig.data_access.mode === 'selected' && normalizedOutputConfig.data_access.table_ids.length > 0) {
-    const { data: tables } = await (supabase as any)
-      .from('custom_tables')
-      .select('id, name')
-      .eq('tenant_id', tenantId)
-      .in('id', normalizedOutputConfig.data_access.table_ids)
-    allowedTableNames = (tables ?? []).map((table: any) => String(table.name ?? '')).filter(Boolean)
+  // `stream: true` (or Accept: text/event-stream): Server-Sent Events — the
+  // loop's events and the reply token by token (delta), then one `done` /
+  // `error` / `awaiting_approval` event. Disconnecting cancels the run.
+  const wantsStream = body.stream === true || (request.headers.get('accept') ?? '').includes('text/event-stream')
+  if (wantsStream) {
+    const encoder = new TextEncoder()
+    const abort = new AbortController()
+    request.signal?.addEventListener('abort', () => abort.abort())
+    const sse = new ReadableStream({
+      async start(controller) {
+        const send = (event: unknown) => { try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`)) } catch { /* client gone */ } }
+        const relay = coalescedAgentEvents<any>(send, () => (controller.desiredSize ?? 1) > 0)
+        try {
+          const outcome = await loadAndRunAgent({
+            db: supabase, tenantId: String(tenantId), agentId: id, message, history,
+            actingUserId: auth.actingUserId ?? null, callerType: 'api', callerId: auth.keyId ?? null, traceId: newTraceId(),
+            sharedContext: body.shared_context && typeof body.shared_context === 'object' ? body.shared_context : undefined,
+            includeSharedContext: Boolean(body.shared_context),
+            overrides: { maxIterations: body.max_iterations },
+            stream: true, signal: abort.signal, onEvent: (event) => relay.onEvent(event),
+          })
+          relay.close()
+          const { result, runId } = outcome
+          if (result.status === 'awaiting_approval') send({ type: 'awaiting_approval', run_id: runId, approval_task_id: outcome.approval?.taskId ?? null, pending: result.pending })
+          else if (result.status === 'failed') send({ type: 'error', run_id: runId, error: `Agent execution failed: ${result.error ?? 'unknown error'}` })
+          else send({ type: 'done', run_id: runId, response: result.response, outputs: result.outputs ?? null, usage: result.usage, iterations: result.iterations, duration_ms: result.duration_ms })
+        } catch (e: any) {
+          relay.close()
+          send({ type: 'error', error: e instanceof AgentRunError ? e.message : `Agent execution failed: ${e?.message ?? 'error'}` })
+        } finally {
+          try { controller.close() } catch { /* closed */ }
+        }
+      },
+      cancel() { abort.abort() },
+    })
+    return new Response(sse, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' } })
   }
-  const accessPrompt = buildAgentAccessPrompt(normalizedOutputConfig, allowedTableNames)
-  if (accessPrompt) parts.push(accessPrompt)
-  if (a.system_prompt) parts.push(`\n${a.system_prompt}`)
-
-  const config: AgentConfig = {
-    baseUrl, apiKey,
-    model: a.model ?? 'gpt-4o',
-    systemPrompt: parts.join('\n') || 'You are a helpful assistant.',
-    temperature: Number(a.temperature) || 0.7,
-    maxTokens: Number(a.max_tokens) || 4096,
-    maxIterations: Number(body.max_iterations ?? a.max_iterations) || 10,
-    tools: agentTools,
-  }
-
-  const appBaseUrl = configuredAppUrl() || `${request.nextUrl.protocol}//${request.nextUrl.host}`
 
   try {
-    const result = await executeAgent(config, message, {
-      sharedContext: shared_context ?? undefined,
-      appBaseUrl,
-      _tenantId: tenantId,
-      _agentId: id,
-      _actingUserId: auth.actingUserId ?? null,
-      _agentOutputConfig: normalizedOutputConfig,
-      outputVariables: normalizedOutputConfig.variables,
+    const outcome = await loadAndRunAgent({
+      db: supabase, tenantId: String(tenantId), agentId: id, message, history,
+      actingUserId: auth.actingUserId ?? null, callerType: 'api', callerId: auth.keyId ?? null, traceId: newTraceId(),
+      sharedContext: body.shared_context && typeof body.shared_context === 'object' ? body.shared_context : undefined,
+      includeSharedContext: Boolean(body.shared_context),
+      overrides: { maxIterations: body.max_iterations },
     })
-
-    await recordAgentRun({
-      supabase, tenantId: String(tenantId), agentId: id, result,
-      model: config.model, inputMessage: message, actorId: auth.actingUserId ?? null,
-      callerType: 'api',
-    })
-
+    const { result, runId } = outcome
+    if (result.status === 'awaiting_approval') {
+      return ok({ status: 'awaiting_approval', run_id: runId, approval_task_id: outcome.approval?.taskId ?? null, pending: result.pending }, 202)
+    }
     // A real failure is a 502, not a 200 with an error string in the body.
     if (result.status === 'failed') {
       return err(`Agent execution failed: ${result.error ?? 'unknown error'}`, 502)
     }
-
     return ok({
+      status: 'completed',
+      run_id: runId,
       response: result.response,
       outputs: result.outputs ?? null,
+      parse_warning: result.parse_warning ?? null,
       iterations: result.iterations,
-      tool_calls: result.toolCalls,
+      tool_calls: result.toolCalls.map((t) => ({ toolName: t.toolName, arguments: t.arguments, status: t.status, duration_ms: t.duration_ms })),
       usage: result.usage,
       duration_ms: result.duration_ms,
+      files: result.files ?? [],
     })
   } catch (e: any) {
-    return err(`Agent execution failed: ${e.message}`, 500)
+    if (e instanceof AgentRunError) return err(e.message, e.status)
+    return err(`Agent execution failed: ${e?.message ?? 'error'}`, 500)
   }
 }

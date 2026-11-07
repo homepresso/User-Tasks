@@ -1,0 +1,650 @@
+{
+  "manifest_version": 1,
+  "key": "ut_text",
+  "name": "Text toolkit",
+  "version": "1.0.0",
+  "description": "Slugify, change case, fill templates, truncate, extract text between markers, fuzzy-match, count words and mask sensitive values.",
+  "icon": "type",
+  "color": "#7C3AED",
+  "category": "Text",
+  "entry": "dist/action.js",
+  "operations": [
+    {
+      "id": "slugify",
+      "label": "Slugify",
+      "description": "Turn text into a URL- and file-name-safe slug: accents removed (é → e, ß → ss), & becomes \"and\", everything else that is not a letter or digit becomes the separator.",
+      "inputs": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "string",
+          "description": "The text to turn into a slug.",
+          "required": true,
+          "example": "Crème brûlée & Café Menu 2026!"
+        },
+        {
+          "name": "separator",
+          "label": "Separator",
+          "type": "string",
+          "description": "Placed between words (up to 3 punctuation characters).",
+          "default": "-",
+          "example": "-"
+        },
+        {
+          "name": "lowercase",
+          "label": "Lowercase",
+          "type": "boolean",
+          "description": "Lowercase the slug.",
+          "default": true
+        },
+        {
+          "name": "max_length",
+          "label": "Maximum length",
+          "type": "integer",
+          "description": "Optional: cut the slug to this many characters, at a word boundary when possible (0 = no limit).",
+          "default": 0,
+          "example": 60
+        }
+      ],
+      "outputs": [
+        {
+          "name": "slug",
+          "label": "Slug",
+          "type": "string",
+          "description": "For example creme-brulee-and-cafe-menu-2026."
+        }
+      ],
+      "sample": {
+        "text": "Crème brûlée & Café Menu 2026!"
+      }
+    },
+    {
+      "id": "change_case",
+      "label": "Change case",
+      "description": "Convert between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Words are split on spaces, punctuation and case changes (parseHTTPResponse → parse HTTP response).",
+      "inputs": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "string",
+          "description": "The text or identifier to convert.",
+          "required": true,
+          "example": "customer order ID"
+        },
+        {
+          "name": "case",
+          "label": "Case",
+          "type": "select",
+          "description": "The case to convert to.",
+          "default": "snake",
+          "options": [
+            {
+              "value": "camel",
+              "label": "camelCase"
+            },
+            {
+              "value": "pascal",
+              "label": "PascalCase"
+            },
+            {
+              "value": "snake",
+              "label": "snake_case"
+            },
+            {
+              "value": "kebab",
+              "label": "kebab-case"
+            },
+            {
+              "value": "constant",
+              "label": "CONSTANT_CASE"
+            },
+            {
+              "value": "title",
+              "label": "Title Case"
+            },
+            {
+              "value": "sentence",
+              "label": "Sentence case"
+            },
+            {
+              "value": "upper",
+              "label": "UPPER CASE"
+            },
+            {
+              "value": "lower",
+              "label": "lower case"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "string"
+        }
+      ],
+      "sample": {
+        "text": "customer order ID",
+        "case": "camel"
+      }
+    },
+    {
+      "id": "template",
+      "label": "Fill template",
+      "description": "Replace {{name}} placeholders with values from an object. Paths reach nested values ({{customer.name}}, {{items[0].sku}}) and {{name | fallback}} gives a default. Objects and lists are inserted as JSON.",
+      "inputs": [
+        {
+          "name": "template",
+          "label": "Template",
+          "type": "text",
+          "description": "Text with {{placeholders}}.",
+          "required": true,
+          "example": "Hi {{customer.first_name}}, your order {{order.id}} ships {{order.ship_date | soon}}."
+        },
+        {
+          "name": "data",
+          "label": "Data",
+          "type": "object",
+          "description": "The values, as an object.",
+          "example": {
+            "customer": {
+              "first_name": "Aroha"
+            },
+            "order": {
+              "id": "SO-1042"
+            }
+          }
+        },
+        {
+          "name": "missing",
+          "label": "When a value is missing",
+          "type": "select",
+          "description": "Keep the {{placeholder}}, leave it blank, or fail the step.",
+          "default": "keep",
+          "options": [
+            {
+              "value": "keep",
+              "label": "Keep the placeholder"
+            },
+            {
+              "value": "blank",
+              "label": "Leave it blank"
+            },
+            {
+              "value": "error",
+              "label": "Fail the step"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "text",
+          "description": "The filled-in text."
+        },
+        {
+          "name": "missing",
+          "label": "Missing placeholders",
+          "type": "array",
+          "description": "Placeholder paths that had no value (and no fallback).",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "replaced",
+          "label": "Replaced",
+          "type": "integer",
+          "description": "How many placeholders were filled."
+        }
+      ],
+      "sample": {
+        "template": "Hi {{customer.first_name}}, your order {{order.id}} ships {{order.ship_date | soon}}.",
+        "data": {
+          "customer": {
+            "first_name": "Aroha"
+          },
+          "order": {
+            "id": "SO-1042"
+          }
+        }
+      }
+    },
+    {
+      "id": "truncate",
+      "label": "Truncate",
+      "description": "Shorten text to a number of characters or words and add an ellipsis. In character mode the result, ellipsis included, fits the length and does not cut a word in half when it can avoid it.",
+      "inputs": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "text",
+          "description": "The text to shorten.",
+          "required": true,
+          "example": "The quarterly review covers revenue, churn and the hiring plan for the next two quarters."
+        },
+        {
+          "name": "length",
+          "label": "Length",
+          "type": "integer",
+          "description": "Maximum characters (or words).",
+          "required": true,
+          "example": 40
+        },
+        {
+          "name": "by",
+          "label": "Count",
+          "type": "select",
+          "description": "Count characters or words.",
+          "default": "chars",
+          "options": [
+            {
+              "value": "chars",
+              "label": "Characters"
+            },
+            {
+              "value": "words",
+              "label": "Words"
+            }
+          ]
+        },
+        {
+          "name": "ellipsis",
+          "label": "Ellipsis",
+          "type": "string",
+          "description": "Added when the text is cut; enter none for no ellipsis.",
+          "default": "…"
+        },
+        {
+          "name": "preserve_words",
+          "label": "Keep whole words",
+          "type": "boolean",
+          "description": "In character mode, cut at the last space instead of mid-word.",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "text"
+        },
+        {
+          "name": "truncated",
+          "label": "Truncated",
+          "type": "boolean",
+          "description": "Whether the text was shortened."
+        }
+      ],
+      "sample": {
+        "text": "The quarterly review covers revenue, churn and the hiring plan for the next two quarters.",
+        "length": 40
+      }
+    },
+    {
+      "id": "extract_between",
+      "label": "Extract between",
+      "description": "Find the text between a start and an end marker (the first match or all of them). Leave the start empty to read from the beginning, or the end empty to read to the end.",
+      "inputs": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "text",
+          "description": "The text to search.",
+          "required": true,
+          "example": "Ref: [INV-1001] paid; Ref: [INV-1002] due"
+        },
+        {
+          "name": "start",
+          "label": "Start marker",
+          "type": "string",
+          "description": "Text just before the value.",
+          "example": "["
+        },
+        {
+          "name": "end",
+          "label": "End marker",
+          "type": "string",
+          "description": "Text just after the value.",
+          "example": "]"
+        },
+        {
+          "name": "all",
+          "label": "All matches",
+          "type": "boolean",
+          "description": "Return every match instead of the first.",
+          "default": false
+        },
+        {
+          "name": "include_markers",
+          "label": "Include markers",
+          "type": "boolean",
+          "description": "Keep the start and end markers in the result.",
+          "default": false
+        },
+        {
+          "name": "case_sensitive",
+          "label": "Case sensitive",
+          "type": "boolean",
+          "description": "Match the markers exactly (off: ignore case).",
+          "default": true
+        },
+        {
+          "name": "trim",
+          "label": "Trim",
+          "type": "boolean",
+          "description": "Trim spaces around each match.",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "string",
+          "description": "The first match (empty when none)."
+        },
+        {
+          "name": "matches",
+          "label": "Matches",
+          "type": "array",
+          "description": "Every match (one when All matches is off).",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer"
+        },
+        {
+          "name": "found",
+          "label": "Found",
+          "type": "boolean"
+        }
+      ],
+      "sample": {
+        "text": "Ref: [INV-1001] paid; Ref: [INV-1002] due",
+        "start": "[",
+        "end": "]",
+        "all": true
+      }
+    },
+    {
+      "id": "similarity",
+      "label": "Similarity / fuzzy match",
+      "description": "Compare a value with another (Levenshtein distance, normalised similarity 0–1 and Jaro-Winkler) and/or find its best fuzzy match in a list of candidates, with a threshold.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "string",
+          "description": "The text to compare or look up.",
+          "required": true,
+          "example": "Jon Smyth"
+        },
+        {
+          "name": "compare_to",
+          "label": "Compare to",
+          "type": "string",
+          "description": "Optional: a second text to compare with.",
+          "example": "John Smith"
+        },
+        {
+          "name": "candidates",
+          "label": "Candidates",
+          "type": "array",
+          "description": "Optional: a list of texts to find the best match in.",
+          "example": [
+            "John Smith",
+            "Joan Smythe",
+            "Jonas Schmidt"
+          ]
+        },
+        {
+          "name": "threshold",
+          "label": "Threshold",
+          "type": "number",
+          "description": "Score (0–1) at or above which it counts as a match.",
+          "default": 0.8,
+          "example": 0.85
+        },
+        {
+          "name": "method",
+          "label": "Scoring",
+          "type": "select",
+          "description": "Score used for the candidate list and the threshold.",
+          "default": "jaro_winkler",
+          "options": [
+            {
+              "value": "jaro_winkler",
+              "label": "Jaro-Winkler (names, short text)"
+            },
+            {
+              "value": "levenshtein",
+              "label": "Levenshtein similarity (typos, codes)"
+            }
+          ]
+        },
+        {
+          "name": "case_sensitive",
+          "label": "Case sensitive",
+          "type": "boolean",
+          "description": "Off: compare ignoring case (spaces are always normalised).",
+          "default": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "distance",
+          "label": "Edit distance",
+          "type": "integer",
+          "description": "Levenshtein distance between Value and Compare to (empty without Compare to)."
+        },
+        {
+          "name": "similarity",
+          "label": "Similarity",
+          "type": "number",
+          "description": "1 − distance / longer length (0–1)."
+        },
+        {
+          "name": "jaro_winkler",
+          "label": "Jaro-Winkler",
+          "type": "number",
+          "description": "Jaro-Winkler score (0–1)."
+        },
+        {
+          "name": "best_match",
+          "label": "Best match",
+          "type": "string",
+          "description": "The candidate with the highest score (empty without candidates)."
+        },
+        {
+          "name": "best_score",
+          "label": "Best score",
+          "type": "number"
+        },
+        {
+          "name": "best_index",
+          "label": "Best index",
+          "type": "integer",
+          "description": "Position of the best match in the list (from 0; −1 when none)."
+        },
+        {
+          "name": "matched",
+          "label": "Matched",
+          "type": "boolean",
+          "description": "Whether the score reaches the threshold."
+        }
+      ],
+      "sample": {
+        "value": "Jon Smyth",
+        "compare_to": "John Smith",
+        "candidates": [
+          "John Smith",
+          "Joan Smythe",
+          "Jonas Schmidt"
+        ],
+        "threshold": 0.85
+      }
+    },
+    {
+      "id": "word_count",
+      "label": "Word count",
+      "description": "Count words, characters (with and without spaces), sentences and paragraphs, and estimate the reading time.",
+      "inputs": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "text",
+          "description": "The text to count (empty text counts as 0).",
+          "example": "First sentence here. Second one!\n\nA new paragraph."
+        },
+        {
+          "name": "words_per_minute",
+          "label": "Reading speed",
+          "type": "integer",
+          "description": "Words per minute for the reading time.",
+          "default": 200
+        }
+      ],
+      "outputs": [
+        {
+          "name": "words",
+          "label": "Words",
+          "type": "integer"
+        },
+        {
+          "name": "characters",
+          "label": "Characters",
+          "type": "integer"
+        },
+        {
+          "name": "characters_no_spaces",
+          "label": "Characters without spaces",
+          "type": "integer"
+        },
+        {
+          "name": "sentences",
+          "label": "Sentences",
+          "type": "integer"
+        },
+        {
+          "name": "paragraphs",
+          "label": "Paragraphs",
+          "type": "integer"
+        },
+        {
+          "name": "reading_minutes",
+          "label": "Reading time (minutes)",
+          "type": "integer",
+          "description": "Rounded up; 0 for empty text."
+        }
+      ],
+      "sample": {
+        "text": "First sentence here. Second one!\n\nA new paragraph."
+      }
+    },
+    {
+      "id": "mask",
+      "label": "Mask",
+      "description": "Hide part of a sensitive value: keep the last or first N characters, mask everything, or mask an email address (a***@example.com). Spaces and dashes can stay visible so the shape remains readable.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "string",
+          "description": "The value to mask.",
+          "required": true,
+          "example": "4111 1111 1111 1111"
+        },
+        {
+          "name": "mode",
+          "label": "Mode",
+          "type": "select",
+          "description": "What to keep visible.",
+          "default": "keep_last",
+          "options": [
+            {
+              "value": "keep_last",
+              "label": "Keep the last N"
+            },
+            {
+              "value": "keep_first",
+              "label": "Keep the first N"
+            },
+            {
+              "value": "email",
+              "label": "Email address"
+            },
+            {
+              "value": "all",
+              "label": "Mask everything"
+            }
+          ]
+        },
+        {
+          "name": "keep",
+          "label": "Characters to keep",
+          "type": "integer",
+          "description": "N for Keep the last / first N (never more than half of the value is shown).",
+          "default": 4
+        },
+        {
+          "name": "mask_char",
+          "label": "Mask character",
+          "type": "string",
+          "description": "The character that replaces hidden ones.",
+          "default": "*"
+        },
+        {
+          "name": "preserve_separators",
+          "label": "Keep separators",
+          "type": "boolean",
+          "description": "Leave spaces, dashes, dots, slashes, + and brackets unmasked.",
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "masked",
+          "label": "Masked value",
+          "type": "string"
+        }
+      ],
+      "sample": {
+        "value": "4111 1111 1111 1111",
+        "mode": "keep_last",
+        "keep": 4
+      }
+    }
+  ],
+  "capabilities": {},
+  "limits": {
+    "timeout_ms": 5000,
+    "memory_mb": 32
+  },
+  "summary": "Everyday text operations for workflows: URL slugs, camel/snake/title case, {{placeholder}} templates, truncation that respects words, extraction between markers, Levenshtein and Jaro-Winkler fuzzy matching, word counts and masking of card numbers or emails.",
+  "purpose": "Clean, reshape and compare text in one step instead of chaining Modify String and Regex nodes.",
+  "recommended_for": "Naming records and files, building messages, matching free-text names to a list, previews and notifications, masking values before logging or emailing them.",
+  "setup_notes": [
+    "Pure computation: no network, data or secrets. Nothing to configure after installing.",
+    "Lengths are counted in Unicode characters (an emoji counts as one)."
+  ],
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "tags": [
+    "text",
+    "string",
+    "slug",
+    "case",
+    "template",
+    "fuzzy match",
+    "mask",
+    "word count"
+  ]
+}

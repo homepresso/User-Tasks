@@ -4,6 +4,7 @@ import { mcpErr, mcpOk } from '../server'
 import { fromMcpContext } from '@/lib/services/context'
 import { resolvePage } from '@/lib/services/_shared'
 import * as directory from '@/lib/services/directory-sync'
+import * as groups from '@/lib/services/directory-groups'
 import { DIRECTORY_CONNECTION_PROVIDERS, DIRECTORY_SYNC_PROVIDERS, SCIM_TOKEN_SCOPES } from '@/lib/api-schemas/directory-sync'
 import { messageOf } from './_util'
 
@@ -45,6 +46,8 @@ export function registerDirectorySyncTools(server: McpToolServer, ctx: McpContex
     credentials: jsonObject.optional().describe(CREDENTIALS_HELP),
     sync_groups: z.boolean().optional().describe('Groups become teams (default true)'),
     auto_provision: z.boolean().optional().describe('Create accounts for directory users without one (default true)'),
+    import_org_units: z.boolean().optional().describe('Build org units from company / division / department, Google: organizational units (default true)'),
+    import_profiles: z.boolean().optional().describe("Import members' job title, department, location, employee id and cost centre (default true)"),
   }, async (args) => run(() => directory.createDirectoryConnection(svc(), args)))
 
   server.tool('directory_sync_update', 'Update a directory connection: settings and credentials merge over the stored ones (null removes a key, __SECRET__ keeps a secret); re-verified when they change.', {
@@ -53,6 +56,8 @@ export function registerDirectorySyncTools(server: McpToolServer, ctx: McpContex
     credentials: jsonObject.optional().describe(CREDENTIALS_HELP),
     sync_groups: z.boolean().optional(),
     auto_provision: z.boolean().optional(),
+    import_org_units: z.boolean().optional(),
+    import_profiles: z.boolean().optional(),
   }, async (args) => run(() => {
     const { provider: p, ...input } = args
     return directory.updateDirectoryConnection(svc(), p, input)
@@ -78,6 +83,18 @@ export function registerDirectorySyncTools(server: McpToolServer, ctx: McpContex
     limit: z.number().optional().describe('Page size (1-100, default 50; 0 = no limit)'),
     offset: z.number().optional(),
   }, async (args) => run(() => directory.listDirectorySyncRuns(svc(), resolvePage(args), { provider: args.provider })))
+
+  server.tool('directory_capabilities', 'What the directory connections make available to workflows: entraGroups (an enabled Entra ID connection — User Task nodes may use assignment_type aad_group) and syncedGroups (groups are also synced as teams).', {},
+    async () => run(() => groups.getDirectoryCapabilities(svc())))
+
+  server.tool('directory_entra_groups_search','Search the workspace\'s Entra ID (AAD) groups for User Task AAD group assignment (assignment_type aad_group, aad_group_id = a returned id). Also returns whether Entra ID is configured. Synced groups when the connection syncs them, else a live Microsoft Graph search.', {
+    search: z.string().max(100).optional().describe('Matches group display names'),
+    cursor: z.string().max(4000).optional().describe('next_cursor of the previous page'),
+  }, async (args) => run(async () => {
+    const capabilities = await groups.getDirectoryCapabilities(svc())
+    if (!capabilities.entraGroups) return { ...capabilities, groups: [], next_cursor: null }
+    return { ...capabilities, ...(await groups.searchDirectoryEntraGroups(svc(), { search: args.search ?? null, cursor: args.cursor ?? null })) }
+  }))
 
   server.tool('scim_tokens_list', 'List SCIM tokens (name, prefix, scopes, last use, expiry) — never the tokens themselves.', {},
     async () => run(() => directory.listScimTokens(svc())))

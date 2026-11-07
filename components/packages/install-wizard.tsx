@@ -12,8 +12,15 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { BadgeCheck, FileWarning, PackageOpen, ShieldAlert, Upload } from 'lucide-react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
+import { BadgeCheck, Check, FileWarning, PackageOpen, ShieldAlert, Upload } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { plural } from '@/lib/format/plural'
 import { Button } from '@/components/ui/button'
+import { Badge, type Tone } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select } from '@/components/ui/select'
+import { Tooltip } from '@/components/ui/tooltip'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { inspectPackageFileAction, planInstallAction } from '@/app/actions/packages'
 import { useJobs } from '@/components/jobs/jobs-provider'
@@ -27,9 +34,7 @@ const STEPS = ['Package', 'Changes', 'Configure', 'Done'] as const
 /** Changes first, then what stays the same. */
 const ACTION_ORDER: Record<string, number> = { error: 0, update: 1, create: 2, unchanged: 3 }
 
-const ACTION_COLOR: Record<string, string> = {
-  create: 'var(--theme-success)', update: 'var(--theme-warning)', unchanged: 'var(--theme-muted-text)', error: 'var(--theme-danger)',
-}
+const ACTION_TONE: Record<string, Tone> = { create: 'success', update: 'warning', unchanged: 'neutral', error: 'danger' }
 
 export async function fileToBase64(file: File): Promise<string> {
   const bytes = new Uint8Array(await file.arrayBuffer())
@@ -39,17 +44,21 @@ export async function fileToBase64(file: File): Promise<string> {
 }
 
 export function SignatureBadge({ verification }: { verification: { signed: boolean; signature_ok: boolean | null; fingerprint: string | null; trust: string; valid: boolean } }) {
-  if (!verification.valid) return <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--theme-danger)' }}><ShieldAlert size={13} /> Modified or corrupt</span>
-  if (!verification.signed) return <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--theme-warning)' }}><FileWarning size={13} /> Unsigned</span>
+  if (!verification.valid) return <Badge tone="danger"><ShieldAlert size={14} aria-hidden /> Modified or corrupt</Badge>
+  if (!verification.signed) return <Badge tone="warning"><FileWarning size={14} aria-hidden /> Unsigned</Badge>
   const label = verification.trust === 'instance' ? 'Signed by this instance' : verification.trust === 'trusted' ? 'Signed by a trusted key' : 'Signed by an unknown key'
   return (
-    <span className="inline-flex items-center gap-1 text-xs" style={{ color: verification.trust === 'untrusted' ? 'var(--theme-warning)' : 'var(--theme-success)' }} title={verification.fingerprint ?? ''}>
-      <BadgeCheck size={13} /> {label} <code className="text-[10px] opacity-80">{verification.fingerprint?.slice(0, 23)}</code>
-    </span>
+    <Tooltip content={verification.fingerprint ? <span className="font-mono">{verification.fingerprint}</span> : null}>
+      <span className="inline-flex items-center gap-2">
+        <Badge tone={verification.trust === 'untrusted' ? 'warning' : 'success'}><BadgeCheck size={14} aria-hidden /> {label}</Badge>
+        {verification.fingerprint && <code className="font-mono text-2xs text-fg-muted">{verification.fingerprint.slice(0, 23)}</code>}
+      </span>
+    </Tooltip>
   )
 }
 
 export interface WizardFile { name: string; base64: string }
+
 
 export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf, initialFile, target, source }: {
   open: boolean
@@ -83,6 +92,8 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
   }
 
   const tenantId = target?.tenantId ?? null
+  // Synchronous guard: two clicks in one frame both see busy === false.
+  const installGuard = useSubmitGuard()
   const loadFile = async (name: string, base64: string) => {
     reset()
     setBusy(true)
@@ -125,50 +136,79 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
   }
 
   const install = async () => {
-    if (!file) return
-    setBusy(true)
-    setError(null)
-    // A background job (`package.install`): a quick install shows its result
-    // here; a long one continues after the wizard closes (popup + Jobs panel).
-    try {
-      const job = await jobs.start('package.install', {
-        file_name: file.name, name: inspect?.package.name ?? file.name, values: cleanValues(values),
-        keep_incomplete: keepIncomplete, adopt_by_name: adoptByName, data: rows, keep_local_changes: keepLocal, source: source ?? 'file',
-      }, { effect: 'change', quietIfInline: true, input: { base64: file.base64 }, tenantId, onSuccess: () => onInstalled() })
-      if (!job) return
-      if (job.status === 'failed') { setError(job.error ?? 'The install failed'); return }
-      if (job.status === 'succeeded' && job.result?.data) {
-        setResult(job.result.data as Plan)
-        setStep(3)
-        return
+    await installGuard.run(async () => {
+      if (!file) return
+      setBusy(true)
+      setError(null)
+      // A background job (`package.install`): a quick install shows its result
+      // here; a long one continues after the wizard closes (popup + Jobs panel).
+      try {
+        const job = await jobs.start('package.install', {
+          file_name: file.name, name: inspect?.package.name ?? file.name, values: cleanValues(values),
+          keep_incomplete: keepIncomplete, adopt_by_name: adoptByName, data: rows, keep_local_changes: keepLocal, source: source ?? 'file',
+        }, { effect: 'change', quietIfInline: true, input: { base64: file.base64 }, tenantId, onSuccess: () => onInstalled() })
+        if (!job) return
+        if (job.status === 'failed') { setError(job.error ?? 'The install failed'); return }
+        if (job.status === 'succeeded' && job.result?.data) {
+          setResult(job.result.data as Plan)
+          setStep(3)
+          return
+        }
+        onOpenChange(false)
+      } catch (startError) {
+        setError(startError instanceof Error ? startError.message : 'Could not start the install')
+      } finally {
+        setBusy(false)
       }
-      onOpenChange(false)
-    } catch (startError) {
-      setError(startError instanceof Error ? startError.message : 'Could not start the install')
-    } finally {
-      setBusy(false)
-    }
+    })
   }
 
   const requirements = (plan?.requirements ?? []) as RequirementView[]
   const missing = missingCount(requirements, values)
   const otherBlockers = (plan?.blockers ?? []).filter((b) => !b.startsWith('Missing required values'))
   const summary = plan?.plan.summary
+  const close = () => onOpenChange(false)
+
+  const footer = step === 0 ? (
+    <>
+      <Button variant="secondary" onClick={close}>Cancel</Button>
+      <Button data-testid="wizard-next" disabled={!inspect || !inspect.verification.valid || busy || Boolean(error)} onClick={async () => { if (await replan()) setStep(1) }}>Review changes</Button>
+    </>
+  ) : step === 1 && plan ? (
+    <>
+      <Button variant="secondary" className="mr-auto" onClick={() => setStep(0)}>Back</Button>
+      <Button data-testid="wizard-next" disabled={busy || otherBlockers.length > 0 || Boolean(plan.missing_permissions?.length)} onClick={() => setStep(2)}>
+        {requirements.length ? 'Configure' : 'Continue'}
+      </Button>
+    </>
+  ) : step === 2 && plan ? (
+    <>
+      <Button variant="secondary" className="mr-auto" onClick={() => setStep(1)}>Back</Button>
+      <Button data-testid="wizard-install" disabled={busy || (missing > 0 && !keepIncomplete)} loading={busy} onClick={() => void install()}>
+        {plan.mode === 'install' ? 'Install' : plan.mode === 'upgrade' ? 'Upgrade' : 'Apply'}
+      </Button>
+    </>
+  ) : step === 3 && result ? (
+    <Button onClick={() => { reset(); close() }} data-testid="wizard-done">Done</Button>
+  ) : null
 
   return (
-    <Modal open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next) }} title={expectUpgradeOf ? `Upgrade ${expectUpgradeOf.name}` : target ? `Import into ${target.name}` : 'Import a package'}>
-      {target && <InlineNotice tone="warning" className="mb-3" message={`Installing into the workspace “${target.name}” — not the one you are in. Its own permissions and requirement values apply.`} />}
-      <ol className="flex items-center gap-2 mb-5 text-xs" aria-label="Steps">
+    <Modal open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next) }} footer={footer}
+      title={expectUpgradeOf ? `Upgrade ${expectUpgradeOf.name}` : target ? `Import into ${target.name}` : 'Import a package'}>
+      {target && <InlineNotice tone="warning" className="mb-4" message={`Installing into the workspace “${target.name}” — not the one you are in. Its own permissions and requirement values apply.`} />}
+      <ol className="mb-5 flex flex-wrap items-center gap-2 text-xs" aria-label="Steps">
         {STEPS.map((label, index) => (
-          <li key={label} className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold"
-              style={{ backgroundColor: index <= step ? 'var(--theme-primary)' : 'var(--theme-surface)', color: index <= step ? 'var(--theme-on-primary, #fff)' : 'var(--theme-muted-text)' }}>{index + 1}</span>
-            <span style={{ color: index === step ? 'var(--theme-card-text)' : 'var(--theme-muted-text)' }} className={index === step ? 'font-medium' : ''}>{label}</span>
-            {index < STEPS.length - 1 && <span className="w-6 border-t" style={{ borderColor: 'var(--theme-surface-border)' }} />}
+          <li key={label} className="flex items-center gap-2" aria-current={index === step ? 'step' : undefined}>
+            <span className={cn('flex size-5 items-center justify-center rounded-full text-2xs font-semibold',
+              index < step ? 'bg-primary text-primary-fg' : index === step ? 'bg-primary text-primary-fg' : 'bg-muted text-fg-muted')}>
+              {index < step ? <Check size={12} aria-hidden /> : index + 1}
+            </span>
+            <span className={index === step ? 'font-medium text-fg' : 'text-fg-muted'}>{label}</span>
+            {index < STEPS.length - 1 && <span className="w-6 border-t border-border" aria-hidden />}
           </li>
         ))}
       </ol>
-      {error && <InlineNotice tone="error" message={error} className="mb-3" />}
+      {error && <InlineNotice tone="error" message={error} className="mb-4" />}
 
       {step === 0 && (
         <div className="space-y-4">
@@ -176,119 +216,109 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
           <button type="button" onClick={() => inputRef.current?.click()} data-testid="wizard-dropzone"
             onDragOver={(event) => { event.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
             onDrop={(event) => { event.preventDefault(); setDragging(false); void onPick(event.dataTransfer.files?.[0]) }}
-            className="w-full rounded-xl border-2 border-dashed p-6 text-center text-sm hover:opacity-80"
-            style={{ borderColor: dragging ? 'var(--theme-primary)' : 'var(--theme-surface-border)', color: 'var(--theme-muted-text)', backgroundColor: dragging ? 'var(--theme-surface)' : undefined }}>
-            <Upload size={18} className="mx-auto mb-2" />
-            {file ? file.name : 'Drop a .utpkg file here, or choose one'}
+            className={cn('w-full rounded-lg border border-dashed p-6 text-center text-ui transition-colors duration-[var(--ds-dur-fast)]',
+              dragging ? 'border-primary bg-primary-wash text-fg' : 'border-border-strong text-fg-muted hover:bg-subtle hover:text-fg')}>
+            <Upload size={20} className="mx-auto mb-2" aria-hidden />
+            {file ? <span className="font-mono text-xs text-fg">{file.name}</span> : 'Drop a .utpkg file here, or choose one'}
           </button>
-          {busy && !inspect && <p className="text-sm">Verifying…</p>}
+          {busy && !inspect && <p className="text-ui text-fg-muted" role="status">Verifying…</p>}
           {inspect && (
-            <div className="rounded-lg border p-4 space-y-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
+            <div className="space-y-3 rounded-lg border border-border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-semibold flex items-center gap-2"><PackageOpen size={16} /> {inspect.package.name} <span className="text-xs font-normal" style={{ color: 'var(--theme-muted-text)' }}>v{inspect.package.version}{inspect.package.author ? ` · ${inspect.package.author}` : ''}</span></p>
+                <p className="flex items-center gap-2 text-sm font-semibold text-fg">
+                  <PackageOpen size={16} className="text-fg-muted" aria-hidden /> {inspect.package.name}
+                  <span className="font-mono text-xs font-normal text-fg-muted">v{inspect.package.version}</span>
+                  {inspect.package.author && <span className="text-xs font-normal text-fg-muted">· {inspect.package.author}</span>}
+                </p>
                 <SignatureBadge verification={inspect.verification} />
               </div>
-              {inspect.package.description && <p className="text-sm">{inspect.package.description}</p>}
+              {inspect.package.description && <p className="text-sm text-fg">{inspect.package.description}</p>}
               {inspect.installed && <InlineNotice tone="warning" message={`Installed here: version ${inspect.installed.version} (${inspect.installed.status}). Continuing upgrades it in place — local connection details are kept.`} />}
               {inspect.package.readme && (
-                <pre className="text-xs whitespace-pre-wrap rounded p-3 max-h-40 overflow-y-auto" style={{ backgroundColor: 'var(--theme-surface)' }}>{inspect.package.readme}</pre>
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-md bg-subtle p-3 font-mono text-xs text-fg scrollbar-thin">{inspect.package.readme}</pre>
               )}
-              <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                {inspect.assets.length} assets · {inspect.requirements.length} requirement{inspect.requirements.length === 1 ? '' : 's'}
-                {inspect.data.filter((d) => d.mode === 'rows').length ? ` · rows for ${inspect.data.filter((d) => d.mode === 'rows').length} table(s)` : ''}
+              <p className="num text-xs text-fg-muted">
+                {plural(inspect.assets.length, 'asset')} · {plural(inspect.requirements.length, 'requirement')}
+                {inspect.data.filter((d) => d.mode === 'rows').length ? ` · rows for ${plural(inspect.data.filter((d) => d.mode === 'rows').length, 'table')}` : ''}
               </p>
-              {inspect.verification.errors.map((e) => <p key={e} className="text-xs" style={{ color: 'var(--theme-danger)' }}>{e}</p>)}
+              {(inspect.network_controls ?? []).length > 0 && (
+                <div data-testid="wizard-network-controls">
+                  <InlineNotice tone="warning" message={`Network access to approve after install: ${inspect.network_controls.map((c) => `${c.name} (${c.tag}) → ${c.hosts.join(', ') || 'no hosts declared'}`).join('; ')}. These controls stay offline until an admin approves their hosts in Extensibility → Form controls.`} />
+                </div>
+              )}
+              {inspect.verification.errors.map((e) => <p key={e} className="text-xs text-danger">{e}</p>)}
             </div>
           )}
-          <div className="flex justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" data-testid="wizard-next" disabled={!inspect || !inspect.verification.valid || busy || Boolean(error)} onClick={async () => { if (await replan()) setStep(1) }}>Review changes</Button>
-          </div>
         </div>
       )}
 
       {step === 1 && plan && (
         <div className="space-y-4">
-          <p className="text-sm">
+          <p className="num text-sm text-fg">
             {plan.mode === 'install' ? 'New install' : plan.mode === 'upgrade' ? `Upgrade ${plan.installed_version} → ${plan.package.version}` : plan.mode === 'reinstall' ? `Reinstall ${plan.package.version}` : `Downgrade ${plan.installed_version} → ${plan.package.version}`}:
             {' '}{summary?.create ?? 0} to create, {summary?.update ?? 0} to update, {summary?.unchanged ?? 0} unchanged.
           </p>
-          <div className="rounded-lg border divide-y text-sm max-h-72 overflow-y-auto" style={{ borderColor: 'var(--theme-surface-border)' }} data-testid="install-plan">
+          <div className="max-h-72 divide-y divide-border-subtle overflow-y-auto rounded-lg border border-border text-ui scrollbar-thin" data-testid="install-plan">
             {[...plan.plan.assets].sort((a, b) => ACTION_ORDER[a.action] - ACTION_ORDER[b.action]).map((asset, index) => (
-              <div key={`${asset.section}:${asset.source_id ?? index}`} className="px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold w-20 shrink-0 capitalize" style={{ color: ACTION_COLOR[asset.action] }}>{asset.action}</span>
-                  <span className="text-xs w-28 shrink-0" style={{ color: 'var(--theme-muted-text)' }}>{asset.section.replace(/_/g, ' ')}</span>
-                  <span className="truncate">{asset.name}</span>
-                  {asset.locally_modified && <span className="text-[10px] px-1.5 rounded" style={{ backgroundColor: 'var(--status-warning-bg)', color: 'var(--theme-warning)' }}>changed here</span>}
-                  {asset.needs_config && <span className="text-[10px] px-1.5 rounded" style={{ backgroundColor: 'var(--status-warning-bg)', color: 'var(--theme-warning)' }}>needs configuration</span>}
+              <div key={`${asset.section}:${asset.source_id ?? index}`} className="px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="w-20 shrink-0"><Badge tone={ACTION_TONE[asset.action] ?? 'neutral'}><span className="first-letter:uppercase">{asset.action}</span></Badge></span>
+                  <span className="w-28 shrink-0 text-xs text-fg-muted first-letter:uppercase">{asset.section.replace(/_/g, ' ')}</span>
+                  <span className="truncate text-fg">{asset.name}</span>
+                  {asset.locally_modified && <Badge tone="warning">Changed here</Badge>}
+                  {asset.needs_config && <Badge tone="warning">Needs configuration</Badge>}
                 </div>
                 {asset.action === 'update' && asset.diffs?.length ? (
-                  <ul className="text-xs mt-1 ml-[5.5rem] space-y-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+                  <ul className="ml-[13.5rem] mt-1 space-y-0.5 font-mono text-xs text-fg-muted max-sm:ml-0">
                     {asset.diffs.slice(0, 4).map((diff) => <li key={diff.path} className="truncate">{diff.path}</li>)}
                   </ul>
                 ) : null}
               </div>
             ))}
             {plan.removed_upstream.map((removed) => (
-              <div key={`removed:${removed.source_id}`} className="px-3 py-2 text-sm" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                <span className="text-xs font-semibold w-20 inline-block" style={{ color: 'var(--theme-muted-text)' }}>kept</span>
-                <span className="text-xs w-28 inline-block" style={{ color: 'var(--theme-muted-text)' }}>{removed.section.replace(/_/g, ' ')}</span>
-                {removed.name} <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>— no longer in this version; not deleted</span>
+              <div key={`removed:${removed.source_id}`} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                <span className="w-20 shrink-0"><Badge>Kept</Badge></span>
+                <span className="w-28 shrink-0 text-xs text-fg-muted first-letter:uppercase">{removed.section.replace(/_/g, ' ')}</span>
+                <span className="text-fg">{removed.name}</span> <span className="text-xs text-fg-muted">— no longer in this version; not deleted</span>
               </div>
             ))}
           </div>
           {plan.data.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Table rows</p>
+              <p className="text-ui font-medium text-fg">Table rows</p>
               {plan.data.map((table) => (
-                <label key={table.table_id} className="flex items-center justify-between gap-3 text-sm">
-                  <span>{table.name} <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>({table.rows} rows)</span></span>
-                  <select className="rounded border px-2 py-1 text-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }} value={rows[table.table_id] ?? 'merge'}
-                    onChange={(event) => { const next = { ...rows, [table.table_id]: event.target.value as RowMode }; setRows(next); void replan(values, next) }}>
-                    <option value="merge">Merge (update, then add)</option>
-                    <option value="replace">Replace all rows</option>
-                    <option value="skip">Skip</option>
-                  </select>
+                <label key={table.table_id} className="flex items-center justify-between gap-3 text-ui">
+                  <span className="text-fg">{table.name} <span className="num text-xs text-fg-muted">({plural(table.rows, 'row')})</span></span>
+                  <Select wrapperClassName="w-56" value={rows[table.table_id] ?? 'merge'}
+                    onChange={(event) => { const next = { ...rows, [table.table_id]: event.target.value as RowMode }; setRows(next); void replan(values, next) }}
+                    options={[{ value: 'merge', label: 'Merge (update, then add)' }, { value: 'replace', label: 'Replace all rows' }, { value: 'skip', label: 'Skip' }]} />
                 </label>
               ))}
             </div>
           )}
           {plan.mode === 'install' ? (
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={adoptByName} onChange={(event) => { setAdoptByName(event.target.checked); void replan(values, rows, event.target.checked) }} /> Match existing assets by name instead of creating copies</label>
+            <Checkbox checked={adoptByName} onChange={(event) => { setAdoptByName(event.target.checked); void replan(values, rows, event.target.checked) }} label="Match existing assets by name instead of creating copies" />
           ) : plan.plan.assets.some((a) => a.locally_modified) ? (
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={keepLocal} onChange={(event) => { setKeepLocal(event.target.checked); void replan(values, rows, adoptByName, event.target.checked) }} /> Keep assets changed in this workspace (don’t overwrite them)</label>
+            <Checkbox checked={keepLocal} onChange={(event) => { setKeepLocal(event.target.checked); void replan(values, rows, adoptByName, event.target.checked) }} label="Keep assets changed in this workspace (don’t overwrite them)" />
           ) : null}
           {plan.warnings.map((w, i) => <InlineNotice key={i} tone="warning" message={w.warning} />)}
           {otherBlockers.map((b) => <InlineNotice key={b} tone="error" message={b} />)}
           {plan.missing_permissions?.length ? <InlineNotice tone="error" message={`You need ${[...new Set(plan.missing_permissions.map((m) => m.permission))].join(', ')} to install this package.`} /> : null}
-          <div className="flex justify-between gap-2">
-            <Button size="sm" variant="outline" onClick={() => setStep(0)}>Back</Button>
-            <Button size="sm" data-testid="wizard-next" disabled={busy || otherBlockers.length > 0 || Boolean(plan.missing_permissions?.length)} onClick={() => setStep(2)}>
-              {requirements.length ? 'Configure' : 'Continue'}
-            </Button>
-          </div>
         </div>
       )}
 
       {step === 2 && plan && (
         <div className="space-y-4">
-          <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-sm text-fg-muted">
             Credentials and environment settings are not part of the package. Fill them in now, or keep the install incomplete and finish later from the package library — items that need configuration stay disabled until then.
           </p>
           <RequirementsForm requirements={requirements} values={values} onChange={setValues} />
           {missing > 0 && (
-            <label className="flex items-start gap-2 text-sm rounded-lg p-3" style={{ backgroundColor: 'var(--status-warning-bg)' }}>
-              <input type="checkbox" className="mt-0.5" checked={keepIncomplete} onChange={(event) => setKeepIncomplete(event.target.checked)} data-testid="keep-incomplete" />
-              <span>Keep incomplete — {missing} required value{missing === 1 ? ' is' : 's are'} missing. Affected connections are installed disabled and dependent workflows can’t be activated until setup is completed.</span>
-            </label>
+            <div className="rounded-lg bg-warning-wash p-3">
+              <Checkbox checked={keepIncomplete} onChange={(event) => setKeepIncomplete(event.target.checked)} data-testid="keep-incomplete"
+                label={`Keep incomplete — ${missing} required value${missing === 1 ? ' is' : 's are'} missing. Affected connections are installed disabled and dependent workflows can’t be activated until setup is completed.`} />
+            </div>
           )}
-          <div className="flex justify-between gap-2">
-            <Button size="sm" variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button size="sm" data-testid="wizard-install" disabled={busy || (missing > 0 && !keepIncomplete)} onClick={() => void install()}>
-              {busy ? 'Installing…' : plan.mode === 'install' ? 'Install' : plan.mode === 'upgrade' ? 'Upgrade' : 'Apply'}
-            </Button>
-          </div>
         </div>
       )}
 
@@ -300,11 +330,10 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
               ? `${result.package.name} ${result.package.version} installed — setup incomplete. Finish it with “Complete setup” in the library.`
               : `${result.package.name} ${result.package.version} ${result.mode === 'upgrade' ? 'upgraded' : 'installed'}.`}
           />
-          {(result.result?.errors ?? []).map((e, i) => <p key={i} className="text-xs" style={{ color: 'var(--theme-danger)' }}>{e.asset_type}: {e.error}</p>)}
-          {((result.result?.rows ?? []) as Array<{ table_id: string; name: string; inserted: number; updated: number; error?: string }>).map((r) => <p key={r.table_id} className="text-xs">{r.name}: {r.inserted} rows added, {r.updated} updated{r.error ? ` — ${r.error}` : ''}</p>)}
-          {result.warnings.map((w, i) => <p key={i} className="text-xs" style={{ color: 'var(--theme-warning)' }}>{w.warning}</p>)}
-          <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>Recorded in the package history{target ? ` of ${target.name}` : ''}.</p>
-          <div className="flex justify-end"><Button size="sm" onClick={() => { reset(); onOpenChange(false) }} data-testid="wizard-done">Done</Button></div>
+          {(result.result?.errors ?? []).map((e, i) => <p key={i} className="text-xs text-danger">{e.asset_type}: {e.error}</p>)}
+          {((result.result?.rows ?? []) as Array<{ table_id: string; name: string; inserted: number; updated: number; error?: string }>).map((r) => <p key={r.table_id} className="num text-xs text-fg">{r.name}: {r.inserted} rows added, {r.updated} updated{r.error ? ` — ${r.error}` : ''}</p>)}
+          {result.warnings.map((w, i) => <p key={i} className="text-xs text-warning">{w.warning}</p>)}
+          <p className="text-xs text-fg-muted">Recorded in the package history{target ? ` of ${target.name}` : ''}.</p>
         </div>
       )}
     </Modal>

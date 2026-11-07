@@ -1,0 +1,661 @@
+{
+  "manifest_version": 1,
+  "key": "ut_validate",
+  "name": "Validation & formatting",
+  "version": "1.0.0",
+  "description": "Validate IBANs, BICs, card numbers, emails, phone numbers, postcodes and national IDs with check digits and normalised values; format and parse numbers, currencies and phone numbers by locale.",
+  "icon": "badge-check",
+  "color": "#16A34A",
+  "category": "Data quality",
+  "entry": "dist/action.js",
+  "operations": [
+    {
+      "id": "validate",
+      "label": "Validate",
+      "description": "Check one value: iban, bic, card, email, phone, postcode or national_id. Returns valid, the normalised value, the reason it is invalid and type-specific details (card issuer, IBAN country, phone country code, formatted ID, …).",
+      "inputs": [
+        {
+          "name": "type",
+          "label": "Type",
+          "type": "select",
+          "description": "What the value is.",
+          "required": true,
+          "default": "email",
+          "options": [
+            {
+              "value": "iban",
+              "label": "IBAN"
+            },
+            {
+              "value": "bic",
+              "label": "BIC / SWIFT code"
+            },
+            {
+              "value": "card",
+              "label": "Payment card number"
+            },
+            {
+              "value": "email",
+              "label": "Email address"
+            },
+            {
+              "value": "phone",
+              "label": "Phone number"
+            },
+            {
+              "value": "postcode",
+              "label": "Postcode / ZIP"
+            },
+            {
+              "value": "national_id",
+              "label": "National ID / tax number"
+            }
+          ]
+        },
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "string",
+          "description": "The value to check (spaces and dashes are allowed where usual).",
+          "required": true,
+          "example": "GB82 WEST 1234 5698 7654 32"
+        },
+        {
+          "name": "country",
+          "label": "Country",
+          "type": "string",
+          "description": "Postcode: the ISO country (US, GB, CA, AU, NZ, DE, FR, NL, IE, ES, IT, …). Phone: the default country (ISO code or calling code such as 64) for numbers without +.",
+          "example": "NZ"
+        },
+        {
+          "name": "id_type",
+          "label": "ID type",
+          "type": "select",
+          "description": "For national_id: which scheme.",
+          "options": [
+            {
+              "value": "us_ssn",
+              "label": "US Social Security number"
+            },
+            {
+              "value": "uk_nino",
+              "label": "UK National Insurance number"
+            },
+            {
+              "value": "ca_sin",
+              "label": "Canada SIN"
+            },
+            {
+              "value": "au_tfn",
+              "label": "Australia TFN"
+            },
+            {
+              "value": "nz_ird",
+              "label": "New Zealand IRD number"
+            },
+            {
+              "value": "nz_nhi",
+              "label": "New Zealand NHI number"
+            },
+            {
+              "value": "de_tax_id",
+              "label": "Germany Steuer-ID"
+            },
+            {
+              "value": "fr_nir",
+              "label": "France NIR"
+            },
+            {
+              "value": "es_dni",
+              "label": "Spain DNI / NIE"
+            },
+            {
+              "value": "it_fiscal_code",
+              "label": "Italy codice fiscale"
+            },
+            {
+              "value": "nl_bsn",
+              "label": "Netherlands BSN"
+            },
+            {
+              "value": "in_aadhaar",
+              "label": "India Aadhaar"
+            },
+            {
+              "value": "sg_nric",
+              "label": "Singapore NRIC / FIN"
+            }
+          ],
+          "example": "nz_ird"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "valid",
+          "label": "Valid",
+          "type": "boolean"
+        },
+        {
+          "name": "normalized",
+          "label": "Normalised value",
+          "type": "string",
+          "description": "The value in its standard form (IBAN without spaces, E.164 phone, upper-case postcode with standard spacing, digits-only card number, …)."
+        },
+        {
+          "name": "reason",
+          "label": "Reason",
+          "type": "string",
+          "description": "Why the value is invalid (empty when valid)."
+        },
+        {
+          "name": "details",
+          "label": "Details",
+          "type": "object",
+          "description": "Type-specific facts: iban country, bban and formatted; bic bank_code, country, branch; card issuer, last4, masked; email local, domain; phone country_code, national_number, international; national_id formatted."
+        }
+      ],
+      "sample": {
+        "type": "iban",
+        "value": "GB82 WEST 1234 5698 7654 32"
+      }
+    },
+    {
+      "id": "validate_many",
+      "label": "Validate many",
+      "description": "Check a list of { type, value } entries at once (e.g. every field of an onboarding form) and get one result per entry plus whether all are valid.",
+      "inputs": [
+        {
+          "name": "items",
+          "label": "Items",
+          "type": "array",
+          "description": "List of { \"type\": \"email\", \"value\": \"…\", \"name\"?: \"label\", \"country\"?: \"NZ\", \"id_type\"?: \"nz_ird\" }.",
+          "required": true,
+          "items": {
+            "type": "object",
+            "fields": [
+              {
+                "name": "type",
+                "label": "Type",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "label": "Value",
+                "type": "string"
+              },
+              {
+                "name": "name",
+                "label": "Name",
+                "type": "string"
+              },
+              {
+                "name": "country",
+                "label": "Country",
+                "type": "string"
+              },
+              {
+                "name": "id_type",
+                "label": "ID type",
+                "type": "string"
+              }
+            ]
+          },
+          "example": [
+            {
+              "name": "Email",
+              "type": "email",
+              "value": "ap@example.co.nz"
+            },
+            {
+              "name": "Bank",
+              "type": "iban",
+              "value": "DE89 3704 0044 0532 0130 00"
+            },
+            {
+              "name": "Phone",
+              "type": "phone",
+              "value": "021 123 4567",
+              "country": "NZ"
+            }
+          ]
+        },
+        {
+          "name": "country",
+          "label": "Default country",
+          "type": "string",
+          "description": "Used for phone and postcode entries without their own country.",
+          "example": "NZ"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "results",
+          "label": "Results",
+          "type": "array",
+          "description": "One per item, in order.",
+          "items": {
+            "type": "object",
+            "fields": [
+              {
+                "name": "name",
+                "label": "Name",
+                "type": "string"
+              },
+              {
+                "name": "type",
+                "label": "Type",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "label": "Value",
+                "type": "string"
+              },
+              {
+                "name": "valid",
+                "label": "Valid",
+                "type": "boolean"
+              },
+              {
+                "name": "normalized",
+                "label": "Normalised value",
+                "type": "string"
+              },
+              {
+                "name": "reason",
+                "label": "Reason",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "all_valid",
+          "label": "All valid",
+          "type": "boolean"
+        },
+        {
+          "name": "valid_count",
+          "label": "Valid",
+          "type": "integer"
+        },
+        {
+          "name": "invalid_count",
+          "label": "Invalid",
+          "type": "integer"
+        }
+      ],
+      "sample": {
+        "items": [
+          {
+            "name": "Email",
+            "type": "email",
+            "value": "ap@example.co.nz"
+          },
+          {
+            "name": "Bank",
+            "type": "iban",
+            "value": "DE89 3704 0044 0532 0130 00"
+          },
+          {
+            "name": "Phone",
+            "type": "phone",
+            "value": "021 123 4567",
+            "country": "NZ"
+          }
+        ]
+      }
+    },
+    {
+      "id": "format_number",
+      "label": "Format number",
+      "description": "Format a number for a locale: grouping and decimal separators, percent (0.25 → 25%), currency, or compact (1.2K) notation.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "number",
+          "description": "The number. For percent, 0.25 is 25%.",
+          "required": true,
+          "example": 1234567.891
+        },
+        {
+          "name": "locale",
+          "label": "Locale",
+          "type": "string",
+          "description": "BCP 47 locale, e.g. en-US, en-NZ, de-DE, fr-FR, ja-JP.",
+          "default": "en-US",
+          "example": "de-DE"
+        },
+        {
+          "name": "style",
+          "label": "Style",
+          "type": "select",
+          "description": "Plain number, percent or currency.",
+          "default": "decimal",
+          "options": [
+            {
+              "value": "decimal",
+              "label": "Number"
+            },
+            {
+              "value": "percent",
+              "label": "Percent"
+            },
+            {
+              "value": "currency",
+              "label": "Currency"
+            }
+          ]
+        },
+        {
+          "name": "currency",
+          "label": "Currency",
+          "type": "string",
+          "description": "For the currency style: ISO 4217 code (USD, EUR, NZD, JPY, …).",
+          "example": "EUR"
+        },
+        {
+          "name": "minimum_fraction_digits",
+          "label": "Minimum decimals",
+          "type": "integer",
+          "description": "Optional: at least this many decimal places.",
+          "example": 2
+        },
+        {
+          "name": "maximum_fraction_digits",
+          "label": "Maximum decimals",
+          "type": "integer",
+          "description": "Optional: at most this many decimal places (rounded).",
+          "example": 2
+        },
+        {
+          "name": "use_grouping",
+          "label": "Thousands separators",
+          "type": "boolean",
+          "description": "Group digits (1,234,567).",
+          "default": true
+        },
+        {
+          "name": "notation",
+          "label": "Notation",
+          "type": "select",
+          "description": "Standard, compact (1.2M), scientific or engineering.",
+          "default": "standard",
+          "options": [
+            {
+              "value": "standard"
+            },
+            {
+              "value": "compact"
+            },
+            {
+              "value": "scientific"
+            },
+            {
+              "value": "engineering"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "formatted",
+          "label": "Formatted",
+          "type": "string"
+        }
+      ],
+      "sample": {
+        "value": 1234567.891,
+        "locale": "de-DE",
+        "maximum_fraction_digits": 2
+      }
+    },
+    {
+      "id": "format_currency",
+      "label": "Format currency",
+      "description": "Format an amount of money for a locale and currency, with the currency's usual decimals (JPY has none) and symbol, code or name.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Amount",
+          "type": "number",
+          "description": "The amount.",
+          "required": true,
+          "example": 1234.5
+        },
+        {
+          "name": "currency",
+          "label": "Currency",
+          "type": "string",
+          "description": "ISO 4217 code (USD, EUR, GBP, NZD, AUD, JPY, …).",
+          "required": true,
+          "example": "NZD"
+        },
+        {
+          "name": "locale",
+          "label": "Locale",
+          "type": "string",
+          "description": "BCP 47 locale, e.g. en-US, en-NZ, de-DE, fr-FR, ja-JP.",
+          "default": "en-US",
+          "example": "de-DE"
+        },
+        {
+          "name": "display",
+          "label": "Show currency as",
+          "type": "select",
+          "description": "Symbol ($), narrow symbol, ISO code (NZD) or name (New Zealand dollars).",
+          "default": "symbol",
+          "options": [
+            {
+              "value": "symbol",
+              "label": "Symbol"
+            },
+            {
+              "value": "narrowSymbol",
+              "label": "Narrow symbol"
+            },
+            {
+              "value": "code",
+              "label": "Code"
+            },
+            {
+              "value": "name",
+              "label": "Name"
+            }
+          ]
+        },
+        {
+          "name": "accounting",
+          "label": "Accounting negatives",
+          "type": "boolean",
+          "description": "Show negative amounts in brackets, e.g. ($1,234.50).",
+          "default": false
+        },
+        {
+          "name": "minimum_fraction_digits",
+          "label": "Minimum decimals",
+          "type": "integer",
+          "description": "Optional: at least this many decimal places.",
+          "example": 2
+        },
+        {
+          "name": "maximum_fraction_digits",
+          "label": "Maximum decimals",
+          "type": "integer",
+          "description": "Optional: at most this many decimal places (rounded).",
+          "example": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "formatted",
+          "label": "Formatted",
+          "type": "string"
+        },
+        {
+          "name": "currency",
+          "label": "Currency code",
+          "type": "string"
+        }
+      ],
+      "sample": {
+        "value": 1234.5,
+        "currency": "NZD",
+        "locale": "en-NZ"
+      }
+    },
+    {
+      "id": "parse_number",
+      "label": "Parse number",
+      "description": "Read a number typed the way a locale writes it: \"1.234,56\" in de-DE and \"1,234.56\" in en-US are both 1234.56. Handles currency symbols and codes, percent (12% → 0.12), brackets and minus signs, and local digits.",
+      "inputs": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "string",
+          "description": "The number as text.",
+          "required": true,
+          "example": "1.234,56 €"
+        },
+        {
+          "name": "locale",
+          "label": "Locale",
+          "type": "string",
+          "description": "BCP 47 locale, e.g. en-US, en-NZ, de-DE, fr-FR, ja-JP.",
+          "default": "en-US",
+          "example": "de-DE"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "number",
+          "description": "The number (empty when the text is not a number)."
+        },
+        {
+          "name": "valid",
+          "label": "Valid",
+          "type": "boolean",
+          "description": "Whether the text could be read as a number."
+        },
+        {
+          "name": "decimal_separator",
+          "label": "Decimal separator",
+          "type": "string",
+          "description": "The locale's decimal separator."
+        },
+        {
+          "name": "group_separator",
+          "label": "Group separator",
+          "type": "string",
+          "description": "The locale's thousands separator."
+        }
+      ],
+      "sample": {
+        "text": "1.234,56 €",
+        "locale": "de-DE"
+      }
+    },
+    {
+      "id": "format_phone",
+      "label": "Format phone",
+      "description": "Normalise a phone number to E.164 (+64211234567), or format it in international (+64 21 123 4567) or national (021 123 4567) style with simple grouping. North American numbers use (415) 555-0132.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Phone number",
+          "type": "string",
+          "description": "As typed: with + and country code, or national with Country set.",
+          "required": true,
+          "example": "021 123 4567"
+        },
+        {
+          "name": "country",
+          "label": "Default country",
+          "type": "string",
+          "description": "ISO country (NZ, US, GB, …) or calling code (64) for numbers without +.",
+          "example": "NZ"
+        },
+        {
+          "name": "format",
+          "label": "Format",
+          "type": "select",
+          "description": "Output style.",
+          "default": "international",
+          "options": [
+            {
+              "value": "e164",
+              "label": "E.164 (+64211234567)"
+            },
+            {
+              "value": "international",
+              "label": "International (+64 21 123 4567)"
+            },
+            {
+              "value": "national",
+              "label": "National (021 123 4567)"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "formatted",
+          "label": "Formatted",
+          "type": "string",
+          "description": "Empty when the number is not valid."
+        },
+        {
+          "name": "e164",
+          "label": "E.164",
+          "type": "string"
+        },
+        {
+          "name": "valid",
+          "label": "Valid",
+          "type": "boolean"
+        },
+        {
+          "name": "reason",
+          "label": "Reason",
+          "type": "string",
+          "description": "Why the number is invalid (empty when valid)."
+        }
+      ],
+      "sample": {
+        "value": "021 123 4567",
+        "country": "NZ",
+        "format": "international"
+      }
+    }
+  ],
+  "capabilities": {},
+  "limits": {
+    "timeout_ms": 5000,
+    "memory_mb": 32
+  },
+  "summary": "Check identifiers before they reach other systems: IBAN (mod 97 and country length), BIC, card numbers (Luhn and issuer), email syntax, phone numbers (E.164), postcodes for 26 countries and 13 national ID and tax number schemes, each with a normalised value and a reason when invalid. Also locale-aware number, currency and phone formatting and number parsing.",
+  "purpose": "Catch typing errors early and store identifiers in one normalised form; show numbers and money the way each audience reads them.",
+  "recommended_for": "Supplier and customer onboarding, payment details, HR and KYC forms, imports, and any message or document that shows amounts.",
+  "setup_notes": [
+    "Pure computation: no network, data or secrets. Nothing to configure after installing.",
+    "Validation checks format and check digits only: a valid IBAN or card number is well-formed, not proven to exist. Email checks are syntax only (no DNS or mailbox check).",
+    "Number formatting uses the server's Unicode CLDR data (Intl), so results match browsers."
+  ],
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "tags": [
+    "validation",
+    "iban",
+    "bic",
+    "credit card",
+    "email",
+    "phone",
+    "postcode",
+    "national id",
+    "currency",
+    "locale"
+  ]
+}

@@ -37,8 +37,8 @@ const accent = (vendor: Vendor) => `var(--topo-${vendor})`
 function Chip({ item, vendor }: { item: TopologyItem; vendor: Vendor }) {
   return (
     <li className="min-w-0 rounded-lg border px-3 py-2" style={{ borderColor: 'var(--topo-border)', background: 'var(--topo-card)' }}>
-      <span className="block text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: accent(vendor) }}>{AREA_LABEL[item.area]}</span>
-      <span className="block text-[13px] font-medium leading-5" style={{ color: 'var(--topo-text)' }}>{item.service}</span>
+      <span className="block text-2xs font-semibold uppercase tracking-[0.14em]" style={{ color: accent(vendor) }}>{AREA_LABEL[item.area]}</span>
+      <span className="block text-ui font-medium leading-5" style={{ color: 'var(--topo-text)' }}>{item.service}</span>
     </li>
   )
 }
@@ -79,13 +79,13 @@ export function TopologyDiagram({ topology, caption = true, className = '' }: { 
 
             {/* The app */}
             <div className="min-w-0 flex-1 rounded-xl border-2 p-3" style={{ borderColor: 'var(--topo-app)', background: 'var(--topo-card)' }}>
-              <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: 'var(--topo-text)' }}>
+              <p className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--topo-text)' }}>
                 <Boxes size={16} aria-hidden="true" style={{ color: 'var(--topo-app)' }} /> UserTasks
               </p>
               <p className="text-xs leading-5" style={{ color: 'var(--topo-muted)' }}>Web, API and worker · {topology.hosting}</p>
               {topology.builtIn.length > 0 && (
                 <>
-                  <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--topo-muted)' }}>{VENDOR_LABEL.app}</p>
+                  <p className="mt-3 text-2xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--topo-muted)' }}>{VENDOR_LABEL.app}</p>
                   <ul className="mt-1.5 grid gap-1.5 @md:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-1">
                     {topology.builtIn.map((item) => <Chip key={item.area} item={item} vendor="app" />)}
                   </ul>
@@ -102,7 +102,7 @@ export function TopologyDiagram({ topology, caption = true, className = '' }: { 
               <section key={zone.label} className="rounded-xl border border-l-4 p-3" style={{ borderColor: 'var(--topo-border)', borderLeftColor: accent(zone.vendor), background: 'var(--topo-card)' }} aria-label={zone.label}>
                 <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-semibold" style={{ color: 'var(--topo-text)' }}>
                   {zone.label}
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: accent(zone.vendor) }}>{VENDOR_LABEL[zone.vendor]}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-[0.14em]" style={{ color: accent(zone.vendor) }}>{VENDOR_LABEL[zone.vendor]}</span>
                 </p>
                 <ul className="mt-2 grid gap-1.5 @md:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-2">
                   {zone.items.map((item) => <Chip key={item.area} item={item} vendor={zone.vendor} />)}

@@ -1,6 +1,9 @@
 import { appUrlOrLocalhost, processorSecret } from '@/lib/config/bootstrap'
 import { installPgCron, pgCronStatus, uninstallPgCron, type PgCronStatus } from '@/lib/providers/scheduler/pg-cron'
 import { schedulerOption } from '@/lib/providers/scheduler/options'
+import { doctorApi, type RpcClient } from '@/lib/admin/doctor'
+import type { SqlClient } from '../ops/instance-db'
+import { apiOf, NEEDS_DIRECT_REMEDY, NeedsDirectConnectionError } from '../ops/service-sql'
 import type { AreaSwitch, PreflightCheck } from './types'
 
 /**
@@ -11,7 +14,21 @@ import type { AreaSwitch, PreflightCheck } from './types'
  *  - away from pg_cron: unschedule them (Vault secrets are left in place,
  *    so rollback can re-install the jobs without asking for them again).
  * Rollback restores the pg_cron job set as it was before the switch.
+ *
+ * Without a direct connection (the service-role API) the switch is
+ * config-only: worker ⇄ external while no pg_cron job is scheduled (read
+ * from instance_doctor_snapshot()). Installing or removing pg_cron jobs needs
+ * DATABASE_URL.
  */
+
+/** pg_cron status over the connection, or from the doctor snapshot through the API (no commands either way). */
+async function cronStatus(db: SqlClient): Promise<PgCronStatus> {
+  const api = apiOf(db)
+  if (!api) return pgCronStatus(db)
+  const snap = await doctorApi(api as RpcClient).snapshot()
+  const jobs = snap.pg_cron.jobs.map((j) => ({ ...j, command: '' }))
+  return { installed: jobs.length > 0, jobs, vault: snap.pg_cron.installed ? snap.vault : null }
+}
 
 async function hasSchema(db: { query: (q: string, v?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> }, name: string) {
   const { rows } = await db.query('SELECT to_regnamespace($1) IS NOT NULL AS ok', [name])
@@ -24,7 +41,19 @@ export const schedulerSwitch: AreaSwitch = {
   supports: () => null,
   async preflight(ctx) {
     const checks: PreflightCheck[] = []
-    const status = await pgCronStatus(ctx.db)
+    const api = apiOf(ctx.db)
+    let status: PgCronStatus
+    try {
+      status = await cronStatus(ctx.db)
+    } catch (error) {
+      return [{ name: 'pg_cron', severity: 'error', detail: `could not read the pg_cron jobs through the Supabase API (${(error as Error).message}): apply migration 20261121000000, or ${NEEDS_DIRECT_REMEDY}` }]
+    }
+    if (api && ctx.to === 'pg_cron') {
+      return [{ name: 'pg_cron', severity: 'error', detail: `installing the pg_cron jobs and their Vault secrets needs a direct database connection: ${NEEDS_DIRECT_REMEDY}` }]
+    }
+    if (api && status.jobs.length) {
+      return [{ name: 'pg_cron', severity: 'error', detail: `pg_cron still schedules ${status.jobs.map((j) => j.jobname).join(', ')}: unscheduling them needs a direct database connection: ${NEEDS_DIRECT_REMEDY}` }]
+    }
     checks.push({ name: 'pg_cron', severity: 'ok', detail: status.jobs.length ? `scheduled now: ${status.jobs.map((j) => j.jobname).join(', ')}` : 'no usertasks jobs scheduled' })
     if (ctx.to === 'pg_cron') {
       if (!(await hasSchema(ctx.db, 'cron'))) checks.push({ name: 'extension', severity: 'error', detail: 'pg_cron is not installed in this database (CREATE EXTENSION pg_cron, or choose worker / external)' })
@@ -46,7 +75,7 @@ export const schedulerSwitch: AreaSwitch = {
     return checks
   },
   async backup(ctx) {
-    const status = await pgCronStatus(ctx.db)
+    const status = await cronStatus(ctx.db)
     ctx.rollbackData.pgCron = { installed: status.installed, jobs: status.jobs.map((j) => j.jobname) }
     return []
   },
@@ -74,10 +103,12 @@ export const schedulerSwitch: AreaSwitch = {
       id: 'uninstall-pg-cron',
       title: 'Unschedule the pg_cron jobs',
       plan: async () => {
-        const status = await pgCronStatus(ctx.db)
+        const status = await cronStatus(ctx.db)
         return status.jobs.length ? `unschedule ${status.jobs.map((j) => j.jobname).join(', ')}` : 'none scheduled'
       },
       async run() {
+        // Over the API the pre-flight made sure nothing is scheduled.
+        if (apiOf(ctx.db)) return (await cronStatus(ctx.db)).jobs.length ? Promise.reject(new NeedsDirectConnectionError('Unscheduling the pg_cron jobs')) : 'none were scheduled'
         const removed = await uninstallPgCron(ctx.db)
         return removed.length ? `unscheduled ${removed.join(', ')}` : 'none were scheduled'
       },
@@ -86,7 +117,11 @@ export const schedulerSwitch: AreaSwitch = {
   async rollback(ctx) {
     const before = (ctx.record.config_before?.rollback?.pgCron ?? null) as { installed: boolean; jobs: string[] } | null
     if (!before) return ['no pg_cron snapshot: jobs left as they are']
-    const now: PgCronStatus = await pgCronStatus(ctx.db)
+    const now: PgCronStatus = await cronStatus(ctx.db)
+    if (apiOf(ctx.db) && before.installed !== now.installed) {
+      if (ctx.dryRun) return [`pg_cron jobs differ from before the switch: restoring them needs a direct database connection (${NEEDS_DIRECT_REMEDY})`]
+      throw new NeedsDirectConnectionError('Restoring the pg_cron jobs')
+    }
     if (before.installed && !now.installed) {
       if (ctx.dryRun) return [`would re-install pg_cron jobs ${before.jobs.join(', ')}`]
       const result = await installPgCron(ctx.db, {})

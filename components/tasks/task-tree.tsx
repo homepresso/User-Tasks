@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { setSubtaskCompleted } from '@/app/actions/tasks'
 import { useRouter } from 'next/navigation'
+import { Card } from '@/components/ui/card'
 import { TaskTreeNode } from './task-tree-node'
 
 interface Task {
@@ -69,10 +70,10 @@ export function TaskTree({ task, subtasks: initialSubtasks, totalCount, complete
   const directChildren = buildTree(task.id)
 
   return (
-    <div className="border rounded-xl overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-      <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--theme-surface-border)' }}>
-        <h3 className="font-semibold text-sm">Task tree</h3>
-        <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+    <Card padding="none" className="overflow-hidden" data-task-tree>
+      <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
+        <h3 className="text-base font-semibold text-fg">Task tree</h3>
+        <span className="num text-xs text-fg-muted">
           {optimisticCompleted}/{totalCount} complete
         </span>
       </div>
@@ -88,10 +89,10 @@ export function TaskTree({ task, subtasks: initialSubtasks, totalCount, complete
         />
       ))}
       {directChildren.length === 0 && (
-        <p className="px-4 py-6 text-sm text-center" style={{ color: 'var(--theme-muted-text)' }}>
-          No subtasks yet.
+        <p className="px-4 py-6 text-sm text-center text-fg-muted">
+          No subtasks yet
         </p>
       )}
-    </div>
+    </Card>
   )
 }

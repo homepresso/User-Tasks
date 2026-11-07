@@ -9,58 +9,35 @@
  *     popup / Jobs panel offers the download when it is ready
  *  <ImportConfigButton />   uploads such a file (or any per-type export),
  *     shows the dry-run plan, then applies it as a job (`config.apply`)
+ *  useImportConfig()   the same import flow without its button, for menus
+ *     ("Import ▾ → Configuration file…")
  *
  * Both use lib/services/config, so files are interchangeable with GET
  * /config/export, MCP config_export and `usertasks config export --ids`.
  */
 
-import { useRef, useState } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
-import { Download, FileUp, Upload, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useRef, useState, type ReactNode } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
+import { Download, FileUp, Upload } from 'lucide-react'
+import { Button, type ButtonProps } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select } from '@/components/ui/select'
+import { Field } from '@/components/ui/field'
+import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { importConfigAction } from '@/app/actions/config-transfer'
 import type { ConfigApplyResult } from '@/lib/services/config'
 import { useJobs } from '@/components/jobs/jobs-provider'
-
-function DialogShell({ open, onOpenChange, title, children, wide = false }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; children: React.ReactNode; wide?: boolean }) {
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dialog-overlay" />
-        <Dialog.Content
-          className={`fixed left-1/2 top-1/2 z-50 ${wide ? 'w-[min(44rem,94vw)]' : 'w-[min(26rem,92vw)]'} max-h-[88vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 shadow-xl dialog-content`}
-          style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-        >
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
-            <Dialog.Close aria-label="Close" className="opacity-60 hover:opacity-100"><X size={16} /></Dialog.Close>
-          </div>
-          {children}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  )
-}
-
-function Check({ checked, onChange, label, hint }: { checked: boolean; onChange: (value: boolean) => void; label: string; hint?: string }) {
-  return (
-    <label className="flex items-start gap-2 text-sm cursor-pointer">
-      <input type="checkbox" className="mt-0.5" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-      <span>
-        {label}
-        {hint && <span className="block text-xs" style={{ color: 'var(--theme-muted-text)' }}>{hint}</span>}
-      </span>
-    </label>
-  )
-}
+import { plural } from '@/lib/format/plural'
+import { cn } from '@/lib/utils'
 
 export function ExportAssetButton({
   ids,
   name,
   allowRows = false,
   size = 'sm',
-  variant = 'outline',
+  variant = 'secondary',
   label = 'Export',
   iconOnly = false,
   className,
@@ -70,32 +47,46 @@ export function ExportAssetButton({
   name: string
   /** Data tables: offer "Include rows". */
   allowRows?: boolean
-  size?: 'sm' | 'default' | 'icon'
-  variant?: 'outline' | 'ghost' | 'default'
+  /** Any Button size; with `iconOnly`, `sm`/`icon-sm` render a 28px IconButton, anything else 32px. */
+  size?: ButtonProps['size']
+  variant?: ButtonProps['variant']
   label?: string
   iconOnly?: boolean
   className?: string
   style?: React.CSSProperties
 }) {
   const [open, setOpen] = useState(false)
+  const onClick = (event: React.MouseEvent) => { event.preventDefault(); event.stopPropagation(); setOpen(true) }
   return (
     // Safe inside a row <Link>: the click never reaches the anchor, and
     // clicks inside the (portalled) dialog don't bubble to it either.
     <span className="contents" onClick={(event) => event.stopPropagation()}>
-      <Button
-        type="button"
-        size={size}
-        variant={variant}
-        className={className}
-        style={style}
-        onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpen(true) }}
-        title={`Export ${name}`}
-        aria-label={iconOnly ? `Export ${name}` : undefined}
-        data-testid="export-asset"
-      >
-        <Download size={iconOnly ? 12 : 14} />
-        {!iconOnly && label}
-      </Button>
+      {iconOnly ? (
+        <IconButton
+          type="button"
+          label={`Export ${name}`}
+          icon={<Download />}
+          size={size === 'sm' || size === 'icon-sm' ? 'sm' : 'md'}
+          variant={variant === 'secondary' || variant === 'outline' ? 'ghost' : variant}
+          className={className}
+          style={style}
+          onClick={onClick}
+          data-testid="export-asset"
+        />
+      ) : (
+        <Button
+          type="button"
+          size={size}
+          variant={variant}
+          className={className}
+          style={style}
+          leadingIcon={<Download />}
+          onClick={onClick}
+          data-testid="export-asset"
+        >
+          {label}
+        </Button>
+      )}
       <ExportAssetDialog ids={ids} name={name} allowRows={allowRows} open={open} onOpenChange={setOpen} />
     </span>
   )
@@ -141,47 +132,67 @@ export function ExportAssetDialog({
   }
 
   return (
-    <DialogShell open={open} onOpenChange={onOpenChange} title={`Export “${name}”`}>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
-        Prepares a configuration file you can import into another workspace (Import button, <code>usertasks config apply</code> or the API).
-        It runs in the background — keep working, we&apos;ll let you know when it&apos;s ready to download. Secrets and credentials are never included.
-      </p>
-      <div className="space-y-3 mb-4">
-        <Check checked={withDependencies} onChange={setWithDependencies} label="Include dependencies" hint="Sub-workflows, activities, rules, data tables, integrations and connectors, email templates, agents and custom roles it uses" />
-        {allowRows && <Check checked={includeRows} onChange={setIncludeRows} label="Include table rows" hint="Up to 10,000 rows per table" />}
-      </div>
-      {error && <InlineNotice tone="error" message={error} className="mb-3" />}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-        <Button size="sm" onClick={() => void run()} disabled={busy || ids.length === 0}>
-          <Download size={14} /> {busy ? 'Starting…' : 'Export'}
-        </Button>
-      </div>
-    </DialogShell>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        size="sm"
+        title={`Export “${name}”`}
+        description="A configuration file you can import into another workspace. Secrets and credentials are never included."
+      >
+        <DialogBody className="space-y-4">
+          <p className="text-ui text-fg-muted">
+            It is prepared in the background: keep working, and we&apos;ll let you know when it&apos;s ready to download. Import it with
+            the Import button, <code className="font-mono text-xs">usertasks config apply</code> or the API.
+          </p>
+          <div className="space-y-3">
+            <Checkbox
+              checked={withDependencies}
+              onChange={(event) => setWithDependencies(event.target.checked)}
+              label="Include dependencies"
+              description="Sub-workflows, activities, rules, data tables, integrations and connectors, email templates, agents and custom roles it uses"
+            />
+            {allowRows && (
+              <Checkbox
+                checked={includeRows}
+                onChange={(event) => setIncludeRows(event.target.checked)}
+                label="Include table rows"
+                description="Up to 10,000 rows per table"
+              />
+            )}
+          </div>
+          {error && <InlineNotice tone="danger" message={error} />}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={() => void run()} loading={busy} disabled={ids.length === 0} leadingIcon={<Download />}>
+            Export
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-const ACTION_STYLE: Record<string, { label: string; color: string }> = {
-  create: { label: 'Create', color: 'var(--theme-success)' },
-  update: { label: 'Update', color: 'var(--theme-warning)' },
-  unchanged: { label: 'Unchanged', color: 'var(--theme-muted-text)' },
-  error: { label: 'Error', color: 'var(--theme-danger)' },
+const ACTION_STYLE: Record<string, { label: string; className: string }> = {
+  create: { label: 'Create', className: 'text-success' },
+  update: { label: 'Update', className: 'text-warning' },
+  unchanged: { label: 'Unchanged', className: 'text-fg-muted' },
+  error: { label: 'Error', className: 'text-danger' },
 }
 
 export function PlanList({ plan }: { plan: ConfigApplyResult['plan'] }) {
   return (
-    <div className="rounded-lg border divide-y text-sm" style={{ borderColor: 'var(--theme-surface-border)' }}>
+    <div className="divide-y divide-border-subtle rounded-lg border border-border text-ui">
       {plan.assets.map((asset, index) => (
-        <div key={`${asset.section}:${asset.source_id ?? index}`} className="px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div key={`${asset.section}:${asset.source_id ?? index}`} className="px-3 py-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold w-20 shrink-0" style={{ color: ACTION_STYLE[asset.action]?.color }}>{ACTION_STYLE[asset.action]?.label ?? asset.action}</span>
-            <span className="text-xs w-32 shrink-0 truncate" style={{ color: 'var(--theme-muted-text)' }}>{asset.section.replace(/_/g, ' ')}</span>
+            <span className={cn('w-20 shrink-0 text-xs font-medium', ACTION_STYLE[asset.action]?.className)}>{ACTION_STYLE[asset.action]?.label ?? asset.action}</span>
+            <span className="w-32 shrink-0 truncate text-xs text-fg-muted">{asset.section.replace(/_/g, ' ')}</span>
             <span className="truncate">{asset.name}</span>
           </div>
-          {asset.error && <p className="text-xs mt-1 ml-[5.5rem]" style={{ color: 'var(--theme-danger)' }}>{asset.error}</p>}
+          {asset.error && <p className="mt-1 ml-[5.5rem] text-xs text-danger">{asset.error}</p>}
           {asset.action === 'update' && asset.diffs?.length ? (
-            <ul className="text-xs mt-1 ml-[5.5rem] space-y-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-              {asset.diffs.slice(0, 5).map((diff) => <li key={diff.path} className="truncate">{diff.path}</li>)}
+            <ul className="mt-1 ml-[5.5rem] space-y-0.5 text-xs text-fg-muted">
+              {asset.diffs.slice(0, 5).map((diff) => <li key={diff.path} className="truncate font-mono">{diff.path}</li>)}
               {(asset.diffs.length > 5 || asset.diffs_truncated) && <li>… more changes</li>}
             </ul>
           ) : null}
@@ -191,20 +202,11 @@ export function PlanList({ plan }: { plan: ConfigApplyResult['plan'] }) {
   )
 }
 
-export function ImportConfigButton({
-  label = 'Import',
-  size = 'sm',
-  variant = 'outline',
-  onImported,
-  allowRows = false,
-}: {
-  label?: string
-  size?: 'sm' | 'default'
-  variant?: 'outline' | 'ghost' | 'default'
-  onImported?: (result: ConfigApplyResult) => void
-  /** Offer the rows mode (files with data-table rows). */
-  allowRows?: boolean
-}) {
+/**
+ * The import flow without a button: `pick()` opens the file chooser, and
+ * `element` (the hidden input plus the plan dialog) must be rendered once.
+ */
+export function useImportConfig({ onImported, allowRows = false }: { onImported?: (result: ConfigApplyResult) => void; allowRows?: boolean } = {}): { pick: () => void; element: ReactNode } {
   const jobs = useJobs()
   const inputRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
@@ -215,6 +217,8 @@ export function ImportConfigButton({
   const [adoptByName, setAdoptByName] = useState(false)
   const [rowsMode, setRowsMode] = useState<'merge' | 'replace' | 'skip'>('merge')
   const [busy, setBusy] = useState(false)
+  // Synchronous guard: a double click must not apply the import twice.
+  const applyGuard = useSubmitGuard()
   const [error, setError] = useState<string | null>(null)
 
   const planFor = async (doc: unknown, adopt: boolean, mode: typeof rowsMode) => {
@@ -246,24 +250,26 @@ export function ImportConfigButton({
   // here and shows its result; a long one continues after the dialog closes
   // and reports through the popup / Jobs panel.
   const apply = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      const job = await jobs.start('config.apply', { name: fileName || 'configuration file', adopt_by_name: adoptByName, rows_mode: rowsMode }, {
-        effect: 'change',
-        quietIfInline: true,
-        input: { text: JSON.stringify(document_) },
-        onSuccess: (done) => { if (done.result?.data) onImported?.(done.result.data as ConfigApplyResult) },
-      })
-      if (!job) return
-      if (job.status === 'succeeded' && job.result?.data) setApplied(job.result.data as ConfigApplyResult)
-      else if (job.status === 'failed') setError(job.error ?? 'The import failed')
-      else setOpen(false)
-    } catch (startError) {
-      setError(startError instanceof Error ? startError.message : 'Could not start the import')
-    } finally {
-      setBusy(false)
-    }
+    await applyGuard.run(async () => {
+      setBusy(true)
+      setError(null)
+      try {
+        const job = await jobs.start('config.apply', { name: fileName || 'configuration file', adopt_by_name: adoptByName, rows_mode: rowsMode }, {
+          effect: 'change',
+          quietIfInline: true,
+          input: { text: JSON.stringify(document_) },
+          onSuccess: (done) => { if (done.result?.data) onImported?.(done.result.data as ConfigApplyResult) },
+        })
+        if (!job) return
+        if (job.status === 'succeeded' && job.result?.data) setApplied(job.result.data as ConfigApplyResult)
+        else if (job.status === 'failed') setError(job.error ?? 'The import failed')
+        else setOpen(false)
+      } catch (startError) {
+        setError(startError instanceof Error ? startError.message : 'Could not start the import')
+      } finally {
+        setBusy(false)
+      }
+    })
   }
 
   const hasRows = Boolean(plan?.plan.assets.some((asset) => asset.section === 'table_rows'))
@@ -272,65 +278,107 @@ export function ImportConfigButton({
   const created = applied?.result ? Object.values(applied.result.created).reduce((a, b) => a + b, 0) : 0
   const updated = applied?.result ? Object.values(applied.result.updated).reduce((a, b) => a + b, 0) : 0
 
-  return (
+  const element = (
     <>
       <input ref={inputRef} type="file" accept=".json,application/json" className="hidden" data-testid="import-config-file" onChange={(event) => void onFile(event.target.files?.[0])} />
-      <Button type="button" size={size} variant={variant} onClick={() => inputRef.current?.click()} data-testid="import-config">
-        <Upload size={14} /> {label}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          size="lg"
+          title="Import configuration"
+          description={<span className="inline-flex items-center gap-1.5"><FileUp className="size-3.5" aria-hidden="true" /> {fileName || 'No file'}: nothing is deleted, and assets imported before are updated in place.</span>}
+        >
+          <DialogBody className="space-y-4">
+            {error && <InlineNotice tone="danger" message={error} />}
+            {busy && !plan && <p className="text-ui text-fg-muted">Checking the file…</p>}
+            {plan && !applied && (
+              <>
+                {summary && (
+                  <p className="text-ui num">
+                    {summary.create} to create, {summary.update} to update, {summary.unchanged} unchanged{summary.error ? `, ${summary.error} with errors` : ''}.
+                  </p>
+                )}
+                <PlanList plan={plan.plan} />
+                {(plan.warnings?.length ?? 0) > 0 && (
+                  <ul className="space-y-1">
+                    {plan.warnings.map((warning, index) => <li key={index}><InlineNotice tone="warning" message={warning.warning} /></li>)}
+                  </ul>
+                )}
+                {plan.missing_permissions?.length ? (
+                  <InlineNotice tone="danger" message={`You need ${[...new Set(plan.missing_permissions.map((m) => m.permission))].join(', ')} to import this file.`} />
+                ) : null}
+                <Checkbox
+                  checked={adoptByName}
+                  onChange={(event) => { const value = event.target.checked; setAdoptByName(value); void planFor(document_, value, rowsMode) }}
+                  label="Match existing assets by name"
+                  description="Update an asset with the same unique name instead of creating a copy"
+                />
+                {(hasRows || allowRows) && (
+                  <Field label="Table rows" className="max-w-xs">
+                    <Select
+                      value={rowsMode}
+                      onChange={(event) => { const mode = event.target.value as typeof rowsMode; setRowsMode(mode); void planFor(document_, adoptByName, mode) }}
+                      options={[
+                        { value: 'merge', label: 'Merge (update, then add)' },
+                        { value: 'replace', label: 'Replace all rows' },
+                        { value: 'skip', label: 'Skip rows' },
+                      ]}
+                    />
+                  </Field>
+                )}
+              </>
+            )}
+            {applied && (
+              <>
+                <InlineNotice tone={applied.result?.errors.length ? 'warning' : 'success'} message={`Imported: ${created} created, ${updated} updated${applied.result?.errors.length ? `, ${applied.result.errors.length} failed` : ''}.`} />
+                {applied.result?.errors.map((e, index) => <p key={index} className="text-xs text-danger">{e.asset_type}: {e.error}</p>)}
+                {[...(applied.warnings ?? []), ...(applied.result?.warnings ?? [])].map((w, index) => <p key={`w${index}`} className="text-xs text-warning">{w.warning}</p>)}
+              </>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            {applied ? (
+              <Button onClick={() => setOpen(false)}>Done</Button>
+            ) : (
+              <>
+                <Button variant="secondary" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+                {plan && (
+                  <Button onClick={() => void apply()} loading={busy} disabled={changes === 0 || Boolean(plan.missing_permissions?.length)} data-testid="import-config-apply">
+                    {changes === 0 ? 'Nothing to import' : `Import ${plural(changes, 'change')}`}
+                  </Button>
+                )}
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+
+  return { pick: () => inputRef.current?.click(), element }
+}
+
+export function ImportConfigButton({
+  label = 'Import',
+  size = 'sm',
+  variant = 'secondary',
+  onImported,
+  allowRows = false,
+}: {
+  label?: string
+  /** Any Button size (`default` = md is still accepted). */
+  size?: ButtonProps['size']
+  variant?: ButtonProps['variant']
+  onImported?: (result: ConfigApplyResult) => void
+  /** Offer the rows mode (files with data-table rows). */
+  allowRows?: boolean
+}) {
+  const { pick, element } = useImportConfig({ onImported, allowRows })
+  return (
+    <>
+      <Button type="button" size={size} variant={variant} leadingIcon={<Upload />} onClick={pick} data-testid="import-config">
+        {label}
       </Button>
-      <DialogShell open={open} onOpenChange={setOpen} title="Import configuration" wide>
-        <p className="text-xs mb-3 flex items-center gap-1.5" style={{ color: 'var(--theme-muted-text)' }}>
-          <FileUp size={12} /> {fileName || 'No file'} — nothing is deleted; assets imported before are updated in place.
-        </p>
-        {error && <InlineNotice tone="error" message={error} className="mb-3" />}
-        {busy && !plan && <p className="text-sm">Checking the file…</p>}
-        {plan && !applied && (
-          <>
-            {summary && (
-              <p className="text-sm mb-2">
-                {summary.create} to create, {summary.update} to update, {summary.unchanged} unchanged{summary.error ? `, ${summary.error} with errors` : ''}.
-              </p>
-            )}
-            <PlanList plan={plan.plan} />
-            {(plan.warnings?.length ?? 0) > 0 && (
-              <ul className="mt-3 space-y-1">
-                {plan.warnings.map((warning, index) => <li key={index}><InlineNotice tone="warning" message={warning.warning} /></li>)}
-              </ul>
-            )}
-            {plan.missing_permissions?.length ? (
-              <InlineNotice tone="error" className="mt-3" message={`You need ${[...new Set(plan.missing_permissions.map((m) => m.permission))].join(', ')} to import this file.`} />
-            ) : null}
-            <div className="mt-4 space-y-2">
-              <Check checked={adoptByName} onChange={(value) => { setAdoptByName(value); void planFor(document_, value, rowsMode) }} label="Match existing assets by name" hint="Update an asset with the same unique name instead of creating a copy" />
-              {(hasRows || allowRows) && (
-                <label className="flex items-center gap-2 text-sm">
-                  Table rows
-                  <select className="rounded border px-2 py-1 text-sm" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }} value={rowsMode}
-                    onChange={(event) => { const mode = event.target.value as typeof rowsMode; setRowsMode(mode); void planFor(document_, adoptByName, mode) }}>
-                    <option value="merge">Merge (update, then add)</option>
-                    <option value="replace">Replace all rows</option>
-                    <option value="skip">Skip rows</option>
-                  </select>
-                </label>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" size="sm" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
-              <Button size="sm" onClick={() => void apply()} disabled={busy || changes === 0 || Boolean(plan.missing_permissions?.length)} data-testid="import-config-apply">
-                {busy ? 'Importing…' : changes === 0 ? 'Nothing to import' : `Import ${changes} change${changes === 1 ? '' : 's'}`}
-              </Button>
-            </div>
-          </>
-        )}
-        {applied && (
-          <>
-            <InlineNotice tone={applied.result?.errors.length ? 'warning' : 'success'} message={`Imported: ${created} created, ${updated} updated${applied.result?.errors.length ? `, ${applied.result.errors.length} failed` : ''}.`} />
-            {applied.result?.errors.map((e, index) => <p key={index} className="text-xs mt-2" style={{ color: 'var(--theme-danger)' }}>{e.asset_type}: {e.error}</p>)}
-            {[...(applied.warnings ?? []), ...(applied.result?.warnings ?? [])].map((w, index) => <p key={`w${index}`} className="text-xs mt-2" style={{ color: 'var(--theme-warning)' }}>{w.warning}</p>)}
-            <div className="flex justify-end mt-4"><Button size="sm" onClick={() => setOpen(false)}>Done</Button></div>
-          </>
-        )}
-      </DialogShell>
+      {element}
     </>
   )
 }

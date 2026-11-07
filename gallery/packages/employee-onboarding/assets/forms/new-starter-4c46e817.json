@@ -1,0 +1,655 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "4c46e817-3405-5d5b-b9da-7930b88a6dc5",
+  "asset": {
+    "id": "4c46e817-3405-5d5b-b9da-7930b88a6dc5",
+    "name": "New starter",
+    "description": "The stepped form HR fills in for each new hire: The role → Contract & start → Manager → Review & submit, with a progress bar and in-form Next / Back / Start onboarding buttons (Application mode). The department autocomplete stores the checklist key and shows the buddy team; fixed-term end dates and agency names appear only when they apply, and rules check the dates before it is sent. Submitting starts the Employee onboarding workflow.",
+    "tags": [
+      "onboarding",
+      "new hire",
+      "hr"
+    ],
+    "fields": [
+      {
+        "key": "new_hire_name",
+        "label": "New hire name",
+        "type": "text",
+        "required": true,
+        "help_text": "Full name as it should appear in the HR system",
+        "autocomplete": "off"
+      },
+      {
+        "key": "personal_email",
+        "label": "Personal email",
+        "type": "email",
+        "required": true,
+        "help_text": "The welcome email goes here (their work email does not exist yet)"
+      },
+      {
+        "key": "job_title",
+        "label": "Job title",
+        "type": "text",
+        "required": true,
+        "placeholder": "Software Engineer"
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Pick from the Onboarding checklist: it decides the kit, systems and buddy team",
+        "lookup": {
+          "source": "table",
+          "table_id": "fc80acc4-7337-462f-9ecd-91499b9bc8dc",
+          "search_columns": [
+            "department",
+            "buddy_team"
+          ],
+          "display_columns": [
+            "department",
+            "buddy_team",
+            "laptop_model"
+          ],
+          "value_column": "department",
+          "label_template": "{{department}} · {{buddy_team}}",
+          "description_template": "{{laptop_model}} · {{welcome_pack}}",
+          "search_value": true,
+          "fill": [
+            {
+              "from": "laptop_model",
+              "to": "kit_laptop"
+            },
+            {
+              "from": "buddy_team",
+              "to": "kit_buddy"
+            }
+          ],
+          "sort": {
+            "column": "department",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "kit_laptop",
+        "label": "Laptop",
+        "type": "text",
+        "read_only": true,
+        "help_text": "From the Onboarding checklist"
+      },
+      {
+        "key": "kit_buddy",
+        "label": "Buddy team",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "employment_type",
+        "label": "Employment type",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "permanent",
+          "fixed-term",
+          "contractor"
+        ],
+        "display": "radio",
+        "default": "permanent"
+      },
+      {
+        "key": "start_date",
+        "label": "Start date",
+        "type": "date",
+        "required": true,
+        "help_text": "First working day"
+      },
+      {
+        "key": "contract_end_date",
+        "label": "Contract end date",
+        "type": "date",
+        "visible_when": {
+          "field": "employment_type",
+          "operator": "equals",
+          "value": "fixed-term"
+        }
+      },
+      {
+        "key": "agency_name",
+        "label": "Agency (if through an agency)",
+        "type": "text",
+        "visible_when": {
+          "field": "employment_type",
+          "operator": "equals",
+          "value": "contractor"
+        }
+      },
+      {
+        "key": "location",
+        "label": "Location",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "office",
+          "remote"
+        ],
+        "display": "radio",
+        "default": "office"
+      },
+      {
+        "key": "manager_name",
+        "label": "Hiring manager's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "manager_email",
+        "label": "Hiring manager's email",
+        "type": "email",
+        "required": true,
+        "help_text": "Told if IT setup is blocked"
+      },
+      {
+        "key": "manager_id",
+        "label": "Hiring manager in UserTasks",
+        "type": "user",
+        "help_text": "Optional: gets the Prepare first week and Day-30 check-in tasks (otherwise the default manager)"
+      },
+      {
+        "key": "hr_notes",
+        "label": "Notes for the manager and IT",
+        "type": "textarea",
+        "help_text": "Accessibility needs, equipment preferences, anything the team should know"
+      },
+      {
+        "key": "offer_signed",
+        "label": "The offer is signed and the right-to-work check is done",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "role_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "contract_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "contract_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "manager_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "manager_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "review_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "review_submit",
+        "label": "Start onboarding",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "submit",
+              "button": "submit"
+            }
+          ],
+          "icon": "send",
+          "align": "right",
+          "icon_after": true
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "role",
+          "title": "The role",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "new_hire_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "personal_email",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "job_title",
+                  "span": 1
+                },
+                {
+                  "field_key": "department",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "kit_laptop",
+                  "span": 1
+                },
+                {
+                  "field_key": "kit_buddy",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "role_next",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "briefcase",
+          "description": "Who is joining and where."
+        },
+        {
+          "id": "contract",
+          "title": "Contract & start",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "employment_type",
+                  "span": 1
+                },
+                {
+                  "field_key": "location",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "start_date",
+                  "span": 1
+                },
+                {
+                  "field_key": "contract_end_date",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "agency_name",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "contract_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "contract_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "calendar",
+          "description": "When they start and on what terms."
+        },
+        {
+          "id": "manager",
+          "title": "Manager",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "manager_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "manager_email",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "manager_id",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "manager_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "manager_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "users",
+          "description": "Who prepares the first week."
+        },
+        {
+          "id": "review",
+          "title": "Review & submit",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "hr_notes",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "offer_signed",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "review_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "review_submit",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "check-circle",
+          "description": "Anything the team should know, then start onboarding."
+        }
+      ],
+      "page_settings": {
+        "indicator": "progress",
+        "next_label": "Next",
+        "back_label": "Back"
+      },
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_start_future",
+          "name": "The start date is not in the past",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "start_date",
+              "text": "The start date cannot be in the past."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "start_date",
+                "operator": "is_set"
+              },
+              {
+                "column": "start_date",
+                "operator": "lt",
+                "value": "{{today}}"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_fixed_term_end",
+          "name": "Fixed-term contracts need an end date",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "contract_end_date",
+              "text": "Add the end date of the fixed-term contract."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "employment_type",
+                "operator": "eq",
+                "value": "fixed-term"
+              },
+              {
+                "column": "contract_end_date",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_end_after_start",
+          "name": "The contract ends after it starts",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "contract_end_date",
+              "text": "The contract must end after the start date."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "contract_end_date",
+                "operator": "is_set"
+              },
+              {
+                "column": "contract_end_date",
+                "operator": "lte",
+                "value": "{{start_date}}"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_type_changed",
+          "name": "Changing the employment type clears the contract details",
+          "event": "value_change",
+          "then": [
+            {
+              "type": "clear_values",
+              "fields": [
+                "contract_end_date",
+                "agency_name"
+              ]
+            }
+          ],
+          "target": "employment_type"
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Start onboarding",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "start_workflow",
+            "workflow_id": "9a00c61e-8525-4c32-82c6-0621f9e3c7ce",
+            "workflow_name": "Employee onboarding",
+            "inputs": {
+              "new_hire_name": "{{new_hire_name}}",
+              "personal_email": "{{personal_email}}",
+              "job_title": "{{job_title}}",
+              "department": "{{department}}",
+              "start_date": "{{start_date}}",
+              "manager_name": "{{manager_name}}",
+              "manager_email": "{{manager_email}}",
+              "location": "{{location}}",
+              "employment_type": "{{employment_type}}",
+              "manager_id": "{{manager_id}}",
+              "contract_end_date": "{{contract_end_date}}",
+              "agency_name": "{{agency_name}}",
+              "hr_notes": "{{hr_notes}}",
+              "offer_signed": "{{offer_signed}}"
+            }
+          },
+          {
+            "type": "success_screen",
+            "title": "Onboarding started",
+            "screen_button": "submit_another",
+            "screen_button_label": "Add another new starter",
+            "text": "{{new_hire_name}} starts on {{start_date}}. The HR record, IT setup and the first-week plan are on their way (reference {{run_reference}})."
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0D9488",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#E8F5F3",
+            "page_to": "#F6FBFA"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "New starter",
+          "subtitle": "Four steps: the role, the contract, the manager, then start onboarding. IT, the manager and HR get their tasks from this one form."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New starter",
+      "align": "left",
+      "subtitle": "Four steps: the role, the contract, the manager, then start onboarding. IT, the manager and HR get their tasks from this one form."
+    }
+  }
+}

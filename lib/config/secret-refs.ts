@@ -81,7 +81,9 @@ export async function resolveSecretRef(
   }
   let value: string | undefined
   try {
-    value = await lookup(store, name, field)
+    // Secret stores often hold values with a trailing newline (files, pasted
+    // values); a key or connection string never has edge whitespace.
+    value = (await lookup(store, name, field))?.trim()
   } catch (error) {
     const message = `${what} could not be read from the ${store.id} secret store: ${(error as Error).message}`
     cache.set(key, { at: now(), ttl: Math.min(ttlMs, FAILURE_TTL_MS), error: message })

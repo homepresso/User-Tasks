@@ -33,5 +33,8 @@ server, OAuth server, row-level-security policies and migrations.
 
 Out of scope: vulnerabilities in third-party services (Supabase, Resend,
 GitHub) and issues that require a deliberately insecure configuration, such
-as enabling `ENABLE_CUSTOM_ACTIVITY_CODE` or `ALLOW_PRIVATE_EGRESS` for
-untrusted users, or exposing the service-role key.
+as enabling `ALLOW_PRIVATE_EGRESS` for untrusted users, or exposing the
+service-role key. Escapes from the custom workflow action sandbox (QuickJS
+WebAssembly, `lib/custom-actions/`) and capability checks that can be
+bypassed — reaching a host, data table, file or secret an administrator did
+not grant — are in scope.

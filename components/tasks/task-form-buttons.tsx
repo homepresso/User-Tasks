@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,11 @@ import { useOnBehalf } from './on-behalf'
  * unsaved values (asking first). The task's own header buttons stay as
  * they are.
  */
-export function TaskFormButtons({ taskId, rawButtons, fields, values, savedValues, placement, onErrors, onReset, closed }: {
+export function TaskFormButtons({ taskId, rawButtons, fields, values, savedValues, placement, onErrors, onReset, closed, layout, onCompleted }: {
+  /** A completion with no redirect / close / button success screen: the page shows the Task completed screen (true = handled). */
+  onCompleted?: (outcome: string) => boolean
+  /** The form's grid (steps / tabs: fields on hidden pages are not required). */
+  layout?: unknown
   taskId: string
   /** The task is completed / cancelled: only what the last click showed stays (success screen, messages). */
   closed?: boolean
@@ -33,6 +38,8 @@ export function TaskFormButtons({ taskId, rawButtons, fields, values, savedValue
   const queryClient = useQueryClient()
   const buttons = normalizeFormButtons(rawButtons)
   const [busy, setBusy] = useState<string | null>(null)
+  // Synchronous guard: two clicks in one frame would act on the task twice.
+  const pressGuard = useSubmitGuard()
   const [effects, setEffects] = useState<ButtonEffects | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
@@ -40,42 +47,45 @@ export function TaskFormButtons({ taskId, rawButtons, fields, values, savedValue
   const dirty = fields.some((f) => JSON.stringify(values[f.key] ?? null) !== JSON.stringify(savedValues[f.key] ?? null))
 
   async function press(button: FormButton) {
-    setFailure(null)
-    if (button.kind === 'cancel') {
-      if (dirty && !confirmCancel) { setConfirmCancel(true); return }
-      setConfirmCancel(false)
-      onReset()
-      const planned = planButtonEffects(button, { values: savedValues })
-      if (planned.redirect) router.push(planned.redirect)
-      else setEffects(planned)
-      return
-    }
-    if (button.kind !== 'draft') {
-      const errors = validateTaskFieldValues(fields, values)
-      if (Object.keys(errors).length) { onErrors(errors); return }
-      if (onBehalf.needsNote) { setFailure('Add a reason (above) before acting on their behalf'); return }
-    }
-    setBusy(button.id)
-    try {
-      const { completeTaskWithFormButton } = await import('@/app/actions/task-queue')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the action returns one of several result shapes
-      const result = await completeTaskWithFormButton(taskId, button.id, values, undefined, onBehalf.options) as Record<string, any>
-      if (!result.success) {
-        if (result.errors) onErrors(result.errors)
-        setFailure(result.error ?? (result.errors ? 'Some values need attention' : 'The form could not be submitted'))
+    await pressGuard.run(async () => {
+      setFailure(null)
+      if (button.kind === 'cancel') {
+        if (dirty && !confirmCancel) { setConfirmCancel(true); return }
+        setConfirmCancel(false)
+        onReset()
+        const planned = planButtonEffects(button, { values: savedValues })
+        if (planned.redirect) router.push(planned.redirect)
+        else setEffects(planned)
         return
       }
-      const next = (result.effects ?? { messages: [] }) as ButtonEffects
-      if (result.status === 'saved' && !next.messages.length) next.messages.push({ text: 'Saved.', tone: 'success' })
-      if (result.status === 'completed' && !next.messages.length && !next.success_screen) next.messages.push({ text: `Completed: ${result.outcome}`, tone: 'success' })
-      if (result.status === 'waiting') next.messages.push({ text: `Response recorded (${result.responses} of ${result.needed}).`, tone: 'info' })
-      await queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] })
-      if (next.redirect) { router.push(next.redirect); return }
-      if (next.close) { router.push('/tasks'); return }
-      setEffects(next)
-    } finally {
-      setBusy(null)
-    }
+      if (button.kind !== 'draft') {
+        const errors = validateTaskFieldValues(fields, values, { layout, buttonIds: [button.id] })
+        if (Object.keys(errors).length) { onErrors(errors); return }
+        if (onBehalf.needsNote) { setFailure('Add a reason (above) before acting on their behalf'); return }
+      }
+      setBusy(button.id)
+      try {
+        const { completeTaskWithFormButton } = await import('@/app/actions/task-queue')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the action returns one of several result shapes
+        const result = await completeTaskWithFormButton(taskId, button.id, values, undefined, onBehalf.options) as Record<string, any>
+        if (!result.success) {
+          if (result.errors) onErrors(result.errors)
+          setFailure(result.error ?? (result.errors ? 'Some values need attention' : 'The form could not be submitted'))
+          return
+        }
+        const next = (result.effects ?? { messages: [] }) as ButtonEffects
+        if (result.status === 'saved' && !next.messages.length) next.messages.push({ text: 'Saved.', tone: 'success' })
+        if (result.status === 'completed' && !next.messages.length && !next.success_screen) next.messages.push({ text: `Completed: ${result.outcome}`, tone: 'success' })
+        if (result.status === 'waiting') next.messages.push({ text: `Response recorded (${result.responses} of ${result.needed}).`, tone: 'info' })
+        await queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] })
+        if (next.redirect) { router.push(next.redirect); return }
+        if (next.close) { router.push('/tasks'); return }
+        if (result.status === 'completed' && !next.success_screen && onCompleted?.(String(result.outcome ?? ''))) return
+        setEffects(next)
+      } finally {
+        setBusy(null)
+      }
+    })
   }
 
   if (closed && !effects) return null

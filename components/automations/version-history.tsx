@@ -1,12 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { History, RotateCcw, ChevronDown, ChevronRight, GitCompare, X, Loader2, GitBranch } from 'lucide-react'
+import { History, RotateCcw, ChevronDown, ChevronRight, GitCompare, ArrowLeft, Loader2, GitBranch } from 'lucide-react'
 import { LiveInstancesPanel } from './live-instances'
 import { Button } from '@/components/ui/button'
+import { Badge, Tag } from '@/components/ui/badge'
+import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Tooltip } from '@/components/ui/tooltip'
 import { serverRead } from '@/lib/server-read'
 import { revertToVersion } from '@/app/actions/automations'
-import { formatRelativeDate } from '@/lib/utils'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { plural } from '@/lib/format/plural'
 
 interface Version {
   id: string
@@ -71,136 +76,102 @@ export function VersionHistory({ workflowId, open, onClose }: VersionHistoryProp
     : null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div
-        className="w-[90vw] max-w-3xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <DialogContent
+        size="lg"
+        className="max-h-[80vh]"
+        title={<span className="flex items-center gap-2"><History size={16} className="text-fg-muted" aria-hidden="true" />{diffPair ? 'Version diff' : 'Version history'}</span>}
+        description={loading ? undefined : plural(versions.length, 'version')}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-          <div className="flex items-center gap-2">
-            <History size={16} style={{ color: 'var(--theme-primary-text)' }} />
-            <span className="text-sm font-semibold">
-              {diffPair ? 'Version Diff' : 'Version History'}
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-              {versions.length} version{versions.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <button onClick={onClose} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5">
+        <DialogBody className="pb-6">
           {loading ? (
-            <div className="flex flex-col items-center py-10">
-              <Loader2 size={24} className="animate-spin mb-2" style={{ color: 'var(--theme-primary-text)' }} />
-              <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>Loading versions...</p>
+            <div className="flex flex-col items-center py-10 text-fg-muted">
+              <Loader2 size={20} className="mb-2 animate-spin" aria-hidden="true" />
+              <p className="text-xs">Loading versions…</p>
             </div>
           ) : diffPair && diffVersions?.[0] && diffVersions?.[1] ? (
             /* Visual Diff View */
             <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <button onClick={() => setDiffPair(null)} className="text-xs underline" style={{ color: 'var(--theme-primary-text)' }}>
+              <div className="mb-2 flex items-center gap-2">
+                <Button variant="link" size="sm" leadingIcon={<ArrowLeft />} onClick={() => setDiffPair(null)}>
                   Back to list
-                </button>
-                <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                  v{diffVersions[0].version_number} → v{diffVersions[1].version_number}
+                </Button>
+                <span className="flex items-center gap-1 text-xs text-fg-muted">
+                  <Tag mono>v{diffVersions[0].version_number}</Tag> → <Tag mono>v{diffVersions[1].version_number}</Tag>
                 </span>
               </div>
 
               {/* Legend */}
-              <div className="flex gap-3 text-[9px] font-medium">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: 'var(--theme-success)' }} /> Added</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: 'var(--theme-danger)' }} /> Removed</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: 'var(--theme-warning)' }} /> Changed</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: 'var(--theme-surface-border)' }} /> Unchanged</span>
+              <div className="flex gap-3 text-2xs font-medium text-fg-muted">
+                <span className="flex items-center gap-1"><span className="size-2.5 rounded-sm bg-success" /> Added</span>
+                <span className="flex items-center gap-1"><span className="size-2.5 rounded-sm bg-danger" /> Removed</span>
+                <span className="flex items-center gap-1"><span className="size-2.5 rounded-sm bg-warning" /> Changed</span>
+                <span className="flex items-center gap-1"><span className="size-2.5 rounded-sm bg-border" /> Unchanged</span>
               </div>
 
               <VisualDiff before={diffVersions[0]} after={diffVersions[1]} />
 
               {/* Text diff for details */}
-              <DiffView label="Node Details" before={diffVersions[0].nodes} after={diffVersions[1].nodes} />
-              <DiffView label="Edge Details" before={diffVersions[0].edges} after={diffVersions[1].edges} />
+              <DiffView label="Node details" before={diffVersions[0].nodes} after={diffVersions[1].nodes} />
+              <DiffView label="Edge details" before={diffVersions[0].edges} after={diffVersions[1].edges} />
               <SectionsDiff before={diffVersions[0]} after={diffVersions[1]} />
             </div>
           ) : versions.length === 0 ? (
-            <div className="text-center py-10">
-              <History size={32} className="mx-auto mb-2" style={{ color: 'var(--theme-muted-text)', opacity: 0.3 }} />
-              <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>No published versions yet</p>
-            </div>
+            <EmptyState size="sm" icon={History} title="No published versions yet" description="Publish the workflow to start its version history." />
           ) : (
             /* Version List */
-            <div className="space-y-2">
-              {versions.map((v, i) => (
-                <div key={v.id} className="rounded-lg border p-3" style={{ borderColor: v.is_active ? 'var(--theme-primary)' : 'var(--theme-surface-border)', backgroundColor: v.is_active ? 'var(--theme-primary-light)' : 'var(--theme-surface)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold" style={{ color: v.is_active ? 'var(--theme-primary-text)' : 'var(--theme-card-text)' }}>
-                      v{v.version_number}
-                    </span>
-                    {v.is_active && (
-                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 15%, transparent)', color: 'var(--theme-success)' }}>
-                        LIVE
-                      </span>
-                    )}
-                    <span className="text-[10px] flex-1" style={{ color: 'var(--theme-muted-text)' }}>
-                      {formatRelativeDate(v.published_at)}
-                    </span>
-                    {(liveCounts[v.id] ?? 0) > 0 && (
-                      <button
-                        onClick={() => setInstancesFor(v.id)}
-                        className="text-[9px] px-2 py-1 rounded hover:opacity-80 flex items-center gap-1 font-medium"
-                        style={{ color: v.is_active ? 'var(--theme-primary-text)' : 'var(--theme-warning)', backgroundColor: 'var(--theme-card-bg)' }}
-                        title="Live instances on this version — view or migrate them"
-                      >
-                        <GitBranch size={10} /> {liveCounts[v.id]} live
-                      </button>
-                    )}
-                    <div className="flex gap-1">
-                      {i < versions.length - 1 && (
-                        <button
-                          onClick={() => showDiff(versions[i + 1].id, v.id)}
-                          className="text-[9px] px-2 py-1 rounded hover:opacity-80 flex items-center gap-1"
-                          style={{ color: 'var(--theme-primary-text)', backgroundColor: 'var(--theme-card-bg)' }}
-                          title={`Diff v${versions[i + 1].version_number} → v${v.version_number}`}
-                        >
-                          <GitCompare size={10} /> Diff
-                        </button>
+            <ul className="divide-y divide-border-subtle rounded-lg border border-border">
+              {versions.map((v, i) => {
+                const nodes = ((v.nodes as any[]) ?? [])
+                const sections = nodes.filter((n: any) => n.type === 'section_group').length
+                return (
+                  <li key={v.id} className={`relative px-4 py-3 ${v.is_active ? 'bg-primary-wash' : ''}`}>
+                    {v.is_active && <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" aria-hidden="true" />}
+                    <div className="flex items-center gap-2">
+                      <Tag mono className="font-semibold">v{v.version_number}</Tag>
+                      {v.is_active && <Badge tone="success" dot>Live</Badge>}
+                      <Tooltip content={formatAbsolute(v.published_at)}>
+                        <span className="flex-1 truncate text-xs text-fg-muted">{formatRelative(v.published_at)}</span>
+                      </Tooltip>
+                      {(liveCounts[v.id] ?? 0) > 0 && (
+                        <Tooltip content="Live instances on this version — view or migrate them">
+                          <Button variant="ghost" size="sm" leadingIcon={<GitBranch />} onClick={() => setInstancesFor(v.id)}
+                            className={v.is_active ? 'text-primary-text' : 'text-warning'}>
+                            {liveCounts[v.id]} live
+                          </Button>
+                        </Tooltip>
                       )}
-                      {!v.is_active && (
-                        <button
-                          onClick={() => handleRevert(v.id)}
-                          disabled={reverting === v.id}
-                          className="text-[9px] px-2 py-1 rounded hover:opacity-80 flex items-center gap-1"
-                          style={{ color: 'var(--theme-warning)', backgroundColor: 'var(--theme-card-bg)' }}
-                        >
-                          {reverting === v.id ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
-                          Revert
-                        </button>
-                      )}
+                      <div className="flex gap-1">
+                        {i < versions.length - 1 && (
+                          <Tooltip content={`Diff v${versions[i + 1].version_number} → v${v.version_number}`}>
+                            <Button variant="secondary" size="sm" leadingIcon={<GitCompare />} onClick={() => showDiff(versions[i + 1].id, v.id)}>
+                              Diff
+                            </Button>
+                          </Tooltip>
+                        )}
+                        {!v.is_active && (
+                          <Button variant="secondary" size="sm" leadingIcon={<RotateCcw />} loading={reverting === v.id} onClick={() => handleRevert(v.id)}>
+                            Revert
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  {v.publish_notes && (
-                    <p className="text-[10px] mt-1.5" style={{ color: 'var(--theme-muted-text)' }}>
-                      {v.publish_notes}
-                    </p>
-                  )}
-                  <div className="flex gap-3 mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    <span>{((v.nodes as any[]) ?? []).filter((n: any) => n.type !== 'section_group').length} nodes</span>
-                    <span>{(v.edges as any[])?.length ?? 0} edges</span>
-                    {((v.nodes as any[]) ?? []).some((n: any) => n.type === 'section_group') && (
-                      <span>{((v.nodes as any[]) ?? []).filter((n: any) => n.type === 'section_group').length} sections</span>
+                    {v.publish_notes && (
+                      <p className="mt-1.5 text-ui text-fg">{v.publish_notes}</p>
                     )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                    <div className="num mt-1 flex gap-3 text-xs text-fg-muted">
+                      <span>{plural(nodes.filter((n: any) => n.type !== 'section_group').length, 'node')}</span>
+                      <span>{plural((v.edges as any[])?.length ?? 0, 'edge')}</span>
+                      {sections > 0 && <span>{plural(sections, 'section')}</span>}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
           )}
-        </div>
-      </div>
-    </div>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -234,40 +205,37 @@ function DiffView({ label, before, after }: { label: string; before: any; after:
   const changedCount = diffLines.filter(d => d.type !== 'same').length
 
   return (
-    <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)' }}>
+    <div className="overflow-hidden rounded-lg border border-border">
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full px-3 py-2 text-left hover:opacity-80"
-        style={{ backgroundColor: 'var(--theme-surface)' }}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 bg-subtle px-3 py-2 text-left hover:bg-muted"
       >
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span className="text-xs font-semibold">{label}</span>
+        {expanded ? <ChevronDown size={14} className="text-fg-muted" /> : <ChevronRight size={14} className="text-fg-muted" />}
+        <span className="text-ui font-medium text-fg">{label}</span>
         {hasChanges ? (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}>
-            {changedCount} line{changedCount !== 1 ? 's' : ''} changed
-          </span>
+          <Badge tone="warning">{plural(changedCount, 'line')} changed</Badge>
         ) : (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 10%, transparent)', color: 'var(--theme-success)' }}>
-            No changes
-          </span>
+          <Badge tone="success">No changes</Badge>
         )}
       </button>
       {expanded && (
-        <div className="max-h-[300px] overflow-auto font-mono text-[10px] leading-relaxed">
+        <div className="max-h-[300px] overflow-auto border-t border-border-subtle font-mono text-2xs leading-relaxed">
           {diffLines.map((line, i) => {
             if (line.type === 'same') return (
-              <div key={i} className="px-3 py-0.5" style={{ color: 'var(--theme-muted-text)' }}>{line.before}</div>
+              <div key={i} className="px-3 py-0.5 text-fg-muted">{line.before}</div>
             )
             if (line.type === 'removed') return (
-              <div key={i} className="px-3 py-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-danger) 8%, transparent)', color: 'var(--theme-danger)' }}>- {line.before}</div>
+              <div key={i} className="bg-danger-wash px-3 py-0.5 text-danger">- {line.before}</div>
             )
             if (line.type === 'added') return (
-              <div key={i} className="px-3 py-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 8%, transparent)', color: 'var(--theme-success)' }}>+ {line.after}</div>
+              <div key={i} className="bg-success-wash px-3 py-0.5 text-success">+ {line.after}</div>
             )
             return (
               <div key={i}>
-                <div className="px-3 py-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-danger) 8%, transparent)', color: 'var(--theme-danger)' }}>- {line.before}</div>
-                <div className="px-3 py-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 8%, transparent)', color: 'var(--theme-success)' }}>+ {line.after}</div>
+                <div className="bg-danger-wash px-3 py-0.5 text-danger">- {line.before}</div>
+                <div className="bg-success-wash px-3 py-0.5 text-success">+ {line.after}</div>
               </div>
             )
           })}
@@ -319,13 +287,13 @@ function VisualDiff({ before, after }: { before: Version; after: Version }) {
 
   return (
     <div>
-      <div className="flex gap-3 mb-2 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-        {added > 0 && <span style={{ color: 'var(--theme-success)' }}>+{added} added</span>}
-        {removed > 0 && <span style={{ color: 'var(--theme-danger)' }}>-{removed} removed</span>}
-        {changed > 0 && <span style={{ color: 'var(--theme-warning)' }}>{changed} changed</span>}
+      <div className="num mb-2 flex gap-3 text-xs text-fg-muted">
+        {added > 0 && <span className="text-success">+{added} added</span>}
+        {removed > 0 && <span className="text-danger">-{removed} removed</span>}
+        {changed > 0 && <span className="text-warning">{changed} changed</span>}
         {added === 0 && removed === 0 && changed === 0 && <span>No node changes</span>}
       </div>
-      <div className="rounded-xl border overflow-auto" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+      <div className="overflow-auto rounded-lg border border-border bg-subtle">
         <div className="relative" style={{ width: maxX + 40, height: maxY + 40, minHeight: 150 }}>
           {/* Grid */}
           <div className="absolute inset-0 pointer-events-none"
@@ -358,11 +326,11 @@ function VisualDiff({ before, after }: { before: Version; after: Version }) {
             if (node.type === 'section_group') {
               const w = node.config?.width ?? 500
               const h = status === 'removed' && node.collapsed ? 40 : (node.collapsed ? 40 : (node.config?.height ?? 300))
-              const secColor = node.config?.color ?? '#6366F1'
+              const secColor = node.config?.color ?? 'var(--theme-chart-1)'
               return (
                 <div
                   key={node.id}
-                  className="absolute rounded-xl border-2"
+                  className="absolute rounded-lg border-2"
                   style={{
                     left: node.position?.x ?? 0,
                     top: node.position?.y ?? 0,
@@ -373,12 +341,12 @@ function VisualDiff({ before, after }: { before: Version; after: Version }) {
                     opacity: status === 'removed' ? 0.4 : 1,
                   }}
                 >
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 text-[9px]" style={{ backgroundColor: `color-mix(in srgb, ${secColor} 10%, transparent)` }}>
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 text-2xs" style={{ backgroundColor: `color-mix(in srgb, ${secColor} 10%, transparent)` }}>
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                     <span className="font-semibold truncate" style={{ color: secColor, textDecoration: status === 'removed' ? 'line-through' : undefined }}>
                       📂 {node.label}
                     </span>
-                    <span className="text-[8px] ml-auto" style={{ color: 'var(--theme-muted-text)' }}>{status}</span>
+                    <span className="ml-auto text-2xs text-fg-muted">{status}</span>
                   </div>
                 </div>
               )
@@ -386,13 +354,12 @@ function VisualDiff({ before, after }: { before: Version; after: Version }) {
             return (
               <div
                 key={node.id}
-                className="absolute rounded-lg border-2 px-2 py-1.5 text-[9px] truncate"
+                className="absolute truncate rounded-lg border-2 bg-panel px-2 py-1.5 text-2xs text-fg"
                 style={{
                   left: node.position?.x ?? 0,
                   top: node.position?.y ?? 0,
                   width: 180,
                   borderColor: color,
-                  backgroundColor: `var(--theme-card-bg)`,
                   opacity: status === 'removed' ? 0.5 : 1,
                   textDecoration: status === 'removed' ? 'line-through' : undefined,
                 }}
@@ -401,7 +368,7 @@ function VisualDiff({ before, after }: { before: Version; after: Version }) {
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <span className="font-semibold truncate">{node.label}</span>
                 </div>
-                <p className="truncate" style={{ color: 'var(--theme-muted-text)' }}>{node.type}</p>
+                <p className="truncate text-fg-muted">{node.type}</p>
               </div>
             )
           })}
@@ -450,50 +417,46 @@ function SectionsDiff({ before, after }: { before: Version; after: Version }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)' }}>
+    <div className="overflow-hidden rounded-lg border border-border">
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full px-3 py-2 text-left hover:opacity-80"
-        style={{ backgroundColor: 'var(--theme-surface)' }}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 bg-subtle px-3 py-2 text-left hover:bg-muted"
       >
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span className="text-xs font-semibold">Sections</span>
+        {expanded ? <ChevronDown size={14} className="text-fg-muted" /> : <ChevronRight size={14} className="text-fg-muted" />}
+        <span className="text-ui font-medium text-fg">Sections</span>
         {hasChanges ? (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}>
-            {diffs.filter(d => d.status !== 'unchanged').length} change{diffs.filter(d => d.status !== 'unchanged').length !== 1 ? 's' : ''}
-          </span>
+          <Badge tone="warning">{plural(diffs.filter(d => d.status !== 'unchanged').length, 'change')}</Badge>
         ) : (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 10%, transparent)', color: 'var(--theme-success)' }}>
-            No changes
-          </span>
+          <Badge tone="success">No changes</Badge>
         )}
       </button>
       {expanded && (
-        <div className="p-3 space-y-1.5">
+        <div className="divide-y divide-border-subtle border-t border-border-subtle">
           {diffs.map(({ node, status, childCountBefore, childCountAfter }) => {
-            const secColor = node.config?.color ?? '#6366F1'
-            const statusColor = status === 'added' ? 'var(--theme-success)' : status === 'removed' ? 'var(--theme-danger)' : status === 'changed' ? 'var(--theme-warning)' : 'var(--theme-muted-text)'
+            const secColor = node.config?.color ?? 'var(--theme-chart-1)'
+            const statusTone = status === 'added' ? 'success' : status === 'removed' ? 'danger' : status === 'changed' ? 'warning' : 'neutral'
+            const statusText = status === 'added' ? 'text-success' : status === 'removed' ? 'text-danger' : 'text-warning'
             return (
-              <div key={node.id} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-                <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: statusColor }} />
-                <span className="w-3 h-3 rounded" style={{ backgroundColor: secColor }} />
-                <span className="text-xs font-medium flex-1" style={{ textDecoration: status === 'removed' ? 'line-through' : undefined, color: 'var(--theme-card-text)' }}>
+              <div key={node.id} className="flex items-center gap-2 px-3 py-2">
+                {/* Section colour from the workflow data. */}
+                <span className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: secColor }} />
+                <span className={`flex-1 truncate text-ui font-medium text-fg ${status === 'removed' ? 'line-through' : ''}`}>
                   {node.label}
                 </span>
                 {status === 'changed' && childCountBefore !== childCountAfter && (
-                  <span className="text-[9px]" style={{ color: 'var(--theme-warning)' }}>
-                    {childCountBefore} → {childCountAfter} nodes
+                  <span className={`num text-xs ${statusText}`}>
+                    {childCountBefore} → {plural(childCountAfter, 'node')}
                   </span>
                 )}
                 {status === 'added' && (
-                  <span className="text-[9px]" style={{ color: 'var(--theme-success)' }}>+{childCountAfter} nodes</span>
+                  <span className={`num text-xs ${statusText}`}>+{plural(childCountAfter, 'node')}</span>
                 )}
                 {status === 'removed' && (
-                  <span className="text-[9px]" style={{ color: 'var(--theme-danger)' }}>was {childCountBefore} nodes</span>
+                  <span className={`num text-xs ${statusText}`}>was {plural(childCountBefore, 'node')}</span>
                 )}
-                <span className="text-[8px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${statusColor} 10%, transparent)`, color: statusColor }}>
-                  {status}
-                </span>
+                <Badge tone={statusTone} dot>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
               </div>
             )
           })}

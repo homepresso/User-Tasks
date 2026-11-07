@@ -6,7 +6,7 @@
  *   doc_convert   Convert document   file → pdf / docx / html / markdown / text / csv / xlsx / json
  *   doc_pdf       PDF tools          merge, split, extract pages, page count, watermark, rotate, fill / read form
  *   doc_extract   Extract            tables, regex key-values, emails / URLs / phones / dates / amounts; rows → data table
- *   doc_redact    Redact             PII presets, terms, patterns → redacted copy
+ *   doc_redact    Redact             information types, presets, terms, patterns → redacted copy or findings
  *   doc_inspect   Inspect document   type (magic bytes), checksums, counts, search with context
  *
  * Inputs are read with lib/files/resolve-input (the run's tenant only);
@@ -81,11 +81,26 @@ function readOptions(ctx: DocumentNodeContext): ReadOptions {
     delimiter: opt(ctx, 'delimiter') || undefined,
     ocr: ocr === 'auto' || ocr === 'force' ? ocr : 'off',
     ocrLanguages: opt(ctx, 'ocr_languages') || 'eng',
+    // The workspace's own OCR setting first, then the instance's where allowed (lib/documents/ocr-workspace).
     openOcr: async (languages: string) => {
-      const { openOcrProvider, normaliseLanguages } = await import('./ocr')
-      return openOcrProvider(normaliseLanguages(languages))
+      const { normaliseLanguages } = await import('./ocr')
+      const { openWorkspaceOcr, countingProvider } = await import('./ocr-workspace')
+      const { provider, source } = await openWorkspaceOcr(ctx.supabase, ctx.tenantId, normaliseLanguages(languages))
+      return countingProvider(provider, source, ocrUsageOf(ctx))
     },
   }
+}
+
+/** Pages sent for OCR during this step (shown in the run's step output: what Azure bills). */
+const OCR_USAGE = new WeakMap<DocumentNodeContext, import('./ocr-workspace').OcrUsage>()
+
+function ocrUsageOf(ctx: DocumentNodeContext): import('./ocr-workspace').OcrUsage {
+  let usage = OCR_USAGE.get(ctx)
+  if (!usage) {
+    usage = { provider: null, source: null, pages_sent: 0 }
+    OCR_USAGE.set(ctx, usage)
+  }
+  return usage
 }
 
 async function input(ctx: DocumentNodeContext, key: string, label: string, allowText = false): Promise<ResolvedFile> {
@@ -499,78 +514,148 @@ async function extractNode(ctx: DocumentNodeContext) {
   }
 }
 
-/* ── Redact ─────────────────────────────────────────────────────────── */
+/* ── Redact / detect sensitive information ───────────────────────── */
+
+/** Findings kept in the variable, and shown in the run history / Save & Test. */
+export const REDACT_FINDINGS_MAX = 5000
+export const REDACT_FINDINGS_PREVIEW = 25
 
 async function redactNode(ctx: DocumentNodeContext) {
   const file = await input(ctx, 'source', 'Document', true)
   const rd = await import('./redact')
+  const cat = await import('./pii/catalog')
   const { detectType } = await import('./detect')
+  const detectOnly = opt(ctx, 'mode') === 'detect_only'
   const presets = listOf(ctx.config.presets).filter((p): p is import('./redact').RedactPreset => (rd.REDACT_PRESETS as string[]).includes(p))
+  const infoTypes = cat.resolveInfoTypes(listOf(ctx.config.info_types), listOf(ctx.config.regions))
+  const styleOf = (v: unknown) => ((rd.REDACT_STYLES as string[]).includes(str(v)) ? str(v) : undefined) as import('./redact').RedactStyle | undefined
+  const styles: Record<string, import('./redact').RedactStyle> = {}
+  if (ctx.config.styles && typeof ctx.config.styles === 'object') for (const [k, v] of Object.entries(ctx.config.styles)) { const st = styleOf(v); if (st) styles[k] = st }
+  const minConfidence = (['low', 'medium', 'high'].includes(opt(ctx, 'min_confidence')) ? opt(ctx, 'min_confidence') : 'medium') as import('./pii/catalog').Confidence
+  const includeValues = bool(ctx.config.include_values)
+  const findings: import('./redact').Finding[] = []
+  let findingsTotal = 0
+  let withLines = false
   const options: import('./redact').RedactOptions = {
     presets,
+    infoTypes,
+    minConfidence,
     terms: listOf(resolved(ctx, 'terms')),
     patterns: (Array.isArray(ctx.config.patterns) ? ctx.config.patterns : listOf(ctx.config.patterns)).map((p: any) => str(typeof p === 'object' ? p?.pattern : p)).filter(Boolean),
-    replacement: (['block', 'label', 'text'].includes(opt(ctx, 'replacement')) ? opt(ctx, 'replacement') : 'block') as 'block' | 'label' | 'text',
+    replacement: styleOf(opt(ctx, 'replacement')) ?? 'block',
     replacementText: opt(ctx, 'replacement_text') || undefined,
+    styles,
+    hashKey: `${ctx.tenantId}:${(await import('@/lib/config/bootstrap')).processorSecret() ?? ''}`,
+    detectOnly,
+    onHits: (hits, text, where) => {
+      findingsTotal += hits.length
+      if (findings.length >= REDACT_FINDINGS_MAX) return
+      findings.push(...rd.buildFindings(hits, text, where, { includeValues, withLines }).slice(0, REDACT_FINDINGS_MAX - findings.length))
+    },
   }
-  if (!presets.length && !options.terms!.length && !options.patterns!.length) throw new Error('Choose what to redact (a preset, terms or a pattern)')
+  const useAi = bool(ctx.config.ai_detection)
+  if (!presets.length && !infoTypes.length && !useAi && !options.terms!.length && !options.patterns!.length) throw new Error('Choose what to find (information types, a preset, terms or a pattern)')
   const type = detectType(file.bytes, file.name)
   const output = opt(ctx, 'output') || 'same'
   const base = opt(ctx, 'output_name') || `${baseName(file.source === 'text' ? 'text' : file.name)}-redacted`
+  const { readDocumentFull } = await import('./read')
+  const ooxml = (type.format === 'docx' || type.format === 'pptx' || type.format === 'xlsx') && (output === 'same' || detectOnly)
+  const plainText = !ooxml && type.is_text && !['html'].includes(type.format) && (output === 'same' || detectOnly)
+  // The document as blocks (PDF, HTML, OpenDocument, or another output format).
+  const full = ooxml || plainText ? null : await withTimeout(readDocumentFull(file.bytes, file.name, file.mime_type, readOptions(ctx)), Math.max(DOCUMENT_LIMITS.timeoutMs, readOptions(ctx).ocr !== 'off' ? DOCUMENT_LIMITS.ocrTimeoutMs : 0), 'Reading the document')
+  for (const w of full?.result.warnings ?? []) ctx.warn(`${file.name}: ${w}`)
+
+  // AI (opt-in): names and addresses from the agent's model, matched literally below.
+  if (useAi) {
+    const agentId = str(ctx.config.ai_agent_id)
+    if (!agentId) throw new Error('AI detection is on: choose the agent whose model looks for names and addresses')
+    const docText = plainText ? new TextDecoder().decode(file.bytes) : full ? full.fullText : (await readDocumentFull(file.bytes, file.name, file.mime_type, {})).fullText
+    const { findWithAgent } = await import('./pii/ai')
+    const ai = await findWithAgent(ctx.supabase, ctx.tenantId, agentId, docText)
+    options.aiValues = ai.values
+    if (ai.truncated) ctx.warn('AI detection read the first 40,000 characters only; the patterns cover the whole document')
+  }
+
   let counts: Record<string, number> = {}
   let total = 0
   let outFile: DocumentFileObject | null = null
   let text = ''
-  const { readDocumentFull } = await import('./read')
-  if (output === 'same' && (type.format === 'docx' || type.format === 'pptx' || type.format === 'xlsx')) {
-    const r = await rd.redactOoxml(file.bytes, type.format, { ...options, clearAuthor: bool(ctx.config.clear_author, true) })
+  const add = (r: { counts: Record<string, number>; total: number }) => { for (const [k, v] of Object.entries(r.counts)) counts[k] = (counts[k] ?? 0) + v; total += r.total }
+  if (ooxml) {
+    const r = await rd.redactOoxml(file.bytes, type.format as 'docx' | 'pptx' | 'xlsx', { ...options, clearAuthor: bool(ctx.config.clear_author, true) })
     counts = r.counts
     total = r.total
-    outFile = await save(ctx, r.bytes, outputFileName(base, 'redacted', type.format), MIME[type.format])
-    text = (await readDocumentFull(r.bytes, `x.${type.format}`, null, {})).fullText
-  } else if (output === 'same' && type.is_text && !['html'].includes(type.format)) {
+    if (r.bytes) {
+      outFile = await save(ctx, r.bytes, outputFileName(base, 'redacted', type.format), MIME[type.format as 'docx'])
+      text = (await readDocumentFull(r.bytes, `x.${type.format}`, null, {})).fullText
+    }
+  } else if (plainText) {
+    withLines = true
     const r = rd.redactText(new TextDecoder().decode(file.bytes), options)
-    counts = r.counts
-    total = r.total
-    text = r.text
-    const ext = type.format === 'markdown' ? 'md' : type.format === 'text' ? 'txt' : type.extension
-    outFile = await save(ctx, new TextEncoder().encode(r.text), outputFileName(base, 'redacted', ext), type.mime_type)
+    add(r)
+    if (!detectOnly) {
+      text = r.text
+      const ext = type.format === 'markdown' ? 'md' : type.format === 'text' ? 'txt' : type.extension
+      outFile = await save(ctx, new TextEncoder().encode(r.text), outputFileName(base, 'redacted', ext), type.mime_type)
+    }
   } else {
-    // PDF, HTML and other formats: rebuilt from the redacted text.
-    const { result, blocks } = await readDocumentFull(file.bytes, file.name, file.mime_type, readOptions(ctx))
-    const redactBlocks = blocks.map((b) => {
+    // PDF, HTML and other formats: found per block (page, paragraph, table cell); the copy is rebuilt from the redacted text.
+    const { result, blocks } = full!
+    const paged = type.format === 'pdf' || blocks.some((b) => b.type === 'page_break')
+    let page = 1
+    const redactBlocks = blocks.map((b, index) => {
+      if (b.type === 'page_break') page++
+      // PDFs are read with a "Page N" heading before each page's text.
+      if (type.format === 'pdf' && b.type === 'heading' && b.level === 2) { const n = /^Page (\d+)$/.exec(b.inlines.map((i) => i.text).join('')); if (n) page = Number(n[1]) }
+      const where = { ...(paged ? { page } : {}), paragraph: index + 1 }
       if ('inlines' in b) {
-        const r = rd.redactText(b.inlines.map((i) => i.text).join(''), options)
-        for (const [k, v] of Object.entries(r.counts)) counts[k] = (counts[k] ?? 0) + v
-        total += r.total
+        const r = rd.redactText(b.inlines.map((i) => i.text).join(''), options, where)
+        add(r)
         return { ...b, inlines: [{ text: r.text }] }
       }
-      if (b.type === 'table') return { ...b, rows: b.rows.map((row) => row.map((c) => { const r = rd.redactText(c, options); for (const [k, v] of Object.entries(r.counts)) counts[k] = (counts[k] ?? 0) + v; total += r.total; return r.text })) }
-      if (b.type === 'code') { const r = rd.redactText(b.text, options); for (const [k, v] of Object.entries(r.counts)) counts[k] = (counts[k] ?? 0) + v; total += r.total; return { ...b, text: r.text } }
+      if (b.type === 'table') return { ...b, rows: b.rows.map((row, ri) => row.map((c, ci) => { const r = rd.redactText(c, options, { ...where, row: ri + 1, column: ci + 1 }); add(r); return r.text })) }
+      if (b.type === 'code') { const r = rd.redactText(b.text, options, where); add(r); return { ...b, text: r.text } }
       return b
     })
-    const { blocksToText, blocksToHtml } = await import('./model')
-    text = blocksToText(redactBlocks)
-    const target = output === 'text' ? 'text' : output === 'html' || type.format === 'html' ? 'html' : 'pdf'
-    if (target === 'pdf') {
-      const { renderPdf } = await import('./pdf-tools')
-      const r = await renderPdf(redactBlocks, { title: result.metadata.title ?? undefined })
-      outFile = await save(ctx, r.bytes, outputFileName(base, 'redacted', 'pdf'), MIME.pdf)
-      if (type.format === 'pdf') ctx.warn('The redacted PDF is rebuilt from the text: the original layout and images are not kept, and no redacted text remains in it')
-    } else if (target === 'html') {
-      const { htmlDocument } = await import('./diff')
-      const { sanitizeHtml } = await import('@/lib/html-sanitize')
-      outFile = await save(ctx, new TextEncoder().encode(htmlDocument(base, sanitizeHtml(blocksToHtml(redactBlocks)))), outputFileName(base, 'redacted', 'html'), MIME.html)
-    } else {
-      outFile = await save(ctx, new TextEncoder().encode(text), outputFileName(base, 'redacted', 'txt'), MIME.txt)
+    if (!detectOnly) {
+      const { blocksToText, blocksToHtml } = await import('./model')
+      text = blocksToText(redactBlocks)
+      const target = output === 'text' ? 'text' : output === 'html' || type.format === 'html' ? 'html' : 'pdf'
+      if (target === 'pdf') {
+        const { renderPdf } = await import('./pdf-tools')
+        const r = await renderPdf(redactBlocks, { title: result.metadata.title ?? undefined })
+        outFile = await save(ctx, r.bytes, outputFileName(base, 'redacted', 'pdf'), MIME.pdf)
+        if (type.format === 'pdf') ctx.warn('The redacted PDF is rebuilt from the text: the original layout and images are not kept, and no redacted text remains in it')
+      } else if (target === 'html') {
+        const { htmlDocument } = await import('./diff')
+        const { sanitizeHtml } = await import('@/lib/html-sanitize')
+        outFile = await save(ctx, new TextEncoder().encode(htmlDocument(base, sanitizeHtml(blocksToHtml(redactBlocks)))), outputFileName(base, 'redacted', 'html'), MIME.html)
+      } else {
+        outFile = await save(ctx, new TextEncoder().encode(text), outputFileName(base, 'redacted', 'txt'), MIME.txt)
+      }
     }
   }
-  const ov = outputVar(ctx, 'redacted')
-  ctx.variables[ov] = { file: outFile, text, counts, total }
+  const countsByType = Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]))
+  const truncated = findingsTotal > findings.length
+  if (truncated) ctx.warn(`${findingsTotal} findings: the first ${REDACT_FINDINGS_MAX} are listed`)
+  const ov = outputVar(ctx, detectOnly ? 'detected' : 'redacted')
+  ctx.variables[ov] = { mode: detectOnly ? 'detect_only' : 'redact', file: outFile, text: detectOnly ? null : text, counts, counts_by_type: countsByType, total, findings, findings_truncated: truncated }
   ctx.variables[`${ov}_file`] = outFile
-  ctx.variables[`${ov}_text`] = text
+  ctx.variables[`${ov}_text`] = detectOnly ? null : text
   ctx.variables[`${ov}_count`] = total
-  return { variable: ov, file: outFile?.name, redactions: total, counts }
+  ctx.variables[`${ov}_findings`] = findings
+  // Run history / Save & Test: counts and masked findings only (never the values).
+  const preview = findings.slice(0, REDACT_FINDINGS_PREVIEW).map((f) => ({ ...f, text: includeValues ? rd.maskValue(f.text) : f.text }))
+  return {
+    variable: ov,
+    mode: detectOnly ? 'detect_only' : 'redact',
+    file: outFile?.name,
+    ...(detectOnly ? { found: total } : { redactions: total }),
+    counts,
+    ...(infoTypes.length ? { info_types: infoTypes.length, min_confidence: minConfidence } : {}),
+    findings: preview,
+    ...(findings.length > preview.length || truncated ? { findings_shown: preview.length, findings_total: findingsTotal } : {}),
+  }
 }
 
 /* ── Inspect ────────────────────────────────────────────────────────── */
@@ -633,6 +718,13 @@ export function isDocumentNodeType(type: string): type is DocumentNodeType {
 }
 
 export async function runDocumentNode(ctx: DocumentNodeContext): Promise<Record<string, unknown>> {
+  const result = await runDocumentNodeType(ctx)
+  const usage = OCR_USAGE.get(ctx)
+  // { provider, source: workspace | instance, pages_sent } — never the key or endpoint.
+  return usage?.provider ? { ...result, ocr: { ...usage } } : result
+}
+
+async function runDocumentNodeType(ctx: DocumentNodeContext): Promise<Record<string, unknown>> {
   switch (ctx.type) {
     case 'doc_read': return readNode(ctx)
     case 'doc_compare': return compareNode(ctx)

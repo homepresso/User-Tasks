@@ -224,8 +224,16 @@ export function trimSample(value: unknown, options: TrimSampleOptions = {}): unk
 export function captureResponseSample(existing: ResponseSchema | null | undefined, sample: unknown, now = new Date()): ResponseSchema {
   const inferred = inferSchema(sample)
   const prior = existing && isResponseSchema(existing) ? existing : null
-  if (!prior || prior.source === 'outputs') {
+  // A real response that contradicts the model's top level (a list where the
+  // model says object, or a model derived from loose output declarations)
+  // replaces it: merging would turn the root into "any" and hide every list.
+  const conflicting = !!prior && !rootsAgree(prior.root, inferred)
+  if (!prior || conflicting || (prior.source === 'outputs' && !(prior.root.fields ?? []).length)) {
     return { version: 1, source: 'sample', root: inferred, sample: trimSample(sample), samples: 1, updated_at: now.toISOString() }
+  }
+  if (prior.source === 'outputs') {
+    // Declared outputs give the names; the sample gives the shape and examples.
+    return { version: 1, source: 'sample', root: mergeSchemaNodes(inferred, prior.root), sample: trimSample(sample), samples: 1, updated_at: now.toISOString() }
   }
   const root = prior.source === 'sample' ? mergeSchemaNodes(inferred, prior.root) : mergeSchemaNodes(prior.root, inferred)
   return {
@@ -236,6 +244,13 @@ export function captureResponseSample(existing: ResponseSchema | null | undefine
     samples: (prior.samples ?? (prior.source === 'sample' ? 1 : 0)) + 1,
     updated_at: now.toISOString(),
   }
+}
+
+function rootsAgree(a: SchemaNode, b: SchemaNode): boolean {
+  const loose = new Set<SchemaType>(['any', 'null'])
+  if (loose.has(a.type) || loose.has(b.type)) return true
+  const structural = (t: SchemaType) => (t === 'object' || t === 'array' ? t : 'primitive')
+  return structural(a.type) === structural(b.type)
 }
 
 // ─── From declared outputs (backfill) / database columns ─────────────────
@@ -293,9 +308,14 @@ export function schemaFromOutputs(outputs: OutputLike[] | null | undefined): Sch
   if (list.length === 0) return null
   const root: SchemaNode = { type: 'any' }
   let touched = false
+  // Several outputs can't all be "the whole response": connector catalogues
+  // declare top-level fields by name with no path (S3 list: contents,
+  // common_prefixes, key_count …), so an empty path then means the name.
+  const unpathed = list.filter((output) => !String(output?.path ?? '').trim() && output?.name).length
   for (const output of list) {
     const type = outputType(output?.type)
-    const segments = splitPath(String(output?.path ?? ''))
+    const rawPath = String(output?.path ?? '').trim()
+    const segments = splitPath(rawPath || (unpathed > 1 && output?.name ? String(output.name) : ''))
     if (segments.length === 0) {
       // Whole response.
       if (root.type === 'any' && type !== 'any') root.type = type
@@ -511,6 +531,10 @@ export function schemaAtPath(root: SchemaNode | null | undefined, path: string):
 
 /** Value at a path in sample data (same syntax as schemaAtPath; `[]` reads the first item). */
 export function valueAtPath(value: unknown, path: string): unknown {
+  // A key that itself contains dots (OData '@odata.nextLink') wins over a path walk.
+  if (path && value !== null && typeof value === 'object' && !Array.isArray(value) && Object.prototype.hasOwnProperty.call(value, path)) {
+    return (value as Record<string, unknown>)[path]
+  }
   let cursor: any = value
   for (const segment of splitPath(path)) {
     if (cursor === null || cursor === undefined) return undefined

@@ -91,13 +91,14 @@ async function githubSyncEnabled(db: any, tenantId: string): Promise<boolean> {
 }
 
 async function retentionPoliciesInUse(db: any, tenantId: string, ids: string[]): Promise<Set<string>> {
-  const [tables, rows, roles] = await Promise.all([
+  const [tables, rows, roles, forms] = await Promise.all([
     db.from('custom_tables').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', ids),
     db.from('custom_table_rows').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', ids),
     db.from('roles').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', ids),
+    db.from('forms').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', ids),
   ])
   const used = new Set<string>()
-  for (const row of [...(tables.data ?? []), ...(rows.data ?? []), ...(roles.data ?? [])]) {
+  for (const row of [...(tables.data ?? []), ...(rows.data ?? []), ...(roles.data ?? []), ...(forms.data ?? [])]) {
     if (row?.retention_policy_id) used.add(String(row.retention_policy_id))
   }
   return used

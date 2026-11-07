@@ -1,0 +1,221 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+  "asset": {
+    "id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+    "name": "Attendees rows",
+    "rows": [
+      {
+        "id": "384bb82e-1a14-5ba7-bf37-75781f8e485c",
+        "data": {
+          "attendee_ref": "REG-20261012-A1F3-01",
+          "reg_ref": "REG-20261012-A1F3",
+          "event_code": "OPS-26",
+          "session": "Keynote: Operations in 2027 · Operations Summit",
+          "name": "Avery Example",
+          "email": "avery.example@example.com",
+          "dietary": "Vegetarian",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Avery Example <avery.example@example.com> · Keynote: Operations in 2027 · Operations Summit · Vegetarian"
+        }
+      },
+      {
+        "id": "6a0524af-b8f4-5c9f-b3c2-7005f6de8791",
+        "data": {
+          "attendee_ref": "REG-20261012-A1F3-02",
+          "reg_ref": "REG-20261012-A1F3",
+          "event_code": "OPS-26",
+          "session": "Keynote: Operations in 2027 · Operations Summit",
+          "name": "Blake Example",
+          "email": "blake.example@example.com",
+          "dietary": "None",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Blake Example <blake.example@example.com> · Keynote: Operations in 2027 · Operations Summit · None"
+        }
+      },
+      {
+        "id": "44c50544-be58-5ae4-b584-1e303a403d31",
+        "data": {
+          "attendee_ref": "REG-20261014-B27C-03",
+          "reg_ref": "REG-20261014-B27C",
+          "event_code": "OPS-26",
+          "session": "Workshop A: Forms that fill themselves · Operations Summit",
+          "name": "Jordan Sample",
+          "email": "jordan.sample@example.com",
+          "dietary": "Gluten free",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Jordan Sample <jordan.sample@example.com> · Workshop A: Forms that fill themselves · Operations Summit · Gluten free"
+        }
+      },
+      {
+        "id": "28d9ffe4-34a0-56bd-9667-ec9d386e1de9",
+        "data": {
+          "attendee_ref": "REG-20261016-C904-04",
+          "reg_ref": "REG-20261016-C904",
+          "event_code": "OPS-26",
+          "session": "Workshop B: Decision tables in practice · Operations Summit",
+          "name": "Riley Test",
+          "email": "riley.test@example.com",
+          "dietary": "None",
+          "accessibility": "Step-free access please",
+          "status": "Confirmed",
+          "summary": "Riley Test <riley.test@example.com> · Workshop B: Decision tables in practice · Operations Summit · None · Step-free access please"
+        }
+      },
+      {
+        "id": "4df28694-2e15-58dc-aee7-43c3f9c941f6",
+        "data": {
+          "attendee_ref": "REG-20261016-C904-05",
+          "reg_ref": "REG-20261016-C904",
+          "event_code": "OPS-26",
+          "session": "Workshop B: Decision tables in practice · Operations Summit",
+          "name": "Robin Test",
+          "email": "robin.test@example.com",
+          "dietary": "Vegan",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Robin Test <robin.test@example.com> · Workshop B: Decision tables in practice · Operations Summit · Vegan"
+        }
+      },
+      {
+        "id": "59f8bfa2-a4a2-502b-b00b-54404fb1d0bb",
+        "data": {
+          "attendee_ref": "REG-20261016-C904-06",
+          "reg_ref": "REG-20261016-C904",
+          "event_code": "OPS-26",
+          "session": "Workshop B: Decision tables in practice · Operations Summit",
+          "name": "Rowan Test",
+          "email": "rowan.test@example.com",
+          "dietary": "Halal",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Rowan Test <rowan.test@example.com> · Workshop B: Decision tables in practice · Operations Summit · Halal"
+        }
+      },
+      {
+        "id": "4ca7a35f-63fb-50bd-82f6-45c7355e9838",
+        "data": {
+          "attendee_ref": "REG-20261019-D5E1-07",
+          "reg_ref": "REG-20261019-D5E1",
+          "event_code": "CUS-26",
+          "session": "Roadmap preview · Customer Day",
+          "name": "Casey Demo",
+          "email": "casey.demo@example.com",
+          "dietary": "None",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Casey Demo <casey.demo@example.com> · Roadmap preview · Customer Day · None"
+        }
+      },
+      {
+        "id": "c3d6d341-9715-5a3c-a771-7146a80845c6",
+        "data": {
+          "attendee_ref": "REG-20261019-D5E1-08",
+          "reg_ref": "REG-20261019-D5E1",
+          "event_code": "CUS-26",
+          "session": "Roadmap preview · Customer Day",
+          "name": "Cameron Demo",
+          "email": "cameron.demo@example.com",
+          "dietary": "Vegetarian",
+          "accessibility": "Hearing loop",
+          "status": "Confirmed",
+          "summary": "Cameron Demo <cameron.demo@example.com> · Roadmap preview · Customer Day · Vegetarian · Hearing loop"
+        }
+      },
+      {
+        "id": "5b643390-4cb5-59a4-a716-71964c475898",
+        "data": {
+          "attendee_ref": "REG-20261021-E0B8-09",
+          "reg_ref": "REG-20261021-E0B8",
+          "event_code": "OPS-26",
+          "session": "",
+          "name": "Morgan Placeholder",
+          "email": "morgan.placeholder@example.com",
+          "dietary": "Other",
+          "accessibility": "Nut allergy",
+          "status": "Waitlisted",
+          "summary": "Morgan Placeholder <morgan.placeholder@example.com> · waitlist · Other · Nut allergy"
+        }
+      },
+      {
+        "id": "b06cf4d6-cf5e-5199-9822-bff7f2ec8f6e",
+        "data": {
+          "attendee_ref": "REG-20261021-E0B8-10",
+          "reg_ref": "REG-20261021-E0B8",
+          "event_code": "OPS-26",
+          "session": "",
+          "name": "Max Placeholder",
+          "email": "max.placeholder@example.com",
+          "dietary": "None",
+          "accessibility": "",
+          "status": "Waitlisted",
+          "summary": "Max Placeholder <max.placeholder@example.com> · waitlist · None"
+        }
+      },
+      {
+        "id": "09490313-e0bc-5b22-a33a-3e3114372372",
+        "data": {
+          "attendee_ref": "REG-20261023-F6A2-11",
+          "reg_ref": "REG-20261023-F6A2",
+          "event_code": "PRT-27",
+          "session": "Building on the API · Partner briefing",
+          "name": "Quinn Sample",
+          "email": "quinn.sample@example.com",
+          "dietary": "None",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Quinn Sample <quinn.sample@example.com> · Building on the API · Partner briefing · None"
+        }
+      },
+      {
+        "id": "98ebfa94-44ae-5751-84e9-a88b705d98c5",
+        "data": {
+          "attendee_ref": "REG-20261026-0C3D-12",
+          "reg_ref": "REG-20261026-0C3D",
+          "event_code": "OPS-26",
+          "session": "Panel: Safety and compliance without paper · Operations Summit",
+          "name": "Taylor Example",
+          "email": "taylor.example@example.com",
+          "dietary": "Vegan",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Taylor Example <taylor.example@example.com> · Panel: Safety and compliance without paper · Operations Summit · Vegan"
+        }
+      },
+      {
+        "id": "7ff64abf-1a66-5bd9-94f1-6bbbbea55326",
+        "data": {
+          "attendee_ref": "REG-20261026-0C3D-13",
+          "reg_ref": "REG-20261026-0C3D",
+          "event_code": "OPS-26",
+          "session": "Panel: Safety and compliance without paper · Operations Summit",
+          "name": "Toni Example",
+          "email": "toni.example@example.com",
+          "dietary": "Gluten free",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Toni Example <toni.example@example.com> · Panel: Safety and compliance without paper · Operations Summit · Gluten free"
+        }
+      },
+      {
+        "id": "592ba5cb-503d-5f85-926e-a8fed775ae3f",
+        "data": {
+          "attendee_ref": "REG-20261028-1D7E-14",
+          "reg_ref": "REG-20261028-1D7E",
+          "event_code": "CUS-26",
+          "session": "Customer stories · Customer Day",
+          "name": "Drew Placeholder",
+          "email": "drew.placeholder@example.com",
+          "dietary": "Vegetarian",
+          "accessibility": "",
+          "status": "Confirmed",
+          "summary": "Drew Placeholder <drew.placeholder@example.com> · Customer stories · Customer Day · Vegetarian"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,512 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "d7725113-5fa0-5a08-9482-b84b3a8fd2b4",
+  "asset": {
+    "id": "d7725113-5fa0-5a08-9482-b84b3a8fd2b4",
+    "name": "Support call QA and redaction",
+    "description": "A finished support call is transcribed, card numbers and IDs are bleeped from the recording and masked in the transcript, an AI agent scores it against the QA rubric from the redacted transcript, and low scores go to a supervisor; only redacted copies are archived.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Call recording ready",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "title": "Call {{call_id}} · {{agent_name}}"
+        }
+      },
+      {
+        "id": "transcribe",
+        "type": "media_transcribe",
+        "label": "Transcribe the call",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "integration_id": "17841077-a2be-55fc-a4e4-067fd6c3df7c",
+          "provider_label": "Google Gemini",
+          "source": "{{recording_url}}",
+          "diarize": true,
+          "max_speakers": 2,
+          "formats": [
+            "srt",
+            "json"
+          ],
+          "prompt": "Customer support call between an agent and a customer",
+          "output_var": "call",
+          "run_mode": "auto"
+        }
+      },
+      {
+        "id": "bleep",
+        "type": "media_redact_video",
+        "label": "Bleep card numbers and IDs",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "transcribe_integration_id": "17841077-a2be-55fc-a4e4-067fd6c3df7c",
+          "provider_label": "Google Gemini",
+          "source": "{{recording_url}}",
+          "targets": [],
+          "audio": "bleep",
+          "audio_info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "transcript": "{{call}}",
+          "output_var": "redacted_call",
+          "output_name": "call-{{call_id}}-redacted",
+          "run_mode": "auto"
+        }
+      },
+      {
+        "id": "mask",
+        "type": "doc_redact",
+        "label": "Mask the transcript",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "source": "{{call_text}}",
+          "info_types": [
+            "@high",
+            "date_of_birth",
+            "phone",
+            "email"
+          ],
+          "output_var": "redacted_transcript",
+          "output_name": "call-{{call_id}}-transcript-redacted"
+        }
+      },
+      {
+        "id": "score",
+        "type": "run_agent",
+        "label": "Score against the QA rubric",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "agent_id": "5afa3f20-210f-5b48-b4d6-4fb185cb0d45",
+          "agent_name": "Call QA scorer",
+          "output_variable": "qa",
+          "max_iterations": 3,
+          "timeout_ms": 60000,
+          "user_message": "Call {{call_id}} ({{queue}}) handled by {{agent_name}}. Redacted transcript:\n\n{{redacted_transcript_text}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "QA thresholds",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "decision_table_id": "ddc6a492-4da6-52c2-9dbb-88151ce1ca62",
+          "decision_table_name": "QA thresholds",
+          "input_mappings": {
+            "qa_score": "{{qa_score}}",
+            "sentiment": "{{=LOWER(sentiment)}}",
+            "verified": "{{=TO_STRING(verified_identity)}}"
+          }
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Archive the redacted call",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "table_id": "4d7801eb-bacd-58d2-8389-ee728efc9abe",
+          "table_name": "Call QA archive",
+          "operation": "insert",
+          "output_row_id_var": "archive_row_id",
+          "column_values": {
+            "call_id": "{{call_id}}",
+            "agent_name": "{{agent_name}}",
+            "queue": "{{queue}}",
+            "call_date": "{{=COALESCE(call_date, FORMAT_DATE(NOW(), \"YYYY-MM-DD\"))}}",
+            "qa_score": "{{qa_score}}",
+            "sentiment": "{{sentiment}}",
+            "resolved": "{{resolved}}",
+            "summary": "{{summary}}",
+            "pii_bleeps": "{{=COUNT(redacted_call.audio_segments)}}",
+            "redacted_recording": "{{redacted_call_file.url}}",
+            "redacted_transcript": "{{redacted_transcript_file.url}}",
+            "review": "{{=IF(review == \"yes\", \"Pending\", \"Passed\")}}",
+            "coaching": "{{coaching_notes}}"
+          }
+        }
+      },
+      {
+        "id": "retain",
+        "type": "retention_policies",
+        "label": "Apply 2-year retention",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "operation": "assign_policy",
+          "retention_policy_id": "dbced234-582c-5651-92de-c32e73f77191",
+          "target_type": "data_row",
+          "target_id": "{{archive_row_id}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "needs",
+        "type": "condition",
+        "label": "Supervisor review?",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{review}}",
+                  "operator": "equals",
+                  "value": "yes"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "pass",
+        "type": "end_workflow",
+        "label": "Passed",
+        "position": {
+          "x": 1020,
+          "y": 1480
+        },
+        "config": {
+          "reason": "Call {{call_id}} scored {{qa_score}}"
+        }
+      },
+      {
+        "id": "sup",
+        "type": "user_task",
+        "label": "Supervisor call review",
+        "position": {
+          "x": 600,
+          "y": 1480
+        },
+        "config": {
+          "task_title": "Review call {{call_id}}: {{reason}} (score {{qa_score}})",
+          "task_description": "<p><strong>{{agent_name}}</strong> · {{queue}} · {{call_date}}</p><p>{{summary}}</p><p>AI score <strong>{{qa_score}}</strong> · greeting {{greeting}} · identity verified {{verified_identity}} · resolved {{resolved}} · customer {{sentiment}}</p><p>Coaching notes (AI): {{coaching_notes}}</p><p>Listen to the <a href=\"{{redacted_call_file.url}}\">redacted recording</a> ({{=COUNT(redacted_call.audio_segments)}} card numbers / IDs bleeped) and read the <a href=\"{{redacted_transcript_file.url}}\">masked transcript</a>. The original recording stays in your telephony platform.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Coaching scheduled",
+            "Score adjusted",
+            "No action"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "732f83bc-7c69-506b-9beb-bcea707cf80b",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "final_score",
+              "label": "Final score",
+              "type": "number",
+              "required": true,
+              "default": "{{qa_score}}",
+              "min": 0,
+              "max": 100
+            },
+            {
+              "key": "feedback",
+              "label": "Feedback for the agent",
+              "type": "textarea",
+              "required": true,
+              "default": "{{coaching_notes}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "final_score",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "feedback",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "coach",
+              "label": "Coaching scheduled",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Coaching scheduled"
+            },
+            {
+              "id": "adjust",
+              "label": "Score adjusted",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Score adjusted"
+            },
+            {
+              "id": "none",
+              "label": "No action",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "No action"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Call {{call_id}}",
+            "align": "left",
+            "subtitle": "{{reason}} · AI score {{qa_score}}"
+          }
+        }
+      },
+      {
+        "id": "upd",
+        "type": "update_data_table",
+        "label": "Record the review",
+        "position": {
+          "x": 600,
+          "y": 1660
+        },
+        "config": {
+          "table_id": "4d7801eb-bacd-58d2-8389-ee728efc9abe",
+          "table_name": "Call QA archive",
+          "operation": "update",
+          "row_id": "{{archive_row_id}}",
+          "column_values": {
+            "qa_score": "{{task_data.final_score}}",
+            "review": "{{outcome}}",
+            "reviewed_by": "{{actioned_by_name}}",
+            "coaching": "{{task_data.feedback}}"
+          }
+        }
+      },
+      {
+        "id": "tell",
+        "type": "send_email",
+        "label": "Email the agent",
+        "position": {
+          "x": 600,
+          "y": 1800
+        },
+        "config": {
+          "to": "{{agent_email}}",
+          "email_template_id": "2a5dc0fb-5128-5f51-b648-e756d28a81c3"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Reviewed",
+        "position": {
+          "x": 600,
+          "y": 1940
+        },
+        "config": {
+          "reason": "Call {{call_id}} reviewed: {{outcome}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-transcribe",
+        "source": "title",
+        "target": "transcribe"
+      },
+      {
+        "id": "e-transcribe-bleep",
+        "source": "transcribe",
+        "target": "bleep"
+      },
+      {
+        "id": "e-bleep-mask",
+        "source": "bleep",
+        "target": "mask"
+      },
+      {
+        "id": "e-mask-score",
+        "source": "mask",
+        "target": "score"
+      },
+      {
+        "id": "e-score-rules",
+        "source": "score",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-row",
+        "source": "rules",
+        "target": "row"
+      },
+      {
+        "id": "e-row-retain",
+        "source": "row",
+        "target": "retain"
+      },
+      {
+        "id": "e-retain-needs",
+        "source": "retain",
+        "target": "needs"
+      },
+      {
+        "id": "e-needs-sup-review",
+        "source": "needs",
+        "target": "sup",
+        "label": "Review"
+      },
+      {
+        "id": "e-needs-pass-else",
+        "source": "needs",
+        "target": "pass",
+        "label": "Else"
+      },
+      {
+        "id": "e-sup-upd-coaching-scheduled",
+        "source": "sup",
+        "target": "upd",
+        "label": "Coaching scheduled"
+      },
+      {
+        "id": "e-sup-upd-score-adjusted",
+        "source": "sup",
+        "target": "upd",
+        "label": "Score adjusted"
+      },
+      {
+        "id": "e-sup-upd-no-action",
+        "source": "sup",
+        "target": "upd",
+        "label": "No action"
+      },
+      {
+        "id": "e-upd-tell",
+        "source": "upd",
+        "target": "tell"
+      },
+      {
+        "id": "e-tell-done",
+        "source": "tell",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-call_id",
+        "name": "call_id",
+        "type": "string",
+        "description": "The call id in your telephony or contact-centre platform",
+        "defaultValue": "",
+        "required": true,
+        "label": "Call id"
+      },
+      {
+        "id": "v-recording_url",
+        "name": "recording_url",
+        "type": "string",
+        "description": "Where the recording can be downloaded (a signed URL from your platform; MP3, WAV, M4A or MP4)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Recording URL",
+        "format": "url"
+      },
+      {
+        "id": "v-agent_name",
+        "name": "agent_name",
+        "type": "string",
+        "description": "The agent who took the call",
+        "defaultValue": "",
+        "required": true,
+        "label": "Agent"
+      },
+      {
+        "id": "v-agent_email",
+        "name": "agent_email",
+        "type": "string",
+        "description": "Where the review outcome goes",
+        "defaultValue": "",
+        "required": false,
+        "label": "Agent email",
+        "format": "email"
+      },
+      {
+        "id": "v-queue",
+        "name": "queue",
+        "type": "string",
+        "description": "Queue or team",
+        "defaultValue": "",
+        "required": false,
+        "label": "Queue"
+      },
+      {
+        "id": "v-call_date",
+        "name": "call_date",
+        "type": "string",
+        "description": "When the call happened",
+        "defaultValue": "",
+        "required": false,
+        "label": "Call date",
+        "format": "date"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

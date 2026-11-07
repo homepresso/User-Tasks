@@ -162,17 +162,13 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Table browser (left) */}
         <div
-          className="rounded-lg border p-3 overflow-y-auto max-h-[500px]"
-          style={{
-            backgroundColor: "var(--theme-card-bg)",
-            borderColor: "var(--theme-surface-border)",
-          }}
+          className="rounded-lg border p-3 overflow-y-auto max-h-[500px] bg-panel border-border"
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex gap-1">
               <button
                 onClick={() => setActiveTab("tables")}
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors"
+                className="text-2xs font-semibold px-2 py-0.5 rounded-full transition-colors"
                 style={{
                   backgroundColor: activeTab === "tables" ? "var(--theme-primary-light)" : "transparent",
                   color: activeTab === "tables" ? "var(--theme-primary-text)" : "var(--theme-muted-text)",
@@ -182,7 +178,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
               </button>
               <button
                 onClick={() => setActiveTab("procedures")}
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors"
+                className="text-2xs font-semibold px-2 py-0.5 rounded-full transition-colors"
                 style={{
                   backgroundColor: activeTab === "procedures" ? "var(--theme-primary-light)" : "transparent",
                   color: activeTab === "procedures" ? "var(--theme-primary-text)" : "var(--theme-muted-text)",
@@ -194,8 +190,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
             <button
               onClick={loadTables}
               disabled={loadingTables}
-              className="p-1 hover:opacity-70"
-              style={{ color: "var(--theme-muted-text)" }}
+              className="p-1 hover:opacity-70 text-fg-muted"
             >
               <RefreshCw size={12} className={loadingTables ? "animate-spin" : ""} />
             </button>
@@ -213,7 +208,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
           ) : activeTab === "procedures" ? (
             /* Procedures tab */
             !procedures?.length ? (
-              <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>No procedures found</p>
+              <p className="text-xs text-fg-muted">No procedures found</p>
             ) : (
               <div className="space-y-0.5">
                 {procedures.map((p) => {
@@ -229,10 +224,10 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                         onDoubleClick={() => selectProcedure(p.schema, p.name)}
                       >
                         {isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-                        <span className="text-[10px]">{icon}</span>
+                        <span className="text-2xs">{icon}</span>
                         <span className="truncate">
                           {p.schema !== "dbo" && p.schema !== "public" && (
-                            <span style={{ color: "var(--theme-muted-text)" }}>{p.schema}.</span>
+                            <span className="text-fg-muted">{p.schema}.</span>
                           )}
                           {p.name}
                         </span>
@@ -240,21 +235,20 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                       {isExpanded && params && (
                         <div className="ml-5 space-y-0.5 py-1">
                           {params.length === 0 ? (
-                            <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>No parameters</p>
+                            <p className="text-2xs text-fg-muted">No parameters</p>
                           ) : (
                             params.map((param: any, i: number) => (
-                              <div key={i} className="flex items-center gap-2 text-[10px] px-1.5 py-0.5">
+                              <div key={i} className="flex items-center gap-2 text-2xs px-1.5 py-0.5">
                                 <span className="font-medium">{param.name ?? param.arguments ?? `$${i + 1}`}</span>
-                                <span className="font-mono" style={{ color: "var(--theme-muted-text)" }}>
+                                <span className="font-mono text-fg-muted">
                                   {param.type ?? param.return_type ?? ""}
                                 </span>
-                                {param.mode && <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>{param.mode}</span>}
+                                {param.mode && <span className="text-2xs text-fg-muted">{param.mode}</span>}
                               </div>
                             ))
                           )}
                           <button
-                            className="text-[10px] px-1.5 py-0.5 hover:underline"
-                            style={{ color: "var(--theme-primary-text)" }}
+                            className="text-2xs px-1.5 py-0.5 hover:underline text-primary-text"
                             onClick={() => selectProcedure(p.schema, p.name)}
                           >
                             EXEC {p.name}
@@ -267,7 +261,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
               </div>
             )
           ) : tables.length === 0 ? (
-            <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+            <p className="text-xs text-fg-muted">
               No tables found
             </p>
           ) : (
@@ -289,10 +283,10 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                       ) : (
                         <ChevronRight size={10} />
                       )}
-                      <Table size={10} style={{ color: "var(--theme-primary-text)" }} />
+                      <Table size={10} className="text-primary-text" />
                       <span className="truncate">
                         {t.schema !== "public" && (
-                          <span style={{ color: "var(--theme-muted-text)" }}>
+                          <span className="text-fg-muted">
                             {t.schema}.
                           </span>
                         )}
@@ -305,12 +299,11 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                         {cols.map((col) => (
                           <div
                             key={col.column}
-                            className="flex items-center gap-2 text-[10px] px-1.5 py-0.5"
+                            className="flex items-center gap-2 text-2xs px-1.5 py-0.5"
                           >
                             <span className="font-medium">{col.column}</span>
                             <span
-                              className="font-mono"
-                              style={{ color: "var(--theme-muted-text)" }}
+                              className="font-mono text-fg-muted"
                             >
                               {col.type}
                             </span>
@@ -320,8 +313,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                           </div>
                         ))}
                         <button
-                          className="text-[10px] px-1.5 py-0.5 hover:underline"
-                          style={{ color: "var(--theme-primary-text)" }}
+                          className="text-2xs px-1.5 py-0.5 hover:underline text-primary-text"
                           onClick={() => selectTable(t.schema, t.name)}
                         >
                           SELECT * FROM {t.name}
@@ -339,17 +331,12 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
         <div className="lg:col-span-3 space-y-3">
           {/* Query editor */}
           <div
-            className="rounded-lg border overflow-hidden"
-            style={{ borderColor: "var(--theme-surface-border)" }}
+            className="rounded-lg border overflow-hidden border-border"
           >
             <textarea
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full h-32 px-4 py-3 font-mono text-sm resize-none outline-none"
-              style={{
-                backgroundColor: "var(--theme-card-bg)",
-                color: "var(--theme-card-text)",
-              }}
+              className="w-full h-32 px-4 py-3 font-mono text-sm resize-none outline-none bg-panel text-fg"
               placeholder="Enter SQL query..."
               onKeyDown={(e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -358,15 +345,10 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
               }}
             />
             <div
-              className="flex items-center justify-between px-3 py-2 border-t"
-              style={{
-                backgroundColor: "var(--theme-surface)",
-                borderColor: "var(--theme-surface-border)",
-              }}
+              className="flex items-center justify-between px-3 py-2 border-t bg-bg border-border"
             >
               <span
-                className="text-[10px]"
-                style={{ color: "var(--theme-muted-text)" }}
+                className="text-2xs text-fg-muted"
               >
                 Cmd+Enter to run
               </span>
@@ -391,16 +373,10 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
           {/* Results */}
           {result && (
             <div
-              className="rounded-lg border overflow-hidden"
-              style={{ borderColor: "var(--theme-surface-border)" }}
+              className="rounded-lg border overflow-hidden border-border"
             >
               <div
-                className="flex items-center justify-between px-3 py-2 border-b text-xs"
-                style={{
-                  backgroundColor: "var(--theme-surface)",
-                  borderColor: "var(--theme-surface-border)",
-                  color: "var(--theme-muted-text)",
-                }}
+                className="flex items-center justify-between px-3 py-2 border-b text-xs bg-bg border-border text-fg-muted"
               >
                 <span>
                   {result.rowCount} row{result.rowCount !== 1 ? "s" : ""}{" "}
@@ -411,12 +387,11 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
               <div className="overflow-x-auto max-h-[400px]">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr style={{ backgroundColor: "var(--theme-surface)" }}>
+                    <tr className="bg-bg">
                       {result.fields.map((f) => (
                         <th
                           key={f.name}
-                          className="px-3 py-2 text-left font-medium whitespace-nowrap"
-                          style={{ color: "var(--theme-muted-text)" }}
+                          className="px-3 py-2 text-left font-medium whitespace-nowrap text-fg-muted"
                         >
                           {f.name}
                         </th>

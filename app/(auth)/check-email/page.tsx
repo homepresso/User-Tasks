@@ -1,23 +1,21 @@
-import Link from "next/link"
-import { Card } from "@/components/ui/card"
+import { MailCheck } from "lucide-react"
+import { pageMetadata } from "@/lib/page-title"
+import { AuthHeading } from "../auth-heading"
+import { BackToSignIn } from "../forgot-password/forgot-password-form"
+
+export const metadata = pageMetadata("Check your email")
 
 export default function CheckEmailPage() {
   return (
-    <Card className="text-center">
-      <div className="mb-4 text-4xl">📬</div>
-      <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-[#1B1916]">
-        Check your email
-      </h2>
-      <p className="mb-6 text-sm text-gray-500">
-        We sent you a confirmation link. Click the link in the email to activate
-        your account.
-      </p>
-      <Link
-        href="/login"
-        className="text-sm text-[#17150F] hover:text-[#7C623E]"
-      >
-        Back to sign in
-      </Link>
-    </Card>
+    <div>
+      <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-border bg-subtle text-fg-muted">
+        <MailCheck className="size-5" aria-hidden />
+      </div>
+      <AuthHeading
+        title="Check your email"
+        description="We sent you a confirmation link. Open it to activate your account."
+      />
+      <BackToSignIn />
+    </div>
   )
 }

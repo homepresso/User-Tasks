@@ -1,0 +1,132 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+  "asset": {
+    "id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+    "name": "Exemption codes rows",
+    "rows": [
+      {
+        "id": "a6d08f05-f865-5278-a503-541ac383fc6c",
+        "data": {
+          "code": "US-B6",
+          "jurisdiction": "US federal FOIA",
+          "title": "Personal privacy",
+          "citation": "5 U.S.C. 552(b)(6)",
+          "applies_to": "faces, ID numbers, contact details",
+          "active": true
+        }
+      },
+      {
+        "id": "bf8523ce-e965-5be9-9eb9-e1cf787b7371",
+        "data": {
+          "code": "US-B7C",
+          "jurisdiction": "US federal FOIA",
+          "title": "Law enforcement: personal privacy",
+          "citation": "5 U.S.C. 552(b)(7)(C)",
+          "applies_to": "bystanders, witnesses, plates in police records",
+          "active": true
+        }
+      },
+      {
+        "id": "3459494b-e73e-578d-bd68-613ab97942f2",
+        "data": {
+          "code": "US-B7A",
+          "jurisdiction": "US federal FOIA",
+          "title": "Law enforcement: interference with proceedings",
+          "citation": "5 U.S.C. 552(b)(7)(A)",
+          "applies_to": "open investigations",
+          "active": true
+        }
+      },
+      {
+        "id": "3a418bc9-28c0-54fd-b771-44a782c29976",
+        "data": {
+          "code": "STATE-PRIV",
+          "jurisdiction": "US state public records (example)",
+          "title": "Personal privacy (example state exemption)",
+          "citation": "Set to your state statute",
+          "applies_to": "faces, ID numbers, contact details",
+          "active": true
+        }
+      },
+      {
+        "id": "9407b1e3-b9a1-5516-a538-1d2486ed7f78",
+        "data": {
+          "code": "STATE-LE",
+          "jurisdiction": "US state public records (example)",
+          "title": "Law enforcement records (example state exemption)",
+          "citation": "Set to your state statute",
+          "applies_to": "investigative records",
+          "active": true
+        }
+      },
+      {
+        "id": "d5631d46-bb4d-559a-a8a1-c12344f32cf8",
+        "data": {
+          "code": "NZ-9(2)(a)",
+          "jurisdiction": "NZ Official Information Act",
+          "title": "Protect the privacy of natural persons",
+          "citation": "OIA 1982 s9(2)(a)",
+          "applies_to": "faces, names, contact details",
+          "active": true
+        }
+      },
+      {
+        "id": "4ae93ee7-cdef-5c07-8ada-b5d45cc1a939",
+        "data": {
+          "code": "NZ-6(c)",
+          "jurisdiction": "NZ Official Information Act",
+          "title": "Maintenance of the law",
+          "citation": "OIA 1982 s6(c)",
+          "applies_to": "investigation and detection of offences",
+          "active": true
+        }
+      },
+      {
+        "id": "92081416-d2c6-5f4c-894c-2e43e3724789",
+        "data": {
+          "code": "UK-S40",
+          "jurisdiction": "UK Freedom of Information Act",
+          "title": "Personal information",
+          "citation": "FOIA 2000 s40",
+          "applies_to": "faces, names, contact details",
+          "active": true
+        }
+      },
+      {
+        "id": "ccba1311-3b04-5dde-b069-c82f31bc2393",
+        "data": {
+          "code": "UK-S31",
+          "jurisdiction": "UK Freedom of Information Act",
+          "title": "Law enforcement",
+          "citation": "FOIA 2000 s31",
+          "applies_to": "prevention and detection of crime",
+          "active": true
+        }
+      },
+      {
+        "id": "04f709a7-a243-5ebf-92fc-ba9840b064f6",
+        "data": {
+          "code": "PRIV",
+          "jurisdiction": "Other / internal policy",
+          "title": "Privacy (internal policy)",
+          "citation": "Internal policy",
+          "applies_to": "personal information",
+          "active": true
+        }
+      },
+      {
+        "id": "3ca1a5c7-86db-5194-aef8-93f8efbf3c53",
+        "data": {
+          "code": "NONE",
+          "jurisdiction": "Any",
+          "title": "Released in full: no exemption applied",
+          "citation": "",
+          "applies_to": "nothing withheld",
+          "active": true
+        }
+      }
+    ]
+  }
+}

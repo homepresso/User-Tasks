@@ -1,0 +1,28 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "ee4e4f79-4f45-57b6-8add-38dcbf4ff4d0",
+  "asset": {
+    "id": "ee4e4f79-4f45-57b6-8add-38dcbf4ff4d0",
+    "name": "Verified identities rows",
+    "rows": [
+      {
+        "id": "5932b599-0002-500d-96e1-0deb12077d31",
+        "data": {
+          "kyc_ref": "KYC-20261021-9B3D",
+          "full_name": "Morgan Example",
+          "email": "morgan.example@example.com",
+          "date_of_birth": "1990-01-01",
+          "document_type": "Driver license",
+          "number_masked": "•••-••-0000",
+          "expiry_date": "2029-01-01",
+          "issuing_region": "Sample State",
+          "redacted_copy": "",
+          "result": "Verified",
+          "decided_by": "Reviewer",
+          "decided_at": "2026-10-21"
+        }
+      }
+    ]
+  }
+}

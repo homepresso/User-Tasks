@@ -1,0 +1,133 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-map",
+  "name": "Map",
+  "description": "An OpenStreetMap map that shows a location from another field (an address or coordinates) and, optionally, lets people drop a pin.",
+  "icon": "map",
+  "version": "1.2.0",
+  "entry": "ut-map.js",
+  "value": {
+    "type": "json",
+    "schema": {
+      "type": "object",
+      "required": [
+        "lat",
+        "lng"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lng": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      }
+    }
+  },
+  "props": [
+    {
+      "name": "tiles",
+      "label": "Map style",
+      "type": "select",
+      "default": "auto",
+      "options": [
+        {
+          "value": "auto",
+          "label": "OpenStreetMap, dimmed in dark mode"
+        },
+        {
+          "value": "osm",
+          "label": "OpenStreetMap, always light"
+        }
+      ]
+    },
+    {
+      "name": "zoom",
+      "label": "Zoom",
+      "type": "number",
+      "default": 15,
+      "min": 1,
+      "max": 19,
+      "description": "1 shows the world, 15 a few streets, 19 a building."
+    },
+    {
+      "name": "height",
+      "label": "Map height (px)",
+      "type": "number",
+      "default": 320,
+      "min": 160,
+      "max": 800
+    },
+    {
+      "name": "pick",
+      "label": "Let people drop a pin",
+      "type": "boolean",
+      "default": false,
+      "description": "Click, tap or press Enter to place the pin; the field stores its coordinates. Off: the map only shows the location."
+    },
+    {
+      "name": "show_coordinates",
+      "label": "Show coordinates",
+      "type": "boolean",
+      "default": true,
+      "description": "Latitude and longitude under the map (editable when people can drop a pin)."
+    },
+    {
+      "name": "markers",
+      "label": "Markers",
+      "type": "json",
+      "bindable": true,
+      "description": "Places to mark: a list of { lat, lng, label }. Bind it to a data table or an API reference (Dynamic) to plot rows; at most 500."
+    }
+  ],
+  "events": [],
+  "validation": {
+    "reports_validity": true
+  },
+  "size": {
+    "default_height": 357,
+    "min_height": 200,
+    "max_height": 960,
+    "full_width": true
+  },
+  "capabilities": [
+    "network"
+  ],
+  "network": {
+    "allowed_hosts": [
+      "tile.openstreetmap.org"
+    ]
+  },
+  "context": [
+    {
+      "name": "location",
+      "label": "Location",
+      "description": "The field to show on the map: an Address field, coordinates ({lat, lng}) or \"lat,lng\" text. The map centres on it and shows a pin."
+    }
+  ],
+  "display": {
+    "template": "{{value.lat}}, {{value.lng}}",
+    "format": "text"
+  },
+  "output": { "type": "string", "template": "{{value.lat}},{{value.lng}}", "extras": { "lat": "lat", "lng": "lng" }, "description": "The location as \"lat,lng\"; <key>_lat and <key>_lng are numbers" },
+  "accessibility": {
+    "role": "application",
+    "keyboard": "Tab to the map: arrow keys pan, + / - zoom. With pin dropping on, Enter or Space drops the pin at the centre (a crosshair marks it). The Latitude and Longitude inputs set the pin exactly; Clear removes it.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/map",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "leaflet": "1.9.4",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

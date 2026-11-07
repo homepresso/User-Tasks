@@ -1,13 +1,16 @@
 'use client'
 
+import { formAnimation } from '@/lib/forms/motion'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import type { FormLayout } from '@/lib/forms/layout'
 import type { FormThemeOverrides } from '@/lib/forms/form-theme'
 import { FormRenderer, formatFieldValue } from '@/components/forms/form-renderer'
 import { FormThemeScope } from '@/components/forms/form-theme-scope'
+import { FormPagesProvider, FormStepActions } from '@/components/forms/form-pages'
 import { cn } from '@/lib/utils'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { attachmentsCountKey } from '@/lib/forms/attachments'
+import { customOutputSiblingKeys } from '@/lib/forms/custom-controls/output'
 
 interface TaskFieldsProps {
   fields: TaskFieldDef[]
@@ -27,6 +30,8 @@ interface TaskFieldsProps {
   footer?: React.ReactNode
   /** Frame the form with its theme's page background (task page). */
   page?: boolean
+  /** Steps forms: keep the current step in this browser under this key (the task's draft). */
+  persistKey?: string
 }
 
 function humanizeKey(key: string): string {
@@ -47,9 +52,9 @@ export function formatTaskValue(value: unknown): string {
  * task detail page and the designer's test runner so both show the same
  * inputs.
  */
-export function TaskFields({ fields, values, onChange, errors, readOnly, data, compact, layout, theme, header, footer, page }: TaskFieldsProps) {
+export function TaskFields({ fields, values, onChange, errors, readOnly, data, compact, layout, theme, header, footer, page, persistKey }: TaskFieldsProps) {
   // A lookup's selected item (`<key>_item`) is shown through its field.
-  const fieldKeys = new Set(fields.flatMap((f) => (f.type === 'lookup' ? [f.key, lookupItemKey(f.key)] : f.type === 'attachments' ? [f.key, attachmentsCountKey(f.key)] : [f.key])))
+  const fieldKeys = new Set(fields.flatMap((f) => (f.type === 'lookup' ? [f.key, lookupItemKey(f.key), `${f.key}_label`] : f.type === 'attachments' ? [f.key, attachmentsCountKey(f.key)] : [f.key, ...customOutputSiblingKeys(f)])))
   const extraEntries = Object.entries(data ?? {}).filter(([key]) => !fieldKeys.has(key))
   const labelClass = compact ? 'text-[11px]' : 'text-xs'
 
@@ -58,7 +63,8 @@ export function TaskFields({ fields, values, onChange, errors, readOnly, data, c
   return (
     <div className="space-y-4">
       {fields.length > 0 && (
-        <FormThemeScope overrides={theme} page={page}>
+        <FormThemeScope overrides={theme} page={page} motion={readOnly || !onChange ? null : formAnimation(layout)}>
+          <FormPagesProvider fields={fields} layout={readOnly || !onChange ? null : layout} values={values} errors={errors} persistKey={persistKey}>
           {header}
           <FormRenderer
             fields={fields}
@@ -71,7 +77,8 @@ export function TaskFields({ fields, values, onChange, errors, readOnly, data, c
             labelPosition={theme?.label_position}
             density={theme?.density}
           />
-          {footer}
+          {footer && <FormStepActions>{footer}</FormStepActions>}
+          </FormPagesProvider>
         </FormThemeScope>
       )}
 

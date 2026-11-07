@@ -1,0 +1,1344 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "f477b9c6-0758-5abd-bc77-8eaddc10769e",
+  "asset": {
+    "id": "f477b9c6-0758-5abd-bc77-8eaddc10769e",
+    "name": "Contract review",
+    "description": "A contract owner submits the Contract review request; the contract is added to the Contract register, legal checks it against the clause playbook and approves, asks for changes (the owner uploads a revision and legal gets a redline against the previous version) or rejects; the approval route sends it to finance and the general counsel when needed, and the register follows every step.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Contract submitted",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "e5cab48e-47e3-5c67-b334-96212ed1e816",
+          "form_name": "Contract review request"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Contract reference",
+        "position": {
+          "x": 400,
+          "y": 170
+        },
+        "config": {
+          "name": "contract_ref",
+          "expression": "CTR-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 280
+        },
+        "config": {
+          "title": "{{contract_ref}} · {{form.title}} ({{form.counterparty}})"
+        }
+      },
+      {
+        "id": "ver",
+        "type": "set_variable",
+        "label": "Version 1",
+        "position": {
+          "x": 400,
+          "y": 390
+        },
+        "config": {
+          "name": "version",
+          "expression": "{{=1}}"
+        }
+      },
+      {
+        "id": "doc",
+        "type": "set_variable",
+        "label": "Current document",
+        "position": {
+          "x": 400,
+          "y": 500
+        },
+        "config": {
+          "name": "current_document",
+          "expression": "{{form.contract_document}}"
+        }
+      },
+      {
+        "id": "changes0",
+        "type": "set_variable",
+        "label": "First version",
+        "position": {
+          "x": 400,
+          "y": 610
+        },
+        "config": {
+          "name": "changes_note",
+          "expression": "First version: nothing to compare yet."
+        }
+      },
+      {
+        "id": "renewal",
+        "type": "set_variable",
+        "label": "Renewal decision date",
+        "position": {
+          "x": 400,
+          "y": 720
+        },
+        "config": {
+          "name": "renewal_date",
+          "expression": "{{=FORMAT_DATE(SUBTRACT_DAYS(form.end_date, COALESCE(form.notice_days, 30)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to the Contract register",
+        "position": {
+          "x": 400,
+          "y": 830
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "insert",
+          "output_row_id_var": "register_row_id",
+          "column_values": {
+            "contract_ref": "{{contract_ref}}",
+            "title": "{{form.title}}",
+            "counterparty": "{{form.counterparty}}",
+            "contract_type": "{{form.contract_type}}",
+            "business_unit": "{{form.business_unit}}",
+            "owner_name": "{{submitted_by_name}}",
+            "owner_email": "{{submitted_by_email}}",
+            "value": "{{form.value}}",
+            "start_date": "{{form.start_date}}",
+            "end_date": "{{form.end_date}}",
+            "auto_renew": "{{=COALESCE(form.auto_renew, false)}}",
+            "notice_days": "{{form.notice_days}}",
+            "renewal_date": "{{renewal_date}}",
+            "status": "In review",
+            "version": "{{version}}",
+            "document_name": "{{=FILE_NAMES(current_document)}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Review SLA",
+        "position": {
+          "x": 400,
+          "y": 940
+        },
+        "config": {
+          "sla_label": "Contract review",
+          "mode": "relative",
+          "amount": 10,
+          "unit": "days",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "legal",
+        "type": "user_task",
+        "label": "Legal review",
+        "position": {
+          "x": 400,
+          "y": 1050
+        },
+        "config": {
+          "task_title": "Legal review: {{form.title}} v{{version}} ({{contract_ref}})",
+          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, NZD {{form.value}}, submitted by {{submitted_by_name}}. Version {{version}}: <a href=\"{{current_document[0].url}}\">{{current_document[0].name}}</a>.</p><p>{{changes_note}}</p><p>Tick the clauses that depart from the playbook on <strong>Clause checklist</strong>, set the overall risk and approve, ask for changes or reject.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Request changes",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "t_contract",
+              "label": "Contract",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.title}} with {{form.counterparty}} ({{form.contract_type}})"
+            },
+            {
+              "key": "t_value",
+              "label": "Value and term",
+              "type": "text",
+              "read_only": true,
+              "default": "NZD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
+            },
+            {
+              "key": "t_document",
+              "label": "Document",
+              "type": "text",
+              "read_only": true,
+              "default": "{{=FILE_NAMES(current_document)}} (version {{version}}, {{form.paper}})"
+            },
+            {
+              "key": "t_changes",
+              "label": "Changes since the last version",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{changes_note}}"
+            },
+            {
+              "key": "t_known",
+              "label": "What the owner already knows differs",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.known_deviations}}"
+            },
+            {
+              "key": "deviations",
+              "label": "Clauses that depart from the playbook",
+              "type": "data_table",
+              "help_text": "Tick every clause where this draft departs from our standard position",
+              "data_table": {
+                "source": "table",
+                "table_id": "92a5d8a3-f48b-5520-bc76-781619fc25ed",
+                "mode": "select",
+                "multiple": true,
+                "key_column": "row_id",
+                "columns": [
+                  {
+                    "key": "clause",
+                    "label": "Clause",
+                    "type": "text",
+                    "sortable": true
+                  },
+                  {
+                    "key": "our_position",
+                    "label": "Our position",
+                    "type": "text",
+                    "format": {
+                      "kind": "text",
+                      "max_length": 70,
+                      "wrap": true
+                    }
+                  },
+                  {
+                    "key": "fallback",
+                    "label": "Fallback we accept",
+                    "type": "text",
+                    "format": {
+                      "kind": "text",
+                      "max_length": 60,
+                      "wrap": true
+                    }
+                  },
+                  {
+                    "key": "must_have",
+                    "label": "Must have",
+                    "type": "boolean",
+                    "filterable": true,
+                    "format": {
+                      "kind": "boolean",
+                      "boolean_style": "check"
+                    }
+                  },
+                  {
+                    "key": "risk_if_missing",
+                    "label": "Risk",
+                    "type": "choice",
+                    "sortable": true,
+                    "filterable": true,
+                    "options": [
+                      "Low",
+                      "Medium",
+                      "High"
+                    ],
+                    "format": {
+                      "kind": "badge",
+                      "badges": [
+                        {
+                          "value": "Low",
+                          "color": "green"
+                        },
+                        {
+                          "value": "Medium",
+                          "color": "amber"
+                        },
+                        {
+                          "value": "High",
+                          "color": "red"
+                        }
+                      ],
+                      "default_color": "gray"
+                    }
+                  }
+                ],
+                "open_access": true,
+                "sort": [
+                  {
+                    "column": "clause",
+                    "direction": "asc"
+                  }
+                ],
+                "page_size": 15,
+                "searchable": true
+              }
+            },
+            {
+              "key": "risk_level",
+              "label": "Overall risk",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "display": "radio"
+            },
+            {
+              "key": "redline_notes",
+              "label": "Redline notes for the owner",
+              "type": "textarea",
+              "help_text": "What to change and why: the owner negotiates it with the counterparty"
+            }
+          ],
+          "form_layout": {
+            "rows": [],
+            "mode": "tabs",
+            "pages": [
+              {
+                "id": "contract",
+                "title": "The contract",
+                "rows": [
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_contract",
+                        "span": 1
+                      },
+                      {
+                        "field_key": "t_value",
+                        "span": 1
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_document",
+                        "span": 2
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_changes",
+                        "span": 2
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "t_known",
+                        "span": 2
+                      }
+                    ]
+                  }
+                ],
+                "icon": "file-text"
+              },
+              {
+                "id": "checklist",
+                "title": "Clause checklist",
+                "rows": [
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "deviations",
+                        "span": 2
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "risk_level",
+                        "span": 2
+                      }
+                    ]
+                  },
+                  {
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "field_key": "redline_notes",
+                        "span": 2
+                      }
+                    ]
+                  }
+                ],
+                "icon": "list"
+              }
+            ],
+            "rules": [
+              {
+                "id": "r_high_risk_note",
+                "name": "A must-have deviation suggests High risk",
+                "event": "row_select",
+                "then": [
+                  {
+                    "type": "message",
+                    "text": "\"{{event.row.clause}}\" is a must-have clause: consider High risk or ask for changes."
+                  }
+                ],
+                "target": "deviations",
+                "if": {
+                  "match": "all",
+                  "conditions": [
+                    {
+                      "column": "event.row.must_have",
+                      "operator": "eq",
+                      "value": "true"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "changes",
+              "label": "Request changes",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request changes"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Legal review",
+            "align": "left",
+            "subtitle": "{{contract_ref}} · {{form.title}} · version {{version}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0F766E",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "devs",
+        "type": "set_variable",
+        "label": "Deviations found",
+        "position": {
+          "x": 400,
+          "y": 1160
+        },
+        "config": {
+          "name": "deviation_list",
+          "expression": "{{=IF(IS_EMPTY(task_data.deviations), \"none\", JOIN(\", \", PLUCK(task_data.deviations, \"clause\")))}}"
+        }
+      },
+      {
+        "id": "devn",
+        "type": "set_variable",
+        "label": "Deviation count",
+        "position": {
+          "x": 400,
+          "y": 1270
+        },
+        "config": {
+          "name": "deviation_count",
+          "expression": "{{=IF(IS_EMPTY(task_data.deviations), 0, COUNT(task_data.deviations))}}"
+        }
+      },
+      {
+        "id": "risk",
+        "type": "set_variable",
+        "label": "Risk from legal",
+        "position": {
+          "x": 400,
+          "y": 1380
+        },
+        "config": {
+          "name": "risk_level",
+          "expression": "{{task_data.risk_level}}"
+        }
+      },
+      {
+        "id": "path",
+        "type": "condition",
+        "label": "Legal outcome",
+        "position": {
+          "x": 400,
+          "y": 1490
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Approve",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{outcome}}",
+                  "operator": "equals",
+                  "value": "Approve"
+                }
+              ]
+            },
+            {
+              "label": "Request changes",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{outcome}}",
+                  "operator": "equals",
+                  "value": "Request changes"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "route",
+        "type": "decision_table",
+        "label": "Contract approval route",
+        "position": {
+          "x": 200,
+          "y": 1600
+        },
+        "config": {
+          "decision_table_id": "33844456-4e3b-531b-b566-e8feaa23c3d0",
+          "decision_table_name": "Contract approval route",
+          "input_mappings": {
+            "risk_level": "{{risk_level}}",
+            "contract_value": "{{form.value}}",
+            "deviation_count": "{{deviation_count}}"
+          }
+        }
+      },
+      {
+        "id": "st_await",
+        "type": "update_data_table",
+        "label": "Register: awaiting approval",
+        "position": {
+          "x": 200,
+          "y": 1710
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Awaiting approval",
+            "risk_level": "{{risk_level}}",
+            "deviations": "{{deviation_list}}",
+            "approval_path": "{{approval_path}}"
+          }
+        }
+      },
+      {
+        "id": "fin_check",
+        "type": "condition",
+        "label": "Finance approves?",
+        "position": {
+          "x": 200,
+          "y": 1820
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Finance",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_finance}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "finance",
+        "type": "user_task",
+        "label": "Finance approval",
+        "position": {
+          "x": 0,
+          "y": 1930
+        },
+        "config": {
+          "task_title": "Finance: approve {{form.title}} (NZD {{form.value}})",
+          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}: NZD {{form.value}} from {{form.start_date}} to {{form.end_date}} for {{form.business_unit}}. Legal approved it at <strong>{{risk_level}}</strong> risk; deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=IF(IS_EMPTY(form.budget_approver), workflow_owner_id, form.budget_approver)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "budget_code",
+              "label": "Budget code",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "finance_notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0F766E",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "gc_check",
+        "type": "condition",
+        "label": "General counsel approves?",
+        "position": {
+          "x": 200,
+          "y": 2040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "General counsel",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_gc}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "gc",
+        "type": "user_task",
+        "label": "General counsel approval",
+        "position": {
+          "x": 0,
+          "y": 2150
+        },
+        "config": {
+          "task_title": "General counsel: approve {{form.title}} ({{risk_level}} risk)",
+          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, NZD {{form.value}}. Legal rated it <strong>{{risk_level}}</strong> risk with these playbook deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "gc_notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0F766E",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "approved",
+        "type": "update_data_table",
+        "label": "Register: approved",
+        "position": {
+          "x": 200,
+          "y": 2260
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Approved",
+            "approved_by": "{{=COALESCE(actioned_by_name, \"Legal\")}}",
+            "approved_on": "{{=TODAY()}}",
+            "risk_level": "{{risk_level}}",
+            "deviations": "{{deviation_list}}",
+            "approval_path": "{{approval_path}}"
+          }
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Tell the owner: approved",
+        "position": {
+          "x": 200,
+          "y": 2370
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "8ba7b415-1571-589c-b881-9bf3154fb710"
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Approved",
+        "position": {
+          "x": 200,
+          "y": 2480
+        },
+        "config": {
+          "reason": "{{contract_ref}} approved ({{approval_path}}), renewal decision by {{renewal_date}}"
+        }
+      },
+      {
+        "id": "why",
+        "type": "set_variable",
+        "label": "Rejection reason",
+        "position": {
+          "x": 800,
+          "y": 2260
+        },
+        "config": {
+          "name": "rejection_reason",
+          "expression": "{{=COALESCE(task_data.redline_notes, task_data.finance_notes, task_data.gc_notes, \"No reason given\")}}"
+        }
+      },
+      {
+        "id": "st_rej",
+        "type": "update_data_table",
+        "label": "Register: rejected",
+        "position": {
+          "x": 800,
+          "y": 2370
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Rejected",
+            "deviations": "{{deviation_list}}"
+          }
+        }
+      },
+      {
+        "id": "mail_rej",
+        "type": "send_email",
+        "label": "Tell the owner: not approved",
+        "position": {
+          "x": 800,
+          "y": 2480
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "4c756863-835a-5180-9929-c47453bea174"
+        }
+      },
+      {
+        "id": "end_rej",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 800,
+          "y": 2590
+        },
+        "config": {
+          "reason": "{{contract_ref}} not approved: {{rejection_reason}}"
+        }
+      },
+      {
+        "id": "st_changes",
+        "type": "update_data_table",
+        "label": "Register: changes requested",
+        "position": {
+          "x": 600,
+          "y": 1600
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Changes requested",
+            "risk_level": "{{risk_level}}",
+            "deviations": "{{deviation_list}}"
+          }
+        }
+      },
+      {
+        "id": "mail_changes",
+        "type": "send_email",
+        "label": "Tell the owner: changes",
+        "position": {
+          "x": 600,
+          "y": 1710
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "b1cdc854-6299-57f3-b924-b22a661c7e9c"
+        }
+      },
+      {
+        "id": "revise",
+        "type": "user_task",
+        "label": "Upload the revised contract",
+        "position": {
+          "x": 600,
+          "y": 1820
+        },
+        "config": {
+          "task_title": "Revise {{contract_ref}}: {{form.title}}",
+          "task_description": "<p>Legal asked for changes to version {{version}} of <strong>{{form.title}}</strong>:</p><blockquote>{{task_data.redline_notes}}</blockquote><p>Playbook deviations: {{deviation_list}}. Negotiate them with {{form.counterparty}}, then upload the revised contract. Legal gets a redline comparing it with version {{version}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Upload revision",
+            "Withdraw"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "revised_document",
+              "label": "Revised contract",
+              "type": "attachments",
+              "required": true,
+              "attachments": {
+                "max_files": 1,
+                "max_file_mb": 20,
+                "types": [
+                  "documents"
+                ]
+              }
+            },
+            {
+              "key": "revision_summary",
+              "label": "What changed",
+              "type": "textarea"
+            }
+          ],
+          "form_buttons": [
+            {
+              "id": "upload",
+              "label": "Upload revision",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Upload revision"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Withdraw"
+            }
+          ],
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0F766E",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "compare",
+        "type": "doc_compare",
+        "label": "Compare with the previous version",
+        "position": {
+          "x": 600,
+          "y": 1930
+        },
+        "config": {
+          "original": "{{current_document}}",
+          "revised": "{{task_data.revised_document}}",
+          "mode": "words",
+          "ignore_whitespace": true,
+          "redline": "pdf",
+          "output_name": "{{contract_ref}}-v{{version}}-to-v{{=version + 1}}",
+          "output_var": "comparison"
+        }
+      },
+      {
+        "id": "changes_n",
+        "type": "set_variable",
+        "label": "Changes for legal",
+        "position": {
+          "x": 600,
+          "y": 2040
+        },
+        "config": {
+          "name": "changes_note",
+          "expression": "Version {{=version + 1}} is {{comparison_similarity}}% similar to version {{version}} ({{comparison.stats.added_words}} words added, {{comparison.stats.removed_words}} removed). Redline: {{comparison_redline_pdf.name}}. Owner's summary: {{task_data.revision_summary}}"
+        }
+      },
+      {
+        "id": "new_doc",
+        "type": "set_variable",
+        "label": "Use the revision",
+        "position": {
+          "x": 600,
+          "y": 2150
+        },
+        "config": {
+          "name": "current_document",
+          "expression": "{{task_data.revised_document}}"
+        }
+      },
+      {
+        "id": "new_ver",
+        "type": "set_variable",
+        "label": "Next version",
+        "position": {
+          "x": 600,
+          "y": 2260
+        },
+        "config": {
+          "name": "version",
+          "expression": "{{=version + 1}}"
+        }
+      },
+      {
+        "id": "st_rev",
+        "type": "update_data_table",
+        "label": "Register: new version in review",
+        "position": {
+          "x": 600,
+          "y": 2370
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "In review",
+            "version": "{{version}}",
+            "document_name": "{{=FILE_NAMES(current_document)}}"
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to legal review",
+        "position": {
+          "x": 600,
+          "y": 2480
+        },
+        "config": {
+          "target_node_id": "legal",
+          "target_node_label": "Legal review"
+        }
+      },
+      {
+        "id": "st_wd",
+        "type": "update_data_table",
+        "label": "Register: withdrawn",
+        "position": {
+          "x": 1000,
+          "y": 1930
+        },
+        "config": {
+          "table_id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+          "table_name": "Contract register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Withdrawn"
+          }
+        }
+      },
+      {
+        "id": "end_wd",
+        "type": "end_workflow",
+        "label": "Withdrawn",
+        "position": {
+          "x": 1000,
+          "y": 2040
+        },
+        "config": {
+          "reason": "{{contract_ref}} withdrawn by the owner"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-ver",
+        "source": "title",
+        "target": "ver"
+      },
+      {
+        "id": "e-ver-doc",
+        "source": "ver",
+        "target": "doc"
+      },
+      {
+        "id": "e-doc-changes0",
+        "source": "doc",
+        "target": "changes0"
+      },
+      {
+        "id": "e-changes0-renewal",
+        "source": "changes0",
+        "target": "renewal"
+      },
+      {
+        "id": "e-renewal-row",
+        "source": "renewal",
+        "target": "row"
+      },
+      {
+        "id": "e-row-sla",
+        "source": "row",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-legal",
+        "source": "sla",
+        "target": "legal"
+      },
+      {
+        "id": "e-legal-devs-approve",
+        "source": "legal",
+        "target": "devs",
+        "label": "Approve"
+      },
+      {
+        "id": "e-legal-devs-request-changes",
+        "source": "legal",
+        "target": "devs",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-legal-devs-reject",
+        "source": "legal",
+        "target": "devs",
+        "label": "Reject"
+      },
+      {
+        "id": "e-devs-devn",
+        "source": "devs",
+        "target": "devn"
+      },
+      {
+        "id": "e-devn-risk",
+        "source": "devn",
+        "target": "risk"
+      },
+      {
+        "id": "e-risk-path",
+        "source": "risk",
+        "target": "path"
+      },
+      {
+        "id": "e-path-route-approve",
+        "source": "path",
+        "target": "route",
+        "label": "Approve"
+      },
+      {
+        "id": "e-path-st_changes-request-changes",
+        "source": "path",
+        "target": "st_changes",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-path-why-else",
+        "source": "path",
+        "target": "why",
+        "label": "Else"
+      },
+      {
+        "id": "e-route-st_await",
+        "source": "route",
+        "target": "st_await"
+      },
+      {
+        "id": "e-st_await-fin_check",
+        "source": "st_await",
+        "target": "fin_check"
+      },
+      {
+        "id": "e-fin_check-finance-finance",
+        "source": "fin_check",
+        "target": "finance",
+        "label": "Finance"
+      },
+      {
+        "id": "e-fin_check-gc_check-else",
+        "source": "fin_check",
+        "target": "gc_check",
+        "label": "Else"
+      },
+      {
+        "id": "e-finance-gc_check-approve",
+        "source": "finance",
+        "target": "gc_check",
+        "label": "Approve"
+      },
+      {
+        "id": "e-finance-why-reject",
+        "source": "finance",
+        "target": "why",
+        "label": "Reject"
+      },
+      {
+        "id": "e-gc_check-gc-general-counsel",
+        "source": "gc_check",
+        "target": "gc",
+        "label": "General counsel"
+      },
+      {
+        "id": "e-gc_check-approved-else",
+        "source": "gc_check",
+        "target": "approved",
+        "label": "Else"
+      },
+      {
+        "id": "e-gc-approved-approve",
+        "source": "gc",
+        "target": "approved",
+        "label": "Approve"
+      },
+      {
+        "id": "e-gc-why-reject",
+        "source": "gc",
+        "target": "why",
+        "label": "Reject"
+      },
+      {
+        "id": "e-approved-mail_ok",
+        "source": "approved",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-end_ok",
+        "source": "mail_ok",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-why-st_rej",
+        "source": "why",
+        "target": "st_rej"
+      },
+      {
+        "id": "e-st_rej-mail_rej",
+        "source": "st_rej",
+        "target": "mail_rej"
+      },
+      {
+        "id": "e-mail_rej-end_rej",
+        "source": "mail_rej",
+        "target": "end_rej"
+      },
+      {
+        "id": "e-st_changes-mail_changes",
+        "source": "st_changes",
+        "target": "mail_changes"
+      },
+      {
+        "id": "e-mail_changes-revise",
+        "source": "mail_changes",
+        "target": "revise"
+      },
+      {
+        "id": "e-revise-compare-upload-revision",
+        "source": "revise",
+        "target": "compare",
+        "label": "Upload revision"
+      },
+      {
+        "id": "e-revise-st_wd-withdraw",
+        "source": "revise",
+        "target": "st_wd",
+        "label": "Withdraw"
+      },
+      {
+        "id": "e-compare-changes_n",
+        "source": "compare",
+        "target": "changes_n"
+      },
+      {
+        "id": "e-changes_n-new_doc",
+        "source": "changes_n",
+        "target": "new_doc"
+      },
+      {
+        "id": "e-new_doc-new_ver",
+        "source": "new_doc",
+        "target": "new_ver"
+      },
+      {
+        "id": "e-new_ver-st_rev",
+        "source": "new_ver",
+        "target": "st_rev"
+      },
+      {
+        "id": "e-st_rev-back",
+        "source": "st_rev",
+        "target": "back"
+      },
+      {
+        "id": "e-st_wd-end_wd",
+        "source": "st_wd",
+        "target": "end_wd"
+      }
+    ]
+  }
+}

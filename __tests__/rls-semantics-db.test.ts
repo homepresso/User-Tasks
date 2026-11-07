@@ -39,10 +39,104 @@
  * 20261120000000_form_files.sql added form_files (form attachments): no
  * client grants at all — every caller gets 42501 for every statement.
  *
+ * 20261126000000_media_jobs.sql added media_jobs (background media steps):
+ * no client grants at all — every caller gets 42501 for every statement.
+ *
+ * 20261216000000_custom_reference_writes.sql added custom_reference_writes
+ * (idempotency ledger of custom reference writes): no client grants at all.
+ *
+ * 20261221000000_theme_defaults_refresh.sql added workspace_theme_refresh_backup
+ * (previous themes of rows the migration rewrote, for rollback): no client
+ * grants at all — every caller gets 42501 for every statement.
+ *
+ * 20261206000000_esign.sql added esign_envelopes, esign_waits and
+ * esign_events (e-signature connectors): no client grants at all — every
+ * caller gets 42501 for every statement.
+ *
  * 20261117000000_community_gallery.sql added the community gallery tables:
  * community_packages / community_package_versions (everyone, anon included,
  * reads listed rows only), gallery_submissions (a user reads their own) and
  * gallery_abuse_reports (nobody); no end-user writes — every caller gets 42501.
+ *
+ * 20261122000000_agents_product.sql revoked end-user writes on agents,
+ * agent_runs and agent_queue (every caller now gets 42501 for INSERT /
+ * UPDATE / DELETE there; SELECT is unchanged) and added agent_versions,
+ * agent_eval_cases and agent_eval_runs (members read their workspace's rows;
+ * no end-user writes).
+ *
+ * 20261124000000_agents_decisions.sql restricted agent run records:
+ * agent_runs, agent_eval_runs and agent_queue SELECT now need agents.view in
+ * the row's workspace, or being the run's actor / initiator (agent_runs) or
+ * the row's creator (eval runs, queue jobs). The fixture's callers have no
+ * agents.view and own none of those rows, so they no longer see them. It
+ * also added agent_cost_settings (members read their workspace's row; no
+ * end-user writes — every caller gets 42501).
+ *
+ * 20261201000000_form_controls.sql added form_controls and
+ * form_control_versions (members read their current workspace's rows; no
+ * end-user writes — INSERT/UPDATE/DELETE are not granted, so every caller
+ * gets 42501).
+ *
+ * 20261203000000_custom_actions.sql made custom_workflow_activities
+ * read-only for end users (members read their workspace's rows; writes go
+ * through the service with its permission checks) and added
+ * custom_workflow_activity_versions (same) and
+ * custom_workflow_activity_secrets (no end-user access at all).
+ *
+ * 20261205000000_form_table_change_runs.sql added form_table_change_runs
+ * (Data table "for each changed row" runs: a caller reads their own runs in
+ * their current workspace, or all of them with forms.edit; no end-user
+ * writes — every caller gets 42501).
+ *
+ * 20261217000000_home_dashboard.sql added run_followers and form_favorites
+ * (Home): a caller reads and deletes their own rows in their member
+ * workspaces; INSERT needs the run to be visible to them
+ * (can_view_run_progress) / the form to be one they can open (forms.submit);
+ * no UPDATE grant. tenant_id always follows the run / form (trigger), so a
+ * "move" keeps the row in its tenant.
+ *
+ * 20261219000000_anonymous_forms.sql added form_anonymous_access (a form's
+ * public link token and anonymous options): no client grants at all — every
+ * caller gets 42501 for every statement; the token is never readable through
+ * PostgREST. form_submissions and form_files only gained columns.
+ *
+ * 20261223000000_workspace_subdomains.sql added tenant_subdomain_history
+ * (retired workspace addresses) and form_system_name_history (earlier form
+ * system names): no client grants at all — every caller gets 42501 for
+ * every statement; the server resolves redirects with the service role.
+ * tenants.subdomain and forms.system_name are columns read through the
+ * existing policies.
+ *
+ * 20261218000000_nav_counts_form_drafts.sql added form_drafts (Save draft on
+ * a form): a caller reads, updates and deletes their own rows in their
+ * member workspaces; INSERT / UPDATE need a form they can open (forms.submit).
+ * tenant_id follows the form (trigger), so a "move" keeps the row in its tenant.
+ *
+ * 20261222000000_task_attachments.sql added task_attachments (files on a
+ * task): members who can see the task read its ready rows, and uploaders their
+ * own (the fixture task has no assignee, so each owner sees only the row they
+ * uploaded); INSERT needs work access on the open task (tasks.complete — the
+ * fixture's callers have no roles, so every insert is 42501); UPDATE is a soft
+ * delete only (deleted_at / deleted_by; the uploader or tasks.delete), every
+ * other column and DELETE are not granted. task_attachment_purges (objects to
+ * delete from storage): no client grants at all.
+ *
+ * 20261224000000_org_structure.sql added org_units, org_unit_members,
+ * projects, project_members and project_teams: members read their current
+ * workspace's rows (all member workspaces in the unified view); INSERT /
+ * UPDATE / DELETE need org.manage (org units) or projects.manage (projects)
+ * in the row's workspace — the fixture's callers have no roles, so every
+ * write is refused (42501) or matches no rows. The member tables' tenant_id
+ * follows the parent row (trigger), so a "move" keeps the row in its tenant.
+ *
+ * 20261226000000_task_followers.sql added task_followers (Task tracker →
+ * Following): a caller reads and deletes their own rows in their member
+ * workspaces; INSERT needs the task to be visible to them (task_view_access:
+ * assignee, collaborator, team member, manager of an assignee, assigner,
+ * tasks.view_all / tasks.manage_queue — the fixture task has no assignee or
+ * assigner and the callers have no roles, so every insert is 42501); no
+ * UPDATE grant. tenant_id always follows the task (trigger), so a "move"
+ * keeps the row in its tenant.
  *
  * Runs only against a LOCAL Supabase stack — set EVENT_STREAM_DB_URL, e.g.
  *   EVENT_STREAM_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npx vitest run __tests__/rls-semantics-db.test.ts
@@ -137,10 +231,17 @@ const SPECS: Spec[] = [
   { table: 'agents', make: (k, v) => ({ tenant_id: TENANT[k], name: `agent ${v}` }) },
   { table: 'agent_queue', make: (k, v) => ({ tenant_id: TENANT[k], agent_id: id('agents', k), input_message: `msg ${v}` }) },
   { table: 'agent_runs', make: (k) => ({ tenant_id: TENANT[k], agent_id: id('agents', k) }) },
+  // Agent versions / evaluations (20261122000000): members SELECT, writes service role only.
+  { table: 'agent_versions', make: (k, v) => ({ tenant_id: TENANT[k], agent_id: id('agents', k), version: v === 'row' ? 1 : 2, snapshot: {} }) },
+  { table: 'agent_eval_cases', make: (k, v) => ({ tenant_id: TENANT[k], agent_id: id('agents', k), name: `case ${v}`, input_message: 'hi' }) },
+  { table: 'agent_eval_runs', make: (k) => ({ tenant_id: TENANT[k], agent_id: id('agents', k) }) },
+  { table: 'agent_cost_settings', variants: ['row'], insertVariant: 'row', make: (k) => ({ tenant_id: TENANT[k], budgets: {} }) },
   { table: 'retention_policies', make: (k, v) => ({ tenant_id: TENANT[k], name: `rp ${v}`, policy_mode: 'keep_forever' }) },
   { table: 'custom_tables', make: (k, v) => ({ tenant_id: TENANT[k], name: `table ${v}`, slug: `rls-${v}` }) },
   { table: 'custom_table_rows', make: (k) => ({ tenant_id: TENANT[k], table_id: id('custom_tables', k) }) },
   { table: 'custom_workflow_activities', make: (k, v) => ({ tenant_id: TENANT[k], name: `act ${v}`, key: `rls-${v}`, source_code: 'x' }) },
+  { table: 'custom_workflow_activity_versions', make: (k, v) => ({ tenant_id: TENANT[k], activity_id: id('custom_workflow_activities', k), version: v === 'row' ? '1.0.0' : '2.0.0', manifest: {}, source_code: 'x', sha256: 'a'.repeat(64), size_bytes: 1 }) },
+  { table: 'custom_workflow_activity_secrets', make: (k, v) => ({ tenant_id: TENANT[k], activity_id: id('custom_workflow_activities', k), name: v === 'row' ? 'api_key' : 'other_key', value: 'enc:v1:x' }) },
   { table: 'dead_letter_events', make: (k) => ({ tenant_id: TENANT[k], event_type: 'x', payload: '{}', target_url: 'http://x' }) },
   { table: 'decision_tables', make: (k, v) => ({ tenant_id: TENANT[k], name: `dt ${v}` }) },
   { table: 'deletion_queue', make: (k) => ({ tenant_id: TENANT[k], target_type: 'workflow', target_id: id('workflows', k) }) },
@@ -185,8 +286,18 @@ const SPECS: Spec[] = [
   { table: 'forms', make: (k, v) => ({ tenant_id: TENANT[k], name: `form ${v}` }) },
   { table: 'form_versions', make: (k, v) => ({ tenant_id: TENANT[k], form_id: id('forms', k), version: v === 'row' ? 1 : 2, name: `form ${v}` }) },
   { table: 'form_themes', make: (k, v) => ({ tenant_id: TENANT[k], name: `theme ${v}` }) },
+  // Custom form controls (20261201000000): members SELECT their workspace's rows, writes service role only.
+  { table: 'form_controls', make: (k, v) => ({ tenant_id: TENANT[k], tag: `rls-${v.replace(/[^a-z0-9]/g, '')}-control`, name: `control ${v}`, latest_version: '1.0.0' }) },
+  { table: 'form_control_versions', make: (k, v) => ({ tenant_id: TENANT[k], control_id: id('form_controls', k), version: v === 'row' ? '1.0.0' : '2.0.0', manifest: {}, bundle: 'x', sha256: 'a'.repeat(64), size_bytes: 1 }) },
   // Form submissions (20261116000000): own rows, or every row with forms.edit; writes service role only.
   { table: 'form_submissions', variants: ['row', 'other'], make: (k, v) => ({ tenant_id: TENANT[k], form_id: id('forms', k), form_name: `form ${v}`, submitted_by: v === 'other' ? null : OWNER[k] }) },
+  // Anonymous forms (20261219000000): the public link token and options — no client access at all.
+  { table: 'form_anonymous_access', variants: ['row'], make: (k, v) => ({ form_id: id('forms', k), tenant_id: TENANT[k], token: `rls${k}${v}`.padEnd(43, 'x'), enabled: true }) },
+  // Workspace addresses / friendly form links (20261223000000): retired subdomains and form system names — no client access at all.
+  { table: 'tenant_subdomain_history', make: (k, v) => ({ subdomain: `rls-old-${k.toLowerCase()}-${v}`, tenant_id: TENANT[k] }) },
+  { table: 'form_system_name_history', make: (k, v) => ({ tenant_id: TENANT[k], system_name: `rls-old-${v}`, form_id: id('forms', k) }), move: null, touch: 'retired_at' },
+  // Data table rule runs (20261205000000): own runs, or every run with forms.edit; writes service role only.
+  { table: 'form_table_change_runs', variants: ['row', 'other'], make: (k, v) => ({ tenant_id: TENANT[k], idempotency_key: `rls-${k}-${v}`, field_key: 'lines', actor_id: v === 'other' ? null : OWNER[k] }) },
   // Form attachments (20261120000000): no client access at all — the server reads and writes them.
   {
     table: 'form_files',
@@ -195,6 +306,19 @@ const SPECS: Spec[] = [
       checksum_sha256: '0'.repeat(64), uploaded_by: OWNER[k], context_kind: 'form', form_id: id('forms', k), field_key: 'files',
     }),
   },
+  // Media jobs (20261126000000): no client access at all — the server queues and runs them.
+  {
+    table: 'media_jobs',
+    make: (k, v) => ({ tenant_id: TENANT[k], run_id: id('workflow_runs', k), event_id: `mediawait_rls_${k}_${v}`, node_id: 'n1', node_type: 'media_transcribe' }),
+  },
+  // E-signature (20261206000000): send ledger, waits and webhook delivery keys — no client access at all.
+  { table: 'esign_envelopes', make: (k, v) => ({ tenant_id: TENANT[k], integration_id: id('integrations', k), provider: 'docusign', client_reference: `rls-${k}-${v}`, status: 'sent', envelope_id: `env-${v}` }) },
+  { table: 'esign_waits', make: (k, v) => ({ tenant_id: TENANT[k], integration_id: id('integrations', k), provider: 'docusign', envelope_id: `env-${v}`, run_id: id('workflow_runs', k), node_id: 'n1', event_id: `esignwait_rls_${k}_${v}` }) },
+  { table: 'esign_events', make: (k, v) => ({ tenant_id: TENANT[k], integration_id: id('integrations', k), provider: 'docusign', dedupe_key: `rls-${k}-${v}`, envelope_id: 'env-1', event_type: 'envelope_completed' }) },
+  // Custom reference writes (20261216000000): idempotency ledger — service role only, no client access at all.
+  { table: 'custom_reference_writes', make: (k, v) => ({ tenant_id: TENANT[k], reference_id: id('integration_references', k), key_hash: (k + v).padEnd(64, '0').replace(/[^0-9a-f]/g, 'a').slice(0, 64), state: 'succeeded' }) },
+  // Theme-defaults refresh rollback data (20261221000000): service role only, no client access at all.
+  { table: 'workspace_theme_refresh_backup', make: (k, v) => ({ tenant_id: TENANT[k], migration: `rls-${v}`, theme: { base_preset: 'basecamp' }, version: 1 }) },
   // Community gallery (20261117000000): anyone reads LISTED packages and their versions, a user reads their own
   // submissions, abuse reports are moderators-only; no end-user writes at all.
   {
@@ -290,6 +414,19 @@ const SPECS: Spec[] = [
   },
   { table: 'user_teams', make: (k, v) => ({ user_id: v === 'row' ? OWNER[k] : U.ab_unified, team_id: id('teams', k) }), move: (k) => ({ team_id: id('teams', OTHER[k]) }), touch: 'team_id' },
   { table: 'tag_definitions', make: (k, v) => ({ tenant_id: TENANT[k], name: `tag ${v}` }) },
+  // Task attachments (20261222000000): readers of the task (or the uploader) SELECT ready rows; INSERT needs work
+  // access on the open task (status uploading only); UPDATE is soft delete only (deleted_at / deleted_by grant).
+  {
+    table: 'task_attachments',
+    make: (k, v) => ({
+      id: id('task_attachments', k, v), tenant_id: TENANT[k], task_id: id('tasks', k), name: `att ${v}`,
+      storage_key: `${TENANT[k]}/attachment-${id('tasks', k)}/${id('task_attachments', k, v)}/f.txt`, file_name: 'f.txt', size: 1, uploaded_by: OWNER[k],
+      ...(v === 'new' ? {} : { status: 'ready' }),
+    }),
+    touch: 'deleted_at',
+  },
+  // Stored objects of deleted task attachments, for the cleanup job: no client grants.
+  { table: 'task_attachment_purges', make: (k, v) => ({ storage_key: `rls/${k}/${v}` }), move: null, touch: 'queued_at' },
   { table: 'task_assignees', make: (k, v) => ({ tenant_id: TENANT[k], task_id: id('tasks', k, v === 'row' ? 'row' : 'dep'), user_id: OWNER[k] }) },
   {
     table: 'task_dependencies',
@@ -302,7 +439,22 @@ const SPECS: Spec[] = [
     make: (k, v) => ({ tenant_id: TENANT[k], task_id: id('tasks', k, v === 'row' ? 'row' : 'dep'), user_id: OWNER[k], outcome: 'approved' }),
   },
   { table: 'tenant_connectors', make: (k, v) => ({ tenant_id: TENANT[k], connector_key: `rls_${v}` }) },
+  // Home (20261217000000): a person's own follows / favourites; INSERT only for a run they can see / a form they can open.
+  { table: 'run_followers', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, run_id: id('workflow_runs', k) }), touch: 'created_at' },
+  // Task tracker → Following (20261226000000): a person's own follows; INSERT only for a task they can see.
+  { table: 'task_followers', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, task_id: id('tasks', k) }), touch: 'created_at' },
+  { table: 'form_favorites', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k) }), touch: 'created_at' },
+  // Form drafts (20261218000000): a person's own saved answers; INSERT / UPDATE only for a form they can open.
+  { table: 'form_drafts', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k), values: '{}' }), touch: 'version' },
   { table: 'api_keys', make: (k, v) => ({ tenant_id: TENANT[k], name: `key ${v}`, key_prefix: 'p', key_hash: `rls-${k}-${v}` }) },
+  // Form wizard projects (20261229000000): a person reads their own rows in member workspaces; no end-user writes.
+  { table: 'form_wizard_projects', make: (k, v) => ({ tenant_id: TENANT[k], owner_id: v === 'row' ? OWNER[k] : U.ab_unified, name: `wizard ${v}` }), touch: 'name' },
+  // Org structure (20261224000000): members read; writes need org.manage / projects.manage.
+  { table: 'org_units', make: (k, v) => ({ tenant_id: TENANT[k], name: `unit ${v}` }) },
+  { table: 'org_unit_members', make: (k, v) => ({ tenant_id: TENANT[k], org_unit_id: id('org_units', k), user_id: v === 'row' ? OWNER[k] : U.ab_unified }), touch: 'role' },
+  { table: 'projects', variants: ['row', 'other'], make: (k, v) => ({ tenant_id: TENANT[k], name: `project ${v}`, key: `RLS${k}${v.replace(/[^a-z]/g, '').toUpperCase()}` }) },
+  { table: 'project_members', make: (k, v) => ({ tenant_id: TENANT[k], project_id: id('projects', k), user_id: v === 'row' ? OWNER[k] : U.ab_unified }), touch: 'role' },
+  { table: 'project_teams', make: (k, v) => ({ tenant_id: TENANT[k], project_id: id('projects', k, v === 'row' ? 'row' : 'other'), team_id: id('teams', k) }), touch: 'added_at' },
 ]
 
 /** Tables seeded by the fixture setup itself rather than SPECS. */

@@ -4,6 +4,10 @@ import { useState } from 'react'
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Layers } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { CountBadge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import type { Swimlane } from './workflow-builder'
 
 const PRESET_COLORS = [
@@ -69,50 +73,49 @@ export function SwimlaneManager({ swimlanes, onChange }: SwimlaneManagerProps) {
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 w-full text-left mb-2"
+        aria-expanded={expanded}
+        className="mb-2 flex w-full items-center gap-1.5 rounded-sm text-left text-fg-muted hover:text-fg"
       >
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <Layers size={14} style={{ color: 'var(--theme-primary-text)' }} />
-        <span className="text-xs font-semibold flex-1">Swimlanes</span>
-        <span
-          className="text-[10px] px-1.5 py-0.5 rounded-full"
-          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-        >
-          {swimlanes.length}
-        </span>
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <Layers size={14} aria-hidden="true" />
+        <span className="flex-1 text-xs font-medium">Swimlanes</span>
+        <CountBadge count={swimlanes.length} />
       </button>
 
       {expanded && (
         <div className="space-y-2">
-          <p className="text-[10px] leading-relaxed" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs text-fg-muted">
             Add horizontal lanes to organize workflow phases. Lanes are visual guides — nodes can be placed anywhere.
           </p>
 
           {swimlanes.sort((a, b) => a.y - b.y).map((lane) => (
-            <div
+            <Card
               key={lane.id}
-              className="rounded-lg border p-2.5 space-y-1.5"
-              style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}
+              variant="inset"
+              padding="sm"
+              className="space-y-2"
             >
               {/* Label + color */}
               <div className="flex items-center gap-1.5">
                 <div
-                  className="w-3 h-3 rounded-sm shrink-0 border"
-                  style={{ backgroundColor: lane.color, borderColor: lane.color }}
+                  className="size-3 shrink-0 rounded-sm"
+                  style={{ backgroundColor: lane.color }}
+                  aria-hidden="true"
                 />
                 <Input
                   value={lane.label}
                   onChange={(e) => updateLane(lane.id, 'label', e.target.value)}
                   placeholder="Lane name"
-                  className="!text-xs !h-7 flex-1"
+                  size="sm"
+                  className="flex-1"
                 />
-                <button
+                <IconButton
+                  size="sm"
+                  variant="danger-ghost"
+                  label="Remove lane"
+                  icon={<Trash2 />}
                   onClick={() => removeLane(lane.id)}
-                  className="p-1 rounded hover:text-red-500 shrink-0"
-                  style={{ color: 'var(--theme-muted-text)' }}
-                >
-                  <Trash2 size={12} />
-                </button>
+                />
               </div>
 
               {/* Color picker */}
@@ -121,12 +124,10 @@ export function SwimlaneManager({ swimlanes, onChange }: SwimlaneManagerProps) {
                   <button
                     key={c}
                     onClick={() => updateLane(lane.id, 'color', c)}
-                    className="w-4 h-4 rounded-full transition-transform hover:scale-110"
-                    style={{
-                      backgroundColor: c,
-                      outline: lane.color === c ? `2px solid ${c}` : 'none',
-                      outlineOffset: '1px',
-                    }}
+                    aria-label={`Lane colour ${c}`}
+                    aria-pressed={lane.color === c}
+                    className={cn('size-4 rounded-full transition-transform hover:scale-110', lane.color === c && 'ring-2 ring-border-strong ring-offset-1 ring-offset-panel')}
+                    style={{ backgroundColor: c }}
                   />
                 ))}
               </div>
@@ -134,40 +135,43 @@ export function SwimlaneManager({ swimlanes, onChange }: SwimlaneManagerProps) {
               {/* Position + Height */}
               <div className="grid grid-cols-2 gap-1.5">
                 <div>
-                  <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-                    Y Position
+                  <label className="mb-1 block text-xs font-medium text-fg-muted">
+                    Y position
                   </label>
                   <Input
                     type="number"
                     value={lane.y}
                     onChange={(e) => updateLane(lane.id, 'y', Math.max(0, parseInt(e.target.value) || 0))}
-                    className="!text-xs !h-6 font-mono"
+                    size="sm"
+                    className="num font-mono"
                     step={20}
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+                  <label className="mb-1 block text-xs font-medium text-fg-muted">
                     Height
                   </label>
                   <Input
                     type="number"
                     value={lane.height}
                     onChange={(e) => updateLane(lane.id, 'height', Math.max(60, parseInt(e.target.value) || 100))}
-                    className="!text-xs !h-6 font-mono"
+                    size="sm"
+                    className="num font-mono"
                     step={20}
                   />
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
 
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={addSwimlane}
-            className="w-full !text-xs !h-7"
+            className="w-full"
+            leadingIcon={<Plus />}
           >
-            <Plus size={12} className="mr-1" /> Add Swimlane
+            Add swimlane
           </Button>
         </div>
       )}

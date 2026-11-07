@@ -48,10 +48,16 @@ export interface ReferenceTemplate {
   name: string
   description: string
   method: string
+  /**
+   * Absolute https base URL for this template only, when the provider serves
+   * it from another host than the connector's base URL (Box uploads at
+   * upload.box.com, Dropbox content.dropboxapi.com …). Same auth applies.
+   */
+  baseUrl?: string
   pathTemplate: string
   bodyTemplate?: string
   headers?: Record<string, string>
-  inputs: { name: string; type: string; required: boolean; description: string; defaultValue?: string }[]
+  inputs: { name: string; type: string; required: boolean; description: string; defaultValue?: string; location?: 'query' | 'path' | 'body' | 'header' }[]
   outputs: { name: string; type: string }[]
 }
 
@@ -83,8 +89,18 @@ export interface ConnectorDefinition {
     tokenUrl: string
     defaultScopes: string[]
     extraAuthorizeParams?: Record<string, string>
+    /** Refresh-token endpoint when it differs from tokenUrl (Adobe Acrobat Sign). */
+    refreshUrl?: string
+    /** How the client authenticates at the token endpoint (default: client_id / client_secret in the form body). */
+    clientAuth?: 'basic' | 'body'
   }
   referenceTemplates: ReferenceTemplate[]
+  /**
+   * Migrate-on-read for integration configs stored by older versions of this
+   * definition (applied by the reference executor to the decrypted config
+   * before every call; must be idempotent and must not drop credentials).
+   */
+  upgradeIntegrationConfig?: (stored: Record<string, any>) => Record<string, any>
   buildIntegrationConfig: (config: Record<string, any>, credentials: Record<string, any>) => {
     base_url: string
     auth_type: string
@@ -123,6 +139,11 @@ import { googleTasksConnector } from './definitions/google-tasks'
 import { exchangeOnlineConnector } from './definitions/exchange-online'
 import { gmailConnector } from './definitions/gmail'
 import { docusignConnector } from './definitions/docusign'
+import { adobeSignConnector } from './definitions/adobe-sign'
+import { dropboxSignConnector } from './definitions/dropbox-sign'
+import { pandadocConnector } from './definitions/pandadoc'
+import { signnowConnector } from './definitions/signnow'
+import { boldsignConnector } from './definitions/boldsign'
 import { servicenowConnector } from './definitions/servicenow'
 import { sftpConnector } from './definitions/sftp'
 import { oracleConnector } from './definitions/oracle'
@@ -138,6 +159,14 @@ import { azureOpenaiConnector } from './definitions/azure-openai'
 import { deepseekConnector } from './definitions/deepseek'
 import { firebaseConnector } from './definitions/firebase'
 import { workdayConnector } from './definitions/workday'
+import { azureSpeechConnector } from './definitions/azure-speech'
+import { azureAiVisionConnector } from './definitions/azure-ai-vision'
+import { azureDocumentIntelligenceConnector } from './definitions/azure-document-intelligence'
+import { awsMediaConnector } from './definitions/aws-media'
+import { deepgramConnector } from './definitions/deepgram'
+import { assemblyaiConnector } from './definitions/assemblyai'
+import { elevenlabsConnector } from './definitions/elevenlabs'
+import { stabilityAiConnector } from './definitions/stability-ai'
 
 export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
   slackConnector,
@@ -152,6 +181,14 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
   deepseekConnector,
   azureOpenaiConnector,
   ollamaConnector,
+  azureSpeechConnector,
+  azureAiVisionConnector,
+  azureDocumentIntelligenceConnector,
+  awsMediaConnector,
+  deepgramConnector,
+  assemblyaiConnector,
+  elevenlabsConnector,
+  stabilityAiConnector,
   stripeConnector,
   mercuryConnector,
   twilioConnector,
@@ -178,6 +215,11 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
   exchangeOnlineConnector,
   gmailConnector,
   docusignConnector,
+  adobeSignConnector,
+  dropboxSignConnector,
+  pandadocConnector,
+  signnowConnector,
+  boldsignConnector,
   servicenowConnector,
   sftpConnector,
   oracleConnector,

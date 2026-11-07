@@ -1,0 +1,12 @@
+{
+  "id": "5d1f7c2a-9b3e-4f61-8a0d-2c7e4b9f1a36",
+  "slug": "starter-pack",
+  "title": "Form controls starter pack",
+  "summary": "Every official form control in one package: chart, saved report, address search, map, signature, rating, slider, rich text, table, survey and more.",
+  "description": "Install the whole set of official UserTasks form controls at once. Each control lands in Extensibility → Form controls, enabled, and appears in the form designer's Custom palette, ready to drag onto a form.\n\nThe pack carries the controls only. The address search control needs a lookup source on the field (the single Address search package also ships the Google Places integration, API reference and a sample form), the map needs an administrator to approve its tile hosts, and the saved report and chart controls need a report chosen in the designer. Every other control works as soon as it is installed.",
+  "icon": "layers",
+  "tags": ["form controls", "web components", "starter pack", "bundle"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: chart data, map markers (new), Likert statements, table rows, info card text, rating max, progress and slider values can be bound to an expression, a data table or an API reference in the form designer." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "All thirteen controls at 1.1.0: declared workflow outputs (rich text, address, map and chart reach workflows as text, with the full value under <key>_raw) and no visible loading on forms." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "controls": ["chart", "saved-report", "address", "map", "signature", "rating", "slider", "rich-text", "table", "likert", "progress", "info-card", "pdf-viewer"]
+}

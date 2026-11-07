@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "ff18e87b-7c8f-53e7-b74b-69ed3a09e81b",
+  "asset": {
+    "id": "ff18e87b-7c8f-53e7-b74b-69ed3a09e81b",
+    "name": "Inspections: 7 years",
+    "description": "Health and safety records are usually kept for years: purge inspection and corrective action rows 7 years after they were created. Apply it to the Inspections and Corrective actions tables after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 7,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

@@ -11,7 +11,13 @@ import type { DirectoryLinkProvider } from '@/lib/directory-sync/types'
  *   connector_key 'entra_directory' | 'okta_directory' | 'ldap_directory'
  *                 | 'google_directory' | 'scim_directory'
  *   config      {provider, org_name, sync_groups, auto_provision, last_sync_at,
- *                last_sync_stats, settings, delta_cursor, last_full_sync_at}
+ *                last_sync_stats, settings, delta_cursor, last_full_sync_at,
+ *                import_org_units, import_profiles}
+ *
+ * import_org_units / import_profiles (org structure, lib/directory-sync/profiles.ts):
+ * absent means OFF — connections that existed before the options do not
+ * start rewriting people's attributes or building org units on their next
+ * sync. A connection created since gets both ON unless the caller says otherwise.
  *   credentials entra:  {tenant_id, client_id, client_secret}   (client_secret encrypted)
  *               okta:   {org_url, api_token}                    (api_token encrypted)
  *               ldap:   {bind_password}                         (encrypted)
@@ -77,6 +83,10 @@ export interface DirectoryConnection {
   orgName: string | null
   syncGroups: boolean
   autoProvision: boolean
+  /** Build org units (company / division / department, Google OUs) from the directory. */
+  importOrgUnits: boolean
+  /** Write job title, department, location, employee id and cost centre to members. */
+  importProfiles: boolean
   lastSyncAt: string | null
   lastSyncStats: Record<string, number> | null
   isEnabled: boolean
@@ -97,6 +107,8 @@ function rowToConnection(row: any, provider: DirectoryLinkProvider, includeCrede
     orgName: config.org_name ?? null,
     syncGroups: Boolean(config.sync_groups),
     autoProvision: Boolean(config.auto_provision),
+    importOrgUnits: config.import_org_units === true,
+    importProfiles: config.import_profiles === true,
     lastSyncAt: config.last_sync_at ?? null,
     lastSyncStats: (config.last_sync_stats as Record<string, number> | undefined) ?? null,
     isEnabled: Boolean(row.is_enabled),
@@ -128,6 +140,13 @@ export async function getDirectoryConnection(
   return rowToConnection(data, provider, Boolean(opts?.includeCredentials))
 }
 
+/** A toggle's stored value: explicit, else kept, else ON for a brand-new connector row (absent = OFF). */
+export function orgToggle(key: 'import_org_units' | 'import_profiles', value: boolean | undefined, previous: Record<string, any>, isNew: boolean): Record<string, boolean> {
+  if (value !== undefined) return { [key]: Boolean(value) }
+  if (isNew) return { [key]: true }
+  return key in previous ? { [key]: previous[key] === true } : {}
+}
+
 export async function saveDirectoryConnection(params: {
   supabase: SupabaseClient
   tenantId: string
@@ -135,6 +154,10 @@ export async function saveDirectoryConnection(params: {
   orgName?: string | null
   syncGroups: boolean
   autoProvision: boolean
+  /** undefined = keep the stored value; a new connector row defaults to true. */
+  importOrgUnits?: boolean
+  /** undefined = keep the stored value; a new connector row defaults to true. */
+  importProfiles?: boolean
   /** undefined = keep the stored settings */
   settings?: Record<string, unknown>
   /** undefined = keep existing stored credentials */
@@ -159,6 +182,8 @@ export async function saveDirectoryConnection(params: {
     org_name: params.orgName ?? previous.org_name ?? null,
     sync_groups: params.syncGroups,
     auto_provision: params.autoProvision,
+    ...orgToggle('import_org_units', params.importOrgUnits, previous, !existing.data?.id),
+    ...orgToggle('import_profiles', params.importProfiles, previous, !existing.data?.id),
     ...(params.settings !== undefined ? { settings: params.settings } : {}),
   }
   if (params.resetDelta) {
@@ -202,6 +227,8 @@ export async function updateDirectorySyncState(
     last_sync_stats?: Record<string, number>
     sync_groups?: boolean
     auto_provision?: boolean
+    import_org_units?: boolean
+    import_profiles?: boolean
     delta_cursor?: string | null
     last_full_sync_at?: string
   },

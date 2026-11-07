@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "a88ceb3e-3fba-599c-967e-e78d7d98f0dd",
+  "asset": {
+    "id": "a88ceb3e-3fba-599c-967e-e78d7d98f0dd",
+    "name": "Upload published",
+    "description": "Tells the uploader their upload is live.",
+    "subject": "Your upload is live",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Published</h2><p>Hi {{uploader_name}},</p><p>Your upload \"{{caption}}\" is now live{{=IF(public_url, CONCAT(\": \", public_url), \".\")}}</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Upload {{upload_id}}</p></div>",
+    "text_body": "Your upload is live.",
+    "is_default": false
+  }
+}

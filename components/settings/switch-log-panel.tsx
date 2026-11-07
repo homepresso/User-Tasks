@@ -1,14 +1,17 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
+import { overlayClass } from '@/components/ui/dialog'
 import { RotateCcw, Square, RefreshCw, Settings2, Shuffle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { cancelProviderSwitch, listProviderSwitches, retryProviderSwitch, rollbackProviderSwitch } from '@/app/actions/infrastructure'
 import type { SwitchRecordView } from '@/lib/admin/infrastructure-switching'
+import type { AreaActionStates } from '@/lib/admin/switch-runtime'
 import { ProviderSwitchWizard } from './provider-switch-wizard'
 import { STATUS_STYLE, SwitchProgress, isActive, statusKey } from './switch-progress'
 
@@ -18,15 +21,20 @@ import { STATUS_STYLE, SwitchProgress, isActive, statusKey } from './switch-prog
  * admins; every button is a server action that re-checks access).
  */
 
-export function AreaActions({ area, label, hasSettings, enabled }: { area: string; label: string; hasSettings: boolean; enabled: boolean }) {
+export function AreaActions({ area, label, actions }: { area: string; label: string; actions: AreaActionStates }) {
   const [open, setOpen] = useState<'switch' | 'settings' | null>(null)
-  if (!enabled) return null
+  // Always shown: a disabled button points at the note under the card header that says why and what to do.
+  const why = (which: 'change' | 'settings') => {
+    if (actions[which].enabled) return undefined
+    const shared = !actions.change.enabled && !actions.settings.enabled && actions.change.block?.message === actions.settings.block?.message && actions.change.block?.kind === actions.settings.block?.kind
+    return shared || which === 'change' ? `${area}-change-why` : `${area}-settings-why`
+  }
   return (
     <span className="flex gap-1">
-      {hasSettings && (
-        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen('settings')} aria-label={`${label} settings`}><Settings2 size={13} /> Settings</Button>
-      )}
-      <Button type="button" size="sm" variant="outline" onClick={() => setOpen('switch')} aria-label={`Change ${label} provider`}><Shuffle size={13} /> Change…</Button>
+      <Button type="button" size="sm" variant="ghost" disabled={!actions.settings.enabled} onClick={() => setOpen('settings')} aria-label={`${label} settings`}
+        aria-describedby={why('settings')} title={actions.settings.block?.message}><Settings2 size={13} /> Settings</Button>
+      <Button type="button" size="sm" variant="outline" disabled={!actions.change.enabled} onClick={() => setOpen('switch')} aria-label={`Change ${label} provider`}
+        aria-describedby={why('change')} title={actions.change.block?.message}><Shuffle size={13} /> Change…</Button>
       {open && <ProviderSwitchWizard area={area} label={label} kind={open} open onOpenChange={(next) => { if (!next) setOpen(null) }} />}
     </span>
   )
@@ -34,6 +42,8 @@ export function AreaActions({ area, label, hasSettings, enabled }: { area: strin
 
 function RollbackDialog({ record, onClose, onDone }: { record: SwitchRecordView; onClose: () => void; onDone: (message: string) => void }) {
   const [pending, startTransition] = useTransition()
+  // Synchronous guard: two clicks in one frame would roll back twice.
+  const rollbackGuard = useSubmitGuard()
   const [preview, setPreview] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirm, setConfirm] = useState('')
@@ -48,20 +58,21 @@ function RollbackDialog({ record, onClose, onDone }: { record: SwitchRecordView;
   }, [record.id])
 
   const run = () => startTransition(async () => {
-    setError(null)
-    const res = await rollbackProviderSwitch({ id: record.id, confirm })
-    if (!res.ok) { setError(res.error); return }
-    onDone(res.record && Object.keys(res.record.envChanges).length
-      ? `Rolled back. Set in the app environment and restart: ${Object.entries(res.record.envChanges).map(([k, v]) => (v === '(unset)' ? `unset ${k}` : `${k}=${v}`)).join(', ')}`
-      : 'Rolled back.')
+    await rollbackGuard.run(async () => {
+      setError(null)
+      const res = await rollbackProviderSwitch({ id: record.id, confirm })
+      if (!res.ok) { setError(res.error); return }
+      onDone(res.record && Object.keys(res.record.envChanges).length
+        ? `Rolled back. Set in the app environment and restart: ${Object.entries(res.record.envChanges).map(([k, v]) => (v === '(unset)' ? `unset ${k}` : `${k}=${v}`)).join(', ')}`
+        : 'Rolled back.')
+    })
   })
 
   return (
     <Dialog.Root open onOpenChange={(next) => { if (!next) onClose() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dialog-overlay" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(36rem,94vw)] max-h-[90vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-xl p-5 shadow-xl dialog-content space-y-3"
-          style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }} aria-describedby={undefined}>
+        <Dialog.Overlay className={overlayClass} />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(36rem,94vw)] max-h-[90vh] overflow-y-auto [transform:translate(-50%,-50%)] rounded-xl p-5 shadow-elev-3 ds-dialog space-y-3 bg-elevated text-fg" aria-describedby={undefined}>
           <Dialog.Title className="text-lg font-semibold">Roll back {record.kind === 'settings' ? `${record.areaLabel} settings` : `${record.areaLabel}: ${record.toProvider} → ${record.fromProvider}`}</Dialog.Title>
           <p className="text-sm" style={muted}>Restores the settings the change wrote and, for switches that moved data, undoes what it can (the same as <code>usertasks-admin rollback {record.id.slice(0, 8)}… --yes</code>).</p>
           {preview && <pre className="max-h-56 overflow-auto rounded-lg p-2 text-xs whitespace-pre-wrap break-words" style={{ backgroundColor: 'var(--theme-topbar)', color: 'var(--theme-topbar-text)' }}>{preview.join('\n')}</pre>}
@@ -146,7 +157,7 @@ export function SwitchLogPanel({ initial, error, busy: initialBusy }: { initial:
           {records.map((entry) => {
             const style = STATUS_STYLE[statusKey(entry)] ?? STATUS_STYLE.running
             return (
-              <li key={entry.id} className="text-sm border-t pt-3 first:border-t-0 first:pt-0" style={{ borderColor: 'var(--theme-surface-border)' }} data-switch-id={entry.id}>
+              <li key={entry.id} className="text-sm border-t pt-3 first:border-t-0 first:pt-0 border-border" data-switch-id={entry.id}>
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="font-medium">{entry.kind === 'rollback' ? 'Rollback' : entry.kind === 'settings' ? 'Settings' : 'Switch'} {entry.areaLabel.toLowerCase()}</span>
                   <span>{entry.kind === 'settings' ? entry.toProvider : `${entry.fromProvider ?? '?'} → ${entry.toProvider}`}</span>

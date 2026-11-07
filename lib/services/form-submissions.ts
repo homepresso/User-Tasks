@@ -24,21 +24,29 @@
  * workflows whose "Form submitted" trigger names the form.
  */
 
+import { isSurveyType, surveyCsvColumns } from '@/lib/forms/survey/controls'
 import { mergeTaskFieldValuesChecked } from '@/lib/forms/task-values'
+import { sectionIncludedKeys } from '@/lib/forms/sections'
+import { formParamsMessage, hasFormContext, includedContextSchema, includedFormContext, layoutFormParams, serverFormContext, stripFormContext } from '@/lib/forms/form-params'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import {
   interpolateButtonText, isSubmittingButton, normalizeFormButtons, planButtonEffects, resolveInputTemplate, safeRedirectUrl,
-  type ButtonEffects, type FormButton,
+  type ButtonEffects, type FormAction, type FormButton,
 } from '@/lib/forms/buttons'
+import { afterSubmitActions } from '@/lib/forms/form-rules'
+import { applySubmittedPage } from '@/lib/forms/submitted-page'
 import { buildFormSubmittedPayload, readFormSubmittedConfig, triggerMatchesButton, FORM_SUBMITTED_TRIGGER } from '@/lib/forms/submitted-trigger'
-import { lookupItemKey } from '@/lib/forms/lookup'
+import { lookupItemKey, lookupLabelKey } from '@/lib/forms/lookup'
 import { attachmentNames, attachmentsCountKey } from '@/lib/forms/attachments'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
-import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
+import { hasPerm, isAnonymous, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { applyPage, audit, dbError, serviceRoleClient, type Page } from './_shared'
 import { redirectPolicy, resolveThemeOverrides } from './forms'
 import { withQueuedInitiator } from '@/lib/workflow-initiator'
+import type { TableChangesSummary } from '@/lib/forms/table-changes'
+import { buildSubmissionMeta, submissionMetaFromRow, submissionReference, urlParamsOf, type SubmissionMeta, type SubmissionSurface } from '@/lib/forms/submission-meta'
+import { customOutputSiblingKeys } from '@/lib/forms/custom-controls/output'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tables are not in the generated Database types */
 
@@ -51,6 +59,10 @@ export interface SubmitFormInput {
   button_id?: string | null
   /** Same key → the same submission (double-click / retries). */
   idempotency_key?: string | null
+  /** The form's parameters by name ({{param.<name>}}; else `values.__form_params`): re-validated, required ones enforced. */
+  params?: Record<string, unknown> | null
+  /** The form's variables by name ({{var.<name>}}; else `values.__form_vars`): declared names only, typed, bounded. */
+  variables?: Record<string, unknown> | null
 }
 
 export interface StartedRun {
@@ -62,9 +74,11 @@ export interface StartedRun {
 }
 
 export interface SubmitFormResult {
-  submission: { id: string; created_at: string; form_id: string; form_version: number | null; button_id: string | null; outcome: string | null }
+  submission: { id: string; created_at: string; form_id: string; form_version: number | null; button_id: string | null; outcome: string | null; reference?: string | null }
   effects: ButtonEffects
   runs: StartedRun[]
+  /** "For each changed row" rules that ran: per-row results and the summary text. */
+  table_changes?: TableChangesSummary[]
   /** True when the idempotency key matched an earlier submission. */
   replayed?: boolean
 }
@@ -118,15 +132,57 @@ function systemContext(ctx: ServiceContext, db: AnySupabaseClient): ServiceConte
 export async function runButtonActions(
   ctx: ServiceContext,
   db: AnySupabaseClient,
-  input: { button: FormButton; values: Record<string, unknown>; form: { id: string; name: string }; submissionId: string | null; taskId?: string | null },
-): Promise<{ runs: StartedRun[]; effects: ButtonEffects }> {
+  input: {
+    button: FormButton; values: Record<string, unknown>; form: { id: string; name: string }; submissionId: string | null; taskId?: string | null; fields?: TaskFieldDef[]; layout?: unknown
+    /** The submission's parameters / variables (reserved entries) for {{param.x}} / {{var.x}} in what is shown. */
+    context?: Record<string, unknown>
+    /** The submission metadata the started workflows get as {{submission.*}} (server-built; a task form's is built here). */
+    submission?: SubmissionMeta
+  },
+): Promise<{ runs: StartedRun[]; effects: ButtonEffects; table_changes: TableChangesSummary[] }> {
+  // Form rules on "After submit" (this button or any) add their actions after the button's own (lib/forms/form-rules.ts).
+  input = { ...input, button: withAfterSubmitRules(input.button, input.layout, input.values) }
+  // Anonymous submissions: server steps run only when the author ticked "Allow for anonymous".
+  if (isAnonymous(ctx)) input = { ...input, button: { ...input.button, actions: (input.button.actions ?? []).filter((a) => (a.type !== 'start_workflow' && a.type !== 'apply_table_changes') || a.allow_anonymous === true) } }
   const runs: StartedRun[] = []
-  const starts = (input.button.actions ?? []).filter((a) => a.type === 'start_workflow' && a.workflow_id)
+  const tableChanges: TableChangesSummary[] = []
+  const actions = input.button.actions ?? []
+  // "For each changed row" rules run first, in order, so their summary can
+  // feed the workflows started after them ({{table_changes_summary}}).
+  for (const [index, action] of actions.entries()) {
+    if (action.type !== 'apply_table_changes' || !action.table_changes) continue
+    const { runTableChanges } = await import('./form-table-changes')
+    const owner = input.submissionId ? `submit:${input.submissionId}` : input.taskId ? `task:${input.taskId}:${input.button.id}` : null
+    if (!owner) continue
+    try {
+      const { anonymousStepContext } = await import('./form-rule-actions')
+      tableChanges.push(await runTableChanges(anonymousStepContext(ctx), {
+        config: action.table_changes,
+        fields: input.fields ?? [],
+        values: input.values,
+        idempotencyKey: `${owner}:${index}`,
+        origin: 'submit',
+        form: { id: input.form.id, name: input.form.name },
+        taskId: input.taskId ?? null,
+        submissionId: input.submissionId,
+      }))
+    } catch (error) {
+      const message = error instanceof ServiceError ? error.message : 'The table changes could not be applied'
+      tableChanges.push({ field: action.table_changes.field, target: action.table_changes.target, total: 0, succeeded: 0, failed: 1, skipped: 0, by_kind: { added: 0, updated: 0, deleted: 0 }, results: [], text: message, stopped: true })
+    }
+  }
+  const tableSummary = tableChanges.map((t) => t.text).join('; ')
+  const starts = actions.filter((a) => a.type === 'start_workflow' && a.workflow_id)
   if (starts.length) {
     const { startWorkflow } = await import('./workflow-start')
     const sys = systemContext(ctx, db)
+    const meta = input.submission ?? buildSubmissionMeta({
+      id: input.submissionId, submitted_at: new Date().toISOString(), submitter: await submitter(db, ctx.actorId),
+      form: { id: input.form.id, name: input.form.name, version: null }, source: input.taskId ? 'task' : isAnonymous(ctx) ? 'anonymous' : 'page',
+      button_id: input.button.id, outcome: input.button.kind === 'outcome' ? (input.button.outcome ?? input.button.label) : null, task_id: input.taskId ?? null,
+    })
     for (const action of starts) {
-      const scope = { values: input.values, extras: { submission_id: input.submissionId, task_id: input.taskId ?? null } }
+      const scope = { values: input.values, extras: { submission_id: input.submissionId, task_id: input.taskId ?? null, table_changes: tableChanges, table_changes_summary: tableSummary } }
       const variables: Record<string, unknown> = {}
       for (const [name, template] of Object.entries(action.inputs ?? {})) variables[name] = resolveInputTemplate(template, scope)
       try {
@@ -134,7 +190,7 @@ export async function runButtonActions(
           workflow_id: action.workflow_id!,
           variables: { ...variables, form_submission_id: input.submissionId, form_id: input.form.id },
           async: true,
-        }, { via: 'form', filesVerified: true })
+        }, { via: isAnonymous(ctx) ? 'anonymous' : 'form', filesVerified: true, submission: meta })
         runs.push({ workflow_id: action.workflow_id!, workflow_name: action.workflow_name ?? null, job_id: result.mode === 'async' ? result.job_id : undefined, status: 'queued' })
         void audit(ctx, {
           objectType: 'form', objectId: input.form.id, action: 'execute',
@@ -153,13 +209,29 @@ export async function runButtonActions(
     }
   }
   const queued = runs.filter((r) => r.job_id).map((r) => r.job_id!.slice(0, 8))
-  const effects = planButtonEffects(input.button, {
-    values: input.values,
-    extras: { run_reference: queued.join(', '), submission_id: input.submissionId ? input.submissionId.slice(0, 8) : '' },
-  }, redirectPolicy())
+  const shownScope = {
+    values: { ...input.values, ...(input.context ?? {}) },
+    extras: { run_reference: queued.join(', '), submission_id: input.submissionId ? input.submissionId.slice(0, 8) : '', table_changes_summary: tableSummary },
+  }
+  // The form's Submitted page when no redirect / close / button screen decides (never for task forms).
+  const effects = applySubmittedPage(planButtonEffects(input.button, shownScope, redirectPolicy()), {
+    layout: input.layout, fields: input.fields, scope: shownScope, surface: input.taskId ? 'task' : 'page',
+  })
+  // The rules' summaries ("3 rows updated, 1 failed"), unless the author turned them off.
+  const rules = actions.filter((a) => a.type === 'apply_table_changes' && a.table_changes)
+  rules.forEach((a, i) => {
+    const summary = tableChanges[i]
+    if (summary && a.table_changes?.show_summary !== false && (summary.total || summary.failed)) effects.messages.unshift({ text: summary.text, tone: summary.failed ? 'info' : 'success' })
+  })
   const failed = runs.filter((r) => r.status === 'failed')
   if (failed.length) effects.messages.push({ text: `${failed.length === 1 ? 'A follow-up workflow' : `${failed.length} follow-up workflows`} could not be started: ${failed.map((r) => r.error).join('; ')}`, tone: 'info' })
-  return { runs, effects }
+  return { runs, effects, table_changes: tableChanges }
+}
+
+/** The button with the After-submit rules' actions appended (conditions judged on the stored values). */
+export function withAfterSubmitRules(button: FormButton, layout: unknown, values: Record<string, unknown>): FormButton {
+  const extra = afterSubmitActions(layout, button.id, values) as unknown as FormAction[]
+  return extra.length ? { ...button, actions: [...(button.actions ?? []), ...extra] } : button
 }
 
 /* ── The "Form submitted" trigger ────────────────────────────────────── */
@@ -169,7 +241,7 @@ export async function runButtonActions(
  * (and, when it filters, this button / outcome). Published versions' nodes
  * decide; the run starts on that version. Never throws.
  */
-export async function enqueueFormSubmittedWorkflows(db: AnySupabaseClient, tenantId: string, payload: Record<string, unknown>): Promise<number> {
+export async function enqueueFormSubmittedWorkflows(db: AnySupabaseClient, tenantId: string, payload: Record<string, unknown>, via: 'form' | 'anonymous' = 'form'): Promise<number> {
   try {
     const { data: workflows } = await (db as any).from('workflows')
       .select('id, nodes, published_version_id').eq('tenant_id', tenantId).eq('is_active', true).eq('trigger_type', FORM_SUBMITTED_TRIGGER)
@@ -194,7 +266,7 @@ export async function enqueueFormSubmittedWorkflows(db: AnySupabaseClient, tenan
       jobs.push({
         workflow_id: wf.id,
         trigger_type: FORM_SUBMITTED_TRIGGER,
-        trigger_data: withQueuedInitiator(triggerData, { tenantId, workflowId: wf.id }, { userId: typeof payload.submitted_by === 'string' ? payload.submitted_by : null, via: 'form' }),
+        trigger_data: withQueuedInitiator(triggerData, { tenantId, workflowId: wf.id }, { userId: via === 'anonymous' ? null : typeof payload.submitted_by === 'string' ? payload.submitted_by : null, via }),
       })
     }
     if (!jobs.length) return 0
@@ -213,19 +285,26 @@ export async function enqueueFormSubmittedWorkflows(db: AnySupabaseClient, tenan
   }
 }
 
-async function submitter(db: AnySupabaseClient, userId: string | null): Promise<{ id: string | null; name: string | null; email: string | null }> {
-  if (!userId) return { id: null, name: null, email: null }
+async function submitter(db: AnySupabaseClient, userId: string | null, tenantId?: string): Promise<{ id: string | null; name: string | null; email: string | null; manager_id?: string | null }> {
+  if (!userId) return { id: null, name: null, email: null, manager_id: null }
   const { data } = await (db as any).from('users').select('id, display_name, email').eq('id', userId).maybeSingle()
-  return { id: userId, name: data?.display_name ?? null, email: data?.email ?? null }
+  // The submitter's manager (reporting lines) → {{submitted_by_manager_id}} ("The person's manager approves").
+  const { managerOf } = await import('./form-wizard-policy')
+  const manager = tenantId ? await managerOf(db, tenantId, userId).catch(() => null) : null
+  return { id: userId, name: data?.display_name ?? null, email: data?.email ?? null, manager_id: manager }
 }
 
-/** Values stored for a submission: the form's value fields (and lookups' items, attachments' counts), nothing else. */
-function storedValues(fields: TaskFieldDef[], values: Record<string, unknown>): Record<string, unknown> {
+/** Values stored for a submission: the form's value fields (and lookups' items, attachments' counts, optional sections' `<key>_included`), nothing else. */
+export function storedValues(fields: TaskFieldDef[], values: Record<string, unknown>, layout: unknown = null): Record<string, unknown> {
   const out: Record<string, unknown> = {}
+  for (const key of sectionIncludedKeys(layout)) if (Object.prototype.hasOwnProperty.call(values, key)) out[key] = values[key]
   for (const field of valueFields(fields)) {
     if (Object.prototype.hasOwnProperty.call(values, field.key)) out[field.key] = values[field.key]
     if (field.type === 'lookup' && Object.prototype.hasOwnProperty.call(values, lookupItemKey(field.key))) out[lookupItemKey(field.key)] = values[lookupItemKey(field.key)]
+    if (field.type === 'lookup' && !Object.prototype.hasOwnProperty.call(out, lookupLabelKey(field.key)) && Object.prototype.hasOwnProperty.call(values, lookupLabelKey(field.key))) out[lookupLabelKey(field.key)] = values[lookupLabelKey(field.key)]
     if (field.type === 'attachments' && Object.prototype.hasOwnProperty.call(values, attachmentsCountKey(field.key))) out[attachmentsCountKey(field.key)] = values[attachmentsCountKey(field.key)]
+    // Custom control outputs: the whole value and the extras beside the main output.
+    for (const key of customOutputSiblingKeys(field)) if (Object.prototype.hasOwnProperty.call(values, key)) out[key] = values[key]
   }
   return out
 }
@@ -233,7 +312,7 @@ function storedValues(fields: TaskFieldDef[], values: Record<string, unknown>): 
 /* ── Submitting ──────────────────────────────────────────────────────── */
 
 function presentSubmission(row: Record<string, any>): SubmitFormResult['submission'] {
-  return { id: row.id, created_at: row.created_at, form_id: row.form_id, form_version: row.form_version ?? null, button_id: row.button_id ?? null, outcome: row.outcome ?? null }
+  return { id: row.id, created_at: row.created_at, form_id: row.form_id, form_version: row.form_version ?? null, button_id: row.button_id ?? null, outcome: row.outcome ?? null, reference: submissionReference(row.id) }
 }
 
 /** The form, its definition and the pressed (submitting) button: forms.submit. */
@@ -249,16 +328,50 @@ async function loadSubmission(ctx: ServiceContext, formId: string, input: { butt
   return { db, row, def, button }
 }
 
+/**
+ * The submission's parameters and variables (lib/forms/form-params.ts), re-validated against the
+ * saved declarations: a missing required parameter or a refused value stops the submission.
+ * Returns the reserved entries the checks resolve {{param.x}} / {{var.x}} with, and what the
+ * author marked "Include in submission".
+ */
+function submissionContext(layout: unknown, fields: TaskFieldDef[], input: Pick<SubmitFormInput, 'values' | 'params' | 'variables'>) {
+  if (!hasFormContext(layout)) return { entries: {}, included: {} }
+  const context = serverFormContext(layout, { values: input.values, params: input.params, variables: input.variables })
+  const params = layoutFormParams(layout)
+  const message = formParamsMessage(params, context)
+  if (message) throw ServiceError.validation(message, { fields: Object.fromEntries([...context.missing.map((n) => [n, 'Required parameter']), ...Object.entries(context.errors)]) })
+  return { entries: context.entries, included: includedFormContext(layout, context, fields.map((f) => f.key)) }
+}
+
+/** The parameters / variables as reserved entries ({{param.x}} / {{var.x}} in the texts the person sees after submitting). */
+function shownContext(layout: unknown, input: Pick<SubmitFormInput, 'values' | 'params' | 'variables'>): Record<string, unknown> {
+  if (!hasFormContext(layout)) return {}
+  return serverFormContext(layout, { values: input.values, params: input.params, variables: input.variables }).entries
+}
+
+/** The form's URL query parameters as the server parses them (declared `source: url` ones only). */
+function requestUrlParams(layout: unknown, input: Pick<SubmitFormInput, 'values' | 'params' | 'variables'>): Record<string, unknown> {
+  if (!hasFormContext(layout)) return {}
+  return urlParamsOf(layout, serverFormContext(layout, { values: input.values, params: input.params, variables: input.variables }).params)
+}
+
 /** Validate like a task: types, required, rules, people, lookups and attachments (scoped to this form + submitter). */
-async function checkSubmissionValues(ctx: ServiceContext, db: AnySupabaseClient, formId: string, fields: TaskFieldDef[], raw: unknown): Promise<Record<string, unknown>> {
-  const { formLookupScope } = await import('./form-lookup')
-  const scope = formLookupScope(formId, ctx.actorId)
-  const { errors, templateValues } = await mergeTaskFieldValuesChecked(db, ctx.tenantId, { fields, template_values: {} }, isPlainObject(raw) ? raw : {}, {
+async function checkSubmissionValues(ctx: ServiceContext, db: AnySupabaseClient, formId: string, fields: TaskFieldDef[], raw: unknown, layout: unknown = null, input: Pick<SubmitFormInput, 'params' | 'variables'> = {}, buttonId: string | null = null): Promise<Record<string, unknown>> {
+  const { formLookupScope, lookupSubject } = await import('./form-lookup')
+  const scope = formLookupScope(formId, lookupSubject(ctx))
+  // Anonymous: values of sources / pickers the visitor can't use are dropped before any check (no existence oracle).
+  const sent = isAnonymous(ctx) ? (await import('./anonymous-forms')).anonymousSubmittableValues(fields, isPlainObject(raw) ? raw : {}, ctx.anonymous.uploads.enabled) : isPlainObject(raw) ? raw : {}
+  const context = submissionContext(layout, fields, { values: sent, ...input })
+  // The layout: fields on a hidden step / tab are not required (every visible field is still checked).
+  const { errors, templateValues } = await mergeTaskFieldValuesChecked(db, ctx.tenantId, { fields, template_values: {}, form_layout: layout }, { ...stripFormContext(sent), ...context.entries }, {
     taskId: scope,
-    files: { kind: 'form', formId, actorId: ctx.actorId },
+    files: { kind: 'form', formId, actorId: ctx.actorId, uploadSession: ctx.anonymous?.uploadSession ?? null },
+    ctx,
+    contextFromValues: true,
+    buttonIds: buttonId ? [buttonId] : null,
   })
   if (Object.keys(errors).length) throw ServiceError.validation(`Invalid field values: ${Object.values(errors).join('; ')}`, { fields: errors })
-  return storedValues(fields, templateValues)
+  return { ...storedValues(fields, templateValues, layout), ...context.included }
 }
 
 /**
@@ -266,7 +379,18 @@ async function checkSubmissionValues(ctx: ServiceContext, db: AnySupabaseClient,
  * values validated on the server, one form_submissions row, the button's
  * workflows started for the submitter, the "Form submitted" trigger fired.
  */
-export async function submitForm(ctx: ServiceContext, formId: string, input: SubmitFormInput, options: { source?: 'standalone' | 'api' } = {}): Promise<SubmitFormResult> {
+export async function submitForm(ctx: ServiceContext, formId: string, input: SubmitFormInput, options: {
+  source?: 'standalone' | 'api' | 'anonymous'
+  /** The Run dialog's submissions are stored as standalone; this marks them (`result.surface`, `submission.source`). Set by the server action, never the request. */
+  surface?: 'run_dialog'
+  /** Anonymous submissions: { ip_hash, user_agent } for abuse review (lib/services/anonymous-forms.ts). */
+  anonymousMeta?: Record<string, unknown>
+} = {}): Promise<SubmitFormResult> {
+  // An anonymous context submits its own link's form, as 'anonymous', and nothing else does.
+  const anonymous = isAnonymous(ctx)
+  if (anonymous && ctx.anonymous!.formId !== formId) throw ServiceError.notFound('Form not found')
+  if ((options.source === 'anonymous') !== anonymous) throw ServiceError.forbidden('Forbidden: anonymous submissions come from a public form link')
+  if (anonymous && options.surface) throw ServiceError.forbidden('Forbidden: anonymous submissions come from a public form link')
   const { db, row, def, button } = await loadSubmission(ctx, formId, input)
   const key = typeof input.idempotency_key === 'string' && input.idempotency_key.trim() ? input.idempotency_key.trim().slice(0, 100) : null
   if (key && key.length < 8) throw ServiceError.validation('idempotency_key must be 8-100 characters')
@@ -276,7 +400,10 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     if (replay) return replay
   }
 
-  const values = await checkSubmissionValues(ctx, db, formId, def.fields, input.values)
+  const values = await checkSubmissionValues(ctx, db, formId, def.fields, input.values, def.layout, input, button.id)
+  // Wizard forms: the response window and "one response per person" (lib/services/form-wizard-policy).
+  const { assertWizardResponsePolicy } = await import('./form-wizard-policy')
+  await assertWizardResponsePolicy(db, ctx.tenantId, formId, anonymous ? null : ctx.actorId)
 
   const { data: inserted, error } = await (db as any).from('form_submissions').insert({
     tenant_id: ctx.tenantId,
@@ -286,9 +413,10 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     source: options.source ?? 'standalone',
     button_id: button.id,
     outcome: button.kind === 'outcome' ? (button.outcome ?? button.label) : null,
-    submitted_by: ctx.actorId,
+    submitted_by: anonymous ? null : ctx.actorId,
     values,
     idempotency_key: key,
+    ...(anonymous ? { anonymous_meta: options.anonymousMeta ?? {} } : {}),
   }).select(SUBMISSION_COLUMNS).single()
   if (error?.code === '23505' && key) {
     const replay = await findReplay(db, ctx, key, formId)
@@ -298,19 +426,26 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
   // The uploads are the submission's now (no longer pending).
   const { attachmentIdsIn, bindFormFiles } = await import('./form-files')
   await bindFormFiles(db, ctx.tenantId, attachmentIdsIn(def.fields, values), { submissionId: inserted.id })
+  // Sent: the submitter's saved draft of this form goes (lib/services/form-drafts.ts).
+  const { clearDraftAfterSubmit } = await import('./form-drafts')
+  await clearDraftAfterSubmit(db, ctx.tenantId, ctx.actorId, formId)
 
-  const { runs, effects } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id })
-  const who = await submitter(db, ctx.actorId)
+  const who = await submitter(db, ctx.actorId, ctx.tenantId)
+  const surface: SubmissionSurface = options.surface ?? (inserted.source === 'api' ? 'api' : inserted.source === 'anonymous' ? 'anonymous' : 'page')
   const payload = buildFormSubmittedPayload({
     form: { id: formId, name: row.name, version: row.version ?? null },
     fields: def.fields,
     values,
     submission: { id: inserted.id, created_at: inserted.created_at, source: inserted.source, button_id: inserted.button_id, outcome: inserted.outcome },
     submitter: who,
+    surface,
+    url_params: requestUrlParams(def.layout, input),
+    layout: def.layout,
   })
-  const triggered = await enqueueFormSubmittedWorkflows(db, ctx.tenantId, payload)
-  await (db as any).from('form_submissions').update({ result: { runs, effects, triggered } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
-  return { submission: presentSubmission(inserted), effects, runs }
+  const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta })
+  const triggered = await enqueueFormSubmittedWorkflows(db, ctx.tenantId, payload, anonymous ? 'anonymous' : 'form')
+  await (db as any).from('form_submissions').update({ result: { runs, effects, triggered, ...(options.surface ? { surface: options.surface } : {}), ...(table_changes.length ? { table_changes } : {}) } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
+  return { submission: presentSubmission(inserted), effects, runs, ...(table_changes.length ? { table_changes } : {}) }
 }
 
 /** A log line of a test submission (what the real one would have done). */
@@ -326,12 +461,12 @@ export interface TestSubmissionLog { level: 'info' | 'warn'; message: string; me
  * `trigger` is the tested workflow's trigger config: a button it does not
  * listen to is refused (a real submission would not start the workflow).
  */
-export async function planTestSubmission(ctx: ServiceContext, formId: string, input: { values?: Record<string, unknown> | null; button_id?: string | null }, trigger: { button_ids?: string[] } = {}): Promise<{ payload: Record<string, unknown>; logs: TestSubmissionLog[]; effects: ButtonEffects }> {
+export async function planTestSubmission(ctx: ServiceContext, formId: string, input: { values?: Record<string, unknown> | null; button_id?: string | null; params?: Record<string, unknown> | null; variables?: Record<string, unknown> | null }, trigger: { button_ids?: string[] } = {}): Promise<{ payload: Record<string, unknown>; logs: TestSubmissionLog[]; effects: ButtonEffects }> {
   const { db, row, def, button } = await loadSubmission(ctx, formId, input)
   if (!triggerMatchesButton(trigger, { button_id: button.id, outcome: button.kind === 'outcome' ? (button.outcome ?? button.label) : null })) {
     throw ServiceError.validation(`A real "${button.label}" submission would not start this workflow: its trigger only listens to ${trigger.button_ids!.map((b) => `"${b}"`).join(', ')}`)
   }
-  const values = await checkSubmissionValues(ctx, db, formId, def.fields, input.values)
+  const values = await checkSubmissionValues(ctx, db, formId, def.fields, input.values, def.layout, input, button.id)
   const who = await submitter(db, ctx.actorId)
   const submissionId = `test-${crypto.randomUUID()}`
   const payload = buildFormSubmittedPayload({
@@ -340,6 +475,8 @@ export async function planTestSubmission(ctx: ServiceContext, formId: string, in
     values,
     submission: { id: submissionId, created_at: new Date().toISOString(), source: 'test', button_id: button.id, outcome: button.kind === 'outcome' ? (button.outcome ?? button.label) : null },
     submitter: who,
+    url_params: requestUrlParams(def.layout, input),
+    layout: def.layout,
   })
   const scope = { values, extras: { run_reference: '(test run)', submission_id: 'test' } }
   const logs: TestSubmissionLog[] = [{
@@ -348,7 +485,7 @@ export async function planTestSubmission(ctx: ServiceContext, formId: string, in
     metadata: { form: payload.form, form_button: payload.form_button, form_version: payload.form_version },
   }]
   const policy = redirectPolicy()
-  for (const action of button.actions ?? []) {
+  for (const action of withAfterSubmitRules(button, def.layout, values).actions ?? []) {
     if (action.type === 'start_workflow') {
       const inputs: Record<string, unknown> = {}
       for (const [name, template] of Object.entries(action.inputs ?? {})) inputs[name] = resolveInputTemplate(template, scope)
@@ -363,22 +500,30 @@ export async function planTestSubmission(ctx: ServiceContext, formId: string, in
       logs.push(url ? { level: 'info', message: `Would redirect to ${url}` } : { level: 'warn', message: `Would not redirect: "${action.url ?? ''}" is not an allowed address` })
     } else if (action.type === 'close') {
       logs.push({ level: 'info', message: 'Would close the form' })
+    } else if (action.type === 'apply_table_changes' && action.table_changes) {
+      const { previewTableChanges } = await import('./form-table-changes')
+      const { describePlannedOp } = await import('@/lib/forms/table-changes')
+      const { plan, summary } = previewTableChanges(action.table_changes, def.fields, values)
+      logs.push({ level: 'info', message: `Would apply table changes (not applied in a test): ${summary.text}`, metadata: { field: action.table_changes.field, target: action.table_changes.target, ops: plan.ops.slice(0, 20).map((op) => describePlannedOp(op, action.table_changes!)) } })
     }
   }
-  if (!(button.actions ?? []).length) logs.push({ level: 'info', message: 'Would stay on the form, cleared, with "Submitted."' })
-  const effects = planButtonEffects(button, scope, policy)
+  const shownScope = { ...scope, values: { ...values, ...shownContext(def.layout, input) } }
+  const effects = applySubmittedPage(planButtonEffects(withAfterSubmitRules(button, def.layout, values), shownScope, policy), { layout: def.layout, fields: def.fields, scope: shownScope })
+  if (effects.success_screen?.source === 'form') logs.push({ level: 'info', message: `Would show the Submitted page "${effects.success_screen.title}"` })
+  else if (!(button.actions ?? []).length) logs.push({ level: 'info', message: 'Would stay on the form, cleared, with "Submitted."' })
   return { payload, logs, effects }
 }
 
 async function findReplay(db: AnySupabaseClient, ctx: ServiceContext, key: string, formId: string): Promise<SubmitFormResult | null> {
   const { data } = await (db as any).from('form_submissions').select(SUBMISSION_COLUMNS).eq('tenant_id', ctx.tenantId).eq('idempotency_key', key).maybeSingle()
   if (!data) return null
-  if (data.form_id !== formId || (data.submitted_by ?? null) !== (ctx.actorId ?? null)) throw ServiceError.conflict('That idempotency key was used for another submission')
+  if (data.form_id !== formId || (data.submitted_by ?? null) !== (ctx.actorId ?? null) || (data.source === 'anonymous') !== isAnonymous(ctx)) throw ServiceError.conflict('That idempotency key was used for another submission')
   const result = isPlainObject(data.result) ? data.result : {}
   return {
     submission: presentSubmission(data),
     effects: (isPlainObject(result.effects) ? result.effects : { messages: [] }) as ButtonEffects,
     runs: Array.isArray(result.runs) ? result.runs as StartedRun[] : [],
+    ...(Array.isArray(result.table_changes) ? { table_changes: result.table_changes as TableChangesSummary[] } : {}),
     replayed: true,
   }
 }
@@ -402,7 +547,9 @@ export async function recordTaskFormSubmission(db: AnySupabaseClient, input: {
     const formId = typeof ref?.form_id === 'string' ? ref.form_id : null
     if (!formId) return null
     const fields = normalizeFormDefinition({ fields: meta.fields }).fields
-    const values = storedValues(fields, input.values)
+    // Parameters / variables marked "Include in submission" were stored beside the fields (lib/services/tasks).
+    const included = Object.fromEntries(includedContextSchema(meta.form_layout, fields.map((f) => f.key)).filter((c) => Object.prototype.hasOwnProperty.call(input.values, c.key)).map((c) => [c.key, input.values[c.key]]))
+    const values = { ...storedValues(fields, input.values, meta.form_layout), ...included }
     const { data: inserted, error } = await (db as any).from('form_submissions').insert({
       tenant_id: input.tenantId,
       form_id: formId,
@@ -429,6 +576,7 @@ export async function recordTaskFormSubmission(db: AnySupabaseClient, input: {
       values,
       submission: { id: inserted.id, created_at: inserted.created_at, source: 'task', task_id: input.task.id, button_id: inserted.button_id, outcome: inserted.outcome },
       submitter: who,
+      layout: meta.form_layout,
     })
     await enqueueFormSubmittedWorkflows(db, input.tenantId, payload)
     return { submission_id: inserted.id }
@@ -444,7 +592,7 @@ export interface SubmissionFilters {
   form_id?: string
   submitted_by?: string
   button_id?: string
-  source?: 'standalone' | 'task' | 'api'
+  source?: 'standalone' | 'task' | 'api' | 'anonymous'
   since?: string
   until?: string
 }
@@ -478,8 +626,8 @@ export async function listFormSubmissions(ctx: ServiceContext, filters: Submissi
   const { data, count, error } = await applyPage(scopedQuery(ctx, db, SUBMISSION_COLUMNS, filters), page)
   if (error) throw dbError(error)
   const rows = (data ?? []) as any[]
-  const names = await userNames(db, rows.map((r) => r.submitted_by))
-  const submissions = rows.map((r) => ({ ...r, submitted_by_name: names.get(r.submitted_by) ?? null }))
+  const people = await userProfiles(db, rows.map((r) => r.submitted_by))
+  const submissions = rows.map((r) => presentStored(r, people))
   return { submissions, total: (count ?? submissions.length) as number }
 }
 
@@ -489,16 +637,24 @@ export async function getFormSubmission(ctx: ServiceContext, submissionId: strin
   const { data, error } = await scopedQuery(ctx, db, SUBMISSION_COLUMNS, {}, false).eq('id', submissionId).maybeSingle()
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Submission not found')
-  const names = await userNames(db, [data.submitted_by])
-  return { ...data, submitted_by_name: names.get(data.submitted_by) ?? null }
+  return presentStored(data, await userProfiles(db, [data.submitted_by]))
 }
 
-async function userNames(db: AnySupabaseClient, ids: Array<string | null>): Promise<Map<string, string>> {
+/** A stored row as the views / API return it: the columns, the submitter's name and the submission metadata (`submission`). */
+function presentStored(row: Record<string, any>, people: Map<string, { name: string | null; email: string | null }>) {
+  const who = row.submitted_by ? people.get(row.submitted_by) ?? null : null
+  const submission = submissionMetaFromRow(row, who)
+  // Anonymous (public form link): "Anonymous" from the stored source (lib/forms/submission-meta.ts).
+  if (row.source === 'anonymous') return { ...row, submitted_by_name: submission.submitted_by.name, submission }
+  return { ...row, submitted_by_name: who ? (who.name || who.email || row.submitted_by) : null, submission }
+}
+
+async function userProfiles(db: AnySupabaseClient, ids: Array<string | null>): Promise<Map<string, { name: string | null; email: string | null }>> {
   const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))]
-  const out = new Map<string, string>()
+  const out = new Map<string, { name: string | null; email: string | null }>()
   if (!unique.length) return out
   const { data } = await (db as any).from('users').select('id, display_name, email').in('id', unique)
-  for (const u of (data ?? []) as any[]) out.set(u.id, u.display_name || u.email || u.id)
+  for (const u of (data ?? []) as any[]) out.set(u.id, { name: u.display_name ?? null, email: u.email ?? null })
   return out
 }
 
@@ -524,12 +680,16 @@ export async function formSubmissionsCsv(ctx: ServiceContext, filters: Submissio
     rows.push(...(data ?? []))
     if ((data ?? []).length < 1000) break
   }
-  const names = await userNames(db, rows.map((r) => r.submitted_by))
-  const header = ['submission_id', 'submitted_at', 'submitted_by', 'source', 'button', 'outcome', 'task_id', ...fields.map((f) => f.key)]
+  const people = await userProfiles(db, rows.map((r) => r.submitted_by))
+  // The submission metadata first (as {{submission.*}}), then one column per field.
+  // One column per field; survey controls by surveyCsvColumns (a matrix: one per statement, a ranking "A > B > C").
+  const cells = fields.flatMap((f) => (isSurveyType(f.type) ? surveyCsvColumns(f) : [{ header: f.key, cell: (values: Record<string, unknown>) => (f.type === 'attachments' ? attachmentNames(values[f.key]) : values[f.key]) }]))
+  const header = ['submission_id', 'reference', 'submitted_at', 'submitted_by', 'submitted_by_email', 'submitted_by_id', 'form_version', 'source', 'submission_source', 'button', 'outcome', 'task_id', ...cells.map((c) => c.header)]
   const lines = [header.map(csvCell).join(',')]
   for (const r of rows) {
     const values = isPlainObject(r.values) ? r.values : {}
-    lines.push([r.id, r.created_at, names.get(r.submitted_by) ?? r.submitted_by ?? '', r.source, r.button_id ?? '', r.outcome ?? '', r.task_id ?? '', ...fields.map((f) => (f.type === 'attachments' ? attachmentNames(values[f.key]) : values[f.key]))].map(csvCell).join(','))
+    const m = submissionMetaFromRow(r, r.submitted_by ? people.get(r.submitted_by) : null)
+    lines.push([r.id, m.reference ?? '', r.created_at, m.submitted_by.name || m.submitted_by.email || r.submitted_by || '', m.submitted_by.email ?? '', r.submitted_by ?? '', r.form_version ?? '', r.source, m.source, r.button_id ?? '', r.outcome ?? '', r.task_id ?? '', ...cells.map((c) => c.cell(values))].map(csvCell).join(','))
   }
   const slug = String(form.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'form'
   return { csv: `${lines.join('\n')}\n`, rows: rows.length, file_name: `${slug}-submissions.csv` }

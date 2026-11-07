@@ -1,0 +1,54 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-likert",
+  "name": "Likert scale",
+  "description": "Survey matrix: rate several statements on one scale (agree / disagree, satisfaction, frequency or your own labels), with optional N/A. A matrix on wide screens, one card per statement on phones.",
+  "icon": "list-checks",
+  "version": "1.2.0",
+  "entry": "ut-likert.js",
+  "value": {
+    "type": "json",
+    "schema": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 10 }
+    }
+  },
+  "props": [
+    { "name": "statements", "bindable": true, "label": "Statements", "type": "string[]", "default": [
+      "The request was handled quickly",
+      "The staff were helpful and courteous",
+      "I would recommend us to a colleague"
+    ], "description": "One row each. The answer is stored under a key made from the statement (lowercase, other characters become _), so renaming a statement changes its key." },
+    { "name": "scale", "label": "Scale", "type": "select", "default": "agree5", "options": [
+      { "value": "agree5", "label": "Strongly disagree … Strongly agree (5)" },
+      { "value": "agree7", "label": "Strongly disagree … Strongly agree (7)" },
+      { "value": "satisfaction5", "label": "Very dissatisfied … Very satisfied (5)" },
+      { "value": "frequency5", "label": "Never … Always (5)" },
+      { "value": "custom", "label": "Custom labels" }
+    ] },
+    { "name": "scale_labels", "label": "Custom scale labels", "type": "string[]", "description": "For a custom scale: 2 to 10 labels, lowest first. The answer is the label's position (1 = first)." },
+    { "name": "show_na", "label": "Offer N/A", "type": "boolean", "default": false, "description": "Adds a Not applicable column, stored as 0." },
+    { "name": "all_required", "label": "Every statement must be answered", "type": "boolean", "default": false }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 246, "min_height": 80, "max_height": 2000, "full_width": true },
+  "capabilities": [],
+  "context": [],
+  "display": { "format": "json" },
+  "output": { "type": "object", "description": "One number per statement (0 = N/A), keyed by the statement" },
+  "accessibility": {
+    "role": "radiogroup",
+    "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/likert",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

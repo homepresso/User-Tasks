@@ -91,36 +91,38 @@ describe('executeAgent structured outputs', () => {
   })
 })
 
-describe('executeAgent internal tool auth', () => {
-  it('sends the processor secret + tenant/agent context when calling internal tool routes', async () => {
-    process.env.WORKFLOW_PROCESSOR_SECRET = 'test-secret'
-    const calls: { url: string; init: any }[] = []
-    const fetchMock = vi.fn(async (url: any, init: any) => {
-      calls.push({ url: String(url), init })
-      // First LLM call → ask for a tool; second → finish.
-      if (String(url).includes('/chat/completions')) {
-        if (calls.filter(c => c.url.includes('/chat/completions')).length === 1) {
-          return chatResponse({ toolCalls: [{ id: 't1', type: 'function', function: { name: 'query_data_table', arguments: '{"table_name":"x"}' } }] }) as any
-        }
-        return chatResponse({ content: 'finished' }) as any
-      }
-      // Internal tool route
-      return { ok: true, json: async () => ({ rows: [] }) } as any
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    await executeAgent(
+describe('executeAgent tool runtime', () => {
+  it('runs tools in-process with the run\'s runtime (no internal HTTP route, no processor secret)', async () => {
+    const calls: string[] = []
+    let llm = 0
+    vi.stubGlobal('fetch', vi.fn(async (url: any) => {
+      calls.push(String(url))
+      llm++
+      return llm === 1
+        ? chatResponse({ toolCalls: [{ id: 't1', type: 'function', function: { name: 'query_data_table', arguments: '{"table_name":"Orders"}' } }] }) as any
+        : chatResponse({ content: 'finished' }) as any
+    }))
+    const { normalizeAgentOutputConfig } = await import('@/lib/agent-knowledge')
+    const rows = [{ id: 'r1', data: { status: 'open' } }]
+    const query: any = {
+      select: () => query, eq: () => query, limit: () => query, filter: () => query, in: () => query,
+      maybeSingle: async () => ({ data: { id: 'tbl-1', name: 'Orders' } }),
+      then: (resolve: any) => resolve({ data: rows, error: null }),
+    }
+    const db: any = { from: vi.fn(() => query) }
+    const result = await executeAgent(
       { ...baseConfig, tools: [{ id: 'builtin_query_data', type: 'builtin', name: 'query_data_table', description: 'q' }] },
       'go',
-      { appBaseUrl: 'http://app.test', _tenantId: 'tenant-1', _agentId: 'agent-1', _actingUserId: 'user-1' },
+      {
+        toolRuntime: {
+          tenantId: 'tenant-1', agentId: 'agent-1', actingUserId: null, outputConfig: normalizeAgentOutputConfig({ data_access: { grants: [{ table_id: 'tbl-1', read: true }] } }),
+          db: () => db, permissions: async () => null, allowedHosts: [], generatedFiles: [],
+        },
+      },
     )
-
-    const toolCall = calls.find(c => c.url.includes('/api/agents/data-tool'))
-    expect(toolCall).toBeTruthy()
-    expect(toolCall!.init.headers['x-processor-secret']).toBe('test-secret')
-    const body = JSON.parse(toolCall!.init.body)
-    expect(body.tenant_id).toBe('tenant-1')
-    expect(body.agent_id).toBe('agent-1')
-    expect(body.acting_user_id).toBe('user-1')
+    expect(result.status).toBe('completed')
+    expect(calls.every((u) => u.includes('/chat/completions'))).toBe(true)
+    expect(db.from).toHaveBeenCalledWith('custom_tables')
+    expect(result.toolCalls[0]).toMatchObject({ toolName: 'query_data_table', status: 'ok', result: { table: 'Orders', count: 1 } })
   })
 })

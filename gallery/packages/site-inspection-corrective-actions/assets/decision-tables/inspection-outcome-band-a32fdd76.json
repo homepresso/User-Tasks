@@ -1,0 +1,165 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "a32fdd76-fc20-5317-a4dc-00c6e8260950",
+  "asset": {
+    "id": "a32fdd76-fc20-5317-a4dc-00c6e8260950",
+    "name": "Inspection outcome band",
+    "description": "Turns the number of failed checks, the high-severity failures, the worst severity (0 none, 1 low, 2 medium, 3 high) and the overall site condition rating into the outcome band and how many days the site has to close out every action. Change the thresholds here.",
+    "inputs": [
+      {
+        "key": "fail_count",
+        "label": "Failed checks",
+        "type": "number",
+        "id": "ad40257b-9f7e-5a15-af27-71db87e21d9f"
+      },
+      {
+        "key": "high_fails",
+        "label": "High-severity failures",
+        "type": "number",
+        "id": "2a11ea3e-cb5a-5711-b5f6-f1b347aef2b1"
+      },
+      {
+        "key": "max_severity",
+        "label": "Worst severity (0-3)",
+        "type": "number",
+        "id": "78a6edbc-16b2-5e68-8ec7-01988659b01a"
+      },
+      {
+        "key": "condition",
+        "label": "Site condition (1-5)",
+        "type": "number",
+        "id": "47c123d8-7d70-5822-ae35-f404c3fec27e"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "outcome_band",
+        "label": "Outcome",
+        "type": "string",
+        "id": "04f80406-7cef-5388-bd42-c689a062aebe"
+      },
+      {
+        "key": "sla_days",
+        "label": "Close out within (days)",
+        "type": "number",
+        "id": "6a6f655f-1fd8-53fd-8429-6584071ab3c2"
+      },
+      {
+        "key": "stop_work",
+        "label": "Stop work",
+        "type": "boolean",
+        "id": "c47a0d4d-9c94-5ad6-85b9-a780b30bf4fc"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Two or more high-severity failures",
+        "conditions": [
+          {
+            "inputKey": "high_fails",
+            "operator": "greater_than_or_equal",
+            "value": "2",
+            "id": "25fe01d8-50d4-5752-abed-bad0d7408d50"
+          }
+        ],
+        "outputs": {
+          "outcome_band": "Stop work",
+          "sla_days": 1,
+          "stop_work": true
+        },
+        "id": "a830ccb0-0b1b-50d7-8bc8-2b6186751a77",
+        "enabled": true
+      },
+      {
+        "label": "High severity on a site in poor condition",
+        "conditions": [
+          {
+            "inputKey": "max_severity",
+            "operator": "greater_than_or_equal",
+            "value": "3",
+            "id": "91577d1a-b423-528c-ae74-da50609eb222"
+          },
+          {
+            "inputKey": "condition",
+            "operator": "less_than_or_equal",
+            "value": "2",
+            "id": "b73f0f8b-6e5d-55c8-b708-7b4ff0b76387"
+          }
+        ],
+        "outputs": {
+          "outcome_band": "Stop work",
+          "sla_days": 1,
+          "stop_work": true
+        },
+        "id": "26b04501-018c-5492-a510-55280fb2c52b",
+        "enabled": true
+      },
+      {
+        "label": "Any high-severity failure",
+        "conditions": [
+          {
+            "inputKey": "max_severity",
+            "operator": "greater_than_or_equal",
+            "value": "3",
+            "id": "dfbedd8a-33e0-5018-bc0e-6e933fe77d54"
+          }
+        ],
+        "outputs": {
+          "outcome_band": "Major actions",
+          "sla_days": 3,
+          "stop_work": false
+        },
+        "id": "31898f8c-1ce4-59b1-8a77-4ab078ad6b51",
+        "enabled": true
+      },
+      {
+        "label": "Four or more failures",
+        "conditions": [
+          {
+            "inputKey": "fail_count",
+            "operator": "greater_than_or_equal",
+            "value": "4",
+            "id": "d7b6df3e-ea4d-5bd4-96bc-a9856db25dfe"
+          }
+        ],
+        "outputs": {
+          "outcome_band": "Major actions",
+          "sla_days": 7,
+          "stop_work": false
+        },
+        "id": "3f14544a-81b8-504b-8cdc-3f0af304bf8c",
+        "enabled": true
+      },
+      {
+        "label": "Some failures",
+        "conditions": [
+          {
+            "inputKey": "fail_count",
+            "operator": "greater_than_or_equal",
+            "value": "1",
+            "id": "74cd9e7a-b6f8-5c18-bb2c-89dbeab18d81"
+          }
+        ],
+        "outputs": {
+          "outcome_band": "Minor actions",
+          "sla_days": 14,
+          "stop_work": false
+        },
+        "id": "80f52812-c47b-5a53-8e2c-e088c4db36ed",
+        "enabled": true
+      },
+      {
+        "label": "Everything passed",
+        "conditions": [],
+        "outputs": {
+          "outcome_band": "Compliant",
+          "sla_days": 0,
+          "stop_work": false
+        },
+        "id": "24a13268-19e3-52eb-92a6-b0c901e650a4",
+        "enabled": true
+      }
+    ]
+  }
+}

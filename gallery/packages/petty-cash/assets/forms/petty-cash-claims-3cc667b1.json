@@ -1,0 +1,696 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "3cc667b1-535a-5bd4-87a0-dae9c8b368a3",
+  "asset": {
+    "id": "3cc667b1-535a-5bd4-87a0-dae9c8b368a3",
+    "name": "Petty cash claims",
+    "description": "Claims from the Petty cash ledger in two Data tables: My claims (base filter: the claimant is you) and This month (base filter: claimed since the start of the month), with NZD amounts, dates, status badges and receipt links, search, filters and sorting on the server. Click a claim to open its details tab.",
+    "tags": [
+      "petty cash",
+      "expenses",
+      "register"
+    ],
+    "fields": [
+      {
+        "key": "mine_intro",
+        "label": "Your claims, newest first. Click one for the details.",
+        "type": "heading"
+      },
+      {
+        "key": "my_claims",
+        "label": "My claims",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+          "mode": "display",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "claim_ref",
+              "label": "Claim",
+              "type": "text",
+              "sortable": true
+            },
+            {
+              "key": "claimed_on",
+              "label": "Claimed",
+              "type": "date",
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "claimant_name",
+              "label": "Claimant",
+              "type": "text",
+              "sortable": true,
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "cost_centre",
+              "label": "Cost centre",
+              "type": "text",
+              "filterable": true,
+              "width": 100,
+              "hidden": true
+            },
+            {
+              "key": "category",
+              "label": "Category",
+              "type": "text",
+              "filterable": true
+            },
+            {
+              "key": "amount",
+              "label": "Amount",
+              "type": "number",
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "currency",
+                "currency": "NZD",
+                "decimals": 2
+              }
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Awaiting approval",
+                "Approved",
+                "Paid",
+                "Rejected"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Awaiting approval",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Approved",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Paid",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Rejected",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "receipt_url",
+              "label": "Receipt",
+              "type": "text",
+              "format": {
+                "kind": "link",
+                "link_type": "url"
+              },
+              "hidden": true
+            },
+            {
+              "key": "description",
+              "label": "What for",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "route",
+              "label": "Decision rule",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approver_comment",
+              "label": "Approver comment",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "gl_code",
+              "label": "GL account",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "paid_on",
+              "label": "Paid",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "spent_on",
+              "label": "Bought",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "claimant_email",
+                "operator": "eq",
+                "value": "{{user.email}}"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "claimed_on",
+              "direction": "desc"
+            }
+          ],
+          "page_size": 10
+        }
+      },
+      {
+        "key": "month_intro",
+        "label": "Every claim since the start of this month (needs access to the ledger).",
+        "type": "heading"
+      },
+      {
+        "key": "month_claims",
+        "label": "This month",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+          "mode": "display",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "claim_ref",
+              "label": "Claim",
+              "type": "text",
+              "sortable": true
+            },
+            {
+              "key": "claimed_on",
+              "label": "Claimed",
+              "type": "date",
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "claimant_name",
+              "label": "Claimant",
+              "type": "text",
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "key": "cost_centre",
+              "label": "Cost centre",
+              "type": "text",
+              "filterable": true,
+              "width": 100,
+              "hidden": true
+            },
+            {
+              "key": "category",
+              "label": "Category",
+              "type": "text",
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "amount",
+              "label": "Amount",
+              "type": "number",
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "currency",
+                "currency": "NZD",
+                "decimals": 2
+              }
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Awaiting approval",
+                "Approved",
+                "Paid",
+                "Rejected"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Awaiting approval",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Approved",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Paid",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Rejected",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "receipt_url",
+              "label": "Receipt",
+              "type": "text",
+              "format": {
+                "kind": "link",
+                "link_type": "url"
+              },
+              "hidden": true
+            },
+            {
+              "key": "description",
+              "label": "What for",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "route",
+              "label": "Decision rule",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "approver_comment",
+              "label": "Approver comment",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "gl_code",
+              "label": "GL account",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "paid_on",
+              "label": "Paid",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "spent_on",
+              "label": "Bought",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "claimed_on",
+                "operator": "gte",
+                "value": "{{start_of_month}}"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "claimed_on",
+              "direction": "desc"
+            }
+          ],
+          "page_size": 10
+        }
+      },
+      {
+        "key": "d_hint",
+        "label": "Pick a claim on either list to see it here.",
+        "type": "heading"
+      },
+      {
+        "key": "d_ref",
+        "label": "Claim",
+        "type": "text"
+      },
+      {
+        "key": "d_status",
+        "label": "Status",
+        "type": "text"
+      },
+      {
+        "key": "d_amount",
+        "label": "Amount",
+        "type": "currency",
+        "currency": "NZD"
+      },
+      {
+        "key": "d_claimant",
+        "label": "Claimant",
+        "type": "text"
+      },
+      {
+        "key": "d_cost",
+        "label": "Cost centre and GL account",
+        "type": "text"
+      },
+      {
+        "key": "d_dates",
+        "label": "Bought, claimed and paid",
+        "type": "text"
+      },
+      {
+        "key": "d_what",
+        "label": "What for",
+        "type": "textarea"
+      },
+      {
+        "key": "d_rule",
+        "label": "Decision rule",
+        "type": "text"
+      },
+      {
+        "key": "d_comment",
+        "label": "Approver comment",
+        "type": "text"
+      },
+      {
+        "key": "d_receipt",
+        "label": "Receipt",
+        "type": "url"
+      },
+      {
+        "key": "to_list",
+        "label": "Back to my claims",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "go_to_page",
+              "page": "mine"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "tabs",
+      "pages": [
+        {
+          "id": "mine",
+          "title": "My claims",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "mine_intro",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "my_claims",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "user"
+        },
+        {
+          "id": "month",
+          "title": "This month",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "month_intro",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "month_claims",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "calendar"
+        },
+        {
+          "id": "details",
+          "title": "Claim details",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_hint",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_ref",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_status",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_amount",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_claimant",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_cost",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_dates",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_what",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_rule",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_comment",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "d_receipt",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "to_list",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "file-text"
+        }
+      ],
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_open_mine",
+          "name": "My claims: row clicked → details",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.claim_ref}}",
+                "d_status": "{{event.row.status}}",
+                "d_amount": "{{event.row.amount}}",
+                "d_claimant": "{{event.row.claimant_name}}",
+                "d_cost": "{{event.row.cost_centre}} · {{event.row.gl_code}}",
+                "d_dates": "Bought {{event.row.spent_on}} · claimed {{event.row.claimed_on}} · paid {{event.row.paid_on}}",
+                "d_what": "{{event.row.description}} ({{event.row.category}})",
+                "d_rule": "{{event.row.route}}",
+                "d_comment": "{{event.row.approver_comment}}",
+                "d_receipt": "{{event.row.receipt_url}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "my_claims"
+        },
+        {
+          "id": "r_open_month",
+          "name": "This month: row clicked → details",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.claim_ref}}",
+                "d_status": "{{event.row.status}}",
+                "d_amount": "{{event.row.amount}}",
+                "d_claimant": "{{event.row.claimant_name}}",
+                "d_cost": "{{event.row.cost_centre}} · {{event.row.gl_code}}",
+                "d_dates": "Bought {{event.row.spent_on}} · claimed {{event.row.claimed_on}} · paid {{event.row.paid_on}}",
+                "d_what": "{{event.row.description}} ({{event.row.category}})",
+                "d_rule": "{{event.row.route}}",
+                "d_comment": "{{event.row.approver_comment}}",
+                "d_receipt": "{{event.row.receipt_url}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "month_claims"
+        },
+        {
+          "id": "r_details_read_only",
+          "name": "Details are read-only",
+          "event": "always",
+          "then": [
+            {
+              "type": "enable_disable",
+              "mode": "disable",
+              "targets": [
+                "field:d_ref",
+                "field:d_status",
+                "field:d_amount",
+                "field:d_claimant",
+                "field:d_cost",
+                "field:d_dates",
+                "field:d_what",
+                "field:d_rule",
+                "field:d_comment",
+                "field:d_receipt"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit",
+        "kind": "submit",
+        "style": "primary"
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#15803D",
+            "background": "#FFFFFF",
+            "text": "#0F2A1A",
+            "page": "#ECFDF3",
+            "page_to": "#F7FEF9"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Petty cash claims",
+      "align": "left",
+      "subtitle": "Where your claims are, and everything claimed this month."
+    }
+  }
+}

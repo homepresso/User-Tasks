@@ -17,6 +17,8 @@ export interface NodeRunOverlay {
   takenBranches?: string[]
   /** The step the run is currently on (pulses). */
   current?: boolean
+  /** A Parallel join waiting for branches still open. */
+  joinWaiting?: { arrived: number; expected: number; waitingFor: string[] }
 }
 
 export interface RunNodeResult {
@@ -89,6 +91,22 @@ function takenBranchesOf(result: RunNodeResult | undefined): string[] | undefine
   return branches.length > 0 ? [...new Set(branches)] : undefined
 }
 
+function joinWaitingOf(result: RunNodeResult | undefined): NodeRunOverlay['joinWaiting'] | undefined {
+  const raw = result?.output?._join_waiting as { arrived?: unknown; expected?: unknown; waiting_for?: unknown } | undefined
+  if (!raw || typeof raw !== 'object') return undefined
+  return {
+    arrived: Number(raw.arrived) || 0,
+    expected: Number(raw.expected) || 0,
+    waitingFor: Array.isArray(raw.waiting_for) ? raw.waiting_for.map(String) : [],
+  }
+}
+
+/** Badge text of a waiting join: "Waiting for 1 of 2 branches". */
+export function joinWaitingLabel(join: NonNullable<NodeRunOverlay['joinWaiting']>): string {
+  const open = Math.max(0, join.expected - join.arrived)
+  return `Waiting for ${open} of ${join.expected} branch${join.expected === 1 ? '' : 'es'}`
+}
+
 export function computeRunOverlay(input: RunOverlayInput): RunOverlay {
   const { nodes, edges, nodeResults, pausedNodeId, runWaiting, activeNodeId, visits } = input
   const executed = executedNodeIds(input)
@@ -103,9 +121,12 @@ export function computeRunOverlay(input: RunOverlayInput): RunOverlay {
     if (n.type === 'section_group') continue
     const r = nodeResults[n.id]
     let status: NodeRunStatus
+    const join = joinWaitingOf(r)
     if (activeNodeId === n.id) status = 'running'
     else if (runWaiting && pausedNodeId === n.id) status = 'waiting'
     else if (!r) status = 'not_run'
+    // A Parallel join (or another branch's wait) the paused run is still waiting on.
+    else if (join || r.output?._parallel_wait) status = runWaiting ? 'waiting' : 'not_run'
     else if (r.status === 'error') status = 'failed'
     else if (r.status === 'skipped') status = 'skipped'
     // Reached steps (a step that waited earlier and the run moved on counts as completed);
@@ -118,6 +139,10 @@ export function computeRunOverlay(input: RunOverlayInput): RunOverlay {
     const taken = takenBranchesOf(r)
     if (taken) o.takenBranches = taken
     if (status === 'running' || status === 'waiting') o.current = true
+    if (join && status === 'waiting') {
+      o.joinWaiting = join
+      o.current = false
+    }
     overlay[n.id] = o
   }
 

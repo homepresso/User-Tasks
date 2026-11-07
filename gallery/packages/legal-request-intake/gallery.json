@@ -1,0 +1,130 @@
+{
+  "id": "0f2b91cb-9ec1-5f94-91ec-ea0f79b99922",
+  "slug": "legal-request-intake",
+  "title": "Legal request intake & triage",
+  "category": "operations-compliance",
+  "summary": "One front door for NDAs, contract reviews, legal questions and disputes: a stepped intake form, routing to the right queue with an SLA, and a Data table for the legal team.",
+  "description": "Legal request intake & triage gives the business one place to ask legal for help. People open the Legal request form page, four steps with a progress bar: About you, The request, Urgency, and Review & send. The questions change with the request type: an NDA asks who shares information and whose template, a contract review asks the contract type, value and whether personal data is involved, a legal question asks the area of law, and a dispute asks the amount and any deadline. People attach drafts, letters and the other side's paper, and pick an urgency and a needed-by date.\n\nThe form is in Application mode with its own Next, Back and Send to legal buttons, and its rules do the checking before anything reaches legal: a contract review must include the contract, High and Critical urgency need a reason (the field only appears then), the needed-by date cannot be in the past, and choosing a dispute raises the urgency to High with a short note.\n\nSubmitting starts the workflow. The Legal request routing decision table picks the queue (Commercial, Employment, Privacy & IP, Disputes or General counsel), the SLA in days and whether the general counsel reviews the outcome. The request is added to the Legal requests table, the requester gets an email with the reference and the date to expect an answer, and the lawyer gets a tabbed task: the request on one tab, their outcome on the other. They complete it, ask the requester for more information (the requester answers in their own task and it comes back) or decline it; high-value contracts, disputes and critical questions go to the general counsel before the requester hears back.\n\nThe legal team works from the Legal requests page: open requests sorted by SLA with type, urgency and status badges and relative due times, filters by type, status, queue and assignee, and a click on a row for the full details. Assignee and status can be changed in the table and saved back. Everything is built from forms, a decision table, a data table, emails and tasks: no integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "c77051ec-f264-5f3a-9d29-a00dfa4469ec",
+  "entry_form": "ab56df6e-6d2b-5e37-a08d-73073d18f5a4",
+  "start": "Starts from a form page: share the Legal request page (/f/<id>) on your intranet; each submission starts the workflow through its Form submitted trigger.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "legal",
+    "intake",
+    "triage",
+    "nda",
+    "contract review",
+    "sla",
+    "no integrations",
+    "steps & progress",
+    "application mode",
+    "data table",
+    "form rules"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Share Forms → Legal request (/f/<id>) with the business, and Forms → Legal requests with the legal team (the team needs View data, and Manage rows to save changes on the page).",
+    "Tasks go to the person who installed the package; change the Handle the request and General counsel review steps to your legal team or a team queue.",
+    "Edit the Legal request routing rules: queues, SLA days and when the general counsel reviews.",
+    "Email: configure EMAIL_PROVIDER so requesters get the received, more-information and closed emails (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Ask legal",
+      "body": "Four steps with a progress bar; the questions follow the request type, documents are attached, and rules check the contract, urgency reason and dates."
+    },
+    {
+      "title": "Route and set the SLA",
+      "body": "The routing decision table picks the queue, the SLA in days and whether the general counsel reviews; the request is added to the Legal requests table."
+    },
+    {
+      "title": "Tell the requester",
+      "body": "The requester gets the reference, the queue and the date to expect an answer."
+    },
+    {
+      "title": "Handle the request",
+      "body": "A lawyer works from a tabbed task (the request, their outcome): complete, ask for more information or decline."
+    },
+    {
+      "title": "More information",
+      "body": "The requester answers in their own task, with more documents if needed, or withdraws; the request goes back to legal."
+    },
+    {
+      "title": "General counsel review",
+      "body": "Disputes, high-value contracts and critical questions are approved by the general counsel or sent back."
+    },
+    {
+      "title": "Close and track",
+      "body": "The requester is emailed the outcome; the Legal requests page shows every request with filters and a details tab."
+    }
+  ],
+  "sample_input": {
+    "requester_name": "Mia Walker",
+    "requester_email": "mia.walker@example.com",
+    "department": "Procurement",
+    "request_type": "Contract review",
+    "title": "Facilities services agreement: CleanCo",
+    "counterparty": "CleanCo Services Ltd",
+    "contract_type": "Supplier agreement",
+    "contract_value": 240000,
+    "personal_data": false,
+    "details": "Three-year cleaning and facilities contract on their paper; they want a 90-day termination notice.",
+    "urgency": "High",
+    "needed_by": "2027-06-30",
+    "urgency_reason": "The current contract ends on 30 November.",
+    "acknowledge": true
+  },
+  "expect": "completed",
+  "icon": "scale",
+  "verify_mocks": {
+    "uploads": {
+      "documents": [
+        "policy-draft.pdf"
+      ]
+    },
+    "expect_outputs": [
+      "sla_due",
+      "final_status"
+    ],
+    "tasks": [
+      {
+        "outcome": "Need more information",
+        "button": "need_info",
+        "values": {
+          "handled_by": "Hannah Moore",
+          "question_for_requester": "Is the 90-day notice period theirs or ours to give?"
+        }
+      },
+      {
+        "outcome": "Send answer",
+        "button": "send",
+        "values": {
+          "answer": "Theirs: they want to be able to leave on 90 days notice; we can only leave for cause."
+        }
+      },
+      {
+        "outcome": "Completed",
+        "button": "complete",
+        "values": {
+          "handled_by": "Hannah Moore",
+          "outcome_summary": "Make termination for convenience mutual at 90 days; marked-up draft sent to CleanCo.",
+          "hours_spent": 2
+        }
+      }
+    ]
+  }
+}

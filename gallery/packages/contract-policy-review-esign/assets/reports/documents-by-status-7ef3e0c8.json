@@ -1,0 +1,36 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "7ef3e0c8-6a6d-5eaa-9b5a-6b07b5ee659b",
+  "asset": {
+    "id": "7ef3e0c8-6a6d-5eaa-9b5a-6b07b5ee659b",
+    "name": "Documents by status",
+    "description": "Document review runs by their current status (In review, Changes requested, Awaiting sign-off, Published, Withdrawn), from the run variables.",
+    "category": "Document control",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "19a97b16-c469-5a1d-8507-b252595eeee1"
+      },
+      "columns": [
+        "vars.doc_status",
+        "_count"
+      ],
+      "group_by": [
+        "vars.doc_status"
+      ],
+      "aggregations": [
+        {
+          "fn": "COUNT",
+          "field": "vars.doc_status"
+        }
+      ],
+      "visualization": "pie",
+      "chart_style": {
+        "chart_title": "Documents by status"
+      }
+    }
+  }
+}

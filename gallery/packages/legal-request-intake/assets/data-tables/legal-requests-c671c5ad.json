@@ -1,0 +1,182 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+  "asset": {
+    "id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+    "name": "Legal requests",
+    "description": "Every legal request with its type, urgency, queue, SLA due date, who has it and its status. The Legal request workflow adds a row per request and keeps it up to date; the Legal requests page lists them for the legal team.",
+    "columns": [
+      {
+        "id": "8a8282b6-01fb-5a05-a759-6e8feff89cb7",
+        "required": true,
+        "key": "request_ref",
+        "name": "Request",
+        "type": "text"
+      },
+      {
+        "id": "c79e960b-76c1-5e27-8ece-245a39eac13f",
+        "required": false,
+        "key": "submitted_on",
+        "name": "Submitted",
+        "type": "date"
+      },
+      {
+        "id": "c306d070-63f7-5293-bebc-eba03f7a6907",
+        "required": false,
+        "key": "requester_name",
+        "name": "Requester",
+        "type": "text"
+      },
+      {
+        "id": "eb8e4163-a513-54e5-a9df-bd0497a7078e",
+        "required": false,
+        "key": "requester_email",
+        "name": "Requester email",
+        "type": "email"
+      },
+      {
+        "id": "f922411b-3f1e-533f-b079-33fdea5eba6b",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Sales",
+          "Procurement",
+          "People",
+          "Finance",
+          "Operations",
+          "Product",
+          "Marketing",
+          "Other"
+        ]
+      },
+      {
+        "id": "c7680115-b64d-52e2-baca-49277f6563df",
+        "required": false,
+        "key": "request_type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "NDA",
+          "Contract review",
+          "Legal question",
+          "Dispute or claim"
+        ]
+      },
+      {
+        "id": "e07c760c-5a55-5458-8a4e-17b7e6d0d4da",
+        "required": false,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "e319ee8e-10be-532d-bfd6-2247c1787642",
+        "required": false,
+        "key": "details",
+        "name": "Details",
+        "type": "text"
+      },
+      {
+        "id": "def86764-cba2-501c-9353-0cd751dac0e6",
+        "required": false,
+        "key": "counterparty",
+        "name": "Counterparty",
+        "type": "text"
+      },
+      {
+        "id": "c93f8e46-2096-5d84-af3b-7c70230735ab",
+        "required": false,
+        "key": "contract_value",
+        "name": "Contract value",
+        "type": "number"
+      },
+      {
+        "id": "60ef678b-a94a-52ac-bce7-36c44b669039",
+        "required": false,
+        "key": "urgency",
+        "name": "Urgency",
+        "type": "select",
+        "options": [
+          "Low",
+          "Normal",
+          "High",
+          "Critical"
+        ]
+      },
+      {
+        "id": "d4372c8e-61f8-5ae6-ad98-1d8d96acadfc",
+        "required": false,
+        "key": "needed_by",
+        "name": "Needed by",
+        "type": "date"
+      },
+      {
+        "id": "f5db5a63-d907-5f49-b005-d0c2f6f357a6",
+        "required": false,
+        "key": "queue",
+        "name": "Queue",
+        "type": "select",
+        "options": [
+          "Commercial",
+          "Employment",
+          "Privacy & IP",
+          "Disputes",
+          "General counsel"
+        ]
+      },
+      {
+        "id": "6887a828-b440-5d47-976e-41045224674d",
+        "required": false,
+        "key": "sla_due",
+        "name": "SLA due",
+        "type": "date"
+      },
+      {
+        "id": "282aaf38-859f-5623-9d7b-cdd29779b2cf",
+        "required": false,
+        "key": "assigned_to",
+        "name": "Assigned to",
+        "type": "text"
+      },
+      {
+        "id": "91bc5607-3d81-5361-ac59-b104568d87ca",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Triaged",
+          "In progress",
+          "Waiting on requester",
+          "Completed",
+          "Declined",
+          "Withdrawn"
+        ]
+      },
+      {
+        "id": "0dd26449-e236-5712-9130-3a01ec6cae44",
+        "required": false,
+        "key": "documents",
+        "name": "Documents",
+        "type": "text"
+      },
+      {
+        "id": "84e94139-8025-5436-94e1-2a7ead2b22c7",
+        "required": false,
+        "key": "outcome_summary",
+        "name": "Outcome",
+        "type": "text"
+      },
+      {
+        "id": "b2d87512-ee07-5673-8c6a-0eaa2672c71a",
+        "required": false,
+        "key": "closed_on",
+        "name": "Closed",
+        "type": "date"
+      }
+    ]
+  }
+}

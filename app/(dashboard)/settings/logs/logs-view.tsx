@@ -147,17 +147,16 @@ export function LogsView() {
         <div className="flex items-center gap-3">
           <Link
             href="/settings"
-            className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors"
-            style={{ color: 'var(--theme-muted-text)' }}
+            className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors text-fg-muted"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2" style={{ color: 'var(--theme-card-text)' }}>
+            <h1 className="text-2xl font-semibold flex items-center gap-2 text-fg">
               <ScrollText size={20} style={{ color: 'var(--theme-primary-text)' }} />
               Live Logs
             </h1>
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs text-fg-muted">
               Real-time tail across workflows, audits, integrations, agents, and forms
             </p>
           </div>
@@ -191,16 +190,11 @@ export function LogsView() {
 
       {/* Two-pane body */}
       <div
-        className="flex max-md:flex-col rounded-xl border overflow-hidden max-md:min-h-[60dvh] md:h-[calc(100vh-220px)]"
-        style={{
-          borderColor: 'var(--theme-surface-border)',
-          backgroundColor: 'var(--theme-card-bg)',
-        }}
+        className="flex max-md:flex-col rounded-xl border overflow-hidden max-md:min-h-[60dvh] md:h-[calc(100vh-220px)] border-border bg-panel"
       >
         {/* Left panel: controls */}
         <aside
-          className="w-full md:w-[260px] md:shrink-0 flex flex-col md:border-r max-md:border-b p-4 gap-4 md:overflow-y-auto"
-          style={{ borderColor: 'var(--theme-surface-border)' }}
+          className="w-full md:w-[260px] md:shrink-0 flex flex-col md:border-r max-md:border-b p-4 gap-4 md:overflow-y-auto border-border"
         >
           {/* Status — reflects the actual Supabase channel state so
               users see 'Connecting' / 'Disconnected' instead of a
@@ -215,7 +209,7 @@ export function LogsView() {
 
           {/* Sources */}
           <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+            <h3 className="text-2xs font-semibold mb-2 text-fg-muted">
               Sources
             </h3>
             <div className="space-y-1">
@@ -234,7 +228,7 @@ export function LogsView() {
                       className="h-3.5 w-3.5 rounded accent-[color:var(--theme-primary)]"
                     />
                     <Icon size={12} style={{ color: s.color }} />
-                    <span className="text-xs flex-1" style={{ color: 'var(--theme-card-text)' }}>{s.label}</span>
+                    <span className="text-xs flex-1 text-fg">{s.label}</span>
                   </label>
                 )
               })}
@@ -243,7 +237,7 @@ export function LogsView() {
 
           {/* Levels */}
           <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+            <h3 className="text-2xs font-semibold mb-2 text-fg-muted">
               Level
             </h3>
             <div className="space-y-1">
@@ -261,7 +255,7 @@ export function LogsView() {
                       className="h-3.5 w-3.5 rounded accent-[color:var(--theme-primary)]"
                     />
                     <span
-                      className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                      className="text-2xs font-bold uppercase px-1.5 py-0.5 rounded"
                       style={{ backgroundColor: l.bg, color: l.color }}
                     >
                       {l.label}
@@ -274,11 +268,11 @@ export function LogsView() {
 
           {/* Search */}
           <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+            <h3 className="text-2xs font-semibold mb-2 text-fg-muted">
               Search
             </h3>
             <div className="relative">
-              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -288,7 +282,7 @@ export function LogsView() {
             </div>
           </div>
 
-          <p className="text-[10px] mt-auto" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-2xs mt-auto text-fg-muted">
             {enabled
               ? 'Pure live tail — only events that happen while this viewer is running. Tenant-scoped via RLS.'
               : 'Click Start to subscribe. Tenant-scoped via RLS.'}
@@ -299,11 +293,11 @@ export function LogsView() {
         <section className="flex-1 min-w-0 flex flex-col">
           {entries.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <ScrollText size={48} className="opacity-20 mb-3" style={{ color: 'var(--theme-muted-text)' }} />
-              <p className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>
+              <ScrollText size={48} className="opacity-20 mb-3 text-fg-muted" />
+              <p className="text-sm font-medium text-fg">
                 {enabled ? 'Waiting for events…' : 'Live tail is stopped'}
               </p>
-              <p className="text-xs mt-1 max-w-sm" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs mt-1 max-w-sm text-fg-muted">
                 {enabled
                   ? 'Live tail active. Log rows from your selected sources will appear here as they happen.'
                   : 'Click Start to begin streaming. Only events that occur after you click Start will appear — this is a pure live tail, not an archive.'}
@@ -311,7 +305,7 @@ export function LogsView() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-sm text-fg-muted">
                 No entries match your filters.
               </p>
             </div>
@@ -396,7 +390,7 @@ function StatusChip({
 
   return (
     <div
-      className="rounded-lg border px-3 py-2 text-[11px]"
+      className="rounded-lg border px-3 py-2 text-2xs"
       style={{ borderColor: border, backgroundColor: bg, color }}
     >
       <div className="flex items-center gap-1.5 font-semibold">
@@ -435,44 +429,42 @@ function LogRow({
 
   return (
     <div
-      className="border-b transition-colors hover:bg-[var(--theme-row-highlight)]"
-      style={{ borderColor: 'var(--theme-surface-border)' }}
+      className="border-b transition-colors hover:bg-[var(--theme-row-highlight)] border-border"
     >
       <button
         onClick={onToggleExpand}
         className="w-full flex items-start gap-2 px-4 py-2 text-left"
       >
         {expanded
-          ? <ChevronDown size={12} className="shrink-0 mt-1" style={{ color: 'var(--theme-muted-text)' }} />
-          : <ChevronRight size={12} className="shrink-0 mt-1" style={{ color: 'var(--theme-muted-text)' }} />
+          ? <ChevronDown size={12} className="shrink-0 mt-1 text-fg-muted" />
+          : <ChevronRight size={12} className="shrink-0 mt-1 text-fg-muted" />
         }
         {/* Exact time — fixed-width monospace so rows align when scanning. */}
         <span
-          className="shrink-0 mt-0.5 text-[10px] font-mono tabular-nums"
-          style={{ color: 'var(--theme-card-text)' }}
+          className="shrink-0 mt-0.5 text-2xs font-mono tabular-nums text-fg"
           title={`${fullTimestamp} — ${relativeTimestamp}`}
         >
           {formatExactTime(entry.timestamp)}
         </span>
         <span
-          className="shrink-0 mt-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+          className="shrink-0 mt-0.5 text-2xs font-bold uppercase px-1.5 py-0.5 rounded"
           style={{ backgroundColor: levelMeta.bg, color: levelMeta.color }}
         >
           {levelMeta.label}
         </span>
         <span
-          className="shrink-0 mt-0.5 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+          className="shrink-0 mt-0.5 inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded"
           style={{ backgroundColor: 'var(--theme-surface)', color: sourceMeta.color }}
         >
           <SourceIcon size={9} /> {sourceMeta.label}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-xs truncate" style={{ color: 'var(--theme-card-text)' }}>
+          <p className="text-xs truncate text-fg">
             {entry.title}
           </p>
           <div className="flex items-center gap-2 mt-0.5 min-w-0">
             {entry.subtitle && (
-              <p className="text-[10px] truncate" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-2xs truncate text-fg-muted">
                 {entry.subtitle}
               </p>
             )}
@@ -482,13 +474,11 @@ function LogRow({
                 the full name for group hover debugging. */}
             {entry.actor && (
               <span
-                className="inline-flex items-center gap-1 shrink-0 text-[10px]"
-                style={{ color: 'var(--theme-muted-text)' }}
+                className="inline-flex items-center gap-1 shrink-0 text-2xs text-fg-muted"
                 title={entry.actor.name}
               >
                 <span
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold"
-                  style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-2xs font-bold bg-primary-wash text-primary-text"
                 >
                   {getInitials(entry.actor.name)}
                 </span>
@@ -497,8 +487,7 @@ function LogRow({
             )}
             {!entry.actor && (
               <span
-                className="inline-flex items-center gap-1 shrink-0 text-[10px]"
-                style={{ color: 'var(--theme-muted-text)' }}
+                className="inline-flex items-center gap-1 shrink-0 text-2xs text-fg-muted"
                 title="No user attributed to this event"
               >
                 <UserIcon size={9} /> system
@@ -510,8 +499,7 @@ function LogRow({
           <Link
             href={entry.href}
             onClick={(e) => e.stopPropagation()}
-            className="shrink-0 p-1 rounded hover:bg-[var(--theme-surface)]"
-            style={{ color: 'var(--theme-muted-text)' }}
+            className="shrink-0 p-1 rounded hover:bg-[var(--theme-surface)] text-fg-muted"
             title="Open detail"
           >
             <ExternalLink size={11} />
@@ -520,10 +508,9 @@ function LogRow({
       </button>
       {expanded && (
         <div
-          className="px-4 pb-3 pl-14"
-          style={{ backgroundColor: 'var(--theme-surface)' }}
+          className="px-4 pb-3 pl-14 bg-subtle"
         >
-          <div className="text-[10px] mb-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <div className="text-2xs mb-1 text-fg-muted">
             <span className="font-semibold">Exact time:</span> {fullTimestamp}
             {entry.actor && (
               <>
@@ -535,8 +522,7 @@ function LogRow({
             )}
           </div>
           <pre
-            className="font-mono text-[10px] whitespace-pre-wrap break-all rounded p-2 max-h-64 overflow-auto"
-            style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+            className="font-mono text-2xs whitespace-pre-wrap break-all rounded p-2 max-h-64 overflow-auto bg-panel text-fg"
           >
             {safeStringify(entry.raw)}
           </pre>

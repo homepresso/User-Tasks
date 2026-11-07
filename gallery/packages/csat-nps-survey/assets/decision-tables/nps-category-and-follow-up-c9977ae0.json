@@ -1,0 +1,157 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "c9977ae0-3bb5-5220-b4b1-9f19bf4da316",
+  "asset": {
+    "id": "c9977ae0-3bb5-5220-b4b1-9f19bf4da316",
+    "name": "NPS category and follow-up",
+    "description": "Turns the 0-10 likelihood to recommend and the 1-5 overall rating into the NPS category, its points, and whether (and how fast) someone follows up. Change the thresholds or the follow-up hours here; the workflow reads the outputs.",
+    "inputs": [
+      {
+        "key": "nps",
+        "label": "Likelihood to recommend (0-10)",
+        "type": "number",
+        "id": "9482f585-d02e-5a36-b061-dc836ea9a4bf"
+      },
+      {
+        "key": "overall",
+        "label": "Overall rating (1-5)",
+        "type": "number",
+        "id": "2a4ac540-41a6-5fb9-afeb-ae69c8025587"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "nps_category",
+        "label": "NPS category",
+        "type": "string",
+        "id": "482c31f6-598e-5c7a-844d-e20ecaf1aed2"
+      },
+      {
+        "key": "nps_points",
+        "label": "NPS points",
+        "type": "number",
+        "id": "32d0b2f8-d576-59d9-a577-c43f1703e254"
+      },
+      {
+        "key": "follow_up",
+        "label": "Follow up",
+        "type": "boolean",
+        "id": "0eafd2c2-4130-5b4e-8524-2f0d067c6ab7"
+      },
+      {
+        "key": "follow_up_priority",
+        "label": "Priority",
+        "type": "string",
+        "id": "407cdd2e-30c6-5f10-9c26-0616f9c5a23b"
+      },
+      {
+        "key": "follow_up_hours",
+        "label": "Follow up within (hours)",
+        "type": "number",
+        "id": "2dcb2a47-7dac-5b3b-bae3-39624f9acce9"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Promoter",
+        "conditions": [
+          {
+            "inputKey": "nps",
+            "operator": "greater_than_or_equal",
+            "value": "9",
+            "id": "9b8f7181-d2b8-5b7b-9224-97e17d92fb2d"
+          }
+        ],
+        "outputs": {
+          "nps_category": "Promoter",
+          "nps_points": 100,
+          "follow_up": false,
+          "follow_up_priority": "low",
+          "follow_up_hours": 0
+        },
+        "id": "b268d162-9e1f-5c2e-876b-48af7d3e8923",
+        "enabled": true
+      },
+      {
+        "label": "Passive, unhappy with this contact",
+        "conditions": [
+          {
+            "inputKey": "nps",
+            "operator": "greater_than_or_equal",
+            "value": "7",
+            "id": "f00f200b-0ec3-57bd-a40d-f8c5e3500598"
+          },
+          {
+            "inputKey": "overall",
+            "operator": "less_than_or_equal",
+            "value": "2",
+            "id": "36260489-30fc-5e12-ab5b-ea9108e758da"
+          }
+        ],
+        "outputs": {
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "follow_up": true,
+          "follow_up_priority": "medium",
+          "follow_up_hours": 72
+        },
+        "id": "0286eacf-704f-5998-9fdf-a782e1b44da9",
+        "enabled": true
+      },
+      {
+        "label": "Passive",
+        "conditions": [
+          {
+            "inputKey": "nps",
+            "operator": "greater_than_or_equal",
+            "value": "7",
+            "id": "b6793c99-6659-546e-bf07-e2d01f93c09f"
+          }
+        ],
+        "outputs": {
+          "nps_category": "Passive",
+          "nps_points": 0,
+          "follow_up": false,
+          "follow_up_priority": "low",
+          "follow_up_hours": 0
+        },
+        "id": "fb056d0c-5bb6-581e-b904-49f0509bb93f",
+        "enabled": true
+      },
+      {
+        "label": "Detractor, very unlikely to recommend",
+        "conditions": [
+          {
+            "inputKey": "nps",
+            "operator": "less_than_or_equal",
+            "value": "3",
+            "id": "8aabb82e-f233-5ac9-9798-547bef71dd82"
+          }
+        ],
+        "outputs": {
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "follow_up": true,
+          "follow_up_priority": "high",
+          "follow_up_hours": 24
+        },
+        "id": "6339028f-a2d8-5a14-b56b-a716ad72e0f3",
+        "enabled": true
+      },
+      {
+        "label": "Detractor",
+        "conditions": [],
+        "outputs": {
+          "nps_category": "Detractor",
+          "nps_points": -100,
+          "follow_up": true,
+          "follow_up_priority": "high",
+          "follow_up_hours": 48
+        },
+        "id": "60a8ce60-6906-5558-ac34-34f8b92c663f",
+        "enabled": true
+      }
+    ]
+  }
+}

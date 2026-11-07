@@ -24,7 +24,7 @@ export function InvitationList({ invitations }: InvitationListProps) {
 
   if (invitations.length === 0) {
     return (
-      <p className="text-sm py-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-sm py-4 text-fg-muted">
         No pending invitations.
       </p>
     )
@@ -50,20 +50,19 @@ export function InvitationList({ invitations }: InvitationListProps) {
         return (
           <div
             key={inv.id}
-            className="flex items-center justify-between py-3 border-b"
-            style={{ borderColor: 'var(--theme-surface-border)' }}
+            className="flex items-center justify-between py-3 border-b border-border"
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium truncate">{inv.email}</span>
                 <RoleBadge role={inv.role} />
                 {isExpired && (
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-600">
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-danger-wash text-danger">
                     Expired
                   </span>
                 )}
               </div>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs mt-0.5 text-fg-muted">
                 Invited by {inv.inviter?.display_name ?? 'Unknown'} · {formatRelativeDate(inv.created_at)}
                 {!isExpired && ` · Expires ${formatRelativeDate(inv.expires_at)}`}
               </p>
@@ -72,8 +71,7 @@ export function InvitationList({ invitations }: InvitationListProps) {
               <button
                 onClick={() => handleResend(inv.id)}
                 disabled={loadingId === inv.id}
-                className="p-1.5 rounded-md hover:opacity-70 transition-colors"
-                style={{ color: 'var(--theme-muted-text)' }}
+                className="p-1.5 rounded-md hover:opacity-70 transition-colors text-fg-muted"
                 title="Resend invitation"
               >
                 <RefreshCw size={14} />
@@ -81,8 +79,7 @@ export function InvitationList({ invitations }: InvitationListProps) {
               <button
                 onClick={() => handleRevoke(inv.id)}
                 disabled={loadingId === inv.id}
-                className="p-1.5 rounded-md hover:text-red-500 transition-colors"
-                style={{ color: 'var(--theme-muted-text)' }}
+                className="p-1.5 rounded-md hover:text-danger transition-colors text-fg-muted"
                 title="Revoke invitation"
               >
                 <X size={14} />

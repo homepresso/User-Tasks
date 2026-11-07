@@ -1,0 +1,89 @@
+{
+  "title": "Customer satisfaction (CSAT / NPS) survey",
+  "category": "surveys-assessments",
+  "summary": "A three-step survey page with star rating, 0-10 NPS slider, Likert matrix and rich-text comment; a decision table classifies each answer and detractors get a follow-up call with an SLA.",
+  "description": "Customer satisfaction (CSAT / NPS) survey is a complete feedback loop built only from UserTasks features and the official form controls. The survey page has three steps with a progress bar and a review step: a 1-5 star Rating, a 0-10 Slider for how likely the customer is to recommend you, a Likert matrix on speed, knowledge, ease and value (with N/A), and a Rich text comment.\n\nEvery answer starts the Survey response workflow. A decision table turns the scores into promoter, passive or detractor with NPS points (+100, 0, -100: their average is the NPS) and decides whether someone follows up and how fast. The response is saved in the Survey responses data table, which ships with six months of sample answers.\n\nDetractors (and unhappy passives) become a follow-up task for the person who installed the package with a 24 or 48 hour SLA, reminders and escalation to their manager. The task shows the customer's answers on an Info card and records the root cause, a call rating, call notes and what was agreed, which is emailed to the customer. Everyone else gets a thank-you email.\n\nThe Survey results page is a small dashboard: a Chart of NPS by month and a doughnut of promoters, passives and detractors from the data table, the NPS by product area and the open follow-ups as Saved reports (workflow variables and task reports), and a button that emails a month's summary.",
+  "trigger": "form",
+  "entry_workflow": "a6531735-7719-5383-bd5f-ca58cc2ef247",
+  "entry_form": "5649f51d-9584-5c41-b181-07bf5ace561e",
+  "start": "Starts from a form page: share the Customer satisfaction survey page (/f/<id>) with signed-in customers or staff, or submit it from your own app through the forms API.",
+  "difficulty": "intermediate",
+  "setup_minutes": 5,
+  "tags": [
+    "survey",
+    "csat",
+    "nps",
+    "customer feedback",
+    "form controls",
+    "no integrations"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "Uses the 1.1.0 form controls: they appear with the form (no loading), and the comment reaches the workflow as text (form.comment is sanitised HTML, form.comment_text the plain text)."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open Forms → Customer satisfaction survey (share its /f/ link) and Forms → Survey results.",
+    "The Rating, Slider, Likert scale, Rich text, Info card, Chart and Saved report controls install with the package (Extensibility → Form controls).",
+    "Follow-up calls go to the person who installed the package: change the step's assignee in the designer to a team or a Person field if someone else should call.",
+    "Edit the NPS category and follow-up decision table to change the thresholds or the follow-up hours; delete the sample rows in Survey responses when you go live.",
+    "Optional: apply the \"Survey responses: 24 months\" retention policy, and set EMAIL_PROVIDER so the thank-you and follow-up emails are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Customer answers",
+      "body": "Three steps with a progress bar: star rating and 0-10 slider, a Likert matrix and the product area, then a rich-text comment and contact details, with a review step before sending."
+    },
+    {
+      "title": "Classify",
+      "body": "A decision table turns the scores into promoter, passive or detractor, NPS points, and whether and how fast to follow up; the Likert answers become an experience score."
+    },
+    {
+      "title": "Save",
+      "body": "The response goes into the Survey responses table with its month and NPS points."
+    },
+    {
+      "title": "Follow up on low scores",
+      "body": "Detractors get a call task with an SLA, reminders and manager escalation; what was agreed is emailed to the customer. Everyone else gets a thank-you email."
+    },
+    {
+      "title": "Watch the trend",
+      "body": "The Survey results page charts NPS by month and the category split, shows NPS by product area and the open follow-ups as saved reports, and emails a monthly summary."
+    }
+  ],
+  "sample_input": {
+    "overall": 2,
+    "nps": 3,
+    "experience": {
+      "speed_of_our_response": 2,
+      "knowledge_of_the_person_who_helped_you": 3,
+      "ease_of_getting_what_you_needed": 1,
+      "value_for_money": 0
+    },
+    "product_area": "Billing",
+    "channel": "Email",
+    "comment": {
+      "html": "<p>I was charged twice and it took three emails to get a refund.</p>",
+      "text": "I was charged twice and it took three emails to get a refund."
+    },
+    "customer_name": "Avery Example",
+    "customer_email": "avery.example@example.com",
+    "may_contact": true
+  },
+  "expect": "waiting",
+  "icon": "smile",
+  "id": "752b0f7b-85e6-50a6-a0c4-74475088c7e5",
+  "slug": "csat-nps-survey"
+}

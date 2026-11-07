@@ -9,6 +9,8 @@ import {
   CHART_PALETTES,
   buildJoinedReportColumns,
   getReferenceReportSourceId,
+  getReportValue,
+  reportResultColumnLabel,
   isReferenceReportSourceKey,
   type ReportConfig,
   type ReportFilter,
@@ -17,11 +19,16 @@ import {
   type ReportSource,
 } from '@/lib/report-sources'
 import { MCP_CORE_TOOL_DESCRIPTIONS } from '@/lib/mcp/descriptions'
+import { reportShareDenied, scopeReportRead, scopeReportWrite } from '@/lib/reports-access'
 import { fromMcpContext } from '@/lib/services/context'
 import * as reportService from '@/lib/services/reports'
 import { getDerivedReportColumnKeys, normalizeReportConfig } from '@/lib/report-config'
+import { chartFields, reportChartIssues } from '@/lib/report-charts'
+import { executeReportCharts } from '@/lib/report-charts-server'
 import { listTenantReportSources, resolveTenantReportSource } from '@/lib/report-source-registry'
 import { executeReference } from '@/lib/reference-executor'
+import { isRunVariableColumnKey, readRunVariable, RUN_VARIABLE_COLUMN_PREFIX } from '@/lib/workflow-run-variables'
+import { isTaskFieldColumnKey, TASK_FIELD_COLUMN_PREFIX } from '@/lib/report-workflow-variables'
 
 function parseJsonString<T>(value: string | undefined, fieldName: string): T | null | { error: string } {
   if (value == null) return null
@@ -47,6 +54,8 @@ function summarizeReport(report: any) {
 }
 
 const MAX_RESULT_ROWS = 5000
+/** Rows per PostgREST request (its max_rows); larger reads page. */
+const QUERY_PAGE_SIZE = 1000
 const MAX_FILTER_VALUE_LENGTH = 1000
 
 function splitTopLevelComma(value: string) {
@@ -67,7 +76,82 @@ function splitTopLevelComma(value: string) {
   return parts
 }
 
+/**
+ * Workflow variable columns: `vars.<path>` on workflow runs (from
+ * workflow_runs.variables) and `fields.<key>` on tasks (the task's form
+ * values, metadata.template_values). Any well-formed key is accepted (a
+ * report may outlive a definition change); the typed list comes from the
+ * workflow-scoped source (lib/report-workflow-variables).
+ */
+export function isScopedVariableColumnKey(sourceKey: string, key: unknown): key is string {
+  if (sourceKey === 'workflow_runs') return isRunVariableColumnKey(key)
+  if (sourceKey === 'tasks') return isTaskFieldColumnKey(key)
+  return false
+}
+
+const SCOPED_STORAGE: Record<string, { prefix: string; select: string; rowKey: string; column: string }> = {
+  workflow_runs: { prefix: RUN_VARIABLE_COLUMN_PREFIX, select: 'variables', rowKey: 'variables', column: 'variables' },
+  tasks: { prefix: TASK_FIELD_COLUMN_PREFIX, select: 'template_values:metadata->template_values', rowKey: 'template_values', column: 'metadata->template_values' },
+}
+
+/** PostgREST text path of a scoped column (`variables->task_data->>amount`). */
+function scopedFilterColumn(sourceKey: string, key: string): string {
+  const storage = SCOPED_STORAGE[sourceKey]
+  const parts = key.slice(storage.prefix.length).split('.')
+  const last = parts.pop()!
+  return [storage.column, ...parts].join('->') + `->>${last}`
+}
+
+/** Text operators PostgREST can apply to a JSON text path; the others run here (numbers, dates). */
+const SERVER_SCOPED_OPERATORS = new Set(['eq', 'neq', 'like', 'ilike', 'in', 'is_null', 'is_not_null'])
+
+function scopedValue(value: unknown) {
+  if (Array.isArray(value)) return value.map((item) => String(item ?? '')).join(', ')
+  return value === undefined ? null : value
+}
+
+/**
+ * Flat `vars.*` / `fields.*` values on each row (what tables, charts, exports
+ * and OData read), and the stored blob removed so a report returns only the
+ * variables it asked for. Paused runs' working state is never returned.
+ */
+function projectScopedColumns(sourceKey: string, rows: any[], keys: string[]) {
+  const storage = SCOPED_STORAGE[sourceKey]
+  if (!storage) return rows
+  return rows.map((row) => {
+    if (!row || typeof row !== 'object') return row
+    const { [storage.rowKey]: stored, ...rest } = row
+    if (sourceKey === 'workflow_runs') delete (rest as any).pause_variables
+    for (const key of keys) rest[key] = scopedValue(readRunVariable(stored, key.slice(storage.prefix.length)))
+    return rest
+  })
+}
+
+/** Every field a config refers to (columns, filters, grouping, aggregations, sort, date range). */
+function referencedFields(config: Partial<ReportConfig>): string[] {
+  const fields: unknown[] = [
+    ...(config.columns ?? []),
+    ...(config.filters ?? []).map((filter) => filter?.field),
+    ...(config.group_by ?? []),
+    ...(config.aggregations ?? []).map((aggregation) => aggregation?.field),
+    config.sort?.field,
+    config.date_range?.field,
+  ]
+  return fields.filter((field): field is string => typeof field === 'string' && field.length > 0)
+}
+
 function buildSelectClause(source: ReportSource, requiredKeys: string[]) {
+  const scoped = SCOPED_STORAGE[source.key]
+  if (scoped && requiredKeys.some((key) => isScopedVariableColumnKey(source.key, key))) {
+    const base = buildSelectClauseBase(source, requiredKeys.filter((key) => !isScopedVariableColumnKey(source.key, key)))
+    // `*` already returns workflow_runs.variables; tasks need the aliased JSON path.
+    if (scoped.select === 'variables' && splitTopLevelComma(base).includes('*')) return base
+    return `${base}, ${scoped.select}`
+  }
+  return buildSelectClauseBase(source, requiredKeys)
+}
+
+function buildSelectClauseBase(source: ReportSource, requiredKeys: string[]) {
   if (source.dynamic) return source.select
 
   const joinSpecs = new Map<string, string>()
@@ -112,8 +196,8 @@ function buildSelectClause(source: ReportSource, requiredKeys: string[]) {
   return parts.length > 0 ? parts.join(', ') : source.select
 }
 
-async function resolveSource(supabase: any, dataSource: string, tenantId: string): Promise<ReportSource | undefined> {
-  return resolveTenantReportSource(supabase, tenantId, dataSource)
+async function resolveSource(supabase: any, dataSource: string, tenantId: string, sourceInputs?: Record<string, any> | null): Promise<ReportSource | undefined> {
+  return resolveTenantReportSource(supabase, tenantId, dataSource, sourceInputs)
 }
 
 function isBaseFilterField(field: string) {
@@ -148,6 +232,32 @@ function matchesFilterValue(value: any, filter: ReportFilter) {
     default:
       return true
   }
+}
+
+function toTyped(value: unknown, type: ReportColumn['type'] | undefined): unknown {
+  if (value === null || value === undefined || value === '') return null
+  if (type === 'number') {
+    const number = typeof value === 'number' ? value : Number(String(value).trim())
+    return Number.isFinite(number) ? number : value
+  }
+  if (type === 'boolean') {
+    if (typeof value === 'boolean') return value
+    const text = String(value).trim().toLowerCase()
+    return text === 'true' ? true : text === 'false' ? false : value
+  }
+  return value
+}
+
+/**
+ * A filter on a typed variable column: a stored "42" and a filter value of
+ * "40" compare as numbers, "true" as a boolean (variables keep the type the
+ * form / step gave them, filter values arrive as text).
+ */
+export function matchesTypedFilterValue(value: unknown, filter: ReportFilter, type: ReportColumn['type'] | undefined) {
+  if (type !== 'number' && type !== 'boolean') return matchesFilterValue(value, filter)
+  const typedValue = toTyped(value, type)
+  const typedFilterValue = Array.isArray(filter.value) ? filter.value.map((item) => toTyped(item, type)) : toTyped(filter.value, type)
+  return matchesFilterValue(typedValue, { ...filter, value: typedFilterValue })
 }
 
 function flattenDynamicRows(source: ReportSource, rows: any[]) {
@@ -212,6 +322,8 @@ async function executeReferenceSourceRows(
     referenceId,
     inputValues: normalizeReferenceInputValues(sourceInputs),
     expectedTenantId: tenantId,
+    // A report reads: a write reference is never run as a report source.
+    readOnly: true,
   })
 
   if (result.status >= 400) {
@@ -236,7 +348,8 @@ function inferRuntimeColumns(rows: any[], existingColumns: ReportColumn[]) {
     if (seen.has(key) || value == null || typeof value === 'object') continue
     next.push({
       key,
-      label: key.replace(/^data_/, '').replace(/[._]+/g, ' '),
+      // Aggregates: "Sum of Approved amount" from the column they aggregate.
+      label: /^(COUNT|SUM|AVG|MIN|MAX)_/.test(key) ? reportResultColumnLabel(key, existingColumns) : key.replace(/^data_/, '').replace(/[._]+/g, ' '),
       type: typeof value === 'number'
         ? 'number'
         : typeof value === 'boolean'
@@ -249,7 +362,8 @@ function inferRuntimeColumns(rows: any[], existingColumns: ReportColumn[]) {
 }
 
 function getValue(row: any, key: string) {
-  return key.split('.').reduce((acc, part) => acc?.[part], row)
+  // Flat keys first: projected variable columns (`vars.amount`) and grouped rows.
+  return getReportValue(row, key)
 }
 
 async function fetchJoinRows(
@@ -288,6 +402,9 @@ async function fetchJoinRows(
     .from(source.table)
     .select(buildSelectClause(source, requiredKeys))
     .limit(MAX_RESULT_ROWS)
+  for (const filter of source.baseFilters ?? []) {
+    if (filter.operator === 'eq') query = query.eq(filter.field, filter.value)
+  }
 
   if (source.table === 'tasks') {
     query = query.is('deleted_at', null)
@@ -303,7 +420,7 @@ async function fetchJoinRows(
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
-  return data ?? []
+  return projectScopedColumns(source.key, data ?? [], requestedColumns.filter((key) => isScopedVariableColumnKey(source.key, key)))
 }
 
 async function applyReportJoins(
@@ -381,17 +498,97 @@ function normalizeJoins(rawJoins: unknown): ReportJoinConfig[] {
     : []
 }
 
+/**
+ * Report sources that need a permission beyond reports.view: agent run
+ * records (input, output, trace) need agents.view (migration
+ * 20261124000000). Session callers are also filtered by RLS; service-role
+ * callers (API keys, MCP, OData) pass their permissions here.
+ */
+export const SOURCE_PERMISSIONS: Record<string, string> = {
+  agent_runs: 'agents.view',
+  // Governance audit 2026-11: every source is the domain's data, so it needs
+  // the domain's read permission — reports.view alone read every task, run,
+  // API key, invitation and audit row in the workspace through the
+  // service-role surfaces.
+  tasks: 'tasks.view_all',
+  effort_records: 'tasks.view_all',
+  lifecycle_events: 'tasks.view_all',
+  task_assignees: 'tasks.view_all',
+  task_escalations: 'tasks.view_all',
+  task_responses: 'tasks.view_all',
+  workflow_runs: 'workflows.view_runs',
+  workflow_logs: 'workflows.view_runs',
+  business_rule_executions: 'workflows.view_runs',
+  workflow_queue: 'workflows.view_runs',
+  dead_letter_events: 'workflows.view_runs',
+  workflows: 'workflows.view',
+  integrations: 'integrations.view',
+  integration_references: 'integrations.view',
+  integration_call_logs: 'integrations.view',
+  tenant_connectors: 'integrations.view',
+  users: 'team.view_members',
+  teams: 'team.view_members',
+  notifications: 'settings.view',
+  api_keys: 'settings.manage_api_keys',
+  invitations: 'team.invite',
+  object_audit_log: 'settings.view',
+  retention_policies: 'team.change_roles',
+  retention_policy_reviews: 'team.change_roles',
+  retention_policy_executions: 'team.change_roles',
+  retention_policy_assignments: 'team.change_roles',
+}
+
+/** The permission a report source needs beyond reports.view (custom tables: data.view; API references: integrations.view). */
+export function reportSourcePermission(source: string): string | undefined {
+  if (SOURCE_PERMISSIONS[source]) return SOURCE_PERMISSIONS[source]
+  if (source.startsWith('custom_table_') || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(source)) return 'data.view'
+  if (isReferenceReportSourceKey(source)) return 'integrations.view'
+  return undefined
+}
+
+/**
+ * Workflow variable values (`vars.*` columns of workflow runs) are run data:
+ * they need what viewing a workflow's runs needs (workflows.view), on top of
+ * reports.view.
+ */
+export const WORKFLOW_VARIABLES_PERMISSION = 'workflows.view'
+
+/** Does a config read workflow run variables (on the base source or a joined Workflow runs)? */
+export function configReadsRunVariables(config: Partial<ReportConfig>): boolean {
+  if (String(config.data_source ?? '') === 'workflow_runs' && referencedFields(config).some((field) => isRunVariableColumnKey(field))) return true
+  return ((config as any).joins ?? []).some((join: any) => join?.source === 'workflow_runs'
+    && Array.isArray(join.columns) && join.columns.some((column: unknown) => isRunVariableColumnKey(column)))
+}
+
+export function assertReportSourceAccess(config: Partial<ReportConfig>, permissions: Iterable<string> | null | undefined): void {
+  if (!permissions) return
+  const granted = new Set(permissions)
+  const sources = [String(config.data_source ?? ''), ...((config as any).joins ?? []).map((j: any) => String(j?.source ?? ''))]
+  for (const source of sources) {
+    const needed = reportSourcePermission(source)
+    if (needed && !granted.has(needed)) throw new Error(`The ${source} source needs the '${needed}' permission`)
+  }
+  if (configReadsRunVariables(config) && !granted.has(WORKFLOW_VARIABLES_PERMISSION)) {
+    throw new Error(`Workflow variable columns need the '${WORKFLOW_VARIABLES_PERMISSION}' permission`)
+  }
+}
+
 export async function executeReportPreview(
   supabase: any,
   tenantId: string,
   config: Partial<ReportConfig>,
   scopedTableIds?: string[] | null,
+  permissions?: Iterable<string> | null,
+  /** maxRows: read up to this many rows instead of the config's row_limit (summary charts, lib/report-charts-server). */
+  options: { maxRows?: number } = {},
 ) {
   config = normalizeReportConfig(config)
+  const rowCap = (fallback: number) => (options.maxRows ? Math.max(1, Math.floor(options.maxRows)) : fallback)
   const dataSource = String(config.data_source ?? '')
   if (!dataSource) throw new Error('config.data_source is required')
+  assertReportSourceAccess(config, permissions)
 
-  const source = await resolveSource(supabase, dataSource, tenantId)
+  const source = await resolveSource(supabase, dataSource, tenantId, config.source_inputs)
   if (!source) throw new Error(`Unknown data source: ${dataSource}`)
 
   if (source.virtual && source.key === 'retention_policy_assignments') {
@@ -428,7 +625,7 @@ export async function executeReportPreview(
 
     return {
       source,
-      data: rows.slice(0, Math.min(Math.max(1, Number(config.row_limit) || 1000), MAX_RESULT_ROWS)),
+      data: rows.slice(0, rowCap(Math.min(Math.max(1, Number(config.row_limit) || 1000), MAX_RESULT_ROWS))),
       total: rows.length,
       available_columns: source.columns,
       joins: [] as ReportJoinConfig[],
@@ -436,9 +633,26 @@ export async function executeReportPreview(
   }
 
   const normalizedJoins = normalizeJoins(config.joins)
-  const joinSources = await Promise.all(normalizedJoins.map((join) => resolveSource(supabase, join.source, tenantId)))
+  const joinSources = await Promise.all(normalizedJoins.map((join) => resolveSource(supabase, join.source, tenantId, join.source_inputs)))
   const allSources = [source, ...joinSources.filter(Boolean) as ReportSource[]]
   const allColumns = buildJoinedReportColumns(source.columns, normalizedJoins, allSources)
+  // Variable columns a saved report names but the current definition no
+  // longer declares still read (blank when not stored).
+  const scopedKeys = [...new Set(referencedFields(config).filter((field) => isScopedVariableColumnKey(source.key, field)))]
+  for (const key of scopedKeys) {
+    if (!allColumns.some((column) => column.key === key)) allColumns.push({ key, label: key.slice(key.indexOf('.') + 1), type: 'text' })
+  }
+  normalizedJoins.forEach((join, index) => {
+    const joinSource = joinSources[index]
+    if (!joinSource) return
+    for (const column of join.columns ?? []) {
+      const key = `${join.alias}.${column}`
+      if (isScopedVariableColumnKey(joinSource.key, column) && !allColumns.some((candidate) => candidate.key === key)) {
+        allColumns.push({ key, label: `${join.alias}: ${column.slice(column.indexOf('.') + 1)}`, type: 'text', join: join.alias })
+      }
+    }
+  })
+  const scopedTypes = new Map(allColumns.filter((column) => scopedKeys.includes(column.key)).map((column) => [column.key, column.type]))
   const allowedKeys = new Set(allColumns.map((column) => column.key))
   const derivedKeys = getDerivedReportColumnKeys(config)
   const dynamicSeedKeys = new Set<string>([...derivedKeys])
@@ -461,7 +675,7 @@ export async function executeReportPreview(
     ? config.columns.filter((column): column is string => typeof column === 'string' && selectableKeys.has(column))
     : []
 
-  const requiredColumns = new Set<string>(selectedColumns)
+  const requiredColumns = new Set<string>([...selectedColumns, ...scopedKeys])
   if (Array.isArray(config.filters)) {
     for (const filter of config.filters) {
       if (filter?.field && typeof filter.field === 'string' && allowedKeys.has(filter.field) && isBaseFilterField(filter.field)) {
@@ -488,7 +702,19 @@ export async function executeReportPreview(
     }
   }
 
-  const limit = Math.min(Math.max(1, Number(config.row_limit) || 1000), MAX_RESULT_ROWS)
+  const limit = rowCap(Math.min(Math.max(1, Number(config.row_limit) || 1000), MAX_RESULT_ROWS))
+  // Variable filters PostgREST can apply on the JSON text path; the rest
+  // (number / date comparisons) run here, before grouping.
+  const isServerScopedFilter = (filter: ReportFilter) => isScopedVariableColumnKey(source.key, filter.field)
+    && SERVER_SCOPED_OPERATORS.has(filter.operator)
+    && !(scopedTypes.get(filter.field) === 'number' && filter.operator !== 'is_null' && filter.operator !== 'is_not_null' && filter.operator !== 'in' && filter.operator !== 'eq' && filter.operator !== 'neq')
+  const isClientScopedField = (field: string | undefined) => Boolean(field && isScopedVariableColumnKey(source.key, field))
+  // Rows filtered / sorted here: read the widest window so the row limit
+  // applies after them (as it does for database-side filters).
+  const needsWideFetch = (Array.isArray(config.filters) && config.filters.some((filter) => isClientScopedField(filter?.field) && !isServerScopedFilter(filter)))
+    || isClientScopedField(config.sort?.field)
+    || isClientScopedField(config.date_range?.field)
+  const fetchLimit = needsWideFetch ? Math.max(MAX_RESULT_ROWS, limit) : limit
   let result: any[] = []
 
   if (isReferenceReportSourceKey(source.key)) {
@@ -532,6 +758,20 @@ export async function executeReportPreview(
     for (const filter of Array.isArray(config.filters) ? config.filters : []) {
       if (!filter?.field || typeof filter.field !== 'string') continue
       if (filter.value && typeof filter.value === 'string' && filter.value.length > MAX_FILTER_VALUE_LENGTH) continue
+      if (isServerScopedFilter(filter)) {
+        const col = scopedFilterColumn(source.key, filter.field)
+        const text = (value: unknown) => (value == null ? '' : String(value))
+        switch (filter.operator) {
+          case 'eq': query = query.eq(col, text(filter.value)); break
+          case 'neq': query = query.neq(col, text(filter.value)); break
+          case 'like': query = query.like(col, `%${text(filter.value)}%`); break
+          case 'ilike': query = query.ilike(col, `%${text(filter.value)}%`); break
+          case 'in': query = query.in(col, (Array.isArray(filter.value) ? filter.value : [filter.value]).map(text)); break
+          case 'is_null': query = query.is(col, null); break
+          case 'is_not_null': query = query.not(col, 'is', null); break
+        }
+        continue
+      }
       if (!isBaseFilterField(filter.field)) continue
 
       const baseKey = filter.field.split('.')[0]
@@ -574,18 +814,33 @@ export async function executeReportPreview(
       query = query.order(source.defaultSort.field, { ascending: source.defaultSort.direction === 'asc' })
     }
 
-    query = query.limit(limit)
-
-    const { data, error } = await query
-    if (error) {
+    const fail = (error: any) => {
       const detail = [error.message, error.details, error.hint].filter(Boolean).join(' — ')
-      throw new Error(detail || 'Query failed')
+      return new Error(detail || 'Query failed')
     }
-
-    result = data ?? []
+    if (fetchLimit <= QUERY_PAGE_SIZE) {
+      const { data, error } = await query.limit(fetchLimit)
+      if (error) throw fail(error)
+      result = data ?? []
+    } else {
+      // PostgREST returns at most max_rows (1000) per request: read larger
+      // results page by page, with the row id as a tiebreaker so pages
+      // neither overlap nor skip rows.
+      if (source.columns.some((column) => column.key === 'id')) query = query.order('id', { ascending: true })
+      result = []
+      for (let from = 0; from < fetchLimit; from += QUERY_PAGE_SIZE) {
+        const to = Math.min(from + QUERY_PAGE_SIZE, fetchLimit) - 1
+        const { data, error } = await query.range(from, to)
+        if (error) throw fail(error)
+        const page = data ?? []
+        result.push(...page)
+        if (page.length < to - from + 1) break
+      }
+    }
     if (source.dynamic && source.table === 'custom_table_rows') {
       result = flattenDynamicRows(source, result)
     }
+    result = projectScopedColumns(source.key, result, scopedKeys)
   }
 
   if (normalizedJoins.length > 0) {
@@ -593,8 +848,15 @@ export async function executeReportPreview(
   }
 
   const clientSideFilters = Array.isArray(config.filters)
-    ? config.filters.filter((filter) => filter?.field && selectableKeys.has(filter.field) && (!allowedKeys.has(filter.field) || !isBaseFilterField(filter.field)))
+    ? config.filters.filter((filter) => filter?.field && selectableKeys.has(filter.field) && !isServerScopedFilter(filter) && (!allowedKeys.has(filter.field) || !isBaseFilterField(filter.field)))
     : []
+  // Filters on row fields (joined / variable columns) narrow the rows before
+  // grouping; filters on derived keys (COUNT_id, _count) filter the groups.
+  const rowFilters = clientSideFilters.filter((filter) => !derivedKeys.has(filter.field))
+  const groupFilters = clientSideFilters.filter((filter) => derivedKeys.has(filter.field))
+  if (rowFilters.length > 0) {
+    result = result.filter((row: any) => rowFilters.every((filter) => matchesTypedFilterValue(getValue(row, filter.field), filter, scopedTypes.get(filter.field))))
+  }
 
   if (config.date_range?.field && allowedKeys.has(config.date_range.field) && !isBaseFilterField(config.date_range.field)) {
     result = result.filter((row: any) => {
@@ -649,8 +911,8 @@ export async function executeReportPreview(
     }
   }
 
-  if (clientSideFilters.length > 0) {
-    result = result.filter((row: any) => clientSideFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
+  if (groupFilters.length > 0) {
+    result = result.filter((row: any) => groupFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
   }
 
   if (isReferenceReportSourceKey(source.key)) {
@@ -709,6 +971,8 @@ function summarizeSource(source: ReportSource) {
     virtual: Boolean(source.virtual),
     schema_flexible: Boolean(source.schemaFlexible),
     default_sort: source.defaultSort,
+    workflow_scoped: Boolean(source.workflowScoped),
+    workflow: source.workflow,
     columns: source.columns,
   }
 }
@@ -835,6 +1099,18 @@ export function buildSourceSpecificRecipes(source: ReportSource) {
   }
 }
 
+/** Well-formed workflow variable keys a config uses on its source / joined Workflow runs or Tasks. */
+function addScopedVariableKeys(allowedKeys: Set<string>, sourceKey: string, config: Partial<ReportConfig>, joins: ReportJoinConfig[]) {
+  for (const field of referencedFields(config)) {
+    if (isScopedVariableColumnKey(sourceKey, field)) allowedKeys.add(field)
+  }
+  for (const join of joins) {
+    for (const column of join.columns ?? []) {
+      if (isScopedVariableColumnKey(join.source, column)) allowedKeys.add(`${join.alias}.${column}`)
+    }
+  }
+}
+
 function buildStaticSelectableReportKeys(config: Partial<ReportConfig>) {
   const sourceKey = String(config.data_source ?? '')
   const dynamicPlaceholder = (key: string): ReportSource | null => {
@@ -870,6 +1146,7 @@ function buildStaticSelectableReportKeys(config: Partial<ReportConfig>) {
     .filter((candidate): candidate is ReportSource => Boolean(candidate))
   const joinedColumns = buildJoinedReportColumns(source.columns, joins, [source, ...joinSources])
   const allowedKeys = new Set(joinedColumns.map((column) => column.key))
+  addScopedVariableKeys(allowedKeys, source.key, config, joins)
   if (source.schemaFlexible) {
     for (const key of config.columns ?? []) if (typeof key === 'string') allowedKeys.add(key)
     for (const filter of config.filters ?? []) if (typeof filter?.field === 'string') allowedKeys.add(filter.field)
@@ -1008,20 +1285,27 @@ async function validateReportConfig(supabase: any, tenantId: string, config: Par
     return { errors, warnings, source: null as ReportSource | null, joinedColumns: [] as any[] }
   }
 
-  const source = await resolveSource(supabase, sourceKey, tenantId)
+  let source: ReportSource | undefined
+  try {
+    source = await resolveSource(supabase, sourceKey, tenantId, config.source_inputs)
+  } catch (error: any) {
+    errors.push(error?.message ?? `Could not load data source: ${sourceKey}`)
+    return { errors, warnings, source: null as ReportSource | null, joinedColumns: [] as any[] }
+  }
   if (!source) {
     errors.push(`Unknown data source: ${sourceKey}`)
     return { errors, warnings, source: null as ReportSource | null, joinedColumns: [] as any[] }
   }
 
   const joins = normalizeJoins(config.joins)
-  const joinSources = await Promise.all(joins.map((join) => resolveSource(supabase, join.source, tenantId)))
+  const joinSources = await Promise.all(joins.map((join) => resolveSource(supabase, join.source, tenantId, join.source_inputs).catch(() => undefined)))
   joins.forEach((join, index) => {
     if (!joinSources[index]) errors.push(`Unknown join source: ${join.source}`)
   })
   const allSources = [source, ...joinSources.filter(Boolean) as ReportSource[]]
   const joinedColumns = buildJoinedReportColumns(source.columns, joins, allSources)
   const allowedKeys = new Set(joinedColumns.map((column) => column.key))
+  addScopedVariableKeys(allowedKeys, source.key, config, joins)
   if (source.schemaFlexible) {
     for (const key of config.columns ?? []) if (typeof key === 'string') allowedKeys.add(key)
     for (const filter of config.filters ?? []) if (typeof filter?.field === 'string') allowedKeys.add(filter.field)
@@ -1029,6 +1313,7 @@ async function validateReportConfig(supabase: any, tenantId: string, config: Par
     for (const aggregation of config.aggregations ?? []) if (typeof aggregation?.field === 'string') allowedKeys.add(aggregation.field)
     if (typeof config.sort?.field === 'string') allowedKeys.add(config.sort.field)
     if (typeof config.date_range?.field === 'string') allowedKeys.add(config.date_range.field)
+    for (const chart of config.charts ?? []) for (const key of chartFields(chart)) allowedKeys.add(key)
   }
   joins.forEach((join, index) => {
     if (!joinSources[index]?.schemaFlexible) return
@@ -1051,6 +1336,12 @@ async function validateReportConfig(supabase: any, tenantId: string, config: Par
   for (const aggregation of config.aggregations ?? []) {
     if (aggregation.fn !== 'COUNT' && aggregation.field && !allowedKeys.has(aggregation.field)) {
       errors.push(`Unknown aggregation field: ${aggregation.field}`)
+    }
+  }
+
+  for (const chart of config.charts ?? []) {
+    for (const key of chartFields(chart)) {
+      if (!allowedKeys.has(key)) errors.push(`Chart "${chart.title}": unknown column ${key}`)
     }
   }
 
@@ -1177,10 +1468,12 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     sort_field: z.string().optional(),
     sort_direction: z.enum(['asc', 'desc']).optional(),
     limit: z.number().optional(),
+    workflow_id: z.string().optional().describe('workflow_runs / tasks: only this workflow\'s rows; its variables are columns vars.<name> (runs) / fields.<key> (tasks) — see reports_source_get'),
   }, async (args) => {
     try {
       const preview = await executeReportPreview(supabase, tenantId, {
         data_source: args.source,
+        source_inputs: args.workflow_id ? { workflow_id: args.workflow_id } : undefined,
         columns: [],
         filters: args.filters as any,
         group_by: args.group_by,
@@ -1188,7 +1481,7 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
         visualization: 'table',
         sort: args.sort_field ? { field: args.sort_field, direction: args.sort_direction ?? 'asc' } : undefined,
         row_limit: Math.min(args.limit ?? 100, 200),
-      }, ctx.scopes?.table_ids)
+      }, ctx.scopes?.table_ids, ctx.permissions ?? null)
       return mcpOk({ data: preview.data, count: preview.total, source: args.source, available_columns: preview.available_columns })
     } catch (error: any) {
       return mcpErr(error?.message ?? 'Failed to query report source')
@@ -1213,14 +1506,32 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     return mcpOk({ sources })
   })
 
-  server.tool('reports_source_get', 'Get a single report source with full column metadata, plus report-building helpers such as supported visualizations, chart palettes, and drill target templates. Use this to design a comprehensive custom report before saving it.', {
+  server.tool('reports_source_get', 'Get a single report source with full column metadata, plus report-building helpers such as supported visualizations, chart palettes, and drill target templates. Use this to design a comprehensive custom report before saving it. For workflow_runs or tasks, pass workflow_id to list that workflow\'s variables as typed columns.', {
     source: z.string().describe('Report source key, e.g. tasks or retention_policy_reviews'),
+    workflow_id: z.string().optional().describe('workflow_runs / tasks only: scope to this workflow and list its variables (inputs, task form fields, step outputs) as columns'),
   }, async (args) => {
-    const source = await resolveSource(supabase, args.source, tenantId)
+    if (args.workflow_id && ctx.permissions && !new Set(ctx.permissions).has(WORKFLOW_VARIABLES_PERMISSION)) {
+      return mcpErr(`Workflow variable columns need the '${WORKFLOW_VARIABLES_PERMISSION}' permission`)
+    }
+    let source: ReportSource | undefined
+    try {
+      source = await resolveSource(supabase, args.source, tenantId, args.workflow_id ? { workflow_id: args.workflow_id } : null)
+    } catch (error: any) {
+      return mcpErr(error?.message ?? 'Workflow not found')
+    }
     if (!source) return mcpErr(`Unknown data source: ${args.source}`)
     return mcpOk({
       source: summarizeSource(source),
-      source_inputs_supported: isReferenceReportSourceKey(source.key),
+      source_inputs_supported: isReferenceReportSourceKey(source.key) || Boolean(source.workflowScoped),
+      ...(source.workflowScoped
+        ? {
+            workflow_variables_guidance: {
+              instructions: source.key === 'workflow_runs'
+                ? 'Set config.source_inputs = { workflow_id } to report on one workflow\'s runs. Its variables are columns vars.<name> (inputs, Set Variable / step outputs), vars.task_data.<key> (task form fields), vars.form.<key> (Form submitted values) — usable in columns, filters, group_by, aggregations (SUM/AVG on number columns), sort and date_range. Values are stored when a run completes, fails or pauses; older runs show blanks. Needs the workflows.view permission.'
+                : 'Set config.source_inputs = { workflow_id } to report on the tasks one workflow created. Their form fields are columns fields.<key>.',
+            },
+          }
+        : {}),
       supported_visualizations: ['table', 'bar', 'line', 'area', 'pie', 'radar', 'scatter', 'funnel', 'stacked-bar', 'horizontal-bar'],
       supported_filter_operators: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'like', 'ilike', 'in', 'is_null', 'is_not_null'],
       supported_aggregations: ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX'],
@@ -1273,11 +1584,14 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     })
   })
 
-  server.tool('reports_preview', 'Validate and preview a full custom report configuration before saving it. Supports the same config shape as saved reports, including joins, filters, group_by, aggregations, date ranges, chart settings, and drill targets.', {
-    config: z.string().describe('JSON string matching the saved report config shape, including data_source, columns, filters, joins, visualization, sort, date_range, row_limit, chart_style, and drill_target. For grouped reports, reference derived output keys such as COUNT_id in columns/sort instead of source-prefixed aliases like workflow_runs._count.'),
+  server.tool('reports_preview', 'Validate and preview a full custom report configuration before saving it. Supports the same config shape as saved reports, including joins, filters, group_by, aggregations, date ranges, chart settings, summary charts, and drill targets. When the config has summary charts (config.charts), each chart\'s aggregated series is returned too.', {
+    config: z.string().describe('JSON string matching the saved report config shape, including data_source, columns, filters, joins, visualization, sort, date_range, row_limit, chart_style, charts, and drill_target. For grouped reports, reference derived output keys such as COUNT_id in columns/sort instead of source-prefixed aliases like workflow_runs._count.'),
+    timezone: z.string().optional().describe('IANA time zone for summary chart day / week / month / weekday / hour buckets (default UTC)'),
   }, async (args) => {
     const parsedConfig = parseJsonString<ReportConfig>(args.config, 'config')
     if (parsedConfig && 'error' in parsedConfig) return mcpErr(parsedConfig.error)
+    const chartIssues = reportChartIssues((parsedConfig as any)?.charts)
+    if (chartIssues.length > 0) return mcpErr(`Report config is invalid: ${chartIssues.join("; ")}`)
     const config = normalizeReportConfig(parsedConfig ?? {}) as ReportConfig
 
     const validation = await validateReportConfig(supabase, tenantId, config)
@@ -1285,8 +1599,14 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
       return mcpErr(`Report config is invalid: ${validation.errors.join('; ')}`)
     }
 
-    const preview = await executeReportPreview(supabase, tenantId, config, ctx.scopes?.table_ids)
+    const [preview, charts] = await Promise.all([
+      executeReportPreview(supabase, tenantId, config, ctx.scopes?.table_ids, ctx.permissions ?? null),
+      config.charts?.length
+        ? executeReportCharts(supabase, tenantId, config, { scopedTableIds: ctx.scopes?.table_ids, permissions: ctx.permissions ?? null, timezone: args.timezone })
+        : Promise.resolve(null),
+    ])
     return mcpOk({
+      ...(charts ? { charts } : {}),
       preview: {
         source: summarizeSource(preview.source),
         total_rows: preview.total,
@@ -1321,9 +1641,9 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
   server.tool('reports_list', 'List saved custom reports that MCP can inspect or clone.', {
     limit: z.number().optional(),
   }, async (args) => {
-    const { data, error } = await (supabase as any).from('reports')
+    const { data, error } = await scopeReportRead((supabase as any).from('reports')
       .select('id, name, description, category, is_shared, config, updated_at')
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', tenantId), ctx.actingUserId)
       .order('updated_at', { ascending: false }).limit(Math.min(args.limit ?? 50, 200))
     if (error) return mcpErr(error.message)
     return mcpOk({ reports: data ?? [] })
@@ -1332,10 +1652,10 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
   server.tool('reports_get', 'Get a saved report with full configuration. Useful before updating or cloning a report through MCP.', {
     report_id: z.string().describe('Report ID'),
   }, async (args) => {
-    const { data, error } = await (supabase as any).from('reports')
+    const { data, error } = await scopeReportRead((supabase as any).from('reports')
       .select('*')
       .eq('id', args.report_id)
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', tenantId), ctx.actingUserId)
       .single()
     if (error || !data) return mcpErr('Report not found')
     return mcpOk({ report: summarizeReport(data) })
@@ -1350,6 +1670,8 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
   }, async (args) => {
     const parsedConfig = parseJsonString<ReportConfig>(args.config, 'config')
     if (parsedConfig && 'error' in parsedConfig) return mcpErr(parsedConfig.error)
+    const chartIssues = reportChartIssues((parsedConfig as any)?.charts)
+    if (chartIssues.length > 0) return mcpErr(`Report config is invalid: ${chartIssues.join("; ")}`)
     const config = normalizeReportConfig(parsedConfig ?? {}) as ReportConfig
     const validation = await validateReportConfig(supabase, tenantId, config)
     if (validation.errors.length > 0) {
@@ -1383,6 +1705,8 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     if (args.config !== undefined) {
       const parsedConfig = parseJsonString<ReportConfig>(args.config, 'config')
       if (parsedConfig && 'error' in parsedConfig) return mcpErr(parsedConfig.error)
+      const chartIssues = reportChartIssues((parsedConfig as any)?.charts)
+      if (chartIssues.length > 0) return mcpErr(`Report config is invalid: ${chartIssues.join("; ")}`)
       const config = normalizeReportConfig(parsedConfig ?? {}) as ReportConfig
       const validation = await validateReportConfig(supabase, tenantId, config)
       if (validation.errors.length > 0) {
@@ -1394,10 +1718,13 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
       }
     }
     if (Object.keys(updates).length === 0) return mcpErr('No fields to update')
+    const shareDenied = reportShareDenied(updates, ctx.permissions)
+    if (shareDenied) return mcpErr(shareDenied)
     const warnings = Array.isArray(updates._mcp_warnings) ? updates._mcp_warnings : []
     delete updates._mcp_warnings
-    const { error } = await (supabase as any).from('reports').update(updates).eq('id', args.report_id).eq('tenant_id', tenantId)
+    const { data: changed, error } = await scopeReportWrite((supabase as any).from('reports').update(updates).eq('id', args.report_id).eq('tenant_id', tenantId), ctx.actingUserId).select('id')
     if (error) return mcpErr(error.message)
+    if (!changed?.length) return mcpErr('Report not found')
     return mcpOk({ updated: true, report_id: args.report_id, warnings })
   })
 
@@ -1429,8 +1756,9 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
   server.tool('reports_delete', 'Delete a saved report by ID.', {
     report_id: z.string().describe('Report ID'),
   }, async (args) => {
-    const { error } = await (supabase as any).from('reports').delete().eq('id', args.report_id).eq('tenant_id', tenantId)
+    const { data: removed, error } = await scopeReportWrite((supabase as any).from('reports').delete().eq('id', args.report_id).eq('tenant_id', tenantId), ctx.actingUserId).select('id')
     if (error) return mcpErr(error.message)
+    if (!removed?.length) return mcpErr('Report not found')
     return mcpOk({ deleted: true, report_id: args.report_id })
   })
 }

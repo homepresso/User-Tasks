@@ -2,21 +2,38 @@
 
 import { use, useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { serverQuery, serverRead } from '@/lib/server-read'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { PageHeader } from '@/components/ui/page-header'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
-import { ChevronLeft, Search, Bot, ArrowRight, Check, X, Clock } from 'lucide-react'
-import { formatRelativeDate } from '@/lib/utils'
-import { RunStatusBadge } from '@/components/ui/status-badge'
-import { StatCard } from '@/components/ui/stat-card'
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, TableSkeleton } from '@/components/ui/table'
+import { StatusPill } from '@/components/ui/badge'
+import { Tooltip } from '@/components/ui/tooltip'
+import { Pagination } from '@/components/ui/list-controls'
+import { Bot, ChevronRight } from 'lucide-react'
+import { formatCost } from '@/lib/agents/pricing'
+import { StatCard, StatGrid } from '@/components/ui/stat-card'
+import { formatCount } from '@/lib/format/number'
+import { plural } from '@/lib/format/plural'
+import { formatDurationMs } from '@/lib/format/duration'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
 
 const PAGE_SIZE = 25
 
+const STATUS_OPTIONS = [
+  { value: '', label: 'All statuses' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'running', label: 'Running' },
+  { value: 'awaiting_approval', label: 'Awaiting approval' },
+]
+
 export default function AgentRunsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = use(params)
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [page, setPage] = useState(0)
@@ -40,8 +57,6 @@ export default function AgentRunsPage({ params }: { params: Promise<{ id: string
     )
   }, [runsData, search])
 
-  const totalPages = runsData ? Math.max(1, Math.ceil(runsData.total / PAGE_SIZE)) : 1
-
   // Quick stats
   const { data: stats } = useQuery({
     queryKey: ['agent-run-stats', agentId],
@@ -52,123 +67,104 @@ export default function AgentRunsPage({ params }: { params: Promise<{ id: string
     return <PageSkeleton variant="list" />
   }
 
+  const agentName = (agent as any)?.name ?? 'Agent'
+
   return (
-    <div className="space-y-4 page-transition">
-      <div>
-        <Link href={`/agents/${agentId}`} className="inline-flex items-center gap-1 text-xs mb-1 hover:underline" style={{ color: 'var(--theme-muted-text)' }}>
-          <ChevronLeft size={12} /> Back to agent
-        </Link>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-          {(agent as any)?.name ?? 'Agent'} — Runs
-        </h1>
-        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-          {runsData?.total ?? 0} total execution{(runsData?.total ?? 0) === 1 ? '' : 's'}
-        </p>
-      </div>
+    <div className="page-transition">
+      <PageHeader
+        breadcrumbs={[{ label: 'Agents', href: '/agents' }, { label: agentName, href: `/agents/${agentId}` }, { label: 'Runs' }]}
+        title="Runs"
+        description={<span className="num">{plural(runsData?.total ?? 0, 'execution')} of {agentName}</span>}
+      />
 
-      {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Total Runs" value={String(stats.total)} />
-          <StatCard label="Completed" value={String(stats.completed)} accent="var(--theme-success)" />
-          <StatCard label="Failed" value={String(stats.failed)} accent="var(--theme-danger)" />
-          <StatCard label="Avg Duration" value={`${(stats.avgDuration / 1000).toFixed(1)}s`} />
-        </div>
-      )}
+      <div className="space-y-4">
+        {/* Stats */}
+        {stats && (
+          <StatGrid>
+            <StatCard label="Total runs" value={formatCount(stats.total)} />
+            <StatCard label="Completed" value={formatCount(stats.completed)} tone="success" />
+            <StatCard label="Failed" value={formatCount(stats.failed)} tone={stats.failed ? 'danger' : undefined} />
+            <StatCard label="Avg duration" value={formatDurationMs(stats.avgDuration)} />
+          </StatGrid>
+        )}
 
-      {/* Toolbar */}
-      <Card className="!p-4">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search inputs or errors..." className="pl-9" />
-          </div>
-          <select
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput value={search} onValueChange={setSearch} placeholder="Search inputs or errors…" aria-label="Search runs" wrapperClassName="min-w-[220px] flex-1" />
+          <Select
+            aria-label="Status"
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-          >
-            <option value="">All statuses</option>
-            <option value="completed">Completed</option>
-            <option value="failed">Failed</option>
-            <option value="running">Running</option>
-          </select>
+            options={STATUS_OPTIONS}
+            wrapperClassName="w-auto"
+          />
         </div>
-      </Card>
 
-      {/* List */}
-      <Card className="!p-0 overflow-hidden">
-        {isLoading ? (
-          <div className="py-12 text-center text-sm" style={{ color: 'var(--theme-muted-text)' }}>Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div className="py-12 text-center">
-            <Bot size={32} className="mx-auto mb-2" style={{ color: 'var(--theme-muted-text)' }} />
-            <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-              {search || statusFilter ? 'No runs match your filters' : 'No runs yet'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="grid text-[10px] font-semibold uppercase tracking-wider select-none px-4 py-2"
-              style={{
-                gridTemplateColumns: '90px 1fr 80px 100px 80px 100px 32px',
-                backgroundColor: 'var(--theme-row-highlight)',
-                color: 'var(--theme-muted-text)',
-                borderBottom: '1px solid var(--theme-surface-border)',
-              }}
-            >
-              <div>Status</div>
-              <div>Input</div>
-              <div>Iter</div>
-              <div>Tokens</div>
-              <div>Time</div>
-              <div>Started</div>
-              <div />
-            </div>
-            {filtered.map((run: any) => (
-              <Link
-                key={run.id}
-                href={`/agents/${agentId}/runs/${run.id}`}
-                className="grid items-center px-4 py-3 text-xs transition-colors hover:bg-[var(--theme-row-highlight)]"
-                style={{
-                  gridTemplateColumns: '90px 1fr 80px 100px 80px 100px 32px',
-                  borderBottom: '1px solid var(--theme-surface-border)',
-                }}
-              >
-                <RunStatusBadge status={run.status} />
-                <div className="truncate pr-4" style={{ color: 'var(--theme-card-text)' }}>
-                  {run.input_message?.slice(0, 120) ?? '—'}
-                </div>
-                <div style={{ color: 'var(--theme-muted-text)' }}>{run.iterations ?? 0}</div>
-                <div className="font-mono" style={{ color: 'var(--theme-muted-text)' }}>
-                  {(run.total_tokens ?? 0).toLocaleString()}
-                </div>
-                <div className="font-mono" style={{ color: 'var(--theme-muted-text)' }}>
-                  {run.duration_ms != null ? `${(run.duration_ms / 1000).toFixed(1)}s` : '—'}
-                </div>
-                <div style={{ color: 'var(--theme-muted-text)' }}>
-                  {formatRelativeDate(run.started_at ?? run.created_at)}
-                </div>
-                <ArrowRight size={12} style={{ color: 'var(--theme-muted-text)' }} />
-              </Link>
-            ))}
-          </>
-        )}
+        {/* List */}
+        <div>
+          <Table>
+            <THead>
+              <tr>
+                <TH>Status</TH>
+                <TH>Input</TH>
+                <TH numeric>Iterations</TH>
+                <TH numeric>Tokens</TH>
+                <TH numeric>Cost</TH>
+                <TH numeric>Duration</TH>
+                <TH>Started</TH>
+                <TH className="w-8"><span className="sr-only">Open</span></TH>
+              </tr>
+            </THead>
+            <TBody>
+              {isLoading ? (
+                <TableSkeleton columns={8} />
+              ) : filtered.length === 0 ? (
+                <TableEmpty
+                  colSpan={8}
+                  size="sm"
+                  icon={Bot}
+                  variant={search || statusFilter ? 'no-results' : 'first-run'}
+                  title={search || statusFilter ? 'No runs match your filters' : 'No runs yet'}
+                />
+              ) : filtered.map((run: any) => {
+                const started = run.started_at ?? run.created_at
+                return (
+                  <TR key={run.id} interactive onClick={() => router.push(`/agents/${agentId}/runs/${run.id}`)}>
+                    <TD><StatusPill status={run.status} /></TD>
+                    <TD className="max-w-0 w-[40%]">
+                      <Link href={`/agents/${agentId}/runs/${run.id}`} className="block truncate text-fg hover:underline" onClick={(e) => e.stopPropagation()}>
+                        {run.input_message?.slice(0, 120) ?? '—'}
+                      </Link>
+                    </TD>
+                    <TD numeric className="text-fg-muted">{formatCount(run.iterations ?? 0)}</TD>
+                    <TD numeric className="text-fg-muted">{formatCount(run.total_tokens ?? 0)}</TD>
+                    <TD numeric className="text-fg-muted">
+                      {run.cost_status === 'priced'
+                        ? formatCost(Number(run.cost_amount), run.cost_currency)
+                        : <Tooltip content="No price for this model"><span>—</span></Tooltip>}
+                    </TD>
+                    <TD numeric className="text-fg-muted">{run.duration_ms != null ? formatDurationMs(run.duration_ms) : '—'}</TD>
+                    <TD className="text-xs text-fg-muted">
+                      <Tooltip content={formatAbsolute(started)}>
+                        <span className="num">{formatRelative(started)}</span>
+                      </Tooltip>
+                    </TD>
+                    <TD className="text-fg-muted"><ChevronRight size={14} aria-hidden="true" /></TD>
+                  </TR>
+                )
+              })}
+            </TBody>
+          </Table>
 
-        {(runsData?.total ?? 0) > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-2 border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-              Page {page + 1} of {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>Previous</Button>
-              <Button size="sm" variant="outline" disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
-            </div>
-          </div>
-        )}
-      </Card>
+          <Pagination
+            page={page + 1}
+            pageSize={PAGE_SIZE}
+            total={runsData?.total ?? 0}
+            onPageChange={(p) => setPage(Math.max(0, p - 1))}
+            noun="runs"
+          />
+        </div>
+      </div>
     </div>
   )
 }
-

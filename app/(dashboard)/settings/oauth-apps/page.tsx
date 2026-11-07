@@ -15,7 +15,7 @@ export default function OAuthAppsPage() {
   })
 
   if (!can('settings.manage_api_keys')) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
 
   const clients = data ?? []
@@ -24,7 +24,7 @@ export default function OAuthAppsPage() {
     <div className="max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">OAuth Apps</h1>
-        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs mt-1 text-fg-muted">
           Register OAuth 2.0 clients so external services can obtain scoped access tokens for your workspace API.
         </p>
       </div>

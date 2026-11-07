@@ -33,6 +33,8 @@ export interface DirectoryConnectionSummary {
   orgName: string | null
   syncGroups: boolean
   autoProvision: boolean
+  importOrgUnits: boolean
+  importProfiles: boolean
   lastSyncAt: string | null
   lastSyncStats: Record<string, number> | null
   isEnabled: boolean
@@ -94,6 +96,8 @@ export async function getDirectorySyncStatus(): Promise<{
     orgName: c.org_name,
     syncGroups: c.sync_groups,
     autoProvision: c.auto_provision,
+    importOrgUnits: c.import_org_units,
+    importProfiles: c.import_profiles,
     lastSyncAt: c.last_sync_at,
     lastSyncStats: c.last_sync_stats,
     isEnabled: c.enabled,
@@ -120,6 +124,9 @@ export interface ConnectInput {
   credentials?: Record<string, unknown>
   syncGroups: boolean
   autoProvision: boolean
+  /** Default true for a new connection. */
+  importOrgUnits?: boolean
+  importProfiles?: boolean
 }
 
 export async function connectDirectory(input: ConnectInput): Promise<ActionResult<{ orgName: string | null; test: LdapTestResult | null }>> {
@@ -130,6 +137,8 @@ export async function connectDirectory(input: ConnectInput): Promise<ActionResul
       credentials: input.credentials,
       sync_groups: Boolean(input.syncGroups),
       auto_provision: Boolean(input.autoProvision),
+      ...(input.importOrgUnits !== undefined ? { import_org_units: Boolean(input.importOrgUnits) } : {}),
+      ...(input.importProfiles !== undefined ? { import_profiles: Boolean(input.importProfiles) } : {}),
     })
     return { orgName: result.connection.org_name, test: result.test ?? null }
   })
@@ -137,7 +146,7 @@ export async function connectDirectory(input: ConnectInput): Promise<ActionResul
 
 export async function updateDirectoryConnection(
   provider: DirectoryProviderId,
-  input: { settings?: Record<string, unknown>; credentials?: Record<string, unknown>; syncGroups?: boolean; autoProvision?: boolean },
+  input: { settings?: Record<string, unknown>; credentials?: Record<string, unknown>; syncGroups?: boolean; autoProvision?: boolean; importOrgUnits?: boolean; importProfiles?: boolean },
 ): Promise<ActionResult<{ changed: boolean }>> {
   return run(async () => {
     const result = await directory.updateDirectoryConnection(await fromSession(), provider, {
@@ -145,6 +154,8 @@ export async function updateDirectoryConnection(
       credentials: input.credentials,
       ...(input.syncGroups !== undefined ? { sync_groups: input.syncGroups } : {}),
       ...(input.autoProvision !== undefined ? { auto_provision: input.autoProvision } : {}),
+      ...(input.importOrgUnits !== undefined ? { import_org_units: input.importOrgUnits } : {}),
+      ...(input.importProfiles !== undefined ? { import_profiles: input.importProfiles } : {}),
     })
     return { changed: result.changed }
   })
@@ -152,7 +163,7 @@ export async function updateDirectoryConnection(
 
 export async function updateDirectoryOptions(
   provider: DirectoryProviderId,
-  options: { syncGroups?: boolean; autoProvision?: boolean },
+  options: { syncGroups?: boolean; autoProvision?: boolean; importOrgUnits?: boolean; importProfiles?: boolean },
 ): Promise<ActionResult<{ changed: boolean }>> {
   return updateDirectoryConnection(provider, options)
 }

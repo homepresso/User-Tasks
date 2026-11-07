@@ -94,3 +94,21 @@ export function getRetentionStatus(params: {
 
   return { mode: 'none', label: 'No retention policy', tone: 'neutral' }
 }
+
+/**
+ * A form's retention status: its policy governs the submissions, so an
+ * interval purge is rolling ("older than 90 days") rather than one date;
+ * the other modes read like any asset's.
+ */
+export function getFormRetentionStatus(params: { policy?: RetentionPolicy | null; appliedAt?: string | null; createdAt?: string | null }): RetentionStatus {
+  const { policy } = params
+  if (policy?.policy_mode === 'purge_on' && policy.duration_value && policy.duration_unit) {
+    const unit = policy.duration_value === 1 ? policy.duration_unit.replace(/s$/, '') : policy.duration_unit
+    return { mode: 'purge_on', label: `Submissions older than ${policy.duration_value} ${unit} are purged`, tone: 'success' }
+  }
+  if (policy?.policy_mode === 'purge_on_exact_date' && policy.exact_date) {
+    const status = getRetentionStatus(params)
+    return { ...status, label: status.label.replace(/^Purge/, 'Purge of earlier submissions') }
+  }
+  return getRetentionStatus(params)
+}

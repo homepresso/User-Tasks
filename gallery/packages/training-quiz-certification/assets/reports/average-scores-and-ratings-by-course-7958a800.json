@@ -1,0 +1,43 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "7958a800-b143-5c7c-80f0-fc0fbd6830ae",
+  "asset": {
+    "id": "7958a800-b143-5c7c-80f0-fc0fbd6830ae",
+    "name": "Average scores and ratings by course",
+    "description": "Average quiz score (%), trainer rating and content rating per course from the quiz runs (workflow variables).",
+    "category": "Training",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "9e43e668-3f2e-5fd5-a94b-daaaca6213bd"
+      },
+      "columns": [
+        "vars.course_code",
+        "AVG_vars.score_pct",
+        "AVG_vars.form.trainer_rating",
+        "AVG_vars.form.content_rating"
+      ],
+      "group_by": [
+        "vars.course_code"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.score_pct"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.form.trainer_rating"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.form.content_rating"
+        }
+      ],
+      "visualization": "table"
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "title": "Identity document capture (KYC) with redaction for storage",
+  "summary": "Customers upload an ID photo and a selfie: the document is read, checked by rules, the number blacked out for storage, and a person compares the photos and decides.",
+  "description": "Identity document capture starts from a form page where the customer enters their name and date of birth, picks the document type and uploads a photo of the ID and a selfie (the phone camera opens).\n\nAnalyze Image reads the printed fields (name, date of birth, document number, expiry, issuing region) and returns face boxes; the selfie is checked for exactly one face. There is no face recognition or face matching anywhere in this package: the automated checks only compare the text with the form (a Regex step for the number format, conditions for name and date of birth) and the ID document checks decision table turns them into a result and a flag for the reviewer.\n\nRedact Image blacks out the ID number on a copy of the document for storage. The reviewer sees the extracted fields next to the form, opens the original photos (restricted to the review) and compares the selfie with the ID photo themselves, then verifies, asks for new documents or rejects. Only the masked fields and the redacted copy go into the Verified identities table, with a retention policy.",
+  "trigger": "form",
+  "entry_workflow": "8d13afbe-59bf-5758-a8d7-3c9d58f63c9d",
+  "entry_form": "42109ff1-2d9f-507e-94cf-576c57e3e465",
+  "start": "Starts from a form page: send customers the Verify your identity form (/f/<id>) during onboarding.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "KYC",
+    "identity verification",
+    "OCR",
+    "redaction",
+    "onboarding",
+    "media"
+  ],
+  "needs": [
+    "media_ai",
+    "assignees",
+    "email"
+  ],
+  "optional_needs": [],
+  "systems": [
+    "Google Gemini"
+  ],
+  "setup": [
+    "Google Gemini (media AI): paste your Gemini API key. It reads the document text and finds face and text boxes; it never identifies or matches faces.",
+    "Assignees: pick the KYC reviewer.",
+    "Adjust the ID document checks and the Regex pattern to the documents you accept; set the \"Verified identities: 5 years\" retention policy to your record-keeping rule.",
+    "Original uploads stay as restricted form attachments: purge them on your schedule (form files retention) once the review is done."
+  ],
+  "steps": [
+    {
+      "title": "ID photo and selfie",
+      "body": "The customer fills in the themed form and uploads both photos."
+    },
+    {
+      "title": "Read the document",
+      "body": "Analyze Image extracts the printed fields and face boxes; the selfie is checked for one face. No face recognition."
+    },
+    {
+      "title": "Rule checks",
+      "body": "A Regex checks the number format, conditions compare name and date of birth with the form, and the ID document checks decision table sets the result and a flag."
+    },
+    {
+      "title": "Redact for storage",
+      "body": "Redact Image blacks out the document number on a copy; the number is kept masked to its last four characters."
+    },
+    {
+      "title": "Human review",
+      "body": "The reviewer compares the selfie with the ID photo themselves and verifies, requests new documents or rejects."
+    },
+    {
+      "title": "Keep only what is needed",
+      "body": "Verified identities stores the masked fields and the redacted copy under a retention policy; the customer is emailed."
+    }
+  ],
+  "sample_input": {
+    "full_name": "Alex Sample",
+    "date_of_birth": "1980-07-04",
+    "email": "alex.sample@example.com",
+    "document_type": "Driver license",
+    "consent": true
+  },
+  "expect": "waiting",
+  "icon": "id-card",
+  "verify_mocks": {
+    "uploads": {
+      "id_photo": [
+        "id-card.png"
+      ],
+      "selfie": [
+        "selfie.png"
+      ]
+    },
+    "media": {
+      "answers": {
+        "full_name": "ALEX SAMPLE",
+        "date_of_birth": "1980-07-04",
+        "document_number": "078-05-1120",
+        "expiry_date": "2030-07-04",
+        "issuing_region": "Sample State"
+      }
+    },
+    "expect_outputs": [
+      "redacted_id_file",
+      "id_fields.document_number",
+      "number_masked",
+      "result"
+    ]
+  },
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-30",
+      "notes": "First release."
+    }
+  ],
+  "category": "media-evidence",
+  "id": "e713fc45-f619-52a7-83c5-2846c1f02477",
+  "slug": "kyc-id-document-redaction"
+}

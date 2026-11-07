@@ -3,48 +3,50 @@
 import { useMemberships } from "@/hooks/use-memberships"
 import { Home } from "lucide-react"
 import { workspaceInitials } from "@/lib/workspace-memberships"
+import { StatusPill } from "@/components/ui/badge"
+
+function brand(branding: unknown): React.CSSProperties | undefined {
+  const color = (branding as { primary_color?: unknown } | null)?.primary_color
+  return typeof color === "string" ? { backgroundColor: color, color: "white" } : undefined
+}
 
 export function OrgList() {
   const { data: memberships, isLoading } = useMemberships()
 
   if (isLoading) {
-    return <p className="text-sm text-gray-500">Loading organizations...</p>
+    return <p className="text-sm text-fg-muted">Loading organizations…</p>
   }
 
   if (!memberships?.length) {
-    return <p className="text-sm text-gray-500">No organizations.</p>
+    return <p className="text-sm text-fg-muted">You aren&apos;t a member of any organization.</p>
   }
 
   return (
-    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+    <div className="divide-y divide-border-subtle rounded-lg border border-border bg-panel">
       {memberships.map((m) => (
         <div
           key={m.id}
-          className="flex items-center justify-between py-3"
+          className="flex items-center justify-between px-4 py-3"
         >
           <div className="flex items-center gap-3">
             <span
-              className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white"
-              style={{
-                backgroundColor:
-                  (m.tenant.branding as any)?.primary_color ?? "#5F6B7A",
-              }}
+              className="flex size-8 items-center justify-center rounded-md bg-muted text-xs font-semibold text-fg"
+              // Data-driven: the workspace's own brand colour.
+              style={brand(m.tenant.branding)}
             >
               {workspaceInitials(m.tenant.name)}
             </span>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+              <p className="flex items-center gap-1.5 text-sm font-medium text-fg">
                 {m.tenant.name}
                 {m.is_home && (
-                  <Home size={12} className="text-gray-400" />
+                  <Home className="size-3.5 text-fg-muted" aria-label="Home workspace" />
                 )}
               </p>
-              <p className="text-xs text-gray-500 capitalize">{m.role}</p>
+              <p className="text-xs capitalize text-fg-muted">{m.role}</p>
             </div>
           </div>
-          <span className="text-xs text-gray-400">
-            {m.is_active ? "Active" : "Inactive"}
-          </span>
+          <StatusPill status={m.is_active ? "active" : "inactive"} />
         </div>
       ))}
     </div>

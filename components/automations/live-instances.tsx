@@ -16,14 +16,23 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, ChevronLeft, GitBranch, Loader2, MoveRight, Plus, X, XCircle, AlertTriangle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ChevronLeft, GitBranch, Loader2, MoveRight, Plus, XCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge, CountBadge, StatusPill, Tag } from '@/components/ui/badge'
+import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table'
+import { Tooltip } from '@/components/ui/tooltip'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { serverRead } from '@/lib/server-read'
 import { usePermissions } from '@/lib/permissions-context'
-import { formatRelativeDate } from '@/lib/utils'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { plural } from '@/lib/format/plural'
 import { NODE_CATALOG, type WorkflowEdge, type WorkflowNode } from '@/lib/workflow-schema'
 import type { RunOverlay } from '@/lib/workflow-run-overlay'
 import { RuntimeCanvas } from './runtime-canvas'
@@ -68,32 +77,25 @@ export function NodeTypeIcon({ type, size = 12 }: { type: string | null | undefi
   )
 }
 
-function Overlay({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
+/** The panel and the wizard: a Dialog (Esc / outside click / ✕ call `onClose`; pass a no-op while busy). */
+function Overlay({ children, onClose, wide, title, subtitle }: { children: React.ReactNode; onClose: () => void; wide?: boolean; title: string; subtitle?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--theme-overlay)' }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={`w-full ${wide ? 'max-w-4xl' : 'max-w-2xl'} max-h-[85vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden`}
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <DialogContent
+        size={wide ? 'xl' : 'lg'}
+        className="max-h-[85vh]"
+        title={<span className="flex items-center gap-2"><GitBranch size={16} className="text-fg-muted" aria-hidden="true" />{title}</span>}
+        description={subtitle}
+      >
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function Header({ title, subtitle, onClose }: { title: string; subtitle?: string; onClose: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-5 py-3 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <GitBranch size={15} style={{ color: 'var(--theme-primary-text)' }} />
-          <span className="text-sm font-semibold">{title}</span>
-        </div>
-        {subtitle && <p className="text-[11px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>{subtitle}</p>}
-      </div>
-      <button onClick={onClose} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }} aria-label="Close">
-        <X size={18} />
-      </button>
-    </div>
-  )
+/** Small "Live" marker for the published version. */
+function LiveMarker() {
+  return <Badge tone="success" dot>Live</Badge>
 }
 
 // ─── Live instances panel ───
@@ -139,16 +141,16 @@ export function LiveInstancesPanel({ workflowId, initialVersionId, onClose }: { 
   }
 
   return (
-    <Overlay onClose={onClose} wide>
-      <Header
-        title="Live instances"
-        subtitle={data ? `${data.total} waiting or paused run${data.total === 1 ? '' : 's'}${data.on_older_versions ? ` · ${data.on_older_versions} on older versions` : ''}` : undefined}
-        onClose={onClose}
-      />
-      <div className="flex-1 overflow-y-auto p-5 space-y-3">
+    <Overlay
+      onClose={onClose}
+      wide
+      title="Live instances"
+      subtitle={data ? `${plural(data.total, 'waiting or paused run', 'waiting or paused runs')}${data.on_older_versions ? ` · ${data.on_older_versions} on older versions` : ''}` : undefined}
+    >
+      <DialogBody className="space-y-3">
         {error && <InlineNotice tone="error" message={error} />}
         {!data && !error && (
-          <div className="flex items-center justify-center py-10"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--theme-primary-text)' }} /></div>
+          <div className="flex items-center justify-center py-10 text-fg-muted"><Loader2 size={20} className="animate-spin" aria-label="Loading" /></div>
         )}
         {data && (
           <>
@@ -161,46 +163,44 @@ export function LiveInstancesPanel({ workflowId, initialVersionId, onClose }: { 
             </div>
 
             {instances.length === 0 ? (
-              <p className="text-sm py-8 text-center" style={{ color: 'var(--theme-muted-text)' }}>No live instances{versionFilter ? ' on this version' : ''}.</p>
+              <EmptyState size="sm" icon={GitBranch} title={`No live instances${versionFilter ? ' on this version' : ''}`} />
             ) : (
-              <div className="rounded-xl border overflow-x-auto" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                      <th className="w-8 px-3 py-2 text-left">
-                        <input type="checkbox" aria-label="Select all" checked={allSelected} disabled={!canMigrate}
-                          onChange={() => setSelected(allSelected ? new Set() : new Set(instances.map((i) => i.run_id)))} />
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium">Instance</th>
-                      <th className="px-3 py-2 text-left font-medium">Version</th>
-                      <th className="px-3 py-2 text-left font-medium">Current node</th>
-                      <th className="px-3 py-2 text-left font-medium">Waiting since</th>
-                      <th className="px-3 py-2 text-left font-medium">Assignee</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {instances.map((i) => (
-                      <InstanceRow key={i.run_id} instance={i} publishedVersionId={data.published_version_id} checked={selected.has(i.run_id)} disabled={!canMigrate}
-                        onToggle={() => setSelected((prev) => { const next = new Set(prev); if (next.has(i.run_id)) next.delete(i.run_id); else next.add(i.run_id); return next })} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table>
+                <THead>
+                  <tr>
+                    <TH className="w-8">
+                      <Checkbox aria-label="Select all" checked={allSelected} disabled={!canMigrate}
+                        onChange={() => setSelected(allSelected ? new Set() : new Set(instances.map((i) => i.run_id)))} />
+                    </TH>
+                    <TH>Instance</TH>
+                    <TH>Version</TH>
+                    <TH>Current node</TH>
+                    <TH>Waiting since</TH>
+                    <TH>Assignee</TH>
+                  </tr>
+                </THead>
+                <TBody>
+                  {instances.map((i) => (
+                    <InstanceRow key={i.run_id} instance={i} publishedVersionId={data.published_version_id} checked={selected.has(i.run_id)} disabled={!canMigrate}
+                      onToggle={() => setSelected((prev) => { const next = new Set(prev); if (next.has(i.run_id)) next.delete(i.run_id); else next.add(i.run_id); return next })} />
+                  ))}
+                </TBody>
+              </Table>
             )}
           </>
         )}
-      </div>
-      <div className="flex items-center justify-between gap-2 px-5 py-3 shrink-0" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
-        <span className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+      </DialogBody>
+      <DialogFooter className="justify-between">
+        <span className="num text-xs text-fg-muted">
           {canMigrate ? `${selected.size} selected` : 'Migrating instances needs the “Migrate live runs” permission.'}
         </span>
         <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
-          <Button size="sm" disabled={!canMigrate || selected.size === 0} onClick={() => setWizardRunIds([...selected])}>
-            <MoveRight size={14} className="mr-1" /> Migrate to version…
+          <Button variant="secondary" onClick={onClose}>Close</Button>
+          <Button disabled={!canMigrate || selected.size === 0} leadingIcon={<MoveRight />} onClick={() => setWizardRunIds([...selected])}>
+            Migrate to version…
           </Button>
         </div>
-      </div>
+      </DialogFooter>
     </Overlay>
   )
 }
@@ -208,15 +208,10 @@ export function LiveInstancesPanel({ workflowId, initialVersionId, onClose }: { 
 function VersionChip({ active, onClick, label, count, live }: { active: boolean; onClick: () => void; label: string; count: number; live?: boolean }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium"
-      style={{
-        borderColor: active ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-        backgroundColor: active ? 'var(--theme-primary-light)' : 'transparent',
-        color: active ? 'var(--theme-primary-text)' : 'var(--theme-card-text)',
-      }}>
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors duration-[var(--ds-dur-fast)] ${active ? 'border-primary bg-primary-wash text-primary-text' : 'border-border text-fg hover:border-border-strong hover:bg-subtle'}`}>
       {label}
-      {live && <span className="text-[9px] font-semibold" style={{ color: 'var(--theme-success)' }}>LIVE</span>}
-      <span className="rounded-full px-1.5 text-[10px]" style={{ backgroundColor: 'var(--theme-surface)' }}>{count}</span>
+      {live && <span className="text-2xs font-semibold text-success">Live</span>}
+      <CountBadge count={count} max={999} />
     </button>
   )
 }
@@ -225,29 +220,32 @@ function InstanceRow({ instance: i, publishedVersionId, checked, disabled, onTog
   const older = i.version_id !== publishedVersionId
   const assignee = i.open_task?.assignee_name ?? i.open_task?.team_name ?? null
   return (
-    <tr style={{ borderTop: '1px solid var(--theme-surface-border)', backgroundColor: checked ? 'var(--theme-row-highlight)' : undefined }}>
-      <td className="px-3 py-2"><input type="checkbox" aria-label={`Select ${i.title ?? i.run_id}`} checked={checked} disabled={disabled} onChange={onToggle} /></td>
-      <td className="px-3 py-2 min-w-0">
-        <Link href={`/automations/runs/${i.run_id}`} className="font-medium hover:underline" style={{ color: 'var(--theme-primary-text)' }}>
+    <TR selected={checked}>
+      <TD><Checkbox aria-label={`Select ${i.title ?? i.run_id}`} checked={checked} disabled={disabled} onChange={onToggle} /></TD>
+      <TD className="min-w-0 py-1.5">
+        <Link href={`/automations/runs/${i.run_id}`} className="font-medium text-primary-text hover:underline">
           {i.title || `Run ${i.run_id.slice(0, 8)}`}
         </Link>
-        <div className="font-mono text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{i.run_id.slice(0, 8)} · {i.status === 'paused' ? 'paused' : 'waiting'}</div>
-      </td>
-      <td className="px-3 py-2">
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-          style={{ backgroundColor: older ? 'var(--status-warning-bg)' : 'var(--status-success-bg)', color: older ? 'var(--theme-warning)' : 'var(--theme-success)' }}>
+        <div className="font-mono text-2xs text-fg-muted">{i.run_id.slice(0, 8)} · {i.status === 'paused' ? 'paused' : 'waiting'}</div>
+      </TD>
+      <TD>
+        <Badge tone={older ? 'warning' : 'success'} className="font-mono">
           {i.version_number != null ? `v${i.version_number}` : 'Draft'}
-        </span>
-      </td>
-      <td className="px-3 py-2">
+        </Badge>
+      </TD>
+      <TD>
         <div className="flex items-center gap-1.5">
           <NodeTypeIcon type={i.current_node_type} />
           <span className="truncate">{i.current_node_label ?? i.current_node_id ?? '—'}</span>
         </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap" style={{ color: 'var(--theme-muted-text)' }}>{i.waiting_since ? formatRelativeDate(i.waiting_since) : '—'}</td>
-      <td className="px-3 py-2 truncate" style={{ color: assignee ? 'var(--theme-card-text)' : 'var(--theme-muted-text)' }}>{assignee ?? (i.open_task ? 'Unassigned' : '—')}</td>
-    </tr>
+      </TD>
+      <TD className="whitespace-nowrap text-fg-muted">
+        {i.waiting_since ? (
+          <Tooltip content={formatAbsolute(i.waiting_since)}><span>{formatRelative(i.waiting_since)}</span></Tooltip>
+        ) : '—'}
+      </TD>
+      <TD className={`truncate ${assignee ? 'text-fg' : 'text-fg-muted'}`}>{assignee ?? (i.open_task ? 'Unassigned' : '—')}</TD>
+    </TR>
   )
 }
 
@@ -304,6 +302,8 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
   const [plan, setPlan] = useState<MigrationPlan | null>(null)
   const [outcome, setOutcome] = useState<MigrationOutcome | null>(null)
   const [busy, setBusy] = useState(false)
+  // Synchronous guard: a double click must not start the migration twice.
+  const migrateGuard = useSubmitGuard()
   const [error, setError] = useState<string | null>(null)
   const [typed, setTyped] = useState('')
   // Callers pass a fresh array each render; reload only when the ids change.
@@ -379,19 +379,21 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
   }
 
   async function migrate() {
-    if (!plan) return
-    setBusy(true); setError(null)
-    const ready = plan.items.filter((i) => i.ok).map((i) => i.run_id)
-    // A `workflow_instances.migrate` job: migrates in chunks that resume where
-    // they stopped; a long one continues after the wizard closes.
-    const outcome = await runInlineJob(jobs, 'workflow_instances.migrate', { ...migrationInput(), runIds: ready }, {
-      onSuccess: (job) => { if (job.result?.data) onDone?.(job.result.data as MigrationOutcome) },
+    await migrateGuard.run(async () => {
+      if (!plan) return
+      setBusy(true); setError(null)
+      const ready = plan.items.filter((i) => i.ok).map((i) => i.run_id)
+      // A `workflow_instances.migrate` job: migrates in chunks that resume where
+      // they stopped; a long one continues after the wizard closes.
+      const outcome = await runInlineJob(jobs, 'workflow_instances.migrate', { ...migrationInput(), runIds: ready }, {
+        onSuccess: (job) => { if (job.result?.data) onDone?.(job.result.data as MigrationOutcome) },
+      })
+      setBusy(false)
+      if (outcome.status === 'failed') { setError(outcome.error); return }
+      if (outcome.status === 'background') { onClose(); return }
+      const result = outcome.job.result?.data as MigrationOutcome | undefined
+      if (result) { setOutcome(result); setStep('results') }
     })
-    setBusy(false)
-    if (outcome.status === 'failed') { setError(outcome.error); return }
-    if (outcome.status === 'background') { onClose(); return }
-    const result = outcome.job.result?.data as MigrationOutcome | undefined
-    if (result) { setOutcome(result); setStep('results') }
   }
 
   const ready = plan?.summary.ready ?? 0
@@ -399,16 +401,16 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
   const confirmed = !needsTyped || typed.trim() === String(ready)
 
   return (
-    <Overlay onClose={busy ? () => {} : onClose} wide>
-      <Header
-        title={`Migrate ${runIds.length} instance${runIds.length === 1 ? '' : 's'} to another version`}
-        subtitle={{ version: '1. Target version', nodes: '2. Where each instance continues', review: '3. Review the plan', results: 'Done' }[step]}
-        onClose={busy ? () => {} : onClose}
-      />
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+    <Overlay
+      onClose={busy ? () => {} : onClose}
+      wide
+      title={`Migrate ${plural(runIds.length, 'instance')} to another version`}
+      subtitle={{ version: '1. Target version', nodes: '2. Where each instance continues', review: '3. Review the plan', results: 'Done' }[step]}
+    >
+      <DialogBody className="space-y-4">
         {error && <InlineNotice tone="error" message={error} onDismiss={() => setError(null)} />}
         {(!instances || !versions) && !error && (
-          <div className="flex items-center justify-center py-10"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--theme-primary-text)' }} /></div>
+          <div className="flex items-center justify-center py-10 text-fg-muted"><Loader2 size={20} className="animate-spin" aria-label="Loading" /></div>
         )}
 
         {instances && versions && step === 'version' && (
@@ -416,22 +418,22 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
             {instances.length < runIds.length && (
               <InlineNotice tone="warning" message={`${runIds.length - instances.length} of the selected runs are no longer waiting or paused and were left out.`} />
             )}
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-sm text-fg-muted">
               Each instance is closed out (its open task is cancelled) and a new run starts on the version you pick, at the node you choose next, with the same variables, task and trace.
             </p>
             <div className="space-y-1.5" role="radiogroup" aria-label="Target version">
               {versions.map((v) => {
                 const onIt = instances.filter((i) => i.version_id === v.id).length
                 return (
-                  <label key={v.id} className="flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer"
-                    style={{ borderColor: targetVersionId === v.id ? 'var(--theme-primary)' : 'var(--theme-surface-border)', backgroundColor: targetVersionId === v.id ? 'var(--theme-primary-light)' : 'transparent' }}>
-                    <input type="radio" name="target-version" checked={targetVersionId === v.id} onChange={() => setTargetVersionId(v.id)} />
-                    <span className="text-sm font-semibold">v{v.version_number}</span>
-                    {v.is_active && <span className="text-[9px] font-semibold" style={{ color: 'var(--theme-success)' }}>LIVE</span>}
-                    <span className="text-[11px] flex-1" style={{ color: 'var(--theme-muted-text)' }}>
-                      {v.published_at ? `published ${formatRelativeDate(v.published_at)}` : ''} · {migratableNodes(v.nodes ?? []).length} steps
+                  <label key={v.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-colors duration-[var(--ds-dur-fast)] ${targetVersionId === v.id ? 'border-primary bg-primary-wash' : 'border-border hover:border-border-strong'}`}>
+                    <input type="radio" name="target-version" checked={targetVersionId === v.id} onChange={() => setTargetVersionId(v.id)} className="accent-primary" />
+                    <Tag mono className="font-semibold">v{v.version_number}</Tag>
+                    {v.is_active && <LiveMarker />}
+                    <span className="flex-1 text-xs text-fg-muted">
+                      {v.published_at ? <Tooltip content={formatAbsolute(v.published_at)}><span>published {formatRelative(v.published_at)}</span></Tooltip> : ''} · {plural(migratableNodes(v.nodes ?? []).length, 'step')}
                     </span>
-                    {onIt > 0 && <span className="text-[10px]" style={{ color: 'var(--theme-warning)' }}>{onIt} selected already on it</span>}
+                    {onIt > 0 && <span className="text-xs text-warning">{onIt} selected already on it</span>}
                   </label>
                 )
               })}
@@ -441,29 +443,28 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
 
         {instances && target && step === 'nodes' && (
           <div className="space-y-3">
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-sm text-fg-muted">
               For each node the selected instances are at, choose the step of v{target.version_number} where they continue. Steps with the same id are pre-selected; a User Task target creates a fresh task.
             </p>
             <div className="space-y-2">
               {sources.map((s) => {
                 const chosen = targetChoices.find((n: any) => n.id === nodeMap[s.id])
                 return (
-                  <div key={s.id || 'none'} className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: nodeMap[s.id] ? 'var(--theme-surface-border)' : 'var(--theme-warning)' }}>
+                  <div key={s.id || 'none'} className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${nodeMap[s.id] ? 'border-border' : 'border-warning'}`}>
                     <NodeTypeIcon type={s.type} />
-                    <span className="text-xs font-medium min-w-[8rem]">{s.label}</span>
-                    <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{s.count} instance{s.count === 1 ? '' : 's'}</span>
-                    <ArrowRight size={14} style={{ color: 'var(--theme-muted-text)' }} />
+                    <span className="min-w-[8rem] text-ui font-medium text-fg">{s.label}</span>
+                    <span className="num text-xs text-fg-muted">{plural(s.count, 'instance')}</span>
+                    <ArrowRight size={14} className="text-fg-muted" aria-hidden="true" />
                     <NodeTypeIcon type={chosen?.type} />
-                    <select aria-label={`Target node for ${s.label}`} value={nodeMap[s.id] ?? ''} onChange={(e) => setNodeChoices((m) => ({ ...m, [s.id]: e.target.value }))}
-                      className="h-8 flex-1 min-w-[12rem] rounded-md border px-2 text-xs"
-                      style={{ borderColor: 'var(--theme-input-border, var(--theme-surface-border))', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}>
+                    <Select aria-label={`Target node for ${s.label}`} value={nodeMap[s.id] ?? ''} onChange={(e) => setNodeChoices((m) => ({ ...m, [s.id]: e.target.value }))}
+                      size="sm" wrapperClassName="flex-1 min-w-[12rem]">
                       <option value="">Choose a step…</option>
                       {targetChoices.map((n: any) => (
                         <option key={n.id} value={n.id}>
                           {n.label ?? n.id} · {NODE_CATALOG.find((c) => c.type === n.type)?.label ?? n.type}{(() => { const summary = n.config ? getNodeConfigSummary(normalizeDataTableConfig({ type: n.type, config: n.config }), { tableNames }) : null; return summary ? ` · ${summary}` : '' })()}{n.id === s.id ? ' (same node)' : ''}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )
               })}
@@ -475,128 +476,127 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
         {plan && step === 'review' && (
           <div className="space-y-3">
             <PlanTable plan={plan} />
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="num text-xs text-fg-muted">
               {ready} of {plan.summary.total} ready{plan.summary.blocked ? ` · ${plan.summary.blocked} blocked (left unchanged)` : ''}{plan.summary.with_warnings ? ` · ${plan.summary.with_warnings} with warnings` : ''}.
             </p>
             {needsTyped && ready > 0 && (
-              <div className="space-y-1">
-                <label htmlFor="migrate-confirm" className="text-xs font-medium">Type <strong>{ready}</strong> to confirm migrating {ready} instances</label>
-                <Input id="migrate-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} className="!h-8 !text-xs max-w-[10rem]" autoComplete="off" />
+              <div className="space-y-1.5">
+                <label htmlFor="migrate-confirm" className="block text-ui font-medium text-fg">Type <strong>{ready}</strong> to confirm migrating {ready} instances</label>
+                <Input id="migrate-confirm" size="sm" value={typed} onChange={(e) => setTyped(e.target.value)} className="max-w-[10rem]" autoComplete="off" />
               </div>
             )}
           </div>
         )}
 
         {outcome && step === 'results' && <ResultsTable outcome={outcome} />}
-      </div>
+      </DialogBody>
 
-      <div className="flex items-center justify-between gap-2 px-5 py-3 shrink-0" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
+      <DialogFooter className="justify-between">
         <div>
           {(step === 'nodes' || step === 'review') && (
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setStep(step === 'review' ? 'nodes' : 'version')}>
-              <ChevronLeft size={14} className="mr-1" /> Back
+            <Button variant="ghost" disabled={busy} leadingIcon={<ChevronLeft />} onClick={() => setStep(step === 'review' ? 'nodes' : 'version')}>
+              Back
             </Button>
           )}
         </div>
         <div className="flex gap-2">
-          {step !== 'results' && <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>Cancel</Button>}
+          {step !== 'results' && <Button variant="secondary" disabled={busy} onClick={onClose}>Cancel</Button>}
           {step === 'version' && (
-            <Button size="sm" disabled={!target || !instances?.length} onClick={() => setStep('nodes')}>Next</Button>
+            <Button disabled={!target || !instances?.length} onClick={() => setStep('nodes')}>Next</Button>
           )}
           {step === 'nodes' && (
-            <Button size="sm" disabled={busy || unmapped === sources.length} onClick={review} title={unmapped ? 'Instances without a target step will be skipped' : undefined}>
-              {busy ? <Loader2 size={14} className="mr-1 animate-spin" /> : null} Review plan
-            </Button>
+            <Tooltip content={unmapped ? 'Instances without a target step will be skipped' : null}>
+              <Button disabled={busy || unmapped === sources.length} loading={busy} onClick={review}>
+                Review plan
+              </Button>
+            </Tooltip>
           )}
           {step === 'review' && (
-            <Button size="sm" disabled={busy || ready === 0 || !confirmed} onClick={migrate}>
-              {busy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <MoveRight size={14} className="mr-1" />}
-              Migrate {ready} instance{ready === 1 ? '' : 's'}
+            <Button disabled={busy || ready === 0 || !confirmed} loading={busy} leadingIcon={<MoveRight />} onClick={migrate}>
+              Migrate {plural(ready, 'instance')}
             </Button>
           )}
-          {step === 'results' && <Button size="sm" onClick={onClose}>Done</Button>}
+          {step === 'results' && <Button onClick={onClose}>Done</Button>}
         </div>
-      </div>
+      </DialogFooter>
     </Overlay>
   )
 }
 
 function PlanTable({ plan }: { plan: MigrationPlan }) {
   return (
-    <div className="rounded-xl border overflow-x-auto" style={{ borderColor: 'var(--theme-surface-border)' }}>
-      <table className="w-full text-xs">
-        <thead>
-          <tr style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-            <th className="px-3 py-2 text-left font-medium">Instance</th>
-            <th className="px-3 py-2 text-left font-medium">Now</th>
-            <th className="px-3 py-2 text-left font-medium">Continues at (v{plan.to_version.version_number})</th>
-            <th className="px-3 py-2 text-left font-medium">Closes</th>
-            <th className="px-3 py-2 text-left font-medium">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {plan.items.map((item) => (
-            <tr key={item.run_id} style={{ borderTop: '1px solid var(--theme-surface-border)', opacity: item.ok ? 1 : 0.75 }}>
-              <td className="px-3 py-2">
-                <div className="font-medium">{item.title || `Run ${item.run_id.slice(0, 8)}`}</div>
-                <div className="font-mono text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{item.run_id.slice(0, 8)}</div>
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap">
-                v{item.from_version_number ?? '?'} · {item.source_node_label ?? item.source_node_id ?? '—'}
-              </td>
-              <td className="px-3 py-2">
-                {item.ok ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <NodeTypeIcon type={item.target_node_type} />
-                    {item.target_node_label ?? item.target_node_id}
-                    {item.create.creates_task && <span className="text-[10px] whitespace-nowrap" style={{ color: 'var(--theme-primary-text)' }}>new task</span>}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 font-medium" style={{ color: 'var(--theme-danger)' }}><XCircle size={12} /> Blocked</span>
-                )}
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap" style={{ color: 'var(--theme-muted-text)' }}>
-                {item.ok ? `run${item.close.open_task_ids.length ? ` + ${item.close.open_task_ids.length} task` : ''}${item.close.queued_job_ids.length ? ` + ${item.close.queued_job_ids.length} job` : ''}` : '—'}
-              </td>
-              <td className="px-3 py-2">
-                {!item.ok && <div style={{ color: 'var(--theme-danger)' }}>{item.blocked_reason}</div>}
-                {item.ok && item.create.defaulted_variables.length > 0 && (
-                  <div style={{ color: 'var(--theme-muted-text)' }}>Defaults for {item.create.defaulted_variables.join(', ')}</div>
-                )}
-                {item.warnings.map((w) => (
-                  <div key={w} className="flex items-start gap-1" style={{ color: 'var(--theme-warning)' }}><AlertTriangle size={11} className="mt-0.5 shrink-0" /> {w}</div>
-                ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <THead>
+        <tr>
+          <TH>Instance</TH>
+          <TH>Now</TH>
+          <TH>Continues at (v{plan.to_version.version_number})</TH>
+          <TH>Closes</TH>
+          <TH>Notes</TH>
+        </tr>
+      </THead>
+      <TBody>
+        {plan.items.map((item) => (
+          <TR key={item.run_id} className={item.ok ? undefined : 'opacity-75'}>
+            <TD className="py-1.5">
+              <div className="font-medium">{item.title || `Run ${item.run_id.slice(0, 8)}`}</div>
+              <div className="font-mono text-2xs text-fg-muted">{item.run_id.slice(0, 8)}</div>
+            </TD>
+            <TD className="whitespace-nowrap">
+              v{item.from_version_number ?? '?'} · {item.source_node_label ?? item.source_node_id ?? '—'}
+            </TD>
+            <TD>
+              {item.ok ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <NodeTypeIcon type={item.target_node_type} />
+                  {item.target_node_label ?? item.target_node_id}
+                  {item.create.creates_task && <Badge tone="brand">New task</Badge>}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 font-medium text-danger"><XCircle size={14} aria-hidden="true" /> Blocked</span>
+              )}
+            </TD>
+            <TD className="whitespace-nowrap text-fg-muted">
+              {item.ok ? `run${item.close.open_task_ids.length ? ` + ${item.close.open_task_ids.length} task` : ''}${item.close.queued_job_ids.length ? ` + ${item.close.queued_job_ids.length} job` : ''}` : '—'}
+            </TD>
+            <TD className="py-1.5">
+              {!item.ok && <div className="text-danger">{item.blocked_reason}</div>}
+              {item.ok && item.create.defaulted_variables.length > 0 && (
+                <div className="text-fg-muted">Defaults for {item.create.defaulted_variables.join(', ')}</div>
+              )}
+              {item.warnings.map((w) => (
+                <div key={w} className="flex items-start gap-1 text-warning"><AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" /> {w}</div>
+              ))}
+            </TD>
+          </TR>
+        ))}
+      </TBody>
+    </Table>
   )
 }
 
 function ResultsTable({ outcome }: { outcome: MigrationOutcome }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm">
+      <p className="text-sm text-fg">
         Migrated <strong>{outcome.summary.migrated}</strong>{outcome.summary.failed ? `, ${outcome.summary.failed} failed` : ''}{outcome.summary.skipped ? `, ${outcome.summary.skipped} skipped` : ''}.
       </p>
-      <div className="space-y-1.5">
+      <ul className="divide-y divide-border-subtle rounded-lg border border-border">
         {outcome.results.map((r) => (
-          <div key={r.run_id} className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: 'var(--theme-surface)' }}>
-            {r.ok ? <CheckCircle2 size={14} style={{ color: 'var(--theme-success)' }} /> : <XCircle size={14} style={{ color: 'var(--theme-danger)' }} />}
-            <Link href={`/automations/runs/${r.run_id}`} className="font-mono hover:underline">{r.run_id.slice(0, 8)}</Link>
+          <li key={r.run_id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-ui">
+            {r.ok ? <CheckCircle2 size={14} className="text-success" aria-label="Migrated" /> : <XCircle size={14} className="text-danger" aria-label="Failed" />}
+            <Link href={`/automations/runs/${r.run_id}`} className="font-mono text-xs text-fg hover:underline">{r.run_id.slice(0, 8)}</Link>
             {r.new_run_id && (
               <>
-                <ArrowRight size={12} style={{ color: 'var(--theme-muted-text)' }} />
-                <Link href={`/automations/runs/${r.new_run_id}`} className="font-mono font-medium hover:underline" style={{ color: 'var(--theme-primary-text)' }}>{r.new_run_id.slice(0, 8)}</Link>
-                <span style={{ color: 'var(--theme-muted-text)' }}>{(r.new_status ?? '').replace(/_/g, ' ')}</span>
+                <ArrowRight size={14} className="text-fg-muted" aria-hidden="true" />
+                <Link href={`/automations/runs/${r.new_run_id}`} className="font-mono text-xs font-medium text-primary-text hover:underline">{r.new_run_id.slice(0, 8)}</Link>
+                {r.new_status && <StatusPill status={r.new_status} />}
               </>
             )}
-            {r.error && <span style={{ color: r.ok ? 'var(--theme-warning)' : 'var(--theme-danger)' }}>{r.conflict ? 'Changed meanwhile — left alone. ' : ''}{r.error}</span>}
-          </div>
+            {r.error && <span className={`text-xs ${r.ok ? 'text-warning' : 'text-danger'}`}>{r.conflict ? 'Changed meanwhile — left alone. ' : ''}{r.error}</span>}
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { SectionHeading, Snippet } from "@/components/marketing/marketing-ui"
 import { UseCaseShell } from "@/components/marketing/use-case-page"
 import { publicBaseUrl } from "@/lib/deployment"
 import { sectionLabel, type CatalogField, type CatalogForm, type CatalogWorkflow } from "@/lib/gallery/catalog"
-import { formatBytes, galleryCategory, GALLERY_SIGNING, relatedPackages, type GalleryPackage } from "@/lib/gallery/site"
+import { formatBytes, galleryCategory, getGalleryControl, GALLERY_SIGNING, relatedPackages, type GalleryPackage } from "@/lib/gallery/site"
 import { GALLERY_NEEDS, GALLERY_TRIGGERS } from "@/lib/gallery/types"
 import { describeSchedule, normalizeScheduleConfig } from "@/lib/workflow-schedule"
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-schema"
@@ -40,15 +40,15 @@ function startDetail(pkg: GalleryPackage, entry: CatalogWorkflow | undefined): s
 
 function FieldPreview({ field }: { field: CatalogField }) {
   const control = field.options?.length
-    ? <div className="flex flex-wrap gap-1">{field.options.slice(0, 6).map((o) => <span key={o} className="rounded-md border border-[#1B1916]/[0.12] bg-[#FAF8F3] px-1.5 py-0.5 text-[11px] text-[#4A463E]">{o}</span>)}{field.options.length > 6 && <span className="text-[11px] text-[#857D6D]">+{field.options.length - 6}</span>}</div>
+    ? <div className="flex flex-wrap gap-1">{field.options.slice(0, 6).map((o) => <span key={o} className="rounded-md border border-[#1B1916]/[0.12] bg-[#FAF8F3] px-1.5 py-0.5 text-2xs text-[#4A463E]">{o}</span>)}{field.options.length > 6 && <span className="text-2xs text-[#857D6D]">+{field.options.length - 6}</span>}</div>
     : field.type === "boolean"
       ? <span className="inline-flex h-4 w-4 rounded border border-[#1B1916]/25 bg-[#FFFFFF]" />
-      : <span className="block h-8 truncate rounded-md border border-[#1B1916]/[0.14] bg-[#FFFFFF] px-2 text-[11px] leading-8 text-[#9A9282]">{field.default ? `Prefilled: ${field.default}` : field.type === "number" ? "0" : field.type === "date" ? "YYYY-MM-DD" : field.type === "datetime" ? "YYYY-MM-DD HH:mm" : field.type === "email" ? "name@company.com" : field.type === "url" ? "https://…" : field.type === "json" ? "{ … }" : ""}</span>
+      : <span className="block h-8 truncate rounded-md border border-[#1B1916]/[0.14] bg-[#FFFFFF] px-2 text-2xs leading-8 text-[#9A9282]">{field.default ? `Prefilled: ${field.default}` : field.type === "number" ? "0" : field.type === "date" ? "YYYY-MM-DD" : field.type === "datetime" ? "YYYY-MM-DD HH:mm" : field.type === "email" ? "name@company.com" : field.type === "url" ? "https://…" : field.type === "json" ? "{ … }" : ""}</span>
   return (
     <div className="grid gap-1">
-      <span className="text-[13px] font-medium text-[#33302A]">{field.label}{field.required && <span className="text-[#A0533F]" aria-label="required"> *</span>} <span className="font-mono text-[10.5px] font-normal text-[#857D6D]">{field.key} · {field.type}</span></span>
+      <span className="text-ui font-medium text-[#33302A]">{field.label}{field.required && <span className="text-[#A0533F]" aria-label="required"> *</span>} <span className="font-mono text-2xs font-normal text-[#857D6D]">{field.key} · {field.type}</span></span>
       {control}
-      {field.description && <span className="text-[11.5px] leading-4 text-[#6E6759]">{field.description}</span>}
+      {field.description && <span className="text-2xs leading-4 text-[#6E6759]">{field.description}</span>}
     </div>
   )
 }
@@ -58,12 +58,18 @@ function formShape(form: { columns?: number; themed?: boolean }): string | null 
   return parts.length ? parts.join(" · ") : null
 }
 
-function FormCard({ title, subtitle, fields, outcomes, badge }: { title: string; subtitle?: string; fields: CatalogField[]; outcomes?: string[]; badge: string }) {
+function FormCard({ title, subtitle, fields, outcomes, badge, uses }: { title: string; subtitle?: string; fields: CatalogField[]; outcomes?: string[]; badge: string; uses?: string[] }) {
   return (
     <article className="flex flex-col rounded-2xl border border-[#1B1916]/[0.09] bg-[#FFFFFF] p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8A6D45]">{badge}</p>
+      <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-[#8A6D45]">{badge}</p>
       <h3 className="mt-1 font-semibold leading-snug">{title}</h3>
       {subtitle && <p className="mt-1 text-xs leading-5 text-[#6E6759]">{subtitle}</p>}
+      {uses && uses.length > 0 && (
+        <p className="mt-2 flex flex-wrap items-center gap-1.5 text-2xs text-[#6E6759]" data-testid="form-uses">
+          <span className="font-semibold uppercase tracking-[0.12em]">Uses</span>
+          {uses.map((u) => <span key={u} className="rounded-full bg-[#B08A54]/[0.14] px-2 py-0.5 font-medium text-[#6B5232]">{u}</span>)}
+        </p>
+      )}
       <div className="mt-4 grid flex-1 content-start gap-3">
         {fields.length ? fields.map((field) => <FieldPreview key={field.key} field={field} />) : <p className="text-sm text-[#6E6759]">No fields: the person picks an outcome.</p>}
       </div>
@@ -202,7 +208,7 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8A6D45]">About this package</p>
               <h2 className={`mt-3 ${H2}`}>What it does</h2>
-              <div className="mt-5 space-y-4 text-[15.5px] leading-7 text-[#4A463E]">{paragraphs(pkg.description).map((p) => <p key={p.slice(0, 40)}>{p}</p>)}</div>
+              <div className="mt-5 space-y-4 text-base leading-7 text-[#4A463E]">{paragraphs(pkg.description).map((p) => <p key={p.slice(0, 40)}>{p}</p>)}</div>
             </div>
             <div className={`h-fit rounded-2xl border p-6 ${pkg.trigger === "form" ? "border-[#B08A54]/35 bg-[#B08A54]/[0.07]" : "border-[#1B1916]/[0.09] bg-[#F1EDE3]"}`}>
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#FFFFFF] text-[#8A6D45]"><StartIcon size={18} aria-hidden="true" /></span>
@@ -255,9 +261,33 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
             <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {startInputs.length > 0 && !forms.some((f) => f.kind === "page") && <FormCard badge={pkg.trigger === "form" ? "Start form" : "Start inputs"} title={entry?.name ?? pkg.title} subtitle={pkg.trigger === "form" ? "Filled in by whoever starts the process" : "Passed by the calling system"} fields={startInputs} />}
               {forms.map((form) => form.kind === "page"
-                ? <FormCard key={`page-${form.step}`} badge="Form page · /f/<id>" title={form.step} subtitle={[form.title !== form.step ? form.title : null, formShape(form), "Its own page: share the link or open it on a tablet"].filter(Boolean).join(" · ")} fields={form.fields} outcomes={form.buttons} />
-                : <FormCard key={`${form.workflow}-${form.step}`} badge={`User Task${form.workflow !== entry?.name ? ` · ${form.workflow}` : ""}`} title={form.step} subtitle={[form.title, formShape(form)].filter(Boolean).join(" · ")} fields={form.fields} outcomes={form.buttons?.length ? form.buttons : form.outcomes} />)}
+                ? <FormCard key={`page-${form.step}`} badge="Form page · /f/<id>" title={form.step} subtitle={[form.title !== form.step ? form.title : null, formShape(form), "Its own page: share the link or open it on a tablet"].filter(Boolean).join(" · ")} fields={form.fields} outcomes={form.buttons} uses={form.uses} />
+                : <FormCard key={`${form.workflow}-${form.step}`} badge={`User Task${form.workflow !== entry?.name ? ` · ${form.workflow}` : ""}`} title={form.step} subtitle={[form.title, formShape(form)].filter(Boolean).join(" · ")} fields={form.fields} outcomes={form.buttons?.length ? form.buttons : form.outcomes} uses={form.uses} />)}
             </div>
+          </section>
+        )}
+
+        {/* Official form controls the forms use (they install with the package) */}
+        {pkg.controls.length > 0 && (
+          <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6" data-testid="package-form-controls">
+            <SectionHeading eyebrow="Form controls" title={`${pkg.controls.length} official form control${pkg.controls.length === 1 ? "" : "s"}, installed with it`}>
+              The forms use these controls from the gallery. They come inside the package and install into Extensibility → Form controls, sandboxed and signed like every official control: nothing else to download.
+            </SectionHeading>
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {pkg.controls.map((control) => {
+                const listing = getGalleryControl(control.slug)
+                return (
+                  <li key={control.tag}>
+                    <Link href={`/gallery/controls/${control.slug}`} className="group flex h-full flex-col rounded-2xl border border-[#1B1916]/[0.08] bg-[#FFFFFF] p-5 transition hover:border-[#8A6D45]/40 hover:shadow-md">
+                      <span className="flex items-center gap-2"><span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#B08A54]/[0.14] text-[#8A6D45]"><PackageIcon icon={listing?.icon ?? null} category="form-controls" size={16} /></span><span className="font-semibold">{listing?.title ?? control.name}</span></span>
+                      <span className="mt-1 font-mono text-2xs text-[#857D6D]">&lt;{control.tag}&gt;</span>
+                      {listing && <span className="mt-2 flex-1 text-sm leading-6 text-[#4A463E]">{listing.summary}</span>}
+                      <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] group-hover:underline">Try it live <ArrowRight size={14} aria-hidden="true" /></span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
           </section>
         )}
 
@@ -329,13 +359,13 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
                   <ul className="mt-3 space-y-3">
                     {pkg.requirements.map((r) => (
                       <li key={r.id} className="rounded-xl border border-[#1B1916]/[0.08] bg-[#FFFFFF] p-4">
-                        <p className="flex items-center gap-2 font-medium">{r.kind === "user" ? <FormInput size={14} className="text-[#8A6D45]" aria-hidden="true" /> : <KeyRound size={14} className="text-[#8A6D45]" aria-hidden="true" />}{r.label}{r.required && <span className="rounded bg-[#B08A54]/[0.15] px-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#6F522B]">Required</span>}</p>
+                        <p className="flex items-center gap-2 font-medium">{r.kind === "user" ? <FormInput size={14} className="text-[#8A6D45]" aria-hidden="true" /> : <KeyRound size={14} className="text-[#8A6D45]" aria-hidden="true" />}{r.label}{r.required && <span className="rounded bg-[#B08A54]/[0.15] px-1.5 text-2xs font-semibold text-[#6F522B]">Required</span>}</p>
                         <ul className="mt-2 space-y-1 text-xs text-[#4A463E]">
                           {r.fields.map((f) => (
                             <li key={f.key} className="flex flex-wrap items-center gap-1.5">
                               {f.secret && <Lock size={11} className="text-[#857D6D]" aria-label="secret" />}
                               <span className="font-medium">{f.label}</span>
-                              <span className="font-mono text-[10.5px] text-[#857D6D]">{f.key}</span>
+                              <span className="font-mono text-2xs text-[#857D6D]">{f.key}</span>
                               {f.default !== undefined && <span className="text-[#857D6D]">default {String(f.default)}</span>}
                               {!f.required && <span className="text-[#857D6D]">· optional</span>}
                             </li>
@@ -380,9 +410,9 @@ usertasks packages complete ${pkg.slug} -f values.yaml`} />
               <div className="rounded-xl border border-[#1B1916]/[0.08] bg-[#F1EDE3] p-4 text-sm">
                 <p className="flex items-center gap-2 font-semibold"><Fingerprint size={15} className="text-[#8A6D45]" aria-hidden="true" /> Verify the download</p>
                 <dl className="mt-2 grid gap-1.5 text-xs">
-                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">File SHA-256</dt><dd className="break-all font-mono text-[11px] text-[#33302A]">{pkg.file.sha256}</dd></div>
-                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">Package checksum (what is signed)</dt><dd className="break-all font-mono text-[11px] text-[#33302A]">{pkg.file.checksum}</dd></div>
-                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">Signer</dt><dd className="font-mono text-[11px] text-[#33302A]">{signed ? `${GALLERY_SIGNING.key_name} · ${pkg.file.fingerprint}` : "Unsigned preview build — compare the SHA-256 above"}</dd></div>
+                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">File SHA-256</dt><dd className="break-all font-mono text-2xs text-[#33302A]">{pkg.file.sha256}</dd></div>
+                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">Package checksum (what is signed)</dt><dd className="break-all font-mono text-2xs text-[#33302A]">{pkg.file.checksum}</dd></div>
+                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">Signer</dt><dd className="font-mono text-2xs text-[#33302A]">{signed ? `${GALLERY_SIGNING.key_name} · ${pkg.file.fingerprint}` : "Unsigned preview build — compare the SHA-256 above"}</dd></div>
                 </dl>
                 <p className="mt-3 text-xs leading-5 text-[#6E6759]"><code className="font-mono">shasum -a 256 {pkg.file.file_name}</code> should print the file SHA-256. <Link href="/gallery#signing" className="font-semibold text-[#8A6D45] hover:underline">How gallery packages are signed</Link>.</p>
               </div>
@@ -411,7 +441,7 @@ usertasks packages complete ${pkg.slug} -f values.yaml`} />
           <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
             <SectionHeading eyebrow="More packages" title="Related" />
             <ul className="mt-8 grid gap-5 md:grid-cols-3">
-              {related.map((other) => <li key={other.slug}><PackageCard card={{ href: `/gallery/${other.slug}`, source: "official", native: other.native, systems: other.systems, slug: other.slug, title: other.title, summary: other.summary, category: other.category, trigger: other.trigger, needs: other.needs, tags: other.tags, difficulty: other.difficulty, setup_minutes: other.setup_minutes, icon: other.icon ?? null, steps: 0, version: other.version }} /></li>)}
+              {related.map((other) => <li key={other.slug}><PackageCard card={{ href: `/gallery/${other.slug}`, source: "official", native: other.native, systems: other.systems, slug: other.slug, title: other.title, summary: other.summary, category: other.category, trigger: other.trigger, needs: other.needs, tags: other.tags, difficulty: other.difficulty, setup_minutes: other.setup_minutes, icon: other.icon ?? null, steps: other.workflows.reduce((sum, wf) => sum + wf.nodes.length, 0), version: other.version }} /></li>)}
             </ul>
             <p className="mt-8"><Link href="/gallery" className="inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] hover:underline">Browse the whole gallery <ArrowRight size={14} aria-hidden="true" /></Link></p>
           </section>

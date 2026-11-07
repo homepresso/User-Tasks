@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/cron-auth'
+import { acceptanceForAssignee } from '@/lib/tasks/queue-rules-server'
+import { QUEUE_TASK_COLUMNS, queueFactsFromTask } from '@/lib/tasks/queue-rules'
 
 /**
  * Process task escalations.
@@ -13,7 +15,7 @@ export async function processTaskEscalations(options: { supabase?: SupabaseClien
   // Find unescalated escalation configs
   const { data: escalations, error } = await supabase
     .from("task_escalations")
-    .select("*, task:tasks(id, title, assignee_id, assigned_team_id, tenant_id, due_date, status, acceptance_status)")
+    .select(`*, task:tasks(id, assignee_id, tenant_id, status, acceptance_status, ${QUEUE_TASK_COLUMNS})`)
     .eq("is_escalated", false)
 
   if (error) throw new Error(error.message)
@@ -65,6 +67,12 @@ export async function processTaskEscalations(options: { supabase?: SupabaseClien
       // Update task — reassign if we have a target
       const taskUpdates: Record<string, any> = { status: "todo", acceptance_status: "pending" }
       if (escalateToUserId) {
+        // The new assignee's queue rules: Queued (pending) or added (accepted).
+        taskUpdates.acceptance_status = await acceptanceForAssignee(
+          supabase, escalateToUserId,
+          queueFactsFromTask(task, { assignedBy: null, origins: ["escalation"] }),
+          undefined, { tenantId: task.tenant_id ?? null },
+        )
         taskUpdates.assignee_id = escalateToUserId
         taskUpdates.assigned_team_id = null
         taskUpdates.assignment_type = "individual"

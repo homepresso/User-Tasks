@@ -8,6 +8,7 @@ import { formPagePath } from '@/lib/forms/workflow-start-form'
 import { publicFormPageUrl } from '@/lib/forms/form-page-url'
 import type { WorkflowFormEntries } from '@/lib/services/workflow-start-form'
 import { FormQrButton } from './form-qr-dialog'
+import { cn } from '@/lib/utils'
 
 /**
  * A form page URL (/f/<id>, absolute: the public app URL) with Copy link,
@@ -19,12 +20,11 @@ export function FormPageLink({ formId, compact = false }: { formId: string; comp
   const url = publicFormPageUrl(formId)
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1.5" data-form-page-link={formId}>
-      <code className={`min-w-0 basis-full break-all rounded px-1.5 py-0.5 font-mono ${compact ? 'text-[10px]' : 'text-[11px]'} select-all`}
-        style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }} title={url}>
+      <code className={`min-w-0 basis-full break-all rounded px-1.5 py-0.5 font-mono ${compact ? 'text-2xs' : 'text-2xs'} select-all bg-bg text-fg`}
+        title={url}>
         {url}
       </code>
-      <button type="button" className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium hover:opacity-80"
-        style={{ color: copied ? 'var(--theme-success)' : 'var(--theme-primary-text)' }}
+      <button type="button" className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium hover:opacity-80', copied ? 'text-success' : 'text-primary-text')}
         onClick={async (e) => {
           e.preventDefault(); e.stopPropagation()
           try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* clipboard blocked */ }
@@ -33,7 +33,7 @@ export function FormPageLink({ formId, compact = false }: { formId: string; comp
         {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied' : 'Copy link'}
       </button>
       <a href={formPagePath(formId)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium hover:opacity-80" style={{ color: 'var(--theme-primary-text)' }}>
+        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium hover:opacity-80 text-primary-text">
         <ExternalLink size={11} /> Open form
       </a>
       <FormQrButton formId={formId} compact />

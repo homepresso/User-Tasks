@@ -1,0 +1,29 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+  "asset": {
+    "id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+    "name": "Motor claims rows",
+    "rows": [
+      {
+        "id": "4b44cee2-6fdc-52e6-b6f2-a583ece9a1da",
+        "data": {
+          "claim_ref": "CLM-20261020-4H7A",
+          "policy_number": "POL-000123",
+          "claimant": "Riley Example",
+          "email": "riley.example@example.com",
+          "incident_date": "2026-10-19",
+          "severity": "minor",
+          "damaged_parts": "rear bumper",
+          "band": "Fast track",
+          "estimate_band": "Under 1,000",
+          "approved_amount": 640,
+          "repairer": "Example Panel & Paint",
+          "status": "Approved",
+          "decided_by": "Adjuster"
+        }
+      }
+    ]
+  }
+}

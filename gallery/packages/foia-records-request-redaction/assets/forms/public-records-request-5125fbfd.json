@@ -1,0 +1,235 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "5125fbfd-ec4d-5703-a854-ca155966f4dc",
+  "asset": {
+    "id": "5125fbfd-ec4d-5703-a854-ca155966f4dc",
+    "name": "Public records request",
+    "description": "The public form for records requests (FOIA, OIA, state public records acts): requester details, records sought, dates and how to deliver them.",
+    "tags": [
+      "records",
+      "FOIA"
+    ],
+    "fields": [
+      {
+        "key": "requester_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "requester_email",
+        "label": "Email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "phone",
+        "label": "Phone (optional)",
+        "type": "phone"
+      },
+      {
+        "key": "organisation",
+        "label": "Organisation (optional)",
+        "type": "text"
+      },
+      {
+        "key": "jurisdiction",
+        "label": "Which law are you requesting under?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "US federal FOIA",
+          "US state public records (example)",
+          "NZ Official Information Act",
+          "UK Freedom of Information Act",
+          "Other / internal policy"
+        ],
+        "help_text": "If you are not sure, choose the closest; the records officer can change it."
+      },
+      {
+        "key": "records_sought",
+        "label": "Records you are asking for",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "For example: body-worn camera video and photos of the incident on Sample Street, incident SAMPLE-2026-0042"
+      },
+      {
+        "key": "incident_ref",
+        "label": "Incident or case number (if known)",
+        "type": "text"
+      },
+      {
+        "key": "date_from",
+        "label": "From",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "date_to",
+        "label": "To",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "location",
+        "label": "Location (if relevant)",
+        "type": "text"
+      },
+      {
+        "key": "delivery_preference",
+        "label": "How should we deliver the records?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Email attachments",
+          "Secure download link"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "acknowledge",
+        "label": "I understand that released records may be redacted and that some may be withheld under the law",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "requester_name",
+              "span": 1
+            },
+            {
+              "field_key": "requester_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "phone",
+              "span": 1
+            },
+            {
+              "field_key": "organisation",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "jurisdiction",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "records_sought",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "incident_ref",
+              "span": 1
+            },
+            {
+              "field_key": "location",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "date_from",
+              "span": 1
+            },
+            {
+              "field_key": "date_to",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "delivery_preference",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "acknowledge",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#1E4E79",
+            "background": "#FFFFFF",
+            "text": "#14202B",
+            "page": "#E8EEF5",
+            "page_to": "#F7F9FC"
+          }
+        },
+        "radius": 10,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request received",
+            "screen_button": "submit_another",
+            "text": "Thank you, {{requester_name}}. We have emailed you a reference and the date we aim to respond by.",
+            "screen_button_label": "Make another request"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Public records request",
+      "align": "left",
+      "subtitle": "Ask for records we hold. We acknowledge every request by email with its reference and response deadline."
+    }
+  }
+}

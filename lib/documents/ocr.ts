@@ -1,6 +1,12 @@
 /**
  * OCR providers for scanned PDF pages (and images).
  *
+ * Which provider a document step uses is decided per workspace
+ * (lib/documents/ocr-workspace.ts): the workspace's own setting first
+ * (Settings → Document OCR: its own Azure key, built-in tesseract, or off),
+ * then — only where DOCUMENT_OCR_INSTANCE_DEFAULT allows it — the instance
+ * configuration below:
+ *
  *   DOCUMENT_OCR_PROVIDER = tesseract (default when installed)
  *                         | azure_document_intelligence
  *                         | none
@@ -13,6 +19,8 @@
  * azure_document_intelligence
  *             Azure AI Document Intelligence "prebuilt-read"
  *             (AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT / _KEY).
+ *
+ * Keys never appear in errors, results or logs from this module.
  *
  * Google Document AI and AWS Textract plug in through the same interface
  * (see docs: /docs/workflows/documents/ocr).
@@ -40,6 +48,19 @@ export function configuredOcrProvider(): OcrProviderId {
   if (raw === 'azure_document_intelligence' || raw === 'azure') return 'azure_document_intelligence'
   if (raw === 'none' || raw === 'off' || raw === 'disabled') return 'none'
   return 'tesseract'
+}
+
+/**
+ * May workspaces without their own OCR setting use the instance's
+ * configuration (DOCUMENT_OCR_PROVIDER and its key)? DOCUMENT_OCR_INSTANCE_DEFAULT
+ * = true | false; unset → true when self-hosted, false when
+ * DEPLOYMENT_MODE=cloud (the hosted cloud never lends a platform key).
+ */
+export function instanceOcrDefaultAllowed(): boolean {
+  const raw = String(process.env.DOCUMENT_OCR_INSTANCE_DEFAULT ?? '').trim().toLowerCase()
+  if (['true', '1', 'yes', 'on'].includes(raw)) return true
+  if (['false', '0', 'no', 'off'].includes(raw)) return false
+  return String(process.env.DEPLOYMENT_MODE ?? '').trim().toLowerCase() !== 'cloud'
 }
 
 export class OcrUnavailableError extends Error {
@@ -88,50 +109,141 @@ async function tesseractProvider(languages: string): Promise<OcrProvider> {
   }
 }
 
+/** Built-in tesseract, started (bounded by DOCUMENT_OCR_TIMEOUT_SECONDS). */
+export function openTesseract(languages: string): Promise<OcrProvider> {
+  return withTimeout(tesseractProvider(languages), DOCUMENT_LIMITS.ocrTimeoutMs, 'Starting OCR')
+}
+
 /* ── Azure AI Document Intelligence (prebuilt-read) ─────────────────── */
 
-export function azureProvider(fetchImpl: typeof fetch = fetch): OcrProvider {
-  const endpoint = String(process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT ?? '').trim().replace(/\/+$/, '')
-  const key = String(process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY ?? '').trim()
-  if (!endpoint || !key) throw new OcrUnavailableError('DOCUMENT_OCR_PROVIDER=azure_document_intelligence needs AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT and AZURE_DOCUMENT_INTELLIGENCE_KEY')
-  if (!/^https:\/\//i.test(endpoint)) throw new OcrUnavailableError('AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT must be an https:// URL')
-  const apiVersion = process.env.AZURE_DOCUMENT_INTELLIGENCE_API_VERSION?.trim() || '2024-11-30'
+export const AZURE_DI_DEFAULT_API_VERSION = '2024-11-30'
+
+export interface AzureOcrSettings {
+  endpoint: string
+  key: string
+  apiVersion?: string | null
+}
+
+export interface AzureOcrOptions {
+  fetchImpl?: typeof fetch
+  /**
+   * Egress-guard every request (lib/integrations/http connectorFetch): on for
+   * endpoints a workspace typed in, off for the instance's own env endpoint.
+   */
+  guarded?: boolean
+  /** Poll delay (injected in tests). */
+  sleep?: (ms: number) => Promise<void>
+}
+
+/** API versions before 2023-10-31 serve the model under /formrecognizer. */
+export function azureServicePath(apiVersion: string): string {
+  return /^\d{4}-\d{2}-\d{2}/.test(apiVersion) && apiVersion.slice(0, 10) < '2023-10-31' ? 'formrecognizer' : 'documentintelligence'
+}
+
+/** Normalised endpoint (no trailing slash), API version and service path. */
+export function azureTarget(settings: Pick<AzureOcrSettings, 'endpoint' | 'apiVersion'>) {
+  const endpoint = String(settings.endpoint ?? '').trim().replace(/\/+$/, '')
+  const apiVersion = String(settings.apiVersion ?? '').trim() || AZURE_DI_DEFAULT_API_VERSION
+  if (!/^[0-9a-z-]{4,40}$/i.test(apiVersion)) throw new OcrUnavailableError('The Azure AI Document Intelligence API version is not valid (for example 2024-11-30)')
+  return { endpoint, apiVersion, service: azureServicePath(apiVersion) }
+}
+
+/** http://localhost endpoints are accepted only for local mocks (ALLOW_PRIVATE_EGRESS=true). */
+export function isLocalMockEndpoint(endpoint: string): boolean {
+  return process.env.ALLOW_PRIVATE_EGRESS === 'true' && /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(endpoint)
+}
+
+async function azureFetch(url: string, init: RequestInit, options: AzureOcrOptions): Promise<Response> {
+  if (options.guarded) {
+    const { connectorFetch } = await import('@/lib/integrations/http')
+    // The analyze POST is never retried (the page would be billed twice).
+    return connectorFetch(url, init, { timeoutMs: 30_000, maxAttempts: init.method === 'POST' ? 1 : 2, retry: init.method === 'POST' ? 'never' : 'auto', fetchImpl: options.fetchImpl })
+  }
+  return (options.fetchImpl ?? fetch)(url, { ...init, signal: AbortSignal.timeout(30_000) })
+}
+
+/** Error text from an Azure error body ({ error: { code, message } }); never the key. */
+async function azureError(res: Response): Promise<string> {
+  let detail = ''
+  try {
+    const body = await res.json() as { error?: { code?: string; message?: string } }
+    detail = [body?.error?.code, body?.error?.message].filter(Boolean).join(': ')
+  } catch { /* not JSON */ }
+  const hint = res.status === 401 ? ' (check the key)' : res.status === 404 ? ' (check the endpoint and API version)' : ''
+  return `Azure AI Document Intelligence: HTTP ${res.status}${hint}${detail ? ` — ${detail.slice(0, 300)}` : ''}`
+}
+
+/** prebuilt-read on one image per call (a PDF page rendered to PNG): one billed page each. */
+export function azureOcrProvider(settings: AzureOcrSettings, options: AzureOcrOptions = {}): OcrProvider {
+  const { endpoint, apiVersion, service } = azureTarget(settings)
+  const key = String(settings.key ?? '').trim()
+  if (!endpoint || !key) throw new OcrUnavailableError('Azure AI Document Intelligence needs an endpoint and a key')
+  if (!/^https:\/\//i.test(endpoint) && !(options.guarded && isLocalMockEndpoint(endpoint))) {
+    throw new OcrUnavailableError('The Azure AI Document Intelligence endpoint must be an https:// URL')
+  }
+  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   return {
     id: 'azure_document_intelligence',
     async recognize(image, { languages }) {
-      const locale = languages.split('+')[0] === 'eng' ? '' : `&locale=${encodeURIComponent(languages.split('+')[0].slice(0, 2))}`
-      const start = await fetchImpl(`${endpoint}/documentintelligence/documentModels/prebuilt-read:analyze?api-version=${apiVersion}${locale}`, {
+      const lang = languages.split('+')[0]
+      const locale = lang === 'eng' ? '' : `&locale=${encodeURIComponent(lang.slice(0, 2))}`
+      const start = await azureFetch(`${endpoint}/${service}/documentModels/prebuilt-read:analyze?api-version=${encodeURIComponent(apiVersion)}${locale}`, {
         method: 'POST',
         headers: { 'Ocp-Apim-Subscription-Key': key, 'Content-Type': 'application/octet-stream' },
         body: new Uint8Array(image),
-        signal: AbortSignal.timeout(30_000),
-      })
-      if (start.status !== 202) throw new Error(`Azure Document Intelligence: HTTP ${start.status}`)
+      }, options)
+      if (start.status !== 202) throw new Error(await azureError(start))
       const op = start.headers.get('operation-location')
-      if (!op || !op.startsWith(endpoint)) throw new Error('Azure Document Intelligence: no operation location')
+      if (!op || !op.startsWith(endpoint)) throw new Error('Azure AI Document Intelligence: no operation location')
       for (let attempt = 0; attempt < 120; attempt++) {
-        await new Promise((r) => setTimeout(r, attempt < 5 ? 500 : 1000))
-        const res = await fetchImpl(op, { headers: { 'Ocp-Apim-Subscription-Key': key }, signal: AbortSignal.timeout(30_000) })
-        if (!res.ok) throw new Error(`Azure Document Intelligence: HTTP ${res.status}`)
+        await sleep(attempt < 5 ? 500 : 1000)
+        const res = await azureFetch(op, { method: 'GET', headers: { 'Ocp-Apim-Subscription-Key': key } }, options)
+        if (!res.ok) throw new Error(await azureError(res))
         const body = await res.json() as { status?: string; analyzeResult?: { content?: string; pages?: Array<{ words?: Array<{ confidence?: number }> }> } }
         if (body.status === 'succeeded') {
           const words = (body.analyzeResult?.pages ?? []).flatMap((p) => p.words ?? [])
           const confidence = words.length ? Math.round((words.reduce((s, w) => s + (w.confidence ?? 0), 0) / words.length) * 1000) / 10 : null
           return { text: body.analyzeResult?.content ?? '', confidence, provider: 'azure_document_intelligence' }
         }
-        if (body.status === 'failed') throw new Error('Azure Document Intelligence could not read the page')
+        if (body.status === 'failed') throw new Error('Azure AI Document Intelligence could not read the page')
       }
-      throw new Error('Azure Document Intelligence did not finish in time')
+      throw new Error('Azure AI Document Intelligence did not finish in time')
     },
   }
 }
 
-/** The configured provider, ready to use (close() it when done). */
+/**
+ * Connection test without a billed page: GET <endpoint>/documentintelligence/info
+ * (the resource's model count and limit) with the key.
+ */
+export async function testAzureOcr(settings: AzureOcrSettings, options: AzureOcrOptions = {}): Promise<{ ok: boolean; message: string; statusCode?: number }> {
+  try {
+    azureOcrProvider(settings, options) // the same endpoint / key checks as a run
+    const { endpoint, apiVersion, service } = azureTarget(settings)
+    const res = await azureFetch(`${endpoint}/${service}/info?api-version=${encodeURIComponent(apiVersion)}`, { method: 'GET', headers: { 'Ocp-Apim-Subscription-Key': String(settings.key).trim() } }, options)
+    if (!res.ok) return { ok: false, message: await azureError(res), statusCode: res.status }
+    await res.body?.cancel().catch(() => {})
+    return { ok: true, message: `Connected to Azure AI Document Intelligence (API version ${apiVersion})`, statusCode: res.status }
+  } catch (error) {
+    return { ok: false, message: (error as Error)?.message || 'Connection failed' }
+  }
+}
+
+/** The instance's own Azure resource (AZURE_DOCUMENT_INTELLIGENCE_* env). */
+export function azureProvider(fetchImpl: typeof fetch = fetch): OcrProvider {
+  const endpoint = String(process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT ?? '').trim().replace(/\/+$/, '')
+  const key = String(process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY ?? '').trim()
+  if (!endpoint || !key) throw new OcrUnavailableError('DOCUMENT_OCR_PROVIDER=azure_document_intelligence needs AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT and AZURE_DOCUMENT_INTELLIGENCE_KEY')
+  if (!/^https:\/\//i.test(endpoint)) throw new OcrUnavailableError('AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT must be an https:// URL')
+  return azureOcrProvider({ endpoint, key, apiVersion: process.env.AZURE_DOCUMENT_INTELLIGENCE_API_VERSION }, { fetchImpl })
+}
+
+/** The instance's configured provider (env), ready to use (close() it when done). */
 export async function openOcrProvider(languages: string): Promise<OcrProvider> {
   const id = configuredOcrProvider()
   if (id === 'none') throw new OcrUnavailableError('OCR is turned off on this instance (DOCUMENT_OCR_PROVIDER=none)')
   if (id === 'azure_document_intelligence') return azureProvider()
-  return withTimeout(tesseractProvider(languages), DOCUMENT_LIMITS.ocrTimeoutMs, 'Starting OCR')
+  return openTesseract(languages)
 }
 
 /** True when the default provider can be loaded (for tests and the docs). */
@@ -142,4 +254,16 @@ export async function tesseractInstalled(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Can this instance run built-in tesseract for a workspace that picks it?
+ * Not on Vercel (its worker and language files are not traced into the
+ * functions), not when the instance turned OCR off, and only with the
+ * optional package installed.
+ */
+export async function instanceTesseractAvailable(): Promise<boolean> {
+  if (process.env.VERCEL) return false
+  if (configuredOcrProvider() === 'none') return false
+  return tesseractInstalled()
 }

@@ -1,25 +1,43 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useState, useMemo, type ReactNode } from "react"
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import Link from "next/link"
 import {
-  Network, Zap, Database, Globe, Check, Bookmark, Box,
-  ChevronRight, Search, Tag, X, Plus, Play, Loader2,
-  BarChart3, ExternalLink, ArrowRightLeft, Trash2,
-  Map as MapIcon, Link2, Table, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown,
+  Network, Zap, Database, Globe, Bookmark, Box,
+  ChevronRight, Tag as TagIcon, X, Plus, Play, Loader2,
+  BarChart3, ExternalLink, ArrowRightLeft, Trash2, Download, MoreHorizontal, LayoutGrid,
+  Map as MapIcon, Link2, Table, List, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react"
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { serverRead } from '@/lib/server-read'
-import * as Dialog from '@radix-ui/react-dialog'
 import { useIntegrationDependencies, AssetDependencyDialog } from '@/components/shared/asset-dependencies'
 import { InlineTagEditor, TagFilterBar, type TagDefinition } from "@/components/ui/tag-manager"
-import { useRouter } from "next/navigation"
-import { cn, formatRelativeDate } from "@/lib/utils"
+import { useRouter, useSearchParams } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { ConnectorsCatalog } from "@/components/connectors/connectors-catalog"
-import { ExportAssetButton } from "@/components/shared/config-transfer"
+import { ExportAssetButton, ExportAssetDialog } from "@/components/shared/config-transfer"
+import { PageHeader } from "@/components/ui/page-header"
+import { Tabs } from "@/components/ui/tabs"
+import { SearchInput } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { IconButton } from "@/components/ui/icon-button"
+import { Badge, StatusPill, Tag } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
+import { Dialog as UIDialog, DialogBody, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { JsonViewer } from "@/components/integrations/json-viewer"
+import { formatCount } from "@/lib/format/number"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Tooltip } from "@/components/ui/tooltip"
+import { Table as DataTable, TableSkeleton, TBody, TD, TDActions, TH, THead, TR } from "@/components/ui/table"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { plural } from "@/lib/format/plural"
+import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { deleteIntegration } from "@/app/actions/integrations"
@@ -28,6 +46,7 @@ import { createTagDefinition, setIntegrationTags, setReferenceTags, updateTagDef
 import { bulkDeleteWithJob, runInlineJob, useJobs } from "@/components/jobs/jobs-provider"
 import { createIntegrationObject, deleteIntegrationObject, generateIntegrationObjectReferences } from "@/app/actions/integration-objects"
 import { resolveStorageUrl } from "@/lib/storage/refs"
+import { isWriteReference } from "@/lib/custom-references/types"
 
 const typeIcons: Record<string, any> = {
   rest_api: Globe,
@@ -44,7 +63,16 @@ const typeLabels: Record<string, string> = {
   odata: "OData",
 }
 
+/** "api.example.com:8443" from a base URL (the raw value when it isn't a URL). */
+function hostOf(url: unknown): string {
+  if (typeof url !== "string" || !url) return ""
+  try { return new URL(url).host } catch { return url }
+}
+
 interface IntegrationsViewProps {
+  /** PageHeader description and actions (the page owns the create / import buttons). */
+  description?: ReactNode
+  actions?: ReactNode
   integrations: any[]
   references: any[]
   connectors?: any[]
@@ -52,9 +80,18 @@ interface IntegrationsViewProps {
   mcpServers?: any[]
 }
 
-export function IntegrationsView({ integrations, references, connectors = [], initialTagDefs = [], mcpServers = [] }: IntegrationsViewProps) {
-  const [search, setSearch] = useState("")
-  const [activeTab, setActiveTab] = useState<"integrations" | "references" | "connectors" | "objects" | "mcp">("integrations")
+export function IntegrationsView({ description, actions, integrations, references, connectors = [], initialTagDefs = [], mcpServers = [] }: IntegrationsViewProps) {
+  // ?tab= and ?q= (header search box) pick the tab and filter it.
+  const searchParams = useSearchParams()
+  const linkedTab = (tab: string | null) => (["integrations", "references", "connectors", "objects", "mcp"] as const).find((t) => t === tab) ?? null
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "")
+  const [activeTab, setActiveTab] = useState<"integrations" | "references" | "connectors" | "objects" | "mcp">(() => linkedTab(searchParams.get("tab")) ?? "integrations")
+  useEffect(() => {
+    const tab = linkedTab(searchParams.get("tab"))
+    if (tab) setActiveTab(tab)
+    const q = searchParams.get("q")
+    if (q !== null) setSearch(q)
+  }, [searchParams])
   const [integrationViewMode, setIntegrationViewMode] = useState<'cards' | 'list'>('cards')
   const [integrationTypeFilter, setIntegrationTypeFilter] = useState<string>('all')
   const [integrationStatusFilter, setIntegrationStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
@@ -62,7 +99,6 @@ export function IntegrationsView({ integrations, references, connectors = [], in
   const [integrationSortDir, setIntegrationSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [editingTags, setEditingTags] = useState<string | null>(null)
-  const [newTag, setNewTag] = useState("")
   const [testingRefId, setTestingRefId] = useState<string | null>(null)
   const [testInputs, setTestInputs] = useState<Record<string, string>>({})
   const [testResult, setTestResult] = useState<any>(null)
@@ -86,6 +122,7 @@ export function IntegrationsView({ integrations, references, connectors = [], in
   const jobs = useJobs()
   const [integrationToDelete, setIntegrationToDelete] = useState<{ id: string; name: string } | null>(null)
   const [integrationDeleting, setIntegrationDeleting] = useState(false)
+  const [exportTarget, setExportTarget] = useState<{ id: string; name: string } | null>(null)
 
   async function createTagDef(name: string, color: string) {
     const result = await createTagDefinition('integrations', name, color)
@@ -115,6 +152,7 @@ export function IntegrationsView({ integrations, references, connectors = [], in
   }
 
   async function runRefTest(ref: any) {
+    if (isWriteReference(ref) && !window.confirm(`"${ref.name}" writes data. Running the test sends it for real with the integration's credentials (recorded in the call log). Continue?`)) return
     setTestLoading(true)
     setTestResult(null)
     try {
@@ -125,7 +163,9 @@ export function IntegrationsView({ integrations, references, connectors = [], in
           reference_id: ref.id,
           inputs: testInputs,
           // A reference without a captured/spec response model gets one from this test.
-          capture_schema: 'auto',
+          capture_schema: isWriteReference(ref) ? undefined : 'auto',
+          // A write reference changes real data: only after the person confirms.
+          ...(isWriteReference(ref) ? { confirm_write: true } : {}),
         }),
       })
       setTestResult(await resp.json())
@@ -172,13 +212,18 @@ export function IntegrationsView({ integrations, references, connectors = [], in
     })
   }, [integrations, search, selectedTag, integrationTypeFilter, integrationStatusFilter])
 
-  const sortedIntegrations = useMemo(() => {
+  const refCountByIntegration = useMemo(() => {
     const refCounts = new Map<string, number>()
     references.forEach((ref) => {
       const integrationId = (ref.integration as any)?.id
       if (!integrationId) return
       refCounts.set(integrationId, (refCounts.get(integrationId) ?? 0) + 1)
     })
+    return refCounts
+  }, [references])
+
+  const sortedIntegrations = useMemo(() => {
+    const refCounts = refCountByIntegration
 
     const next = [...filteredIntegrations].sort((a, b) => {
       let cmp = 0
@@ -190,7 +235,7 @@ export function IntegrationsView({ integrations, references, connectors = [], in
     })
 
     return next
-  }, [filteredIntegrations, integrationSortBy, integrationSortDir, references])
+  }, [filteredIntegrations, integrationSortBy, integrationSortDir, refCountByIntegration])
 
   const integrationTypeOptions = useMemo(() => {
     const present = new Set<string>()
@@ -231,7 +276,6 @@ export function IntegrationsView({ integrations, references, connectors = [], in
     const updated = [...currentTags, tag.trim().toLowerCase()]
     const result = await saveItemTags(table, id, updated)
     if (!result.ok) setNotice({ tone: 'error', message: result.error })
-    setNewTag("")
     queryClient.invalidateQueries({ queryKey: ['integrations'] })
   }
 
@@ -268,354 +312,266 @@ export function IntegrationsView({ integrations, references, connectors = [], in
     setIntegrationSortDir(field === 'name' || field === 'type' ? 'asc' : 'desc')
   }
 
-  function renderIntegrationSortIcon(field: 'name' | 'type' | 'references' | 'updated_at') {
-    if (integrationSortBy !== field) return <ArrowUpDown size={12} />
-    return integrationSortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+  function sortTH(label: string, field: 'name' | 'type' | 'references' | 'updated_at', numeric = false) {
+    const active = integrationSortBy === field
+    const SortIcon = !active ? ArrowUpDown : integrationSortDir === 'asc' ? ArrowUp : ArrowDown
+    return (
+      <TH numeric={numeric} aria-sort={active ? (integrationSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+        <button type="button" onClick={() => toggleIntegrationSort(field)} className={cn("inline-flex items-center gap-1 hover:text-fg", active && "text-fg")}>
+          {label} <SortIcon className="size-3" aria-hidden="true" />
+        </button>
+      </TH>
+    )
   }
+
+  function renderIntegrationMenu(integration: any) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <IconButton size="sm" label={`Actions for ${integration.name}`} icon={<MoreHorizontal />} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem icon={<ExternalLink />} onSelect={() => router.push(`/integrations/${integration.id}`)}>Open</DropdownMenuItem>
+          <DropdownMenuItem icon={<TagIcon />} onSelect={() => setEditingTags(integration.id)}>Edit tags</DropdownMenuItem>
+          <DropdownMenuItem icon={<MapIcon />} onSelect={() => { setDepsId(integration.id); setDepsName(integration.name) }}>Dependency map</DropdownMenuItem>
+          <DropdownMenuItem icon={<Download />} onSelect={() => setExportTarget({ id: integration.id, name: integration.name })}>Export</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem danger icon={<Trash2 />} onSelect={() => setIntegrationToDelete({ id: integration.id, name: integration.name })}>Delete</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
+
+
+  const tabItems = [
+    { value: "integrations" as const, label: "Integrations", count: filteredIntegrations.length },
+    { value: "references" as const, label: "References", count: filteredReferences.length },
+    { value: "connectors" as const, label: "Connectors" },
+    { value: "objects" as const, label: "Objects" },
+    { value: "mcp" as const, label: "MCP servers", ...(mcpServers.length > 0 ? { count: mcpServers.length } : {}) },
+  ]
+  const showToolbar = activeTab === "integrations" || activeTab === "references"
 
   return (
     <div className="space-y-4">
+      <PageHeader
+        className="mb-2"
+        title="Integrations"
+        description={description}
+        actions={actions}
+        tabs={<Tabs aria-label="Integrations" value={activeTab} onValueChange={setActiveTab} items={tabItems} />}
+      />
+
       {notice && (
         <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />
       )}
 
-      {/* Search + Tabs + Tags */}
-      <div className="space-y-3">
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--theme-muted-text)" }} />
-            <Input
+      {/* Search, filters and tags (integrations and references) */}
+      {showToolbar && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <SearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search integrations and references..."
-              className="pl-9"
+              onValueChange={setSearch}
+              placeholder={activeTab === "references" ? "Search references" : "Search integrations"}
+              aria-label="Search integrations and references"
+              wrapperClassName="w-full max-w-xs"
             />
+            {activeTab === "integrations" && (
+              <>
+                <Select
+                  aria-label="Type"
+                  value={integrationTypeFilter}
+                  onChange={(e) => setIntegrationTypeFilter(e.target.value)}
+                  wrapperClassName="w-auto"
+                  options={[{ value: "all", label: "All types" }, ...integrationTypeOptions.map((type) => ({ value: type, label: typeLabels[type] ?? type }))]}
+                />
+                <Select
+                  aria-label="Status"
+                  value={integrationStatusFilter}
+                  onChange={(e) => setIntegrationStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                  wrapperClassName="w-auto"
+                  options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
+                />
+                <Select
+                  aria-label="Sort by"
+                  value={integrationSortBy}
+                  onChange={(e) => setIntegrationSortBy(e.target.value as 'name' | 'type' | 'references' | 'updated_at')}
+                  wrapperClassName="w-auto"
+                  options={[
+                    { value: "updated_at", label: "Sort by updated" },
+                    { value: "name", label: "Sort by name" },
+                    { value: "type", label: "Sort by type" },
+                    { value: "references", label: "Sort by references" },
+                  ]}
+                />
+                <IconButton
+                  variant="secondary"
+                  label={integrationSortDir === 'asc' ? 'Ascending (switch to descending)' : 'Descending (switch to ascending)'}
+                  icon={integrationSortDir === 'asc' ? <ArrowUp /> : <ArrowDown />}
+                  onClick={() => setIntegrationSortDir((dir) => dir === 'asc' ? 'desc' : 'asc')}
+                />
+                <SegmentedControl
+                  aria-label="View"
+                  size="sm"
+                  className="ml-auto"
+                  value={integrationViewMode}
+                  onValueChange={setIntegrationViewMode}
+                  options={[
+                    { value: "cards", icon: <LayoutGrid />, label: "Cards" },
+                    { value: "list", icon: <List />, label: "List" },
+                  ]}
+                />
+              </>
+            )}
           </div>
-          <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: "var(--theme-surface-border)" }}>
-            <button
-              onClick={() => setActiveTab("integrations")}
-              className="px-4 py-2 text-xs font-medium transition-colors"
-              style={{
-                backgroundColor: activeTab === "integrations" ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                color: activeTab === "integrations" ? 'var(--theme-on-primary)' : "var(--theme-muted-text)",
-              }}
-            >
-              Integrations ({filteredIntegrations.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("references")}
-              className="px-4 py-2 text-xs font-medium transition-colors"
-              style={{
-                backgroundColor: activeTab === "references" ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                color: activeTab === "references" ? 'var(--theme-on-primary)' : "var(--theme-muted-text)",
-              }}
-            >
-              References ({filteredReferences.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("connectors")}
-              className="px-4 py-2 text-xs font-medium transition-colors"
-              style={{
-                backgroundColor: activeTab === "connectors" ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                color: activeTab === "connectors" ? 'var(--theme-on-primary)' : "var(--theme-muted-text)",
-              }}
-            >
-              Connectors
-            </button>
-            <button
-              onClick={() => setActiveTab("objects")}
-              className="px-4 py-2 text-xs font-medium transition-colors"
-              style={{
-                backgroundColor: activeTab === "objects" ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                color: activeTab === "objects" ? 'var(--theme-on-primary)' : "var(--theme-muted-text)",
-              }}
-            >
-              Objects
-            </button>
-            <button
-              onClick={() => setActiveTab("mcp")}
-              className="px-4 py-2 text-xs font-medium transition-colors"
-              style={{
-                backgroundColor: activeTab === "mcp" ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                color: activeTab === "mcp" ? 'var(--theme-on-primary)' : "var(--theme-muted-text)",
-              }}
-            >
-              MCP Servers{mcpServers.length > 0 ? ` (${mcpServers.length})` : ''}
-            </button>
-          </div>
+          <TagFilterBar tags={allTags} tagDefinitions={tagDefs} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
         </div>
-
-        {/* Tag filter pills */}
-        <TagFilterBar tags={allTags} tagDefinitions={tagDefs} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
-      </div>
+      )}
 
       {/* ─── Integrations Tab ─── */}
       {activeTab === "integrations" && (
-        <>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={integrationTypeFilter}
-                onChange={(e) => setIntegrationTypeFilter(e.target.value)}
-                className="rounded-lg border px-3 py-2 text-xs"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-              >
-                <option value="all">All types</option>
-                {integrationTypeOptions.map((type) => (
-                  <option key={type} value={type}>{typeLabels[type] ?? type}</option>
-                ))}
-              </select>
+        sortedIntegrations.length === 0 ? (
+          search || selectedTag || integrationTypeFilter !== 'all' || integrationStatusFilter !== 'all' ? (
+            <EmptyState
+              size="sm"
+              variant="no-results"
+              title="No integrations match these filters"
+              action={{ label: "Clear filters", onClick: () => { setSearch(""); setSelectedTag(null); setIntegrationTypeFilter('all'); setIntegrationStatusFilter('all') } }}
+            />
+          ) : (
+            <EmptyState
+              icon={Network}
+              title="No integrations yet"
+              description="An integration connects UserTasks to an external API or service. Create one, or import an OpenAPI spec to add its references in one go."
+              secondaryAction={{ label: "How integrations work", href: "/docs/integrations" }}
+            />
+          )
+        ) : integrationViewMode === 'cards' ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {sortedIntegrations.map((integration) => {
+              const Icon = typeIcons[integration.type] ?? Globe
+              const config = integration.config as any
+              const customIcon = resolveStorageUrl(config?.icon_url)
+              const refCount = refCountByIntegration.get(integration.id) ?? 0
+              const tags = (integration.tags as string[]) ?? []
+              const host = hostOf(config?.base_url)
+              const showTags = editingTags === integration.id
 
-              <select
-                value={integrationStatusFilter}
-                onChange={(e) => setIntegrationStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-                className="rounded-lg border px-3 py-2 text-xs"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-              >
-                <option value="all">All statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-
-              <select
-                value={integrationSortBy}
-                onChange={(e) => setIntegrationSortBy(e.target.value as 'name' | 'type' | 'references' | 'updated_at')}
-                className="rounded-lg border px-3 py-2 text-xs"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
-              >
-                <option value="updated_at">Sort by updated</option>
-                <option value="name">Sort by name</option>
-                <option value="type">Sort by type</option>
-                <option value="references">Sort by references</option>
-              </select>
-
-              <button
-                onClick={() => setIntegrationSortDir((dir) => dir === 'asc' ? 'desc' : 'asc')}
-                className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}
-              >
-                {integrationSortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                {integrationSortDir === 'asc' ? 'Ascending' : 'Descending'}
-              </button>
-            </div>
-
-            <div className="inline-flex items-center rounded-lg border p-1" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-              <button
-                onClick={() => setIntegrationViewMode('cards')}
-                className="rounded-md p-1.5"
-                style={integrationViewMode === 'cards' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }}
-                title="Card view"
-              >
-                <Grid3x3 size={14} />
-              </button>
-              <button
-                onClick={() => setIntegrationViewMode('list')}
-                className="rounded-md p-1.5"
-                style={integrationViewMode === 'list' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }}
-                title="List view"
-              >
-                <List size={14} />
-              </button>
-            </div>
+              return (
+                // The title link is stretched over the card (::after overlay) so
+                // the whole card navigates; the ⋯ menu and the tag editor sit
+                // above the overlay, outside the <a>.
+                <Card key={integration.id} variant="interactive" padding="md" className="group relative flex flex-col gap-3" data-testid="integration-card">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
+                      {customIcon ? <img src={customIcon} alt="" className="size-5 object-contain" /> : <Icon className="size-4" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-semibold text-fg">
+                        <Link
+                          href={`/integrations/${integration.id}`}
+                          className="after:absolute after:inset-0 after:rounded-lg after:content-['']"
+                        >
+                          {integration.name}
+                        </Link>
+                      </h3>
+                      <p className="truncate font-mono text-xs text-fg-muted" title={config?.base_url || undefined}>
+                        {typeLabels[integration.type] ?? integration.type}{host ? ` · ${host}` : ""}
+                      </p>
+                    </div>
+                    <StatusPill status={integration.is_active ? "active" : "inactive"} className="shrink-0" />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-fg-muted">
+                    <span className="num">{plural(refCount, "reference")}</span>
+                    {integration.last_test_status && (
+                      <span className={integration.last_test_status === "success" ? "text-success" : "text-danger"}>
+                        · {integration.last_test_status === "success" ? "Connected" : "Connection error"}
+                      </span>
+                    )}
+                    {tags.length > 0 && editingTags !== integration.id && (
+                      <span className="flex min-w-0 items-center gap-1 overflow-hidden">
+                        {tags.slice(0, 2).map((t) => <Tag key={t} className="truncate">{t}</Tag>)}
+                        {tags.length > 2 && <span className="num shrink-0">+{tags.length - 2}</span>}
+                      </span>
+                    )}
+                    <span className="relative z-[1] ml-auto shrink-0">
+                      {renderIntegrationMenu(integration)}
+                    </span>
+                  </div>
+                  {showTags && (
+                    <div className="relative z-[1] -mt-1 flex cursor-default items-start gap-2">
+                      <div className="min-w-0 flex-1"><ItemTagEditor id={integration.id} tags={tags} table="integrations" /></div>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingTags(null)}>Done</Button>
+                    </div>
+                  )}
+                </Card>
+              )
+            })}
           </div>
-
-          {sortedIntegrations.length === 0 ? (
-            <Card>
-              <div className="text-center py-6">
-                <Network size={32} className="mx-auto mb-2" style={{ color: "var(--theme-muted-text)" }} />
-                <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>
-                  {search || selectedTag ? "No integrations match your search." : "No integrations yet."}
-                </p>
-              </div>
-            </Card>
-          ) : integrationViewMode === 'cards' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        ) : (
+          <DataTable>
+            <THead>
+              <tr>
+                {sortTH("Name", "name")}
+                {sortTH("Type", "type")}
+                <TH>Status</TH>
+                {sortTH("References", "references", true)}
+                {sortTH("Updated", "updated_at")}
+                <TH><span className="sr-only">Actions</span></TH>
+              </tr>
+            </THead>
+            <TBody>
               {sortedIntegrations.map((integration) => {
                 const Icon = typeIcons[integration.type] ?? Globe
                 const config = integration.config as any
                 const customIcon = resolveStorageUrl(config?.icon_url)
-                const refCount = references.filter(
-                  (r) => (r.integration as any)?.id === integration.id
-                ).length
+                const refCount = refCountByIntegration.get(integration.id) ?? 0
                 const tags = (integration.tags as string[]) ?? []
+                const updated = integration.updated_at ?? integration.created_at
 
                 return (
-                  <div key={integration.id} className="relative group">
-                    <button
-                      onClick={(e) => { e.preventDefault(); setIntegrationToDelete({ id: integration.id, name: integration.name }) }}
-                      className="absolute right-2 top-2 z-10 hidden rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 group-hover:block"
-                      title="Delete integration and all its references"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                    {/* The title link is stretched over the card (::after
-                        overlay) so the whole card navigates, while the tag
-                        editor sits above the overlay as a sibling, not
-                        inside the <a> — typing Enter in it must not follow
-                        the link. */}
-                    <Card className="relative hover:opacity-80 transition-opacity cursor-pointer h-full">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          {customIcon ? (
-                            <img src={customIcon} alt="" className="w-5 h-5 object-contain shrink-0" />
-                          ) : (
-                            <Icon size={16} style={{ color: "var(--theme-primary-text)" }} />
-                          )}
-                          <h3 className="text-sm font-semibold">
-                            <Link
-                              href={`/integrations/${integration.id}`}
-                              className="after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-[var(--theme-primary)]"
-                            >
-                              {integration.name}
-                            </Link>
-                          </h3>
-                        </div>
-                        <span className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                          integration.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                        }`}>
-                          {integration.is_active ? <><Check size={8} /> Active</> : "Inactive"}
+                  <TR key={integration.id} interactive onClick={() => router.push(`/integrations/${integration.id}`)}>
+                    <TD className="max-w-0 w-[40%]">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
+                          {customIcon ? <img src={customIcon} alt="" className="size-4 object-contain" /> : <Icon className="size-3.5" />}
                         </span>
-                      </div>
-                      <p className="text-xs mt-1" style={{ color: "var(--theme-muted-text)" }}>
-                        {typeLabels[integration.type] ?? integration.type}
-                        {config?.base_url && <span className="font-mono"> · {config.base_url}</span>}
-                      </p>
-                      <p className="text-xs mt-1" style={{ color: "var(--theme-muted-text)" }}>
-                        {refCount} references
-                        {integration.last_test_status && (
-                          <span className={integration.last_test_status === "success" ? " text-green-600" : " text-red-500"}>
-                            {" · "}{integration.last_test_status === "success" ? "Connected" : "Error"}
-                          </span>
-                        )}
-                      </p>
-                      <div className="relative z-[1] cursor-default">
-                        <ItemTagEditor id={integration.id} tags={tags} table="integrations" />
-                      </div>
-                    </Card>
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDepsId(integration.id); setDepsName(integration.name) }}
-                      className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity z-10"
-                      style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }} title="Dependency map">
-                      <MapIcon size={12} />
-                    </button>
-                    <div className="absolute top-2 right-9 z-10 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity">
-                      <ExportAssetButton ids={[integration.id]} name={integration.name} iconOnly variant="ghost" className="!h-auto !p-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-              <div
-                className="grid items-center text-[11px] font-semibold uppercase tracking-wide"
-                style={{
-                  gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,0.8fr) 110px 110px 130px 56px',
-                  backgroundColor: 'var(--theme-row-highlight-strong)',
-                  color: 'var(--theme-muted-text)',
-                  borderBottom: '1px solid var(--theme-surface-border)',
-                }}
-              >
-                <button className="px-4 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleIntegrationSort('name')} style={{ color: integrationSortBy === 'name' ? 'var(--theme-primary-text)' : undefined }}>
-                  Name {renderIntegrationSortIcon('name')}
-                </button>
-                <button className="px-3 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleIntegrationSort('type')} style={{ color: integrationSortBy === 'type' ? 'var(--theme-primary-text)' : undefined }}>
-                  Type {renderIntegrationSortIcon('type')}
-                </button>
-                <div className="px-3 py-2">Status</div>
-                <button className="px-3 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleIntegrationSort('references')} style={{ color: integrationSortBy === 'references' ? 'var(--theme-primary-text)' : undefined }}>
-                  Refs {renderIntegrationSortIcon('references')}
-                </button>
-                <button className="px-3 py-2 text-left flex items-center gap-1 hover:opacity-80" onClick={() => toggleIntegrationSort('updated_at')} style={{ color: integrationSortBy === 'updated_at' ? 'var(--theme-primary-text)' : undefined }}>
-                  Updated {renderIntegrationSortIcon('updated_at')}
-                </button>
-                <div className="px-3 py-2 text-right">Open</div>
-              </div>
-
-              {sortedIntegrations.map((integration, index) => {
-                const Icon = typeIcons[integration.type] ?? Globe
-                const config = integration.config as any
-                const customIcon = resolveStorageUrl(config?.icon_url)
-                const refCount = references.filter(
-                  (r) => (r.integration as any)?.id === integration.id
-                ).length
-                const tags = (integration.tags as string[]) ?? []
-
-                return (
-                  <div
-                    key={integration.id}
-                    className="grid items-center"
-                    style={{
-                      gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,0.8fr) 110px 110px 130px 56px',
-                      backgroundColor: index % 2 === 0 ? 'var(--theme-card-bg)' : 'var(--theme-surface)',
-                      borderBottom: index < sortedIntegrations.length - 1 ? '1px solid var(--theme-surface-border)' : undefined,
-                    }}
-                  >
-                    <div className="px-4 py-3 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {customIcon ? (
-                          <img src={customIcon} alt="" className="w-5 h-5 object-contain shrink-0" />
-                        ) : (
-                          <Icon size={16} className="shrink-0" style={{ color: 'var(--theme-primary-text)' }} />
-                        )}
                         <div className="min-w-0">
-                          <Link href={`/integrations/${integration.id}`} className="text-sm font-semibold hover:underline" style={{ color: 'var(--theme-card-text)' }}>
+                          <Link href={`/integrations/${integration.id}`} onClick={(e) => e.stopPropagation()} className="block truncate font-medium text-fg hover:underline">
                             {integration.name}
                           </Link>
-                          <div className="mt-0.5 text-[11px] truncate" style={{ color: 'var(--theme-muted-text)' }}>
-                            {config?.base_url || 'No endpoint configured'}
-                          </div>
-                          {tags.length > 0 && (
-                            <div className="mt-1">
-                              <ItemTagEditor id={integration.id} tags={tags} table="integrations" />
-                            </div>
-                          )}
+                          <span className="block truncate font-mono text-xs text-fg-muted">{config?.base_url || 'No endpoint configured'}</span>
                         </div>
+                        {tags.length > 0 && (
+                          <span className="ml-auto hidden shrink-0 gap-1 lg:flex">
+                            {tags.slice(0, 2).map((t) => <Tag key={t}>{t}</Tag>)}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                    <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                      {typeLabels[integration.type] ?? integration.type}
-                    </div>
-                    <div className="px-3 py-3">
-                      <span className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium',
-                        integration.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      )}>
-                        {integration.is_active ? <><Check size={9} /> Active</> : 'Inactive'}
-                      </span>
-                    </div>
-                    <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                      {refCount}
-                    </div>
-                    <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                      {formatRelativeDate(integration.updated_at ?? integration.created_at)}
-                    </div>
-                    <div className="px-3 py-3 flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => { setDepsId(integration.id); setDepsName(integration.name) }}
-                        className="rounded-lg p-1.5 hover:opacity-80"
-                        style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
-                        title="Dependency map"
-                      >
-                        <MapIcon size={12} />
-                      </button>
-                      <ExportAssetButton ids={[integration.id]} name={integration.name} iconOnly variant="ghost" className="!h-auto !p-1.5 hover:opacity-80" style={{ color: 'var(--theme-muted-text)' }} />
-                      <button
-                        onClick={() => setIntegrationToDelete({ id: integration.id, name: integration.name })}
-                        className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600"
-                        title="Delete integration and all its references"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      <Link href={`/integrations/${integration.id}`} className="rounded-lg p-1.5 hover:opacity-80" style={{ color: 'var(--theme-muted-text)' }}>
-                        <ChevronRight size={14} />
-                      </Link>
-                    </div>
-                  </div>
+                    </TD>
+                    <TD className="text-fg-muted">{typeLabels[integration.type] ?? integration.type}</TD>
+                    <TD><StatusPill status={integration.is_active ? "active" : "inactive"} /></TD>
+                    <TD numeric>{refCount}</TD>
+                    <TD className="text-fg-muted">
+                      <Tooltip content={formatAbsolute(updated)}><span className="num">{formatRelative(updated)}</span></Tooltip>
+                    </TD>
+                    <TDActions onClick={(e) => e.stopPropagation()}>{renderIntegrationMenu(integration)}</TDActions>
+                  </TR>
                 )
               })}
-            </div>
-          )}
-        </>
+            </TBody>
+          </DataTable>
+        )
+      )}
+
+      {exportTarget && (
+        <ExportAssetDialog
+          ids={[exportTarget.id]}
+          name={exportTarget.name}
+          open
+          onOpenChange={(open) => { if (!open) setExportTarget(null) }}
+        />
       )}
 
       <ConfirmDialog
@@ -640,371 +596,309 @@ export function IntegrationsView({ integrations, references, connectors = [], in
         }}
       />
 
+      {/* Generic confirmation (bulk reference delete). */}
+      <ConfirmDialog
+        open={Boolean(confirmState)}
+        onOpenChange={(open) => { if (!open && !confirmBusy) setConfirmState(null) }}
+        title={confirmState?.title ?? ''}
+        description={confirmState?.description ?? ''}
+        confirmLabel={confirmState?.destructive ? 'Delete' : 'Confirm'}
+        destructive={confirmState?.destructive}
+        busy={confirmBusy}
+        onConfirm={async () => {
+          if (!confirmState) return
+          setConfirmBusy(true)
+          try { await confirmState.action() } finally { setConfirmBusy(false); setConfirmState(null) }
+        }}
+      />
+
       {/* ─── References Tab ─── */}
       {activeTab === "references" && (
         <>
           {filteredReferences.length === 0 ? (
-            <Card>
-              <div className="text-center py-6">
-                <Bookmark size={32} className="mx-auto mb-2" style={{ color: "var(--theme-muted-text)" }} />
-                <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>
-                  {search || selectedTag ? "No references match your search." : "No references yet. Create them from an integration's setup wizard."}
-                </p>
-              </div>
-            </Card>
+            search || selectedTag || refIntegrationFilter ? (
+              <EmptyState
+                size="sm"
+                variant="no-results"
+                title="No references match these filters"
+                action={{ label: "Clear filters", onClick: () => { setSearch(""); setSelectedTag(null); setRefIntegrationFilter(null) } }}
+              />
+            ) : (
+              <EmptyState
+                icon={Bookmark}
+                title="No references yet"
+                description="References are the reusable calls your workflows, forms and agents make. Add them from an integration's setup wizard."
+              />
+            )
           ) : (
             <div className="space-y-2">
-              {/* Integration filter */}
-              {refIntegrations.length > 1 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Source:</span>
-                  <button onClick={() => setRefIntegrationFilter(null)}
-                    className="text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors"
-                    style={{
-                      backgroundColor: !refIntegrationFilter ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                      color: !refIntegrationFilter ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                    }}>
-                    All ({references.length})
-                  </button>
-                  {refIntegrations.map(integ => {
-                    const IntegIcon = typeIcons[integ.type] ?? Globe
-                    return (
-                      <button key={integ.id} onClick={() => setRefIntegrationFilter(refIntegrationFilter === integ.id ? null : integ.id)}
-                        className="text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors flex items-center gap-1"
-                        style={{
-                          backgroundColor: refIntegrationFilter === integ.id ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                          color: refIntegrationFilter === integ.id ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                        }}>
-                        <IntegIcon size={9} />
-                        {integ.name} ({integ.count})
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Bulk actions bar */}
-              <div className="flex items-center gap-2">
-                <input type="checkbox"
-                  checked={filteredReferences.length > 0 && filteredReferences.every(r => selectedRefs.has(r.id))}
-                  onChange={() => {
-                    const allSelected = filteredReferences.every(r => selectedRefs.has(r.id))
-                    setSelectedRefs(allSelected ? new Set() : new Set(filteredReferences.map(r => r.id)))
-                  }}
-                  className="rounded" />
-                <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                  {selectedRefs.size > 0 ? `${selectedRefs.size} selected` : 'Select all'}
-                </span>
+              <div className="flex min-h-8 flex-wrap items-center gap-2">
+                {refIntegrations.length > 1 && (
+                  <Select
+                    aria-label="Source integration"
+                    size="sm"
+                    wrapperClassName="w-auto"
+                    value={refIntegrationFilter ?? ""}
+                    onChange={(e) => setRefIntegrationFilter(e.target.value || null)}
+                    options={[
+                      { value: "", label: `All sources (${references.length})` },
+                      ...refIntegrations.map((integ) => ({ value: integ.id, label: `${integ.name} (${integ.count})` })),
+                    ]}
+                  />
+                )}
                 {selectedRefs.size > 0 && (
-                  <>
-                    <div className="flex-1" />
-                    <div className="flex items-center gap-1">
-                      <input value={bulkTagInput} onChange={e => setBulkTagInput(e.target.value)}
-                        onKeyDown={async e => {
-                          if (e.key === 'Enter' && bulkTagInput.trim()) {
-                            const outcome = await runInlineJob(jobs, 'references.add_tag', { ids: [...selectedRefs], tag: bulkTagInput }, {
-                              onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations'] }),
-                            })
-                            if (outcome.status === 'failed') setNotice({ tone: 'error', message: outcome.error })
-                            setBulkTagInput(''); setSelectedRefs(new Set())
-                          }
-                        }}
-                        placeholder="Add tag..." className="rounded border px-2 py-0.5 text-[10px] w-24"
-                        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }} />
-                    </div>
-                    <button onClick={() => {
-                      setConfirmState({
-                        title: 'Delete References',
-                        description: `Delete ${selectedRefs.size} selected reference${selectedRefs.size !== 1 ? 's' : ''}?`,
-                        destructive: true,
-                        action: async () => {
-                          // One `bulk.delete` job instead of one request per reference.
-                          setBulkDeleting(true)
-                          try {
-                            const result = await bulkDeleteWithJob(jobs, 'reference', [...selectedRefs], () => queryClient.invalidateQueries({ queryKey: ['integrations'] }))
-                            setSelectedRefs(new Set())
-                            if (!result.background) setNotice({ tone: 'success', message: `${result.queued} reference${result.queued === 1 ? '' : 's'} deleted.` })
-                          } catch (error) {
-                            setNotice({ tone: 'error', message: error instanceof Error ? error.message : 'Could not delete the references' })
-                          } finally {
-                            setBulkDeleting(false)
-                          }
-                        },
-                      })
-                    }} disabled={bulkDeleting}
-                      className="text-[10px] font-medium px-2 py-0.5 rounded hover:opacity-70 flex items-center gap-1"
-                      style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}>
-                      <Trash2 size={10} /> {bulkDeleting ? 'Deleting...' : `Delete (${selectedRefs.size})`}
-                    </button>
-                    <button onClick={() => setSelectedRefs(new Set())} className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>Clear</button>
-                  </>
+                  <div className="ml-auto flex items-center gap-2" role="toolbar" aria-label="Selected references">
+                    <span className="num text-xs text-fg-muted">{selectedRefs.size} selected</span>
+                    <Input
+                      size="sm"
+                      aria-label="Add a tag to the selected references"
+                      value={bulkTagInput}
+                      onChange={e => setBulkTagInput(e.target.value)}
+                      onKeyDown={async e => {
+                        if (e.key === 'Enter' && bulkTagInput.trim()) {
+                          const outcome = await runInlineJob(jobs, 'references.add_tag', { ids: [...selectedRefs], tag: bulkTagInput }, {
+                            onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations'] }),
+                          })
+                          if (outcome.status === 'failed') setNotice({ tone: 'error', message: outcome.error })
+                          setBulkTagInput(''); setSelectedRefs(new Set())
+                        }
+                      }}
+                      placeholder="Add tag…"
+                      className="w-32"
+                    />
+                    <Button
+                      size="sm"
+                      variant="danger-ghost"
+                      leadingIcon={<Trash2 />}
+                      loading={bulkDeleting}
+                      onClick={() => {
+                        setConfirmState({
+                          title: `Delete ${plural(selectedRefs.size, 'reference')}?`,
+                          description: 'Workflows, forms or agents still calling them will fail until re-pointed.',
+                          destructive: true,
+                          action: async () => {
+                            // One `bulk.delete` job instead of one request per reference.
+                            setBulkDeleting(true)
+                            try {
+                              const result = await bulkDeleteWithJob(jobs, 'reference', [...selectedRefs], () => queryClient.invalidateQueries({ queryKey: ['integrations'] }))
+                              setSelectedRefs(new Set())
+                              if (!result.background) setNotice({ tone: 'success', message: `${plural(result.queued, 'reference')} deleted.` })
+                            } catch (error) {
+                              setNotice({ tone: 'error', message: error instanceof Error ? error.message : 'Could not delete the references' })
+                            } finally {
+                              setBulkDeleting(false)
+                            }
+                          },
+                        })
+                      }}
+                    >
+                      Delete
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedRefs(new Set())}>Clear</Button>
+                  </div>
                 )}
               </div>
 
-              <div className="rounded-lg border overflow-hidden" style={{ borderColor: "var(--theme-surface-border)" }}>
-                {filteredReferences.map((ref, i) => {
-                  const integration = ref.integration as any
-                  const Icon = typeIcons[integration?.type] ?? Globe
-                  const refCustomIcon = resolveStorageUrl((integration?.config as any)?.icon_url || (ref.request_config as any)?.icon_url)
-                  const inputs = (ref.inputs as any[]) ?? []
-                  const outputs = (ref.outputs as any[]) ?? []
-                  const reqConfig = (ref.request_config as any) ?? {}
-                  const tags = (ref.tags as string[]) ?? []
-                  const isSelected = selectedRefs.has(ref.id)
+              <DataTable>
+                <THead>
+                  <tr>
+                    <TH className="w-10">
+                      <Checkbox
+                        aria-label="Select all references"
+                        checked={filteredReferences.length > 0 && filteredReferences.every(r => selectedRefs.has(r.id))}
+                        onChange={() => {
+                          const allSelected = filteredReferences.every(r => selectedRefs.has(r.id))
+                          setSelectedRefs(allSelected ? new Set() : new Set(filteredReferences.map(r => r.id)))
+                        }}
+                      />
+                    </TH>
+                    <TH>Reference</TH>
+                    <TH>Request</TH>
+                    <TH>Tags</TH>
+                    <TH numeric>Inputs</TH>
+                    <TH numeric>Outputs</TH>
+                    <TH><span className="sr-only">Actions</span></TH>
+                  </tr>
+                </THead>
+                <TBody>
+                  {filteredReferences.map((ref) => {
+                    const integration = ref.integration as any
+                    const Icon = typeIcons[integration?.type] ?? Globe
+                    const refCustomIcon = resolveStorageUrl((integration?.config as any)?.icon_url || (ref.request_config as any)?.icon_url)
+                    const inputs = (ref.inputs as any[]) ?? []
+                    const outputs = (ref.outputs as any[]) ?? []
+                    const reqConfig = (ref.request_config as any) ?? {}
+                    const tags = (ref.tags as string[]) ?? []
+                    const isSelected = selectedRefs.has(ref.id)
 
-                  return (
-                    <div
-                      key={ref.id}
-                      className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer"
-                      style={{
-                        backgroundColor: isSelected ? "var(--theme-primary-light)" : "var(--theme-card-bg)",
-                        borderBottom: i < filteredReferences.length - 1 ? "1px solid var(--theme-surface-border)" : undefined,
-                      }}
-                      onClick={() => openRefTest(ref)}
-                    >
-                      <input type="checkbox" checked={isSelected}
-                        onChange={() => setSelectedRefs(prev => { const n = new Set(prev); n.has(ref.id) ? n.delete(ref.id) : n.add(ref.id); return n })}
-                        onClick={e => e.stopPropagation()} className="rounded shrink-0" />
-                      <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: "var(--theme-primary-light)" }}
-                      >
-                        {refCustomIcon ? (
-                          <img src={refCustomIcon} alt="" className="w-5 h-5 object-contain" />
-                        ) : (
-                          <Icon size={16} style={{ color: "var(--theme-primary-text)" }} />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{ref.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
-                            {integration?.name ?? "Unknown"}
-                          </span>
-                          {reqConfig.method && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                              style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-primary-text)" }}>
-                              {reqConfig.method}
+                    return (
+                      <TR key={ref.id} interactive selected={isSelected} onClick={() => openRefTest(ref)}>
+                        <TD onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            aria-label={`Select ${ref.name}`}
+                            checked={isSelected}
+                            onChange={() => setSelectedRefs(prev => { const n = new Set(prev); if (n.has(ref.id)) n.delete(ref.id); else n.add(ref.id); return n })}
+                          />
+                        </TD>
+                        <TD className="max-w-0 w-[34%]">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex size-6 shrink-0 items-center justify-center rounded border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
+                              {refCustomIcon ? <img src={refCustomIcon} alt="" className="size-4 object-contain" /> : <Icon className="size-3.5" />}
                             </span>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-fg">{ref.name}</p>
+                              <p className="truncate text-xs text-fg-muted">{integration?.name ?? "Unknown integration"}</p>
+                            </div>
+                          </div>
+                        </TD>
+                        <TD className="max-w-0 w-[30%]">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            {reqConfig.method && <Tag mono>{reqConfig.method}</Tag>}
+                            {reqConfig.path_template && (
+                              <span className="truncate font-mono text-xs text-fg-muted" title={reqConfig.path_template}>{reqConfig.path_template}</span>
+                            )}
+                          </div>
+                        </TD>
+                        <TD onClick={e => e.stopPropagation()} className="cursor-default">
+                          {tags.length > 0 || editingTags === ref.id ? (
+                            <ItemTagEditor id={ref.id} tags={tags} table="integration_references" />
+                          ) : (
+                            <Button size="sm" variant="ghost" className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100" onClick={() => setEditingTags(ref.id)}>Add tag</Button>
                           )}
-                          {reqConfig.path_template && (
-                            <span className="text-[10px] font-mono truncate" style={{ color: "var(--theme-muted-text)" }}>
-                              {reqConfig.path_template.slice(0, 40)}{reqConfig.path_template.length > 40 ? "..." : ""}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Tags + badges */}
-                      <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                        <ItemTagEditor id={ref.id} tags={tags} table="integration_references" />
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-                          {inputs.length} in
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-                          {outputs.length} out
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openRefTest(ref) }}
-                          className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0"
-                          style={{ color: 'var(--theme-primary-text)', backgroundColor: 'var(--theme-primary-light)' }}
-                          title="Test reference"
-                        >
-                          <Play size={12} />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openUsage(ref.id) }}
-                          className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0"
-                          style={{ color: '#8B5CF6', backgroundColor: '#8B5CF615' }}
-                          title="Usage & analytics"
-                        >
-                          <BarChart3 size={12} />
-                        </button>
-                        <Link href={`/integrations/${integration?.id}`} onClick={e => e.stopPropagation()}>
-                          <ChevronRight size={14} style={{ color: "var(--theme-muted-text)" }} />
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                        </TD>
+                        <TD numeric className="text-fg-muted">{inputs.length}</TD>
+                        <TD numeric className="text-fg-muted">{outputs.length}</TD>
+                        <TDActions onClick={e => e.stopPropagation()}>
+                          <IconButton size="sm" label={`Test ${ref.name}`} icon={<Play />} onClick={() => openRefTest(ref)} />
+                          <IconButton size="sm" label="Usage and analytics" icon={<BarChart3 />} onClick={() => openUsage(ref.id)} />
+                          <IconButton size="sm" label={`Open ${integration?.name ?? 'integration'}`} icon={<ChevronRight />} onClick={() => router.push(`/integrations/${integration?.id}`)} />
+                        </TDActions>
+                      </TR>
+                    )
+                  })}
+                </TBody>
+              </DataTable>
             </div>
           )}
 
-          {/* Quick Test Dialog */}
-          {testingRefId && (() => {
-            const ref = references.find((r: any) => r.id === testingRefId)
-            if (!ref) return null
-            const inputs = (ref.inputs as any[]) ?? []
-            const config = ref.request_config as any
-            const integration = ref.integration as any
+          {/* Quick test */}
+          {(() => {
+            const ref = testingRefId ? references.find((r: any) => r.id === testingRefId) : null
+            const inputs = ((ref?.inputs as any[]) ?? [])
+            const config = ref?.request_config as any
+            const integration = ref?.integration as any
             const baseUrl = (integration?.config as any)?.base_url ?? ''
-            const methodColors: Record<string, string> = { GET: '#22C55E', POST: '#3B82F6', PUT: '#F59E0B', DELETE: '#EF4444', PATCH: '#8B5CF6' }
-
             return (
-              <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <div className="w-[90vw] max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-                  <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-                    <div className="flex items-center gap-2">
-                      <Play size={14} style={{ color: 'var(--theme-primary-text)' }} />
-                      <span className="text-sm font-semibold">Test: {ref.name}</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ color: methodColors[config?.method] ?? '#6B7280', backgroundColor: `${methodColors[config?.method] ?? '#6B7280'}15` }}>
-                        {config?.method ?? 'GET'}
-                      </span>
-                    </div>
-                    <button onClick={() => setTestingRefId(null)} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                    <div className="text-[10px] font-mono px-2.5 py-1.5 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                      {baseUrl}{config?.path_template ?? ''}
-                    </div>
-                    {inputs.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Inputs</h4>
-                        {inputs.map((inp: any, idx: number) => (
-                          <div key={inp.id ?? `${inp.name}-${idx}`}>
-                            <label className="flex items-center gap-1 text-xs font-medium mb-1">
-                              <code className="font-mono" style={{ color: 'var(--theme-primary-text)' }}>{inp.name}</code>
-                              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>({inp.type})</span>
-                              {inp.required && <span className="text-[10px] text-red-400">required</span>}
-                            </label>
-                            <Input
-                              value={testInputs[inp.name] ?? ''}
-                              onChange={e => setTestInputs(p => ({ ...p, [inp.name]: e.target.value }))}
-                              placeholder={inp.default_value || inp.name}
-                              className="!text-xs font-mono"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <Button size="sm" onClick={() => runRefTest(ref)} disabled={testLoading} className="gap-1.5">
-                      {testLoading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                      {testLoading ? 'Running...' : 'Execute'}
-                    </Button>
-                    {testResult && (
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--theme-muted-text)' }}>
-                          Response
-                          {testResult.status && (
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                              style={{ backgroundColor: testResult.status < 300 ? '#22C55E15' : '#EF444415', color: testResult.status < 300 ? '#22C55E' : '#EF4444' }}>
-                              {testResult.status}
-                            </span>
-                          )}
-                        </h4>
-                        {testResult.error ? (
-                          <div className="text-xs p-3 rounded-lg" style={{ backgroundColor: '#EF444415', color: '#EF4444' }}>{testResult.error}</div>
+              <UIDialog open={Boolean(ref)} onOpenChange={(open) => { if (!open) setTestingRefId(null) }}>
+                {ref && (
+                  <DialogContent size="lg" title={`Test “${ref.name}”`} description={integration?.name}>
+                    <DialogBody className="space-y-4">
+                      <Card variant="inset" padding="sm" className="flex min-w-0 items-center gap-2">
+                        <Tag mono>{config?.method ?? 'GET'}</Tag>
+                        <code className="min-w-0 truncate font-mono text-xs text-fg">{baseUrl}{config?.path_template ?? ''}</code>
+                      </Card>
+                      {inputs.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-ui font-medium text-fg">Inputs</h3>
+                          {inputs.map((inp: any, idx: number) => (
+                            <Field
+                              key={inp.id ?? `${inp.name}-${idx}`}
+                              label={<><code className="font-mono">{inp.name}</code> <span className="font-normal text-fg-muted">{inp.type}</span></>}
+                              optional={!inp.required}
+                            >
+                              <Input
+                                value={testInputs[inp.name] ?? ''}
+                                onChange={e => setTestInputs(p => ({ ...p, [inp.name]: e.target.value }))}
+                                placeholder={inp.default_value || inp.name}
+                                className="font-mono"
+                              />
+                            </Field>
+                          ))}
+                        </div>
+                      )}
+                      {testResult && (
+                        testResult.error ? (
+                          <InlineNotice tone="danger" title={testResult.status ? `HTTP ${testResult.status}` : 'The test failed'} message={String(testResult.error)} />
                         ) : (
-                          <pre className="text-[10px] font-mono p-3 rounded-lg overflow-auto max-h-[300px]"
-                            style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}>
-                            {JSON.stringify(testResult.data, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                          <JsonViewer
+                            value={testResult.data}
+                            meta={testResult.status ? <Badge tone={testResult.status < 300 ? 'success' : 'danger'} className="num">{testResult.status}</Badge> : null}
+                          />
+                        )
+                      )}
+                    </DialogBody>
+                    <DialogFooter>
+                      <Button variant="secondary" onClick={() => setTestingRefId(null)}>Close</Button>
+                      <Button onClick={() => runRefTest(ref)} loading={testLoading} leadingIcon={<Play />}>
+                        {testResult ? 'Run again' : 'Run test'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                )}
+              </UIDialog>
             )
           })()}
 
-          {/* Usage & Analytics Dialog */}
-          {usageRefId && (() => {
-            const ref = references.find((r: any) => r.id === usageRefId)
-            if (!ref) return null
-
+          {/* Usage and analytics */}
+          {(() => {
+            const ref = usageRefId ? references.find((r: any) => r.id === usageRefId) : null
             return (
-              <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <div className="w-[90vw] max-w-xl max-h-[70vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-                  <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-                    <div className="flex items-center gap-2">
-                      <BarChart3 size={14} style={{ color: '#8B5CF6' }} />
-                      <span className="text-sm font-semibold">Usage: {ref.name}</span>
-                    </div>
-                    <button onClick={() => setUsageRefId(null)} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                    {usageLoading ? (
-                      <div className="flex flex-col items-center py-10">
-                        <Loader2 size={24} className="animate-spin mb-2" style={{ color: 'var(--theme-primary-text)' }} />
-                        <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>Loading usage data...</p>
-                      </div>
-                    ) : usageData?.error ? (
-                      <p className="text-xs text-red-500">{usageData.error}</p>
-                    ) : usageData ? (
-                      <>
-                        {/* Stats row */}
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                            <p className="text-2xl font-bold" style={{ color: 'var(--theme-primary-text)' }}>{usageData.workflow_count}</p>
-                            <p className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Workflows</p>
-                          </div>
-                          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                            <p className="text-2xl font-bold" style={{ color: '#8B5CF6' }}>{usageData.total_executions}</p>
-                            <p className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Executions</p>
-                          </div>
-                          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                            <p className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-                              {usageData.last_executed_at ? formatRelativeDate(usageData.last_executed_at) : 'Never'}
-                            </p>
-                            <p className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Last Executed</p>
-                          </div>
+              <UIDialog open={Boolean(ref)} onOpenChange={(open) => { if (!open) setUsageRefId(null) }}>
+                {ref && (
+                  <DialogContent size="md" title={`Usage of “${ref.name}”`}>
+                    <DialogBody className="space-y-4">
+                      {usageLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-10 text-ui text-fg-muted">
+                          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading usage…
                         </div>
-
-                        {/* Workflow list */}
-                        <div>
-                          <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-                            Used in Workflows
-                          </h4>
-                          {usageData.workflows.length === 0 ? (
-                            <p className="text-xs py-4 text-center" style={{ color: 'var(--theme-muted-text)' }}>
-                              Not used in any workflows yet
-                            </p>
-                          ) : (
-                            <div className="space-y-1.5">
-                              {usageData.workflows.map((w: any) => (
-                                <div key={w.id} className="flex items-center gap-2 rounded-lg p-2.5"
-                                  style={{ backgroundColor: 'var(--theme-surface)' }}>
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${w.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium truncate">{w.name}</p>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                      <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                                        {w.node_count} node{w.node_count !== 1 ? 's' : ''}
+                      ) : usageData?.error ? (
+                        <InlineNotice tone="danger" message={usageData.error} />
+                      ) : usageData ? (
+                        <>
+                          <dl className="grid grid-cols-3 gap-2">
+                            {[
+                              { label: 'Workflows', value: formatCount(usageData.workflow_count) },
+                              { label: 'Executions', value: formatCount(usageData.total_executions) },
+                              { label: 'Last run', value: usageData.last_executed_at ? formatRelative(usageData.last_executed_at) : 'Never' },
+                            ].map((stat) => (
+                              <Card key={stat.label} variant="inset" padding="sm">
+                                <dt className="text-xs text-fg-muted">{stat.label}</dt>
+                                <dd className="num mt-0.5 text-lg font-semibold text-fg">{stat.value}</dd>
+                              </Card>
+                            ))}
+                          </dl>
+                          <div>
+                            <h3 className="mb-2 text-ui font-medium text-fg">Used in workflows</h3>
+                            {usageData.workflows.length === 0 ? (
+                              <p className="py-4 text-center text-ui text-fg-muted">Not used in any workflow yet.</p>
+                            ) : (
+                              <ul className="divide-y divide-border-subtle rounded-md border border-border">
+                                {usageData.workflows.map((w: any) => (
+                                  <li key={w.id} className="flex items-center gap-2 px-3 py-2">
+                                    <StatusPill status={w.is_active ? 'active' : 'inactive'} className="shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-ui font-medium">{w.name}</p>
+                                      <p className="num truncate text-xs text-fg-muted">
+                                        {plural(w.node_count, 'node')}
                                         {w.node_labels?.length > 0 && ` (${w.node_labels.join(', ')})`}
-                                      </span>
-                                      <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                                        · {w.run_count} runs
-                                      </span>
-                                      {w.last_run_at && (
-                                        <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                                          · Last: {formatRelativeDate(w.last_run_at)}
-                                        </span>
-                                      )}
+                                        {' · '}{plural(w.run_count, 'run')}
+                                        {w.last_run_at && ` · last ${formatRelative(w.last_run_at)}`}
+                                      </p>
                                     </div>
-                                  </div>
-                                  <Link href={`/automations/${w.id}`} className="p-1 rounded hover:opacity-70 shrink-0" style={{ color: 'var(--theme-primary-text)' }}>
-                                    <ExternalLink size={12} />
-                                  </Link>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+                                    <Link href={`/automations/${w.id}`} aria-label={`Open ${w.name}`} className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}>
+                                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </>
+                      ) : null}
+                    </DialogBody>
+                  </DialogContent>
+                )}
+              </UIDialog>
             )
           })()}
         </>
@@ -1038,7 +932,6 @@ export function IntegrationsView({ integrations, references, connectors = [], in
 /* ─── MCP Servers Panel ─── */
 
 function McpServersPanel({ servers }: { servers: any[] }) {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
@@ -1051,22 +944,26 @@ function McpServersPanel({ servers }: { servers: any[] }) {
   const [authType, setAuthType] = useState('none')
   const [token, setToken] = useState('')
   const [saving, setSaving] = useState(false)
+  // Synchronous guard: two clicks in one frame both see saving === false.
+  const addGuard = useSubmitGuard()
   const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; message: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   async function handleAdd() {
-    if (!name.trim() || !url.trim()) return
-    setSaving(true)
-    try {
-      // settings.edit; refuses private-network URLs; audited and synced.
-      await addMcpServer({ name, url, authType: authType as 'none' | 'bearer' | 'api_key', token })
-      setShowAdd(false)
-      setName(''); setUrl(''); setToken('')
-      queryClient.invalidateQueries({ queryKey: ['integrations'] })
-    } catch (err: any) {
-      setNotice({ tone: 'error', message: err?.message ?? 'Could not add the MCP server.' })
-    }
-    setSaving(false)
+    await addGuard.run(async () => {
+      if (!name.trim() || !url.trim()) return
+      setSaving(true)
+      try {
+        // settings.edit; refuses private-network URLs; audited and synced.
+        await addMcpServer({ name, url, authType: authType as 'none' | 'bearer' | 'api_key', token })
+        setShowAdd(false)
+        setName(''); setUrl(''); setToken('')
+        queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      } catch (err: any) {
+        setNotice({ tone: 'error', message: err?.message ?? 'Could not add the MCP server.' })
+      }
+      setSaving(false)
+    })
   }
 
   async function handleDelete(id: string) {
@@ -1103,155 +1000,128 @@ function McpServersPanel({ servers }: { servers: any[] }) {
     return next
   }, [filteredServers, sortBy, sortDir])
 
+  const authLabel = (t: string) => (t === 'bearer' ? 'Bearer token' : t === 'api_key' ? 'API key header' : 'No auth')
+  const serverMenu = (server: any) => (
+    <>
+      <ExportAssetButton ids={[server.id]} name={server.name} iconOnly size="sm" />
+      <IconButton size="sm" variant="danger-ghost" label={`Delete ${server.name}`} icon={<Trash2 />} onClick={() => setDeleteTarget(server.id)} />
+    </>
+  )
+
   return (
     <div className="space-y-3">
       {notice && (
         <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-          Connect external MCP servers for use as AI agent tools
-        </p>
-        <Button size="sm" onClick={() => setShowAdd(true)}>
-          <Plus size={14} className="mr-1" /> Add Server
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search MCP servers..." className="pl-9" />
-          </div>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}>
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}>
-            <option value="created_at">Sort by created</option>
-            <option value="name">Sort by name</option>
-            <option value="tools">Sort by tools</option>
-          </select>
-          <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}>
-            {sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-            {sortDir === 'asc' ? 'Ascending' : 'Descending'}
-          </button>
-        </div>
-        <div className="inline-flex items-center rounded-lg border p-1" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-          <button onClick={() => setViewMode('cards')} className="rounded-md p-1.5" style={viewMode === 'cards' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }} title="Card view"><Grid3x3 size={14} /></button>
-          <button onClick={() => setViewMode('list')} className="rounded-md p-1.5" style={viewMode === 'list' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }} title="List view"><List size={14} /></button>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput value={search} onValueChange={setSearch} placeholder="Search MCP servers" aria-label="Search MCP servers" wrapperClassName="w-full max-w-xs" />
+        <Select aria-label="Status" wrapperClassName="w-auto" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}
+          options={[{ value: 'all', label: 'All statuses' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
+        <Select aria-label="Sort by" wrapperClassName="w-auto" value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+          options={[{ value: 'created_at', label: 'Sort by created' }, { value: 'name', label: 'Sort by name' }, { value: 'tools', label: 'Sort by tools' }]} />
+        <IconButton variant="secondary" label={sortDir === 'asc' ? 'Ascending (switch to descending)' : 'Descending (switch to ascending)'}
+          icon={sortDir === 'asc' ? <ArrowUp /> : <ArrowDown />} onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')} />
+        <div className="ml-auto flex items-center gap-2">
+          <SegmentedControl aria-label="View" size="sm" value={viewMode} onValueChange={setViewMode}
+            options={[{ value: 'cards', icon: <LayoutGrid />, label: 'Cards' }, { value: 'list', icon: <List />, label: 'List' }]} />
+          <Button variant="secondary" leadingIcon={<Plus />} onClick={() => setShowAdd(true)}>Add server</Button>
         </div>
       </div>
 
-      {showAdd && (
-        <Card className="p-4 space-y-3" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Server Name</label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Slack MCP" />
+      <UIDialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent size="md" title="Add an MCP server" description="Its tools become available to your AI agents.">
+          <DialogBody className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Name">
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Slack MCP" />
+              </Field>
+              <Field label="Server URL">
+                <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…" className="font-mono" />
+              </Field>
             </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Server URL</label>
-              <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Auth Type</label>
-              <select value={authType} onChange={e => setAuthType(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                <option value="none">None</option>
-                <option value="bearer">Bearer Token</option>
-                <option value="api_key">API Key Header</option>
-              </select>
-            </div>
-            {authType !== 'none' && (
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Token / Key</label>
-                <Input type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="••••••••" />
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleAdd} disabled={!name.trim() || !url.trim() || saving}>
-              {saving ? 'Adding...' : 'Add Server'}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {sortedServers.length === 0 && !showAdd && (
-        <Card className="p-8 text-center" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-          <Network size={32} className="mx-auto mb-3 opacity-20" />
-          <p className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>No MCP servers configured</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>Add an external MCP server to give your AI agents access to additional tools</p>
-        </Card>
-      )}
-
-      {viewMode === 'cards' ? (
-        sortedServers.map((server: any) => (
-          <Card key={server.id} className="p-4 flex items-center justify-between" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-            <div className="flex items-center gap-3">
-              <div className={cn('w-2 h-2 rounded-full', server.is_active ? 'bg-green-500' : 'bg-gray-300')} />
-              <div>
-                <h3 className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>{server.name}</h3>
-                <p className="text-[11px] font-mono truncate max-w-[400px]" style={{ color: 'var(--theme-muted-text)' }}>{server.url}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {server.tools_cache?.length > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
-                  {server.tools_cache.length} tools
-                </span>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Authentication">
+                <Select value={authType} onChange={e => setAuthType(e.target.value)}
+                  options={[{ value: 'none', label: 'None' }, { value: 'bearer', label: 'Bearer token' }, { value: 'api_key', label: 'API key header' }]} />
+              </Field>
+              {authType !== 'none' && (
+                <Field label="Token or key">
+                  <Input type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="••••••••" autoComplete="off" />
+                </Field>
               )}
-              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                {server.auth_type !== 'none' ? server.auth_type : 'No auth'}
-              </span>
-              <ExportAssetButton ids={[server.id]} name={server.name} iconOnly variant="ghost" className="!h-auto !p-1.5" style={{ color: 'var(--theme-muted-text)' }} />
-              <button onClick={() => setDeleteTarget(server.id)} className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600">
-                <Trash2 size={13} />
-              </button>
             </div>
-          </Card>
-        ))
-      ) : (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          <div className="grid items-center text-[11px] font-semibold uppercase tracking-wide" style={{ gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr) 110px 110px 84px', backgroundColor: 'var(--theme-row-highlight-strong)', color: 'var(--theme-muted-text)', borderBottom: '1px solid var(--theme-surface-border)' }}>
-            <div className="px-4 py-2">Name</div>
-            <div className="px-3 py-2">URL</div>
-            <div className="px-3 py-2">Auth</div>
-            <div className="px-3 py-2">Tools</div>
-            <div className="px-3 py-2 text-right">Actions</div>
-          </div>
-          {sortedServers.map((server: any, index: number) => (
-            <div key={server.id} className="grid items-center" style={{ gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr) 110px 110px 84px', backgroundColor: index % 2 === 0 ? 'var(--theme-card-bg)' : 'var(--theme-surface)', borderBottom: index < sortedServers.length - 1 ? '1px solid var(--theme-surface-border)' : undefined }}>
-              <div className="px-4 py-3 min-w-0">
-                <div className="flex items-center gap-2">
-                  <div className={cn('w-2 h-2 rounded-full shrink-0', server.is_active ? 'bg-green-500' : 'bg-gray-300')} />
-                  <div className="text-sm font-medium truncate" style={{ color: 'var(--theme-card-text)' }}>{server.name}</div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button onClick={handleAdd} loading={saving} disabled={!name.trim() || !url.trim()}>Add server</Button>
+          </DialogFooter>
+        </DialogContent>
+      </UIDialog>
+
+      {sortedServers.length === 0 ? (
+        search || statusFilter !== 'all' ? (
+          <EmptyState size="sm" variant="no-results" title="No MCP servers match these filters" action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all') } }} />
+        ) : (
+          <EmptyState icon={Network} title="No MCP servers yet" description="Connect an external MCP server to give your AI agents more tools." action={{ label: 'Add server', onClick: () => setShowAdd(true) }} />
+        )
+      ) : viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {sortedServers.map((server: any) => (
+            <Card key={server.id} padding="md" className="group flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
+                  <Network className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold text-fg">{server.name}</h3>
+                  <p className="truncate font-mono text-xs text-fg-muted" title={server.url}>{hostOf(server.url) || server.url}</p>
                 </div>
+                <StatusPill status={server.is_active ? 'active' : 'inactive'} className="shrink-0" />
               </div>
-              <div className="px-3 py-3 text-[11px] font-mono truncate" style={{ color: 'var(--theme-muted-text)' }}>{server.url}</div>
-              <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{server.auth_type !== 'none' ? server.auth_type : 'No auth'}</div>
-              <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{server.tools_cache?.length ?? 0}</div>
-              <div className="px-3 py-3 flex items-center justify-end gap-0.5">
-                <ExportAssetButton ids={[server.id]} name={server.name} iconOnly variant="ghost" className="!h-auto !p-1.5" style={{ color: 'var(--theme-muted-text)' }} />
-                <button onClick={() => setDeleteTarget(server.id)} className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600">
-                  <Trash2 size={13} />
-                </button>
+              <div className="flex items-center gap-2 text-xs text-fg-muted">
+                <span className="num">{plural(server.tools_cache?.length ?? 0, 'tool')}</span>
+                <span>· {authLabel(server.auth_type)}</span>
+                <span className="ml-auto flex items-center gap-0.5">{serverMenu(server)}</span>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
+      ) : (
+        <DataTable>
+          <THead>
+            <tr>
+              <TH>Name</TH>
+              <TH>URL</TH>
+              <TH>Auth</TH>
+              <TH numeric>Tools</TH>
+              <TH><span className="sr-only">Actions</span></TH>
+            </tr>
+          </THead>
+          <TBody>
+            {sortedServers.map((server: any) => (
+              <TR key={server.id}>
+                <TD className="font-medium">
+                  <span className="flex items-center gap-2">
+                    {server.name}
+                    {!server.is_active && <StatusPill status="inactive" />}
+                  </span>
+                </TD>
+                <TD className="max-w-0 w-[40%]"><span className="block truncate font-mono text-xs text-fg-muted">{server.url}</span></TD>
+                <TD className="text-fg-muted">{authLabel(server.auth_type)}</TD>
+                <TD numeric>{server.tools_cache?.length ?? 0}</TD>
+                <TDActions>{serverMenu(server)}</TDActions>
+              </TR>
+            ))}
+          </TBody>
+        </DataTable>
       )}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
-        title="Delete MCP Server"
-        description="Delete this MCP server?"
-        confirmLabel="Delete"
+        title="Delete this MCP server?"
+        description="Agents that use its tools lose access to them."
+        confirmLabel="Delete server"
         destructive
         onConfirm={async () => {
           if (!deleteTarget) return
@@ -1295,6 +1165,8 @@ function ObjectsPanel({ references }: { references: any[] }) {
   const [description, setDescription] = useState('')
   const [sources, setSources] = useState<ObjectSource[]>([])
   const [saving, setSaving] = useState(false)
+  // Synchronous guard: two clicks in one frame both see saving === false.
+  const createGuard = useSubmitGuard()
   const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; message: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
@@ -1340,19 +1212,21 @@ function ObjectsPanel({ references }: { references: any[] }) {
   )
 
   async function handleCreate() {
-    if (!name.trim() || !sourcesValid) return
-    setSaving(true)
-    try {
-      // Creates the object, its sources and its generated reference (and
-      // queues them for GitHub sync) in lib/services/objects.
-      const result = await createIntegrationObject({ name: name.trim(), description: description.trim() || null, sources })
-      if (!result.ok) throw new Error(result.error)
+    await createGuard.run(async () => {
+      if (!name.trim() || !sourcesValid) return
+      setSaving(true)
+      try {
+        // Creates the object, its sources and its generated reference (and
+        // queues them for GitHub sync) in lib/services/objects.
+        const result = await createIntegrationObject({ name: name.trim(), description: description.trim() || null, sources })
+        if (!result.ok) throw new Error(result.error)
 
-      queryClient.invalidateQueries({ queryKey: ['integration-objects'] })
-      setShowCreate(false)
-      setName(''); setDescription(''); setSources([])
-    } catch (err: any) { setNotice({ tone: 'error', message: err.message }) }
-    setSaving(false)
+        queryClient.invalidateQueries({ queryKey: ['integration-objects'] })
+        setShowCreate(false)
+        setName(''); setDescription(''); setSources([])
+      } catch (err: any) { setNotice({ tone: 'error', message: err.message }) }
+      setSaving(false)
+    })
   }
 
   async function handleGenerateRefs(obj: any) {
@@ -1408,291 +1282,211 @@ function ObjectsPanel({ references }: { references: any[] }) {
     })
   }, [filteredObjects, sortBy, sortDir])
 
+  const sourceName = (s: any) => s.table?.name ?? s.reference?.name ?? s.alias
+  const objectActions = (obj: any) => (
+    <>
+      <Button size="sm" variant="secondary" leadingIcon={<Plus />} onClick={() => handleGenerateRefs(obj)}>Generate references</Button>
+      <IconButton size="sm" variant="danger-ghost" label={`Delete ${obj.name}`} icon={<Trash2 />} onClick={() => setDeleteTarget(obj.id)} />
+    </>
+  )
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {notice && (
         <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
-          Objects join multiple data tables and API references into composite, queryable entities.
-          Each object auto-generates a reference usable in workflows and forms.
-        </p>
-        <Button size="sm" onClick={() => setShowCreate(true)} className="shrink-0">
-          <Plus size={14} className="mr-1" /> New Object
-        </Button>
-      </div>
+      <p className="max-w-[72ch] text-ui text-fg-muted">
+        Objects join data tables and API references into one queryable entity. Each object generates a reference you can use in workflows and forms.
+      </p>
 
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search objects..." className="pl-9" />
-          </div>
-          <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value as any)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}>
-            <option value="all">All source types</option>
-            <option value="tables">Tables only</option>
-            <option value="mixed">Mixed sources</option>
-          </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}>
-            <option value="updated_at">Sort by updated</option>
-            <option value="name">Sort by name</option>
-            <option value="sources">Sort by sources</option>
-          </select>
-          <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-muted-text)' }}>
-            {sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-            {sortDir === 'asc' ? 'Ascending' : 'Descending'}
-          </button>
-        </div>
-        <div className="inline-flex items-center rounded-lg border p-1" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-          <button onClick={() => setViewMode('cards')} className="rounded-md p-1.5" style={viewMode === 'cards' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }} title="Card view"><Grid3x3 size={14} /></button>
-          <button onClick={() => setViewMode('list')} className="rounded-md p-1.5" style={viewMode === 'list' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { color: 'var(--theme-muted-text)' }} title="List view"><List size={14} /></button>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput value={search} onValueChange={setSearch} placeholder="Search objects" aria-label="Search objects" wrapperClassName="w-full max-w-xs" />
+        <Select aria-label="Source types" wrapperClassName="w-auto" value={sourceFilter} onChange={e => setSourceFilter(e.target.value as any)}
+          options={[{ value: 'all', label: 'All source types' }, { value: 'tables', label: 'Tables only' }, { value: 'mixed', label: 'Mixed sources' }]} />
+        <Select aria-label="Sort by" wrapperClassName="w-auto" value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+          options={[{ value: 'updated_at', label: 'Sort by updated' }, { value: 'name', label: 'Sort by name' }, { value: 'sources', label: 'Sort by sources' }]} />
+        <IconButton variant="secondary" label={sortDir === 'asc' ? 'Ascending (switch to descending)' : 'Descending (switch to ascending)'}
+          icon={sortDir === 'asc' ? <ArrowUp /> : <ArrowDown />} onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')} />
+        <div className="ml-auto flex items-center gap-2">
+          <SegmentedControl aria-label="View" size="sm" value={viewMode} onValueChange={setViewMode}
+            options={[{ value: 'cards', icon: <LayoutGrid />, label: 'Cards' }, { value: 'list', icon: <List />, label: 'List' }]} />
+          <Button variant="secondary" leadingIcon={<Plus />} onClick={() => setShowCreate(true)}>New object</Button>
         </div>
       </div>
 
       {isLoading ? (
-        <Card><p className="text-sm py-4 text-center" style={{ color: "var(--theme-muted-text)" }}>Loading...</p></Card>
+        <DataTable><TBody><TableSkeleton columns={4} rows={3} /></TBody></DataTable>
       ) : sortedObjects.length === 0 ? (
-        <Card>
-          <div className="text-center py-8">
-            <Box size={32} className="mx-auto mb-2" style={{ color: "var(--theme-muted-text)" }} />
-            <p className="text-sm" style={{ color: "var(--theme-muted-text)" }}>No objects yet.</p>
-            <p className="text-xs mt-1" style={{ color: "var(--theme-muted-text)" }}>Create an object to join multiple data tables and references together.</p>
-          </div>
-        </Card>
-      ) : (
-        viewMode === 'cards' ? (
+        search || sourceFilter !== 'all' ? (
+          <EmptyState size="sm" variant="no-results" title="No objects match these filters" action={{ label: 'Clear filters', onClick: () => { setSearch(''); setSourceFilter('all') } }} />
+        ) : (
+          <EmptyState icon={Box} title="No objects yet" description="Create an object to join data tables and references together." action={{ label: 'New object', onClick: () => setShowCreate(true) }} />
+        )
+      ) : viewMode === 'cards' ? (
         <div className="space-y-3">
           {sortedObjects.map((obj: any) => {
             const srcs = (obj.sources ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order)
             return (
-              <Card key={obj.id}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Box size={15} style={{ color: "var(--theme-primary-text)" }} />
-                      <h4 className="text-sm font-semibold" style={{ color: "var(--theme-card-text)" }}>{obj.name}</h4>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-                        {srcs.length} source{srcs.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    {obj.description && <p className="text-xs mb-2" style={{ color: "var(--theme-muted-text)" }}>{obj.description}</p>}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {srcs.map((s: any, i: number) => (
-                        <span key={s.id} className="flex items-center gap-1">
-                          {i > 0 && (
-                            <span className="text-[9px] font-mono px-1 py-0.5 rounded" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-                              {s.join_type?.toUpperCase() ?? 'LEFT'} JOIN
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full" style={{
-                            backgroundColor: s.source_type === 'table' ? "var(--theme-primary-light)" : "var(--theme-surface)",
-                            color: s.source_type === 'table' ? "var(--theme-primary-text)" : "var(--theme-muted-text)",
-                          }}>
-                            {s.source_type === 'table' ? <Table size={9} /> : <Link2 size={9} />}
-                            {s.table?.name ?? s.reference?.name ?? s.alias}
-                            {s.is_primary && <span className="text-[8px] font-bold ml-0.5">PRIMARY</span>}
-                          </span>
-                          {i > 0 && s.join_on_local && (
-                            <span className="text-[8px] font-mono" style={{ color: "var(--theme-muted-text)" }}>
-                              ON {s.alias}.{s.join_on_local} = {s.join_to_alias}.{s.join_on_foreign}
-                            </span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
+              <Card key={obj.id} padding="md" className="flex items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
+                  <Box className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-sm font-semibold text-fg">{obj.name}</h3>
+                    <span className="num text-xs text-fg-muted">{plural(srcs.length, 'source')}</span>
                   </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => handleGenerateRefs(obj)} className="!h-6 !text-[9px]">
-                      <Plus size={10} className="mr-1" /> Generate References
-                    </Button>
-                    <button onClick={() => setDeleteTarget(obj.id)} className="p-1 rounded hover:opacity-70 self-end" style={{ color: "var(--theme-danger, #DC2626)" }}>
-                      <Trash2 size={13} />
-                    </button>
+                  {obj.description && <p className="mt-0.5 text-ui text-fg-muted">{obj.description}</p>}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {srcs.map((s: any, i: number) => (
+                      <span key={s.id} className="flex items-center gap-1.5">
+                        {i > 0 && <Tag mono>{s.join_type?.toUpperCase() ?? 'LEFT'} JOIN</Tag>}
+                        <Tag className="gap-1">
+                          {s.source_type === 'table' ? <Table className="size-3" aria-hidden="true" /> : <Link2 className="size-3" aria-hidden="true" />}
+                          {sourceName(s)}
+                          {s.is_primary && <span className="text-fg-muted">· primary</span>}
+                        </Tag>
+                        {i > 0 && s.join_on_local && (
+                          <span className="font-mono text-xs text-fg-muted">
+                            on {s.alias}.{s.join_on_local} = {s.join_to_alias}.{s.join_on_foreign}
+                          </span>
+                        )}
+                      </span>
+                    ))}
                   </div>
                 </div>
+                <div className="flex shrink-0 items-center gap-1">{objectActions(obj)}</div>
               </Card>
             )
           })}
         </div>
-        ) : (
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            <div className="grid items-center text-[11px] font-semibold uppercase tracking-wide" style={{ gridTemplateColumns: 'minmax(0,1.2fr) 120px 120px 130px 120px', backgroundColor: 'var(--theme-row-highlight-strong)', color: 'var(--theme-muted-text)', borderBottom: '1px solid var(--theme-surface-border)' }}>
-              <div className="px-4 py-2">Name</div>
-              <div className="px-3 py-2">Sources</div>
-              <div className="px-3 py-2">Type</div>
-              <div className="px-3 py-2">Updated</div>
-              <div className="px-3 py-2 text-right">Actions</div>
-            </div>
-            {sortedObjects.map((obj: any, index: number) => {
-              const srcs = (obj.sources ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+      ) : (
+        <DataTable>
+          <THead>
+            <tr>
+              <TH>Name</TH>
+              <TH numeric>Sources</TH>
+              <TH>Type</TH>
+              <TH>Updated</TH>
+              <TH><span className="sr-only">Actions</span></TH>
+            </tr>
+          </THead>
+          <TBody>
+            {sortedObjects.map((obj: any) => {
+              const srcs = obj.sources ?? []
               const sourceKind = srcs.every((s: any) => s.source_type === 'table') ? 'Tables only' : 'Mixed'
+              const updated = obj.updated_at ?? obj.created_at
               return (
-                <div key={obj.id} className="grid items-center" style={{ gridTemplateColumns: 'minmax(0,1.2fr) 120px 120px 130px 120px', backgroundColor: index % 2 === 0 ? 'var(--theme-card-bg)' : 'var(--theme-surface)', borderBottom: index < sortedObjects.length - 1 ? '1px solid var(--theme-surface-border)' : undefined }}>
-                  <div className="px-4 py-3 min-w-0">
-                    <div className="text-sm font-semibold truncate" style={{ color: 'var(--theme-card-text)' }}>{obj.name}</div>
-                    <div className="text-[11px] truncate" style={{ color: 'var(--theme-muted-text)' }}>{obj.description || 'No description'}</div>
-                  </div>
-                  <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{srcs.length}</div>
-                  <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{sourceKind}</div>
-                  <div className="px-3 py-3 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{formatRelativeDate(obj.updated_at ?? obj.created_at)}</div>
-                  <div className="px-3 py-3 flex items-center justify-end gap-1">
-                    <Button size="sm" variant="outline" onClick={() => handleGenerateRefs(obj)} className="!h-7 !text-[10px]">
-                      <Plus size={10} className="mr-1" /> Generate
-                    </Button>
-                    <button onClick={() => setDeleteTarget(obj.id)} className="p-1 rounded hover:opacity-70" style={{ color: "var(--theme-danger, #DC2626)" }}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
+                <TR key={obj.id}>
+                  <TD className="max-w-0 w-[45%]">
+                    <p className="truncate font-medium text-fg">{obj.name}</p>
+                    <p className="truncate text-xs text-fg-muted">{obj.description || 'No description'}</p>
+                  </TD>
+                  <TD numeric>{srcs.length}</TD>
+                  <TD className="text-fg-muted">{sourceKind}</TD>
+                  <TD className="text-fg-muted"><Tooltip content={formatAbsolute(updated)}><span className="num">{formatRelative(updated)}</span></Tooltip></TD>
+                  <TDActions>{objectActions(obj)}</TDActions>
+                </TR>
               )
             })}
-          </div>
-        )
+          </TBody>
+        </DataTable>
       )}
 
-      {/* Create Object Dialog */}
-      <Dialog.Root open={showCreate} onOpenChange={(open) => { setShowCreate(open); if (!open) { setName(''); setDescription(''); setSources([]) } }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50 dialog-overlay" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(42rem,92vw)] rounded-xl p-6 shadow-xl dialog-content max-h-[85vh] overflow-y-auto" style={{ backgroundColor: "var(--theme-card-bg)" }}>
-            <Dialog.Title className="text-lg font-semibold mb-1" style={{ color: "var(--theme-card-text)" }}>
-              <Box size={18} className="inline mr-2" style={{ color: "var(--theme-primary-text)" }} />
-              New Object
-            </Dialog.Title>
-            <p className="text-xs mb-4" style={{ color: "var(--theme-muted-text)" }}>
-              Join multiple data tables and API references together. The first source is the primary; additional sources are joined to it.
-            </p>
+      {/* Create object */}
+      <UIDialog open={showCreate} onOpenChange={(open) => { setShowCreate(open); if (!open) { setName(''); setDescription(''); setSources([]) } }}>
+        <DialogContent size="lg" title="New object" description="Join data tables and API references. The first source is the primary; the others are joined to it.">
+          <DialogBody className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Name">
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Customer orders" />
+              </Field>
+              <Field label="Description" optional>
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="What this object represents" />
+              </Field>
+            </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--theme-card-text)" }}>Name</label>
-                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Customer Orders" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--theme-card-text)" }}>Description</label>
-                  <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="What this object represents..." />
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-ui font-medium text-fg">Data sources</h3>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="secondary" leadingIcon={<Table />} onClick={() => addSource('table')}>Add table</Button>
+                  <Button size="sm" variant="secondary" leadingIcon={<Link2 />} onClick={() => addSource('reference')}>Add reference</Button>
                 </div>
               </div>
 
-              {/* Sources */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold" style={{ color: "var(--theme-card-text)" }}>Data Sources</label>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={() => addSource('table')} className="!h-6 !text-[10px]">
-                      <Table size={10} className="mr-1" /> Add Table
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => addSource('reference')} className="!h-6 !text-[10px]">
-                      <Link2 size={10} className="mr-1" /> Add Reference
-                    </Button>
-                  </div>
+              {sources.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-4 text-center text-ui text-fg-muted">
+                  Add at least one data source (a table or a reference) to start.
                 </div>
-
-                {sources.length === 0 ? (
-                  <div className="rounded-lg border p-4 text-center" style={{ borderColor: "var(--theme-surface-border)", borderStyle: 'dashed' }}>
-                    <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>Add at least one data source (table or reference) to start.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sources.map((src, idx) => (
-                      <div key={src.id} className="rounded-lg border p-3 space-y-2" style={{ borderColor: src.isPrimary ? "var(--theme-primary)" : "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}>
+              ) : (
+                <div className="space-y-2">
+                  {sources.map((src) => {
+                    const localCols = src.sourceType === 'table' && src.tableId
+                      ? (tables.find(t => t.id === src.tableId)?.columns as any[] ?? []).map((c: any) => c.key ?? c.name)
+                      : (references.find(r => r.id === src.referenceId)?.outputs ?? []).map((o: any) => o.name ?? o.path)
+                    const targetSrc = sources.find(s => s.alias === src.joinToAlias)
+                    const foreignCols = targetSrc
+                      ? targetSrc.sourceType === 'table' && targetSrc.tableId
+                        ? (tables.find(t => t.id === targetSrc.tableId)?.columns as any[] ?? []).map((c: any) => c.key ?? c.name)
+                        : (references.find(r => r.id === targetSrc.referenceId)?.outputs ?? []).map((o: any) => o.name ?? o.path)
+                      : []
+                    return (
+                      <div key={src.id} className={cn('space-y-2 rounded-lg border p-3', src.isPrimary ? 'border-primary bg-primary-wash' : 'border-border bg-subtle')}>
                         <div className="flex items-center gap-2">
-                          {src.isPrimary && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--theme-primary)", color: 'var(--theme-on-primary)' }}>PRIMARY</span>}
-                          {!src.isPrimary && <span className="text-[8px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--theme-surface-border)", color: "var(--theme-muted-text)" }}>JOIN</span>}
-                          <span className="text-[10px] font-medium" style={{ color: "var(--theme-card-text)" }}>
-                            {src.sourceType === 'table' ? 'Data Table' : 'API Reference'}
-                          </span>
+                          <Badge tone={src.isPrimary ? 'brand' : 'neutral'}>{src.isPrimary ? 'Primary' : 'Join'}</Badge>
+                          <span className="text-xs font-medium text-fg">{src.sourceType === 'table' ? 'Data table' : 'API reference'}</span>
                           <div className="flex-1" />
-                          <Input value={src.alias} onChange={e => updateSource(src.id, { alias: e.target.value })} className="!h-6 !text-[10px] !w-20" placeholder="alias" />
-                          <button onClick={() => removeSource(src.id)} className="p-0.5 rounded hover:opacity-70" style={{ color: "var(--theme-danger, #DC2626)" }}>
-                            <X size={12} />
-                          </button>
+                          <Input size="sm" aria-label="Alias" value={src.alias} onChange={e => updateSource(src.id, { alias: e.target.value })} className="w-24 font-mono" placeholder="alias" />
+                          <IconButton size="sm" variant="danger-ghost" label="Remove source" icon={<X />} onClick={() => removeSource(src.id)} />
                         </div>
-
-                        {/* Source selector */}
-                        <select
+                        <Select
+                          size="sm"
+                          aria-label={src.sourceType === 'table' ? 'Data table' : 'Reference'}
                           value={src.sourceType === 'table' ? src.tableId ?? '' : src.referenceId ?? ''}
                           onChange={e => updateSource(src.id, src.sourceType === 'table' ? { tableId: e.target.value } : { referenceId: e.target.value })}
-                          className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                          style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}
+                          placeholder={`Select a ${src.sourceType}…`}
                         >
-                          <option value="">Select {src.sourceType}...</option>
                           {src.sourceType === 'table'
                             ? tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
-                            : references.map(r => <option key={r.id} value={r.id}>{r.name}{r.integration ? ` (${r.integration.name})` : ''}</option>)
-                          }
-                        </select>
-
-                        {/* Join config (not for primary) */}
-                        {!src.isPrimary && (() => {
-                          // Get columns for this source
-                          const localCols = src.sourceType === 'table' && src.tableId
-                            ? (tables.find(t => t.id === src.tableId)?.columns as any[] ?? []).map((c: any) => c.key ?? c.name)
-                            : (references.find(r => r.id === src.referenceId)?.outputs ?? []).map((o: any) => o.name ?? o.path)
-                          // Get columns for the target source
-                          const targetSrc = sources.find(s => s.alias === src.joinToAlias)
-                          const foreignCols = targetSrc
-                            ? targetSrc.sourceType === 'table' && targetSrc.tableId
-                              ? (tables.find(t => t.id === targetSrc.tableId)?.columns as any[] ?? []).map((c: any) => c.key ?? c.name)
-                              : (references.find(r => r.id === targetSrc.referenceId)?.outputs ?? []).map((o: any) => o.name ?? o.path)
-                            : []
-                          return (
-                            <div className="grid grid-cols-4 gap-2">
-                              <select value={src.joinType ?? 'left'} onChange={e => updateSource(src.id, { joinType: e.target.value as any })}
-                                className="rounded border px-2 py-1 text-[10px]"
-                                style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}>
-                                <option value="left">LEFT JOIN</option>
-                                <option value="inner">INNER JOIN</option>
-                                <option value="right">RIGHT JOIN</option>
-                                <option value="full">FULL JOIN</option>
-                              </select>
-                              <select value={src.joinOnLocal ?? ''} onChange={e => updateSource(src.id, { joinOnLocal: e.target.value })}
-                                className="rounded border px-2 py-1 text-[10px]"
-                                style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}>
-                                <option value="">This column...</option>
-                                {localCols.map((c: string) => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                              <select value={src.joinOnForeign ?? ''} onChange={e => updateSource(src.id, { joinOnForeign: e.target.value })}
-                                className="rounded border px-2 py-1 text-[10px]"
-                                style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}>
-                                <option value="">= Target column...</option>
-                                {foreignCols.map((c: string) => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                              <select value={src.joinToAlias ?? ''} onChange={e => updateSource(src.id, { joinToAlias: e.target.value })}
-                                className="rounded border px-2 py-1 text-[10px]"
-                                style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}>
-                                <option value="">Join to...</option>
-                                {sources.filter(s => s.alias !== src.alias).map(s => <option key={s.alias} value={s.alias}>{s.alias} ({s.sourceType === 'table' ? tables.find(t => t.id === s.tableId)?.name : references.find(r => r.id === s.referenceId)?.name})</option>)}
-                              </select>
-                            </div>
-                          )
-                        })()}
+                            : references.map(r => <option key={r.id} value={r.id}>{r.name}{r.integration ? ` (${r.integration.name})` : ''}</option>)}
+                        </Select>
+                        {!src.isPrimary && (
+                          <div className="grid grid-cols-4 gap-2">
+                            <Select size="sm" aria-label="Join type" value={src.joinType ?? 'left'} onChange={e => updateSource(src.id, { joinType: e.target.value as any })}
+                              options={[{ value: 'left', label: 'Left join' }, { value: 'inner', label: 'Inner join' }, { value: 'right', label: 'Right join' }, { value: 'full', label: 'Full join' }]} />
+                            <Select size="sm" aria-label="This column" value={src.joinOnLocal ?? ''} onChange={e => updateSource(src.id, { joinOnLocal: e.target.value })} placeholder="This column…">
+                              {localCols.map((c: string) => <option key={c} value={c}>{c}</option>)}
+                            </Select>
+                            <Select size="sm" aria-label="Target column" value={src.joinOnForeign ?? ''} onChange={e => updateSource(src.id, { joinOnForeign: e.target.value })} placeholder="= Target column…">
+                              {foreignCols.map((c: string) => <option key={c} value={c}>{c}</option>)}
+                            </Select>
+                            <Select size="sm" aria-label="Join to" value={src.joinToAlias ?? ''} onChange={e => updateSource(src.id, { joinToAlias: e.target.value })} placeholder="Join to…">
+                              {sources.filter(s => s.alias !== src.alias).map(s => <option key={s.alias} value={s.alias}>{s.alias} ({s.sourceType === 'table' ? tables.find(t => t.id === s.tableId)?.name : references.find(r => r.id === s.referenceId)?.name})</option>)}
+                            </Select>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-
-            <div className="flex justify-end gap-2 mt-4">
-              <Dialog.Close asChild><Button variant="outline" size="sm">Cancel</Button></Dialog.Close>
-              <Button size="sm" onClick={handleCreate} disabled={!name.trim() || !sourcesValid || saving}>
-                {saving ? 'Creating...' : 'Create Object'}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={handleCreate} loading={saving} disabled={!name.trim() || !sourcesValid}>Create object</Button>
+          </DialogFooter>
+        </DialogContent>
+      </UIDialog>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
-        title="Delete Object"
-        description="Delete this object, its sources, and any auto-generated references?"
-        confirmLabel="Delete"
+        title="Delete this object?"
+        description="Its sources and any generated references are deleted too."
+        confirmLabel="Delete object"
         destructive
         onConfirm={async () => {
           if (!deleteTarget) return

@@ -351,7 +351,8 @@ describe('public config', () => {
     const json = await GET(new NextRequest('http://localhost/api/config/public'))
     expect(json.status).toBe(200)
     const body = await json.json()
-    expect(Object.keys(body).sort()).toEqual(['appUrl', 'ssoMicrosoft', 'supabaseAnonKey', 'supabaseUrl'])
+    expect(Object.keys(body).sort()).toEqual(['appUrl', 'commit', 'ssoMicrosoft', 'supabaseAnonKey', 'supabaseUrl', 'version'])
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+/)
     expect(JSON.stringify(body)).not.toContain('SECRET')
 
     const js = await GET(new NextRequest('http://localhost/api/config/public?format=js'))
@@ -359,6 +360,8 @@ describe('public config', () => {
     const text = await js.text()
     expect(text).toContain('"supabaseUrl":"https://abcd.supabase.co"')
     expect(text).not.toContain('SECRET')
+    // The browser config script stays the browser config: no build info.
+    expect(text).not.toContain('"version"')
   })
 
   it('the browser reads the injected runtime config, else the build-time values', async () => {
@@ -402,5 +405,19 @@ describe('CSP per request', () => {
     const { proxy } = await import('@/proxy')
     const res = await proxy(new NextRequest('http://localhost/tasks'))
     expect(res.headers.get('content-security-policy')).toBe(TODAY)
+  })
+})
+
+describe('bootstrap env values are trimmed', () => {
+  it('a trailing newline on the anon key / URL (pasted into the hosting dashboard) is dropped', async () => {
+    vi.stubEnv('SUPABASE_ANON_KEY', '')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'eyJ.key.sig\n')
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', ' https://x.supabase.co\n')
+    const mod = await import('@/lib/config/bootstrap')
+    expect(mod.supabaseAnonKey()).toBe('eyJ.key.sig')
+    expect(mod.supabaseUrl()).toBe('https://x.supabase.co')
+    expect(mod.getBootstrapConfig().supabase.anonKey).toBe('eyJ.key.sig')
+    vi.unstubAllEnvs()
   })
 })

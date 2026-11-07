@@ -321,6 +321,8 @@ describe('downstream variables', () => {
     expect(trigger.label).toBe('Task submitted › Task form')
     expect(trigger.roots.map((r) => [r.path, r.label, r.schema?.type])).toEqual([
       ['task.data.po', 'PO number', 'string'], ['task.data.qty', 'Qty', 'number'], ['task.data', 'All values (object)', 'object'],
+      // The triggering task's Attachments tab (task attachments).
+      ['task.attachments', 'Attachments', 'array'],
     ])
     expect(trigger.roots[2].schema?.fields?.map((f) => [f.name, f.type])).toEqual([['po', 'string'], ['qty', 'number']])
   })

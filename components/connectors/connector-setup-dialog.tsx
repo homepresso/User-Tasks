@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Button } from "@/components/ui/button"
 import { ConnectorFieldRenderer } from "./connector-field-renderer"
 import {
@@ -16,6 +17,7 @@ import type { ConnectorDefinition } from "@/lib/connectors/registry"
 import { getConnectorUiCopy } from "@/lib/connectors/ui"
 import { getConnectorFieldErrors, getMissingConnectorFields } from "@/lib/connectors/form-state"
 import { runConnectorPreflight } from "@/lib/connectors/preflight"
+import { ReferenceModePicker, type ReferenceMode } from "@/components/integrations/reference-mode-picker"
 
 const iconMap: Record<string, any> = {
   MessageSquare, Mail, Sparkles, Brain, CreditCard, Phone,
@@ -52,6 +54,8 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ status: string; message: string; hint?: string } | null>(null)
   const [enabling, setEnabling] = useState(false)
+  // Synchronous guard: a double click must not enable the connector twice.
+  const enableGuard = useSubmitGuard()
   const [error, setError] = useState<string | null>(null)
 
   const Icon = iconMap[definition.icon] ?? Plug
@@ -98,16 +102,22 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
     setTesting(false)
   }
 
+  const [referenceMode, setReferenceMode] = useState<ReferenceMode>('all')
+  const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set())
+
   async function handleEnable() {
-    setEnabling(true)
-    setError(null)
-    try {
-      await enableConnector(definition.key, config, credentials, displayName || undefined)
-      onEnabled()
-    } catch (e: any) {
-      setError(e.message)
-      setEnabling(false)
-    }
+    await enableGuard.run(async () => {
+      setEnabling(true)
+      setError(null)
+      try {
+        await enableConnector(definition.key, config, credentials, displayName || undefined,
+          { mode: referenceMode, ...(referenceMode === 'selected' ? { keys: Array.from(selectedTemplates) } : {}) })
+        onEnabled()
+      } catch (e: any) {
+        setError(e.message)
+        setEnabling(false)
+      }
+    })
   }
 
   return (
@@ -117,12 +127,11 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
 
       {/* Dialog */}
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--theme-card-bg)' }}
+        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden bg-panel"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
             style={{ backgroundColor: definition.color + '15' }}
@@ -130,20 +139,20 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
             <Icon size={18} style={{ color: definition.color }} />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+            <h2 className="text-sm font-semibold text-fg">
               Connect {definition.name}
             </h2>
-            <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-2xs text-fg-muted">
               Step {stepIndex + 1} of {steps.length}
             </p>
           </div>
-          <button onClick={onClose} className="hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+          <button onClick={onClose} className="hover:opacity-70 text-fg-muted">
             <X size={18} />
           </button>
         </div>
 
         {/* Progress bar */}
-        <div className="h-0.5 w-full" style={{ backgroundColor: 'var(--theme-surface)' }}>
+        <div className="h-0.5 w-full bg-bg">
           <div
             className="h-full transition-all duration-300"
             style={{
@@ -158,10 +167,10 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
           {currentStep === 'credentials' && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-xs font-semibold mb-1" style={{ color: 'var(--theme-card-text)' }}>
+                <h3 className="text-xs font-semibold mb-1 text-fg">
                   {uiCopy.credentialTitle}
                 </h3>
-                <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-2xs text-fg-muted">
                   {uiCopy.credentialDescription}
                 </p>
               </div>
@@ -172,26 +181,26 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
               />
               {definition.docsUrl && (
                 <a href={definition.docsUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] hover:underline"
+                  className="inline-flex items-center gap-1 text-2xs hover:underline"
                   style={{ color: definition.color }}>
                   {uiCopy.docsLabel}
                   <ChevronRight size={10} />
                 </a>
               )}
               {definition.recommendedPermissions && (
-                <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+                <div className="rounded-xl border p-3 space-y-2 border-border bg-bg">
+                  <p className="text-xs font-semibold text-fg">
                     {definition.recommendedPermissions.title ?? 'Recommended Permissions'}
                   </p>
                   <div className="space-y-1">
                     {definition.recommendedPermissions.items.map((item) => (
-                      <p key={item} className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p key={item} className="text-2xs text-fg-muted">
                         • {item}
                       </p>
                     ))}
                   </div>
                   {definition.recommendedPermissions.note && (
-                    <p className="text-[10px]" style={{ color: 'var(--theme-card-text)' }}>
+                    <p className="text-2xs text-fg">
                       {definition.recommendedPermissions.note}
                     </p>
                   )}
@@ -203,10 +212,10 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
           {currentStep === 'config' && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-xs font-semibold mb-1" style={{ color: 'var(--theme-card-text)' }}>
+                <h3 className="text-xs font-semibold mb-1 text-fg">
                   {uiCopy.configTitle}
                 </h3>
-                <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-2xs text-fg-muted">
                   {uiCopy.configDescription}
                 </p>
               </div>
@@ -221,10 +230,10 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
           {currentStep === 'test' && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-xs font-semibold mb-1" style={{ color: 'var(--theme-card-text)' }}>
+                <h3 className="text-xs font-semibold mb-1 text-fg">
                   Test & Enable
                 </h3>
-                <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-2xs text-fg-muted">
                   Verify the connection works, then enable the connector. Its references will be available via the Call Reference activity in your workflows.
                 </p>
               </div>
@@ -237,33 +246,33 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
                     backgroundColor: 'var(--theme-warning)' + '10',
                   }}
                 >
-                  <p className="text-xs font-semibold" style={{ color: 'var(--theme-warning)' }}>
+                  <p className="text-xs font-semibold text-warning">
                     Preflight Issues
                   </p>
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--theme-card-text)' }}>
+                  <p className="text-2xs mt-1 text-fg">
                     {preflightResult.message}
                   </p>
                   {preflightResult.hint && (
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="text-2xs mt-1 text-fg-muted">
                       {preflightResult.hint}
                     </p>
                   )}
                 </div>
               )}
               {definition.recommendedPermissions && (
-                <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+                <div className="rounded-xl border p-3 space-y-2 border-border bg-bg">
+                  <p className="text-xs font-semibold text-fg">
                     {definition.recommendedPermissions.title ?? 'Recommended Permissions'}
                   </p>
                   <div className="space-y-1">
                     {definition.recommendedPermissions.items.map((item) => (
-                      <p key={item} className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p key={item} className="text-2xs text-fg-muted">
                         • {item}
                       </p>
                     ))}
                   </div>
                   {definition.recommendedPermissions.note && (
-                    <p className="text-[10px]" style={{ color: 'var(--theme-card-text)' }}>
+                    <p className="text-2xs text-fg">
                       {definition.recommendedPermissions.note}
                     </p>
                   )}
@@ -272,23 +281,22 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
 
               {/* Instance name */}
               <div className="space-y-1">
-                <label className="block text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
+                <label className="block text-xs font-medium text-fg">
                   Instance Name (optional)
                 </label>
                 <input
                   value={displayName}
                   onChange={e => setDisplayName(e.target.value)}
                   placeholder={`${definition.name} — e.g. Production, Staging, US Region`}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                  className="w-full rounded-lg border px-3 py-2 text-sm bg-panel border-border text-fg"
                 />
-                <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-2xs text-fg-muted">
                   Label this instance to distinguish it from others of the same type.
                 </p>
               </div>
 
               {/* Test connection */}
-              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+              <div className="rounded-xl border p-4 space-y-3 border-border bg-bg">
                 <Button
                   size="sm"
                   onClick={handleTest}
@@ -305,9 +313,9 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
                     backgroundColor: testResult.status === 'success' ? 'var(--theme-success)' + '10' : 'var(--theme-danger)' + '10',
                   }}>
                     {testResult.status === 'success' ? (
-                      <CheckCircle2 size={16} style={{ color: 'var(--theme-success)' }} className="shrink-0 mt-0.5" />
+                      <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-success" />
                     ) : (
-                      <XCircle size={16} style={{ color: 'var(--theme-danger)' }} className="shrink-0 mt-0.5" />
+                      <XCircle size={16} className="shrink-0 mt-0.5 text-danger" />
                     )}
                     <div>
                       <p className="text-xs font-medium" style={{
@@ -315,11 +323,11 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
                       }}>
                         {testResult.status === 'success' ? 'Connection Successful' : 'Connection Failed'}
                       </p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p className="text-2xs mt-0.5 text-fg-muted">
                         {testResult.message}
                       </p>
                       {testResult.hint && (
-                        <p className="text-[10px] mt-1" style={{ color: 'var(--theme-card-text)' }}>
+                        <p className="text-2xs mt-1 text-fg">
                           Hint: {testResult.hint}
                         </p>
                       )}
@@ -328,25 +336,22 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
                 )}
               </div>
 
-              {/* Actions that will be created */}
-              <div>
-                <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-                  This will create {definition.referenceTemplates.length} {uiCopy.referenceHeading.toLowerCase()} available via the Call Reference activity:
-                </p>
-                <div className="space-y-1.5">
-                  {definition.referenceTemplates.map(tpl => (
-                    <div key={tpl.key} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                      <Icon size={12} style={{ color: definition.color }} />
-                      <div>
-                        <span className="text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
-                          {definition.name}: {tpl.name}
-                        </span>
-                        <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>{tpl.description}</p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Which catalogue operations become references */}
+              {definition.referenceTemplates.length > 0 && (
+                <div>
+                  <p className="text-2xs font-medium mb-2 text-fg-muted">
+                    {uiCopy.referenceHeading} for the Call Reference activity:
+                  </p>
+                  <ReferenceModePicker
+                    options={definition.referenceTemplates.map((tpl) => ({ key: tpl.key, name: tpl.name, description: tpl.description, method: tpl.method }))}
+                    mode={referenceMode}
+                    onModeChange={setReferenceMode}
+                    selected={selectedTemplates}
+                    onSelectedChange={setSelectedTemplates}
+                    noun={uiCopy.referenceHeading.toLowerCase()}
+                  />
                 </div>
-              </div>
+              )}
 
               {error && (
                 <p className="text-xs text-red-500">{error}</p>
@@ -356,7 +361,7 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
           <div>
             {stepIndex > 0 && (
               <Button variant="ghost" size="sm" onClick={prevStep}>

@@ -34,6 +34,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/home/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Home cards: my tasks, my submissions in progress, runs I follow
+         * @description tasks { open, overdue, sla_breached, completed_30d, queue } (null without tasks.view_own), submissions { in_progress, completed_30d, submitted_30d } (null without forms.submit), following { active, updated_today, total }. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["getHomeMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My activity over 7, 30 or 90 days: tasks completed, decisions, durations, on time, submissions
+         * @description The Home "My activity" charts, computed on the server for the calling person only. period (default 30d) and timezone (day / week buckets; default your profile's time zone, else UTC; 90d uses ISO weeks starting Monday). tasks (null without tasks.view_own): period { days, unit, timezone, start, end }, completed { total, buckets [{ start, count, median_s, p90_s }] }, decisions { total, approved, rejected, returned, approval_rate (approve ÷ decisions; null when none), non_decision, groups [{ kind, label, count }], non_decision_labels }, durations { count, median_s, p90_s, pickup { count, median_s, p90_s } } (assigned → completed / accepted, seconds), on_time { with_deadline, on_time, late, no_deadline, rate } (due date, else the run's SLA), top_processes [{ workflow_id, name, count }]. submissions (null without forms.submit): { total, completed, in_progress, failed, cancelled, no_process, median_s, p90_s } (submitted → process completed). Outcome kinds: approve, reject, return, other (a choice between two or more outcomes), completion (not a decision). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["getHomeStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My open tasks with their process and stage
+         * @description Open tasks assigned to me that I have accepted or that were added straight to my list (not those still Queued, waiting for my acceptance — see /home/queue). Each has process { workflow_id, name }, stage (the step's name), due_date, overdue, sla_status, priority and assigned_at. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["listMyHomeTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tasks I can take: waiting for my acceptance, or unassigned in my teams
+         * @description The tasks the app's My tasks list shows with status Queued (whether a new task is queued follows the assignee's queue rules). Each has action: accept (POST /tasks/{id}/action with accept) or claim (POST /tasks/{id}/claim). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["listHomeQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Forms I submitted, with the process each one started and where it is now
+         * @description Newest first. Task-form submissions are task completions and are not listed. Each carries `submission`, the metadata workflows see as {{submission.*}} (reference, submitted_at, submitted_by, form { id, name, version }, source). Each item has status (queued, running, waiting, completed, failed, cancelled, none), status_label ("Waiting on Manager approval"), stages [{ node_id, name, assignees [{ id, name }], team, since, due_date }] (where the run is and who has it) and people (names). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["listMySubmissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/runs/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A run's progress (the submitter-safe flow view)
+         * @description For a run you can see (as for following): run { status, status_label, started_at, completed_at, updated_at }, process { name }, flow { nodes (id, type, label, position — no configs), edges, sections, overlay (per-step status) }, stages (where it is now), steps (its tasks: name, status, assignees, team, dates), tasks (its User Tasks with people, history and your per-task can_open / can_act — see GET /workflows/runs/{id}) and submission (when it was your form). Never step configs, outputs, errors, variables or form values. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["getRunProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/following": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workflow runs I follow, with where they are and who has them
+         * @description Active runs first, then by last update. Runs I start (form submissions included) are followed automatically unless auto_follow_runs is off (PATCH /home/preferences). Each item has status (queued, running, waiting, completed, failed, cancelled, none), status_label ("Waiting on Manager approval"), stages [{ node_id, name, assignees [{ id, name }], team, since, due_date }] (where the run is and who has it) and people (names). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["listFollowedRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/following/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Follow a workflow run
+         * @description You can follow a run you started, one your form submission started, one you have a task in, or any run with workflows.view_runs (404 otherwise). Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        put: operations["followRun"];
+        post?: never;
+        /**
+         * Stop following a workflow run
+         * @description Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        delete: operations["unfollowRun"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/favorite-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My favourite forms (that I can still open), alphabetical
+         * @description A favourite is hidden while you cannot open the form (no forms.submit). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["listFavoriteForms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/favorite-forms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Star a form
+         * @description Only forms you can open (404 otherwise). Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        put: operations["favoriteForm"];
+        post?: never;
+        /**
+         * Unstar a form
+         * @description Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        delete: operations["unfavoriteForm"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Home preferences (auto-follow)
+         * @description Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["getHomePreferences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change my Home preferences
+         * @description auto_follow_runs (default true): follow the runs you start, form submissions included. Runs already followed stay followed. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        patch: operations["updateHomePreferences"];
+        trace?: never;
+    };
+    "/home/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Home layout in this workspace: widget order, sizes and hidden widgets
+         * @description layout { items [{ id, w, h }] (visible widgets in reading order; w = columns of the 12-column desktop grid, h = rows of 40px), hidden [ids] }, customised (false = the default layout), updated_at, grid { columns, row_px, gap_px } and widgets [{ id, title, group, available, default, min, max }]. Widget ids: metric.tasks, chart.decisions, metric.submissions, metric.following, tasks, chart.completed, chart.duration, chart.top_processes, drafts. Stored per person and per workspace; tablets derive their widths from these and phones stack the same order. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["getHomeLayout"];
+        /**
+         * Save my Home layout in this workspace
+         * @description Replaces the layout. Known widget ids only, each at most once; sizes are clamped to each widget's min / max; widgets you leave out of both items and hidden are put back in their default spot. At most 8192 bytes. Returns the saved layout (as GET). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        put: operations["updateHomeLayout"];
+        post?: never;
+        /**
+         * Reset my Home layout in this workspace to the default
+         * @description Other workspaces keep their layouts. Idempotent. Returns the default layout (as GET). Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        delete: operations["resetHomeLayout"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim an unassigned team task (a member of its team becomes its assignee)
+         * @description Atomic: if someone claimed it first, 409. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        post: operations["claimTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflows": {
         parameters: {
             query?: never;
@@ -178,7 +458,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List workflow runs */
+        /**
+         * List workflow runs
+         * @description Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on.
+         */
         get: operations["listWorkflowRuns"];
         put?: never;
         post?: never;
@@ -195,7 +478,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a workflow run with its logs */
+        /**
+         * Get a workflow run with its logs and User Tasks
+         * @description A run outside the caller's run scope is not found. Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on.
+         */
         get: operations["getWorkflowRun"];
         put?: never;
         post?: never;
@@ -229,7 +515,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List queued workflow jobs */
+        /**
+         * List queued workflow jobs
+         * @description Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on. Queue jobs are in scope through their workflow, their run or the person who queued them.
+         */
         get: operations["listWorkflowQueue"];
         put?: never;
         post?: never;
@@ -336,7 +625,7 @@ export interface paths {
         };
         /**
          * List live instances (waiting or paused runs) with their current node and version
-         * @description Each instance has its current node, version, waiting-since time and open task (with assignee). `versions` counts live instances per version; `on_older_versions` counts those not on the published version.
+         * @description Each instance has its current node, version, waiting-since time and open task (with assignee). `versions` counts live instances per version; `on_older_versions` counts those not on the published version. Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on.
          */
         get: operations["listWorkflowInstances"];
         put?: never;
@@ -468,6 +757,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks/{id}/data-table": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rows of a Data table field of an open task (search, filters, sort, page)
+         * @description Runs the query stored on the task's form (Data table field) — never a config from the request. The caller must be able to act on the task. Column filters / sorts only on the columns the author allows, ANDed onto the base filter; only the selected columns are returned. Data table sources need data.view unless the author turned on open access. Rate limited per user (429).
+         */
+        post: operations["queryTaskDataTable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks/ingest": {
         parameters: {
             query?: never;
@@ -480,6 +789,134 @@ export interface paths {
         /** Create a task (with optional subtasks) from an external system */
         post: operations["ingestTask"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a task's attachments
+         * @description The files on the task's Attachments tab, oldest first, with `can_add` (you can work on the open task), per-attachment `can_delete`, `legal_hold` (the task's form is held: nothing can be deleted), `type_suggestions` and `max_file_bytes`. Visible to the assignee, collaborators, team members, managers of an assignee, the assigner and holders of tasks.view_all / tasks.manage_queue; anyone else gets 404.
+         */
+        get: operations["listTaskAttachments"];
+        put?: never;
+        /**
+         * Attach a file to a task (or start a direct upload)
+         * @description You must be able to work on the open task (assignee, collaborator, team member, a manager of an assignee, tasks.complete_any, or tasks.manage_queue on a non-workflow task); needs a user-bound credential. With content_base64: the file is checked (size, type by content, blocked types, SVG sanitising, optional virus scan) and attached; returns `{ mode: "uploaded", attachment }`. With size only: `{ mode: "direct", attachment_id, upload: { url, method, headers }, expires_at }` — PUT the bytes to the URL with exactly those headers, then POST /tasks/{id}/attachments/{attachment_id}/complete — or `{ mode: "server", max_bytes }` when the storage can't sign uploads (send content_base64 instead).
+         */
+        post: operations["addTaskAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/attachments/{attachmentId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish a direct upload of a task attachment
+         * @description The uploader only, within the upload window (15 minutes by default), while they can still work on the task. The object is read back and verified; a file that fails is deleted and the reason returned.
+         */
+        post: operations["completeTaskAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a task attachment
+         * @description The uploader (while they can see the task) or a holder of tasks.delete. Refused (409) while the task's form is on legal hold. The attachment disappears at once; the stored file is purged after TASK_ATTACHMENT_DELETED_RETENTION_DAYS (default 30).
+         */
+        delete: operations["deleteTaskAttachment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/attachments/{attachmentId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A short-lived download link for a task attachment
+         * @description Returns `{ url, expires_at, attachment }`: a signed link valid for 5 minutes that needs no session (or the plain /attachments/<id> link, which needs a signed-in session, when the instance has no signing key). Every call is written to the audit log.
+         */
+        get: operations["getTaskAttachmentDownloadUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/following": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tasks I follow (the Task tracker's Following tab)
+         * @description Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at, sorted by due date (none last), then most recently followed. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["listFollowedTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Follow a task
+         * @description You can follow a task you can see: assignee, collaborator, member of the assigned team (unassigned team tasks), a manager of an assignee, the assigner, or tasks.view_all / tasks.manage_queue in its workspace (404 otherwise). Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        put: operations["followTask"];
+        post?: never;
+        /**
+         * Stop following a task
+         * @description Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        delete: operations["unfollowTask"];
         options?: never;
         head?: never;
         patch?: never;
@@ -518,7 +955,7 @@ export interface paths {
          */
         put: operations["updateAgent"];
         post?: never;
-        /** Delete an agent (deactivates workflows that reference it) */
+        /** Delete an agent (queued; deactivates workflows that reference it) */
         delete: operations["deleteAgent"];
         options?: never;
         head?: never;
@@ -538,7 +975,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Run an agent (sync, or async via the agent queue) */
+        /**
+         * Run an agent (sync, or async via the agent queue)
+         * @description Sync: 200 with response, outputs, usage, run_id (502 when the run fails; 202 with status awaiting_approval and the approval task when a tool call needs a person). Async: 202 with job_id — poll GET /agents/queue/{id}. Stream: `stream: true` (or Accept: text/event-stream) answers with Server-Sent Events — loop events, the reply token by token (`delta`, `delta_reset` when a call is retried), then one `done` / `error` / `awaiting_approval`; disconnecting cancels the run.
+         */
         post: operations["executeAgent"];
         delete?: never;
         options?: never;
@@ -555,6 +995,213 @@ export interface paths {
         };
         /** List queued agent jobs */
         get: operations["listAgentQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/queue/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a queued agent job (status, result, run id) */
+        get: operations["getAgentQueueJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List agent runs (newest first) */
+        get: operations["listAgentRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an agent run with its step trace (LLM calls, tool calls, tokens, latency) */
+        get: operations["getAgentRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tokens and cost per day, last 24 hours, this month, and the agent's limits and budgets */
+        get: operations["getAgentUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workspace agent usage: tokens and cost per day and per agent, workspace budgets, and the price table in effect */
+        get: operations["getWorkspaceAgentUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/cost-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the workspace's model price overrides and agent budgets */
+        put: operations["updateAgentCostSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an agent's saved versions (newest first) */
+        get: operations["listAgentVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an earlier version (saved as a new version) */
+        post: operations["restoreAgentVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/evals/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an agent's evaluation test cases */
+        get: operations["listAgentEvalCases"];
+        put?: never;
+        /** Add an evaluation test case */
+        post: operations["createAgentEvalCase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/evals/cases/{caseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update an evaluation test case */
+        put: operations["updateAgentEvalCase"];
+        post?: never;
+        /** Delete an evaluation test case */
+        delete: operations["deleteAgentEvalCase"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/evals/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List evaluation runs (newest first) */
+        get: operations["listAgentEvalRuns"];
+        put?: never;
+        /** Run the evaluation suite (side-effecting tools simulated); poll the run */
+        post: operations["runAgentEvals"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{id}/evals/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an evaluation run with per-case checks */
+        get: operations["getAgentEvalRun"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1164,7 +1811,7 @@ export interface paths {
         put?: never;
         /**
          * Create a reusable task form (version 1)
-         * @description fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
+         * @description fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form; a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
          */
         post: operations["createForm"];
         delete?: never;
@@ -1187,13 +1834,13 @@ export interface paths {
         get: operations["getForm"];
         put?: never;
         post?: never;
-        /** Delete a form (409 with the usages while a workflow uses it) */
+        /** Delete a form with its versions, submissions, stored files and grants (409 with the usages while a workflow uses it, or while it is on legal hold) */
         delete: operations["deleteForm"];
         options?: never;
         head?: never;
         /**
          * Update a form
-         * @description A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         * @description A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form; a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
          */
         patch: operations["updateForm"];
         trace?: never;
@@ -1272,6 +1919,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/forms/{id}/governance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A form's retention policy, legal hold and submission count
+         * @description Governance: the retention policy assigned to the form governs its submissions (assign it with POST /retention-policies/assign, target_type form; purge modes delete due submissions and their stored files), and a legal hold keeps every submission and file and blocks deleting the form. Grants on the form (View, Submit) are managed with /object-permissions (object_type form).
+         */
+        get: operations["getFormGovernance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{id}/legal-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place or release a legal hold on a form (nothing of it is purged or deleted while held)
+         * @description Governance: the retention policy assigned to the form governs its submissions (assign it with POST /retention-policies/assign, target_type form; purge modes delete due submissions and their stored files), and a legal hold keeps every submission and file and blocks deleting the form. Grants on the form (View, Submit) are managed with /object-permissions (object_type form).
+         */
+        post: operations["setFormLegalHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/form-themes": {
         parameters: {
             query?: never;
@@ -1344,7 +2031,7 @@ export interface paths {
         };
         /**
          * List a form's submissions (newest first)
-         * @description Everyone sees their own submissions; forms.edit sees all of the workspace's.
+         * @description Everyone sees their own submissions; forms.edit sees all of the workspace's. Each submission carries `submission`, the metadata workflows see as {{submission.*}}: id, reference (the short reference people see), submitted_at, submitted_by { id, name, email }, form { id, name, version }, source (page, run_dialog, api or task), button, outcome, task_id, url_params (always {} here: URL parameters are not stored).
          */
         get: operations["listFormSubmissions"];
         put?: never;
@@ -1364,7 +2051,7 @@ export interface paths {
         };
         /**
          * Get one form submission (values, button, runs started)
-         * @description Everyone sees their own submissions; forms.edit sees all of the workspace's.
+         * @description Everyone sees their own submissions; forms.edit sees all of the workspace's. Each submission carries `submission`, the metadata workflows see as {{submission.*}}: id, reference (the short reference people see), submitted_at, submitted_by { id, name, email }, form { id, name, version }, source (page, run_dialog, api or task), button, outcome, task_id, url_params (always {} here: URL parameters are not stored).
          */
         get: operations["getFormSubmission"];
         put?: never;
@@ -1389,6 +2076,330 @@ export interface paths {
          * @description Runs the lookup stored on the form (latest version) — never a config from the request — with the configured columns / fields only. Rate limited per user (429).
          */
         post: operations["lookupFormField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{id}/data-table": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rows of a Data table field of a reusable form (search, filters, sort, page)
+         * @description Runs the query stored on the form's Data table field — the source (data table or API reference), selected columns, base filter, sort and page size come from the saved definition, never from the request. Column filters and sorts are accepted only on the columns the author allows and are ANDed onto the base filter. Only the selected columns are returned. Data table sources need data.view (the caller's own access applies) unless the author turned on open access. Rate limited per user (429).
+         */
+        post: operations["queryFormDataTable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{id}/accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a form against WCAG 2.2 AA (score, findings, fixes)
+         * @description Runs the WCAG 2.2 AA checker (labels, instructions, error messages, focus order, headings, language, input purpose / autocomplete, steps, timing, header image alt text, buttons, custom controls, target size, and colour contrast of the form theme on the workspace theme in light and dark). Returns score (0-100, 100 = no findings), findings [{ id, rule, severity (critical, serious, moderate, minor, review), wcag [success criteria], level, field_key?, mode?, message, help, fix? { kind, label, field_key?, patch, prompt? } }], summary counts, passed rules and the workspace policy ({ mode: off | warn | block, min_score, passes }). With mode block, saving a form below min_score is refused.
+         */
+        post: operations["checkFormAccessibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/system-name-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check a form system name (format and availability)
+         * @description Friendly link name: /form/<system_name> on the workspace address (https://<subdomain>.<base domain>/form/<system_name>). Lowercase a-z, 0-9 and hyphens, 3-60 characters, no leading, trailing or double hyphen; unique in the workspace (409 when taken). A setting: no new version. Renaming keeps the old name as a redirect. Pass form_id when renaming a form (its own name is available to it). redirects_from_form is set when another form's shared links still redirect from this name (taking it moves those links to this form).
+         */
+        get: operations["checkFormSystemName"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The links of a form: friendly link, form page and public link
+         * @description friendly_url is https://<subdomain>.<base domain>/form/<system_name> when the workspace has an address (null otherwise); form_url is the /f/<id> page; public_url is the anonymous /p/<token> link when anonymous responses are live.
+         */
+        get: operations["getFormLinks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/wizard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller's wizard forms and drafts (newest first) */
+        get: operations["listWizardForms"];
+        put?: never;
+        /**
+         * Create a form with the wizard: the form, a responses data table, an optional review / approval workflow and a results page
+         * @description Needs forms.wizard only: the server creates exactly the wizard's objects, owned by the caller (no forms.edit / data.create / workflows.create needed). On a failure everything already created is removed. Returns the project (id for updates and the results page), the manifest of created ids (form_id, table_id, workflow_id, report_ids), links and the plan. With dry_run: only { plan, spec }.
+         */
+        post: operations["createWizardForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/wizard/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a wizard form: its spec, the manifest of created objects and links (owner, or forms.edit) */
+        get: operations["getWizardForm"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a wizard form and the objects it made (new columns are added, nothing is dropped; the workflow is published again)
+         * @description Owner, or forms.edit. Needs forms.wizard only: the server creates exactly the wizard's objects, owned by the caller (no forms.edit / data.create / workflows.create needed). On a failure everything already created is removed. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        patch: operations["updateWizardForm"];
+        trace?: never;
+    };
+    "/forms/wizard/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A wizard form's results: summary (counts, this week, approval rate), charts per question and a page of responses
+         * @description The owner, the roles and teams chosen in the wizard's results step, or forms.edit; anyone else gets 404.
+         */
+        get: operations["getWizardResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{id}/anonymous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A form's public (anonymous) link, options and what anonymous visitors would not get
+         * @description Anonymous forms: a form with "Allow anonymous responses" on has an unguessable public link (/p/<token>) that anyone can fill in without signing in, while the workspace's "Allow anonymous forms" switch is on. Anonymous visitors can only render and submit that form; lookups / Data tables need "Allow anonymous read" on the field, server steps need "Allow for anonymous" on the step, uploads need settings.uploads. Submissions are stored with source "anonymous" and no submitter. Audited.
+         */
+        get: operations["getFormAnonymous"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Turn a form's anonymous responses on / off and set its visitor limits
+         * @description Anonymous forms: a form with "Allow anonymous responses" on has an unguessable public link (/p/<token>) that anyone can fill in without signing in, while the workspace's "Allow anonymous forms" switch is on. Anonymous visitors can only render and submit that form; lookups / Data tables need "Allow anonymous read" on the field, server steps need "Allow for anonymous" on the step, uploads need settings.uploads. Submissions are stored with source "anonymous" and no submitter. Audited.
+         */
+        patch: operations["updateFormAnonymous"];
+        trace?: never;
+    };
+    "/forms/{id}/anonymous/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a new public link for a form (every earlier link stops working)
+         * @description Anonymous forms: a form with "Allow anonymous responses" on has an unguessable public link (/p/<token>) that anyone can fill in without signing in, while the workspace's "Allow anonymous forms" switch is on. Anonymous visitors can only render and submit that form; lookups / Data tables need "Allow anonymous read" on the field, server steps need "Allow for anonymous" on the step, uploads need settings.uploads. Submissions are stored with source "anonymous" and no submitter. Audited.
+         */
+        post: operations["regenerateFormAnonymousLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/anonymous-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's "Allow anonymous forms" switch and bot protection (never the secret)
+         * @description Anonymous forms: a form with "Allow anonymous responses" on has an unguessable public link (/p/<token>) that anyone can fill in without signing in, while the workspace's "Allow anonymous forms" switch is on. Anonymous visitors can only render and submit that form; lookups / Data tables need "Allow anonymous read" on the field, server steps need "Allow for anonymous" on the step, uploads need settings.uploads. Submissions are stored with source "anonymous" and no submitter. Audited.
+         */
+        get: operations["getAnonymousFormsSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set the workspace's "Allow anonymous forms" switch and bot protection
+         * @description Anonymous forms: a form with "Allow anonymous responses" on has an unguessable public link (/p/<token>) that anyone can fill in without signing in, while the workspace's "Allow anonymous forms" switch is on. Anonymous visitors can only render and submit that form; lookups / Data tables need "Allow anonymous read" on the field, server steps need "Allow for anonymous" on the step, uploads need settings.uploads. Submissions are stored with source "anonymous" and no submitter. Audited.
+         */
+        patch: operations["updateAnonymousFormsSettings"];
+        trace?: never;
+    };
+    "/form-controls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List custom form controls (with their versions)
+         * @description Custom form controls are web components (one ES module + manifest.json). They run in a sandboxed iframe with their own CSP; the module is stored in UserTasks (a URL import is fetched once and snapshotted). Versions are immutable.
+         */
+        get: operations["listFormControls"];
+        put?: never;
+        /**
+         * Upload a form control package (or import one from a URL): a new control, or a new version of the one with the same tag
+         * @description Custom form controls are web components (one ES module + manifest.json). They run in a sandboxed iframe with their own CSP; the module is stored in UserTasks (a URL import is fetched once and snapshotted). Versions are immutable. Re-uploading identical content for an existing version is a no-op (outcome "unchanged"); different content for an existing version is refused (409).
+         */
+        post: operations["createFormControl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/form-controls/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import a portable export: creates the control and adds the versions it lacks (checksums verified) */
+        post: operations["importFormControl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/form-controls/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a form control: latest manifest, versions (checksums, signatures), approved hosts */
+        get: operations["getFormControl"];
+        put?: never;
+        post?: never;
+        /** Delete a control (or one version with ?only_version=) — refused (409, with the usages) while a form, workflow or open task uses it */
+        delete: operations["deleteFormControl"];
+        options?: never;
+        head?: never;
+        /**
+         * Enable / disable a control, rename it, or approve its network hosts
+         * @description Marking a control trusted (inline rendering) is only possible for instance admins in the UI. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        patch: operations["updateFormControl"];
+        trace?: never;
+    };
+    "/form-controls/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one version: manifest, checksum and (with include_module=true) the module source */
+        get: operations["getFormControlVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/form-controls/{id}/usages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where a control is used: reusable forms (any version), workflow drafts and published versions, open tasks */
+        get: operations["getFormControlUsages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/form-controls/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export a control with every version (modules included) as portable JSON */
+        get: operations["exportFormControl"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1435,6 +2446,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflow-activities/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a packaged action (manifest v1 + one ES module): a new action, or a new version of the one with the same key
+         * @description Re-uploading identical content for an existing version is a no-op (outcome "unchanged"); different content for an existing version is refused (409). Saving never runs the code. Actions run in a QuickJS WebAssembly sandbox with only the capabilities their manifest declares and an administrator approved; operators can switch execution off with CUSTOM_ACTIONS_DISABLED=true (see code_execution_enabled in responses).
+         */
+        post: operations["uploadWorkflowAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-activities/{id}/usages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workflow steps that run the action (drafts and active published versions) */
+        get: operations["getWorkflowActivityUsages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-activities/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one stored version: manifest, SHA-256, signature and (with include_source=true) the module */
+        get: operations["getWorkflowActivityVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-activities/{id}/secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or clear the secrets the action declares (encrypted; never returned) */
+        put: operations["setWorkflowActivitySecrets"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-activities/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run one operation with the given inputs in the sandbox and return outputs, logs, warnings and stats
+         * @description Runs with the action's real grants (ctx.run.test is true). A failed run is still 200 with ok: false and the error code (timeout, memory, capability, action, invalid, host, disabled).
+         */
+        post: operations["testWorkflowActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-activities": {
         parameters: {
             query?: never;
@@ -1447,7 +2549,7 @@ export interface paths {
         put?: never;
         /**
          * Create a custom workflow activity
-         * @description Saving never runs the code. Execution in workflows requires the server to set ENABLE_CUSTOM_ACTIVITY_CODE=true (see code_execution_enabled in responses).
+         * @description Saving never runs the code. Actions run in a QuickJS WebAssembly sandbox with only the capabilities their manifest declares and an administrator approved; operators can switch execution off with CUSTOM_ACTIONS_DISABLED=true (see code_execution_enabled in responses).
          */
         post: operations["createWorkflowActivity"];
         delete?: never;
@@ -1467,7 +2569,7 @@ export interface paths {
         put?: never;
         /**
          * Create an activity from a portable export
-         * @description Body: the JSON from GET /workflow-activities/{id}/export. Saving never runs the code. Execution in workflows requires the server to set ENABLE_CUSTOM_ACTIVITY_CODE=true (see code_execution_enabled in responses).
+         * @description Body: the JSON from GET /workflow-activities/{id}/export. Saving never runs the code. Actions run in a QuickJS WebAssembly sandbox with only the capabilities their manifest declares and an administrator approved; operators can switch execution off with CUSTOM_ACTIONS_DISABLED=true (see code_execution_enabled in responses).
          */
         post: operations["importWorkflowActivity"];
         delete?: never;
@@ -1487,13 +2589,13 @@ export interface paths {
         get: operations["getWorkflowActivity"];
         put?: never;
         post?: never;
-        /** Delete an activity */
+        /** Delete an activity — refused (409, with the usages) while a workflow uses it */
         delete: operations["deleteWorkflowActivity"];
         options?: never;
         head?: never;
         /**
          * Update an activity (omitted fields are kept)
-         * @description Saving never runs the code. Execution in workflows requires the server to set ENABLE_CUSTOM_ACTIVITY_CODE=true (see code_execution_enabled in responses). The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         * @description Saving never runs the code. Actions run in a QuickJS WebAssembly sandbox with only the capabilities their manifest declares and an administrator approved; operators can switch execution off with CUSTOM_ACTIONS_DISABLED=true (see code_execution_enabled in responses). The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
          */
         patch: operations["updateWorkflowActivity"];
         trace?: never;
@@ -1570,7 +2672,7 @@ export interface paths {
         put?: never;
         /**
          * Run a report configuration without saving it
-         * @description Also accepts a signed-in browser session. Returns a bare JSON body (no envelope).
+         * @description Also accepts a signed-in browser session. Returns a bare JSON body (no envelope). With summary charts in the config, `charts` holds each chart's series, bucketed in `timezone` (the ?timezone= query, else the user's profile zone, else UTC).
          */
         post: operations["previewReport"];
         delete?: never;
@@ -1588,7 +2690,7 @@ export interface paths {
         };
         /**
          * List report data sources
-         * @description Also accepts a signed-in browser session. Returns a bare JSON body (no envelope).
+         * @description Also accepts a signed-in browser session. Returns a bare JSON body (no envelope). With workflow_id, the Workflow runs and Tasks sources are scoped to that workflow and list its variables as columns (vars.<name> on runs, fields.<key> on tasks); use the same id as config.source_inputs.workflow_id.
          */
         get: operations["listReportSources"];
         put?: never;
@@ -1952,12 +3054,551 @@ export interface paths {
         };
         /**
          * Query the object audit log (newest first)
-         * @description Every create, update, delete, publish, grant and revoke recorded across the workspace, with the actor and a short diff.
+         * @description Every create, update, delete, publish, grant and revoke recorded across the workspace, with the actor and a short diff. Forms also record availability toggles (toggle), retention-policy changes (retention), submission purges (purge) and legal holds (legal_hold / legal_hold_release).
          */
         get: operations["listAuditLog"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/object-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the grants on an object
+         * @description Explicit grants on one object: a role, a team or a person, with View, Edit, Delete and Execute columns. object_type: workflow, data_table, agent, integration, api_key, report, form. Forms use View and Submit (can_execute): a grant lists the form in the person's Forms menu when the form is in Available forms; Edit and Delete do not apply to forms (stored false). Every change is in the audit log (grant / revoke on the object).
+         */
+        get: operations["listObjectPermissions"];
+        put?: never;
+        /**
+         * Add or change one grantee's grant on an object
+         * @description Explicit grants on one object: a role, a team or a person, with View, Edit, Delete and Execute columns. object_type: workflow, data_table, agent, integration, api_key, report, form. Forms use View and Submit (can_execute): a grant lists the form in the person's Forms menu when the form is in Available forms; Edit and Delete do not apply to forms (stored false). Every change is in the audit log (grant / revoke on the object).
+         */
+        post: operations["setObjectPermission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/object-permissions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a grant
+         * @description Explicit grants on one object: a role, a team or a person, with View, Edit, Delete and Execute columns. object_type: workflow, data_table, agent, integration, api_key, report, form. Forms use View and Submit (can_execute): a grant lists the form in the person's Forms menu when the form is in Available forms; Edit and Delete do not apply to forms (stored false). Every change is in the audit log (grant / revoke on the object).
+         */
+        delete: operations["removeObjectPermission"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/chart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The org chart: every active member with manager, attributes and report counts
+         * @description `roots` are the people at the top (no manager here), biggest organisation first. `total_reports` counts every level below a person.
+         */
+        get: operations["getOrgChart"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/people/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One person in context: attributes, manager chain, direct reports, peers, teams, org units and projects
+         * @description Your own (`me`) needs no permission; anyone else needs org.view (or team.view_members). Projects are included for yourself or with projects.view (null otherwise).
+         */
+        get: operations["getOrgPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a member's job title, department, location, employee id, cost centre and/or manager
+         * @description Attributes need org.manage. Attributes the directory owns (profile_source `directory`) are refused with 409 until detached (POST /org/people/{id}/detach); directory sync then stops updating them. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        patch: operations["updateOrgPerson"];
+        trace?: never;
+    };
+    "/org/people/{id}/detach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Detach a member's attributes from the directory (editable here; sync stops updating them) */
+        post: operations["detachOrgPerson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/people/{id}/subordinates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People who report to a member: direct, or every level (depth=all, up to 10 levels)
+         * @description Your own (`me`) needs no permission; anyone else needs org.view (or team.view_members).
+         */
+        get: operations["listOrgSubordinates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/people/{id}/manager-chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A member's managers, nearest first
+         * @description Your own (`me`) needs no permission; anyone else needs org.view (or team.view_members).
+         */
+        get: operations["getOrgManagerChain"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/people/{id}/peers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Others with the same manager
+         * @description Your own (`me`) needs no permission; anyone else needs org.view (or team.view_members).
+         */
+        get: operations["listOrgPeers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/people/{id}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Teams a member is in, with the teams above them
+         * @description Your own (`me`) needs no permission; anyone else needs org.view (or team.view_members).
+         */
+        get: operations["listOrgPersonTeams"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/people/{id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Projects a member is on (member, owner, sponsor or through a team)
+         * @description Your own needs no permission; anyone else needs projects.view. Archived projects only with include_archived=true.
+         */
+        get: operations["listOrgPersonProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The people a scope covers: me, my direct / all reports, a team, an org unit or a project
+         * @description me, direct_reports and all_reports are the caller's own (no permission). team needs team.view_members or org.view unless you are in it; org_unit needs org.view unless you are in it; project needs projects.view unless you are on it. `id` names the team / org unit / project.
+         */
+        get: operations["resolveOrgScope"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every org unit with head, depth, children and headcounts
+         * @description `member_count` counts the unit's own members, `headcount` distinct members of the unit and every unit below. `roots` lists the top-level units in order.
+         */
+        get: operations["listOrgUnits"];
+        put?: never;
+        /** Create an org unit */
+        post: operations["createOrgUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/units/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An org unit with its path, children, members, teams and projects */
+        get: operations["getOrgUnit"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete an org unit (its sub-units move up to its parent)
+         * @description Units imported from a directory or CSV (source ≠ manual) are read-only (409) until detached.
+         */
+        delete: operations["deleteOrgUnit"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename, move (parent_id), set the head of or describe an org unit
+         * @description Units imported from a directory or CSV (source ≠ manual) are read-only (409) until detached. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        patch: operations["updateOrgUnit"];
+        trace?: never;
+    };
+    "/org/units/{id}/detach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Detach an imported org unit (editable here; its source stops updating it) */
+        post: operations["detachOrgUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/units/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members of an org unit (recursive=true adds everyone in the units below) */
+        get: operations["listOrgUnitMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/units/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Add a member to an org unit, or update their role / primary flag (idempotent) */
+        put: operations["addOrgUnitMember"];
+        post?: never;
+        /** Remove a member from an org unit */
+        delete: operations["removeOrgUnitMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The team tree: every team with lead, org unit, member counts, a member preview and projects
+         * @description Needs team.view_members or org.view. `total_member_count` includes sub-teams; `project_ids` needs projects.view.
+         */
+        get: operations["getOrgTeamTree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/teams/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Members of a team (recursive=true adds everyone in its sub-teams)
+         * @description Needs team.view_members or org.view.
+         */
+        get: operations["listOrgTeamMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The org structure as CSV (the import format, one row per active member)
+         * @description Returns `{ csv, filename, rows }`; with format=csv the file itself (text/csv attachment).
+         */
+        get: operations["exportOrg"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/import/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The CSV import template
+         * @description Columns: email (required: matches an existing member), display_name, manager_email, job_title, department, division, location, employee_id, cost_center, team. Headers are matched by name; `mapping` maps a field to a different header (or null to skip it). With format=csv the file itself.
+         */
+        get: operations["getOrgImportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import people attributes, managers, departments and teams from CSV (dry run by default)
+         * @description Columns: email (required: matches an existing member), display_name, manager_email, job_title, department, division, location, employee_id, cost_center, team. Headers are matched by name; `mapping` maps a field to a different header (or null to skip it). The dry run returns per-row create / update / unchanged / error with a diff, the org units and teams it would create and any manager loops. Applying skips rows with errors. Departments (under their division) become org units with source csv.
+         */
+        post: operations["importOrg"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List projects with owner, team, counts and a member preview (archived hidden by default) */
+        get: operations["listProjects"];
+        put?: never;
+        /** Create a project */
+        post: operations["createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A project with its people (direct members and attached teams' members) and teams
+         * @description projects.view, or being on the project (member, owner, sponsor or through a team).
+         */
+        get: operations["getProject"];
+        put?: never;
+        post?: never;
+        /** Delete a project with its memberships (archive it to keep the history) */
+        delete: operations["deleteProject"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a project
+         * @description The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        patch: operations["updateProject"];
+        trace?: never;
+    };
+    "/projects/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive (or restore with archived=false) a project */
+        post: operations["archiveProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A project's people: direct members and (include_teams, default true) attached teams' members
+         * @description projects.view, or being on the project.
+         */
+        get: operations["listProjectMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Add a member to a project, or update their role / allocation (idempotent) */
+        put: operations["addProjectMember"];
+        post?: never;
+        /** Remove a member from a project */
+        delete: operations["removeProjectMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/teams/{teamId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Attach a whole team to a project (its members and sub-teams' members join; idempotent) */
+        put: operations["attachProjectTeam"];
+        post?: never;
+        /** Detach a team from a project */
+        delete: operations["detachProjectTeam"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2035,6 +3676,163 @@ export interface paths {
          * @description Send multipart/form-data (`file`, optional `family`) or this JSON body. woff2 only, at most 1 MB. Returns the font reference to use in typography.sans / display / mono; the theme itself is not changed.
          */
         post: operations["uploadWorkspaceThemeFont"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspace/address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the workspace address (any member) */
+        get: operations["getWorkspaceAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the workspace address
+         * @description Lowercase a-z, 0-9 and hyphens, 3-40 characters, no leading, trailing or double hyphen; reserved names (www, app, api, docs, admin, mail, status, auth, login, help, support, gallery, form, …) are refused. 409 when another workspace has it (or had it in the last year). Links to the old address keep redirecting to the new one for a year; null removes the address (old links then stop working). Audited.
+         */
+        patch: operations["updateWorkspaceAddress"];
+        trace?: never;
+    };
+    "/workspace/address/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check whether a workspace subdomain is valid and available
+         * @description Lowercase a-z, 0-9 and hyphens, 3-40 characters, no leading, trailing or double hyphen; reserved names (www, app, api, docs, admin, mail, status, auth, login, help, support, gallery, form, …) are refused.
+         */
+        get: operations["checkWorkspaceAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspace/task-completion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the Task completed screen settings (any member)
+         * @description Templates take {{task.title}}, {{outcome}}, {{next.step}}, {{next.assignee}}, {{user.name}} and {{process.name}}; a placeholder with no value renders empty and a template that renders empty uses the built-in default. A task form can override any of these in its layout (layout.task_completed, with per-outcome headings under layout.task_completed.outcomes).
+         */
+        get: operations["getTaskCompletionSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the Task completed screen settings
+         * @description Send only the settings to change; the rest are kept. Templates take {{task.title}}, {{outcome}}, {{next.step}}, {{next.assignee}}, {{user.name}} and {{process.name}}; a placeholder with no value renders empty and a template that renders empty uses the built-in default. A task form can override any of these in its layout (layout.task_completed, with per-outcome headings under layout.task_completed.outcomes). Audited.
+         */
+        patch: operations["updateTaskCompletionSettings"];
+        trace?: never;
+    };
+    "/tasks/{id}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What happens next after a task was actioned
+         * @description Where the task's workflow run is now: the next step and who it is with, waiting on a timer or event, or complete. For people involved in the task (assignee, collaborator, whoever actioned it) or tasks.view_all; the run follows the Home run-progress rules. `processing` while the queue is still resuming the run: ask again shortly. POST /tasks/{id}/action (complete) returns the same summary as `next`.
+         */
+        get: operations["getTaskNextStep"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspace/form-sign-in-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the form sign-in page settings (any member)
+         * @description The workspace's sign-in page for form links: design (1–10), logo, wording, support link, accent colour and whether it uses the workspace theme.
+         */
+        get: operations["getFormSignInPage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the form sign-in page settings
+         * @description Send only the settings to change; the rest are kept. An empty string clears logo_url, support_link_url and accent_color. heading and button_label can't be empty. Audited.
+         */
+        patch: operations["updateFormSignInPage"];
+        trace?: never;
+    };
+    "/document-ocr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the workspace OCR provider
+         * @description The provider document steps use for scanned PDFs and images, the saved Azure endpoint (the key is never returned) and what a run would use.
+         */
+        get: operations["getDocumentOcr"];
+        /**
+         * Set the workspace OCR provider
+         * @description azure_document_intelligence needs an https endpoint that passes the egress guard and a key (stored encrypted, write-only). Audited. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        put: operations["updateDocumentOcr"];
+        post?: never;
+        /**
+         * Remove the workspace Azure OCR key
+         * @description Deletes the stored endpoint and key; an Azure setting falls back to the instance default (on the cloud: not configured). Audited.
+         */
+        delete: operations["deleteDocumentOcrKey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/document-ocr/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the workspace Azure OCR connection
+         * @description A free Azure call (resource info) with the saved endpoint and key, or with the values in the body. No page is billed. Audited.
+         */
+        post: operations["testDocumentOcr"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2441,6 +4239,46 @@ export interface paths {
         put?: never;
         /** Replace a SCIM token with a new one (same name and scopes); the old one stops working now or after grace_minutes */
         post: operations["rotateScimToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/directory-sync/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the directory connections make available to workflows (AAD group task assignment)
+         * @description entraGroups: an enabled Entra ID connection with credentials — User Task nodes may use assignment_type aad_group. syncedGroups: the connection also syncs groups into teams.
+         */
+        get: operations["getDirectoryCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/directory-sync/entra/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search the workspace's Entra ID groups (for AAD group task assignment)
+         * @description Groups directory sync stored when the connection syncs groups, else a live Microsoft Graph search (GroupMember.Read.All or Group.Read.All). 409 when Entra ID is not configured.
+         */
+        get: operations["searchEntraGroups"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3056,6 +4894,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a workspace with its owner (instance admin; idempotent on slug)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN (32+ characters). Rate-limited per IP; audited. 201 with created: true for a new workspace; 200 with created: false when the slug is already a live workspace (nothing is changed; a key is minted only when create_api_key is set). 409 when the slug belongs to a deleted workspace or the owner's account can't be used.
+         */
+        post: operations["createAdminWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/workspaces/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a workspace by slug (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN (32+ characters). Rate-limited per IP; audited.
+         */
+        get: operations["getAdminWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3192,6 +5070,1187 @@ export interface operations {
                     } & {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    getHomeMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            tasks: {
+                                [key: string]: unknown;
+                            } | null;
+                            submissions: {
+                                [key: string]: unknown;
+                            } | null;
+                            following: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getHomeStats: {
+        parameters: {
+            query?: {
+                /** @description 7d, 30d (default) or 90d */
+                period?: "7d" | "30d" | "90d";
+                /** @description IANA time zone for day / week buckets, e.g. Pacific/Auckland */
+                timezone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            period: number;
+                            timezone: string;
+                            tasks: {
+                                [key: string]: unknown;
+                            } | null;
+                            submissions: {
+                                [key: string]: unknown;
+                            } | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMyHomeTasks: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                /** @description Title contains */
+                search?: string;
+                /** @description due (default, soonest first), priority, newest */
+                sort?: "due" | "priority" | "newest";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            tasks: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listHomeQueue: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                /** @description Title contains */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            tasks: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMySubmissions: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                /** @description Form or process name contains */
+                search?: string;
+                /** @description all (default), active (running, waiting or starting), completed, failed (failed or cancelled) */
+                status?: "all" | "active" | "completed" | "failed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            submissions: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRunProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            progress: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listFollowedRuns: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                /** @description Process name or run title contains */
+                search?: string;
+                /** @description all (default), active (running, waiting or starting), completed, failed (failed or cancelled) */
+                status?: "all" | "active" | "completed" | "failed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            runs: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    followRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            run_id: string;
+                            following: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    unfollowRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            run_id: string;
+                            following: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listFavoriteForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            forms: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    favoriteForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            favorite: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    unfavoriteForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            favorite: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getHomePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            preferences: {
+                                auto_follow_runs: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateHomePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    auto_follow_runs?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            preferences: {
+                                auto_follow_runs: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getHomeLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            layout: {
+                                items: ({
+                                    id: string;
+                                    w: number;
+                                    h: number;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                hidden: string[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            customised: boolean;
+                            updated_at: string | null;
+                            grid: {
+                                [key: string]: unknown;
+                            };
+                            widgets: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateHomeLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Visible widgets in reading order */
+                    items: {
+                        /** @enum {string} */
+                        id: "metric.tasks" | "chart.decisions" | "metric.submissions" | "metric.following" | "tasks" | "chart.completed" | "chart.duration" | "chart.top_processes" | "drafts" | "favorites" | "chart.on_time" | "chart.submissions";
+                        /** @description Columns on the 12-column desktop grid */
+                        w: number;
+                        /** @description Rows of 40px */
+                        h: number;
+                    }[];
+                    /** @description Widgets to hide */
+                    hidden?: ("metric.tasks" | "chart.decisions" | "metric.submissions" | "metric.following" | "tasks" | "chart.completed" | "chart.duration" | "chart.top_processes" | "drafts" | "favorites" | "chart.on_time" | "chart.submissions")[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            layout: {
+                                items: ({
+                                    id: string;
+                                    w: number;
+                                    h: number;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                hidden: string[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            customised: boolean;
+                            updated_at: string | null;
+                            grid: {
+                                [key: string]: unknown;
+                            };
+                            widgets: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    resetHomeLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            layout: {
+                                items: ({
+                                    id: string;
+                                    w: number;
+                                    h: number;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                hidden: string[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            customised: boolean;
+                            updated_at: string | null;
+                            grid: {
+                                [key: string]: unknown;
+                            };
+                            widgets: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    claimTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            claimed: true;
+                            task_id: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4218,6 +7277,10 @@ export interface operations {
                                 [key: string]: unknown;
                             };
                             logs: {
+                                [key: string]: unknown;
+                            }[];
+                            /** @description The run's User Tasks, oldest first, for the caller: id, node_id, step_name, status (waiting / completed / cancelled), open, has_form, team, assignees [{ id, name, avatar_url, role (assignee / collaborator / candidate), status (queued / in_progress / on_hold / done / declined / closed) }], waiting_since, due_date, completed_at, completed_by, completed_on_behalf_of, history [{ kind (response / completed / declined / redirected / reassigned / escalated), at, actor, on_behalf_of, outcome, comment, from, to }], and the caller's access: can_open, can_act (assignee / on_behalf / none), access (assignee / manager / workflow_manager / assigner / admin), on_behalf_of, href. title, outcome, comments and the redirect / reassignment / escalation lines are only filled in where can_open is true (the caller is an assignee, collaborator, claim candidate or team member, a manager of an assignee, holds an explicit Edit grant on the workflow, assigned it, or has tasks.view_all); everyone who can see the run sees who each task is with and who completed it, when. */
+                            tasks: {
                                 [key: string]: unknown;
                             }[];
                         } & {
@@ -5454,6 +8517,29 @@ export interface operations {
                             acted_as?: "assignee" | "on_behalf" | "break_glass" | "credential";
                             /** @description The assignee acted for (on_behalf / break_glass) */
                             on_behalf_of?: string | null;
+                            /** @description complete: what happens next (the Task completed screen's summary) — still processing after a brief wait: GET /tasks/{id}/next */
+                            next?: {
+                                /**
+                                 * @description assigned: open task(s) with someone; waiting: a timer, event or unassigned step; complete: the run finished; processing: the resume is still queued (ask again shortly); stopped: the run failed or was cancelled; none: not a workflow task; unknown: you may not see the run
+                                 * @enum {string}
+                                 */
+                                state: "assigned" | "waiting" | "complete" | "processing" | "stopped" | "none" | "unknown";
+                                run_id: string | null;
+                                /** @description Where the run is now: names and step labels only, never data */
+                                steps: {
+                                    /** @description The step label */
+                                    name: string;
+                                    /** @description Names of the people it is with */
+                                    assignees: string[];
+                                    /** @description The team it is with */
+                                    team: string | null;
+                                }[];
+                                process: {
+                                    name: string;
+                                } | null;
+                                /** @description The run view you may open: full (/automations/runs/<id>) or progress (/home/runs/<id>) */
+                                run_view: ("full" | "progress") | null;
+                            } | null;
                         } & {
                             [key: string]: unknown;
                         };
@@ -5519,6 +8605,12 @@ export interface operations {
                     values?: {
                         [key: string]: unknown;
                     };
+                    /** @description Resolve these stored values to their items (display labels) instead of searching — same source, filters and permissions as a search */
+                    resolve?: string[];
+                    /** @description The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest */
+                    variables?: {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -5536,6 +8628,7 @@ export interface operations {
                             items: {
                                 /** @description Stored as task_data.<key> when selected */
                                 value: string;
+                                /** @description Display label (the label template, else the first shown field) — stored as task_data.<key>_label */
                                 label: string;
                                 /** @description Secondary display text */
                                 description?: string;
@@ -5550,6 +8643,125 @@ export interface operations {
                             cached?: boolean;
                             /** @description Fewer characters than the field's minimum: nothing was queried */
                             too_short?: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    queryTaskDataTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Key of a Data table field of the form */
+                    field_key: string;
+                    query?: {
+                        /** @description Search text (matched against the visible text / choice columns) */
+                        search?: string;
+                        /** @description Column filters — only on columns the author marked filterable; they narrow the author's base filter, never widen it */
+                        filters?: {
+                            column: string;
+                            /** @enum {string} */
+                            operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "contains" | "starts_with" | "in" | "is_set" | "is_not_set";
+                            value?: string;
+                        }[];
+                        /** @description Only on columns the author marked sortable (default: the field's sort) */
+                        sort?: {
+                            column: string;
+                            /** @enum {string} */
+                            direction?: "asc" | "desc";
+                        }[];
+                        page?: number;
+                        /** @description At most the field's page size */
+                        page_size?: number;
+                    };
+                    /** @description The form's current values, for {{form.<key>}} in the base filter / API inputs */
+                    values?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Reusable forms: the form's parameters by name ({{param.<name>}} in the base filter / API inputs), re-validated against the declarations; a task form uses the parameters its workflow step passed and ignores these */
+                    params?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest */
+                    variables?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            rows: {
+                                /** @description The row key (key column) */
+                                key: string;
+                                /** @description The selected columns only */
+                                values: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                            /** @description Matching rows (null: the API does not say) */
+                            total: number | null;
+                            page: number;
+                            page_size: number;
+                            has_more?: boolean;
+                            /** @description API sources: what the server applied to the fetched rows (search, filters, sort, page) because the API does not */
+                            applied_locally?: string[];
+                            truncated?: boolean;
                         };
                     };
                 };
@@ -5682,6 +8894,693 @@ export interface operations {
             };
         };
     };
+    listTaskAttachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            attachments: ({
+                                id: string;
+                                task_id: string;
+                                name: string;
+                                /** @description Free text; suggested: Contract, Invoice, Receipt, Evidence, Image, Other */
+                                type: string;
+                                description: string;
+                                file_name: string;
+                                mime: string;
+                                /** @description Same as mime (what file steps read) */
+                                mime_type: string;
+                                size: number;
+                                /** @description Authorised link /attachments/<id> (signed-in people who can see the task) */
+                                url: string;
+                                /** @description storage://form-files/… — what workflow file steps read */
+                                storage_ref: string;
+                                checksum_sha256: string;
+                                /** @description null when a workflow step attached it */
+                                uploaded_by: string | null;
+                                uploaded_by_name?: string | null;
+                                created_at: string;
+                                can_delete: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            can_add: boolean;
+                            legal_hold: boolean;
+                            type_suggestions: string[];
+                            max_file_bytes: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addTaskAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description File name (its extension must be an allowed type) */
+                    file_name: string;
+                    /** @description Display name (default: the file name without its extension) */
+                    name?: string;
+                    /** @description Type, free text (default Other). Suggested: Contract, Invoice, Receipt, Evidence, Image, Other */
+                    type?: string;
+                    /** @description Description */
+                    description?: string;
+                    /** @description Size in bytes: without content_base64, starts a direct upload to storage */
+                    size?: number;
+                    /** @description The file itself, base64 (small files; the request body limit applies). Omit to get a signed upload URL */
+                    content_base64?: string;
+                };
+                "multipart/form-data": {
+                    /** @description Display name (default: the file name without its extension) */
+                    name?: string;
+                    /** @description Type, free text (default Other). Suggested: Contract, Invoice, Receipt, Evidence, Image, Other */
+                    type?: string;
+                    /** @description Description */
+                    description?: string;
+                    /** @description Size in bytes: without content_base64, starts a direct upload to storage */
+                    size?: number;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            mode: "uploaded" | "direct" | "server";
+                            attachment?: {
+                                id: string;
+                                task_id: string;
+                                name: string;
+                                /** @description Free text; suggested: Contract, Invoice, Receipt, Evidence, Image, Other */
+                                type: string;
+                                description: string;
+                                file_name: string;
+                                mime: string;
+                                /** @description Same as mime (what file steps read) */
+                                mime_type: string;
+                                size: number;
+                                /** @description Authorised link /attachments/<id> (signed-in people who can see the task) */
+                                url: string;
+                                /** @description storage://form-files/… — what workflow file steps read */
+                                storage_ref: string;
+                                checksum_sha256: string;
+                                /** @description null when a workflow step attached it */
+                                uploaded_by: string | null;
+                                uploaded_by_name?: string | null;
+                                created_at: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            attachment_id?: string;
+                            upload?: {
+                                [key: string]: unknown;
+                            };
+                            expires_at?: string;
+                            max_bytes?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    completeTaskAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task id */
+                id: string;
+                /** @description Attachment id */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            attachment: {
+                                id: string;
+                                task_id: string;
+                                name: string;
+                                /** @description Free text; suggested: Contract, Invoice, Receipt, Evidence, Image, Other */
+                                type: string;
+                                description: string;
+                                file_name: string;
+                                mime: string;
+                                /** @description Same as mime (what file steps read) */
+                                mime_type: string;
+                                size: number;
+                                /** @description Authorised link /attachments/<id> (signed-in people who can see the task) */
+                                url: string;
+                                /** @description storage://form-files/… — what workflow file steps read */
+                                storage_ref: string;
+                                checksum_sha256: string;
+                                /** @description null when a workflow step attached it */
+                                uploaded_by: string | null;
+                                uploaded_by_name?: string | null;
+                                created_at: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteTaskAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task id */
+                id: string;
+                /** @description Attachment id */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            deleted: true;
+                            id: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTaskAttachmentDownloadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task id */
+                id: string;
+                /** @description Attachment id */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            url: string;
+                            expires_at: string | null;
+                            attachment: {
+                                id: string;
+                                task_id: string;
+                                name: string;
+                                /** @description Free text; suggested: Contract, Invoice, Receipt, Evidence, Image, Other */
+                                type: string;
+                                description: string;
+                                file_name: string;
+                                mime: string;
+                                /** @description Same as mime (what file steps read) */
+                                mime_type: string;
+                                size: number;
+                                /** @description Authorised link /attachments/<id> (signed-in people who can see the task) */
+                                url: string;
+                                /** @description storage://form-files/… — what workflow file steps read */
+                                storage_ref: string;
+                                checksum_sha256: string;
+                                /** @description null when a workflow step attached it */
+                                uploaded_by: string | null;
+                                uploaded_by_name?: string | null;
+                                created_at: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listFollowedTasks: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                /** @description Task name, ID, workflow, people, team, status or priority contains */
+                search?: string;
+                /** @description Task statuses (comma-separated) */
+                status?: string;
+                /** @description Priorities (comma-separated) */
+                priority?: string;
+                /** @description true: leave out completed and cancelled tasks */
+                hide_completed?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            tasks: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    followTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            following: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    unfollowTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            following: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listAgents: {
         parameters: {
             query?: {
@@ -5764,12 +9663,14 @@ export interface operations {
                     role?: string;
                     task?: string;
                     boundaries?: string;
+                    /** @description Tool objects: {type:"builtin",name} | {type:"reference",referenceId} | {type:"mcp",mcpServerId,mcpToolName}; add requiresApproval:true to need a person's approval per call */
                     tools?: unknown[];
+                    /** @description variables (typed outputs: name, type, required, enum, description), strict_outputs, document_access, data_access {grants: [{table_id, read, insert, update, delete}]} (default: no tables), task_access/task_scope, workflow_access/workflow_scope, knowledge {table_ids, files}, limits {max_run_tokens, max_tool_calls, daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency}, approval {tools, assignee_user_id, assignee_team_id}, egress {allowed_hosts} */
                     output_config?: {
                         [key: string]: unknown;
                     };
                     integration_id?: string | null;
-                    temperature?: number;
+                    temperature?: number | null;
                     max_tokens?: number;
                     max_iterations?: number;
                 } & {
@@ -5921,12 +9822,14 @@ export interface operations {
                     role?: string;
                     task?: string;
                     boundaries?: string;
+                    /** @description Tool objects: {type:"builtin",name} | {type:"reference",referenceId} | {type:"mcp",mcpServerId,mcpToolName}; add requiresApproval:true to need a person's approval per call */
                     tools?: unknown[];
+                    /** @description variables (typed outputs: name, type, required, enum, description), strict_outputs, document_access, data_access {grants: [{table_id, read, insert, update, delete}]} (default: no tables), task_access/task_scope, workflow_access/workflow_scope, knowledge {table_ids, files}, limits {max_run_tokens, max_tool_calls, daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency}, approval {tools, assignee_user_id, assignee_team_id}, egress {allowed_hosts} */
                     output_config?: {
                         [key: string]: unknown;
                     };
                     integration_id?: string | null;
-                    temperature?: number;
+                    temperature?: number | null;
                     max_tokens?: number;
                     max_iterations?: number;
                     is_active?: boolean;
@@ -6017,6 +9920,7 @@ export interface operations {
                         data: {
                             /** @constant */
                             deleted: true;
+                            queued?: boolean;
                             deactivated_workflows: unknown;
                         } & {
                             [key: string]: unknown;
@@ -6082,12 +9986,14 @@ export interface operations {
                     role?: string;
                     task?: string;
                     boundaries?: string;
+                    /** @description Tool objects: {type:"builtin",name} | {type:"reference",referenceId} | {type:"mcp",mcpServerId,mcpToolName}; add requiresApproval:true to need a person's approval per call */
                     tools?: unknown[];
+                    /** @description variables (typed outputs: name, type, required, enum, description), strict_outputs, document_access, data_access {grants: [{table_id, read, insert, update, delete}]} (default: no tables), task_access/task_scope, workflow_access/workflow_scope, knowledge {table_ids, files}, limits {max_run_tokens, max_tool_calls, daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency}, approval {tools, assignee_user_id, assignee_team_id}, egress {allowed_hosts} */
                     output_config?: {
                         [key: string]: unknown;
                     };
                     integration_id?: string | null;
-                    temperature?: number;
+                    temperature?: number | null;
                     max_tokens?: number;
                     max_iterations?: number;
                     is_active?: boolean;
@@ -6168,9 +10074,20 @@ export interface operations {
             content: {
                 "application/json": {
                     message: string;
+                    /** @description { messages, facts } from earlier agents (only user / assistant text is used) */
                     shared_context?: unknown;
+                    /** @description Earlier turns of this conversation */
+                    history?: ({
+                        /** @enum {string} */
+                        role: "user" | "assistant";
+                        content: string;
+                    } & {
+                        [key: string]: unknown;
+                    })[];
                     /** @description Queue the run and return a job id (202) */
                     async?: boolean;
+                    /** @description Stream Server-Sent Events: the reply token by token, then done / error / awaiting_approval */
+                    stream?: boolean;
                     max_iterations?: number;
                 } & {
                     [key: string]: unknown;
@@ -6191,6 +10108,8 @@ export interface operations {
                             response?: unknown;
                             outputs?: unknown;
                             job_id?: string;
+                            run_id?: string | null;
+                            status?: string;
                         } & {
                             [key: string]: unknown;
                         };
@@ -6291,6 +10210,1141 @@ export interface operations {
             };
             /** @description Credential lacks the required permission or resource scope */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAgentQueueJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            job: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listAgentRuns: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                agent_id?: string;
+                /** @description completed | failed | awaiting_approval | running */
+                status?: string;
+                /** @description manual | api | queued | workflow_node | eval */
+                caller_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            runs: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAgentRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            run: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAgentUsage: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Per day: runs, failed, tokens, cost {currency: amount}, unpriced_runs */
+                            days: {
+                                [key: string]: unknown;
+                            }[];
+                            tokens_last_24h: number;
+                            /** @description Cost per ISO currency code (priced runs only) */
+                            cost_last_24h: {
+                                [key: string]: number;
+                            };
+                            tokens_this_month: number;
+                            /** @description Cost per ISO currency code (priced runs only) */
+                            cost_this_month: {
+                                [key: string]: number;
+                            };
+                            /** @description Runs whose cost is unknown (no price for the model, or recorded before cost tracking) */
+                            unpriced_runs: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWorkspaceAgentUsage: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Per day: runs, failed, tokens, cost {currency: amount}, unpriced_runs */
+                            days: {
+                                [key: string]: unknown;
+                            }[];
+                            tokens_last_24h: number;
+                            /** @description Cost per ISO currency code (priced runs only) */
+                            cost_last_24h: {
+                                [key: string]: number;
+                            };
+                            tokens_this_month: number;
+                            /** @description Cost per ISO currency code (priced runs only) */
+                            cost_this_month: {
+                                [key: string]: number;
+                            };
+                            /** @description Runs whose cost is unknown (no price for the model, or recorded before cost tracking) */
+                            unpriced_runs: number;
+                            agents: {
+                                [key: string]: unknown;
+                            }[];
+                            budgets: {
+                                [key: string]: unknown;
+                            };
+                            prices: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateAgentCostSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description [{provider, model, input_per_1m, output_per_1m, cached_input_per_1m, currency, effective_date}] — win over the instance's and the shipped list prices */
+                    model_prices?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @description {daily_token_budget, monthly_token_budget, daily_cost_budget, monthly_cost_budget, budget_currency} — 0 = none */
+                    budgets?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            model_prices: {
+                                [key: string]: unknown;
+                            }[];
+                            budgets: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listAgentVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            current_version: number;
+                            versions: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    restoreAgentVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent id */
+                id: string;
+                /** @description Version number */
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            agent: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listAgentEvalCases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            cases: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createAgentEvalCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    input_message: string;
+                    expected?: {
+                        contains?: string[];
+                        not_contains?: string[];
+                        outputs?: {
+                            [key: string]: unknown;
+                        };
+                        tools_called?: string[];
+                        tools_not_called?: string[];
+                        /** @enum {string} */
+                        status?: "completed" | "failed";
+                        max_tokens?: number;
+                        /** @description Criterion graded by the agent's model */
+                        rubric?: string;
+                    } & {
+                        [key: string]: unknown;
+                    };
+                    is_active?: boolean;
+                } & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            case: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateAgentEvalCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent id */
+                id: string;
+                /** @description Test case id */
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    input_message: string;
+                    expected?: {
+                        contains?: string[];
+                        not_contains?: string[];
+                        outputs?: {
+                            [key: string]: unknown;
+                        };
+                        tools_called?: string[];
+                        tools_not_called?: string[];
+                        /** @enum {string} */
+                        status?: "completed" | "failed";
+                        max_tokens?: number;
+                        /** @description Criterion graded by the agent's model */
+                        rubric?: string;
+                    } & {
+                        [key: string]: unknown;
+                    };
+                    is_active?: boolean;
+                } & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            case: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteAgentEvalCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent id */
+                id: string;
+                /** @description Test case id */
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            deleted: true;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listAgentEvalRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            runs: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    runAgentEvals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    case_ids?: string[];
+                } & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            run: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAgentEvalRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent id */
+                id: string;
+                /** @description Evaluation run id */
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            run: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8631,7 +13685,7 @@ export interface operations {
                     query_params?: {
                         [key: string]: unknown;
                     };
-                    /** @description Full request config; overrides the shorthand fields */
+                    /** @description Full request config; overrides the shorthand fields. Custom reference: { origin: 'custom', custom: { kind: 'list'|'read'|'create'|'update'|'upsert'|'delete'|'execute', source: { type: 'operation', reference_id | from: 'template'|'openapi', key | from: 'endpoint', method, path_template; params: [{ name, value }] } | { type: 'table', schema?, table, columns }, inputs: [{ name, type, mode: 'ask'|'fixed', required?, default_value?, fixed_value? | fixed_setting? }], rows_path?, columns: [{ path, alias?, type? }], filter?: { op: 'and'|'or', conditions: [{ field, operator, value?, api_param? } | group] }, sort?, distinct?, page_size?, max_rows?, paging_inputs?, include_total?, api?, read?, write?: { method?, body?: { mode: 'source'|'none'|'inputs'|'mapped', fields?: [{ path, value?, type? }] }, idempotency?: { input, header? }, success_statuses?, set?: [{ column, value }], key?: [{ column, value }], returning?, procedure?: { schema?, name, params: [{ name, value? }] }, max_affected? (default 1, ≤ 1000), not_found?: 'error'|'noop', id_field? } } } — the server builds the request, public inputs (Fixed ones hidden), outputs and response model. Write kinds: Update/Delete need a key or conditions (never unbounded); database writes run in a transaction rolled back past max_affected; output { status, affected_rows, id, record }. */
                     request_config?: {
                         [key: string]: unknown;
                     };
@@ -8861,6 +13915,7 @@ export interface operations {
                     description?: string | null;
                     /** @description Sets request_config.method */
                     method?: string;
+                    /** @description Replaces the request config. Custom reference: { origin: 'custom', custom: { kind: 'list'|'read'|'create'|'update'|'upsert'|'delete'|'execute', source: { type: 'operation', reference_id | from: 'template'|'openapi', key | from: 'endpoint', method, path_template; params: [{ name, value }] } | { type: 'table', schema?, table, columns }, inputs: [{ name, type, mode: 'ask'|'fixed', required?, default_value?, fixed_value? | fixed_setting? }], rows_path?, columns: [{ path, alias?, type? }], filter?: { op: 'and'|'or', conditions: [{ field, operator, value?, api_param? } | group] }, sort?, distinct?, page_size?, max_rows?, paging_inputs?, include_total?, api?, read?, write?: { method?, body?: { mode: 'source'|'none'|'inputs'|'mapped', fields?: [{ path, value?, type? }] }, idempotency?: { input, header? }, success_statuses?, set?: [{ column, value }], key?: [{ column, value }], returning?, procedure?: { schema?, name, params: [{ name, value? }] }, max_affected? (default 1, ≤ 1000), not_found?: 'error'|'noop', id_field? } } } — the server builds the request, public inputs (Fixed ones hidden), outputs and response model. Write kinds: Update/Delete need a key or conditions (never unbounded); database writes run in a transaction rolled back past max_affected; output { status, affected_rows, id, record }. */
                     request_config?: {
                         [key: string]: unknown;
                     };
@@ -9679,6 +14734,13 @@ export interface operations {
                     credentials?: {
                         [key: string]: unknown;
                     };
+                    /**
+                     * @description Which catalogue operations become references: 'all' (default), 'none' (start empty and build custom references) or 'selected' (reference_template_keys)
+                     * @enum {string}
+                     */
+                    reference_mode?: "all" | "none" | "selected";
+                    /** @description Operation keys to generate when reference_mode is 'selected' (see the catalog's reference_templates) */
+                    reference_template_keys?: string[];
                 };
             };
         };
@@ -10786,6 +15848,10 @@ export interface operations {
                     } | null;
                     /** @description Delete submissions older than this many days (null = keep) */
                     submission_retention_days?: number | null;
+                    /** @description Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false). */
+                    available_in_menu?: boolean | null;
+                    /** @description Friendly link name: /form/<system_name> on the workspace address (https://<subdomain>.<base domain>/form/<system_name>). Lowercase a-z, 0-9 and hyphens, 3-60 characters, no leading, trailing or double hyphen; unique in the workspace (409 when taken). A setting: no new version. Renaming keeps the old name as a redirect. Omitted = suggested from the name ("Employee onboarding" → employee-onboarding, then -2, -3, …). */
+                    system_name?: string | null;
                 };
             };
         };
@@ -11013,6 +16079,10 @@ export interface operations {
                     } | null;
                     /** @description Delete submissions older than this many days (null = keep) */
                     submission_retention_days?: number | null;
+                    /** @description Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false). */
+                    available_in_menu?: boolean | null;
+                    /** @description Friendly link name: /form/<system_name> on the workspace address (https://<subdomain>.<base domain>/form/<system_name>). Lowercase a-z, 0-9 and hyphens, 3-60 characters, no leading, trailing or double hyphen; unique in the workspace (409 when taken). A setting: no new version. Renaming keeps the old name as a redirect. */
+                    system_name?: string;
                 };
             };
         };
@@ -11365,6 +16435,153 @@ export interface operations {
             };
         };
     };
+    getFormGovernance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            governance: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setFormLegalHold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description true places the form on legal hold, false releases it */
+                    hold: boolean;
+                    /** @description Why the form is held (case or matter reference) */
+                    reason?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listFormThemes: {
         parameters: {
             query?: {
@@ -11442,7 +16659,7 @@ export interface operations {
                 "application/json": {
                     name: string;
                     description?: string | null;
-                    /** @description Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, header */
+                    /** @description Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header */
                     overrides: {
                         [key: string]: unknown;
                     };
@@ -11735,6 +16952,14 @@ export interface operations {
                     button_id?: string;
                     /** @description Repeating a key returns the first submission instead of submitting again */
                     idempotency_key?: string;
+                    /** @description The form's parameters by name ({{param.<name>}}), as a link would pass them (/f/<id>?customer=ALFKI). Unknown names are ignored; values are coerced to the declared type and validated; defaults fill the rest. Untrusted: they only fill placeholders in the saved form, so they can narrow a base filter but never widen it */
+                    params?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest */
+                    variables?: {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -11756,6 +16981,10 @@ export interface operations {
                                 [key: string]: unknown;
                             };
                             runs: {
+                                [key: string]: unknown;
+                            }[];
+                            /** @description "For each changed row" rules the button ran: { field, target, total, succeeded, failed, skipped, text, results [{ kind, key, action, status, error?, id?, http_status? }] } */
+                            table_changes?: {
                                 [key: string]: unknown;
                             }[];
                             replayed?: boolean;
@@ -11814,8 +17043,8 @@ export interface operations {
                 submitted_by?: string;
                 /** @description Only submissions with this button */
                 button_id?: string;
-                /** @description Where it was submitted */
-                source?: "standalone" | "task" | "api";
+                /** @description Where it was submitted (anonymous: a public form link) */
+                source?: "standalone" | "task" | "api" | "anonymous";
                 /** @description ISO 8601: submitted at or after */
                 since?: string;
                 /** @description ISO 8601: submitted at or before */
@@ -11975,6 +17204,16 @@ export interface operations {
                     values?: {
                         [key: string]: unknown;
                     };
+                    /** @description Resolve these stored values to their items (display labels) instead of searching */
+                    resolve?: string[];
+                    /** @description The form's parameters by name ({{param.<name>}}), as a link would pass them (/f/<id>?customer=ALFKI). Unknown names are ignored; values are coerced to the declared type and validated; defaults fill the rest. Untrusted: they only fill placeholders in the saved form, so they can narrow a base filter but never widen it */
+                    params?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest */
+                    variables?: {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -11995,6 +17234,1765 @@ export interface operations {
                             truncated?: boolean;
                             cached?: boolean;
                             too_short?: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    queryFormDataTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Key of a Data table field of the form */
+                    field_key: string;
+                    query?: {
+                        /** @description Search text (matched against the visible text / choice columns) */
+                        search?: string;
+                        /** @description Column filters — only on columns the author marked filterable; they narrow the author's base filter, never widen it */
+                        filters?: {
+                            column: string;
+                            /** @enum {string} */
+                            operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "contains" | "starts_with" | "in" | "is_set" | "is_not_set";
+                            value?: string;
+                        }[];
+                        /** @description Only on columns the author marked sortable (default: the field's sort) */
+                        sort?: {
+                            column: string;
+                            /** @enum {string} */
+                            direction?: "asc" | "desc";
+                        }[];
+                        page?: number;
+                        /** @description At most the field's page size */
+                        page_size?: number;
+                    };
+                    /** @description The form's current values, for {{form.<key>}} in the base filter / API inputs */
+                    values?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Reusable forms: the form's parameters by name ({{param.<name>}} in the base filter / API inputs), re-validated against the declarations; a task form uses the parameters its workflow step passed and ignores these */
+                    params?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest */
+                    variables?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            rows: {
+                                /** @description The row key (key column) */
+                                key: string;
+                                /** @description The selected columns only */
+                                values: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                            /** @description Matching rows (null: the API does not say) */
+                            total: number | null;
+                            page: number;
+                            page_size: number;
+                            has_more?: boolean;
+                            /** @description API sources: what the server applied to the fetched rows (search, filters, sort, page) because the API does not */
+                            applied_locally?: string[];
+                            truncated?: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    checkFormAccessibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description An unsaved definition to check instead of the latest version: { fields, layout?, theme?, buttons?, header? } */
+                    definition?: {
+                        [key: string]: unknown;
+                    } | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            form_version: number;
+                            /** @enum {string} */
+                            checked: "saved" | "definition";
+                            score: number;
+                            findings: {
+                                [key: string]: unknown;
+                            }[];
+                            summary: {
+                                [key: string]: unknown;
+                            };
+                            passed: {
+                                [key: string]: unknown;
+                            }[];
+                            policy: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    checkFormSystemName: {
+        parameters: {
+            query: {
+                /** @description The name to check */
+                system_name: string;
+                /** @description The form being renamed (omit for a new form) */
+                form_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            system_name: string;
+                            available: boolean;
+                            /** @description Why not, when not available */
+                            reason: string | null;
+                            redirects_from_form: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFormLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            friendly_url: string | null;
+                            system_name: string | null;
+                            workspace_url: string | null;
+                            form_url: string;
+                            public_url: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listWizardForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            projects: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createWizardForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The wizard spec: { name, description?, template? (request | survey | quiz | registration | feedback | incident | blank), questions: [{ id, kind (short_text, long_text, number, money, date, choice, choices, rating (stars), nps, yes_no, email, phone, file, heading, page_break, likert (agreement scale), matrix (grid of statements), slider, csat (smiley faces), ranking, image_choice (picture choice), yes_no_maybe), label, help?, required?, options? (choice / choices / likert scale points lowest first / matrix columns / ranking / image_choice), rows? (matrix: the statements), settings? { max (rating 2–10; slider highest), min, step, unit (slider), icon star|heart|thumb, half (rating), faces 3|5 (csat), bands (nps), low_label, high_label, multiple (image_choice), icons { <option>: <icon name> } (image_choice) }, currency? (money, ISO code), show_if? { question: <id of an earlier question>, op: is | is_not | contains | answered | not_answered | gt | lt, value? }, score? { correct: [answers], points? } (quizzes), key? (kept from an earlier create: the field and column key) }], look? { theme { kind: workspace } | { kind: saved, theme_id } | { kind: accent, color: #rrggbb }, header { show, logo, title?, subtitle? }, layout: single | steps | one_at_a_time, success { heading?, message? } }, audience? { internal, who: everyone | selected, role_ids, team_ids, show_in_menu, public_link (needs the workspace's anonymous forms switch), multiple_responses (false = one per signed-in person), opens_at?, closes_at? }, approval? { mode: none | single | manager | team | multi, stages: [{ id, name, assignee { kind: person, user_id } | { kind: manager, fallback_user_id } | { kind: team, team_id } | { kind: group, group_id, group_name? }, outcomes: [approve, decline?, changes?] }] (single / manager / team: 1 stage; multi: 2-5), notify_requester, due_days }, results? { charts, role_ids, team_ids } (who besides the owner opens the results page) }. */
+                    spec: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Validate and describe what would be created (the plan) without creating anything */
+                    dry_run?: boolean;
+                    /**
+                     * Format: uuid
+                     * @description A wizard draft of the caller to turn into the created form
+                     */
+                    project_id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWizardForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            project: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateWizardForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The wizard spec: { name, description?, template? (request | survey | quiz | registration | feedback | incident | blank), questions: [{ id, kind (short_text, long_text, number, money, date, choice, choices, rating (stars), nps, yes_no, email, phone, file, heading, page_break, likert (agreement scale), matrix (grid of statements), slider, csat (smiley faces), ranking, image_choice (picture choice), yes_no_maybe), label, help?, required?, options? (choice / choices / likert scale points lowest first / matrix columns / ranking / image_choice), rows? (matrix: the statements), settings? { max (rating 2–10; slider highest), min, step, unit (slider), icon star|heart|thumb, half (rating), faces 3|5 (csat), bands (nps), low_label, high_label, multiple (image_choice), icons { <option>: <icon name> } (image_choice) }, currency? (money, ISO code), show_if? { question: <id of an earlier question>, op: is | is_not | contains | answered | not_answered | gt | lt, value? }, score? { correct: [answers], points? } (quizzes), key? (kept from an earlier create: the field and column key) }], look? { theme { kind: workspace } | { kind: saved, theme_id } | { kind: accent, color: #rrggbb }, header { show, logo, title?, subtitle? }, layout: single | steps | one_at_a_time, success { heading?, message? } }, audience? { internal, who: everyone | selected, role_ids, team_ids, show_in_menu, public_link (needs the workspace's anonymous forms switch), multiple_responses (false = one per signed-in person), opens_at?, closes_at? }, approval? { mode: none | single | manager | team | multi, stages: [{ id, name, assignee { kind: person, user_id } | { kind: manager, fallback_user_id } | { kind: team, team_id } | { kind: group, group_id, group_name? }, outcomes: [approve, decline?, changes?] }] (single / manager / team: 1 stage; multi: 2-5), notify_requester, due_days }, results? { charts, role_ids, team_ids } (who besides the owner opens the results page) }. Send the questions with their ids (and keys) from the earlier create: kept questions keep their columns; new ones add columns; a removed question's column and data stay. */
+                    spec: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWizardResults: {
+        parameters: {
+            query?: {
+                /** @description Responses containing this text */
+                search?: string;
+                /** @description Only responses with this status (Pending, Approved, Declined, Changes requested) */
+                status?: string;
+                sort?: "newest" | "oldest";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFormAnonymous: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Form id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            enabled: boolean;
+                            /** @description The public link token (null until first turned on) */
+                            token: string | null;
+                            /** @description /p/<token> */
+                            path: string | null;
+                            settings: {
+                                [key: string]: unknown;
+                            };
+                            workspace_enabled: boolean;
+                            captcha: string | null;
+                            /** @description Anonymous visitors can open the link now */
+                            live: boolean;
+                            readiness: {
+                                [key: string]: unknown;
+                            };
+                            warnings: string[];
+                            token_rotated_at: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateFormAnonymous: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Form id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Allow anonymous responses (turning on needs the workspace switch) */
+                    enabled?: boolean;
+                    /** @description Visitor limits, clamped to the platform limits */
+                    settings?: {
+                        /** @description Submissions per visitor IP per minute (1-60, default 10) */
+                        per_ip_per_minute?: number;
+                        /** @description Anonymous submissions per rolling 24 hours (1-10000, default 500) */
+                        daily_cap?: number;
+                        /** @description Seconds between opening the page and submitting (0-120, default 3) */
+                        min_fill_seconds?: number;
+                        /** @description Attachments fields take files from anonymous visitors (default false) */
+                        uploads?: boolean;
+                        /** @description Largest anonymous upload in MB (1-4, default 2) */
+                        max_upload_mb?: number;
+                        /** @description Files per anonymous submission (1-10, default 3) */
+                        max_files?: number;
+                        /** @description Let search engines index the page (default false: noindex) */
+                        allow_indexing?: boolean;
+                        /** @description "Allow friendly public link": visitors may also open the form at /form/<system_name> on the workspace address (default false; a system name is guessable, the token is not) */
+                        allow_friendly_link?: boolean;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            enabled: boolean;
+                            /** @description The public link token (null until first turned on) */
+                            token: string | null;
+                            /** @description /p/<token> */
+                            path: string | null;
+                            settings: {
+                                [key: string]: unknown;
+                            };
+                            workspace_enabled: boolean;
+                            captcha: string | null;
+                            /** @description Anonymous visitors can open the link now */
+                            live: boolean;
+                            readiness: {
+                                [key: string]: unknown;
+                            };
+                            warnings: string[];
+                            token_rotated_at: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    regenerateFormAnonymousLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Form id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            enabled: boolean;
+                            /** @description The public link token (null until first turned on) */
+                            token: string | null;
+                            /** @description /p/<token> */
+                            path: string | null;
+                            settings: {
+                                [key: string]: unknown;
+                            };
+                            workspace_enabled: boolean;
+                            captcha: string | null;
+                            /** @description Anonymous visitors can open the link now */
+                            live: boolean;
+                            readiness: {
+                                [key: string]: unknown;
+                            };
+                            warnings: string[];
+                            token_rotated_at: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAnonymousFormsSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            enabled: boolean;
+                            captcha: {
+                                provider: string | null;
+                                site_key: string | null;
+                                has_secret: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateAnonymousFormsSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Allow anonymous forms in this workspace (off stops every public link at once) */
+                    enabled?: boolean;
+                    /** @description Optional bot protection (null turns it off) */
+                    captcha?: {
+                        provider?: ("turnstile" | "hcaptcha") | null;
+                        site_key?: string | null;
+                        /** @description Write-only; stored encrypted. Omit, "" or "__SECRET__" keeps the stored one */
+                        secret?: string | null;
+                    } | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            enabled: boolean;
+                            captcha: {
+                                provider: string | null;
+                                site_key: string | null;
+                                has_secret: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listFormControls: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                /** @description Name, tag or description contains */
+                search?: string;
+                enabled?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_controls: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createFormControl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description A zip package (manifest.json + the module), base64 */
+                    package_base64?: string;
+                    /** @description File name of the uploaded package (multipart) */
+                    package_name?: string;
+                    /** @description Or: the ES module source (one file, dependencies bundled) */
+                    module?: string;
+                    /** @description With `module`: manifest.json (object or JSON text) */
+                    manifest?: string | {
+                        [key: string]: unknown;
+                    };
+                    /** @description Optional { alg: "ed25519", public_key, signature } over the module SHA-256 (hex) */
+                    signature?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Or: import from an https URL (zip or module); fetched once through the egress guard */
+                    url?: string;
+                    /** @description With `url` (a module): its manifest.json URL (default: next to the module) */
+                    manifest_url?: string;
+                };
+                "multipart/form-data": {
+                    /** @description Or: the ES module source (one file, dependencies bundled) */
+                    module?: string;
+                    /** @description With `module`: manifest.json (object or JSON text) */
+                    manifest?: string | {
+                        [key: string]: unknown;
+                    };
+                    /** @description Optional { alg: "ed25519", public_key, signature } over the module SHA-256 (hex) */
+                    signature?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Or: import from an https URL (zip or module); fetched once through the egress guard */
+                    url?: string;
+                    /** @description With `url` (a module): its manifest.json URL (default: next to the module) */
+                    manifest_url?: string;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            control: {
+                                [key: string]: unknown;
+                            };
+                            version: string;
+                            /** @enum {string} */
+                            outcome: "created" | "version" | "unchanged";
+                            warnings: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importFormControl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    form_control?: {
+                        [key: string]: unknown;
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            control: {
+                                [key: string]: unknown;
+                            };
+                            version: string;
+                            /** @enum {string} */
+                            outcome: "created" | "version" | "unchanged";
+                            warnings: string[];
+                            added: string[];
+                            skipped: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFormControl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Control id or its tag (e.g. ut-star-rating) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_control: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteFormControl: {
+        parameters: {
+            query?: {
+                /** @description Delete just this version */
+                only_version?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Control id or its tag (e.g. ut-star-rating) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            deleted: true;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateFormControl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Control id or its tag (e.g. ut-star-rating) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description false = hidden from the designer and its frames stop loading */
+                    enabled?: boolean;
+                    name?: string;
+                    description?: string | null;
+                    /** @description Network hosts to allow (only hosts a version's manifest asks for) */
+                    approved_hosts?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_control: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFormControlVersion: {
+        parameters: {
+            query?: {
+                include_module?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description Control id or its tag (e.g. ut-star-rating) */
+                id: string;
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            version: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFormControlUsages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Control id or its tag (e.g. ut-star-rating) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            usages: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    exportFormControl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Control id or its tag (e.g. ut-star-rating) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            version: 1;
+                            /** @constant */
+                            asset_type: "form_control";
+                            form_control: {
+                                [key: string]: unknown;
+                            };
                         } & {
                             [key: string]: unknown;
                         };
@@ -12182,6 +19180,409 @@ export interface operations {
                             } & {
                                 [key: string]: unknown;
                             };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    uploadWorkflowAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description A zip package (manifest.json + dist/action.js, optional signature.json), base64 */
+                    package_base64?: string;
+                    /** @description File name of the uploaded package (multipart) */
+                    package_name?: string;
+                    /** @description Or: the ES module source (one file, dependencies bundled, default export defineAction(...)) */
+                    module?: string;
+                    /** @description With `module`: manifest.json (v1, object or JSON text) */
+                    manifest?: string | {
+                        [key: string]: unknown;
+                    };
+                    /** @description Optional { alg: "ed25519", public_key, signature } over the module SHA-256 (hex) */
+                    signature?: {
+                        [key: string]: unknown;
+                    };
+                };
+                "multipart/form-data": {
+                    /** @description Or: the ES module source (one file, dependencies bundled, default export defineAction(...)) */
+                    module?: string;
+                    /** @description With `module`: manifest.json (v1, object or JSON text) */
+                    manifest?: string | {
+                        [key: string]: unknown;
+                    };
+                    /** @description Optional { alg: "ed25519", public_key, signature } over the module SHA-256 (hex) */
+                    signature?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            workflow_activity: {
+                                [key: string]: unknown;
+                            };
+                            version: string;
+                            /** @enum {string} */
+                            outcome: "created" | "version" | "unchanged";
+                            warnings: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWorkflowActivityUsages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            usages: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWorkflowActivityVersion: {
+        parameters: {
+            query?: {
+                include_source?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            version: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setWorkflowActivitySecrets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Declared secret name → value (null or "" clears it). Values are encrypted and never returned. */
+                    values: {
+                        [key: string]: string | null;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            secrets: ({
+                                name: string;
+                                set: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testWorkflowActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Operation id (default: the first) */
+                    operation?: string;
+                    /** @description Input values (default: the operation's sample) */
+                    inputs?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description Run a stored version instead of the current one */
+                    version?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            ok: boolean;
+                            outputs: {
+                                [key: string]: unknown;
+                            };
+                            logs: {
+                                [key: string]: unknown;
+                            }[];
                         } & {
                             [key: string]: unknown;
                         };
@@ -12697,6 +20098,16 @@ export interface operations {
                     };
                     tags?: string[];
                     source_filename?: string | null;
+                    /** @description Kill switch: false = steps using the action fail fast and the designer hides it */
+                    enabled?: boolean;
+                    /** @description HTTP hosts to allow (only hosts the manifest declares in capabilities.http.hosts) */
+                    approved_hosts?: string[];
+                    /** @description Data tables the action may use (needs capabilities.data; write needs data.write) */
+                    data_grants?: {
+                        table_id: string;
+                        /** @enum {string} */
+                        access?: "read" | "write";
+                    }[];
                 };
             };
         };
@@ -12911,8 +20322,45 @@ export interface operations {
                     description?: string;
                     category?: string;
                     is_shared?: boolean;
-                    /** @description Report configuration (data_source, columns, filters, ...) */
+                    /** @description Report configuration (data_source, columns, filters, ..., charts) */
                     config?: {
+                        /** @description Report source key */
+                        data_source?: string;
+                        /** @description Summary charts drawn above the report's table (at most 8); each is aggregated on the server from the report's own rows */
+                        charts?: {
+                            id: string;
+                            title: string;
+                            /** @enum {string} */
+                            type: "number" | "line" | "area" | "column" | "bar" | "donut" | "pie" | "heatmap";
+                            dimension?: {
+                                field: string;
+                                /** @enum {string} */
+                                bucket?: "day" | "week" | "month" | "day_of_week" | "hour_of_day";
+                            };
+                            /**
+                             * @default {
+                             *       "fn": "count"
+                             *     }
+                             */
+                            measure?: {
+                                /** @enum {string} */
+                                fn: "count" | "sum" | "avg" | "min" | "max" | "nps";
+                                field?: string;
+                            };
+                            filters?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "eq" | "neq" | "gt" | "lt" | "gte" | "lte" | "like" | "ilike" | "in" | "is_null" | "is_not_null";
+                                value?: unknown;
+                            }[];
+                            top_n?: number;
+                            range_days?: number;
+                            window_field?: string;
+                            categories?: string[];
+                            /** @enum {string} */
+                            sort?: "value" | "label";
+                        }[];
+                    } & {
                         [key: string]: unknown;
                     };
                 } & {
@@ -13055,7 +20503,45 @@ export interface operations {
                     description?: string | null;
                     category?: string | null;
                     is_shared?: boolean;
+                    /** @description Report configuration (data_source, columns, filters, ..., charts) */
                     config?: {
+                        /** @description Report source key */
+                        data_source?: string;
+                        /** @description Summary charts drawn above the report's table (at most 8); each is aggregated on the server from the report's own rows */
+                        charts?: {
+                            id: string;
+                            title: string;
+                            /** @enum {string} */
+                            type: "number" | "line" | "area" | "column" | "bar" | "donut" | "pie" | "heatmap";
+                            dimension?: {
+                                field: string;
+                                /** @enum {string} */
+                                bucket?: "day" | "week" | "month" | "day_of_week" | "hour_of_day";
+                            };
+                            /**
+                             * @default {
+                             *       "fn": "count"
+                             *     }
+                             */
+                            measure?: {
+                                /** @enum {string} */
+                                fn: "count" | "sum" | "avg" | "min" | "max" | "nps";
+                                field?: string;
+                            };
+                            filters?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "eq" | "neq" | "gt" | "lt" | "gte" | "lte" | "like" | "ilike" | "in" | "is_null" | "is_not_null";
+                                value?: unknown;
+                            }[];
+                            top_n?: number;
+                            range_days?: number;
+                            window_field?: string;
+                            categories?: string[];
+                            /** @enum {string} */
+                            sort?: "value" | "label";
+                        }[];
+                    } & {
                         [key: string]: unknown;
                     };
                 } & {
@@ -13207,7 +20693,45 @@ export interface operations {
                     description?: string | null;
                     category?: string | null;
                     is_shared?: boolean;
+                    /** @description Report configuration (data_source, columns, filters, ..., charts) */
                     config?: {
+                        /** @description Report source key */
+                        data_source?: string;
+                        /** @description Summary charts drawn above the report's table (at most 8); each is aggregated on the server from the report's own rows */
+                        charts?: {
+                            id: string;
+                            title: string;
+                            /** @enum {string} */
+                            type: "number" | "line" | "area" | "column" | "bar" | "donut" | "pie" | "heatmap";
+                            dimension?: {
+                                field: string;
+                                /** @enum {string} */
+                                bucket?: "day" | "week" | "month" | "day_of_week" | "hour_of_day";
+                            };
+                            /**
+                             * @default {
+                             *       "fn": "count"
+                             *     }
+                             */
+                            measure?: {
+                                /** @enum {string} */
+                                fn: "count" | "sum" | "avg" | "min" | "max" | "nps";
+                                field?: string;
+                            };
+                            filters?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "eq" | "neq" | "gt" | "lt" | "gte" | "lte" | "like" | "ilike" | "in" | "is_null" | "is_not_null";
+                                value?: unknown;
+                            }[];
+                            top_n?: number;
+                            range_days?: number;
+                            window_field?: string;
+                            categories?: string[];
+                            /** @enum {string} */
+                            sort?: "value" | "label";
+                        }[];
+                    } & {
                         [key: string]: unknown;
                     };
                 } & {
@@ -13275,7 +20799,10 @@ export interface operations {
     };
     previewReport: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description IANA time zone for summary chart time buckets */
+                timezone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -13285,6 +20812,40 @@ export interface operations {
                 "application/json": {
                     /** @description Report source key */
                     data_source: string;
+                    /** @description Summary charts drawn above the report's table (at most 8); each is aggregated on the server from the report's own rows */
+                    charts?: {
+                        id: string;
+                        title: string;
+                        /** @enum {string} */
+                        type: "number" | "line" | "area" | "column" | "bar" | "donut" | "pie" | "heatmap";
+                        dimension?: {
+                            field: string;
+                            /** @enum {string} */
+                            bucket?: "day" | "week" | "month" | "day_of_week" | "hour_of_day";
+                        };
+                        /**
+                         * @default {
+                         *       "fn": "count"
+                         *     }
+                         */
+                        measure?: {
+                            /** @enum {string} */
+                            fn: "count" | "sum" | "avg" | "min" | "max" | "nps";
+                            field?: string;
+                        };
+                        filters?: {
+                            field: string;
+                            /** @enum {string} */
+                            operator: "eq" | "neq" | "gt" | "lt" | "gte" | "lte" | "like" | "ilike" | "in" | "is_null" | "is_not_null";
+                            value?: unknown;
+                        }[];
+                        top_n?: number;
+                        range_days?: number;
+                        window_field?: string;
+                        categories?: string[];
+                        /** @enum {string} */
+                        sort?: "value" | "label";
+                    }[];
                 } & {
                     [key: string]: unknown;
                 };
@@ -13304,6 +20865,34 @@ export interface operations {
                         total?: number;
                         available_columns: unknown;
                         joins: unknown;
+                        charts?: ({
+                            id: string;
+                            type: string;
+                            title: string;
+                            /** @description Number cards */
+                            value?: number | null;
+                            /** @description Every other chart type, in display order */
+                            points?: {
+                                key: string;
+                                label: string;
+                                value: number | null;
+                            }[];
+                            /** @description Heatmap: day of week (0 = Monday) × hour */
+                            cells?: {
+                                dow: number;
+                                hour: number;
+                                value: number;
+                            }[];
+                            /** @description Rows aggregated */
+                            rows: number;
+                            /** @description More rows matched than the chart row cap (10,000): the newest were used */
+                            truncated: boolean;
+                            timezone: string;
+                            error?: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                        timezone?: string;
                     } & {
                         [key: string]: unknown;
                     };
@@ -13340,7 +20929,10 @@ export interface operations {
     };
     listReportSources: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Scope Workflow runs / Tasks to this workflow and list its variable columns */
+                workflow_id?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -13360,6 +20952,15 @@ export interface operations {
                     } & {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Missing, invalid or expired credential */
@@ -15005,8 +22606,16 @@ export interface operations {
                 "application/json": {
                     name: string;
                     description?: string | null;
-                    /** @description Parent team id */
+                    /** @description Parent team id (loops are refused) */
                     parent_id?: string | null;
+                    /** @description Team lead (an active member) */
+                    lead_user_id?: string | null;
+                    /** @description Org unit the team belongs to */
+                    org_unit_id?: string | null;
+                    /** @description Hex colour like #3366FF */
+                    colour?: string | null;
+                    /** @description team (default), squad, guild or any custom kind */
+                    kind?: string | null;
                 };
             };
         };
@@ -15211,8 +22820,16 @@ export interface operations {
                 "application/json": {
                     name?: string;
                     description?: string | null;
-                    /** @description Parent team id */
+                    /** @description Parent team id (loops are refused) */
                     parent_id?: string | null;
+                    /** @description Team lead (an active member) */
+                    lead_user_id?: string | null;
+                    /** @description Org unit the team belongs to */
+                    org_unit_id?: string | null;
+                    /** @description Hex colour like #3366FF */
+                    colour?: string | null;
+                    /** @description team (default), squad, guild or any custom kind */
+                    kind?: string | null;
                 };
             };
         };
@@ -15702,12 +23319,12 @@ export interface operations {
                 limit?: number;
                 /** @description Rows to skip (default 0) */
                 offset?: number;
-                /** @description e.g. workflow, role, api_key, webhook */
+                /** @description e.g. workflow, data_table, form, role, api_key, webhook */
                 object_type?: string;
                 object_id?: string;
                 /** @description User id of the actor */
                 actor_id?: string;
-                /** @description e.g. create, update, delete, grant, revoke */
+                /** @description e.g. create, update, delete, grant, revoke, toggle, retention, purge, legal_hold */
                 action?: string;
                 /** @description ISO timestamp: events at or after */
                 from?: string;
@@ -15760,6 +23377,2756 @@ export interface operations {
             };
             /** @description Credential lacks the required permission or resource scope */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listObjectPermissions: {
+        parameters: {
+            query: {
+                object_type: "workflow" | "data_table" | "agent" | "integration" | "api_key" | "report" | "form";
+                object_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            permissions: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setObjectPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Type of the object
+                     * @enum {string}
+                     */
+                    object_type: "workflow" | "data_table" | "agent" | "integration" | "api_key" | "report" | "form";
+                    /** @description Object id */
+                    object_id: string;
+                    /** @description Grant to a role (give exactly one of role_id, team_id, user_id) */
+                    role_id?: string | null;
+                    /** @description Grant to a team */
+                    team_id?: string | null;
+                    /** @description Grant to a person */
+                    user_id?: string | null;
+                    /** @description View (default true) */
+                    can_view?: boolean;
+                    /** @description Edit (not used by forms) */
+                    can_edit?: boolean;
+                    /** @description Delete (not used by forms) */
+                    can_delete?: boolean;
+                    /** @description Execute; Submit for forms */
+                    can_execute?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            permission: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeObjectPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            deleted: true;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOrgChart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            people: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                                manager_user_id: string | null;
+                                direct_reports: number;
+                                total_reports: number;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            roots: string[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOrgPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            id: string;
+                            display_name: string | null;
+                            email: string | null;
+                            avatar_url: string | null;
+                            job_title: string | null;
+                            department: string | null;
+                            location: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateOrgPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Job title */
+                    job_title?: string | null;
+                    /** @description Department */
+                    department?: string | null;
+                    /** @description Office / location */
+                    location?: string | null;
+                    /** @description Employee id / number */
+                    employee_id?: string | null;
+                    /** @description Cost centre */
+                    cost_center?: string | null;
+                    /** @description Manager (null clears it). Needs org.manage or team.change_roles; loops and non-members are refused */
+                    manager_user_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            id: string;
+                            display_name: string | null;
+                            email: string | null;
+                            avatar_url: string | null;
+                            job_title: string | null;
+                            department: string | null;
+                            location: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    detachOrgPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            detached: boolean;
+                            user_id: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgSubordinates: {
+        parameters: {
+            query?: {
+                /** @description direct (default) or all levels */
+                depth?: "direct" | "all";
+                /** @description Include the person first (depth 0) */
+                include_self?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            user_id: string;
+                            people: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                                depth: number;
+                                manager_user_id: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOrgManagerChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            user_id: string;
+                            chain: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgPeers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            user_id: string;
+                            manager_user_id: string | null;
+                            peers: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgPersonTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            user_id: string;
+                            teams: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgPersonProjects: {
+        parameters: {
+            query?: {
+                /** @description Include archived projects */
+                include_archived?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description User id, or `me` for the caller */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            user_id: string;
+                            projects: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    resolveOrgScope: {
+        parameters: {
+            query: {
+                /** @description Which people */
+                scope: "me" | "direct_reports" | "all_reports" | "team" | "org_unit" | "project";
+                /** @description Team, org unit or project id (scope team / org_unit / project) */
+                id?: string;
+                /** @description team / org_unit: include sub-teams / sub-units */
+                recursive?: "true" | "false";
+                /** @description direct_reports / all_reports: include the caller */
+                include_self?: "true" | "false";
+                /** @description project: include attached teams' members (default true) */
+                include_teams?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            scope: {
+                                [key: string]: unknown;
+                            };
+                            user_ids: string[];
+                            people: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgUnits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            units: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                            roots: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @description company, division, department, unit (default) or any custom kind */
+                    kind?: string | null;
+                    /** @description Parent org unit id (loops are refused) */
+                    parent_id?: string | null;
+                    /** @description Head of the unit (an active member) */
+                    head_user_id?: string | null;
+                    description?: string | null;
+                    /** @description Order among siblings (then name) */
+                    sort?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            unit: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            deleted: true;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    /** @description company, division, department, unit (default) or any custom kind */
+                    kind?: string | null;
+                    /** @description Parent org unit id (loops are refused) */
+                    parent_id?: string | null;
+                    /** @description Head of the unit (an active member) */
+                    head_user_id?: string | null;
+                    description?: string | null;
+                    /** @description Order among siblings (then name) */
+                    sort?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            unit: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    detachOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgUnitMembers: {
+        parameters: {
+            query?: {
+                /** @description Include members of every unit below */
+                recursive?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            members: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addOrgUnitMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Org unit id */
+                id: string;
+                /** @description User id */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Role in the unit, e.g. "Deputy" */
+                    role?: string | null;
+                    /** @description Make this the person's primary unit (one per person) */
+                    is_primary?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            added: true;
+                            already_member: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeOrgUnitMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Org unit id */
+                id: string;
+                /** @description User id */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            removed: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOrgTeamTree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            teams: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                            roots: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOrgTeamMembers: {
+        parameters: {
+            query?: {
+                /** @description Include members of every sub-team */
+                recursive?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            members: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    exportOrg: {
+        parameters: {
+            query?: {
+                /** @description json (default) or csv (the file) */
+                format?: "json" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            csv: string;
+                            filename: string;
+                            rows: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOrgImportTemplate: {
+        parameters: {
+            query?: {
+                /** @description json (default) or csv (the file) */
+                format?: "json" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            csv: string;
+                            filename: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importOrg: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The CSV text (UTF-8, header row first; max 5 MB) */
+                    csv: string;
+                    /** @description Field → CSV header (null skips the field) */
+                    mapping?: {
+                        [key: string]: string | null;
+                    };
+                    /** @description true (default): return the plan without writing; false: apply it */
+                    dry_run?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listProjects: {
+        parameters: {
+            query?: {
+                /** @description active, on_hold, completed, archived (comma-separated) */
+                status?: string;
+                /** @description Include archived projects */
+                include_archived?: "true" | "false";
+                /** @description Projects the team is attached to (or owns) */
+                team_id?: string;
+                org_unit_id?: string;
+                /** @description Name or key contains */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            projects: {
+                                [key: string]: unknown;
+                            }[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @description Short unique key, e.g. APOLLO (generated from the name when omitted) */
+                    key?: string | null;
+                    description?: string | null;
+                    /**
+                     * @description active (default), on_hold, completed or archived
+                     * @enum {string}
+                     */
+                    status?: "active" | "on_hold" | "completed" | "archived";
+                    /** @description Owner (default: the caller) */
+                    owner_user_id?: string | null;
+                    sponsor_user_id?: string | null;
+                    /** @description Owning team (its members count as project people) */
+                    team_id?: string | null;
+                    org_unit_id?: string | null;
+                    /** @description Start date (YYYY-MM-DD) */
+                    start_date?: string | null;
+                    /** @description End date (YYYY-MM-DD, on or after the start) */
+                    end_date?: string | null;
+                    /** @description Hex colour like #3366FF */
+                    colour?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            project: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            project: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            deleted: true;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    /** @description Short unique key, e.g. APOLLO (generated from the name when omitted) */
+                    key?: string | null;
+                    description?: string | null;
+                    /**
+                     * @description active (default), on_hold, completed or archived
+                     * @enum {string}
+                     */
+                    status?: "active" | "on_hold" | "completed" | "archived";
+                    /** @description Owner (default: the caller) */
+                    owner_user_id?: string | null;
+                    sponsor_user_id?: string | null;
+                    /** @description Owning team (its members count as project people) */
+                    team_id?: string | null;
+                    org_unit_id?: string | null;
+                    /** @description Start date (YYYY-MM-DD) */
+                    start_date?: string | null;
+                    /** @description End date (YYYY-MM-DD, on or after the start) */
+                    end_date?: string | null;
+                    /** @description Hex colour like #3366FF */
+                    colour?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            project: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    archiveProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description true (default) archives, false restores (status active) */
+                    archived?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            project: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listProjectMembers: {
+        parameters: {
+            query?: {
+                /** @description Include attached teams' members (default true) */
+                include_teams?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            members: ({
+                                id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                avatar_url: string | null;
+                                job_title: string | null;
+                                department: string | null;
+                                location: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addProjectMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+                /** @description User id */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Role on the project, e.g. Lead, Member (default Member) */
+                    role?: string | null;
+                    /** @description Share of their time (0–100) */
+                    allocation_percent?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            added: true;
+                            already_member: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeProjectMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+                /** @description User id */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            removed: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    attachProjectTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+                /** @description Team id */
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            attached: true;
+                            already_attached: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    detachProjectTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+                /** @description Team id */
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            detached: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16369,6 +26736,949 @@ export interface operations {
                             /** @description File name in the workspace brand-fonts folder (used by config-as-code) */
                             path: string;
                             size: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWorkspaceAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Workspace addresses are on for this instance (a base domain is configured) */
+                            enabled: boolean;
+                            /** @description The base domain addresses live under (e.g. usertasks.com) */
+                            base_domain: string | null;
+                            /** @description This workspace's subdomain (null = none) */
+                            subdomain: string | null;
+                            /** @description https://<subdomain>.<base domain>, when both are set */
+                            url: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateWorkspaceAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The new subdomain, or null to remove it */
+                    subdomain: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Workspace addresses are on for this instance (a base domain is configured) */
+                            enabled: boolean;
+                            /** @description The base domain addresses live under (e.g. usertasks.com) */
+                            base_domain: string | null;
+                            /** @description This workspace's subdomain (null = none) */
+                            subdomain: string | null;
+                            /** @description https://<subdomain>.<base domain>, when both are set */
+                            url: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    checkWorkspaceAddress: {
+        parameters: {
+            query: {
+                /** @description The subdomain to check */
+                subdomain: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            subdomain: string;
+                            available: boolean;
+                            /** @description Why not (format, reserved, taken), when not available */
+                            reason: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTaskCompletionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Show the Task completed screen after a task is actioned (default true) */
+                            enabled: boolean;
+                            /** @description Heading template (default "{{outcome}}: {{task.title}}") */
+                            heading: string;
+                            /** @description Subheading template (default "Thanks, {{user.name}}. Your response is recorded.") */
+                            subheading: string;
+                            /** @description What happens next when the process moved on to someone (default "Now with {{next.assignee}}") */
+                            next_assigned: string;
+                            /** @description What happens next when the process finished (default "Process complete") */
+                            next_complete: string;
+                            /** @description What happens next on a timer, an event or an unassigned step (default "Waiting on {{next.step}}") */
+                            next_waiting: string;
+                            /** @description Show the Next task button (hidden anyway when there is no next task) */
+                            show_next_task: boolean;
+                            /** @description Next task button label */
+                            next_task_label: string;
+                            /** @description Show the Back button */
+                            show_back: boolean;
+                            /** @description Back button label; blank: "Back to my tasks" or "Back to Home" by back_target */
+                            back_label: string;
+                            /**
+                             * @description Where Back (and Esc) goes
+                             * @enum {string}
+                             */
+                            back_target: "tasks" | "home";
+                            /** @description Show Process view (workflow tasks only; opens the run view the person may see) */
+                            show_view_flow: boolean;
+                            /** @description Process view button label */
+                            view_flow_label: string;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateTaskCompletionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Show the Task completed screen after a task is actioned (default true) */
+                    enabled?: boolean;
+                    /** @description Heading template (default "{{outcome}}: {{task.title}}") */
+                    heading?: string;
+                    /** @description Subheading template (default "Thanks, {{user.name}}. Your response is recorded.") */
+                    subheading?: string;
+                    /** @description What happens next when the process moved on to someone (default "Now with {{next.assignee}}") */
+                    next_assigned?: string;
+                    /** @description What happens next when the process finished (default "Process complete") */
+                    next_complete?: string;
+                    /** @description What happens next on a timer, an event or an unassigned step (default "Waiting on {{next.step}}") */
+                    next_waiting?: string;
+                    /** @description Show the Next task button (hidden anyway when there is no next task) */
+                    show_next_task?: boolean;
+                    /** @description Next task button label */
+                    next_task_label?: string;
+                    /** @description Show the Back button */
+                    show_back?: boolean;
+                    /** @description Back button label; blank: "Back to my tasks" or "Back to Home" by back_target */
+                    back_label?: string;
+                    /**
+                     * @description Where Back (and Esc) goes
+                     * @enum {string}
+                     */
+                    back_target?: "tasks" | "home";
+                    /** @description Show Process view (workflow tasks only; opens the run view the person may see) */
+                    show_view_flow?: boolean;
+                    /** @description Process view button label */
+                    view_flow_label?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Show the Task completed screen after a task is actioned (default true) */
+                            enabled: boolean;
+                            /** @description Heading template (default "{{outcome}}: {{task.title}}") */
+                            heading: string;
+                            /** @description Subheading template (default "Thanks, {{user.name}}. Your response is recorded.") */
+                            subheading: string;
+                            /** @description What happens next when the process moved on to someone (default "Now with {{next.assignee}}") */
+                            next_assigned: string;
+                            /** @description What happens next when the process finished (default "Process complete") */
+                            next_complete: string;
+                            /** @description What happens next on a timer, an event or an unassigned step (default "Waiting on {{next.step}}") */
+                            next_waiting: string;
+                            /** @description Show the Next task button (hidden anyway when there is no next task) */
+                            show_next_task: boolean;
+                            /** @description Next task button label */
+                            next_task_label: string;
+                            /** @description Show the Back button */
+                            show_back: boolean;
+                            /** @description Back button label; blank: "Back to my tasks" or "Back to Home" by back_target */
+                            back_label: string;
+                            /**
+                             * @description Where Back (and Esc) goes
+                             * @enum {string}
+                             */
+                            back_target: "tasks" | "home";
+                            /** @description Show Process view (workflow tasks only; opens the run view the person may see) */
+                            show_view_flow: boolean;
+                            /** @description Process view button label */
+                            view_flow_label: string;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTaskNextStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            next: {
+                                /**
+                                 * @description assigned: open task(s) with someone; waiting: a timer, event or unassigned step; complete: the run finished; processing: the resume is still queued (ask again shortly); stopped: the run failed or was cancelled; none: not a workflow task; unknown: you may not see the run
+                                 * @enum {string}
+                                 */
+                                state: "assigned" | "waiting" | "complete" | "processing" | "stopped" | "none" | "unknown";
+                                run_id: string | null;
+                                /** @description Where the run is now: names and step labels only, never data */
+                                steps: {
+                                    /** @description The step label */
+                                    name: string;
+                                    /** @description Names of the people it is with */
+                                    assignees: string[];
+                                    /** @description The team it is with */
+                                    team: string | null;
+                                }[];
+                                process: {
+                                    name: string;
+                                } | null;
+                                /** @description The run view you may open: full (/automations/runs/<id>) or progress (/home/runs/<id>) */
+                                run_view: ("full" | "progress") | null;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFormSignInPage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description The design, 1–10: 1 UserTasks, 2 Split screen, 3 Minimal, 4 Gradient, 5 Brand rail, 6 Glass, 7 Top banner, 8 Dark elegant, 9 Soft shapes, 10 Compact. Embedded in another site the page always uses 10 (Compact). */
+                            design: number;
+                            /** @description The logo: an image uploaded to this workspace's logos (variant form-sign-in, Settings → Forms); null shows the workspace name */
+                            logo_url: string | null;
+                            /** @description Heading (default "Sign in to continue") */
+                            heading: string;
+                            /** @description Welcome message under the heading; may be empty */
+                            subheading: string;
+                            /** @description The sign-in button label (default "Sign in") */
+                            button_label: string;
+                            /** @description Small print under the form; empty for none */
+                            footer_text: string;
+                            /** @description Support link text (blank: "Get help") */
+                            support_link_label: string;
+                            /** @description Support link: https:// or mailto:; null for none */
+                            support_link_url: string | null;
+                            /** @description #rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on */
+                            accent_color: string | null;
+                            /** @description Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false */
+                            use_workspace_theme: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateFormSignInPage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The design, 1–10: 1 UserTasks, 2 Split screen, 3 Minimal, 4 Gradient, 5 Brand rail, 6 Glass, 7 Top banner, 8 Dark elegant, 9 Soft shapes, 10 Compact. Embedded in another site the page always uses 10 (Compact). */
+                    design?: number;
+                    /** @description The logo: an image uploaded to this workspace's logos (variant form-sign-in, Settings → Forms); null shows the workspace name */
+                    logo_url?: string | null;
+                    /** @description Heading (default "Sign in to continue") */
+                    heading?: string;
+                    /** @description Welcome message under the heading; may be empty */
+                    subheading?: string;
+                    /** @description The sign-in button label (default "Sign in") */
+                    button_label?: string;
+                    /** @description Small print under the form; empty for none */
+                    footer_text?: string;
+                    /** @description Support link text (blank: "Get help") */
+                    support_link_label?: string;
+                    /** @description Support link: https:// or mailto:; null for none */
+                    support_link_url?: string | null;
+                    /** @description #rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on */
+                    accent_color?: string | null;
+                    /** @description Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false */
+                    use_workspace_theme?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description The design, 1–10: 1 UserTasks, 2 Split screen, 3 Minimal, 4 Gradient, 5 Brand rail, 6 Glass, 7 Top banner, 8 Dark elegant, 9 Soft shapes, 10 Compact. Embedded in another site the page always uses 10 (Compact). */
+                            design: number;
+                            /** @description The logo: an image uploaded to this workspace's logos (variant form-sign-in, Settings → Forms); null shows the workspace name */
+                            logo_url: string | null;
+                            /** @description Heading (default "Sign in to continue") */
+                            heading: string;
+                            /** @description Welcome message under the heading; may be empty */
+                            subheading: string;
+                            /** @description The sign-in button label (default "Sign in") */
+                            button_label: string;
+                            /** @description Small print under the form; empty for none */
+                            footer_text: string;
+                            /** @description Support link text (blank: "Get help") */
+                            support_link_label: string;
+                            /** @description Support link: https:// or mailto:; null for none */
+                            support_link_url: string | null;
+                            /** @description #rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on */
+                            accent_color: string | null;
+                            /** @description Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false */
+                            use_workspace_theme: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDocumentOcr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            provider: "instance_default" | "azure_document_intelligence" | "tesseract" | "off";
+                            azure: ({
+                                /** @description The tenant connector holding the endpoint and key (GET /connectors/{id}) */
+                                connector_id: string;
+                                endpoint: string;
+                                api_version: string | null;
+                                /** @description Write-only: "__SECRET__" when a key is stored */
+                                key: "__SECRET__" | null;
+                                key_saved: boolean;
+                                enabled: boolean;
+                                last_test_status: string | null;
+                                last_tested_at: string | null;
+                                last_test_message: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            }) | null;
+                            effective: {
+                                /** @enum {string} */
+                                status: "ready" | "not_configured" | "off" | "unavailable";
+                                /** @description What a run would use */
+                                provider: ("azure_document_intelligence" | "tesseract") | null;
+                                source: ("workspace" | "instance") | null;
+                                message: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            instance: {
+                                /** @description DOCUMENT_OCR_INSTANCE_DEFAULT: workspaces without a setting may use the instance OCR */
+                                default_allowed: boolean;
+                                tesseract_available: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            settings_path: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateDocumentOcr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description azure_document_intelligence = your own Azure resource; tesseract = built-in (only where the instance offers it); instance_default = the instance configuration (self-hosted; on the cloud this means not configured); off
+                     * @enum {string}
+                     */
+                    provider: "instance_default" | "azure_document_intelligence" | "tesseract" | "off";
+                    /** @description Azure: the resource endpoint (https), e.g. https://my-resource.cognitiveservices.azure.com. Omit to keep the stored one */
+                    endpoint?: string | null;
+                    /** @description Azure: KEY 1 or KEY 2 (write-only). Omit, empty or "__SECRET__" keeps the stored key */
+                    key?: string | null;
+                    /** @description Azure: API version (default 2024-11-30); empty resets to the default */
+                    api_version?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            provider: "instance_default" | "azure_document_intelligence" | "tesseract" | "off";
+                            azure: ({
+                                /** @description The tenant connector holding the endpoint and key (GET /connectors/{id}) */
+                                connector_id: string;
+                                endpoint: string;
+                                api_version: string | null;
+                                /** @description Write-only: "__SECRET__" when a key is stored */
+                                key: "__SECRET__" | null;
+                                key_saved: boolean;
+                                enabled: boolean;
+                                last_test_status: string | null;
+                                last_tested_at: string | null;
+                                last_test_message: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            }) | null;
+                            effective: {
+                                /** @enum {string} */
+                                status: "ready" | "not_configured" | "off" | "unavailable";
+                                /** @description What a run would use */
+                                provider: ("azure_document_intelligence" | "tesseract") | null;
+                                source: ("workspace" | "instance") | null;
+                                message: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            instance: {
+                                /** @description DOCUMENT_OCR_INSTANCE_DEFAULT: workspaces without a setting may use the instance OCR */
+                                default_allowed: boolean;
+                                tesseract_available: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            settings_path: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteDocumentOcrKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            provider: "instance_default" | "azure_document_intelligence" | "tesseract" | "off";
+                            azure: ({
+                                /** @description The tenant connector holding the endpoint and key (GET /connectors/{id}) */
+                                connector_id: string;
+                                endpoint: string;
+                                api_version: string | null;
+                                /** @description Write-only: "__SECRET__" when a key is stored */
+                                key: "__SECRET__" | null;
+                                key_saved: boolean;
+                                enabled: boolean;
+                                last_test_status: string | null;
+                                last_tested_at: string | null;
+                                last_test_message: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            }) | null;
+                            effective: {
+                                /** @enum {string} */
+                                status: "ready" | "not_configured" | "off" | "unavailable";
+                                /** @description What a run would use */
+                                provider: ("azure_document_intelligence" | "tesseract") | null;
+                                source: ("workspace" | "instance") | null;
+                                message: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            instance: {
+                                /** @description DOCUMENT_OCR_INSTANCE_DEFAULT: workspaces without a setting may use the instance OCR */
+                                default_allowed: boolean;
+                                tesseract_available: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            settings_path: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testDocumentOcr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Test this endpoint instead of the saved one */
+                    endpoint?: string | null;
+                    /** @description Test this key instead of the saved one (write-only) */
+                    key?: string | null;
+                    api_version?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            status: "success" | "error";
+                            message: string;
+                            http_status: number | null;
                         } & {
                             [key: string]: unknown;
                         };
@@ -17852,6 +29162,10 @@ export interface operations {
                                 };
                                 sync_groups: boolean;
                                 auto_provision: boolean;
+                                /** @description Org units from the directory (off for connections made before the option) */
+                                import_org_units: boolean;
+                                /** @description Member attributes from the directory (off for connections made before the option) */
+                                import_profiles: boolean;
                                 last_sync_at: string | null;
                                 last_sync_stats: {
                                     [key: string]: number;
@@ -17913,6 +29227,10 @@ export interface operations {
                     sync_groups?: boolean;
                     /** @description Create accounts for directory users without one (default true) */
                     auto_provision?: boolean;
+                    /** @description Build org units from company / division / department (Google: organizational units) (default true) */
+                    import_org_units?: boolean;
+                    /** @description Import members' job title, department, location, employee id and cost centre (default true) */
+                    import_profiles?: boolean;
                 };
             };
         };
@@ -17941,6 +29259,10 @@ export interface operations {
                                 };
                                 sync_groups: boolean;
                                 auto_provision: boolean;
+                                /** @description Org units from the directory (off for connections made before the option) */
+                                import_org_units: boolean;
+                                /** @description Member attributes from the directory (off for connections made before the option) */
+                                import_profiles: boolean;
                                 last_sync_at: string | null;
                                 last_sync_stats: {
                                     [key: string]: number;
@@ -18025,6 +29347,10 @@ export interface operations {
                                 };
                                 sync_groups: boolean;
                                 auto_provision: boolean;
+                                /** @description Org units from the directory (off for connections made before the option) */
+                                import_org_units: boolean;
+                                /** @description Member attributes from the directory (off for connections made before the option) */
+                                import_profiles: boolean;
                                 last_sync_at: string | null;
                                 last_sync_stats: {
                                     [key: string]: number;
@@ -18174,6 +29500,8 @@ export interface operations {
                     };
                     sync_groups?: boolean;
                     auto_provision?: boolean;
+                    import_org_units?: boolean;
+                    import_profiles?: boolean;
                 };
             };
         };
@@ -18202,6 +29530,10 @@ export interface operations {
                                 };
                                 sync_groups: boolean;
                                 auto_provision: boolean;
+                                /** @description Org units from the directory (off for connections made before the option) */
+                                import_org_units: boolean;
+                                /** @description Member attributes from the directory (off for connections made before the option) */
+                                import_profiles: boolean;
                                 last_sync_at: string | null;
                                 last_sync_stats: {
                                     [key: string]: number;
@@ -18795,6 +30127,127 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDirectoryCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            entraGroups: boolean;
+                            syncedGroups: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    searchEntraGroups: {
+        parameters: {
+            query?: {
+                /** @description Matches group display names */
+                search?: string;
+                /** @description Default 25 */
+                limit?: number;
+                /** @description next_cursor of the previous page */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            groups: ({
+                                /** @description Entra group object id (a User Task node's aad_group_id) */
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                /** @description The team directory sync keeps for this group, when it syncs groups */
+                                team_id: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            next_cursor: string | null;
+                            /** @enum {string} */
+                            source: "synced" | "graph";
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19608,6 +31061,12 @@ export interface operations {
                             })[];
                             dependencies: {
                                 [key: string]: unknown;
+                            }[];
+                            /** @description Form controls that need network access: their hosts stay blocked until an admin approves them */
+                            network_controls?: {
+                                tag: string;
+                                name: string;
+                                hosts: string[];
                             }[];
                             installed: ({
                                 id: string;
@@ -23649,6 +35108,211 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createAdminWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Lowercase a-z, 0-9 and hyphens, 3-40 characters, no leading, trailing or double hyphen, not a reserved name (admin, api, www, …) and not personal-…; the workspace address follows it. */
+                    slug: string;
+                    /** @description Workspace name */
+                    name: string;
+                    /** @description The owner. An existing user is added as owner; otherwise an account is created (email confirmed) */
+                    owner_email: string;
+                    /** @description Display name of a new owner account (default: the email's local part) */
+                    owner_name?: string;
+                    /** @description Password of a new owner account; omitted: a random one nobody knows (the owner signs in with SSO or resets it). Ignored for an existing user */
+                    owner_password?: string;
+                    /** @description Also mint a workspace API key (returned once, as `key`). Also on an existing workspace, where it mints another one */
+                    create_api_key?: boolean;
+                    /** @description Name of the minted key (default "Provisioning") */
+                    api_key_name?: string;
+                    /** @description Permission keys of the minted key (default: every permission, like an owner) */
+                    api_key_permissions?: string[];
+                    /** @description Days until the minted key expires (default: never) */
+                    api_key_expires_in_days?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description false: a workspace with this slug already existed and was returned unchanged */
+                            created: boolean;
+                            workspace: {
+                                id: string;
+                                slug: string;
+                                name: string;
+                                subdomain?: string | null;
+                                created_at?: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            /** @description The owner (null for an existing workspace) */
+                            owner: ({
+                                id: string;
+                                email: string;
+                                /** @description A new account was created for the owner */
+                                created: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            }) | null;
+                            /** @description The minted key's metadata (create_api_key) */
+                            api_key?: {
+                                [key: string]: unknown;
+                            };
+                            /** @description The minted plaintext key: store it now, it cannot be retrieved again */
+                            key?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAdminWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            workspace: {
+                                id: string;
+                                slug: string;
+                                name: string;
+                                subdomain?: string | null;
+                                created_at?: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found, or the instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

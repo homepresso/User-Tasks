@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "a51c89b4-3902-5d32-bde4-4be953e5a327",
+  "asset": {
+    "id": "a51c89b4-3902-5d32-bde4-4be953e5a327",
+    "name": "Records requests: 7 years",
+    "description": "Requests, exemption logs and the audit trail are kept for 7 years after creation, then reviewed. Adjust to your records schedule.",
+    "policy_mode": "review",
+    "duration_value": 7,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

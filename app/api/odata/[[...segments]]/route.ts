@@ -125,6 +125,7 @@ function extractReportIdFilter(filter: string | null) {
 }
 
 async function fetchSavedReportResults(supabase: any, tenantId: string, params: {
+  permissions?: string[] | null
   reportId?: string | null
   maxReports?: number
   maxRowsPerReport?: number
@@ -144,7 +145,7 @@ async function fetchSavedReportResults(supabase: any, tenantId: string, params: 
   const rows: Record<string, any>[] = []
   for (const report of reports ?? []) {
     try {
-      const preview = await executeReportPreview(supabase, tenantId, report.config ?? {})
+      const preview = await executeReportPreview(supabase, tenantId, report.config ?? {}, undefined, params.permissions ?? null)
       const reportRows = Array.isArray(preview.data) ? preview.data : []
       const maxRowsPerReport = Math.min(Math.max(params.maxRowsPerReport ?? 500, 1), 2000)
       reportRows.slice(0, maxRowsPerReport).forEach((row, index) => {
@@ -394,6 +395,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   let extraRows = await getExtraCollectionRows(supabase, tenantId, parsed.collectionName)
   if (!extraRows && parsed.collectionName === REPORT_RESULTS_COLLECTION_NAME) {
     extraRows = await fetchSavedReportResults(supabase, tenantId, {
+      permissions: auth.permissions,
       reportId: extractReportIdFilter(filter),
       maxReports: 20,
       maxRowsPerReport: 500,

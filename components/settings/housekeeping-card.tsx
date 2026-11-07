@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Play, Save, ScanSearch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,6 +61,8 @@ export function HousekeepingCard({ initial, error }: { initial: HousekeepingStat
   const [serverErrors, setServerErrors] = useState<Partial<Record<HousekeepingOption, string>>>({})
   const [lastResult, setLastResult] = useState<HousekeepingRunResult | null>(null)
   const [pending, startTransition] = useTransition()
+  // Synchronous guard: two clicks in one frame would run housekeeping twice.
+  const runGuard = useSubmitGuard()
 
   const muted = { color: 'var(--theme-muted-text)' }
   const card = { backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }
@@ -99,12 +102,14 @@ export function HousekeepingCard({ initial, error }: { initial: HousekeepingStat
   })
 
   const run = (dryRun: boolean) => startTransition(async () => {
-    setNotice(null)
-    const res = await runHousekeepingNow({ dryRun })
-    if (!res.ok) { setNotice({ tone: 'error', message: res.error }); return }
-    setStatus(res.status)
-    setLastResult(res.result)
-    setNotice({ tone: res.result.status === 'ok' ? 'success' : 'warning', message: `${dryRun ? 'Dry run: ' : ''}${runSummary(res.result)}` })
+    await runGuard.run(async () => {
+      setNotice(null)
+      const res = await runHousekeepingNow({ dryRun })
+      if (!res.ok) { setNotice({ tone: 'error', message: res.error }); return }
+      setStatus(res.status)
+      setLastResult(res.result)
+      setNotice({ tone: res.result.status === 'ok' ? 'success' : 'warning', message: `${dryRun ? 'Dry run: ' : ''}${runSummary(res.result)}` })
+    })
   })
 
   const field = (option: HousekeepingOption, control: React.ReactNode) => {
@@ -240,7 +245,7 @@ export function HousekeepingCard({ initial, error }: { initial: HousekeepingStat
             {status.tables.map((t) => {
               const deleted = lastResult?.deleted[t.table]
               return (
-                <tr key={t.table} className="border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                <tr key={t.table} className="border-t border-border">
                   <td className="py-1.5 pr-3 whitespace-nowrap"><code className="text-xs">{t.table}</code></td>
                   {t.installed ? (
                     <>

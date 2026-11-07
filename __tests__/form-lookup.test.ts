@@ -377,7 +377,7 @@ describe('reference lookups', () => {
     await lookupTaskField(ctx(), TASK, { field_key: 'vendor', query: 'lit', values: { country: 'NZ' } })
     const before = calls.length
     const res = await resolveLookupSelections(db as any, TENANT, normalizeTaskFields(fields), { vendor: 'V2', country: 'NZ' }, { strict: true, taskId: TASK })
-    expect(res).toEqual({ errors: {}, items: { vendor_item: { name: 'Litware', city: 'Wellington', code: 'V2' } }, fills: { city: 'Wellington' } })
+    expect(res).toEqual({ errors: {}, items: { vendor_item: { name: 'Litware', city: 'Wellington', code: 'V2' }, vendor_label: 'Litware' }, fills: { city: 'Wellington' } })
     expect(calls.length).toBe(before)
   })
 
@@ -389,7 +389,7 @@ describe('reference lookups', () => {
     expect(bad.errors.vendor).toMatch(/choose one of the suggestions/)
     const free = normalizeTaskFields(fields.map((f) => (f.key === 'vendor' ? { ...refField, lookup: { ...refField.lookup, allow_free_text: true } } : f)))
     const allowed = await resolveLookupSelections(db as any, TENANT, free, { vendor: 'Typed by hand' }, { strict: true })
-    expect(allowed).toEqual({ errors: {}, items: { vendor_item: null }, fills: { city: null } })
+    expect(allowed).toEqual({ errors: {}, items: { vendor_item: null, vendor_label: 'Typed by hand' }, fills: { city: null } })
     const draft = await resolveLookupSelections(db as any, TENANT, parsed, { vendor: 'V9' }, { strict: false })
     expect(draft.errors).toEqual({})
   })

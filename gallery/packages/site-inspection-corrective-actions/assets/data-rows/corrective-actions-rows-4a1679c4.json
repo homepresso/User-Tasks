@@ -1,0 +1,179 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+  "asset": {
+    "id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+    "name": "Corrective actions rows",
+    "rows": [
+      {
+        "id": "58d321cd-9bc3-5cc4-a683-632aa52764df",
+        "data": {
+          "action_ref": "INS-20260924-41DE-A1",
+          "inspection_ref": "INS-20260924-41DE",
+          "site_code": "AKL-DC",
+          "site_name": "Auckland distribution centre",
+          "item": "Fire exits and escape routes clear and signed",
+          "area": "Fire safety",
+          "severity": "High",
+          "found": "Pallets stacked in front of the bay 2 exit.",
+          "due_date": "2026-09-26",
+          "sla_days": 2,
+          "status": "Closed",
+          "fix": "Pallets moved, exit marked with yellow floor tape.",
+          "closed_on": "2026-09-25",
+          "signed_off_by": "Taylor Inspector",
+          "evidence_files": 2,
+          "summary": "Auckland distribution centre: Fire exits and escape routes clear and signed (High, due 2026-09-26)"
+        }
+      },
+      {
+        "id": "7ee5cde8-4b82-5bf9-a76a-a129854695c0",
+        "data": {
+          "action_ref": "INS-20260924-41DE-A2",
+          "inspection_ref": "INS-20260924-41DE",
+          "site_code": "AKL-DC",
+          "site_name": "Auckland distribution centre",
+          "item": "Required PPE available and worn",
+          "area": "PPE",
+          "severity": "Medium",
+          "found": "No hi-vis vests at the loading dock.",
+          "due_date": "2026-10-01",
+          "sla_days": 7,
+          "status": "Closed",
+          "fix": "Ten vests bought and a hook rail fitted at the dock door.",
+          "closed_on": "2026-09-29",
+          "signed_off_by": "Taylor Inspector",
+          "evidence_files": 2,
+          "summary": "Auckland distribution centre: Required PPE available and worn (Medium, due 2026-10-01)"
+        }
+      },
+      {
+        "id": "58a5f760-17a2-5a1d-aeb6-36354835c916",
+        "data": {
+          "action_ref": "INS-20260924-41DE-A3",
+          "inspection_ref": "INS-20260924-41DE",
+          "site_code": "AKL-DC",
+          "site_name": "Auckland distribution centre",
+          "item": "Walkways and stairs free of trip hazards",
+          "area": "Housekeeping",
+          "severity": "Low",
+          "found": "Shrink wrap offcuts on the mezzanine stairs.",
+          "due_date": "2026-10-08",
+          "sla_days": 14,
+          "status": "Closed",
+          "fix": "Bins added at the wrapping station.",
+          "closed_on": "2026-09-30",
+          "signed_off_by": "Taylor Inspector",
+          "evidence_files": 2,
+          "summary": "Auckland distribution centre: Walkways and stairs free of trip hazards (Low, due 2026-10-08)"
+        }
+      },
+      {
+        "id": "82b05e0a-5c0f-5efe-9cc7-af20eb35ebb2",
+        "data": {
+          "action_ref": "INS-20261009-0F3C-A1",
+          "inspection_ref": "INS-20261009-0F3C",
+          "site_code": "CHC-WS",
+          "site_name": "Christchurch workshop",
+          "item": "Machine guards fitted and working",
+          "area": "Equipment",
+          "severity": "Medium",
+          "found": "Bench grinder guard loose.",
+          "due_date": "2026-10-16",
+          "sla_days": 7,
+          "status": "Open",
+          "fix": "",
+          "closed_on": "",
+          "signed_off_by": "",
+          "evidence_files": 0,
+          "summary": "Christchurch workshop: Machine guards fitted and working (Medium, due 2026-10-16)"
+        }
+      },
+      {
+        "id": "97548e6c-b236-56c8-b353-8db8252bb64b",
+        "data": {
+          "action_ref": "INS-20261009-0F3C-A2",
+          "inspection_ref": "INS-20261009-0F3C",
+          "site_code": "CHC-WS",
+          "site_name": "Christchurch workshop",
+          "item": "Electrical leads and equipment tested and tagged",
+          "area": "Electrical",
+          "severity": "Low",
+          "found": "Two extension leads out of test date.",
+          "due_date": "2026-10-23",
+          "sla_days": 14,
+          "status": "Open",
+          "fix": "",
+          "closed_on": "",
+          "signed_off_by": "",
+          "evidence_files": 0,
+          "summary": "Christchurch workshop: Electrical leads and equipment tested and tagged (Low, due 2026-10-23)"
+        }
+      },
+      {
+        "id": "a9fab3a5-6da4-5795-a820-c9a806f5cdee",
+        "data": {
+          "action_ref": "INS-20261020-5E77-A1",
+          "inspection_ref": "INS-20261020-5E77",
+          "site_code": "DUD-LB",
+          "site_name": "Dunedin laboratory",
+          "item": "Chemicals labelled, safety data sheets on hand",
+          "area": "Hazardous substances",
+          "severity": "Medium",
+          "found": "Solvent decanted into an unlabelled bottle.",
+          "due_date": "2026-10-27",
+          "sla_days": 7,
+          "status": "Open",
+          "fix": "",
+          "closed_on": "",
+          "signed_off_by": "",
+          "evidence_files": 0,
+          "summary": "Dunedin laboratory: Chemicals labelled, safety data sheets on hand (Medium, due 2026-10-27)"
+        }
+      },
+      {
+        "id": "f9e3a6b1-fb5d-57f5-8827-f1a357ee1f61",
+        "data": {
+          "action_ref": "INS-20261020-5E77-A2",
+          "inspection_ref": "INS-20261020-5E77",
+          "site_code": "DUD-LB",
+          "site_name": "Dunedin laboratory",
+          "item": "First aid kit stocked, first aiders listed",
+          "area": "First aid",
+          "severity": "Low",
+          "found": "Eye wash bottles expired.",
+          "due_date": "2026-11-03",
+          "sla_days": 14,
+          "status": "Escalated",
+          "fix": "Supplier back-ordered: replacement due mid November.",
+          "closed_on": "",
+          "signed_off_by": "",
+          "evidence_files": 0,
+          "summary": "Dunedin laboratory: First aid kit stocked, first aiders listed (Low, due 2026-11-03)"
+        }
+      },
+      {
+        "id": "c53a0c23-7462-510c-911a-7951b4a7e7e1",
+        "data": {
+          "action_ref": "INS-20261009-0F3C-A3",
+          "inspection_ref": "INS-20261009-0F3C",
+          "site_code": "CHC-WS",
+          "site_name": "Christchurch workshop",
+          "item": "Fire extinguishers in place, tagged and in date",
+          "area": "Fire safety",
+          "severity": "High",
+          "found": "CO2 extinguisher missing from the welding bay.",
+          "due_date": "2026-10-11",
+          "sla_days": 2,
+          "status": "Closed",
+          "fix": "Replacement extinguisher mounted and tagged.",
+          "closed_on": "2026-10-10",
+          "signed_off_by": "Taylor Inspector",
+          "evidence_files": 2,
+          "summary": "Christchurch workshop: Fire extinguishers in place, tagged and in date (High, due 2026-10-11)"
+        }
+      }
+    ]
+  }
+}

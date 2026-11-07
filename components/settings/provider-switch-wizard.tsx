@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
+import { overlayClass } from '@/components/ui/dialog'
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, ClipboardCopy, Lock, PlugZap, ScanSearch, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,7 +54,7 @@ function Checks({ checks }: { checks: PreflightCheck[] }) {
       ) : (
         <li key={`${c.name}-${i}`} className="flex gap-2">
           <span className="shrink-0 w-12 text-xs font-medium pt-0.5" style={{ color: SEVERITY[c.severity].color }}>{SEVERITY[c.severity].label}</span>
-          <span className="shrink-0 w-32 text-xs pt-0.5" style={{ color: 'var(--theme-muted-text)' }}>{c.name}</span>
+          <span className="shrink-0 w-32 text-xs pt-0.5 text-fg-muted">{c.name}</span>
           <span className="min-w-0 break-words">{c.detail}</span>
         </li>
       ))}
@@ -60,7 +62,7 @@ function Checks({ checks }: { checks: PreflightCheck[] }) {
   )
 }
 
-function CopyBlock({ text }: { text: string }) {
+export function CopyBlock({ text, label = 'Copy command' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   return (
     <div className="relative">
@@ -68,7 +70,7 @@ function CopyBlock({ text }: { text: string }) {
       <button
         type="button"
         className="absolute right-2 top-2"
-        aria-label="Copy command"
+        aria-label={label}
         onClick={() => { void navigator.clipboard?.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
       >
         {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
@@ -107,6 +109,8 @@ export function ProviderSwitchWizard({
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  // Synchronous guard: two clicks in one frame would apply the switch twice.
+  const applyGuard = useSubmitGuard()
   const [wizard, setWizard] = useState<WizardData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [step, setStep] = useState<Step>(kind === 'settings' ? 'configure' : 'choose')
@@ -179,22 +183,24 @@ export function ProviderSwitchWizard({
   })
 
   const apply = () => startTransition(async () => {
-    setNotice(null)
-    if (kind === 'settings') {
-      const res = await saveProviderSettings({ ...input(), dryRun: false })
-      if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error }); return }
-      setTest(res)
-      if (!res.saved) { setNotice({ tone: 'error', message: 'The checks failed: nothing was saved.' }); return }
-      setRecord(res.record)
+    await applyGuard.run(async () => {
+      setNotice(null)
+      if (kind === 'settings') {
+        const res = await saveProviderSettings({ ...input(), dryRun: false })
+        if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error }); return }
+        setTest(res)
+        if (!res.saved) { setNotice({ tone: 'error', message: 'The checks failed: nothing was saved.' }); return }
+        setRecord(res.record)
+        setStep('run')
+        return
+      }
+      const res = await applyProviderChange({ ...input(), confirm })
+      if (!res.ok) { setNotice({ tone: 'error', message: res.error }); return }
+      setApplied(res)
       setStep('run')
-      return
-    }
-    const res = await applyProviderChange({ ...input(), confirm })
-    if (!res.ok) { setNotice({ tone: 'error', message: res.error }); return }
-    setApplied(res)
-    setStep('run')
-    if (res.record) setRecord(res.record)
-    else if (res.mode === 'cli') setWaitingForCli(new Date().toISOString())
+      if (res.record) setRecord(res.record)
+      else if (res.mode === 'cli') setWaitingForCli(new Date().toISOString())
+    })
   })
 
   // CLI mode: watch the switch log for the switch the operator starts.
@@ -287,10 +293,9 @@ export function ProviderSwitchWizard({
   return (
     <Dialog.Root open={open} onOpenChange={change}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dialog-overlay" />
+        <Dialog.Overlay className={overlayClass} />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-50 w-[min(46rem,94vw)] max-h-[90vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-xl p-5 shadow-xl dialog-content space-y-4"
-          style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+          className="fixed left-1/2 top-1/2 z-50 w-[min(46rem,94vw)] max-h-[90vh] overflow-y-auto [transform:translate(-50%,-50%)] rounded-xl p-5 shadow-elev-3 ds-dialog space-y-4 bg-elevated text-fg"
           aria-describedby={undefined}
         >
           <div className="flex items-start gap-2">
@@ -354,7 +359,7 @@ export function ProviderSwitchWizard({
                     <datalist id={`secret-names-${area}`}>{wizard.secretNames.map((n) => <option key={n} value={`secret://${n}`} />)}</datalist>
                   )}
                   {kind === 'switch' && wizard.flags.length > 0 && (
-                    <fieldset className="grid gap-4 sm:grid-cols-2 border-t pt-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                    <fieldset className="grid gap-4 sm:grid-cols-2 border-t pt-3 border-border">
                       <legend className="text-xs font-medium px-1" style={muted}>Switch options (not stored)</legend>
                       {wizard.flags.map((f) => {
                         const id = `pf-${area}-flag-${f.flag}`

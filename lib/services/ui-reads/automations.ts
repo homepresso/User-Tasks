@@ -1,8 +1,12 @@
 import { z } from 'zod'
+import type { RunTask } from '@/lib/run-tasks'
 import { getDb } from '../context'
+import { getDirectoryCapabilities, searchDirectoryEntraGroups } from '../directory-groups'
+import { applyScope, queueJobInScope, queueScopeFilter, resolveRunScope, runInScope, runScopeFilter } from '../run-visibility'
 import { fetchLiveInstanceCounts } from '@/lib/workflow-live-counts'
 import { normalizeScheduleConfig, type ScheduleConfig } from '@/lib/workflow-schedule'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
+import { applyWorkflowListQuery, MAX_WORKFLOW_SEARCH } from '@/lib/automations/workflow-list-page'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
@@ -16,8 +20,13 @@ import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 const VIEW = 'workflows.view'
 /** Run history/detail pages sit under /automations (workflows.view); view_runs also reads runs. */
 const RUNS = ['workflows.view', 'workflows.view_runs'] as const
+/** Queue / run lists: view_queue (involved + granted) or view_runs (all; implies view_queue). */
+const QUEUE = ['workflows.view_queue', 'workflows.view_runs'] as const
 
 const RUNS_PAGE_SIZE = 25
+
+/** List columns only: definitions (nodes/edges) stay on the server — node_count is maintained by a trigger, run_count by the engine. */
+const WORKFLOW_LIST_COLUMNS = 'id, name, description, trigger_type, is_active, run_count, last_run_at, node_count, tags, published_version_id, created_at, updated_at'
 
 const QUEUE_STATUSES = ['pending', 'processing', 'failed', 'completed', 'dead'] as const
 
@@ -48,6 +57,16 @@ function extractScheduleConfig(nodes: unknown): ScheduleConfig | null {
 }
 
 export const reads = {
+  /** Agent versions the published workflow's Run Agent steps are pinned to (designer badge). */
+  'automations.agentPins': defineRead({
+    args: z.object({ workflowId: id }),
+    perm: VIEW,
+    run: async (ctx, { workflowId }) => {
+      const { getWorkflowAgentPins } = await import('@/lib/services/workflows')
+      return getWorkflowAgentPins(ctx, workflowId)
+    },
+  }),
+
   // ─── Workflow list / builder ───
 
   'automations.list': defineRead({
@@ -57,9 +76,57 @@ export const reads = {
       const { data } = await (getDb(ctx) as any).from('workflows')
         // List columns only: definitions (nodes/edges) stay on the server —
         // node_count is maintained by a trigger, run_count by the engine.
-        .select('id, name, description, trigger_type, is_active, run_count, last_run_at, node_count, tags, published_version_id, created_at, updated_at')
+        .select(WORKFLOW_LIST_COLUMNS)
         .order('updated_at', { ascending: false })
       return ((data ?? []) as any[]).map((wf) => ({ ...wf, tags: wf.tags ?? null }))
+    },
+  }),
+
+  /**
+   * One page of the Workflows list (lib/automations/workflow-list-page.ts):
+   * search / status / trigger / tag filters, sort, .range() and an exact count.
+   */
+  'automations.listPage': defineRead({
+    args: z.object({
+      q: z.string().max(MAX_WORKFLOW_SEARCH).optional(),
+      status: z.enum(['all', 'active', 'inactive']).optional(),
+      trigger: z.string().regex(/^[a-z0-9_]{1,80}$/).nullish(),
+      tag: z.string().min(1).max(80).nullish(),
+      sort: z.enum(['name', 'updated_at', 'run_count', 'status', 'trigger_type', 'nodes']).optional(),
+      dir: z.enum(['asc', 'desc']).optional(),
+      page: z.number().int().min(1).max(100_000),
+      size: z.number().int().min(1).max(100),
+    }),
+    perm: VIEW,
+    run: async (ctx, args) => {
+      const db = getDb(ctx) as any
+      const base = db.from('workflows').select(WORKFLOW_LIST_COLUMNS, { count: 'exact' })
+      const { data, count, error } = await applyWorkflowListQuery(base, args)
+      if (error) {
+        // Past the last page (e.g. after a delete): no rows, and the total so the list can step back.
+        if (error.code !== 'PGRST103') throw new Error(error.message)
+        const { count: total } = await applyWorkflowListQuery(db.from('workflows').select('id', { count: 'exact', head: true }), { ...args, page: 1 })
+        return { rows: [] as any[], total: (total ?? 0) as number, page: args.page, size: args.size }
+      }
+      const rows = ((data ?? []) as any[]).map((wf) => ({ ...wf, tags: wf.tags ?? null }))
+      return { rows, total: (count ?? rows.length) as number, page: args.page, size: args.size }
+    },
+  }),
+
+  /** The Workflows list's filter options over every workflow: tags, trigger types and the total. */
+  'automations.listFacets': defineRead({
+    args: NO_ARGS,
+    perm: VIEW,
+    run: async (ctx) => {
+      const { data, error } = await (getDb(ctx) as any).from('workflows').select('trigger_type, tags')
+      if (error) throw new Error(error.message)
+      const tags = new Set<string>()
+      const triggers = new Set<string>()
+      for (const wf of (data ?? []) as any[]) {
+        if (wf.trigger_type) triggers.add(String(wf.trigger_type))
+        for (const tag of Array.isArray(wf.tags) ? wf.tags : []) tags.add(String(tag))
+      }
+      return { tags: [...tags].sort(), triggers: [...triggers].sort(), total: (data ?? []).length as number }
     },
   }),
 
@@ -85,7 +152,8 @@ export const reads = {
       const [{ data: runs }, { data: customActivities }, versionResult, liveCounts] = await Promise.all([
         // The builder only shows a run count; never pull node_results/execution_trace here.
         db.from('workflow_runs').select('id, status, started_at, completed_at').eq('workflow_id', id).order('started_at', { ascending: false }).limit(10),
-        db.from('custom_workflow_activities').select('*').eq('status', 'active').order('name'),
+        // No source code: steps run the action from the library, never from the designer.
+        db.from('custom_workflow_activities').select('id, name, description, key, status, enabled, runtime, version, icon_name, color, manifest, signature, tags').eq('status', 'active').order('name'),
         publishedVersionId
           ? db.from('workflow_versions').select('version_number').eq('id', publishedVersionId).maybeSingle()
           : Promise.resolve({ data: null }),
@@ -249,7 +317,7 @@ export const reads = {
     perm: RUNS,
     run: async (ctx, { workflowId, status, sortKey, sortDir, page }) => {
       let query = (getDb(ctx) as any).from('workflow_runs')
-        .select('id, status, title, error, started_at, completed_at, task_id, trace_id, sla_label, sla_due_at, sla_status', { count: 'exact' })
+        .select('id, status, title, error, started_at, completed_at, task_id, trace_id, sla_label, sla_due_at, sla_status, started_via', { count: 'exact' })
         .eq('workflow_id', workflowId)
         .range(page * RUNS_PAGE_SIZE, page * RUNS_PAGE_SIZE + RUNS_PAGE_SIZE - 1)
       if (status) query = query.eq('status', status)
@@ -290,9 +358,11 @@ export const reads = {
    */
   'automations.processView': defineRead({
     args: z.object({ id }),
-    perm: RUNS,
+    // The run (or queue job) must be in the person's run scope (run-visibility).
+    perm: QUEUE,
     run: async (ctx, { id }) => {
       const db = getDb(ctx) as any
+      const scope = await resolveRunScope(ctx)
       let run: any = null
       let workflow: any = null
       let logs: any[] = []
@@ -300,15 +370,17 @@ export const reads = {
 
       const { data: runData } = await db.from('workflow_runs').select('*, workflow:workflows(*)').eq('id', id).maybeSingle()
       if (runData) {
+        if (!runInScope(scope, runData)) return null
         run = runData
         workflow = runData.workflow
       } else {
         const { data: job } = await db.from('workflow_queue').select('*, workflow:workflows(*)').eq('id', id).maybeSingle()
+        if (job && !queueJobInScope(scope, job)) return null
         if (job) {
           workflow = job.workflow
-          const { data: jobRun } = await db.from('workflow_runs')
+          const { data: jobRun } = await applyScope(db.from('workflow_runs')
             .select('*')
-            .eq('workflow_id', job.workflow_id)
+            .eq('workflow_id', job.workflow_id), runScopeFilter(scope))
             .order('started_at', { ascending: false })
             .limit(1)
             .maybeSingle()
@@ -334,9 +406,9 @@ export const reads = {
       if (run) {
         const [{ data: logData }, { data: siblingRuns }] = await Promise.all([
           db.from('workflow_logs').select('*').eq('run_id', run.id).order('created_at', { ascending: true }),
-          db.from('workflow_runs')
+          applyScope(db.from('workflow_runs')
             .select('id, workflow_id, status, started_at, completed_at, error, title, execution_trace, node_results')
-            .eq('workflow_id', run.workflow_id)
+            .eq('workflow_id', run.workflow_id), runScopeFilter(scope))
             .neq('id', run.id)
             .eq('status', 'completed')
             .not('completed_at', 'is', null)
@@ -366,24 +438,37 @@ export const reads = {
         }
       }
 
-      return { workflow, run, logs, compareRun, versionNumber }
+      // The run's User Tasks: who has each, history, and per task whether
+      // this viewer may open / act on it (lib/services/run-tasks.ts).
+      let tasks: RunTask[] = []
+      if (run) {
+        const { loadRunTasks, labelsOf } = await import('../run-tasks')
+        tasks = await loadRunTasks(ctx, { id: run.id, workflow_id: run.workflow_id ?? null }, { labels: labelsOf(workflow.nodes ?? []) })
+      }
+
+      return { workflow, run, logs, compareRun, versionNumber, tasks }
     },
   }),
 
   /** Queue page: status counts, the latest jobs (matched to their runs) merged with middleware runs. */
   'automations.queue': defineRead({
     args: NO_ARGS,
-    perm: 'workflows.view_runs',
+    // Everything with view_runs; involved runs + granted workflows with
+    // view_queue (lib/services/run-visibility — the one scoping rule).
+    perm: QUEUE,
     run: async (ctx) => {
       const db = getDb(ctx) as any
+      const scope = await resolveRunScope(ctx)
+      const jobScope = queueScopeFilter(scope)
+      const runScope = runScopeFilter(scope)
       const [statsResults, jobsResult, middlewareRunsResult] = await Promise.all([
-        Promise.all(QUEUE_STATUSES.map((s) => db.from('workflow_queue').select('*', { count: 'exact', head: true }).eq('status', s))),
-        db.from('workflow_queue')
-          .select('*, workflow:workflows!workflow_queue_workflow_id_fkey(id, name)')
+        Promise.all(QUEUE_STATUSES.map((s) => applyScope(db.from('workflow_queue').select('*', { count: 'exact', head: true }).eq('status', s), jobScope))),
+        applyScope(db.from('workflow_queue')
+          .select('*, workflow:workflows!workflow_queue_workflow_id_fkey(id, name)'), jobScope)
           .order('created_at', { ascending: false })
           .limit(200),
-        db.from('workflow_runs')
-          .select('id, workflow_id, version_id, status, event_id, paused_node_id, started_at, completed_at, error, title, sla_label, sla_due_at, sla_warning_at, sla_status, workflow:workflows(id, name, trigger_type)')
+        applyScope(db.from('workflow_runs')
+          .select('id, workflow_id, version_id, status, event_id, paused_node_id, started_at, completed_at, error, title, sla_label, sla_due_at, sla_warning_at, sla_status, workflow:workflows(id, name, trigger_type)'), runScope)
           .order('started_at', { ascending: false })
           .limit(200),
       ])
@@ -397,9 +482,9 @@ export const reads = {
       const runs: Record<string, any> = {}
       const runsByWorkflow: Record<string, any[]> = {}
       if (workflowIds.length > 0) {
-        const { data: runData } = await db.from('workflow_runs')
+        const { data: runData } = await applyScope(db.from('workflow_runs')
           .select('id, workflow_id, version_id, status, event_id, paused_node_id, started_at, title, sla_label, sla_due_at, sla_warning_at, sla_status')
-          .in('workflow_id', workflowIds)
+          .in('workflow_id', workflowIds), runScope)
           .order('started_at', { ascending: false })
           .limit(200)
         for (const r of (runData ?? []) as any[]) {
@@ -546,6 +631,21 @@ export const reads = {
     },
   }),
 
+  /** User Task "AAD Group" assignment: offered only when Entra ID is configured (lib/services/directory-groups). */
+  'directory.capabilities': defineRead({
+    args: NO_ARGS,
+    perm: VIEW,
+    run: (ctx) => getDirectoryCapabilities(ctx),
+  }),
+
+  /** The AAD group picker: synced Entra groups, else a live Microsoft Graph search. */
+  'directory.entraGroups': defineRead({
+    args: z.object({ search: z.string().max(100).optional(), cursor: z.string().max(4000).nullish() }),
+    // Searching the directory through the workspace's Graph credentials is a design-time picker.
+    perm: ['workflows.edit', 'workflows.create', 'settings.view'],
+    run: (ctx, args) => searchDirectoryEntraGroups(ctx, { search: args.search ?? null, cursor: args.cursor ?? null, limit: 25 }),
+  }),
+
   'automations.roleOptions': defineRead({
     args: NO_ARGS,
     perm: VIEW,
@@ -568,7 +668,7 @@ export const reads = {
     args: NO_ARGS,
     perm: VIEW,
     run: async (ctx) => {
-      const { data } = await (getDb(ctx) as any).from('agents').select('id, name, is_active, integration_id, model, output_config').order('name')
+      const { data } = await (getDb(ctx) as any).from('agents').select('id, name, is_active, integration_id, model, output_config, version').order('name')
       return (data ?? []) as any[]
     },
   }),
@@ -597,7 +697,7 @@ export const reads = {
   /** Latest rows of a data table (row pickers). */
   'automations.tableRows': defineRead({
     args: z.object({ tableId: id, withCreatedAt: z.boolean().optional(), limit: z.number().int().min(1).max(500) }),
-    perm: VIEW,
+    perm: 'data.view', // table rows are data (was workflows.view)
     run: async (ctx, { tableId, withCreatedAt, limit }) => {
       const { data } = await (getDb(ctx) as any).from('custom_table_rows')
         .select(withCreatedAt ? 'id, data, created_at' : 'id, data')
@@ -628,6 +728,28 @@ export const reads = {
         db.from('integration_references').select('id, name, integration_id, request_config').order('name'),
       ])
       return { integrations: (intRes.data ?? []) as any[], references: (refRes.data ?? []) as any[] }
+    },
+  }),
+
+  /**
+   * Templates of an e-signature integration (the E-signature steps' template
+   * picker): a searchable page from the provider, through the same adapter
+   * as the actions. The integration must belong to the current workspace.
+   */
+  'automations.esignTemplates': defineRead({
+    args: z.object({ integration_id: id, search: z.string().max(200).optional(), cursor: z.string().max(500).optional() }),
+    perm: VIEW,
+    run: async (ctx, args) => {
+      const { loadEsignIntegration } = await import('@/lib/esign/service')
+      const { EsignError } = await import('@/lib/esign/types')
+      try {
+        const loaded = await loadEsignIntegration(getDb(ctx) as any, ctx.tenantId, args.integration_id, { timeoutMs: 20_000 })
+        const page = await loaded.adapter.listTemplates(loaded.ctx, { search: args.search, cursor: args.cursor ?? null, page_size: 50 })
+        return { ok: true as const, provider: loaded.provider, ...page }
+      } catch (error) {
+        if (error instanceof EsignError) return { ok: false as const, error: error.message, templates: [], next_cursor: null }
+        throw error
+      }
     },
   }),
 

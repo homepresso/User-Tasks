@@ -12,6 +12,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ApiKeyScopes, ApiKeySuccessResult } from '@/lib/api-auth'
 import type { McpContext } from '@/lib/mcp/server'
+import { expandPermissions, holdsPermission } from '@/lib/permissions'
 
 // Services accept clients of any generated Database typing (service-role REST
 // clients are untyped; cookie clients are typed), matching lib/audit-log.ts.
@@ -24,8 +25,25 @@ export type AnySupabaseClient = SupabaseClient<any, any, any>
  * uses a service-role client with explicit tenant filters, like API callers,
  * so services must not rely on RLS for it (source !== 'ui').
  */
-export type ServiceAuthKind = 'api_key' | 'oauth' | 'mcp' | 'session' | 'job'
-export type ServiceSource = 'api' | 'mcp' | 'ui' | 'job'
+export type ServiceAuthKind = 'api_key' | 'oauth' | 'mcp' | 'session' | 'job' | 'anonymous'
+export type ServiceSource = 'api' | 'mcp' | 'ui' | 'job' | 'anonymous'
+
+/**
+ * An anonymous visitor of ONE public form link (authKind 'anonymous', built
+ * only by lib/services/anonymous-forms.ts from a server-resolved token): no
+ * user, the form's tenant, permissions = forms.submit alone. Services that
+ * an anonymous context can reach check `anonymous.formId` and the per-source
+ * / per-action allow flags of the saved form.
+ */
+export interface AnonymousScope {
+  formId: string
+  /** HMAC of the visitor's IP (rate limits, abuse review). */
+  ipHash: string
+  /** sha256 of the visitor's per-visit upload key, when one was sent. */
+  uploadSession?: string | null
+  /** The form's "Allow uploads" and limits. */
+  uploads: { enabled: boolean; maxBytes: number; maxFiles: number }
+}
 
 export interface ServiceContext {
   /**
@@ -57,6 +75,21 @@ export interface ServiceContext {
   credentialId?: string | null
   /** Background job this context runs (authKind 'job'). */
   jobId?: string
+  /** Anonymous form visitor (authKind 'anonymous'). */
+  anonymous?: AnonymousScope
+}
+
+/** True for an anonymous form visitor's context. */
+export function isAnonymous(ctx: ServiceContext): ctx is ServiceContext & { anonymous: AnonymousScope } {
+  return ctx.authKind === 'anonymous' && Boolean(ctx.anonymous)
+}
+
+/** Who a per-caller rate limit counts against: the user, the credential, the anonymous visitor's IP hash, else the workspace. */
+export function rateSubject(ctx: ServiceContext): string {
+  if (ctx.actorId) return ctx.actorId
+  if (ctx.credentialId) return ctx.credentialId
+  if (ctx.anonymous) return `anon:${ctx.anonymous.formId}:${ctx.anonymous.ipHash}`
+  return 'tenant'
 }
 
 export type ServiceErrorCode =
@@ -110,17 +143,24 @@ export function getDb(ctx: ServiceContext): AnySupabaseClient {
 }
 
 export function hasPerm(ctx: ServiceContext, permission: string): boolean {
-  return ctx.permissions === null || ctx.permissions.has(permission)
+  return ctx.permissions === null || holdsPermission(ctx.permissions, permission)
 }
 
 /** Throw a 403 ServiceError unless the context holds `permission`. */
 export function requirePerm(ctx: ServiceContext, permission: string): void {
   if (hasPerm(ctx, permission)) return
+  if (ctx.authKind === 'anonymous') throw ServiceError.forbidden('This is not available on a public form')
   const subject = ctx.authKind === 'api_key' ? 'this API key'
     : ctx.authKind === 'oauth' ? 'this access token'
     : 'you'
   const verb = subject === 'you' ? 'lack' : 'lacks'
   throw ServiceError.forbidden(`Forbidden: ${subject} ${verb} the '${permission}' permission`)
+}
+
+/** Throw a 403 ServiceError unless the context holds at least one of `permissions`. */
+export function requireAny(ctx: ServiceContext, permissions: readonly string[]): void {
+  if (permissions.some((p) => hasPerm(ctx, p))) return
+  requirePerm(ctx, permissions[0])
 }
 
 /** Build a context from a validated v1 API credential (API key or OAuth token). */
@@ -192,7 +232,7 @@ export async function fromSession(options: { tenantId?: string } = {}): Promise<
       supabase,
       tenantId: options.tenantId,
       actorId: user.id,
-      permissions: new Set((perms as unknown as string[] | null) ?? []),
+      permissions: new Set(expandPermissions((perms as unknown as string[] | null) ?? [])),
       authKind: 'session',
       source: 'ui',
     }

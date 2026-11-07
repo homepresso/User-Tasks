@@ -1,7 +1,7 @@
 /**
  * Services and actions that replace the browser's remaining RPCs and the
  * notification writes (providers phase 2c): notifications, activity reads,
- * workflow report analytics, global / row search and the session access +
+ * workflow report analytics and the session access +
  * workspace switch actions. Allowed/denied and user/tenant isolation.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -18,7 +18,6 @@ import type { ServiceContext } from '@/lib/services/context'
 import * as notifications from '@/lib/services/notifications'
 import * as activity from '@/lib/services/activity'
 import * as analytics from '@/lib/services/report-analytics'
-import * as search from '@/lib/services/search'
 import { getMyAccess, switchWorkspace } from '@/app/actions/session'
 import { createMemorySupabase } from './fixtures/supabase-memory'
 
@@ -99,14 +98,14 @@ describe('activity reads', () => {
 })
 
 describe('report analytics', () => {
-  it('passes the same arguments the views sent, under reports.view', async () => {
+  it('passes the same arguments the views sent, under workflows.view_runs', async () => {
     const db = withRpc(createMemorySupabase(), {
       workflow_run_daily_stats: () => [{ workflow_id: 'w1', day: '2026-10-01', runs: 2 }],
       workflow_run_duration_stats: () => [],
       workflow_run_summaries: () => [{ id: 'r1' }],
       workflow_node_visit_stats: () => [{ workflow_id: 'w1', node_id: 'n1', visits: 3 }],
     })
-    const c = ctx(db, ['reports.view'])
+    const c = ctx(db, ['workflows.view_runs'])
     expect(await analytics.runDailyStats(c, { since: '2026-05-01T00:00:00.000Z' })).toHaveLength(1)
     expect(db.rpc).toHaveBeenLastCalledWith('workflow_run_daily_stats', { p_since: '2026-05-01T00:00:00.000Z' })
     await analytics.runDurationStats(c, { since: '2026-05-01T00:00:00Z', workflowIds: ['w1'] })
@@ -117,53 +116,13 @@ describe('report analytics', () => {
     expect(db.rpc).toHaveBeenLastCalledWith('workflow_node_visit_stats', { p_workflow_ids: ['w1', 'w2'], p_since: '2026-05-01T00:00:00.000Z', p_limit: 5000 })
   })
 
-  it('denies without reports.view and validates input', async () => {
+  it('denies without workflows.view_runs (reports.view alone is not enough: workspace-wide run analytics) and validates input', async () => {
     const db = withRpc(createMemorySupabase(), {})
     await expect(analytics.runDailyStats(ctx(db, ['workflows.view']), { since: '2026-05-01' })).rejects.toMatchObject({ code: 'forbidden' })
-    await expect(analytics.runDailyStats(ctx(db, ['reports.view']), { since: 'yesterday' })).rejects.toMatchObject({ code: 'validation_error' })
-    await expect(analytics.runSummaries(ctx(db, ['reports.view']), { workflowIds: 'w1' as any })).rejects.toMatchObject({ code: 'validation_error' })
+    await expect(analytics.runDailyStats(ctx(db, ['reports.view']), { since: '2026-05-01' })).rejects.toMatchObject({ code: 'forbidden' })
+    await expect(analytics.runDailyStats(ctx(db, ['workflows.view_runs']), { since: 'yesterday' })).rejects.toMatchObject({ code: 'validation_error' })
+    await expect(analytics.runSummaries(ctx(db, ['workflows.view_runs']), { workflowIds: 'w1' as any })).rejects.toMatchObject({ code: 'validation_error' })
     expect(db.rpc).not.toHaveBeenCalled()
-  })
-})
-
-describe('search', () => {
-  function seedSearch() {
-    return withRpc(createMemorySupabase({
-      tasks: [
-        { id: 't1', title: 'Invoice review', status: 'todo', priority: 'high', deleted_at: null, created_at: '2' },
-        { id: 't2', title: 'Other', description: 'about invoice', status: 'todo', priority: 'low', deleted_at: null, created_at: '1' },
-      ],
-      workflows: [{ id: 'w1', name: 'Invoice flow', updated_at: '1' }],
-      agents: [], integrations: [], custom_tables: [{ id: 'd1', name: 'Invoices' }],
-      users: [{ id: 'u1', tenant_id: 'tenant-a', display_name: 'Invoice Bot', deleted_at: null }, { id: 'u2', tenant_id: 'tenant-b', display_name: 'Invoice Other', deleted_at: null }],
-    }), { search_custom_table_rows: (args) => [{ id: 'r1', table_id: 'd1', data: { note: args.q }, table_name: 'Invoices' }] })
-  }
-
-  it('returns each category the caller may open (members of the current workspace only)', async () => {
-    const db = seedSearch()
-    const results = await search.globalSearch(ctx(db, ['tasks.view_own', 'workflows.view', 'data.view', 'team.view_members']), ' invoice ')
-    expect(results.tasks.map((t) => t.id)).toEqual(['t1', 't2'])
-    expect(results.workflows.map((w) => w.id)).toEqual(['w1'])
-    expect(results.tables.map((t) => t.id)).toEqual(['d1'])
-    expect(results.tableRows).toEqual([expect.objectContaining({ id: 'r1', table_name: 'Invoices' })])
-    expect(results.members.map((m) => m.id)).toEqual(['u1'])
-    expect(db.rpc).toHaveBeenCalledWith('search_custom_table_rows', { q: 'invoice', lim: 6 })
-  })
-
-  it('skips categories without permission and short queries', async () => {
-    const db = seedSearch()
-    const results = await search.globalSearch(ctx(db, ['workflows.view']), 'invoice')
-    expect(results).toMatchObject({ tasks: [], tables: [], tableRows: [], members: [] })
-    expect(results.workflows).toHaveLength(1)
-    expect(db.rpc).not.toHaveBeenCalled()
-    await expect(search.globalSearch(ctx(db, ['workflows.view']), 'a')).rejects.toMatchObject({ code: 'validation_error' })
-  })
-
-  it('row search needs data.view', async () => {
-    const db = seedSearch()
-    expect(await search.searchDataTableRows(ctx(db, ['data.view']), 'inv', 50)).toHaveLength(1)
-    expect(db.rpc).toHaveBeenLastCalledWith('search_custom_table_rows', { q: 'inv', lim: 50 })
-    await expect(search.searchDataTableRows(ctx(db, ['tasks.view_own']), 'inv')).rejects.toMatchObject({ code: 'forbidden' })
   })
 })
 

@@ -9,6 +9,9 @@ import { serverRead } from '@/lib/server-read'
 import { normalizeFormButtons, isSubmittingButton } from '@/lib/forms/buttons'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
 import { lookupItemKey } from '@/lib/forms/lookup'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
@@ -47,7 +50,7 @@ export function FormSubmittedTriggerConfig({ config, onBatchUpdate }: { config: 
   return (
     <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()} data-testid="form-submitted-config">
       <div>
-        <label className="mb-1 block text-xs font-medium">Form</label>
+        <label className="mb-1 block text-xs font-medium text-fg">Form</label>
         <AutocompleteSelect
           value={formId}
           placeholder="Choose a reusable form…"
@@ -56,48 +59,47 @@ export function FormSubmittedTriggerConfig({ config, onBatchUpdate }: { config: 
         />
         {formId && (
           <div className="mt-1.5 space-y-1">
-            <p className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Form page (people start this workflow here)</p>
+            <p className="text-xs text-fg-muted">Form page (people start this workflow here)</p>
             <FormPageLink formId={formId} compact />
           </div>
         )}
         {formId && (
-          <div className="mt-1 flex items-center gap-3 text-[10px]">
-            <button type="button" onClick={() => void refetch()} className="inline-flex items-center gap-1" style={{ color: 'var(--theme-muted-text)' }} disabled={isFetching}>
-              <RefreshCw size={10} /> Refresh fields
-            </button>
+          <div className="mt-1 flex items-center gap-3">
+            <Button type="button" variant="ghost" size="sm" onClick={() => void refetch()} disabled={isFetching} className="-ml-2 text-fg-muted" leadingIcon={<RefreshCw size={14} className={isFetching ? 'animate-spin' : undefined} />}>
+              Refresh fields
+            </Button>
           </div>
         )}
       </div>
       {buttons.length > 1 && (
         <div>
-          <label className="mb-1 block text-xs font-medium">Only when submitted with</label>
+          <label className="mb-1 block text-xs font-medium text-fg">Only when submitted with</label>
           <div className="flex flex-wrap gap-1.5">
             {buttons.map((b) => {
               const on = selected.includes(b.id)
               return (
                 <button key={b.id} type="button" role="checkbox" aria-checked={on}
                   onClick={() => onBatchUpdate({ button_ids: on ? selected.filter((x) => x !== b.id) : [...selected, b.id] })}
-                  className="rounded-full border px-2.5 py-0.5 text-[11px]"
-                  style={on ? { backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' } : { borderColor: 'var(--theme-surface-border)' }}>
+                  className={cn('rounded-full border px-2.5 py-0.5 text-xs transition-colors', on ? 'border-primary bg-primary-wash font-medium text-primary-text' : 'border-border text-fg-muted hover:bg-subtle hover:text-fg')}>
                   {b.label}
                 </button>
               )
             })}
           </div>
-          <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>None selected: any submission starts a run.</p>
+          <p className="mt-1.5 text-xs text-fg-muted">None selected: any submission starts a run.</p>
         </div>
       )}
       {fields.length > 0 && (
-        <div className="rounded-md border p-2 text-[10px]" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
-          <p className="mb-1 font-semibold uppercase tracking-wider">Available downstream</p>
-          <ul className="space-y-0.5 font-mono">
+        <Card variant="inset" padding="sm" className="text-fg-muted">
+          <p className="mb-1 text-xs font-medium">Available downstream</p>
+          <ul className="space-y-0.5 font-mono text-2xs">
             {fields.flatMap((f) => [
               <li key={f.key}>{`{{form.${f.key}}}`}</li>,
               ...(f.type === 'lookup' ? [<li key={`${f.key}-item`}>{`{{form.${lookupItemKey(f.key)}}}`}</li>] : []),
             ])}
             <li>{'{{submitted_by_name}} {{submitted_at}} {{form_button}}'}</li>
           </ul>
-        </div>
+        </Card>
       )}
     </div>
   )

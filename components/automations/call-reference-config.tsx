@@ -1,14 +1,27 @@
 "use client"
 
+import { customKindOf, isCustomReference, isWriteReference, KIND_INFO } from '@/lib/custom-references/types'
+import { WritesDataBadge } from '@/components/integrations/writes-data-badge'
 import { useState, useEffect } from "react"
 import { serverRead } from "@/lib/server-read"
 import { connectorBrandForTags } from "@/lib/connectors/connector-brand"
 import { VariableInput } from "./variable-input"
-import { Globe, Database, Zap, Network, ArrowRight, ArrowDown, Check, Variable, ChevronDown, X, Plus, Trash2, Code, FormInput } from "lucide-react"
+import { Globe, Database, Zap, Network, ArrowRight, ArrowDown, ChevronDown, X, Plus, Trash2, Code, FormInput, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { Input, controlClass, CONTROL_HEIGHT } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card } from "@/components/ui/card"
+import { Badge, Tag } from "@/components/ui/badge"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { cn } from "@/lib/utils"
 import { ReferenceStaticValueInput } from "@/components/shared/reference-static-value-input"
 import { referenceResponseSchema, stripSample, normalizeResponseSchema } from "@/lib/response-schema"
 import { ResponseModelTree, describeModel, outputNameFor } from "./response-model-editor"
+import { LoadSampleButton } from "@/components/integrations/response-collection-picker"
+import type { ResponseSchema } from "@/lib/response-schema"
 
 const typeIcons: Record<string, any> = {
   rest_api: Globe,
@@ -160,8 +173,8 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
   if (loading) {
     return (
       <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-        <div className="animate-pulse h-8 rounded" style={{ backgroundColor: "var(--theme-surface)" }} />
-        <div className="animate-pulse h-8 rounded" style={{ backgroundColor: "var(--theme-surface)" }} />
+        <div className="h-8 animate-pulse rounded-md bg-subtle" />
+        <div className="h-8 animate-pulse rounded-md bg-subtle" />
       </div>
     )
   }
@@ -174,30 +187,30 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
     return (
       <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
         {/* Selected reference header */}
-        <div
-          className="rounded-lg p-2.5 flex items-center gap-2"
-          style={{ backgroundColor: "var(--theme-primary-light)", border: "1.5px solid var(--theme-primary)" }}
-        >
-          <Icon size={14} style={{ color: "var(--theme-primary-text)" }} />
+        <div className="flex items-center gap-2 rounded-lg bg-primary-wash p-2.5">
+          <Icon size={14} className="shrink-0 text-primary-text" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate" style={{ color: "var(--theme-primary-text)" }}>
+            <p className="truncate text-xs font-semibold text-primary-text">
               {selectedRef.name}
             </p>
             {selectedInteg && (
-              <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
+              <p className="text-xs text-fg-muted">
                 {selectedInteg.name} · {selectedInteg.type.replace("_", " ")}
               </p>
             )}
+            {isWriteReference(selectedRef) && (
+              <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-fg-muted" data-testid="call-reference-writes">
+                <WritesDataBadge /> {KIND_INFO[customKindOf(selectedRef) ?? "create"].label} — runs for real each time this step runs.
+              </p>
+            )}
           </div>
-          <button onClick={clearReference} className="p-1 rounded hover:opacity-70" title="Change reference">
-            <X size={12} style={{ color: "var(--theme-muted-text)" }} />
-          </button>
+          <IconButton onClick={clearReference} label="Change reference" icon={<X />} size="sm" />
         </div>
 
         {/* Request preview */}
         {reqConfig && (
-          <div className="rounded-lg p-2 text-[10px] font-mono" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-            <span className="font-bold" style={{ color: "var(--theme-primary-text)" }}>
+          <div className="rounded-md bg-subtle p-2 font-mono text-xs text-fg-muted">
+            <span className="font-semibold text-primary-text">
               {reqConfig.method ?? "GET"}
             </span>{" "}
             {reqConfig.path_template ?? "/"}
@@ -213,10 +226,10 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
             <>
               {nonBodyInputs.length > 0 && (
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--theme-muted-text)" }}>
-                    <ArrowRight size={10} />
+                  <label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+                    <ArrowRight size={12} />
                     Parameters
-                    <span className="text-[9px] font-normal normal-case">({nonBodyInputs.length})</span>
+                    <span className="num font-normal">({nonBodyInputs.length})</span>
                   </label>
                   <div className="space-y-2.5">
                     {nonBodyInputs.map((inp: any) => (
@@ -233,28 +246,26 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
               {(bodyInputs.length > 0 || (reqConfig?.method && reqConfig.method !== 'GET')) && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>
-                      <ArrowRight size={10} />
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+                      <ArrowRight size={12} />
                       Body
-                      {bodyInputs.length > 0 && <span className="text-[9px] font-normal normal-case">({bodyInputs.length} fields)</span>}
+                      {bodyInputs.length > 0 && <span className="num font-normal">({bodyInputs.length} fields)</span>}
                     </label>
-                    <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--theme-surface-border)' }}>
-                      <button onClick={() => onUpdate('_body_mode', 'form')}
-                        className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium"
-                        style={{ backgroundColor: bodyMode === 'form' ? 'var(--theme-primary-light)' : 'transparent', color: bodyMode === 'form' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)' }}>
-                        <FormInput size={10} /> Form
-                      </button>
-                      <button onClick={() => onUpdate('_body_mode', 'json')}
-                        className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium"
-                        style={{ backgroundColor: bodyMode === 'json' ? 'var(--theme-primary-light)' : 'transparent', color: bodyMode === 'json' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)', borderLeft: '1px solid var(--theme-surface-border)' }}>
-                        <Code size={10} /> JSON
-                      </button>
-                    </div>
+                    <SegmentedControl
+                      aria-label="Body mode"
+                      size="sm"
+                      value={String(bodyMode)}
+                      onValueChange={(mode) => onUpdate('_body_mode', mode)}
+                      options={[
+                        { value: 'form', icon: <FormInput size={14} />, text: 'Form' },
+                        { value: 'json', icon: <Code size={14} />, text: 'JSON' },
+                      ]}
+                    />
                   </div>
 
                   {bodyMode === 'form' ? (
                     bodyInputs.length === 0 ? (
-                      <p className="text-[10px] rounded-lg px-2.5 py-2" style={{ color: "var(--theme-muted-text)", backgroundColor: "var(--theme-surface)" }}>
+                      <p className="text-xs text-fg-muted">
                         No body fields defined. Switch to JSON mode to write a custom body.
                       </p>
                     ) : (config._body_is_array || reqConfig?.body_template?.trim()?.startsWith('[')) ? (
@@ -282,15 +293,14 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
                     )
                   ) : (
                     <div>
-                      <textarea
+                      <Textarea
                         value={config._custom_body ?? reqConfig?.body_template ?? ''}
                         onChange={(e) => onUpdate('_custom_body', e.target.value)}
                         rows={6}
                         placeholder='{"key": "{{variable}}", "items": [...]}'
-                        className="w-full rounded-lg border px-3 py-2 text-[11px] font-mono"
-                        style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+                        className="font-mono text-xs"
                       />
-                      <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p className="mt-1 text-xs text-fg-muted">
                         Use {'{{variable}}'} syntax for dynamic values
                       </p>
                     </div>
@@ -301,10 +311,10 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
               {/* Non-body inputs when no body inputs exist */}
               {nonBodyInputs.length === 0 && refInputs.length > 0 && bodyInputs.length === 0 && (
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--theme-muted-text)" }}>
-                    <ArrowRight size={10} />
+                  <label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+                    <ArrowRight size={12} />
                     Inputs
-                    <span className="text-[9px] font-normal normal-case">({refInputs.length})</span>
+                    <span className="num font-normal">({refInputs.length})</span>
                   </label>
                   <div className="space-y-2.5">
                     {refInputs.map((inp: any) => (
@@ -319,10 +329,10 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
 
               {refInputs.length === 0 && (
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--theme-muted-text)" }}>
-                    <ArrowRight size={10} /> Inputs
+                  <label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+                    <ArrowRight size={12} /> Inputs
                   </label>
-                  <p className="text-[10px] rounded-lg px-2.5 py-2" style={{ color: "var(--theme-muted-text)", backgroundColor: "var(--theme-surface)" }}>
+                  <p className="text-xs text-fg-muted">
                     No inputs required
                   </p>
                 </div>
@@ -333,15 +343,15 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
 
         {/* ─── OUTPUTS ─── */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--theme-muted-text)" }}>
-            <ArrowDown size={10} />
-            Outputs → Variables
+          <label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+            <ArrowDown size={12} />
+            Outputs → variables
             {refOutputs.length > 0 && (
-              <span className="text-[9px] font-normal normal-case">({refOutputs.length})</span>
+              <span className="num font-normal">({refOutputs.length})</span>
             )}
           </label>
           {refOutputs.length === 0 ? (
-            <p className="text-[10px] rounded-lg px-2.5 py-2" style={{ color: "var(--theme-muted-text)", backgroundColor: "var(--theme-surface)" }}>
+            <p className="text-xs text-fg-muted">
               No outputs defined. The full response is available as {'{{api_response}}'}.
             </p>
           ) : (
@@ -359,14 +369,27 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
           config={config}
           prefix={outputPrefix || 'step'}
           onUpdate={onUpdate}
+          loadSample={(
+            <LoadSampleButton
+              referenceId={selectedRef.id}
+              inputs={rawInputs}
+              mappings={inputMappings}
+              compact
+              onLoaded={(loaded: ResponseSchema) => {
+                // The reference's copy too, so the snapshot refresh above keeps the new model.
+                setAllReferences((refs) => refs.map((r) => (r.id === selectedRef.id ? { ...r, request_config: { ...((r.request_config as any) ?? {}), response_schema: loaded } } : r)))
+                onUpdate('_ref_response_schema', stripSample(loaded) ?? undefined)
+              }}
+            />
+          )}
         />
 
         {/* Always-available outputs note */}
-        <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+        <Card variant="inset" padding="sm" className="text-xs text-fg-muted">
           <p className="font-medium mb-0.5">Always available after execution:</p>
-          <p><code className="font-mono" style={{ color: "var(--theme-primary-text)" }}>{'{{api_response}}'}</code> — full JSON response</p>
-          <p><code className="font-mono" style={{ color: "var(--theme-primary-text)" }}>{'{{api_status}}'}</code> — HTTP status code</p>
-        </div>
+          <p><code className="font-mono text-primary-text">{'{{api_response}}'}</code> — full JSON response</p>
+          <p><code className="font-mono text-primary-text">{'{{api_status}}'}</code> — HTTP status code</p>
+        </Card>
       </div>
     )
   }
@@ -387,38 +410,36 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
     <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
       {/* Search + filter row */}
       <div className="flex gap-1.5">
-        <div className="relative flex-1">
-          <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3" style={{ color: "var(--theme-muted-text)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search references..."
-            className="w-full rounded-lg border pl-7 pr-2 py-1.5 text-[11px]"
-            style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
-          />
-        </div>
-        <select
+        <Input
+          size="sm"
+          wrapperClassName="flex-1"
+          leading={<Search />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search references..."
+          aria-label="Search references"
+        />
+        <Select
+          size="sm"
+          wrapperClassName="w-auto max-w-[120px] shrink-0"
           value={config.integration_id ?? ""}
           onChange={(e) => onUpdate("integration_id", e.target.value)}
-          className="rounded-lg border px-1.5 py-1.5 text-[11px] max-w-[120px]"
-          style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+          aria-label="Integration"
         >
           <option value="">All</option>
           {integrations.map((integ) => (
             <option key={integ.id} value={integ.id}>{integ.name}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* Compact reference list */}
       {filteredRefs.length === 0 ? (
-        <p className="text-[10px] py-3 text-center rounded-lg" style={{ color: "var(--theme-muted-text)", backgroundColor: "var(--theme-surface)" }}>
+        <p className="py-3 text-center text-xs text-fg-muted">
           {allReferences.length === 0 ? "No references found. Create one in Integrations." : "No matches"}
         </p>
       ) : (
-        <div className="space-y-0.5 max-h-60 overflow-y-auto rounded-lg border" style={{ borderColor: "var(--theme-surface-border)" }}>
+        <div className="max-h-60 divide-y divide-border-subtle overflow-y-auto rounded-lg border border-border">
           {filteredRefs.map((ref) => {
             const integ = integrations.find((i) => i.id === ref.integration_id)
             const Icon = typeIcons[integ?.type ?? "rest_api"] ?? Globe
@@ -430,15 +451,20 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
                 key={ref.id}
                 type="button"
                 onClick={() => { selectReference(ref); setSearch("") }}
-                className="flex items-center gap-2 w-full text-left px-2.5 py-1.5 text-[11px] transition-colors hover:opacity-80"
-                style={{ borderBottom: "1px solid var(--theme-surface-border)" }}
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-fg transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle"
               >
-                <Icon size={11} className="shrink-0" style={{ color: "var(--theme-muted-text)" }} />
+                <Icon size={14} className="shrink-0 text-fg-muted" />
                 <span className="font-medium truncate flex-1">{ref.name}</span>
-                <span className="text-[9px] font-mono shrink-0 px-1 py-0.5 rounded" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-primary-text)" }}>
+                {isCustomReference(ref) && (
+                  <Badge tone="brand" className="text-2xs" data-testid="custom-tag">
+                    Custom
+                  </Badge>
+                )}
+                {isWriteReference(ref) && <WritesDataBadge className="shrink-0" />}
+                <Tag mono className="text-primary-text">
                   {method}
-                </span>
-                <span className="text-[9px] shrink-0" style={{ color: "var(--theme-muted-text)" }}>
+                </Tag>
+                <span className="num shrink-0 text-2xs text-fg-muted">
                   {(ref.inputs as any[])?.length ?? 0}/{(ref.outputs as any[])?.length ?? 0}
                 </span>
               </button>
@@ -447,7 +473,7 @@ export function CallReferenceConfig({ config, nodeId, outputPrefix, onUpdate, on
         </div>
       )}
       {filteredRefs.length > 0 && (
-        <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs text-fg-muted">
           {filteredRefs.length} reference{filteredRefs.length !== 1 ? "s" : ""} · click to select
         </p>
       )}
@@ -515,18 +541,14 @@ function OutputVariableMapper({
   return (
     <div>
       <div className="flex items-center justify-end gap-1 mb-2">
-        <button type="button" onClick={autoMapAll}
-          className="text-[9px] font-medium px-2 py-0.5 rounded-full hover:opacity-80"
-          style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}>
-          Map all
-        </button>
         {enabledCount > 0 && (
-          <button type="button" onClick={clearAll}
-            className="text-[9px] font-medium px-2 py-0.5 rounded-full hover:opacity-80"
-            style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <Button type="button" variant="ghost" size="sm" onClick={clearAll}>
             Clear
-          </button>
+          </Button>
         )}
+        <Button type="button" variant="secondary" size="sm" onClick={autoMapAll}>
+          Map all
+        </Button>
       </div>
 
       <div className="space-y-1.5">
@@ -542,43 +564,39 @@ function OutputVariableMapper({
           return (
             <div
               key={out.id ?? out.name}
-              className="rounded-lg p-2 transition-all"
-              style={{
-                backgroundColor: isEnabled ? "var(--theme-primary-light)" : "var(--theme-surface)",
-                border: isEnabled ? "1.5px solid var(--theme-primary)" : "1px solid var(--theme-surface-border)",
-              }}
+              className={cn(
+                "rounded-md p-2 transition-colors duration-[var(--ds-dur-fast)]",
+                isEnabled ? "bg-primary-wash" : "bg-subtle",
+              )}
             >
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => toggleOutput(out.name)}
-                  className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
-                  style={{
-                    backgroundColor: isEnabled ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                    borderColor: isEnabled ? "var(--theme-primary)" : "var(--theme-surface-border)",
-                  }}>
-                  {isEnabled && <Check size={10} className="text-white" />}
-                </button>
+                <Checkbox
+                  checked={isEnabled}
+                  onChange={() => toggleOutput(out.name)}
+                  aria-label={`Map ${out.name}`}
+                />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <code className="text-[10px] font-mono font-medium" style={{ color: isEnabled ? "var(--theme-primary-text)" : "var(--theme-card-text)" }}>
+                    <code className={cn("font-mono text-xs font-medium", isEnabled ? "text-primary-text" : "text-fg")}>
                       {out.name}
                     </code>
                     {isList && (
-                      <span className="text-[8px] px-1 py-0.5 rounded font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                        LIST
-                      </span>
+                      <Badge tone="info" className="text-2xs">
+                        List
+                      </Badge>
                     )}
                     {isObj && (
-                      <span className="text-[8px] px-1 py-0.5 rounded font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                        OBJECT
-                      </span>
+                      <Badge tone="neutral" className="text-2xs">
+                        Object
+                      </Badge>
                     )}
                     {!isList && !isObj && (
-                      <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>({out.type})</span>
+                      <span className="text-2xs text-fg-muted">({out.type})</span>
                     )}
                   </div>
                   {out.path && (
-                    <code className="text-[9px] font-mono" style={{ color: "var(--theme-muted-text)" }}>
+                    <code className="font-mono text-2xs text-fg-muted">
                       ← {out.path}
                     </code>
                   )}
@@ -587,37 +605,33 @@ function OutputVariableMapper({
 
               {isEnabled && (
                 <div className="mt-2 flex items-center gap-1">
-                  <ArrowRight size={10} style={{ color: "var(--theme-muted-text)" }} />
-                  <span className="text-[10px] font-mono" style={{ color: "var(--theme-muted-text)" }}>{`{{`}</span>
-                  <input
+                  <ArrowRight size={12} className="shrink-0 text-fg-muted" />
+                  <span className="font-mono text-xs text-fg-muted">{`{{`}</span>
+                  <Input
+                    size="sm"
                     value={varName}
                     onChange={(e) => updateVariableName(out.name, e.target.value)}
-                    className="flex-1 text-[10px] font-mono px-1.5 py-0.5 rounded border outline-none"
-                    style={{
-                      borderColor: "var(--theme-surface-border)",
-                      backgroundColor: "var(--theme-card-bg)",
-                      color: "var(--theme-primary-text)",
-                    }}
+                    aria-label={`Variable name for ${out.name}`}
+                    className="flex-1 font-mono text-xs text-primary-text"
                     onPointerDown={(e) => e.stopPropagation()}
                   />
-                  <span className="text-[10px] font-mono" style={{ color: "var(--theme-muted-text)" }}>{`}}`}</span>
+                  <span className="font-mono text-xs text-fg-muted">{`}}`}</span>
                 </div>
               )}
 
               {isEnabled && isList && (
                 <div className="mt-1.5 ml-5 space-y-1">
-                  <p className="text-[8px] font-medium" style={{ color: "var(--theme-muted-text)" }}>
-                    Use a <strong>Loop</strong> node with items={`{{${varName}}}`}
+                  <p className="text-xs text-fg-muted">
+                    Use a <strong className="font-semibold">Loop</strong> node with items={`{{${varName}}}`}
                   </p>
                   {columnOutputs.length > 0 && (
-                    <div className="rounded p-1.5 space-y-0.5" style={{ backgroundColor: "var(--theme-surface)" }}>
-                      <p className="text-[8px] font-semibold" style={{ color: "var(--theme-muted-text)" }}>
+                    <div className="space-y-1 rounded-md bg-panel p-1.5">
+                      <p className="text-xs font-medium text-fg-muted">
                         Available fields per item:
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {columnOutputs.map((col: any) => (
-                          <span key={col.name} className="text-[8px] font-mono px-1 py-0.5 rounded"
-                            style={{ backgroundColor: "var(--theme-card-bg)", color: "var(--theme-primary-text)" }}>
+                          <span key={col.name} className="rounded-sm bg-subtle px-1 py-0.5 font-mono text-2xs text-primary-text">
                             {'{{'}item.{col.path.replace('[].', '')}{'}}'}
                           </span>
                         ))}
@@ -632,7 +646,7 @@ function OutputVariableMapper({
       </div>
 
       {enabledCount > 0 && (
-        <p className="text-[9px] mt-2" style={{ color: "var(--theme-primary-text)" }}>
+        <p className="num mt-2 text-xs text-primary-text">
           {enabledCount} variable{enabledCount !== 1 ? "s" : ""} mapped
         </p>
       )}
@@ -651,20 +665,20 @@ function ArrayBodyForm({ bodyInputs, rows, onUpdateRows }: {
   return (
     <div className="space-y-2" onPointerDown={stop} onMouseDown={stop}>
       {rows.map((row, rowIdx) => (
-        <div key={rowIdx} className="rounded-lg p-2 space-y-1.5" style={{ backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-surface-border)' }}>
+        <Card key={rowIdx} variant="inset" padding="sm" className="space-y-1.5 p-2">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Item {rowIdx + 1}</span>
+            <span className="text-xs font-medium text-fg-muted">Item {rowIdx + 1}</span>
             {rows.length > 1 && (
-              <button onClick={() => onUpdateRows(rows.filter((_, i) => i !== rowIdx))}
-                className="p-0.5 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}><Trash2 size={10} /></button>
+              <IconButton onClick={() => onUpdateRows(rows.filter((_, i) => i !== rowIdx))}
+                label={`Remove item ${rowIdx + 1}`} icon={<Trash2 />} size="sm" />
             )}
           </div>
           {bodyInputs.map((inp: any) => (
             <div key={inp.name}>
               <div className="flex items-center gap-1 mb-0.5">
-                <span className="text-[9px] font-mono font-medium" style={{ color: 'var(--theme-primary-text)' }}>{inp.name}</span>
-                <span className="text-[8px]" style={{ color: 'var(--theme-muted-text)' }}>({inp.type})</span>
-                {inp.required && <span className="text-[8px] font-medium text-red-400">required</span>}
+                <span className="font-mono text-xs font-medium text-primary-text">{inp.name}</span>
+                <span className="text-2xs text-fg-muted">({inp.type})</span>
+                {inp.required && <span className="text-2xs font-medium text-danger">required</span>}
               </div>
               <VariableInput value={row[inp.name] ?? ''} onChange={(v) => {
                 const newRows = [...rows]
@@ -673,14 +687,16 @@ function ArrayBodyForm({ bodyInputs, rows, onUpdateRows }: {
               }} placeholder={inp.description || `Enter ${inp.name}`} />
             </div>
           ))}
-        </div>
+        </Card>
       ))}
-      <button
-        onClick={() => onUpdateRows([...rows, Object.fromEntries(bodyInputs.map((inp: any) => [inp.name, '']))])}
-        className="flex items-center gap-1 text-[10px] px-2 py-1.5 rounded-lg w-full justify-center hover:opacity-80"
-        style={{ color: 'var(--theme-primary-text)', backgroundColor: 'var(--theme-primary-light)' }}>
-        <Plus size={12} /> Add item
-      </button>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="w-full"
+        leadingIcon={<Plus />}
+        onClick={() => onUpdateRows([...rows, Object.fromEntries(bodyInputs.map((inp: any) => [inp.name, '']))])}>
+        Add item
+      </Button>
     </div>
   )
 }
@@ -694,27 +710,29 @@ function InputField({ inp, value, onChange, onLocationChange }: {
   return (
     <div>
       <div className="flex items-center gap-1 mb-1">
-        <span className="text-[10px] font-mono font-medium" style={{ color: "var(--theme-primary-text)" }}>{inp.name}</span>
-        <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>({inp.type})</span>
-        <select value={inp.location ?? 'query'} onChange={(e) => onLocationChange(e.target.value)}
-          className="text-[9px] px-1 py-0.5 rounded border-0"
-          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+        <span className="font-mono text-xs font-medium text-primary-text">{inp.name}</span>
+        <span className="text-2xs text-fg-muted">({inp.type})</span>
+        <Select value={inp.location ?? 'query'} onChange={(e) => onLocationChange(e.target.value)}
+          size="sm"
+          aria-label={`Where ${inp.name} is sent`}
+          wrapperClassName="w-auto"
+          className="h-6 pl-1.5 pr-6 text-2xs text-fg-muted">
           <option value="query">Query</option>
           <option value="path">Path</option>
           <option value="header">Header</option>
           <option value="body">Body</option>
-        </select>
+        </Select>
         {inp.required && (
-          <span className={`text-[9px] font-medium ${isMissing ? 'text-amber-500' : 'text-red-400'}`}>
+          <span className={cn('text-2xs font-medium', isMissing ? 'text-warning' : 'text-danger')}>
             {isMissing ? '⚠ required' : 'required'}
           </span>
         )}
         {inp.source === "static" && (
-          <span className="text-[8px] px-1 py-0.5 rounded" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>static</span>
+          <Tag className="text-2xs">static</Tag>
         )}
       </div>
-      {inp.description && <p className="text-[9px] mb-1" style={{ color: "var(--theme-muted-text)" }}>{inp.description}</p>}
-      <div style={isMissing ? { outline: '1.5px solid #F59E0B', borderRadius: '0.5rem' } : undefined}>
+      {inp.description && <p className="mb-1 text-xs text-fg-muted">{inp.description}</p>}
+      <div className={isMissing ? 'rounded-md outline-solid outline-[1.5px] outline-warning' : undefined}>
         <VariableInput value={value} onChange={(v) => onChange(inp.name, v)}
           placeholder={inp.source === "static" ? inp.default_value || "Static value" : `e.g. {{task.id}} or static value`} />
       </div>
@@ -724,9 +742,8 @@ function InputField({ inp, value, onChange, onLocationChange }: {
             input={inp}
             value={value}
             onChange={(nextValue) => onChange(inp.name, nextValue)}
-            inputClassName="!h-8 !text-[11px] font-mono"
-            selectClassName="w-full rounded-lg border px-3 py-2 text-[11px]"
-            selectStyle={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+            inputClassName={cn(CONTROL_HEIGHT.sm, "font-mono text-xs")}
+            selectClassName={cn(controlClass, CONTROL_HEIGHT.sm, "flex items-center gap-2 px-2.5 text-xs")}
             checkboxLabel="Set static boolean value"
           />
         </div>
@@ -740,7 +757,7 @@ function InputField({ inp, value, onChange, onLocationChange }: {
  * output on this node (custom_outputs: { name, path } relative to the
  * response); downstream steps can also pick any field directly.
  */
-function ResponseModelSection({ config, prefix, onUpdate }: { config: Record<string, any>; prefix: string; onUpdate: (key: string, value: any) => void }) {
+function ResponseModelSection({ config, prefix, onUpdate, loadSample }: { config: Record<string, any>; prefix: string; onUpdate: (key: string, value: any) => void; loadSample?: React.ReactNode }) {
   const [open, setOpen] = useState(true)
   const model = normalizeResponseSchema(config._ref_response_schema)
   const customOutputs = (Array.isArray(config.custom_outputs) ? config.custom_outputs : []) as { name: string; path: string }[]
@@ -748,16 +765,17 @@ function ResponseModelSection({ config, prefix, onUpdate }: { config: Record<str
   return (
     <div>
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-        className="flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--theme-muted-text)" }}>
-        <ChevronDown size={10} className={open ? '' : '-rotate-90'} />
+        className="mb-1.5 flex w-full items-center gap-1.5 text-xs font-medium text-fg-muted hover:text-fg">
+        <ChevronDown size={12} className={open ? '' : '-rotate-90'} />
         Response model
-        <span className="text-[10px] font-normal normal-case ml-auto">{describeModel(model)}</span>
+        <span className="ml-auto font-normal">{describeModel(model)}</span>
       </button>
       {open && (model ? (
         <div className="space-y-1.5">
-          <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
-            Later steps pick these values from the <span className="font-medium">Insert data</span> button on any field. Use + to also save one as a named output.
+          <p className="text-xs text-fg-muted">
+            Later steps pick these values from the <span className="font-medium">Insert data</span> button on any field (lists drill into their items, e.g. <code>contents[] › key</code>). Use + to also save one as a named output.
           </p>
+          {loadSample}
           <ResponseModelTree
             schema={model}
             rootPath={rootPath}
@@ -770,16 +788,20 @@ function ResponseModelSection({ config, prefix, onUpdate }: { config: Record<str
           />
         </div>
       ) : (
-        <p className="text-[10px] rounded-lg px-2.5 py-2" style={{ color: "var(--theme-muted-text)", backgroundColor: "var(--theme-surface)" }}>
-          No response model yet. Test the reference in Integrations to capture one — then its fields appear here and in the data picker.
-        </p>
+        <Card variant="inset" padding="sm" className="space-y-1.5">
+          <p className="text-xs text-fg-muted">
+            No response model yet. Load a sample (one test call) to capture one — then its fields appear here and in the data picker.
+          </p>
+          {loadSample}
+        </Card>
       ))}
       {customOutputs.length > 0 && (
         <div className="mt-2 space-y-1">
-          <p className="text-[10px] font-medium" style={{ color: "var(--theme-muted-text)" }}>Outputs added from the model</p>
+          <p className="text-xs font-medium text-fg-muted">Outputs added from the model</p>
           {customOutputs.map((out, index) => (
-            <div key={`${out.name}-${index}`} className="flex items-center gap-1.5 rounded border px-2 py-1" style={{ borderColor: "var(--theme-surface-border)" }}>
-              <input
+            <div key={`${out.name}-${index}`} className="flex items-center gap-1.5 rounded-md bg-subtle px-2 py-1">
+              <Input
+                size="sm"
                 value={out.name}
                 aria-label="Output variable name"
                 onChange={(e) => {
@@ -787,13 +809,10 @@ function ResponseModelSection({ config, prefix, onUpdate }: { config: Record<str
                   next[index] = { ...out, name: e.target.value.replace(/[^a-zA-Z0-9_]/g, '_') }
                   onUpdate('custom_outputs', next)
                 }}
-                className="w-28 rounded border px-1 py-0.5 font-mono text-[11px]"
-                style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+                className="w-28 shrink-0 font-mono text-xs"
               />
-              <span className="min-w-0 flex-1 truncate font-mono text-[10px]" style={{ color: "var(--theme-muted-text)" }}>= response{out.path ? `.${out.path}` : ''}</span>
-              <button type="button" aria-label={`Remove ${out.name}`} onClick={() => onUpdate('custom_outputs', customOutputs.filter((_, i) => i !== index))} className="p-0.5 hover:opacity-70">
-                <X size={11} style={{ color: "var(--theme-muted-text)" }} />
-              </button>
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-fg-muted">= response{out.path ? `.${out.path}` : ''}</span>
+              <IconButton type="button" label={`Remove ${out.name}`} icon={<X />} size="sm" onClick={() => onUpdate('custom_outputs', customOutputs.filter((_, i) => i !== index))} />
             </div>
           ))}
         </div>

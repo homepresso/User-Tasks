@@ -59,6 +59,8 @@ async function loadTask(ctx: ServiceContext, taskId: string): Promise<EffortTask
     .maybeSingle()
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Task not found')
+  const { requireTaskReach } = await import('./tasks')
+  await requireTaskReach(ctx, taskId)
   return data as EffortTask
 }
 

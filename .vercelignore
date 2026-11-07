@@ -1,0 +1,11 @@
+# Remote builds install and build from source; never upload local outputs or secrets.
+.next
+.vercel
+node_modules
+**/node_modules
+.env*
+!.env.example
+backups
+coverage
+*.log
+.claude

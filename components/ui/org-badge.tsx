@@ -22,12 +22,12 @@ export function OrgBadge({ name, color, slug, size = 'sm' }: OrgBadgeProps) {
       className={cn(
         'inline-flex items-center gap-1.5 rounded-md',
         'border border-gray-200 dark:border-gray-700',
-        size === 'sm' ? 'px-1.5 py-0.5 text-[10px]'
+        size === 'sm' ? 'px-1.5 py-0.5 text-2xs'
           : 'px-2 py-1 text-xs',
       )}
     >
       <span
-        className="w-4 h-4 rounded-sm flex items-center justify-center text-[8px] font-bold text-white"
+        className="w-4 h-4 rounded-sm flex items-center justify-center text-2xs font-bold text-white"
         style={{ backgroundColor: color ?? '#5F6B7A' }}
       >
         {initials}

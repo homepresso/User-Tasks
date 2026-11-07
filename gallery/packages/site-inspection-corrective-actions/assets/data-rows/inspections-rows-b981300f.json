@@ -1,0 +1,137 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+  "asset": {
+    "id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+    "name": "Inspections rows",
+    "rows": [
+      {
+        "id": "339401bb-9b37-5016-92e9-69492deb61d1",
+        "data": {
+          "inspection_ref": "INS-20260902-7C1A",
+          "inspected_on": "2026-09-02",
+          "site_code": "WLG-HQ",
+          "site_name": "Wellington head office",
+          "inspection_type": "Routine",
+          "inspector": "Taylor Inspector",
+          "items_checked": 8,
+          "fail_count": 0,
+          "high_fails": 0,
+          "pass_rate": 100,
+          "site_condition": 5,
+          "outcome_band": "Compliant",
+          "sla_days": 0,
+          "photos": 0,
+          "observations": "Good housekeeping throughout.",
+          "status": "Compliant"
+        }
+      },
+      {
+        "id": "6f62e487-beb1-5ce7-9e6d-443424867b37",
+        "data": {
+          "inspection_ref": "INS-20260924-41DE",
+          "inspected_on": "2026-09-24",
+          "site_code": "AKL-DC",
+          "site_name": "Auckland distribution centre",
+          "inspection_type": "Routine",
+          "inspector": "Taylor Inspector",
+          "items_checked": 8,
+          "fail_count": 3,
+          "high_fails": 1,
+          "pass_rate": 63,
+          "site_condition": 3,
+          "outcome_band": "Major actions",
+          "sla_days": 3,
+          "photos": 2,
+          "observations": "See the corrective actions.",
+          "status": "Closed"
+        }
+      },
+      {
+        "id": "db1f465b-0d5b-5962-ac02-f535e66ffd26",
+        "data": {
+          "inspection_ref": "INS-20261002-9B20",
+          "inspected_on": "2026-10-02",
+          "site_code": "WLG-HQ",
+          "site_name": "Wellington head office",
+          "inspection_type": "Routine",
+          "inspector": "Taylor Inspector",
+          "items_checked": 8,
+          "fail_count": 0,
+          "high_fails": 0,
+          "pass_rate": 100,
+          "site_condition": 4,
+          "outcome_band": "Compliant",
+          "sla_days": 0,
+          "photos": 0,
+          "observations": "Good housekeeping throughout.",
+          "status": "Compliant"
+        }
+      },
+      {
+        "id": "4f62eb99-e0fd-5835-b83a-e881b9d2d5bf",
+        "data": {
+          "inspection_ref": "INS-20261009-0F3C",
+          "inspected_on": "2026-10-09",
+          "site_code": "CHC-WS",
+          "site_name": "Christchurch workshop",
+          "inspection_type": "Follow-up",
+          "inspector": "Taylor Inspector",
+          "items_checked": 8,
+          "fail_count": 2,
+          "high_fails": 0,
+          "pass_rate": 75,
+          "site_condition": 3,
+          "outcome_band": "Minor actions",
+          "sla_days": 14,
+          "photos": 2,
+          "observations": "See the corrective actions.",
+          "status": "Actions open"
+        }
+      },
+      {
+        "id": "aa677e65-2eec-5577-81d1-172003f8a41f",
+        "data": {
+          "inspection_ref": "INS-20261015-D2A8",
+          "inspected_on": "2026-10-15",
+          "site_code": "HAM-RT",
+          "site_name": "Hamilton retail store",
+          "inspection_type": "Routine",
+          "inspector": "Taylor Inspector",
+          "items_checked": 8,
+          "fail_count": 0,
+          "high_fails": 0,
+          "pass_rate": 100,
+          "site_condition": 4,
+          "outcome_band": "Compliant",
+          "sla_days": 0,
+          "photos": 0,
+          "observations": "Good housekeeping throughout.",
+          "status": "Compliant"
+        }
+      },
+      {
+        "id": "56f7aa72-1939-56f2-addb-3e6ce1ff2702",
+        "data": {
+          "inspection_ref": "INS-20261020-5E77",
+          "inspected_on": "2026-10-20",
+          "site_code": "DUD-LB",
+          "site_name": "Dunedin laboratory",
+          "inspection_type": "Incident",
+          "inspector": "Taylor Inspector",
+          "items_checked": 8,
+          "fail_count": 1,
+          "high_fails": 0,
+          "pass_rate": 86,
+          "site_condition": 4,
+          "outcome_band": "Minor actions",
+          "sla_days": 14,
+          "photos": 2,
+          "observations": "See the corrective actions.",
+          "status": "Actions open"
+        }
+      }
+    ]
+  }
+}

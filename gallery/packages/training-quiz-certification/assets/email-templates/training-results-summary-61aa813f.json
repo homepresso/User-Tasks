@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "61aa813f-41cc-5046-8a04-c3d4f2d5f509",
+  "asset": {
+    "id": "61aa813f-41cc-5046-8a04-c3d4f2d5f509",
+    "name": "Training results summary",
+    "description": "The summary someone asks for from the Training results page.",
+    "subject": "Training results: {{pass_rate}}% pass rate",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#13202B\">\n  <h2 style=\"margin:0 0 12px\">Training results</h2>\n  <p style=\"font-size:30px;margin:8px 0\"><strong>{{pass_rate}}% passed</strong> · average score {{avg_score}}%</p>\n  <p>{{result_count}} quizzes: {{passes}} passed, {{retakes}} retake, {{fails}} need a session.</p>\n  <p>Certificates expiring in the next {{form.days_ahead}} days: {{expiring_count}} ({{expiring_names}}). {{=IF(form.remind_learners, \"Each of them has been sent a reminder.\", \"No reminders were sent.\")}}</p>\n</div>",
+    "text_body": "Training results\n{{pass_rate}}% passed · average score {{avg_score}}%\n{{result_count}} quizzes: {{passes}} passed, {{retakes}} retake, {{fails}} need a session.\nCertificates expiring in the next {{form.days_ahead}} days: {{expiring_count}} ({{expiring_names}}).",
+    "is_default": false
+  }
+}

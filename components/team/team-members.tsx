@@ -4,9 +4,11 @@ import { useTeamMembers } from '@/hooks/use-team-members'
 import { UserPicker } from './user-picker'
 import { RoleBadge } from './role-badge'
 import { addTeamMember, removeTeamMember } from '@/app/actions/teams'
-import { getInitials } from '@/lib/utils'
 import { X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { Avatar } from '@/components/ui/avatar'
+import { IconButton } from '@/components/ui/icon-button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface TeamMembersProps {
   teamId: string
@@ -32,42 +34,36 @@ export function TeamMembers({ teamId, canManage }: TeamMembersProps) {
   const memberIds = members?.map(m => m.user.id) ?? []
 
   return (
-    <div>
-      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Members</h4>
+    <div className="space-y-3">
       {canManage && (
-        <div className="mb-3">
-          <UserPicker onSelect={handleAdd} excludeIds={memberIds} placeholder="Add member..." />
-        </div>
+        <UserPicker onSelect={handleAdd} excludeIds={memberIds} placeholder="Add member…" />
       )}
       {isLoading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <div className="space-y-3" aria-busy="true" aria-label="Loading members">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-6 w-2/3" />)}
+        </div>
       ) : !members?.length ? (
-        <p className="text-sm text-gray-500">No members yet.</p>
+        <p className="text-ui text-fg-muted">No members yet.</p>
       ) : (
-        <div className="space-y-2">
+        <ul className="divide-y divide-border-subtle">
           {members.map(m => (
-            <div key={m.id} className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold">
-                  {getInitials(m.user.display_name)}
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{m.user.display_name}</p>
-                  <p className="text-xs text-gray-500">{m.user.email}</p>
+            <li key={m.id} className="flex items-center justify-between gap-3 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <Avatar name={m.user.display_name} size="md" />
+                <div className="min-w-0">
+                  <p className="truncate text-ui font-medium text-fg">{m.user.display_name}</p>
+                  <p className="truncate text-xs text-fg-muted">{m.user.email}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1">
                 <RoleBadge role={m.role ?? 'member'} />
                 {canManage && (
-                  <button onClick={() => handleRemove(m.user.id)}
-                    className="text-gray-400 hover:text-red-500 p-1">
-                    <X size={14} />
-                  </button>
+                  <IconButton size="sm" label={`Remove ${m.user.display_name}`} icon={<X />} onClick={() => handleRemove(m.user.id)} />
                 )}
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   )

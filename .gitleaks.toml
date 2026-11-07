@@ -32,4 +32,18 @@ regexes = [
   '''S3_SECRET = env\.E2E_S3_SECRET_KEY''',
   # Azure built-in role definition id (public, the same in every tenant).
   '''keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6''',
+  # Fake keys and tokens in unit tests (verified 2026-11-07).
+  '''-----BEGIN PRIVATE KEY-----\\nFAKE\\n''',
+  '''-----BEGIN (OPENSSH )?PRIVATE KEY-----FAKE''',
+  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.c2lnbmF0dXJl''',
+  '''header\.eyJzdWIiOiJ1MSIsImV4cCI6NDEwMjQ0NDgwMH0\.sig''',
+  '''(sk-stability|xi|dg|aai)-test-key-[0-9]+''',
+  '''apiKey: 'test-key-123456''',
+  '''key: '0123456789abcdef''',
+  '''key-12345678''',
+  '''whsec-test-0123456789''',
+  '''Bearer abcdefghijklmnopq''',
+  '''AKIAABCDEFGHIJKLMNOP''',
+  # The crypto-ids gallery package's sample JWT (sub user-42, signed with its documented example secret).
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiJ1c2VyLTQyIiwicm9sZSI6ImFwcHJvdmVyIiwiaXNzIjoidXNlcnRhc2tzIiwiYXVkIjoiYXBwcm92YWxzIn0''',
 ]

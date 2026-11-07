@@ -7,6 +7,7 @@ import {
   referenceToSource,
   type ReportSource,
 } from '@/lib/report-sources'
+import { scopeReportSourceToWorkflow, workflowIdOfSourceInputs } from '@/lib/report-workflow-variables'
 
 const STATIC_SOURCE_KEYS = new Set(REPORT_SOURCES.map((source) => source.key))
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -67,13 +68,24 @@ export async function listTenantReportSources(supabase: SupabaseClient, tenantId
   return [...REPORT_SOURCES, ...dynamicTableSources, ...referenceSources]
 }
 
+/**
+ * A report source by key. `sourceInputs.workflow_id` scopes a workflow-scoped
+ * source (Workflow runs, Tasks) to that workflow and adds its variable
+ * columns; an unknown workflow (or one of another workspace) is an error.
+ */
 export async function resolveTenantReportSource(
   supabase: SupabaseClient,
   tenantId: string,
   sourceKey: string,
+  sourceInputs?: Record<string, unknown> | null,
 ): Promise<ReportSource | undefined> {
   if (STATIC_SOURCE_KEYS.has(sourceKey)) {
-    return REPORT_SOURCES.find((source) => source.key === sourceKey)
+    const source = REPORT_SOURCES.find((candidate) => candidate.key === sourceKey)
+    const workflowId = source?.workflowScoped ? workflowIdOfSourceInputs(sourceInputs) : null
+    if (!source || !workflowId) return source
+    const scoped = await scopeReportSourceToWorkflow(supabase, tenantId, source, workflowId)
+    if (!scoped) throw new Error('Workflow not found for this report')
+    return scoped
   }
 
   if (isReferenceReportSourceKey(sourceKey)) {

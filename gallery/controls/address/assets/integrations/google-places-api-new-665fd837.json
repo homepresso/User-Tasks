@@ -1,0 +1,26 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "665fd837-6f7d-46b8-a4fe-697b144b7c88",
+  "asset": {
+    "id": "665fd837-6f7d-46b8-a4fe-697b144b7c88",
+    "name": "Google Places API (New)",
+    "type": "rest_api",
+    "description": "Google Maps Platform Places API (New). The API key is stored here, on the server: forms never see it.",
+    "config": {
+      "base_url": "https://places.googleapis.com",
+      "auth_type": "api_key",
+      "auth_config": {
+        "key_name": "X-Goog-Api-Key",
+        "key_value": "__SECRET__",
+        "add_to": "header"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "maps",
+      "addresses"
+    ]
+  }
+}

@@ -46,6 +46,28 @@ export async function uploadFileFlags(client: UsertasksClient, context: UploadCo
   return out
 }
 
+/** `usertasks tasks attach <task-id> <path> [--name] [--type] [--description]`: a file on the task's Attachments tab. */
+export function registerTaskAttachCommand(program: Command, runtime: Runtime) {
+  const tasks = program.commands.find((command) => command.name() === 'tasks') ?? program.command('tasks')
+  tasks
+    .command('attach <taskId> <path>')
+    .description('Attach a file to a task (its Attachments tab); prints the attachment')
+    .option('--name <name>', 'Display name (default: the file name)')
+    .option('--type <type>', 'Type, e.g. Contract, Invoice, Receipt, Evidence, Image, Other')
+    .option('--description <text>', 'Description')
+    .addHelpText('after', '\nAPI: POST /api/v1/tasks/{id}/attachments (+ PUT to storage and /complete for large files)')
+    .action(async (taskId: string, path: string, opts: { name?: string; type?: string; description?: string }, self: Command) => {
+      let bytes: Uint8Array
+      try {
+        bytes = new Uint8Array(readFileSync(path))
+      } catch (error) {
+        throw new CliUsageError(`Cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+      const attachment = await runtime.client(self).uploadTaskAttachment(taskId, { name: basename(path), bytes }, opts)
+      runtime.print(self, attachment)
+    })
+}
+
 export function registerFileCommands(program: Command, runtime: Runtime) {
   const files = program.commands.find((command) => command.name() === 'files') ?? program.command('files').description('Uploads for Attachments fields')
   files

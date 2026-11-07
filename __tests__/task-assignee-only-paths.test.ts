@@ -177,6 +177,8 @@ describe('server actions (task screen)', () => {
     // The resume carries who acted for whom.
     expect(vi.mocked(enqueueResume).mock.calls[0][0].variables).toMatchObject({
       actioned_by: 'mia', actioned_by_name: 'Mia Manager', actioned_on_behalf_of: 'alice', actioned_on_behalf_of_name: 'Alice Report', on_behalf_note: 'Alice is on leave',
+      // Who completed it and when: the person who acted (server-set).
+      completed_by: 'mia', completed_by_name: 'Mia Manager', completed_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     })
   })
 

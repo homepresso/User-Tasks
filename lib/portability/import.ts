@@ -8,8 +8,12 @@ import { applyConnectorManifest } from '@/lib/services/connectors'
 import { applyEmailTemplateManifest } from '@/lib/services/email-templates'
 import { applyLogDestinationManifest } from '@/lib/services/log-destinations'
 import { applyFormManifest, applyFormThemeManifest } from '@/lib/services/forms'
+import { importFormControl } from '@/lib/services/form-controls'
+import { createHash } from 'node:crypto'
 import { serviceRoleClient } from '@/lib/services/_shared'
+import { isActionManifest } from '@/lib/custom-actions/manifest'
 import { isRetiredFormAsset, restoreFormHeaderImage, stripWorkflowFormPins } from './forms'
+import { unpinAgentVersions } from '@/lib/agents/pins'
 import {
   createEmptyAssetIdMaps,
   remapKnownIds,
@@ -109,6 +113,7 @@ export async function importManifest(params: ImportManifestParams) {
   if (Array.isArray(manifest.email_templates)) created.email_templates = []
   if (Array.isArray(manifest.connectors)) created.connectors = []
   if (Array.isArray(manifest.log_destinations)) created.log_destinations = []
+  if (Array.isArray(manifest.form_controls)) created.form_controls = []
   if (Array.isArray(manifest.form_themes)) created.form_themes = []
   // A `forms` section in the retired shape (no field list) is skipped below.
   const retiredForms = (Array.isArray(manifest.forms) ? manifest.forms : []).filter(isRetiredFormAsset)
@@ -168,10 +173,13 @@ export async function importManifest(params: ImportManifestParams) {
     existing: any | null
     payload: Record<string, any>
     failureMessage: string
+    /** Tables without client write grants pass a service-role client. */
+    client?: any
   }): Promise<any> => {
+    const db = args.client ?? supabase
     if (args.existing) {
       const payload = resolveSecretPlaceholders(args.payload, args.existing)
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (db as any)
         .from(args.table)
         .update(payload)
         .eq('id', args.existing.id)
@@ -183,7 +191,7 @@ export async function importManifest(params: ImportManifestParams) {
       return data
     }
     const payload = mode === 'upsert' ? resolveSecretPlaceholders(args.payload) : args.payload
-    const { data, error } = await (supabase as any).from(args.table).insert(payload).select('*').single()
+    const { data, error } = await (db as any).from(args.table).insert(payload).select('*').single()
     if (error || !data) throw new Error(error?.message ?? args.failureMessage)
     return data
   }
@@ -205,10 +213,12 @@ export async function importManifest(params: ImportManifestParams) {
     // service role, pinned to the tenant (versions cascade with their form).
     const createdForms = (created.forms ?? []).map((item: any) => item.id)
     const createdThemes = (created.form_themes ?? []).map((item: any) => item.id)
-    if (createdForms.length || createdThemes.length) {
+    const createdControls = (created.form_controls ?? []).map((item: any) => item.id)
+    if (createdForms.length || createdThemes.length || createdControls.length) {
       const admin = await serviceRoleClient(serviceContext).catch(() => supabase)
       if (createdForms.length) await (admin as any).from('forms').delete().eq('tenant_id', tenantId).in('id', createdForms)
       if (createdThemes.length) await (admin as any).from('form_themes').delete().eq('tenant_id', tenantId).in('id', createdThemes)
+      if (createdControls.length) await (admin as any).from('form_controls').delete().eq('tenant_id', tenantId).in('id', createdControls)
     }
 
     await deleteByIds('reports', created.reports.map((item: any) => item.id))
@@ -216,7 +226,11 @@ export async function importManifest(params: ImportManifestParams) {
     await deleteByIds('agents', created.agents.map((item: any) => item.id))
     await deleteByIds('integration_object_sources', created.objects.flatMap((item: any) => item.source_ids ?? []))
     await deleteByIds('integration_objects', created.objects.map((item: any) => item.id))
-    await deleteByIds('custom_workflow_activities', created.workflow_activities.map((item: any) => item.id))
+    // Custom actions have no client write grants: roll back with the service role.
+    if (created.workflow_activities.length) {
+      const admin = await serviceRoleClient(serviceContext).catch(() => supabase)
+      await (admin as any).from('custom_workflow_activities').delete().eq('tenant_id', tenantId).in('id', created.workflow_activities.map((item: any) => item.id))
+    }
     await deleteByIds('mcp_servers', (created.mcp_servers ?? []).map((item: any) => item.id))
     // Roles reference retention policies, so they roll back first.
     await deleteByIds('roles', (created.roles ?? []).map((item: any) => item.id))
@@ -701,15 +715,23 @@ export async function importManifest(params: ImportManifestParams) {
       })
     }
 
+    const activityDb = (manifest.workflow_activities ?? []).length ? await serviceRoleClient(serviceContext).catch(() => supabase) : supabase
     for (const activity of manifest.workflow_activities ?? []) {
       await guardAsset('workflow_activity', activity?.id, async () => {
         const existing = await findExistingForUpsert('custom_workflow_activities', 'workflow_activity', activity.id)
+        const sourceCode = String(activity.source_code ?? '')
+        const moduleRuntime = activity.runtime === 'module' || (isActionManifest(activity.manifest) && /export\s+default/.test(sourceCode))
+        const sha256 = createHash('sha256').update(sourceCode.trim()).digest('hex')
+        if (typeof activity.sha256 === 'string' && activity.sha256 && activity.sha256 !== sha256 && activity.sha256 !== createHash('sha256').update(sourceCode).digest('hex')) {
+          throw new Error(`Workflow action "${activity.name}": the source code does not match its recorded SHA-256`)
+        }
         const data = await writeAssetRow({
           table: 'custom_workflow_activities',
           mapName: 'workflow_activity',
           sourceId: activity.id,
           existing,
           failureMessage: 'Failed to import workflow activity',
+          client: activityDb,
           payload: {
             tenant_id: tenantId,
             name: activity.name,
@@ -720,15 +742,30 @@ export async function importManifest(params: ImportManifestParams) {
             version: activity.version ?? '1.0.0',
             icon_name: activity.icon_name ?? 'Puzzle',
             color: activity.color ?? '#0EA5E9',
-            source_code: activity.source_code ?? '',
+            source_code: sourceCode.trim(),
             manifest: cloneJson(activity.manifest ?? { inputs: [], outputs: [] }),
             demo_inputs: cloneJson(activity.demo_inputs ?? {}),
             tags: activity.tags ?? [],
             source_filename: activity.source_filename ?? null,
+            runtime: moduleRuntime ? 'module' : 'legacy',
+            sha256,
+            origin: 'import',
+            // Grants, secrets and the kill switch are workspace decisions: never imported.
+            ...(existing ? {} : { enabled: activity.enabled !== false }),
             created_by: actingUserId ?? null,
             updated_by: actingUserId ?? null,
           },
         })
+        // Immutable version record (no-op when that version already holds these bytes).
+        const { data: versionRow } = await (activityDb as any).from('custom_workflow_activity_versions').select('sha256')
+          .eq('tenant_id', tenantId).eq('activity_id', data.id).eq('version', data.version).maybeSingle()
+        if (!versionRow) {
+          await (activityDb as any).from('custom_workflow_activity_versions').insert({
+            tenant_id: tenantId, activity_id: data.id, version: data.version, runtime: data.runtime ?? (moduleRuntime ? 'module' : 'legacy'),
+            manifest: data.manifest, source_code: data.source_code, sha256, size_bytes: Buffer.byteLength(data.source_code ?? '', 'utf8'),
+            origin: 'import', created_by: actingUserId ?? null,
+          })
+        }
         if (!existing) {
           idMaps.workflow_activity[activity.id] = data.id
           onAssetWritten?.('workflow_activity', activity.id, data.id)
@@ -737,6 +774,9 @@ export async function importManifest(params: ImportManifestParams) {
       })
     }
 
+    // Reports scoped to a workflow (source_inputs.workflow_id) are imported before
+    // the workflows: their config is remapped again once the workflows exist.
+    const writtenReports: Array<{ source: unknown; localId: string; config: unknown }> = []
     for (const report of manifest.reports ?? []) {
       await guardAsset('report', report?.id, async () => {
         // Normalize first (aliases `source` → `data_source`), THEN
@@ -752,7 +792,8 @@ export async function importManifest(params: ImportManifestParams) {
           const reportSource = report.source ?? report.data_source ?? report.dataSource
           if (reportSource) rawConfig.data_source = reportSource
         }
-        const normalizedConfig = remapKnownIds(cloneJson(normalizeScaffoldReportConfig(rawConfig)), idMaps)
+        const sourceConfig = normalizeScaffoldReportConfig(rawConfig)
+        const normalizedConfig = remapKnownIds(cloneJson(sourceConfig), idMaps)
         const existing = await findExistingForUpsert('reports', 'report', report.id)
         const data = await writeAssetRow({
           table: 'reports',
@@ -775,13 +816,27 @@ export async function importManifest(params: ImportManifestParams) {
           onAssetWritten?.('report', report.id, data.id)
           created.reports.push(data)
         }
+        writtenReports.push({ source: sourceConfig, localId: String(data.id), config: normalizedConfig })
       })
     }
 
     for (const agent of manifest.agents ?? []) {
       await guardAsset('agent', agent?.id, async () => {
-        const tools = Array.isArray(agent.tools) ? agent.tools.map((toolId: string) => idMaps.reference[toolId] ?? toolId) : []
+        // Tools are objects ({ type, referenceId | mcpServerId, ... }); bare reference ids are legacy.
+        const tools = Array.isArray(agent.tools)
+          ? agent.tools.map((tool: unknown) => (typeof tool === 'string' ? (idMaps.reference[tool] ?? tool) : remapKnownIds(cloneJson(tool), idMaps)))
+          : []
         const existing = await findExistingForUpsert('agents', 'agent', agent.id)
+        const outputConfig = remapKnownIds(cloneJson(agent.output_config ?? { variables: [] }), idMaps)
+        // Files exported before per-table data grants (20261124000000) carry no
+        // data_access, which meant "all tables": keep that meaning (flagged
+        // legacy, the designer suggests narrowing) — unless the agent being
+        // updated already has its own grants.
+        if (!outputConfig || typeof outputConfig !== 'object' || !('data_access' in outputConfig)) {
+          const existingAccess = existing?.output_config?.data_access
+          outputConfig.data_access = existingAccess ?? { mode: 'all', table_ids: [], grants: [], legacy: true }
+          if (!existingAccess) importWarnings.push({ asset_type: 'agent', source_id: String(agent.id ?? ''), warning: `Agent "${agent.name}" comes from a file without per-table data grants, so it keeps access to all data tables (as before). Narrow it to the tables it needs on the agent's Tools tab.` })
+        }
         const data = await writeAssetRow({
           table: 'agents',
           mapName: 'agent',
@@ -792,14 +847,17 @@ export async function importManifest(params: ImportManifestParams) {
             tenant_id: tenantId,
             name: agent.name,
             description: agent.description ?? null,
-            model: agent.model ?? 'gpt-4o',
+            model: agent.model ?? '',
             system_prompt: agent.system_prompt ?? '',
             role: agent.role ?? '',
             task: agent.task ?? '',
             boundaries: agent.boundaries ?? '',
             tools,
-            output_config: remapKnownIds(cloneJson(agent.output_config ?? { variables: [] }), idMaps),
+            output_config: outputConfig,
             integration_id: agent.integration_id ? (idMaps.integration[agent.integration_id] ?? null) : null,
+            ...(agent.temperature !== undefined ? { temperature: agent.temperature } : {}),
+            ...(agent.max_tokens !== undefined ? { max_tokens: agent.max_tokens } : {}),
+            ...(agent.max_iterations !== undefined ? { max_iterations: agent.max_iterations } : {}),
             is_active: agent.is_active ?? true,
           },
         })
@@ -815,6 +873,21 @@ export async function importManifest(params: ImportManifestParams) {
     // theme_id remaps), then workflows (nodes link forms: form_id remaps).
     // Written through the forms service: validation, versions (a content
     // change is a new version here; the number never travels).
+    // Custom form controls first (form fields name them by tag): identity is
+    // the tag; versions the workspace lacks are added (checksums verified).
+    for (const control of manifest.form_controls ?? []) {
+      await guardAsset('form_control', control?.id, async () => {
+        const result = await importFormControl(serviceContext, { form_control: cloneJson(control) }, { source: 'import' })
+        if (control?.id) idMaps.form_control[control.id] = result.control.id
+        if (result.outcome === 'created') {
+          onAssetWritten?.('form_control', control.id, result.control.id)
+          created.form_controls.push({ id: result.control.id })
+        } else {
+          updatedCounts.form_control = (updatedCounts.form_control ?? 0) + 1
+        }
+      })
+    }
+
     for (const theme of manifest.form_themes ?? []) {
       await guardAsset('form_theme', theme?.id, async () => {
         const existing = await findExistingForUpsert('form_themes', 'form_theme', theme.id)
@@ -872,7 +945,9 @@ export async function importManifest(params: ImportManifestParams) {
     for (const workflow of orderWorkflowsByDependencies<any>(manifest.workflows ?? [])) {
       await guardAsset('workflow', workflow?.id, async () => {
         // Drafts follow the latest form version: pins (published snapshots only) are dropped.
-        const normalizedWorkflow = stripWorkflowFormPins(normalizeScaffoldWorkflow(workflow))
+        const stripped = stripWorkflowFormPins(normalizeScaffoldWorkflow(workflow))
+        // Agent version pins too (published snapshots only; imported agents get their own versions — pinned again at the next publish).
+        const normalizedWorkflow = { ...stripped, nodes: unpinAgentVersions(stripped.nodes) }
         const nodes = remapKnownIds(cloneJson(normalizedWorkflow.nodes ?? []), idMaps)
         const edges = remapKnownIds(cloneJson(normalizedWorkflow.edges ?? []), idMaps)
         const triggerConfig: Record<string, any> = remapKnownIds(cloneJson(normalizedWorkflow.trigger_config ?? {}), idMaps)
@@ -914,6 +989,13 @@ export async function importManifest(params: ImportManifestParams) {
       const nodes = remapKnownIds(cloneJson(written.source.nodes ?? []), idMaps)
       if (JSON.stringify(nodes) === JSON.stringify(written.nodes)) continue
       const { error } = await (supabase as any).from('workflows').update({ nodes }).eq('id', written.localId).eq('tenant_id', tenantId)
+      if (error) throw new Error(error.message)
+    }
+    // Workflow-scoped reports of this manifest: point them at the workflows just written.
+    for (const written of writtenReports) {
+      const config = remapKnownIds(cloneJson(written.source), idMaps)
+      if (JSON.stringify(config) === JSON.stringify(written.config)) continue
+      const { error } = await (supabase as any).from('reports').update({ config }).eq('id', written.localId).eq('tenant_id', tenantId)
       if (error) throw new Error(error.message)
     }
     // Forms whose buttons start workflows of this manifest: their buttons, now that the workflows exist.

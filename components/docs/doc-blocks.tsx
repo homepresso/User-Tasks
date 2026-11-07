@@ -1,11 +1,13 @@
 import Image from 'next/image'
-import { AlertTriangle, Info, Lightbulb, Link2 } from 'lucide-react'
+import { Link2 } from 'lucide-react'
 import type { DocBlock, DocListItem } from '@/lib/docs/markdown'
 import { SCREENSHOTS } from '@/lib/docs/screenshots'
 import { getTopology } from '@/lib/topologies'
 import { TopologyDiagram } from '@/components/topology/topology-diagram'
 import type { ScreenshotName } from '@/lib/docs/screenshot-names'
-import { CopyButton } from './copy-button'
+import { InlineNotice } from '@/components/ui/inline-notice'
+import { ScreenshotFrame } from '@/components/marketing/screenshot-frame'
+import { CopyButton, LanguageTag } from './copy-button'
 import { Inline } from './inline'
 
 /** Renders expanded docs blocks (lib/docs/render.ts) as the article body. */
@@ -18,23 +20,23 @@ function Block({ block }: { block: DocBlock }) {
     case 'heading': {
       const Tag = `h${block.level}` as 'h2' | 'h3' | 'h4'
       const size = block.level === 2
-        ? 'mt-12 border-t border-[#1B1916]/[0.07] pt-8 text-2xl'
+        ? 'mt-12 border-t border-(color:--mkt-ink)/[0.07] pt-8 text-2xl'
         : block.level === 3 ? 'mt-8 text-lg' : 'mt-6 text-base'
       return (
-        <Tag id={block.id} className={`group scroll-mt-24 font-semibold tracking-tight text-[#1B1916] ${block.level === 2 ? 'font-[family-name:var(--font-display)]' : ''} ${size}`}>
+        <Tag id={block.id} className={`group scroll-mt-24 font-semibold tracking-tight text-(color:--mkt-ink) ${block.level === 2 ? 'font-display' : ''} ${size}`}>
           <Inline text={block.text} />
-          <a href={`#${block.id}`} aria-label="Link to this section" className="ml-2 inline-block align-middle text-[#8A6D45] opacity-0 transition group-hover:opacity-100">
+          <a href={`#${block.id}`} aria-label="Link to this section" className="ml-2 inline-block align-middle text-(color:--mkt-bronze) opacity-0 transition group-hover:opacity-100">
             <Link2 size={14} aria-hidden="true" />
           </a>
         </Tag>
       )
     }
     case 'paragraph':
-      return <p className="mt-4 leading-7 text-[#3D3932]"><Inline text={block.text} /></p>
+      return <p className="mt-4 leading-7 text-(color:--mkt-prose)"><Inline text={block.text} /></p>
     case 'list': {
       const Tag = block.ordered ? 'ol' : 'ul'
       return (
-        <Tag start={block.start} className={`mt-4 space-y-2 pl-6 leading-7 text-[#3D3932] ${block.ordered ? 'list-decimal' : 'list-disc'} marker:text-[#B08A54]`}>
+        <Tag start={block.start} className={`mt-4 space-y-2 pl-6 leading-7 text-(color:--mkt-prose) ${block.ordered ? 'list-decimal' : 'list-disc'} marker:text-(color:--mkt-gold)`}>
           {block.items.map((item, index) => <ListItem key={index} item={item} />)}
         </Tag>
       )
@@ -43,18 +45,18 @@ function Block({ block }: { block: DocBlock }) {
       return <CodeBlock code={block.code} lang={block.lang} title={block.title} />
     case 'table':
       return (
-        <div className="mt-5 overflow-x-auto rounded-xl border border-[#1B1916]/[0.09]">
+        <div className="mt-5 overflow-x-auto rounded-xl border border-(color:--mkt-ink)/[0.09]">
           <table className="w-full border-collapse text-left text-sm">
             {block.head.some(Boolean) && (
-              <thead className="bg-[#F1EDE3]">
-                <tr>{block.head.map((cell, index) => <th key={index} scope="col" className="whitespace-nowrap px-3 py-2 font-semibold text-[#1B1916]"><Inline text={cell} /></th>)}</tr>
+              <thead className="bg-(color:--mkt-sand)">
+                <tr>{block.head.map((cell, index) => <th key={index} scope="col" className="whitespace-nowrap px-3 py-2 font-semibold text-(color:--mkt-ink)"><Inline text={cell} /></th>)}</tr>
               </thead>
             )}
             <tbody>
               {block.rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-t border-[#1B1916]/[0.06] align-top odd:bg-[#FFFFFF]/70 even:bg-[#FAF8F3]">
+                <tr key={rowIndex} className="border-t border-(color:--mkt-ink)/[0.06] align-top odd:bg-(color:--mkt-white)/70 even:bg-(color:--mkt-paper)">
                   {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className={`px-3 py-2 leading-6 text-[#3D3932] ${cellIndex === 0 && !block.head[0] ? 'whitespace-nowrap font-medium text-[#1B1916]' : ''}`}><Inline text={cell} /></td>
+                    <td key={cellIndex} className={`px-3 py-2 leading-6 text-(color:--mkt-prose) ${cellIndex === 0 && !block.head[0] ? 'whitespace-nowrap font-medium text-(color:--mkt-ink)' : ''}`}><Inline text={cell} /></td>
                   ))}
                 </tr>
               ))}
@@ -63,16 +65,17 @@ function Block({ block }: { block: DocBlock }) {
         </div>
       )
     case 'callout': {
-      const tone = {
-        note: { Icon: Info, className: 'border-[#8A6D45]/25 bg-[#B08A54]/[0.07]', label: 'Note' },
-        tip: { Icon: Lightbulb, className: 'border-[#4F7A5B]/25 bg-[#4F7A5B]/[0.07]', label: 'Tip' },
-        warning: { Icon: AlertTriangle, className: 'border-[#B23A2E]/25 bg-[#B23A2E]/[0.06]', label: 'Warning' },
-      }[block.tone]
+      // Callouts use the InlineNotice tones: note = info, tip = success, warning = warning.
+      const tone = ({ note: 'info', tip: 'success', warning: 'warning' } as const)[block.tone]
+      const label = ({ note: 'Note', tip: 'Tip', warning: 'Warning' } as const)[block.tone]
       return (
-        <div className={`mt-5 flex gap-3 rounded-xl border p-4 text-sm leading-6 text-[#3D3932] ${tone.className}`} role="note">
-          <tone.Icon size={18} className="mt-0.5 shrink-0 text-[#8A6D45]" aria-label={tone.label} />
-          <div className="space-y-2">{block.text.split('\n\n').map((para, index) => <p key={index}><Inline text={para} /></p>)}</div>
-        </div>
+        <InlineNotice tone={tone} className="mt-5 px-4 py-3 text-sm leading-6">
+          <div className="space-y-2">
+            {block.text.split('\n\n').map((para, index) => (
+              <p key={index}>{index === 0 && <span className="sr-only">{label}: </span>}<Inline text={para} /></p>
+            ))}
+          </div>
+        </InlineNotice>
       )
     }
     case 'directive':
@@ -100,12 +103,12 @@ function ListItem({ item }: { item: DocListItem }) {
 
 export function CodeBlock({ code, lang, title }: { code: string; lang: string; title?: string }) {
   return (
-    <div className="mt-5 overflow-hidden rounded-xl border border-[#1B1916]/20 bg-[#1C1A16] shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-1.5">
-        <span className="truncate font-mono text-xs text-[#B9B2A3]">{title ?? lang}</span>
-        <CopyButton text={code} />
+    <div className="mt-5 overflow-hidden rounded-lg border border-(color:--mkt-ink)/20 bg-(color:--mkt-code-bg)">
+      <div className="flex items-center justify-between gap-3 border-b border-(color:--mkt-white)/[0.08] py-1.5 pl-4 pr-2">
+        <span className="truncate font-mono text-xs text-(color:--mkt-faint)">{title ?? ''}</span>
+        <div className="flex shrink-0 items-center gap-1"><LanguageTag lang={lang} /><CopyButton text={code} /></div>
       </div>
-      <pre className="overflow-x-auto p-4 text-[13px] leading-6 text-[#EDE8DC]"><code className="font-mono">{code}</code></pre>
+      <pre className="overflow-x-auto p-4 font-mono text-ui leading-6 text-(color:--mkt-code-text)"><code className="font-mono">{code}</code></pre>
     </div>
   )
 }
@@ -114,10 +117,10 @@ export function Screenshot({ name, alt, caption, priority = false }: { name: Scr
   const image = SCREENSHOTS[name]
   return (
     <figure className="mt-6">
-      <div className="overflow-hidden rounded-xl border border-[#1B1916]/10 bg-[#FFFFFF] shadow-[0_8px_30px_rgba(27,25,22,0.08)]">
-        <Image src={image} alt={alt} sizes="(min-width: 1280px) 768px, (min-width: 1024px) 60vw, 100vw" placeholder="blur" priority={priority} className="h-auto w-full" />
-      </div>
-      {caption && <figcaption className="mt-2 text-center text-sm text-[#6E6759]"><Inline text={caption} /></figcaption>}
+      <ScreenshotFrame>
+        <Image src={image} alt={alt} sizes="(min-width: 1280px) 720px, (min-width: 1024px) 60vw, 100vw" placeholder="blur" priority={priority} className="h-auto w-full" />
+      </ScreenshotFrame>
+      {caption && <figcaption className="mt-2 text-center text-sm text-(color:--mkt-muted)"><Inline text={caption} /></figcaption>}
     </figure>
   )
 }

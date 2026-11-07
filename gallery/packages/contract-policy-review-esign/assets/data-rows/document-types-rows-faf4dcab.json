@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "faf4dcab-ed96-5e25-b5e0-6d4acbbe1bed",
+  "asset": {
+    "id": "faf4dcab-ed96-5e25-b5e0-6d4acbbe1bed",
+    "name": "Document types rows",
+    "rows": [
+      {
+        "id": "d58c2d1d-017f-5e98-a1af-5a3058f8ab9e",
+        "data": {
+          "type": "Policy",
+          "type_description": "Rules everyone must follow (security, conduct, expenses).",
+          "route_summary": "Policy: 1 reviewer for a minor change, 2 reviewers and legal review for a major one; signed off by the document owner; reviewed every 12 months.",
+          "sign_off_role": "Policy owner",
+          "retention_years": 7,
+          "review_cycle_months": 12,
+          "active": true
+        }
+      },
+      {
+        "id": "f06f322e-6b89-5b14-9c96-0a3b9d5763db",
+        "data": {
+          "type": "Contract",
+          "type_description": "Template agreements and standard terms (supplier, customer, NDA).",
+          "route_summary": "Contract: 1 reviewer plus legal review for every change (2 reviewers when major); signed off by the contract owner; reviewed every 24 months.",
+          "sign_off_role": "Contract owner",
+          "retention_years": 7,
+          "review_cycle_months": 24,
+          "active": true
+        }
+      },
+      {
+        "id": "7d976f50-8626-5c0c-96d4-abb92e8a8ac1",
+        "data": {
+          "type": "Procedure",
+          "type_description": "How-to steps for a team (onboarding, incident handling, month-end).",
+          "route_summary": "Procedure: 1 reviewer, no legal review; signed off by the process owner; reviewed every 12 months.",
+          "sign_off_role": "Process owner",
+          "retention_years": 7,
+          "review_cycle_months": 12,
+          "active": true
+        }
+      }
+    ]
+  }
+}

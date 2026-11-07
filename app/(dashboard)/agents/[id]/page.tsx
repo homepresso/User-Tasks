@@ -4,8 +4,7 @@ import { use } from 'react'
 import { serverQuery, serverRead } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
 import { AgentDesigner } from '@/components/agents/agent-designer'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 import { ObjectPermissions } from '@/components/governance/object-permissions'
 import { DesktopOnly } from '@/components/layout/desktop-only'
 
@@ -21,26 +20,15 @@ export default function AgentDesignerPage({ params }: { params: Promise<{ id: st
     queryKey: ['agent-designer-options'],
     queryFn: () => serverQuery('agents.designerOptions'),
   })
-  const { integrations, references, dataTables, workflows, teams } = options ?? {}
+  const { integrations, references, dataTables, workflows, teams, mcpServers, members } = options ?? {}
 
-  if (!agent) return null
+  // Wait for the pickers too: the designer keeps its own state from the first render.
+  if (!agent || !options) return null
 
   return (
     <DesktopOnly>
     <div>
-      <div className="flex items-center gap-3 mb-4">
-        <Link href="/agents" className="rounded-md p-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-          <ArrowLeft size={20} />
-        </Link>
-        <h1 className="text-lg font-semibold">{(agent as any).name}</h1>
-        <Link
-          href={`/agents/${id}/runs`}
-          className="ml-auto text-xs px-2.5 py-1 rounded-md border transition-colors hover:bg-[var(--theme-row-highlight)]"
-          style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
-        >
-          View Runs →
-        </Link>
-      </div>
+      {/* AgentDesigner renders the page header (breadcrumbs, status, View runs / Test / Save). */}
       <AgentDesigner
         agent={agent as any}
         integrations={(integrations ?? []) as any}
@@ -48,10 +36,12 @@ export default function AgentDesignerPage({ params }: { params: Promise<{ id: st
         dataTables={(dataTables ?? []) as any}
         workflows={(workflows ?? []) as any}
         teams={(teams ?? []) as any}
+        mcpServers={(mcpServers ?? []) as any}
+        members={(members ?? []) as any}
       />
-      <div className="mt-4 rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+      <Card padding="md" className="mt-4">
         <ObjectPermissions objectType="agent" objectId={id} objectName={(agent as any).name} showExecute={true} />
-      </div>
+      </Card>
     </div>
     </DesktopOnly>
   )

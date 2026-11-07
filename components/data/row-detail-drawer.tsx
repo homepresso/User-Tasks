@@ -1,17 +1,25 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
-import {
-  X, Save, Trash2, User as UserIcon, Clock, Hash, Copy, Check,
-  FileText, Upload, ExternalLink, Loader2,
-} from 'lucide-react'
+import { Trash2, Copy, Check, FileText, Upload, ExternalLink, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Field } from '@/components/ui/field'
+import { Avatar } from '@/components/ui/avatar'
+import { Tag } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { InlineNotice } from '@/components/ui/inline-notice'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { updateRow, deleteRow } from '@/app/actions/data-store'
 import { uploadDataTableFile } from '@/app/actions/uploads'
 import { useQueryClient } from '@tanstack/react-query'
-import { formatRelativeDate, getInitials, cn } from '@/lib/utils'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
 import { useRouter } from 'next/navigation'
 import type { DataColumn } from './lookup-config'
 import { columnKey, normalizeRowData } from '@/lib/data-table-cells'
@@ -52,28 +60,31 @@ interface RowDetailDrawerProps {
   tableId: string
 }
 
+/** Upload a file into the table's storage folder; returns the stored cell value. */
+export async function uploadRowFile(tableId: string, file: File) {
+  // Stored server-side (data.manage_rows) in task-files/data-tables/<table>/.
+  const body = new FormData()
+  body.set('file', file)
+  body.set('table_id', tableId)
+  const uploaded = await uploadDataTableFile(body)
+  if (!uploaded.ok) throw new Error(uploaded.error)
+  const { name, url, size, path, ref } = uploaded.data
+  return { name, url, size, path, ...(ref ? { ref } : {}) }
+}
+
 /**
- * RowDetailDrawer — slide-in side panel for inspecting and editing a
- * single row of a data table. Portalled to document.body so it escapes
- * the dashboard shell's overflow clipping and always floats above the
- * content below.
+ * RowDetailDrawer: a Sheet (lg) for inspecting and editing one row.
  *
- * Shows:
- *   - Row ID with copy-to-clipboard
- *   - Metadata block: created by / at, updated by / at (relative + tooltip)
- *   - Every field as a labeled input (type-aware: text, number, date,
- *     boolean, select, longtext, file) with direct inline editing
- *   - Save / Delete actions at the bottom
- *
- * Edits are buffered locally until the user clicks Save — so they can
- * back out by closing the drawer without persisting changes.
+ * Shows the row ID (copy), who created / last updated it, every field as a
+ * type-aware Field, and the row's retention policy. Edits are buffered until
+ * Save; closing with unsaved changes asks first.
  */
 export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: RowDetailDrawerProps) {
-  const [mounted, setMounted] = useState(false)
   const [editData, setEditData] = useState<Record<string, any>>({})
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState(false)
@@ -86,8 +97,6 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
     createdAt: row?.created_at ?? null,
   })
 
-  useEffect(() => { setMounted(true) }, [])
-
   // Reset the local edit buffer whenever the row changes (switching rows
   // without closing the drawer, or closing then reopening).
   useEffect(() => {
@@ -97,21 +106,6 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
       setError(null)
     }
   }, [row?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Close on Esc
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        if (dirty) {
-          if (!confirm('Discard unsaved changes?')) return
-        }
-        onOpenChange(false)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, dirty, onOpenChange])
 
   function updateField(name: string, value: any) {
     setEditData(prev => ({ ...prev, [name]: value }))
@@ -138,16 +132,16 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
 
   async function handleDelete() {
     if (!row) return
-    if (!confirm('Delete this row permanently?')) return
     setDeleting(true)
     try {
-      onOpenChange(false)
       await deleteRow(row.id)
+      setConfirmDelete(false)
+      onOpenChange(false)
       queryClient.invalidateQueries({ queryKey: ['custom-table-rows', tableId] })
       router.refresh()
     } catch (e: any) {
+      setConfirmDelete(false)
       setError(e?.message ?? 'Failed to delete')
-      onOpenChange(true)
     } finally {
       setDeleting(false)
     }
@@ -157,15 +151,7 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
     if (!row) return
     setUploading(colName)
     try {
-      // Stored server-side (data.manage_rows) in task-files/data-tables/<table>/.
-      const body = new FormData()
-      body.set('file', file)
-      body.set('table_id', tableId)
-      const uploaded = await uploadDataTableFile(body)
-      if (!uploaded.ok) throw new Error(uploaded.error)
-      const { name, url, size, path, ref } = uploaded.data
-      const fileData = { name, url, size, path, ...(ref ? { ref } : {}) }
-      updateField(colName, fileData)
+      updateField(colName, await uploadRowFile(tableId, file))
     } catch (e: any) {
       setError(`Upload failed: ${e.message}`)
     } finally {
@@ -181,224 +167,120 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
   }
 
   function handleClose() {
-    if (dirty) {
-      if (!confirm('Discard unsaved changes?')) return
-    }
+    if (dirty && !confirm('Discard unsaved changes?')) return
     onOpenChange(false)
   }
 
-  if (!open || !mounted || !row) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[200] flex" role="dialog" aria-modal="true">
-      {/* Backdrop */}
-      <div
-        className="flex-1 bg-black/40 backdrop-blur-[1px]"
-        onClick={handleClose}
-      />
-
-      {/* Panel */}
-      <div
-        className="w-full max-w-[560px] h-full flex flex-col shadow-2xl border-l"
-        style={{
-          backgroundColor: 'var(--theme-card-bg)',
-          borderColor: 'var(--theme-surface-border)',
-          animation: 'drawerSlideIn 0.25s ease-out',
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-4 border-b shrink-0"
-          style={{ borderColor: 'var(--theme-surface-border)' }}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ backgroundColor: 'var(--theme-primary-light)' }}
+  return (
+    <Sheet open={open && !!row} onOpenChange={(next) => { if (!next) handleClose() }}>
+      {row && (
+        <SheetContent
+          size="lg"
+          title="Row details"
+          description={
+            <button
+              type="button"
+              onClick={copyRowId}
+              className="inline-flex items-center gap-1 font-mono text-xs text-fg-muted hover:text-fg"
+              aria-label={`Copy row ID ${row.id}`}
             >
-              <FileText size={18} style={{ color: 'var(--theme-primary-text)' }} />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base font-semibold truncate" style={{ color: 'var(--theme-card-text)' }}>
-                Row Details
-              </h2>
-              <button
-                onClick={copyRowId}
-                className="inline-flex items-center gap-1 text-[10px] font-mono hover:opacity-80"
-                style={{ color: 'var(--theme-muted-text)' }}
-                title="Click to copy"
-              >
-                <Hash size={9} />
-                {row.id.slice(0, 12)}…
-                {copiedId ? <Check size={9} /> : <Copy size={9} />}
-              </button>
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors"
-            style={{ color: 'var(--theme-muted-text)' }}
-            title="Close (Esc)"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Metadata strip */}
-        <div
-          className="px-5 py-3 border-b shrink-0"
-          style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}
+              {row.id}
+              {copiedId ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            </button>
+          }
         >
-          <div className="grid grid-cols-2 gap-3 text-[11px]">
-            <MetaField
-              label="Created by"
-              icon={<UserIcon size={10} />}
-              user={row.creator}
-              timestamp={row.created_at}
-            />
-            <MetaField
-              label="Last updated"
-              icon={<Clock size={10} />}
-              user={row.updater ?? row.creator}
-              timestamp={row.updated_at ?? row.created_at}
-            />
-          </div>
-          <div className="mt-3 rounded-lg border px-3 py-2" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--theme-muted-text)' }}>
-              Row retention
-            </p>
-            <p className="text-[11px]" style={{ color: 'var(--theme-card-text)' }}>
-              {retentionStatus.label}
-            </p>
-          </div>
-        </div>
+          <DialogBody className="space-y-5">
+            <Card variant="inset" padding="sm" className="grid grid-cols-2 gap-3">
+              <MetaField label="Created by" user={row.creator} timestamp={row.created_at} />
+              <MetaField label="Last updated" user={row.updater ?? row.creator} timestamp={row.updated_at ?? row.created_at} />
+              <div className="col-span-2 text-xs text-fg-muted">
+                Retention: <span className="text-fg">{retentionStatus.label}</span>
+              </div>
+            </Card>
 
-        {/* Field list */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {columns.length === 0 ? (
-            <p className="text-center text-xs py-8" style={{ color: 'var(--theme-muted-text)' }}>
-              This table has no columns yet.
-            </p>
-          ) : (
-            columns.map((col, index) => (
-              <FieldEditor
-                key={getColumnKey(col, index)}
-                column={col}
-                value={editData[columnKey(col)]}
-                onChange={(v) => updateField(columnKey(col), v)}
-                uploading={uploading === columnKey(col)}
-                onUpload={(file) => handleFileUpload(columnKey(col), file)}
-              />
-            ))
-          )}
-
-          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <RetentionPolicyAssignment
-              targetType="data_row"
-              targetId={row.id}
-              currentPolicyId={row.retention_policy_id}
-              allowedScope="data_rows"
-              compact
-            />
-            <p className="mt-2 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-              Row-level retention overrides the table default when a policy is assigned here.
-            </p>
-          </div>
-        </div>
-
-        {error && (
-          <div
-            className="mx-5 mb-3 px-3 py-2 rounded text-xs flex items-center justify-between"
-            style={{ backgroundColor: 'var(--status-error-bg)', color: 'var(--status-error)' }}
-          >
-            <span>{error}</span>
-            <button onClick={() => setError(null)}><X size={12} /></button>
-          </div>
-        )}
-
-        {/* Footer actions */}
-        <div
-          className="flex items-center justify-between px-5 py-3 border-t shrink-0"
-          style={{ borderColor: 'var(--theme-surface-border)' }}
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting || saving}
-            className="!text-red-600 hover:!bg-red-50"
-          >
-            <Trash2 size={13} className="mr-1" />
-            {deleting ? 'Deleting…' : 'Delete'}
-          </Button>
-          <div className="flex items-center gap-2">
-            {dirty && (
-              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                Unsaved changes
-              </span>
+            {columns.length === 0 ? (
+              <p className="py-8 text-center text-ui text-fg-muted">This table has no columns yet.</p>
+            ) : (
+              columns.map((col, index) => (
+                <RowFieldEditor
+                  key={getColumnKey(col, index)}
+                  column={col}
+                  value={editData[columnKey(col)]}
+                  onChange={(v) => updateField(columnKey(col), v)}
+                  uploading={uploading === columnKey(col)}
+                  onUpload={(file) => handleFileUpload(columnKey(col), file)}
+                />
+              ))
             )}
-            <Button variant="outline" size="sm" onClick={handleClose}>
-              Close
-            </Button>
-            <Button size="sm" onClick={handleSave} disabled={!dirty || saving}>
-              <Save size={13} className="mr-1" />
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </div>
-      </div>
 
-      {/* Minimal keyframe for slide-in — inlined to avoid polluting globals.css */}
-      <style>{`
-        @keyframes drawerSlideIn {
-          from { transform: translateX(20px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
-    </div>,
-    document.body,
+            <div className="space-y-2 border-t border-border-subtle pt-4">
+              <RetentionPolicyAssignment
+                targetType="data_row"
+                targetId={row.id}
+                currentPolicyId={row.retention_policy_id}
+                allowedScope="data_rows"
+                compact
+              />
+              <p className="text-xs text-fg-muted">
+                Row-level retention overrides the table default when a policy is assigned here.
+              </p>
+            </div>
+
+            {error && <InlineNotice tone="danger" message={error} onDismiss={() => setError(null)} />}
+          </DialogBody>
+
+          <DialogFooter className="justify-between">
+            <Button
+              variant="danger-ghost"
+              size="sm"
+              leadingIcon={<Trash2 />}
+              onClick={() => setConfirmDelete(true)}
+              disabled={deleting || saving}
+            >
+              Delete
+            </Button>
+            <div className="flex items-center gap-2">
+              {dirty && <span className="text-xs text-fg-muted">Unsaved changes</span>}
+              <Button variant="secondary" size="sm" onClick={handleClose}>Close</Button>
+              <Button size="sm" onClick={handleSave} disabled={!dirty} loading={saving}>Save</Button>
+            </div>
+          </DialogFooter>
+        </SheetContent>
+      )}
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        destructive
+        title="Delete this row?"
+        description="The row is deleted permanently."
+        confirmLabel="Delete row"
+        busy={deleting}
+        onConfirm={handleDelete}
+      />
+    </Sheet>
   )
 }
 
-/* ─── Metadata chip with avatar + relative timestamp ─── */
+/* ─── Metadata: avatar + name + relative timestamp ─── */
 
 function MetaField({
-  label, icon, user, timestamp,
+  label, user, timestamp,
 }: {
   label: string
-  icon: React.ReactNode
   user: { display_name: string | null; email: string | null } | null | undefined
   timestamp: string | null | undefined
 }) {
   const name = user?.display_name ?? user?.email ?? 'Unknown'
   return (
-    <div>
-      <p
-        className="text-[9px] uppercase tracking-wider font-semibold flex items-center gap-1 mb-1"
-        style={{ color: 'var(--theme-muted-text)' }}
-      >
-        {icon} {label}
-      </p>
-      <div className="flex items-center gap-1.5 min-w-0">
-        {user && (
-          <span
-            className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
-            style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
-          >
-            {getInitials(name)}
-          </span>
-        )}
+    <div className="min-w-0">
+      <p className="mb-1 text-xs text-fg-muted">{label}</p>
+      <div className="flex min-w-0 items-center gap-2">
+        {user && <Avatar name={name} size="sm" />}
         <div className="min-w-0">
-          <p className="text-[11px] font-medium truncate" style={{ color: 'var(--theme-card-text)' }}>
-            {user ? name : '—'}
-          </p>
+          <p className="truncate text-ui font-medium text-fg">{user ? name : '—'}</p>
           {timestamp && (
-            <p
-              className="text-[10px]"
-              style={{ color: 'var(--theme-muted-text)' }}
-              title={new Date(timestamp).toLocaleString()}
-            >
-              {formatRelativeDate(timestamp)}
+            <p className="num text-xs text-fg-muted" title={formatAbsolute(timestamp)}>
+              {formatRelative(timestamp)}
             </p>
           )}
         </div>
@@ -407,9 +289,9 @@ function MetaField({
   )
 }
 
-/* ─── Type-aware field editor ─── */
+/* ─── Type-aware field editor (row sheet and add-row sheet) ─── */
 
-function FieldEditor({
+export function RowFieldEditor({
   column, value, onChange, uploading, onUpload,
 }: {
   column: DataColumn
@@ -418,86 +300,51 @@ function FieldEditor({
   uploading: boolean
   onUpload: (file: File) => void
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const label = (
+    <span className="inline-flex items-center gap-2">
+      {column.name || 'Untitled'}
+      <Tag mono>{column.type}</Tag>
+    </span>
+  )
 
+  if (column.type === 'boolean') {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="inline-flex items-center gap-2 text-ui font-medium text-fg">{label}</span>
+        <Checkbox checked={!!value} onChange={(e) => onChange(e.target.checked)} label={value ? 'True' : 'False'} />
+      </div>
+    )
+  }
+  if (column.type === 'file') {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="inline-flex items-center gap-2 text-ui font-medium text-fg">{label}</span>
+        <FileEditor value={value} uploading={uploading} onUpload={onUpload} onClear={() => onChange(null)} />
+      </div>
+    )
+  }
   return (
-    <div>
-      <label
-        className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
-        style={{ color: 'var(--theme-muted-text)' }}
-      >
-        {column.name || 'Untitled'}
-        <span
-          className="text-[9px] px-1 py-0.5 rounded font-mono normal-case tracking-normal"
-          style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-        >
-          {column.type}
-        </span>
-      </label>
-
-      {column.type === 'boolean' ? (
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={!!value}
-            onChange={(e) => onChange(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 accent-[color:var(--theme-primary)]"
-          />
-          <span className="text-xs" style={{ color: 'var(--theme-card-text)' }}>
-            {value ? 'True' : 'False'}
-          </span>
-        </label>
-      ) : column.type === 'longtext' ? (
-        <textarea
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          rows={5}
-          placeholder="—"
-          className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-            color: 'var(--theme-card-text)',
-            // @ts-expect-error — CSS var for ring color
-            '--tw-ring-color': 'var(--theme-primary)',
-          }}
-        />
+    <Field label={label}>
+      {column.type === 'longtext' ? (
+        <Textarea value={value ?? ''} onChange={(e) => onChange(e.target.value)} rows={5} placeholder="—" />
       ) : column.type === 'select' ? (
-        <select
+        <Select
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-            color: 'var(--theme-card-text)',
-          }}
-        >
-          <option value="">— Select —</option>
-          {(column.options ?? []).map((o) => (
-            <option key={o} value={o}>{o}</option>
-          ))}
-        </select>
+          placeholder="Select…"
+          options={(column.options ?? []).map((o) => ({ value: o, label: o }))}
+        />
       ) : column.type === 'lookup' ? (
         <LookupFieldEditor column={column} value={value} onChange={onChange} />
-      ) : column.type === 'file' ? (
-        <FileEditor
-          value={value}
-          uploading={uploading}
-          onUpload={onUpload}
-          onClear={() => onChange(null)}
-          fileInputRef={fileInputRef}
-        />
       ) : (
         <Input
           type={column.type === 'number' ? 'number' : column.type === 'date' ? 'date' : 'text'}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder="—"
-          className="!text-sm"
         />
       )}
-    </div>
+    </Field>
   )
 }
 
@@ -505,93 +352,65 @@ function LookupFieldEditor({
   column,
   value,
   onChange,
+  ...rest
 }: {
   column: DataColumn
   value: any
   onChange: (value: string) => void
 }) {
   const { data: options = [], isLoading } = useLookupOptions(column.lookup, true)
-
   return (
-    <select
-      value={value ?? ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border px-3 py-2 text-sm"
-      style={{
-        backgroundColor: 'var(--theme-card-bg)',
-        borderColor: 'var(--theme-surface-border)',
-        color: 'var(--theme-card-text)',
-      }}
-      disabled={isLoading}
-    >
-      <option value="">{isLoading ? 'Loading…' : '— Select —'}</option>
+    <Select {...rest} value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={isLoading}>
+      <option value="">{isLoading ? 'Loading…' : 'Select…'}</option>
       {options.map((option) => (
         <option key={`${column.id}:${option.value}`} value={option.value}>{option.label}</option>
       ))}
-    </select>
+    </Select>
   )
 }
 
 function FileEditor({
-  value, uploading, onUpload, onClear, fileInputRef,
+  value, uploading, onUpload, onClear,
 }: {
   value: any
   uploading: boolean
   onUpload: (file: File) => void
   onClear: () => void
-  fileInputRef: React.RefObject<HTMLInputElement | null>
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const fileData = value && typeof value === 'object' ? value : null
 
   if (uploading) {
     return (
-      <div
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs"
-        style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-primary-text)' }}
-      >
-        <Loader2 size={13} className="animate-spin" /> Uploading…
+      <div className="flex h-[var(--ds-control-h)] items-center gap-2 rounded-md border border-border px-3 text-ui text-fg-muted">
+        <Loader2 className="size-4 animate-spin" /> Uploading…
       </div>
     )
   }
 
   if (fileData?.url) {
     return (
-      <div
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border"
-        style={{ borderColor: 'var(--theme-surface-border)' }}
-      >
-        <FileText size={14} style={{ color: 'var(--theme-primary-text)' }} />
+      <div className="flex h-[var(--ds-control-h)] items-center gap-2 rounded-md border border-border pl-3 pr-1">
+        <FileText className="size-4 shrink-0 text-fg-muted" />
         <a
           href={fileData.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 truncate text-xs hover:underline"
-          style={{ color: 'var(--theme-primary-text)' }}
+          className="flex min-w-0 flex-1 items-center gap-1 text-ui text-primary-text hover:underline"
         >
-          {fileData.name ?? 'File'}
-          <ExternalLink size={10} className="inline ml-1" />
+          <span className="truncate">{fileData.name ?? 'File'}</span>
+          <ExternalLink className="size-3.5 shrink-0" />
         </a>
-        <button
-          onClick={onClear}
-          className="text-xs hover:opacity-70"
-          style={{ color: 'var(--theme-muted-text)' }}
-          title="Remove file"
-        >
-          <X size={12} />
-        </button>
+        <IconButton label="Remove file" icon={<X />} size="sm" onClick={onClear} />
       </div>
     )
   }
 
   return (
     <>
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg border hover:opacity-80 w-full justify-center"
-        style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-primary-text)' }}
-      >
-        <Upload size={12} /> Upload file
-      </button>
+      <Button variant="secondary" size="sm" leadingIcon={<Upload />} onClick={() => fileInputRef.current?.click()} className="self-start">
+        Upload file
+      </Button>
       <input
         ref={fileInputRef}
         type="file"

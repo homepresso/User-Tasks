@@ -743,7 +743,7 @@
         "y": 4160
       },
       "config": {
-        "input": "{{=NOW()}}",
+        "date": "{{=NOW()}}",
         "format": "datetime",
         "output_var": "report_date"
       }

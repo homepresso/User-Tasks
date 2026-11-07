@@ -35,6 +35,12 @@ x-app-image: &app-image
       INCLUDE_STORAGE_SDKS: ${INCLUDE_STORAGE_SDKS:-true}
       INCLUDE_PROVIDER_SDKS: ${INCLUDE_PROVIDER_SDKS:-true}
       INCLUDE_OCR: ${INCLUDE_OCR:-false}
+      # FFmpeg for the local media operations (docs: Media → Limits and platforms).
+      INCLUDE_MEDIA_TOOLS: ${INCLUDE_MEDIA_TOOLS:-true}
+      # Build info shown by GET /api/version, e.g.
+      # GIT_COMMIT=$(git rev-parse HEAD) BUILD_TIME=$(date -u +%FT%TZ) docker compose build
+      GIT_COMMIT: ${GIT_COMMIT:-}
+      BUILD_TIME: ${BUILD_TIME:-}
   env_file:
     # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
     - path: ${USERTASKS_ENV_FILE:-.env}

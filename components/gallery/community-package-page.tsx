@@ -71,7 +71,7 @@ export function CommunityPackagePage({ pkg }: { pkg: CommunityPackageView }) {
 
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
           <SectionHeading eyebrow="About this package" title="What it does" />
-          <div className="mt-5 max-w-3xl space-y-4 text-[15.5px] leading-7 text-[#4A463E]">{paragraphs(pkg.description).map((p) => <p key={p.slice(0, 40)}>{p}</p>)}</div>
+          <div className="mt-5 max-w-3xl space-y-4 text-base leading-7 text-[#4A463E]">{paragraphs(pkg.description).map((p) => <p key={p.slice(0, 40)}>{p}</p>)}</div>
           {pkg.tags.length > 0 && <p className="mt-5 flex flex-wrap gap-1.5">{pkg.tags.map((t) => <span key={t} className="rounded-md bg-[#F1EDE3] px-1.5 py-0.5 text-xs text-[#4A463E]">{t}</span>)}</p>}
           {pkg.screenshots.length > 0 && (
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
@@ -95,8 +95,8 @@ usertasks packages install ${current?.file_name ?? `${pkg.slug}.utpkg`} --dry-ru
               <div className="rounded-xl border border-[#1B1916]/[0.08] bg-[#F1EDE3] p-4 text-sm">
                 <p className="flex items-center gap-2 font-semibold"><Fingerprint size={15} className="text-[#8A6D45]" aria-hidden="true" /> Verify the download</p>
                 <dl className="mt-2 grid gap-1.5 text-xs">
-                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">File SHA-256</dt><dd className="break-all font-mono text-[11px] text-[#33302A]">{current?.sha256}</dd></div>
-                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">Package checksum</dt><dd className="break-all font-mono text-[11px] text-[#33302A]">{current?.checksum}</dd></div>
+                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">File SHA-256</dt><dd className="break-all font-mono text-2xs text-[#33302A]">{current?.sha256}</dd></div>
+                  <div className="grid gap-0.5"><dt className="text-[#6E6759]">Package checksum</dt><dd className="break-all font-mono text-2xs text-[#33302A]">{current?.checksum}</dd></div>
                 </dl>
               </div>
             </div>

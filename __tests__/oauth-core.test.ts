@@ -76,12 +76,12 @@ describe('sanitizeRedirect (open-redirect guard)', () => {
     expect(sanitizeRedirect('/tasks/queue')).toBe('/tasks/queue')
   })
   it('rejects absolute, protocol-relative, and backslash tricks', () => {
-    expect(sanitizeRedirect('https://evil.com')).toBe('/tasks')
-    expect(sanitizeRedirect('//evil.com')).toBe('/tasks')
-    expect(sanitizeRedirect('/\\evil.com')).toBe('/tasks')
-    expect(sanitizeRedirect('/path\r\nSet-Cookie: x')).toBe('/tasks')
-    expect(sanitizeRedirect('')).toBe('/tasks')
-    expect(sanitizeRedirect(null)).toBe('/tasks')
+    expect(sanitizeRedirect('https://evil.com')).toBe('/home')
+    expect(sanitizeRedirect('//evil.com')).toBe('/home')
+    expect(sanitizeRedirect('/\\evil.com')).toBe('/home')
+    expect(sanitizeRedirect('/path\r\nSet-Cookie: x')).toBe('/home')
+    expect(sanitizeRedirect('')).toBe('/home')
+    expect(sanitizeRedirect(null)).toBe('/home')
   })
 })
 

@@ -1,11 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { SubmitButton } from '@/components/ui/submit-button'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { createReference } from '@/app/actions/integration-references'
 import { ReferenceBuilder } from './reference-builder'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, ChevronDown, ChevronRight, Bookmark, Play, Loader2, X, Trash2, Map as MapIcon } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Bookmark, Play, Loader2, X, Trash2, Map as MapIcon, Copy, Sparkles, Pencil } from 'lucide-react'
+import { CustomReferenceBuilder } from './custom-reference/custom-reference-builder'
+import { CustomReferenceSummary } from './custom-reference/custom-reference-summary'
+import { isCustomReference, isWriteReference } from '@/lib/custom-references/types'
+import { WritesDataBadge } from '@/components/integrations/writes-data-badge'
+import { duplicateReferenceAsCustom } from '@/app/actions/integration-references'
 import { useReferenceDependencies, AssetDependencyDialog } from '@/components/shared/asset-dependencies'
 import { deleteReference } from '@/app/actions/integration-references'
 import { bulkDeleteWithJob, runInlineJob, useJobs } from '@/components/jobs/jobs-provider'
@@ -51,6 +59,9 @@ interface ReferenceListProps {
 export function ReferenceList({ integrationId, integrationBaseUrl, references }: ReferenceListProps) {
   const [localReferences, setLocalReferences] = useState(references)
   const [adding, setAdding] = useState(false)
+  // Synchronous guard: React 19 renders state set inside a form action only
+  // when it ends, so a second Create click would otherwise submit again.
+  const addGuard = useSubmitGuard()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [refDepsId, setRefDepsId] = useState<string | null>(null)
   const refDepsRef = references.find(r => r.id === refDepsId)
@@ -67,6 +78,22 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
   const [confirmBusy, setConfirmBusy] = useState(false)
   const router = useRouter()
   const jobs = useJobs()
+  // Custom reference builder: null = closed, 'new' = a new one, else the reference being edited.
+  const [builder, setBuilder] = useState<null | 'new' | Reference>(null)
+  const queryClient = useQueryClient()
+  const refreshReferences = () => {
+    void queryClient.invalidateQueries({ queryKey: ['integration-references'] })
+    void queryClient.invalidateQueries({ queryKey: ['forms-lookup-references'] })
+    router.refresh()
+  }
+
+  async function duplicateAsCustom(ref: Reference) {
+    const result = await duplicateReferenceAsCustom(ref.id)
+    if (!result.ok) { setDeleteNotice({ tone: 'error', message: result.error }); return }
+    setDeleteNotice({ tone: 'success', message: `Created "${ref.name} (custom)" — open it to pick columns, filters and inputs.` })
+    setExpandedId(result.data.id)
+    refreshReferences()
+  }
 
   useEffect(() => {
     setLocalReferences(references)
@@ -138,6 +165,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
   }
 
   async function runTest(ref: Reference) {
+    if (isWriteReference(ref) && !window.confirm(`"${ref.name}" writes data. Running the test sends it for real with the integration's credentials (recorded in the call log). Continue?`)) return
     setTestLoading(true)
     setTestResult(null)
     try {
@@ -148,7 +176,9 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
           reference_id: ref.id,
           inputs: testInputs,
           // A reference without a captured/spec response model gets one from this test.
-          capture_schema: 'auto',
+          capture_schema: isWriteReference(ref) ? undefined : 'auto',
+          // A write reference changes real data: only after the person confirms.
+          ...(isWriteReference(ref) ? { confirm_write: true } : {}),
         }),
       })
       const result = await resp.json()
@@ -180,10 +210,12 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
   }
 
   async function handleAdd(formData: FormData) {
-    formData.set('integration_id', integrationId)
-    await createReference(formData)
-    setAdding(false)
-    router.refresh()
+    await addGuard.run(async () => {
+      formData.set('integration_id', integrationId)
+      await createReference(formData)
+      setAdding(false)
+      router.refresh()
+    })
   }
 
   return (
@@ -221,7 +253,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
       {localReferences.length > 0 && (
         <div className="flex items-center gap-2">
           <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded" />
-          <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <span className="text-2xs text-fg-muted">
             {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
           </span>
           {selected.size > 0 && (
@@ -232,21 +264,19 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                 <input value={bulkTagInput} onChange={e => setBulkTagInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') bulkAddTag() }}
                   placeholder="Add tag..."
-                  className="rounded border px-2 py-0.5 text-[10px] w-24"
-                  style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }} />
+                  className="rounded border px-2 py-0.5 text-2xs w-24 border-border bg-panel" />
                 <button onClick={bulkAddTag} disabled={!bulkTagInput.trim()}
-                  className="text-[10px] font-medium px-2 py-0.5 rounded hover:opacity-70 disabled:opacity-30"
-                  style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                  className="text-2xs font-medium px-2 py-0.5 rounded hover:opacity-70 disabled:opacity-30 bg-primary-wash text-primary-text">
                   Tag
                 </button>
               </div>
               {/* Bulk delete */}
               <button onClick={bulkDelete} disabled={bulkDeleting}
-                className="text-[10px] font-medium px-2 py-0.5 rounded hover:opacity-70 flex items-center gap-1"
+                className="text-2xs font-medium px-2 py-0.5 rounded hover:opacity-70 flex items-center gap-1"
                 style={{ backgroundColor: 'var(--status-danger-bg)', color: 'var(--theme-danger)' }}>
                 <Trash2 size={10} /> {bulkDeleting ? 'Deleting...' : `Delete (${selected.size})`}
               </button>
-              <button onClick={() => setSelected(new Set())} className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+              <button onClick={() => setSelected(new Set())} className="text-2xs hover:opacity-70 text-fg-muted">
                 Clear
               </button>
             </>
@@ -284,44 +314,67 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
               {rc?.icon_url ? (
                 <img src={resolveStorageUrl(rc.icon_url)} alt="" className="w-5 h-5 rounded object-contain shrink-0" />
               ) : refIcon && DB_ICON_MAP[refIcon] ? (
-                <span className="w-5 h-5 rounded flex items-center justify-center text-[7px] font-bold shrink-0"
+                <span className="w-5 h-5 rounded flex items-center justify-center text-2xs font-bold shrink-0"
                   style={{ backgroundColor: DB_ICON_MAP[refIcon].bg, color: DB_ICON_MAP[refIcon].color }}>
                   {DB_ICON_MAP[refIcon].label}
                 </span>
               ) : (
-                <Bookmark size={14} style={{ color: 'var(--theme-primary-text)' }} />
+                <Bookmark size={14} className="text-primary-text" />
               )}
               <span className="font-medium flex-1">{ref.name}</span>
+              {isCustomReference(ref) && (
+                <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full shrink-0 inline-flex items-center gap-0.5" data-testid="custom-badge"
+                  style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                  <Sparkles size={8} /> Custom
+                </span>
+              )}
+              {isWriteReference(ref) && <WritesDataBadge className="shrink-0" />}
               {badge && (
-                <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
+                <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full shrink-0"
                   style={{ backgroundColor: badge.bg, color: badge.color }}>
                   {badge.label}
                 </span>
               )}
-              <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
+              <span className="text-2xs shrink-0 text-fg-muted">
                 {(ref.inputs as any[])?.length ?? 0} in · {(ref.outputs as any[])?.length ?? 0} out
               </span>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); openTest(ref) }}
-              className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0"
-              style={{ color: 'var(--theme-primary-text)', backgroundColor: 'var(--theme-primary-light)' }}
+              className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 text-primary-text bg-primary-wash"
               title="Test reference"
             >
               <Play size={12} />
             </button>
+            {isCustomReference(ref) ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); setBuilder(ref) }}
+                className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 text-fg-muted"
+                title="Edit custom reference"
+                data-testid="edit-custom-reference"
+              >
+                <Pencil size={12} />
+              </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); void duplicateAsCustom(ref) }}
+                className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 text-fg-muted"
+                title="Duplicate as custom — pick columns, filters and inputs"
+                data-testid="duplicate-as-custom"
+              >
+                <Copy size={12} />
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); setRefDepsId(ref.id) }}
-              className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0"
-              style={{ color: 'var(--theme-muted-text)' }}
+              className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 text-fg-muted"
               title="Dependency map"
             >
               <MapIcon size={12} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleDelete(ref.id, ref.name) }}
-              className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 hover:text-[color:var(--theme-danger)]"
-              style={{ color: 'var(--theme-muted-text)' }}
+              className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 hover:text-[color:var(--theme-danger)] text-fg-muted"
               title="Delete reference"
             >
               <Trash2 size={12} />
@@ -330,7 +383,9 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
 
           {expandedId === ref.id && (
             <div className="px-3 pb-3" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
-              <ReferenceBuilder reference={{ ...ref, integration_id: integrationId }} integrationBaseUrl={integrationBaseUrl} />
+              {isCustomReference(ref)
+                ? <CustomReferenceSummary reference={ref} onEdit={() => setBuilder(ref)} />
+                : <ReferenceBuilder reference={{ ...ref, integration_id: integrationId }} integrationBaseUrl={integrationBaseUrl} />}
             </div>
           )}
         </div>
@@ -347,39 +402,38 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--theme-overlay)' }}>
-            <div className="w-[90vw] max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+            <div className="w-[90vw] max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden bg-panel border-border">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
                 <div className="flex items-center gap-2">
-                  <Play size={14} style={{ color: 'var(--theme-primary-text)' }} />
+                  <Play size={14} className="text-primary-text" />
                   <span className="text-sm font-semibold">Test: {ref.name}</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                  <span className="text-2xs font-bold px-1.5 py-0.5 rounded"
                     style={{ color: methodColors[config?.method] ?? 'var(--theme-muted-text)', backgroundColor: `color-mix(in srgb, ${methodColors[config?.method] ?? 'var(--theme-muted-text)'} 8%, transparent)` }}>
                     {config?.method ?? 'GET'}
                   </span>
                 </div>
-                <button onClick={() => setTestingRef(null)} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+                <button onClick={() => setTestingRef(null)} className="p-1 rounded hover:opacity-70 text-fg-muted">
                   <X size={16} />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {/* URL preview */}
-                <div className="text-[10px] font-mono px-2.5 py-1.5 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                <div className="text-2xs font-mono px-2.5 py-1.5 rounded-lg overflow-x-auto bg-bg text-fg-muted">
                   {integrationBaseUrl}{config?.path_template ?? ''}
                 </div>
 
                 {/* Inputs */}
                 {inputs.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Inputs</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Inputs</h4>
                     {inputs.map((inp: any, idx: number) => (
                       <div key={inp.id ?? `${inp.name}-${idx}`}>
                         <label className="flex items-center gap-1 text-xs font-medium mb-1">
-                          <code className="font-mono" style={{ color: 'var(--theme-primary-text)' }}>{inp.name}</code>
-                          <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>({inp.type})</span>
-                          {inp.required && <span className="text-[10px] text-[color:var(--theme-danger)]">required</span>}
+                          <code className="font-mono text-primary-text">{inp.name}</code>
+                          <span className="text-2xs text-fg-muted">({inp.type})</span>
+                          {inp.required && <span className="text-2xs text-[color:var(--theme-danger)]">required</span>}
                         </label>
                         <Input
                           value={testInputs[inp.name] ?? ''}
@@ -401,10 +455,10 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                 {/* Result */}
                 {testResult && (
                   <div className="space-y-2">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--theme-muted-text)' }}>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 text-fg-muted">
                       Response
                       {testResult.status && (
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                        <span className="text-2xs font-mono px-1.5 py-0.5 rounded"
                           style={{
                             backgroundColor: testResult.status < 300 ? 'color-mix(in srgb, var(--theme-success) 8%, transparent)' : 'color-mix(in srgb, var(--theme-danger) 8%, transparent)',
                             color: testResult.status < 300 ? 'var(--theme-success)' : 'var(--theme-danger)',
@@ -418,8 +472,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                         {testResult.error}
                       </div>
                     ) : (
-                      <pre className="text-[10px] font-mono p-3 rounded-lg overflow-auto max-h-[300px]"
-                        style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}>
+                      <pre className="text-2xs font-mono p-3 rounded-lg overflow-auto max-h-[300px] bg-bg text-fg">
                         {JSON.stringify(testResult.data, null, 2)}
                       </pre>
                     )}
@@ -435,13 +488,27 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
         <form action={handleAdd} className="flex gap-2 p-2 rounded-lg" style={{ border: '1px dashed var(--theme-surface-border)' }}>
           <Input name="name" required placeholder="Reference name" className="flex-1" />
           <Input name="description" placeholder="Description" className="flex-1" />
-          <Button type="submit" size="sm">Create</Button>
+          <SubmitButton size="sm">Create</SubmitButton>
           <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancel</Button>
         </form>
       ) : (
-        <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="w-full">
-          <Plus size={14} className="mr-1" /> Add Reference
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setBuilder('new')} className="flex-1" data-testid="new-custom-reference">
+            <Sparkles size={14} className="mr-1" /> New custom reference
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="flex-1">
+            <Plus size={14} className="mr-1" /> Add raw reference
+          </Button>
+        </div>
+      )}
+
+      {builder && (
+        <CustomReferenceBuilder
+          integrationId={integrationId}
+          reference={builder === 'new' ? null : builder}
+          onClose={() => setBuilder(null)}
+          onSaved={(id) => { setBuilder(null); setExpandedId(id); refreshReferences() }}
+        />
       )}
 
       <AssetDependencyDialog

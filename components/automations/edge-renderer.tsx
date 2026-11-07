@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react"
 import { X } from "lucide-react"
 import type { WorkflowNode, WorkflowEdge } from "@/lib/workflow-schema"
-import { NODE_CATALOG } from "@/lib/workflow-schema"
+import { nodeColorCategory, nodeColorVar } from "@/lib/workflow-schema"
 import { resolveVisibleGraph } from "@/lib/workflow-sections"
 import { EDGE_TONE_TOKEN, type EdgeRunTone } from "@/lib/workflow-run-overlay"
 import { edgeHeatColor, type EdgeHeat } from "@/lib/workflow-heat-overlay"
 import { DELETE_BUTTON_SIZE, deleteButtonPosition, GOTO_ROUTE_PREFIX, nodeBox, routeEdges, type EdgeRoute, type SizeMap } from "@/lib/workflow-edge-routing"
 
-export const BRANCH_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316", "#6B7280"]
+/** Branch connector colours: the theme chart palette, so every theme (light and dark) recolours branches. */
+export const BRANCH_COLORS = [2, 3, 5, 6, 1, 9, 4, 10].map((slot) => `var(--theme-chart-${slot})`)
 
 interface EdgeRendererProps {
   nodes: WorkflowNode[]
@@ -70,7 +71,7 @@ export function EdgeRenderer({ nodes, edges, sizes, onDeleteEdge, selectedEdgeId
   if (heat) { markerColors.heat = "var(--theme-primary)"; markerColors["heat-idle"] = "var(--theme-muted-text)" }
   const sourceColorKeys = new Map<string, string>()
   for (const n of nodes) {
-    const color = (n.config?.node_color as string | undefined) ?? NODE_CATALOG.find((c) => c.type === n.type)?.color ?? "#6B7280"
+    const color = (n.config?.node_color as string | undefined) ?? nodeColorVar(nodeColorCategory(n.type))
     const key = `n${color.replace(/[^a-zA-Z0-9]/g, "")}`
     markerColors[key] = color
     sourceColorKeys.set(n.id, key)

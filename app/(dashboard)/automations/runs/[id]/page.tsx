@@ -7,11 +7,15 @@ import { serverRead } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
-import { Card } from '@/components/ui/card'
 import { ArrowLeft, ArrowRight, Clock, MoveRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
+import { Badge, StatusPill, type Tone } from '@/components/ui/badge'
+import { Tooltip } from '@/components/ui/tooltip'
 import { usePermissions } from '@/lib/permissions-context'
-import { formatRelativeDate } from '@/lib/utils'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { FollowButton } from '@/components/home/shared'
+import { RunWaitingChip } from '@/components/automations/run-task-links'
 
 // The process viewer (graph + trace replay) is the bulk of this route's JS;
 // its own chunk lets the run header render first.
@@ -32,94 +36,126 @@ export default function ProcessViewPage({ params }: { params: Promise<{ id: stri
     queryKey: ['process-view', id],
     queryFn: async () => (await serverRead('automations.processView', { id })).data,
   })
+  const runId: string | undefined = data?.run?.id
+  // Follow / Unfollow (Home → Following).
+  const { data: followed, refetch: refetchFollowed } = useQuery({
+    queryKey: ['home', 'followedRunIds', runId],
+    enabled: Boolean(runId),
+    queryFn: async () => (await serverRead('home.followedRunIds', { ids: [runId!] })).data ?? [],
+  })
 
   if (isLoading) return null
   if (!data) return null
 
   const run = data.run
+  const workflow = data.workflow
   const live = run && (run.status === 'waiting_for_event' || run.status === 'paused')
+  const shortId = run ? String(run.id).slice(0, 8) : null
 
   return (
-    <div className="space-y-4">
-      {run?.migrated_to_run_id && (
-        <MigrationBanner tone="out" href={`/automations/runs/${run.migrated_to_run_id}`} runId={run.migrated_to_run_id} />
-      )}
-      {run?.migrated_from_run_id && (
-        <MigrationBanner tone="in" href={`/automations/runs/${run.migrated_from_run_id}`} runId={run.migrated_from_run_id} />
-      )}
-      {live && can('workflows.manage_runs') && (
-        <div className="flex items-center justify-end gap-2">
-          {data.versionNumber != null && (
-            <span className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>Running on v{data.versionNumber}</span>
-          )}
-          <Button size="sm" variant="outline" onClick={() => setMoving(true)}>
-            <MoveRight size={14} className="mr-1" /> Move to version…
-          </Button>
-        </div>
-      )}
-      {moving && run && (
-        <MigrateInstancesWizard workflowId={run.workflow_id} runIds={[run.id]} onClose={() => setMoving(false)} onDone={() => { void refetch() }} />
-      )}
-      {data.run?.sla_due_at && (
-        <Card className="!p-4">
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+    <div>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Workflows', href: '/automations' },
+          { label: workflow?.name ?? 'Workflow', href: workflow?.id ? `/automations/${workflow.id}` : undefined },
+          { label: shortId ? `Run ${shortId}` : 'Run' },
+        ]}
+        title={workflow?.name ?? 'Workflow'}
+        badge={run ? <StatusPill status={run.status} /> : undefined}
+        description={run ? (
+          <>
+            Run <span className="font-mono">{shortId}</span>
+            {' · '}
+            <Tooltip content={formatAbsolute(run.started_at)}>
+              <span>{formatRelative(run.started_at)}</span>
+            </Tooltip>
+            {live && can('workflows.manage_runs') && data.versionNumber != null && <> · Running on v{data.versionNumber}</>}
+          </>
+        ) : 'No run data'}
+        actions={run ? (
+          <>
+            {live && can('workflows.manage_runs') && (
+              <Button size="sm" variant="secondary" leadingIcon={<MoveRight />} onClick={() => setMoving(true)}>
+                Move to version…
+              </Button>
+            )}
+            <FollowButton runId={run.id} following={(followed ?? []).includes(run.id)} onChange={() => { void refetchFollowed() }} />
+          </>
+        ) : undefined}
+      />
+      <div className="space-y-4">
+        {live && <RunWaitingChip tasks={data.tasks} />}
+        {run?.migrated_to_run_id && (
+          <MigrationBanner tone="out" href={`/automations/runs/${run.migrated_to_run_id}`} runId={run.migrated_to_run_id} />
+        )}
+        {run?.migrated_from_run_id && (
+          <MigrationBanner tone="in" href={`/automations/runs/${run.migrated_from_run_id}`} runId={run.migrated_from_run_id} />
+        )}
+        {moving && run && (
+          <MigrateInstancesWizard workflowId={run.workflow_id} runIds={[run.id]} onClose={() => setMoving(false)} onDone={() => { void refetch() }} />
+        )}
+        {data.run?.sla_due_at && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-panel px-4 py-3 text-sm">
             <SlaBadge status={data.run.sla_status} />
-            <div style={{ color: 'var(--theme-card-text)' }}>
+            <div className="text-fg">
               <span className="font-medium">{data.run.sla_label ?? 'Workflow SLA'}</span>
-              <span style={{ color: 'var(--theme-muted-text)' }}>
-                {' '}due {formatRelativeDate(data.run.sla_due_at)}
-              </span>
+              <Tooltip content={formatAbsolute(data.run.sla_due_at)}>
+                <span className="text-fg-muted">
+                  {' '}due {lowerFirst(formatRelative(data.run.sla_due_at))}
+                </span>
+              </Tooltip>
             </div>
             {data.run.sla_warning_at && (
-              <div className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                Warning {formatRelativeDate(data.run.sla_warning_at)}
-              </div>
+              <Tooltip content={formatAbsolute(data.run.sla_warning_at)}>
+                <div className="text-xs text-fg-muted">
+                  Warning {lowerFirst(formatRelative(data.run.sla_warning_at))}
+                </div>
+              </Tooltip>
             )}
           </div>
-        </Card>
-      )}
-      <ProcessViewer
-        workflow={data.workflow}
-        run={data.run}
-        logs={data.logs}
-        focus={focus}
-        compareRun={data.compareRun}
-      />
+        )}
+        <ProcessViewer
+          workflow={data.workflow}
+          run={data.run}
+          logs={data.logs}
+          focus={focus}
+          compareRun={data.compareRun}
+          tasks={data.tasks ?? []}
+        />
+      </div>
     </div>
   )
 }
 
+/** "Yesterday" → "yesterday" mid-sentence (dates like "27 Oct" are unchanged). */
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
+
 function MigrationBanner({ tone, href, runId }: { tone: 'in' | 'out'; href: string; runId: string }) {
   return (
-    <Card className="!p-3">
-      <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--theme-card-text)' }}>
-        {tone === 'out' ? <ArrowRight size={14} style={{ color: 'var(--status-info)' }} /> : <ArrowLeft size={14} style={{ color: 'var(--status-info)' }} />}
-        <span className="font-medium">{tone === 'out' ? 'Migrated to' : 'Migrated from'}</span>
-        <Link href={href} className="font-mono text-xs hover:underline" style={{ color: 'var(--theme-primary-text)' }}>run {runId.slice(0, 8)}</Link>
-        <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-          {tone === 'out' ? 'This instance was closed and continues as a new run on another version.' : 'This run continues an instance moved from another version.'}
-        </span>
-      </div>
-    </Card>
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-fg">
+      {tone === 'out' ? <ArrowRight size={14} className="text-info" aria-hidden="true" /> : <ArrowLeft size={14} className="text-info" aria-hidden="true" />}
+      <span className="font-medium">{tone === 'out' ? 'Migrated to' : 'Migrated from'}</span>
+      <Link href={href} className="font-mono text-xs text-primary-text hover:underline">run {runId.slice(0, 8)}</Link>
+      <span className="text-xs text-fg-muted">
+        {tone === 'out' ? 'This instance was closed and continues as a new run on another version.' : 'This run continues an instance moved from another version.'}
+      </span>
+    </div>
   )
 }
 
+const SLA_BADGE: Record<string, { tone: Tone; label: string }> = {
+  breached: { tone: 'danger', label: 'SLA breached' },
+  warning: { tone: 'warning', label: 'SLA near' },
+  on_track: { tone: 'success', label: 'SLA on track' },
+  none: { tone: 'neutral', label: 'No SLA' },
+}
+
 function SlaBadge({ status }: { status?: string | null }) {
-  const normalized = status ?? 'on_track'
-  const colorMap: Record<string, { bg: string; fg: string; label: string }> = {
-    breached: { bg: 'var(--status-danger-bg)', fg: 'var(--theme-danger)', label: 'SLA breached' },
-    warning: { bg: 'var(--status-warning-bg)', fg: 'var(--theme-warning)', label: 'SLA near' },
-    on_track: { bg: 'var(--status-success-bg)', fg: 'var(--theme-success)', label: 'SLA on track' },
-    none: { bg: 'var(--theme-surface)', fg: 'var(--theme-muted-text)', label: 'No SLA' },
-  }
-  const { bg, fg, label } = colorMap[normalized] ?? colorMap.on_track
+  const { tone, label } = SLA_BADGE[status ?? 'on_track'] ?? SLA_BADGE.on_track
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
-      style={{ backgroundColor: bg, color: fg }}
-    >
-      <Clock size={12} />
+    <Badge tone={tone} pill>
+      <Clock size={12} aria-hidden="true" />
       {label}
-    </span>
+    </Badge>
   )
 }

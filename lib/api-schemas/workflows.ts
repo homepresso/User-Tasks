@@ -3,6 +3,9 @@ import { defineEndpoint } from './registry'
 import { booleanFlag, csvFilter, deletedResponse, idParams, itemResponse, listResponse, looseObject, paginationQuery } from './common'
 import { isPlainObject } from '@/lib/utils/guards'
 
+/** The run's User Tasks (lib/run-tasks.ts), shared by the run get and Home's run progress. */
+export const RUN_TASKS_DESCRIPTION = "The run's User Tasks, oldest first, for the caller: id, node_id, step_name, status (waiting / completed / cancelled), open, has_form, team, assignees [{ id, name, avatar_url, role (assignee / collaborator / candidate), status (queued / in_progress / on_hold / done / declined / closed) }], waiting_since, due_date, completed_at, completed_by, completed_on_behalf_of, history [{ kind (response / completed / declined / redirected / reassigned / escalated), at, actor, on_behalf_of, outcome, comment, from, to }], and the caller's access: can_open, can_act (assignee / on_behalf / none), access (assignee / manager / workflow_manager / assigner / admin), on_behalf_of, href. title, outcome, comments and the redirect / reassignment / escalation lines are only filled in where can_open is true (the caller is an assignee, collaborator, claim candidate or team member, a manager of an assignee, holds an explicit Edit grant on the workflow, assigned it, or has tasks.view_all); everyone who can see the run sees who each task is with and who completed it, when."
+
 // ─── Authoring schemas (POST /workflows, PATCH /workflows/{id}) ───
 
 // Nodes, edges and variables are loose: properties this schema doesn't name
@@ -265,8 +268,8 @@ export const createWorkflowEndpoint = defineEndpoint({
 export const listWorkflowInstancesEndpoint = defineEndpoint({
   method: 'GET', path: '/workflows/{id}/instances', operationId: 'listWorkflowInstances', tags,
   summary: 'List live instances (waiting or paused runs) with their current node and version',
-  description: 'Each instance has its current node, version, waiting-since time and open task (with assignee). `versions` counts live instances per version; `on_older_versions` counts those not on the published version.',
-  permission: 'workflows.view_runs',
+  description: 'Each instance has its current node, version, waiting-since time and open task (with assignee). `versions` counts live instances per version; `on_older_versions` counts those not on the published version. Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on.',
+  permission: 'workflows.view_queue',
   params: idParams, query: workflowInstancesQuery,
   response: z.looseObject({
     instances: z.array(liveInstance), total: z.number().int(),
@@ -361,7 +364,8 @@ export const workflowEndpoints = [
   }),
   defineEndpoint({
     method: 'GET', path: '/workflows/runs', operationId: 'listWorkflowRuns', tags,
-    summary: 'List workflow runs', permission: 'workflows.view_runs',
+    summary: 'List workflow runs', permission: 'workflows.view_queue',
+    description: 'Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on.',
     query: paginationQuery.extend({
       workflow_id: z.string().optional(),
       version_id: z.string().optional().describe('Only runs of this workflow version'),
@@ -372,9 +376,14 @@ export const workflowEndpoints = [
   }),
   defineEndpoint({
     method: 'GET', path: '/workflows/runs/{id}', operationId: 'getWorkflowRun', tags,
-    summary: 'Get a workflow run with its logs', permission: 'workflows.view_runs',
+    summary: 'Get a workflow run with its logs and User Tasks', permission: 'workflows.view_queue',
+    description: 'A run outside the caller\'s run scope is not found. Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on.',
     params: idParams,
-    response: z.looseObject({ run: looseObject, logs: z.array(looseObject) }),
+    response: z.looseObject({
+      run: looseObject,
+      logs: z.array(looseObject),
+      tasks: z.array(looseObject).describe(RUN_TASKS_DESCRIPTION),
+    }),
     cli: { resource: 'runs', verb: 'get', positional: ['id'] },
   }),
   defineEndpoint({
@@ -386,7 +395,8 @@ export const workflowEndpoints = [
   }),
   defineEndpoint({
     method: 'GET', path: '/workflows/queue', operationId: 'listWorkflowQueue', tags,
-    summary: 'List queued workflow jobs', permission: 'workflows.view_runs',
+    summary: 'List queued workflow jobs', permission: 'workflows.view_queue',
+    description: 'Scoped to the caller (governance): every run with `workflows.view_runs`; with `workflows.view_queue` only runs the caller is involved in (started it, their form submission started it, or they have a task in it) plus every run of workflows they hold an explicit View grant on. Queue jobs are in scope through their workflow, their run or the person who queued them.',
     query: paginationQuery.extend({
       workflow_id: z.string().optional(),
       status: csvFilter('Job statuses'),

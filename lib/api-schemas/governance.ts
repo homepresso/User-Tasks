@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { INVITABLE_ROLES } from '@/lib/invitation-roles'
+import { OBJECT_PERMISSION_TYPES } from '@/lib/object-permission-types'
 import { defineEndpoint } from './registry'
 import { booleanFlag, deletedResponse, idParams, itemResponse, listResponse, paginationQuery } from './common'
 
@@ -20,7 +21,11 @@ export const roleUpdateBody = z.object({
 export const teamCreateBody = z.object({
   name: z.string().min(1).max(200),
   description: z.string().nullable().optional(),
-  parent_id: z.string().nullable().optional().describe('Parent team id'),
+  parent_id: z.string().nullable().optional().describe('Parent team id (loops are refused)'),
+  lead_user_id: z.string().nullable().optional().describe('Team lead (an active member)'),
+  org_unit_id: z.string().nullable().optional().describe('Org unit the team belongs to'),
+  colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional().describe('Hex colour like #3366FF'),
+  kind: z.string().max(50).nullable().optional().describe('team (default), squad, guild or any custom kind'),
 })
 
 export const teamUpdateBody = teamCreateBody.partial()
@@ -230,18 +235,55 @@ export const resendInvitationEndpoint = defineEndpoint({
 export const listAuditLogEndpoint = defineEndpoint({
   method: 'GET', path: '/audit-log', operationId: 'listAuditLog', tags: ['Audit log'],
   summary: 'Query the object audit log (newest first)',
-  description: 'Every create, update, delete, publish, grant and revoke recorded across the workspace, with the actor and a short diff.',
+  description: 'Every create, update, delete, publish, grant and revoke recorded across the workspace, with the actor and a short diff. Forms also record availability toggles (toggle), retention-policy changes (retention), submission purges (purge) and legal holds (legal_hold / legal_hold_release).',
   permission: 'settings.view',
   query: paginationQuery.extend({
-    object_type: z.string().optional().describe('e.g. workflow, role, api_key, webhook'),
+    object_type: z.string().optional().describe('e.g. workflow, data_table, form, role, api_key, webhook'),
     object_id: z.string().optional(),
     actor_id: z.string().optional().describe('User id of the actor'),
-    action: z.string().optional().describe('e.g. create, update, delete, grant, revoke'),
+    action: z.string().optional().describe('e.g. create, update, delete, grant, revoke, toggle, retention, purge, legal_hold'),
     from: z.string().optional().describe('ISO timestamp: events at or after'),
     to: z.string().optional().describe('ISO timestamp: events at or before'),
   }),
   response: listResponse('events'), listKey: 'events',
   cli: { resource: 'audit-log', verb: 'list' },
+})
+
+const OBJECT_TYPES_NOTE = `Explicit grants on one object: a role, a team or a person, with View, Edit, Delete and Execute columns. object_type: ${OBJECT_PERMISSION_TYPES.join(', ')}. Forms use View and Submit (can_execute): a grant lists the form in the person's Forms menu when the form is in Available forms; Edit and Delete do not apply to forms (stored false). Every change is in the audit log (grant / revoke on the object).`
+const objectPermissionTags = ['Object permissions']
+
+export const objectPermissionGrantBody = z.object({
+  object_type: z.enum(OBJECT_PERMISSION_TYPES).describe('Type of the object'),
+  object_id: z.string().describe('Object id'),
+  role_id: z.string().nullable().optional().describe('Grant to a role (give exactly one of role_id, team_id, user_id)'),
+  team_id: z.string().nullable().optional().describe('Grant to a team'),
+  user_id: z.string().nullable().optional().describe('Grant to a person'),
+  can_view: z.boolean().optional().describe('View (default true)'),
+  can_edit: z.boolean().optional().describe('Edit (not used by forms)'),
+  can_delete: z.boolean().optional().describe('Delete (not used by forms)'),
+  can_execute: z.boolean().optional().describe('Execute; Submit for forms'),
+})
+
+export const listObjectPermissionsEndpoint = defineEndpoint({
+  method: 'GET', path: '/object-permissions', operationId: 'listObjectPermissions', tags: objectPermissionTags,
+  summary: 'List the grants on an object', description: OBJECT_TYPES_NOTE, permission: 'team.change_roles',
+  query: z.object({ object_type: z.enum(OBJECT_PERMISSION_TYPES), object_id: z.string() }),
+  response: listResponse('permissions'), listKey: 'permissions',
+  cli: { resource: 'object-permissions', verb: 'list' },
+})
+
+export const setObjectPermissionEndpoint = defineEndpoint({
+  method: 'POST', path: '/object-permissions', operationId: 'setObjectPermission', tags: objectPermissionTags,
+  summary: 'Add or change one grantee\'s grant on an object', description: OBJECT_TYPES_NOTE, permission: 'team.change_roles',
+  body: objectPermissionGrantBody, response: itemResponse('permission'),
+  cli: { resource: 'object-permissions', verb: 'set' },
+})
+
+export const removeObjectPermissionEndpoint = defineEndpoint({
+  method: 'DELETE', path: '/object-permissions/{id}', operationId: 'removeObjectPermission', tags: objectPermissionTags,
+  summary: 'Remove a grant', description: OBJECT_TYPES_NOTE, permission: 'team.change_roles',
+  params: idParams, response: deletedResponse,
+  cli: { resource: 'object-permissions', verb: 'remove', positional: ['id'] },
 })
 
 export const governanceEndpoints = [
@@ -252,4 +294,5 @@ export const governanceEndpoints = [
   addTeamMemberEndpoint, removeTeamMemberEndpoint,
   listInvitationsEndpoint, sendInvitationEndpoint, revokeInvitationEndpoint, resendInvitationEndpoint,
   listAuditLogEndpoint,
+  listObjectPermissionsEndpoint, setObjectPermissionEndpoint, removeObjectPermissionEndpoint,
 ]

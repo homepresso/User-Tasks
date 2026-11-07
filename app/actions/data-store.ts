@@ -7,6 +7,7 @@ import { enqueueDataTableEventWorkflows } from '@/lib/data-table-workflow-trigge
 import { enqueueDeletionJob, kickDeletionProcessor } from '@/lib/deletion-queue'
 import { slugifyColumnName } from '@/lib/data-table-cells'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 
 async function requireAuth() {
   const supabase = await createClient()
@@ -25,7 +26,20 @@ export async function createCustomTable(formData: FormData) {
 
   const name = formData.get('name') as string
   const description = formData.get('description') as string
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const slug = tableSlug(name)
+
+  // A repeated submit (double click, retry) must not add a second table.
+  const recent = await findRecentDuplicate<{ id: string }>(supabase, 'custom_tables', { tenant_id: tenantId, created_by: user.id, name }, { select: 'id' })
+  if (recent) {
+    revalidatePath('/data')
+    return { id: recent.id }
+  }
+
+  // Table names are unique per workspace (by slug): offer the next free name instead of failing.
+  const taken = await existingTableSlugs(supabase, tenantId, slug)
+  if (taken.has(slug)) {
+    return { exists: true as const, name, suggestion: nextFreeTableName(name, taken) }
+  }
 
   const { data: created, error } = await supabase.from('custom_tables').insert({
     tenant_id: tenantId,
@@ -39,11 +53,36 @@ export async function createCustomTable(formData: FormData) {
     created_by: user.id,
   }).select('id').single()
 
+  // A table this person can't see may still hold the name.
+  if (error && (error as { code?: string }).code === '23505') {
+    return { exists: true as const, name, suggestion: nextFreeTableName(name, new Set([...taken, slug])) }
+  }
   if (error) throw error
   if ((created as any)?.id) {
     void recordAssetChange({ supabase, tenantId, assetType: 'data_table', assetId: (created as any).id, assetName: name, action: 'save', actorId: user.id })
   }
   revalidatePath('/data')
+  return { id: (created as any)?.id as string | undefined }
+}
+
+function tableSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+/** Slugs in the workspace that start with this one (the slug itself and "slug-2", "slug-3", …). */
+async function existingTableSlugs(supabase: any, tenantId: string, slug: string): Promise<Set<string>> {
+  const { data } = await supabase.from('custom_tables').select('slug').eq('tenant_id', tenantId).like('slug', `${slug.replace(/[\\%_]/g, (c: string) => `\\${c}`)}%`).limit(500)
+  return new Set(((data ?? []) as { slug: string }[]).map((r) => r.slug))
+}
+
+/** "Clients" → "Clients 2" (or the next number whose slug is free). */
+function nextFreeTableName(name: string, taken: Set<string>): string {
+  const base = name.trim().replace(/\s+\d+$/, '')
+  for (let n = 2; n < 1000; n++) {
+    const candidate = `${base} ${n}`
+    if (!taken.has(tableSlug(candidate))) return candidate
+  }
+  return `${base} ${Date.now()}`
 }
 
 export async function updateTableColumns(tableId: string, columns: any[]) {

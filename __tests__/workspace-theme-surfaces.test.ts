@@ -290,9 +290,9 @@ describe('config-as-code: workspace_theme section', () => {
     const dry = await applyConfig(ctx(db, PERMISSION_KEYS, B), { files, dry_run: true })
     const asset = dry.plan.assets.find((a) => a.section === 'workspace_theme')!
     expect(asset).toMatchObject({ action: 'update', name: 'Acme brand' })
-    // Night Drive vs the default template: many fields, capped at 50.
-    expect(asset.diffs!.map((d) => d.path)).toEqual(expect.arrayContaining(['branding.wordmark', 'chrome.sidebar.gradient.stops[0].color']))
-    expect(asset.diffs_truncated).toBe(true)
+    // Night Drive vs the default template: many fields (capped at 50; Gallery's dark palette is Noir-derived, so fewer than before).
+    expect(asset.diffs!.map((d) => d.path)).toEqual(expect.arrayContaining(['branding.wordmark', 'colors.light.surface']))
+    expect(asset.diffs!.length).toBeGreaterThan(20)
     const warnings = dry.warnings.map((w) => w.warning).join('\n')
     expect(warnings).toMatch(/branding\.logoLight: dropped/)
     expect(warnings).toMatch(/typography\.display: the font file "acme-display-0123456789ab\.woff2" is not uploaded/)

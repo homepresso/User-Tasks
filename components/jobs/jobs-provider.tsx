@@ -20,7 +20,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, Download, Loader2, RotateCcw, X, XCircle } from 'lucide-react'
+import { ToastCard, ToastViewport } from '@/components/ui/toast'
+import { formatBytes as formatByteSize } from '@/lib/format/number'
 import { cancelJobAction, getJobAction, listMyJobsAction, markJobSeenAction, retryJobAction, startJobAction, type StartJobInput } from '@/app/actions/user-jobs'
 import { unwrapAction } from '@/lib/action-result'
 import { useRealtime, useRealtimeUserId } from '@/hooks/use-realtime'
@@ -108,9 +109,7 @@ export const OPEN_JOBS_PANEL_EVENT = 'usertasks:open-jobs'
 
 export function formatBytes(size: number | null | undefined): string {
   if (!size && size !== 0) return ''
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
+  return formatByteSize(size)
 }
 
 /** Start the browser download of a finished job's file. */
@@ -162,7 +161,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
   const dismiss = useCallback((id: string) => setToasts((current) => current.filter((t) => t.id !== id)), [])
   const notify = useCallback<JobsApi['notify']>((toast) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    setToasts((current) => [...current.filter((t) => !(toast.job && t.job?.id === toast.job.id)), { ...toast, id, timeout: toast.timeout ?? (toast.tone === 'info' ? 6_000 : 0) }].slice(-4))
+    setToasts((current) => [...current.filter((t) => !(toast.job && t.job?.id === toast.job.id)), { ...toast, id, timeout: toast.timeout ?? 0 }].slice(-6))
   }, [])
 
   const finished = useCallback((job: UserJobView, inline = false) => {
@@ -181,8 +180,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
       notify({ tone: 'info', title: `${job.title} was cancelled`, job })
     } else {
       notify({
-        // Results stay until dismissed for a while; failures until dismissed.
-        timeout: job.status === 'succeeded' ? 30_000 : 0,
+        // Failures stay until dismissed; results follow the toast timing (the Jobs panel keeps them).
         tone: job.status === 'succeeded' ? 'success' : 'error',
         title: job.status === 'succeeded' ? (job.downloadable ? `${job.title} is ready` : `${job.title}: done`) : `${job.title} failed`,
         body: job.status === 'succeeded' ? job.result?.summary ?? null : job.error,
@@ -285,6 +283,9 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+/** At most this many toasts show; older ones collapse into a count. */
+const MAX_VISIBLE_TOASTS = 3
+
 function JobToasts({ toasts, jobs, onDismiss, onRetry, onOpenPanel }: {
   toasts: Toast[]
   jobs: UserJobView[]
@@ -292,79 +293,75 @@ function JobToasts({ toasts, jobs, onDismiss, onRetry, onOpenPanel }: {
   onRetry: (jobId: string) => void
   onOpenPanel: () => void
 }) {
+  const visible = toasts.slice(-MAX_VISIBLE_TOASTS)
+  const hidden = toasts.length - visible.length
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[1100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2 max-md:bottom-24" aria-live="polite" role="status">
-      {toasts.map((toast) => (
-        <ToastCard key={toast.id} toast={toast} live={toast.job ? jobs.find((j) => j.id === toast.job!.id) ?? toast.job : undefined} onDismiss={onDismiss} onRetry={onRetry} onOpenPanel={onOpenPanel} />
+    <ToastViewport className="max-md:bottom-24" aria-label="Notifications">
+      {hidden > 0 && (
+        <button type="button" onClick={() => toasts.slice(0, hidden).forEach((t) => onDismiss(t.id))}
+          className="rounded-full bg-elevated px-2.5 py-1 text-xs font-medium text-fg-muted shadow-elev-2 hover:text-fg">
+          {hidden} more · Clear
+        </button>
+      )}
+      {visible.map((toast) => (
+        <JobToast key={toast.id} toast={toast} live={toast.job ? jobs.find((j) => j.id === toast.job!.id) ?? toast.job : undefined} onDismiss={onDismiss} onRetry={onRetry} onOpenPanel={onOpenPanel} />
       ))}
-    </div>
+    </ToastViewport>
   )
 }
 
-function ToastCard({ toast, live, onDismiss, onRetry, onOpenPanel }: {
+/** ms before a toast leaves (§3.14): 5s, 8s with an action; 0 = stays (running jobs, errors). */
+export function toastTimeout(toast: Pick<Toast, 'tone' | 'timeout'>, { running, hasAction }: { running: boolean; hasAction: boolean }): number {
+  if (running || toast.tone === 'error') return 0
+  if (toast.timeout > 0) return toast.timeout
+  return hasAction ? 8_000 : 5_000
+}
+
+function JobToast({ toast, live, onDismiss, onRetry, onOpenPanel }: {
   toast: Toast
   live?: UserJobView
   onDismiss: (id: string) => void
   onRetry: (jobId: string) => void
   onOpenPanel: () => void
 }) {
+  const running = toast.tone === 'info' && !!live && isActiveJobStatus(live.status)
+  const job = toast.job
+  // One action per toast: the file, a retry, or the Jobs panel.
+  const action = toast.tone === 'success' && job?.downloadable
+    ? { label: `Download${job.result?.file ? ` (${formatBytes(job.result.file.size)})` : ''}`, onClick: () => { downloadJobFile(job); onDismiss(toast.id) }, testId: 'job-toast-download' }
+    : toast.tone === 'error' && job?.retryable
+      ? { label: 'Retry', onClick: () => { onRetry(job.id); onDismiss(toast.id) }, testId: 'job-toast-retry' }
+      : job
+        ? { label: 'View jobs', onClick: () => { onOpenPanel(); onDismiss(toast.id) }, testId: 'job-toast-jobs' }
+        : null
+  const timeout = toastTimeout(toast, { running, hasAction: !!action })
+  const [paused, setPaused] = useState(false)
+  const remaining = useRef(timeout)
+  useEffect(() => { remaining.current = timeout }, [timeout])
   useEffect(() => {
-    if (!toast.timeout) return
-    const timer = setTimeout(() => onDismiss(toast.id), toast.timeout)
-    return () => clearTimeout(timer)
-  }, [toast.id, toast.timeout, onDismiss])
+    if (!timeout || paused) return
+    const startedAt = Date.now()
+    const timer = setTimeout(() => onDismiss(toast.id), remaining.current)
+    return () => {
+      clearTimeout(timer)
+      remaining.current = Math.max(1_000, remaining.current - (Date.now() - startedAt))
+    }
+  }, [toast.id, timeout, paused, onDismiss])
 
-  const color = toast.tone === 'success' ? 'var(--theme-success)' : toast.tone === 'error' ? 'var(--theme-danger)' : 'var(--theme-primary)'
-  const Icon = toast.tone === 'success' ? CheckCircle2 : toast.tone === 'error' ? XCircle : Loader2
-  const running = toast.tone === 'info' && live && isActiveJobStatus(live.status)
+  const progress = running && live && live.progress > 0 ? ` · ${Math.round(live.progress)}%` : ''
   return (
-    <div
-      className="pointer-events-auto rounded-xl border p-3 shadow-xl"
-      style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)', borderLeft: `3px solid ${color}` }}
-      data-testid={`job-toast-${toast.tone}`}
-    >
-      <div className="flex items-start gap-2.5">
-        <Icon size={16} className={`mt-0.5 shrink-0 ${toast.tone === 'info' ? 'animate-spin' : ''}`} style={{ color }} aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-snug">{toast.title}</p>
-          {toast.body && <p className="mt-0.5 text-xs leading-snug" style={{ color: 'var(--theme-muted-text)' }}>{toast.body}</p>}
-          {running && live && live.progress > 0 && (
-            <div className="mt-2 h-1 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--theme-surface-border)' }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${live.progress}%`, backgroundColor: 'var(--theme-primary)' }} />
-            </div>
-          )}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {toast.tone === 'success' && toast.job?.downloadable && (
-              <button
-                type="button"
-                onClick={() => { downloadJobFile(toast.job!); onDismiss(toast.id) }}
-                className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold"
-                style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}
-                data-testid="job-toast-download"
-              >
-                <Download size={12} aria-hidden /> Download{toast.job.result?.file ? ` (${formatBytes(toast.job.result.file.size)})` : ''}
-              </button>
-            )}
-            {toast.tone === 'error' && toast.job?.retryable && (
-              <button
-                type="button"
-                onClick={() => { onRetry(toast.job!.id); onDismiss(toast.id) }}
-                className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold"
-                style={{ borderColor: 'var(--theme-surface-border)' }}
-                data-testid="job-toast-retry"
-              >
-                <RotateCcw size={12} aria-hidden /> Retry
-              </button>
-            )}
-            {toast.job && (
-              <button type="button" onClick={() => { onOpenPanel(); onDismiss(toast.id) }} className="text-xs font-medium underline-offset-2 hover:underline" style={{ color: 'var(--theme-muted-text)' }}>
-                View jobs
-              </button>
-            )}
-          </div>
-        </div>
-        <button type="button" onClick={() => onDismiss(toast.id)} aria-label="Dismiss" className="shrink-0 opacity-60 hover:opacity-100"><X size={14} /></button>
-      </div>
+    <div data-testid={`job-toast-${toast.tone}`} data-action={action?.testId}>
+      <ToastCard
+        tone={running ? 'running' : toast.tone === 'error' ? 'danger' : toast.tone === 'success' ? 'success' : 'info'}
+        title={toast.title}
+        description={toast.body || progress ? `${toast.body ?? ''}${progress}`.replace(/^ · /, '') : undefined}
+        action={action ?? undefined}
+        onDismiss={() => onDismiss(toast.id)}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+      />
     </div>
   )
 }

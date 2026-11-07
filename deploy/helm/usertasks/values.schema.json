@@ -1753,8 +1753,13 @@
         "allowPrivateEgress": {
           "type": "boolean"
         },
-        "enableCustomActivityCode": {
+        "customActionsDisabled": {
           "type": "boolean"
+        },
+        "enableCustomActivityCode": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "Deprecated, no effect: custom workflow actions always run sandboxed."
         },
         "allowQueryKeyAuth": {
           "type": "boolean"

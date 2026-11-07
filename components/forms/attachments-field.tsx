@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, createElement } from 'react'
 import {
   ArrowDown, ArrowUp, Camera, Download, File as FileIcon, FileImage, FileSpreadsheet, FileText, Loader2, Paperclip, RotateCw, Upload, X,
 } from 'lucide-react'
@@ -9,7 +9,7 @@ import {
   formatBytes, isPreviewableImage, isTypeAllowed, kindForExtension, normalizeAttachmentValue, trackAttachmentUpload, type AttachmentFile,
 } from '@/lib/forms/attachments'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
-import { useFormLookupSource } from './lookup-field'
+import { formApiHeaders, formApiUrl, useFormLookupSource, type AnonymousFormSource } from './lookup-field'
 import { cn } from '@/lib/utils'
 
 /**
@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
  */
 export type FormAttachmentSource =
   | { kind: 'task'; taskId: string }
-  | { kind: 'form'; formId: string }
+  | { kind: 'form'; formId: string; anonymous?: AnonymousFormSource }
   | { kind: 'test'; workflowId: string }
   /** A workflow's start form (Run dialog): its attachments inputs. */
   | { kind: 'start'; workflowId: string }
@@ -38,7 +38,7 @@ function useAttachmentSource(): FormAttachmentSource | null {
   if (explicit) return explicit
   if (!lookup) return null
   if (lookup.kind === 'task') return { kind: 'task', taskId: lookup.taskId }
-  if (lookup.kind === 'form') return { kind: 'form', formId: lookup.formId }
+  if (lookup.kind === 'form') return { kind: 'form', formId: lookup.formId, ...(lookup.anonymous ? { anonymous: lookup.anonymous } : {}) }
   return { kind: 'preview' }
 }
 
@@ -52,23 +52,23 @@ function iconFor(name: string, mime: string) {
 
 /** A stored file: thumbnail or icon, name, size, download link. */
 export function AttachmentChip({ file, children, preview }: { file: AttachmentFile; children?: React.ReactNode; preview?: string | null }) {
-  const Icon = iconFor(file.name, file.mime_type)
+  const icon = createElement(iconFor(file.name, file.mime_type), { className: 'text-primary-text', size: 16, 'aria-hidden': true })
   const thumb = preview ?? (isPreviewableImage(file.mime_type) ? `${attachmentPath(file.id)}?inline=1` : null)
   return (
-    <div className="flex min-h-11 items-center gap-2.5 rounded-lg border px-2.5 py-1.5" style={{ borderColor: 'var(--theme-surface-border)' }} data-attachment-id={file.id}>
+    <div className="flex min-h-11 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 border-border" data-attachment-id={file.id}>
       {thumb ? (
         // eslint-disable-next-line @next/next/no-img-element -- authorised, signed, same-origin thumbnails
-        <img src={thumb} alt="" className="h-9 w-9 shrink-0 rounded object-cover" style={{ backgroundColor: 'var(--theme-surface-border)' }} />
+        <img src={thumb} alt="" className="h-9 w-9 shrink-0 rounded object-cover bg-border" />
       ) : (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)' }}>
-          <Icon size={16} aria-hidden style={{ color: 'var(--theme-primary-text)' }} />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-primary-wash">
+          {icon}
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <a href={attachmentPath(file.id)} className="block truncate text-sm font-medium hover:underline" style={{ color: 'var(--theme-card-text)' }} download={file.name} title={file.name}>
+        <a href={attachmentPath(file.id)} className="block truncate text-sm font-medium hover:underline text-fg" download={file.name} title={file.name}>
           {file.name}
         </a>
-        <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>{formatBytes(file.size)}</p>
+        <p className="text-2xs text-fg-muted">{formatBytes(file.size)}</p>
       </div>
       {children}
     </div>
@@ -84,7 +84,7 @@ export function AttachmentList({ value, empty = '—' }: { value: unknown; empty
       {files.map((file) => (
         <li key={file.id}>
           <AttachmentChip file={file}>
-            <a href={attachmentPath(file.id)} download={file.name} aria-label={`Download ${file.name}`} className="rounded p-1.5" style={{ color: 'var(--theme-muted-text)' }}>
+            <a href={attachmentPath(file.id)} download={file.name} aria-label={`Download ${file.name}`} className="rounded p-1.5 text-fg-muted">
               <Download size={14} aria-hidden />
             </a>
           </AttachmentChip>
@@ -216,8 +216,8 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
     try {
       let stored: AttachmentFile | null = null
       {
-        const init = await fetch('/api/internal/forms/files/init', {
-          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        const init = await fetch(formApiUrl(source, 'files/init'), {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...formApiHeaders(source) },
           body: JSON.stringify({ field_key: field.key, name: file.name, size: file.size, ...contextFields() }),
         })
         const plan = await init.json().catch(() => null) as { mode?: string; file_id?: string; upload?: { url: string; method: string; headers: Record<string, string> }; error?: string } | null
@@ -241,7 +241,7 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
         form.append('field_key', field.key)
         form.append('size', String(file.size))
         for (const [name, value] of Object.entries(contextFields())) form.append(name, value)
-        const res = await send(localId, file, xhr, 'POST', '/api/internal/forms/files', form)
+        const res = await send(localId, file, xhr, 'POST', formApiUrl(source, 'files'), form, formApiHeaders(source))
         const body = res.body as { file?: AttachmentFile } | null
         if (res.status < 200 || res.status >= 300 || !body?.file) throw new Error(uploadError(res.status, res.body))
         stored = body.file
@@ -254,7 +254,7 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
     } catch (err) {
       const message = err instanceof Error ? err.message : 'The upload failed'
       // A started direct upload that didn't finish: let the server drop it.
-      if (directId) void fetch(`/api/internal/forms/files/${directId}`, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {})
+      if (directId) void fetch(formApiUrl(source, `files/${directId}`), { method: 'DELETE', credentials: 'same-origin', headers: formApiHeaders(source) }).catch(() => {})
       if (message === 'aborted') return
       setUpload(localId, { status: 'error', error: message, xhr: undefined })
       setAnnouncement(`${file.name} could not be uploaded: ${message}`)
@@ -298,7 +298,7 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
     // Uploaded in this visit and not submitted: delete it now (the server keeps a task draft's saved files).
     if (sessionIds.current.has(file.id)) {
       sessionIds.current.delete(file.id)
-      void fetch(`/api/internal/forms/files/${file.id}`, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {})
+      void fetch(formApiUrl(source, `files/${file.id}`), { method: 'DELETE', credentials: 'same-origin', headers: formApiHeaders(source) }).catch(() => {})
     }
   }
 
@@ -336,32 +336,28 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
           if (!canUpload || e.target !== e.currentTarget) return
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click() }
         }}
-        className={cn('flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 text-center outline-none transition-colors focus-visible:ring-2 sm:flex-row sm:justify-between sm:text-left', !canUpload && 'opacity-70')}
-        style={{
-          borderColor: invalid ? 'var(--status-blocked)' : dragging ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-          backgroundColor: dragging ? 'color-mix(in srgb, var(--theme-primary) 8%, transparent)' : 'transparent',
-          ['--tw-ring-color' as string]: 'var(--theme-primary)',
-        }}
+        className={cn('flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors sm:flex-row sm:justify-between sm:text-left', !canUpload && 'opacity-70', invalid ? 'border-(--status-blocked)' : dragging ? 'border-primary' : 'border-border')}
+        style={{ backgroundColor: dragging ? 'color-mix(in srgb, var(--theme-primary) 8%, transparent)' : 'transparent' }}
         data-dropzone
       >
         <div className="flex items-center gap-2.5">
-          <Paperclip size={18} aria-hidden style={{ color: 'var(--theme-muted-text)' }} className="hidden sm:block" />
+          <Paperclip size={18} aria-hidden className="hidden sm:block text-fg-muted" />
           <div>
-            <p className="text-sm" style={{ color: 'var(--theme-card-text)' }}>{zoneText}</p>
-            <p id={hintId} className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-sm text-fg">{zoneText}</p>
+            <p id={hintId} className="text-2xs text-fg-muted">
               {describeAllowedTypes(config)} · up to {formatBytes(limits.maxFileBytes)} each · {limits.maxFiles === 1 ? 'one file' : `up to ${limits.maxFiles} files`}
             </p>
           </div>
         </div>
         {canUpload && (
           <div className="flex shrink-0 flex-wrap justify-center gap-2">
-            <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium"
-              style={{ borderColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+            <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium border-primary text-primary-text"
+             >
               <Upload size={14} aria-hidden /> Browse…
             </button>
             {showCamera && (
-              <button type="button" onClick={() => cameraRef.current?.click()} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium sm:hidden"
-                style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+              <button type="button" onClick={() => cameraRef.current?.click()} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium sm:hidden border-border text-fg"
+               >
                 <Camera size={14} aria-hidden /> Take photo
               </button>
             )}
@@ -375,7 +371,7 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
         )}
       </div>
 
-      {notice && <p className="text-[11px]" role="status" style={{ color: 'var(--theme-warning, var(--theme-muted-text))' }}>{notice}</p>}
+      {notice && <p className="text-2xs text-warning" role="status">{notice}</p>}
 
       {(files.length > 0 || uploads.length > 0) && (
         <ul className="space-y-1.5" aria-label={`${field.label}: files`}>
@@ -397,14 +393,14 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
             </li>
           ))}
           {uploads.map((upload) => (
-            <li key={upload.localId} className="rounded-lg border px-2.5 py-2" style={{ borderColor: upload.status === 'error' ? 'var(--status-blocked)' : 'var(--theme-surface-border)' }} data-upload-status={upload.status}>
+            <li key={upload.localId} className={cn('rounded-lg border px-2.5 py-2', upload.status === 'error' ? 'border-(--status-blocked)' : 'border-border')} data-upload-status={upload.status}>
               <div className="flex items-center gap-2.5">
                 {upload.status === 'uploading'
-                  ? <Loader2 size={16} className="shrink-0 animate-spin" aria-hidden style={{ color: 'var(--theme-primary-text)' }} />
-                  : <FileIcon size={16} className="shrink-0" aria-hidden style={{ color: 'var(--status-blocked)' }} />}
+                  ? <Loader2 size={16} className="shrink-0 animate-spin text-primary-text" aria-hidden />
+                  : <FileIcon size={16} className="shrink-0 text-(--status-blocked)" aria-hidden />}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm" style={{ color: 'var(--theme-card-text)' }}>{upload.file.name}</p>
-                  <p className="text-[11px]" style={{ color: upload.status === 'error' ? 'var(--status-blocked)' : 'var(--theme-muted-text)' }}>
+                  <p className="truncate text-sm text-fg">{upload.file.name}</p>
+                  <p className={cn('text-2xs', upload.status === 'error' ? 'text-(--status-blocked)' : 'text-fg-muted')}>
                     {upload.status === 'error' ? upload.error : `${formatBytes(upload.file.size)} · ${upload.progress}%`}
                   </p>
                 </div>
@@ -416,9 +412,9 @@ export function AttachmentsField({ field, value, onChange, id, describedBy, inva
                 </button>
               </div>
               {upload.status === 'uploading' && (
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--theme-surface-border)' }}
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border"
                   role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={upload.progress} aria-label={`Uploading ${upload.file.name}`}>
-                  <div className="h-full transition-[width]" style={{ width: `${upload.progress}%`, backgroundColor: 'var(--theme-primary)' }} />
+                  <div className="h-full transition-[width] bg-primary" style={{ width: `${upload.progress}%` }} />
                 </div>
               )}
             </li>

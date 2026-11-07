@@ -18,6 +18,7 @@ import { assertWorkflowActivatable } from '@/lib/packages/activation'
 import { invalidateDataTableTriggerCache } from '@/lib/data-table-workflow-triggers'
 import { isPlainObject } from '@/lib/utils/guards'
 import { pinWorkflowForms } from './forms'
+import { pinWorkflowAgents } from '@/lib/agents/pins'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow rows are untyped here */
 
@@ -335,7 +336,10 @@ export async function publishWorkflow(ctx: ServiceContext, workflowId: string, n
   if (deactivateError) throw dbError(deactivateError)
 
   // Linked reusable forms are pinned to their current version in the snapshot.
-  const pinned = await pinWorkflowForms(await serviceRoleClient(ctx), ctx.tenantId, workflow.nodes, workflow.trigger_config ?? {})
+  // Linked reusable forms and Run Agent steps' agents are pinned to their current versions in the snapshot.
+  const serviceDb = await serviceRoleClient(ctx)
+  const pinned = await pinWorkflowForms(serviceDb, ctx.tenantId, workflow.nodes, workflow.trigger_config ?? {})
+  pinned.nodes = await pinWorkflowAgents(serviceDb, ctx.tenantId, pinned.nodes)
   const { data: version, error: versionError } = await db.from('workflow_versions').insert({
     workflow_id: workflowId,
     tenant_id: ctx.tenantId,
@@ -368,6 +372,78 @@ export async function publishWorkflow(ctx: ServiceContext, workflowId: string, n
   })
   await syncChange(ctx, 'workflow', workflow)
   return { workflow_id: workflowId, published: true as const, version_number: versionNumber, version_id: version.id as string }
+}
+
+/**
+ * The agent versions the published workflow's Run Agent steps are pinned to,
+ * with each agent's current version (designer: "pinned to v3 · newer v5").
+ */
+export async function getWorkflowAgentPins(ctx: ServiceContext, workflowId: string) {
+  requirePerm(ctx, 'workflows.view')
+  const db = ctx.supabase as any
+  const { data: workflow } = await db.from('workflows').select('id, published_version_id').eq('id', workflowId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  if (!workflow) throw ServiceError.notFound('Workflow not found')
+  const { agentPins, currentAgentVersions } = await import('@/lib/agents/pins')
+  let pins: ReturnType<typeof agentPins> = []
+  let versionNumber: number | null = null
+  if (workflow.published_version_id) {
+    const { data: version } = await db.from('workflow_versions').select('version_number, nodes').eq('id', workflow.published_version_id).eq('tenant_id', ctx.tenantId).maybeSingle()
+    pins = agentPins(version?.nodes)
+    versionNumber = version?.version_number ?? null
+  }
+  const current = await currentAgentVersions(await serviceRoleClient(ctx), ctx.tenantId, pins.map((p) => p.agent_id))
+  return {
+    workflow_id: workflowId,
+    published_version_number: versionNumber,
+    pins: pins.map((p) => ({ ...p, current_version: current.get(p.agent_id) ?? null })),
+  }
+}
+
+/**
+ * Re-pin Run Agent steps of the PUBLISHED version to their agents' current
+ * versions (one step, or all) — published as a new workflow version that is
+ * otherwise identical to the live one; draft changes are not published.
+ */
+export async function updatePinnedAgentVersion(ctx: ServiceContext, workflowId: string, nodeId?: string | null) {
+  requirePerm(ctx, 'workflows.activate')
+  requireWorkflowScope(ctx, workflowId)
+  const db = ctx.supabase as any
+  const { data: workflow } = await db.from('workflows').select('id, name, published_version_id').eq('id', workflowId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  if (!workflow) throw ServiceError.notFound('Workflow not found')
+  if (!workflow.published_version_id) throw ServiceError.validation('The workflow has no published version — publish it first')
+  const { data: live, error } = await db.from('workflow_versions').select('*').eq('id', workflow.published_version_id).eq('tenant_id', ctx.tenantId).maybeSingle()
+  if (error) throw dbError(error)
+  if (!live) throw ServiceError.notFound('Published version not found')
+  const { agentPins, currentAgentVersions, pinAgentVersions } = await import('@/lib/agents/pins')
+  const pins = agentPins(live.nodes).filter((p) => !nodeId || p.node_id === nodeId)
+  if (!pins.length) throw ServiceError.validation(nodeId ? 'That step is not a Run Agent step of the published version' : 'The published version has no Run Agent steps')
+  const current = await currentAgentVersions(await serviceRoleClient(ctx), ctx.tenantId, pins.map((p) => p.agent_id))
+  const changes = pins.filter((p) => current.has(p.agent_id) && current.get(p.agent_id) !== p.version)
+  if (!changes.length) return { workflow_id: workflowId, updated: false as const, version_number: live.version_number as number, version_id: live.id as string, changes: [] }
+  const nodes = nodeId ? pinAgentVersions(live.nodes, current, nodeId) : pinAgentVersions(live.nodes, current)
+
+  const { data: last } = await db.from('workflow_versions').select('version_number').eq('workflow_id', workflowId).eq('tenant_id', ctx.tenantId)
+    .order('version_number', { ascending: false }).limit(1).maybeSingle()
+  const versionNumber = (last?.version_number ?? 0) + 1
+  const summary = changes.map((p) => `${p.node_label ?? p.node_id}: v${p.version ?? '?'} → v${current.get(p.agent_id)}`).join(', ')
+  const { error: deactivateError } = await db.from('workflow_versions').update({ is_active: false }).eq('workflow_id', workflowId).eq('tenant_id', ctx.tenantId).eq('is_active', true)
+  if (deactivateError) throw dbError(deactivateError)
+  const { id: _id, version_number: _n, published_at: _at, publish_notes: _notes, published_by: _by, ...copy } = live
+  const { data: version, error: insertError } = await db.from('workflow_versions').insert({
+    ...copy, nodes, version_number: versionNumber, is_active: true, published_by: ctx.actorId,
+    publish_notes: `Updated agent version pins (${summary}) on version ${live.version_number}`,
+  }).select('id').single()
+  if (insertError || !version) throw dbError(insertError, 'Failed to update the agent version')
+  const { error: pointError } = await db.from('workflows').update({ published_version_id: version.id }).eq('id', workflowId).eq('tenant_id', ctx.tenantId)
+  if (pointError) throw dbError(pointError)
+  invalidateDataTableTriggerCache(ctx.tenantId)
+  await audit(ctx, {
+    objectType: 'workflow', objectId: workflowId, action: 'publish',
+    summary: `Updated agent version pins of "${workflow.name}" (version ${versionNumber}): ${summary}`,
+    metadata: { version_number: versionNumber, version_id: version.id, agent_pins: changes.map((p) => ({ node_id: p.node_id, agent_id: p.agent_id, from: p.version, to: current.get(p.agent_id) })) },
+  })
+  await syncChange(ctx, 'workflow', { id: workflowId, name: workflow.name })
+  return { workflow_id: workflowId, updated: true as const, version_number: versionNumber, version_id: version.id as string, changes: changes.map((p) => ({ node_id: p.node_id, from: p.version, to: current.get(p.agent_id) ?? null })) }
 }
 
 /** Star / unstar a node type in the designer palette (favorites are tenant-wide). */

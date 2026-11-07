@@ -1,0 +1,213 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "91155954-6231-5726-9ab1-73654bd885f7",
+  "asset": {
+    "id": "91155954-6231-5726-9ab1-73654bd885f7",
+    "name": "ID document checks",
+    "description": "What the reviewer is told before they decide: the automated checks only flag; a person compares the selfie with the ID photo and decides.",
+    "inputs": [
+      {
+        "key": "fields_complete",
+        "label": "All fields read",
+        "type": "string",
+        "id": "e2be8d78-c8b4-597e-a76d-7343c1655466"
+      },
+      {
+        "key": "name_match",
+        "label": "Name matches",
+        "type": "string",
+        "id": "0c7cad72-6b62-537f-9789-faf63303cf71"
+      },
+      {
+        "key": "dob_match",
+        "label": "Date of birth matches",
+        "type": "string",
+        "id": "980f5b8b-80c2-5a0f-8a4a-2ae7c360de76"
+      },
+      {
+        "key": "number_format",
+        "label": "Number format valid",
+        "type": "string",
+        "id": "13823ff6-dbcc-5bd0-a4b5-de77ba113244"
+      },
+      {
+        "key": "days_to_expiry",
+        "label": "Days to expiry",
+        "type": "number",
+        "id": "b4441e00-6d11-5966-8bd1-8c02013dfeff"
+      },
+      {
+        "key": "id_faces",
+        "label": "Faces on the ID",
+        "type": "number",
+        "id": "d162944a-30cf-5cbb-aed0-5973766b6320"
+      },
+      {
+        "key": "selfie_faces",
+        "label": "Faces in the selfie",
+        "type": "number",
+        "id": "b3dc76bb-8b4b-5dcc-9098-7cc1f2a734e6"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "result",
+        "label": "Result",
+        "type": "string",
+        "id": "a459b400-54fd-52d3-9d55-d02f14dc0b4c"
+      },
+      {
+        "key": "flag",
+        "label": "Flag for the reviewer",
+        "type": "string",
+        "id": "f6c90b18-2d83-53c6-88ce-e4884bf0db18"
+      },
+      {
+        "key": "priority",
+        "label": "Priority",
+        "type": "string",
+        "id": "7b705801-2a73-5f3f-ad5d-7f4b30819178"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Expired document",
+        "conditions": [
+          {
+            "inputKey": "days_to_expiry",
+            "operator": "less_than",
+            "value": 0,
+            "id": "1eacd0bd-581c-5c38-9fbc-c2d0ade1147d"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "The document looks expired: ask for a current one.",
+          "priority": "high"
+        },
+        "id": "0baf0b27-59fc-5ca4-9f86-4c6c19038b18",
+        "enabled": true
+      },
+      {
+        "label": "Fields unreadable",
+        "conditions": [
+          {
+            "inputKey": "fields_complete",
+            "operator": "equals",
+            "value": "false",
+            "id": "da983918-080a-53f6-87e6-16d9d4e0bb7c"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "Some fields could not be read: check the photo quality.",
+          "priority": "medium"
+        },
+        "id": "46a4a075-90eb-5274-a440-a9b3ac6dd6ab",
+        "enabled": true
+      },
+      {
+        "label": "Name differs",
+        "conditions": [
+          {
+            "inputKey": "name_match",
+            "operator": "equals",
+            "value": "false",
+            "id": "7868bac0-87fd-5790-9414-456974dd0334"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "The name on the document differs from the form.",
+          "priority": "high"
+        },
+        "id": "35227df1-b53c-528e-a0fc-c892e7c8b8ec",
+        "enabled": true
+      },
+      {
+        "label": "Date of birth differs",
+        "conditions": [
+          {
+            "inputKey": "dob_match",
+            "operator": "equals",
+            "value": "false",
+            "id": "4e89ad10-aa87-5e96-ab3d-97012acef59e"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "The date of birth differs from the form.",
+          "priority": "high"
+        },
+        "id": "026b5d8a-2d52-5b32-b59a-75892393dd16",
+        "enabled": true
+      },
+      {
+        "label": "Number format",
+        "conditions": [
+          {
+            "inputKey": "number_format",
+            "operator": "equals",
+            "value": "false",
+            "id": "4c00b2de-a8ab-5d1e-8354-03b6f3464707"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "The document number does not look like the expected format.",
+          "priority": "medium"
+        },
+        "id": "2fe994c7-7c22-5d9b-a3e6-46be85d5ea03",
+        "enabled": true
+      },
+      {
+        "label": "No face on the ID",
+        "conditions": [
+          {
+            "inputKey": "id_faces",
+            "operator": "less_than",
+            "value": 1,
+            "id": "35b09299-f67e-5dc2-a5d7-891d6ccdc5b0"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "No photo found on the document.",
+          "priority": "high"
+        },
+        "id": "6376a3d6-fa4e-5c1c-90a2-687f38197752",
+        "enabled": true
+      },
+      {
+        "label": "Selfie not one person",
+        "conditions": [
+          {
+            "inputKey": "selfie_faces",
+            "operator": "not_equals",
+            "value": 1,
+            "id": "1f17980d-210e-5474-9168-ce810d6d31b8"
+          }
+        ],
+        "outputs": {
+          "result": "Needs attention",
+          "flag": "The selfie should show exactly one face.",
+          "priority": "medium"
+        },
+        "id": "4f1c1e15-fae0-5c51-bba2-6fc4744eac94",
+        "enabled": true
+      },
+      {
+        "label": "Checks passed",
+        "conditions": [],
+        "outputs": {
+          "result": "Checks passed",
+          "flag": "Automated checks passed: compare the selfie with the ID photo yourself before verifying.",
+          "priority": "medium"
+        },
+        "id": "5e73f5da-0025-5f44-8a13-351854e37510",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -42,7 +42,7 @@
       "type": "json_build_array",
       "label": "Build Tags",
       "position": { "x": 400, "y": 480 },
-      "config": { "items": ["vip", "priority", "{{customer_tier}}"], "output_var": "tags" }
+      "config": { "items": [{ "value": "vip" }, { "value": "priority" }, { "value": "{{customer_tier}}" }], "output_var": "tags" }
     },
     {
       "id": "n5",

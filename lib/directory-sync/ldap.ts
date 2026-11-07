@@ -2,9 +2,11 @@ import { isIP } from 'node:net'
 import { Client } from 'ldapts'
 import { z } from 'zod'
 import { assertSafeEgressHost } from '@/lib/egress-guard'
-import { LDAP_FLAVORS, LDAP_PRESETS, type LdapFlavor } from '@/lib/directory-sync/ldap-presets'
+import { LDAP_FLAVORS, LDAP_PRESETS, LDAP_PROFILE_KEYS, type LdapFlavor } from '@/lib/directory-sync/ldap-presets'
 import {
   looksLikeEmail,
+  profileValue,
+  type DirectoryProfile,
   type DirectoryClient,
   type DirectoryGroup,
   type DirectoryUser,
@@ -54,6 +56,13 @@ export const ldapAttributeMapping = z.object({
   group_description: attr.optional().describe('Group description (description)'),
   member: attr.optional().describe('Group member attribute (member, uniqueMember, memberUid)'),
   manager: attr.optional().describe('Manager DN attribute (manager)'),
+  job_title: attr.optional().describe('Job title (title)'),
+  department: attr.optional().describe('Department (AD department, OpenLDAP departmentNumber)'),
+  location: attr.optional().describe('Office location (physicalDeliveryOfficeName, l)'),
+  employee_id: attr.optional().describe('Employee id (AD employeeID, employeeNumber)'),
+  company: attr.optional().describe('Company (AD company, o)'),
+  division: attr.optional().describe('Division (AD division)'),
+  cost_center: attr.optional().describe('Cost centre (no standard attribute)'),
 })
 
 export const ldapSettingsSchema = z.object({
@@ -273,7 +282,18 @@ export function entryToUser(entry: LdapEntry, settings: ResolvedLdapSettings): L
     email,
     active,
     ...(text(entry, map.manager) ? { managerDn: String(text(entry, map.manager)) } : {}),
+    ...(profileOf(entry, settings) ? { profile: profileOf(entry, settings)! } : {}),
   }
+}
+
+/** Mapped org attributes (only mapped keys; a missing attribute is null). Undefined when nothing is mapped. */
+export function profileOf(entry: LdapEntry, settings: ResolvedLdapSettings): DirectoryProfile | undefined {
+  const profile: DirectoryProfile = {}
+  for (const key of LDAP_PROFILE_KEYS) {
+    const attribute = settings.map[key]
+    if (attribute) profile[key] = profileValue(text(entry, attribute))
+  }
+  return Object.keys(profile).length ? profile : undefined
 }
 
 /** Resolve each user's manager DN to the manager's externalId (when it is a synced user). */
@@ -290,6 +310,7 @@ function userAttributes(settings: ResolvedLdapSettings): string[] {
   const map = settings.map
   return [...new Set([
     map.id, map.username, map.email, map.display_name, map.first_name, map.last_name, map.manager, 'cn',
+    ...LDAP_PROFILE_KEYS.map((key) => map[key]).filter(Boolean),
     ...(settings.flavor === 'active_directory' ? ['userPrincipalName', 'userAccountControl'] : []),
   ])]
 }

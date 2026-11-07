@@ -1,0 +1,52 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "92a5d8a3-f48b-5520-bc76-781619fc25ed",
+  "asset": {
+    "id": "92a5d8a3-f48b-5520-bc76-781619fc25ed",
+    "name": "Clause playbook",
+    "description": "Our standard position on the clauses legal checks in every contract, the fallback we accept and the risk when a draft departs from it. Legal ticks the deviations on the review step.",
+    "columns": [
+      {
+        "id": "b8abca0b-bf10-5727-9e48-a9c8b4377436",
+        "required": true,
+        "key": "clause",
+        "name": "Clause",
+        "type": "text"
+      },
+      {
+        "id": "acbcf2b7-9c24-56b8-85d4-9761e44dacfa",
+        "required": false,
+        "key": "our_position",
+        "name": "Our standard position",
+        "type": "text"
+      },
+      {
+        "id": "cdeee371-3695-5b33-8b56-0b75eab6be94",
+        "required": false,
+        "key": "fallback",
+        "name": "Acceptable fallback",
+        "type": "text"
+      },
+      {
+        "id": "6be5fbb9-88dd-51ff-949a-95c51685118b",
+        "required": false,
+        "key": "must_have",
+        "name": "Must have",
+        "type": "boolean"
+      },
+      {
+        "id": "669b51f7-3b89-57c0-98e2-0cddb7c8322c",
+        "required": false,
+        "key": "risk_if_missing",
+        "name": "Risk if it deviates",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      }
+    ]
+  }
+}

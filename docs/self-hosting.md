@@ -49,6 +49,7 @@ Copy `.env.example` to `.env.local` (for `npm run dev` / `npm start`) or to
 | `NEXT_PUBLIC_APP_URL` | The public origin users and pg_cron reach the app on (`APP_URL` takes precedence when set). |
 | `CRON_SECRET` | Shared with pg_cron through Vault (below). |
 | `ENCRYPTION_KEY` | Encrypts stored connector secrets. Without it they are stored in plaintext. |
+| `WORKFLOW_SIGNING_SECRET` | Optional. Signs queued workflow resumes (a run continuing after a user task) and run initiators. When unset a key is derived from `ENCRYPTION_KEY` (else the service-role key is used), so set at least one of the three. |
 
 `DEPLOYMENT_MODE` defaults to `self_hosted` when unset. In that mode the
 marketing pages, contact form and self-signup are disabled, `/robots.txt`
@@ -56,6 +57,61 @@ disallows all crawling, the sitemap is empty, and `/` redirects to `/tasks`
 (signed in) or `/login`. Some of these routes are statically rendered, so
 set `DEPLOYMENT_MODE` (and the app URL, used for Open Graph and sitemap
 links) at build time as well as at runtime.
+
+### Workspace addresses (optional)
+
+Each workspace can have its own address, `acme.example.com`, and every
+reusable form a friendly link on it, `acme.example.com/form/<system name>`.
+They are off on a self-hosted install until you set a base domain:
+
+| Variable | Notes |
+|----------|-------|
+| `APP_BASE_DOMAIN` | The domain workspace addresses live under, e.g. `example.com` (then `acme.example.com`). The cloud edition defaults to the `APP_URL` host (`www.` / `app.` stripped). `off` turns addresses off. |
+
+What it needs (instance admins: **Settings → Workspace DNS** shows the
+records for your base domain and checks DNS, the certificate and whether the
+app answers):
+
+1. **Wildcard DNS**: `*.example.com` pointing at the app (a CNAME to your
+   load balancer, or an A / AAAA record), next to the apex record you already
+   have.
+2. **Wildcard TLS**: a certificate for `*.example.com` as well as
+   `example.com`. A wildcard certificate can only be issued through a DNS-01
+   challenge (Let's Encrypt and most ACME CAs refuse HTTP-01 for wildcards),
+   so your certificate tooling (cert-manager, Caddy, Traefik, your load
+   balancer) needs API access to the DNS zone, or you upload a purchased
+   wildcard certificate.
+3. **The proxy in front of the app forwards the original `Host`** header
+   (Next.js resolves the workspace from it). The apex, `www.` and `app.`
+   keep working as before.
+4. **Nothing else served under the base domain.** With addresses on, the
+   session cookie is scoped to `Domain=example.com` (`__Secure-ut_session`
+   for built-in auth, `__Secure-sb-ut-auth-token` for Supabase Auth; HttpOnly,
+   Secure, SameSite=Lax) so one sign-in works on every workspace address and
+   one sign-out clears it everywhere. Every host under the base domain
+   receives that cookie: don't host a blog, status page or anything
+   third-party on `*.example.com` — use a separate domain for those, or a
+   dedicated base domain (`APP_BASE_DOMAIN=tasks.example.com`) for the app.
+   Sharing needs https; on plain http (local development) each address keeps
+   its own host-only session.
+5. **Sign-in stays on the apex.** A signed-out visitor of
+   `acme.example.com/…` is sent to `example.com/login` and back afterwards,
+   so OIDC / SAML redirect URIs and the Supabase Auth redirect allow-list
+   need no wildcard entries.
+
+On Vercel with the domain's DNS at GoDaddy: add `*.example.com` to the
+Vercel project (Settings → Domains), then either switch the nameservers to
+`ns1.vercel-dns.com` / `ns2.vercel-dns.com` in GoDaddy (DNS → Nameservers →
+Change Nameservers → "I'll use my own nameservers") after exporting the zone
+file and importing every record (MX, TXT, Microsoft 365 CNAMEs) into Vercel,
+or keep GoDaddy DNS and add `CNAME *` → `cname.vercel-dns.com` plus `NS`
+records `_acme-challenge` → `ns1.vercel-dns.com` and `ns2.vercel-dns.com`.
+Vercel only documents the nameserver route for wildcard certificates.
+
+Local development: `APP_BASE_DOMAIN=localhost`, then open
+`http://acme.localhost:3000` (browsers resolve `*.localhost` to 127.0.0.1).
+Sign in on that address itself: browsers don't share cookies between
+`localhost` and its subdomains.
 
 Queue tuning (optional): `WORKFLOW_CONCURRENCY` (jobs one processor
 invocation runs at once, default 5), `WORKFLOW_PROCESSOR_BUDGET_MS` (how long
@@ -106,6 +162,8 @@ The jobs the tick runs are defined in `lib/jobs/registry.ts` (times are UTC):
 | Every minute | process-schedules | no active schedule-triggered workflow |
 | | process-workflows | no runnable `workflow_queue` job |
 | | process-agents | no pending or processing `agent_queue` job |
+| | process-media | no due or processing `media_jobs` job (long media steps, provider jobs being polled) |
+| | esign-poll | no due or processing `esign_waits` row (Wait for Signature steps: polling fallback, timeouts) |
 | | github-sync-push | no enabled GitHub sync connection and no pending sync run |
 | | github-sync-deploy | no pending or running GitHub deployment |
 | | ship-events | no enabled log destination |
@@ -183,6 +241,39 @@ The script prints the organisation slug. Sign in at `/login` with that slug,
 the email and the password, then finish setup at `/onboarding`. Invite
 further users from Settings → Invitations.
 
+### More workspaces from automation (instance admin API)
+
+Platforms that provision UserTasks for their own tenants can create
+workspaces over REST. Set `INSTANCE_ADMIN_TOKEN` (at least 32 characters,
+e.g. `openssl rand -hex 32`) in the app environment; without it the
+endpoints answer 404. The token belongs to the installation: only it is
+accepted, and a workspace API key or OAuth token gets 403. Requests are rate
+limited per IP and each new workspace is recorded in its audit log.
+
+```bash
+curl -X POST https://tasks.example.com/api/v1/admin/workspaces \
+  -H "Authorization: Bearer $INSTANCE_ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"slug":"acme","name":"Acme Inc","owner_email":"ada@acme.example","create_api_key":true}'
+# CLI: USERTASKS_API_KEY=$INSTANCE_ADMIN_TOKEN usertasks admin-workspaces create --url https://tasks.example.com …
+```
+
+- The call is idempotent on `slug`. A new workspace returns 201 with
+  `created: true`. An existing live workspace returns 200 with
+  `created: false`, unchanged. A slug of a deleted workspace returns 409.
+- `slug` follows the workspace address rules: a–z, 0–9 and hyphens,
+  3–40 characters, not a reserved name.
+- If `owner_email` belongs to an existing user, they become the workspace's
+  owner and their home workspace is unchanged. Otherwise an account is
+  created with the email already confirmed. It gets `owner_password`, or
+  a random password nobody knows, in which case the owner signs in with SSO
+  or "Forgot password". No invitation email is sent.
+- `create_api_key: true` mints a workspace API key with every permission,
+  or `api_key_permissions`. Optional fields are `api_key_name` and
+  `api_key_expires_in_days`. The key is returned once, as `key`. On an
+  existing workspace it mints another key only when asked.
+- `GET /api/v1/admin/workspaces/{slug}` returns a workspace's id, slug, name
+  and address.
+
 ## 5. Running the app
 
 ### Node
@@ -212,6 +303,10 @@ the scheduler worker, built-in auth, SSE realtime and Mailpit:
 npm run stack -- up --email admin@example.com --org "Acme Inc"
 ```
 
+The standalone profile has no Supabase service-role key: set `ENCRYPTION_KEY`
+(and optionally `WORKFLOW_SIGNING_SECRET`; `npm run stack -- init` generates
+both), or runs waiting on a user task cannot be resumed.
+
 See [Deployment profiles](deployment-profiles.md) for both, PgBouncer, and
 the on-premises, Azure and Google Cloud reference profiles.
 
@@ -222,6 +317,26 @@ and `NEXT_PUBLIC_APP_URL` are build args, because statically rendered routes
 use them; rebuild after changing those two. If Supabase runs on the host
 (`supabase start`), use `http://host.docker.internal:54321` as
 `NEXT_PUBLIC_SUPABASE_URL` and make sure browsers can reach the same URL.
+
+### Version and health check
+
+Two unauthenticated endpoints, cached for 60 seconds, that return nothing
+secret:
+
+- `GET /api/version` returns `{ "version": "0.1.0", "commit": "…" | null, "buildTime": "…" | null }`.
+- `GET /api/config/public` (the container healthcheck) returns the browser
+  config plus `version` and `commit`.
+
+`version` comes from `package.json`. `commit` comes from
+`VERCEL_GIT_COMMIT_SHA` on Vercel, otherwise from `GIT_COMMIT` or
+`SOURCE_COMMIT` (only a hex SHA is shown). `buildTime` comes from `BUILD_TIME`.
+The Docker image takes them as build args:
+
+```bash
+docker build --build-arg GIT_COMMIT=$(git rev-parse HEAD) \
+  --build-arg BUILD_TIME=$(date -u +%FT%TZ) -t usertasks .
+# or: GIT_COMMIT=$(git rev-parse HEAD) docker compose build
+```
 
 ### Optional drivers
 
@@ -319,10 +434,13 @@ PDF; see [Convert Document](/docs/workflows/documents/convert-document).
 
 ## 6. Security checklist
 
-- Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` and `ENCRYPTION_KEY` out of
-  the client and out of version control.
-- Leave `ENABLE_CUSTOM_ACTIVITY_CODE` off unless every workflow author is
-  trusted: custom activity code runs unsandboxed in the app process.
+- Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY` and
+  `WORKFLOW_SIGNING_SECRET` out of the client and out of version control.
+- Custom workflow actions run in a QuickJS WebAssembly sandbox with only the
+  capabilities an administrator grants (`ENABLE_CUSTOM_ACTIVITY_CODE` is no
+  longer used). Set `CUSTOM_ACTIONS_DISABLED=true` to switch them off on a
+  server, and `CUSTOM_ACTION_MAX_TIMEOUT_MS` to lower the per-run time limit
+  (see [Custom workflow actions](/docs/workflows/custom-actions#security-model)).
 - Leave `ALLOW_PRIVATE_EGRESS` off unless workflows must call services on
   your private network.
 - Serve the app over HTTPS; it sends HSTS and a strict CSP by default.

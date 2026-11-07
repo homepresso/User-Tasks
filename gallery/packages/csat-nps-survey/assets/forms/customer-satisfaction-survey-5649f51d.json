@@ -1,0 +1,430 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "5649f51d-9584-5c41-b181-07bf5ace561e",
+  "asset": {
+    "id": "5649f51d-9584-5c41-b181-07bf5ace561e",
+    "name": "Customer satisfaction survey",
+    "description": "The customer survey page: a 1-5 star rating, how likely they are to recommend you (0-10), a Likert matrix on the experience and a comment. Each answer starts the Survey response workflow.",
+    "tags": [
+      "survey",
+      "csat",
+      "nps"
+    ],
+    "fields": [
+      {
+        "key": "overall",
+        "type": "custom",
+        "label": "Overall, how satisfied are you with us?",
+        "custom": {
+          "tag": "ut-rating",
+          "version": "1.1.0",
+          "name": "Rating",
+          "value_type": "number",
+          "icon": "star",
+          "value_schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "props": {
+            "max": 5,
+            "symbol": "star",
+            "size": "large",
+            "labels": [
+              "Very poor",
+              "Poor",
+              "OK",
+              "Good",
+              "Excellent"
+            ],
+            "allow_clear": true
+          },
+          "display": {
+            "template": "{{value}} of {{props.max}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 52,
+            "min_height": 36,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The rating (1 to the maximum)"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "nps",
+        "type": "custom",
+        "label": "How likely are you to recommend us to a friend or colleague?",
+        "custom": {
+          "tag": "ut-slider",
+          "version": "1.1.0",
+          "name": "Slider",
+          "value_type": "number",
+          "icon": "sliders",
+          "value_schema": {
+            "type": "number"
+          },
+          "props": {
+            "min": 0,
+            "max": 10,
+            "step": 1,
+            "show_value": true,
+            "marks": [
+              "0 Not at all likely",
+              "5",
+              "10 Extremely likely"
+            ],
+            "show_input": false
+          },
+          "display": {
+            "template": "{{value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "slider",
+            "keyboard": "Tab to the slider; Left / Right (or Up / Down) move one step, Page Up / Page Down move further, Home / End jump to the minimum / maximum. Enter or Space accepts the starting position while the field is still empty. With the number box, Tab again to type an exact value.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 87,
+            "min_height": 48,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The value chosen"
+          }
+        },
+        "required": true,
+        "help_text": "0 = not at all likely, 10 = extremely likely."
+      },
+      {
+        "key": "experience",
+        "type": "custom",
+        "label": "How satisfied were you with…",
+        "custom": {
+          "tag": "ut-likert",
+          "version": "1.1.0",
+          "name": "Likert scale",
+          "value_type": "json",
+          "icon": "list-checks",
+          "value_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "props": {
+            "statements": [
+              "Speed of our response",
+              "Knowledge of the person who helped you",
+              "Ease of getting what you needed",
+              "Value for money"
+            ],
+            "scale": "satisfaction5",
+            "show_na": true,
+            "all_required": true
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 246,
+            "min_height": 80,
+            "max_height": 2000,
+            "full_width": true
+          },
+          "output": {
+            "type": "object",
+            "description": "One number per statement (0 = N/A), keyed by the statement"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "product_area",
+        "label": "What was it about?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Billing",
+          "Mobile app",
+          "Onboarding",
+          "Support",
+          "Something else"
+        ]
+      },
+      {
+        "key": "channel",
+        "label": "How did you contact us?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Email",
+          "Phone",
+          "Chat",
+          "In person"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "comment",
+        "type": "custom",
+        "label": "Anything you would like to tell us?",
+        "custom": {
+          "tag": "ut-rich-text",
+          "version": "1.1.0",
+          "name": "Rich text",
+          "value_type": "json",
+          "icon": "type",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "html": {
+                "type": "string",
+                "maxLength": 100000
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 100000
+              }
+            },
+            "required": [
+              "html",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "placeholder": "What went well, and what should we do differently?",
+            "max_length": 2000,
+            "toolbar": "basic",
+            "min_height": 140
+          },
+          "display": {
+            "template": "{{value.text}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "textbox",
+            "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 216,
+            "min_height": 120,
+            "max_height": 900,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "primary": "html",
+            "html": true,
+            "extras": {
+              "text": "text"
+            },
+            "choices": [
+              {
+                "value": "html",
+                "label": "HTML (formatted, sanitised)",
+                "primary": "html",
+                "html": true
+              },
+              {
+                "value": "text",
+                "label": "Plain text",
+                "primary": "text"
+              }
+            ],
+            "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+          }
+        }
+      },
+      {
+        "key": "customer_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "customer_email",
+        "label": "Email",
+        "type": "email",
+        "help_text": "Only used to reply to you about this survey."
+      },
+      {
+        "key": "may_contact",
+        "label": "You may contact me about my answers",
+        "type": "boolean"
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "page_1",
+          "title": "Your rating",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "overall",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "nps",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "star",
+          "description": "Two quick questions."
+        },
+        {
+          "id": "page_2",
+          "title": "Your experience",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "experience",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "product_area",
+                  "span": 1
+                },
+                {
+                  "field_key": "channel",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "message-square"
+        },
+        {
+          "id": "page_3",
+          "title": "About you",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "comment",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "customer_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "customer_email",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "may_contact",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "user"
+        }
+      ],
+      "page_settings": {
+        "indicator": "progress",
+        "review": true,
+        "review_title": "Check your answers",
+        "next_label": "Next",
+        "resume": true
+      }
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#C2410C",
+            "background": "#FFFFFF",
+            "text": "#22160F",
+            "page": "#FDF0E7",
+            "page_to": "#FFFAF5"
+          }
+        },
+        "radius": 16,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send my answers",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thank you, {{customer_name}}",
+            "screen_button": "submit_another",
+            "text": "Your answers have been sent. If you asked us to, someone will be in touch.",
+            "screen_button_label": "Answer again"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "How did we do?",
+      "align": "left",
+      "subtitle": "Three short steps, about one minute. Your answers go straight to the team that helped you."
+    }
+  }
+}

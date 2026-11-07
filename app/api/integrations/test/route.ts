@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient, getCachedUser } from "@/lib/supabase/server"
 import { getUserPermissions } from "@/lib/permissions-server"
-import { assertSafeEgressHost, assertSafeEgressUrl, extractDbHost, EgressBlockedError } from "@/lib/egress-guard"
+import { assertSafeEgressHost, extractDbHost, EgressBlockedError } from "@/lib/egress-guard"
+import { connectorFetch } from "@/lib/integrations/http"
+import { resolveSecretPlaceholders } from "@/lib/services/_shared"
 import { isSupportedDbType, testConnection as testDbConnection } from "@/lib/db-connector"
 import type { DbConnectionConfig } from "@/lib/db-connector"
 import { decryptSensitiveFields } from "@/lib/secret-fields"
@@ -26,8 +28,15 @@ export async function POST(request: NextRequest) {
   const { type, integrationId } = body
   // Edit UIs round-trip stored (encrypted-at-rest) credential values into this
   // test endpoint — decrypt server-side; plaintext passes through unchanged.
-  const config = decryptSensitiveFields(body.config)
   const tenantId = await getCurrentTenantId(supabase, user.id)
+  // Saved integrations: '__SECRET__' masks (what the edit UI holds) are
+  // restored from the stored config of the caller's own integration.
+  let rawConfig = body.config ?? {}
+  if (integrationId) {
+    const stored = await getOwnedIntegration(supabase, tenantId, String(integrationId), 'config').catch(() => null) as any
+    if (stored?.config) rawConfig = resolveSecretPlaceholders(rawConfig, stored.config)
+  }
+  const config = decryptSensitiveFields(rawConfig)
 
   try {
     if (type === "database") {
@@ -104,13 +113,14 @@ export async function POST(request: NextRequest) {
         }
         await getOwnedIntegration(supabase, tenantId, String(integrationId), 'id')
       }
-      await applyAuthHeaders(config, headers, { supabase, integrationId: integrationId ? String(integrationId) : null })
+      // Token stores are scoped to the caller's tenant (auth_config.connector_id comes from the request body).
+      const query: Record<string, string> = {}
+      await applyAuthHeaders(config, headers, { supabase, integrationId: integrationId ? String(integrationId) : null, tenantId }, query)
 
-      await assertSafeEgressUrl(baseUrl)
-      const resp = await fetch(baseUrl, {
-        headers,
-        signal: AbortSignal.timeout(10000),
-      })
+      const target = new URL(baseUrl)
+      for (const [k, v] of Object.entries(query)) target.searchParams.set(k, v)
+      const resp = await connectorFetch(target.toString(), { headers }, { timeoutMs: 10_000, maxAttempts: 1 })
+      await resp.body?.cancel().catch(() => {})
 
       return NextResponse.json({
         success: resp.ok,

@@ -1,0 +1,131 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+  "asset": {
+    "id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+    "name": "Vendor applications rows",
+    "rows": [
+      {
+        "id": "01933657-6de2-51dc-b356-71c2da8445ce",
+        "data": {
+          "application_ref": "VA-20261006-3KQ1",
+          "submitted_on": "2026-10-06",
+          "legal_name": "Tasman Freight Services Ltd",
+          "registration_number": "6120344",
+          "country": "NZ",
+          "spend_category": "Logistics",
+          "expected_annual_spend": 85000,
+          "contact_email": "accounts@tasmanfreight.example.com",
+          "requester_email": "casey.ng@example.com",
+          "risk_tier": "low",
+          "risk_score": 12,
+          "status": "Approved",
+          "vendor_id": "V-100482",
+          "next_review_date": "2028-10-06",
+          "decision_notes": "Call-back confirmed with the finance manager."
+        }
+      },
+      {
+        "id": "e27c9a21-ed5d-53c9-a2e7-0407e895bc72",
+        "data": {
+          "application_ref": "VA-20261009-7HD4",
+          "submitted_on": "2026-10-09",
+          "legal_name": "Brightline Software Pty Ltd",
+          "registration_number": "ACN 612 004 118",
+          "country": "AU",
+          "spend_category": "Software",
+          "expected_annual_spend": 42000,
+          "contact_email": "billing@brightline.example.com",
+          "requester_email": "mia.walker@example.com",
+          "risk_tier": "low",
+          "risk_score": 8,
+          "status": "Approved",
+          "vendor_id": "V-100487",
+          "next_review_date": "2028-10-09",
+          "decision_notes": ""
+        }
+      },
+      {
+        "id": "caa037f7-a10c-5487-b726-cd5001a313b6",
+        "data": {
+          "application_ref": "VA-20261014-1PZ8",
+          "submitted_on": "2026-10-14",
+          "legal_name": "Mumbai Precision Components Pvt Ltd",
+          "registration_number": "U29100MH2011PTC2210",
+          "country": "IN",
+          "spend_category": "Raw materials",
+          "expected_annual_spend": 260000,
+          "contact_email": "exports@mumbaiprecision.example.com",
+          "requester_email": "casey.ng@example.com",
+          "risk_tier": "medium",
+          "risk_score": 41,
+          "status": "Compliance review",
+          "vendor_id": "",
+          "next_review_date": "2027-10-14",
+          "decision_notes": "Waiting for the beneficial-ownership declaration."
+        }
+      },
+      {
+        "id": "792a73fb-deef-5564-a991-77f41af17f45",
+        "data": {
+          "application_ref": "VA-20261020-9WC2",
+          "submitted_on": "2026-10-20",
+          "legal_name": "Gulfstream Trading FZE",
+          "registration_number": "FZE-55102",
+          "country": "AE",
+          "spend_category": "Facilities",
+          "expected_annual_spend": 150000,
+          "contact_email": "finance@gulfstream.example.com",
+          "requester_email": "oliver.brown@example.com",
+          "risk_tier": "high",
+          "risk_score": 68,
+          "status": "Declined",
+          "vendor_id": "",
+          "next_review_date": "",
+          "decision_notes": "Compliance declined: adverse media not resolved."
+        }
+      },
+      {
+        "id": "72049a51-8627-5a28-97f7-0974afd897bc",
+        "data": {
+          "application_ref": "VA-20261023-4MB6",
+          "submitted_on": "2026-10-23",
+          "legal_name": "Northstar Marketing Group Ltd",
+          "registration_number": "09876543",
+          "country": "GB",
+          "spend_category": "Marketing",
+          "expected_annual_spend": 60000,
+          "contact_email": "ar@northstar.example.com",
+          "requester_email": "mia.walker@example.com",
+          "risk_tier": "low",
+          "risk_score": 15,
+          "status": "Bank verification",
+          "vendor_id": "",
+          "next_review_date": "2028-10-23",
+          "decision_notes": ""
+        }
+      },
+      {
+        "id": "fbd75b62-5ad1-55dc-81e0-a557d107b171",
+        "data": {
+          "application_ref": "VA-20261027-2TX9",
+          "submitted_on": "2026-10-27",
+          "legal_name": "Rheinland Industrietechnik GmbH",
+          "registration_number": "HRB 104221",
+          "country": "DE",
+          "spend_category": "IT hardware",
+          "expected_annual_spend": 120000,
+          "contact_email": "buchhaltung@rheinland.example.com",
+          "requester_email": "casey.ng@example.com",
+          "risk_tier": "pending",
+          "risk_score": null,
+          "status": "Screening",
+          "vendor_id": "",
+          "next_review_date": "",
+          "decision_notes": ""
+        }
+      }
+    ]
+  }
+}

@@ -6,9 +6,12 @@ import { reads as automations } from './automations'
 import { reads as data } from './data'
 import { reads as forms } from './forms'
 import { reads as governance } from './governance'
+import { reads as home } from './home'
 import { reads as integrations } from './integrations'
+import { reads as org } from './org'
 import { reads as reports } from './reports'
 import { reads as settings } from './settings'
+import { reads as taskFollows } from './task-follows'
 import { reads as tasks } from './tasks'
 
 /**
@@ -23,10 +26,13 @@ export const UI_READS = {
   ...data,
   ...forms,
   ...governance,
+  ...home,
   ...integrations,
+  ...org,
   ...reports,
   ...settings,
   ...tasks,
+  ...taskFollows,
 }
 
 export type UiReads = typeof UI_READS

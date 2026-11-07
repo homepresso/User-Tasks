@@ -1,6 +1,7 @@
 import { PROVIDER_AREAS } from '@/lib/config/schema'
 import { hasSecretRefs, resolveSecretRefs, secretTtlMs } from '@/lib/config/secret-refs'
-import { runDoctor } from '@/lib/admin/doctor'
+import { runDoctor, type RpcClient } from '@/lib/admin/doctor'
+import { apiOf } from '../ops/service-sql'
 import type { AreaSwitch, PreflightCheck, SwitchContext } from './types'
 
 /**
@@ -15,7 +16,9 @@ import type { AreaSwitch, PreflightCheck, SwitchContext } from './types'
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 async function doctorChecks(ctx: SwitchContext, area: 'realtime' | 'email' | 'cache', extra: { emailTo?: string } = {}): Promise<PreflightCheck[]> {
-  const report = await runDoctor({ config: ctx.targetConfig, sql: ctx.db, areas: [area], emailTo: extra.emailTo })
+  // Without a direct connection the checks go through the service-role API, as the page's health checks do.
+  const api = apiOf(ctx.db)
+  const report = await runDoctor({ config: ctx.targetConfig, sql: api ? null : ctx.db, rpc: api as RpcClient | null, areas: [area], emailTo: extra.emailTo })
   return report.checks.map((c) => ({ name: `${c.area} ${c.name}`, severity: c.status === 'fail' ? 'error' : c.status === 'warn' ? 'warn' : 'ok', detail: c.detail }))
 }
 

@@ -1,16 +1,18 @@
 "use client"
 
-import { use, useState } from 'react'
+import { use, useEffect, useRef, useState } from 'react'
 import { serverRead } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
 import { DataGrid } from '@/components/data/data-grid'
 import { TableDesigner } from '@/components/data/table-designer'
-import Link from 'next/link'
-import { ArrowLeft, FileText, Clock, Columns as ColumnsIcon, Database, Shield } from 'lucide-react'
+import { Table2 } from 'lucide-react'
 import { ObjectPermissions } from '@/components/governance/object-permissions'
-import { formatRelativeDate } from '@/lib/utils'
-import { Card } from '@/components/ui/card'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { plural } from '@/lib/format/plural'
+import { PageHeader } from '@/components/ui/page-header'
+import { Tabs, TabPanel } from '@/components/ui/tabs'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { RetentionPolicyAssignment } from '@/components/governance/retention-policy-assignment'
 import { getRetentionStatus } from '@/lib/retention-policies'
 import { ExportAssetButton } from '@/components/shared/config-transfer'
@@ -79,9 +81,12 @@ interface CustomTableRow {
 
 export default function CustomTablePage({
   params,
-}: { params: Promise<{ id: string }> }) {
+  searchParams,
+}: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = use(params)
-  const [activeTab, setActiveTab] = useState<'rows' | 'schema' | 'access'>('rows')
+  // A new table opens on its schema (?tab=schema) so its columns can be added straight away.
+  const { tab } = use(searchParams)
+  const [activeTab, setActiveTab] = useState<'rows' | 'schema' | 'access'>(tab === 'schema' || tab === 'access' ? tab : 'rows')
 
   const { data: table, isLoading: isTableLoading } = useQuery({
     queryKey: ['custom-table', id],
@@ -111,153 +116,127 @@ export default function CustomTablePage({
     appliedAt: table?.retention_applied_at ?? null,
     createdAt: table?.created_at ?? null,
   })
-  const tabs = [
-    { key: 'rows' as const, label: `Rows (${rowCount})`, icon: Database },
-    { key: 'schema' as const, label: `Schema (${colCount})`, icon: ColumnsIcon },
-    { key: 'access' as const, label: 'Access', icon: Shield },
-  ]
-
   if (isTableLoading && !table) return <PageSkeleton variant="detail" />
-  if (!table) return <PageSkeleton variant="detail" />
+  if (!table) {
+    return (
+      <EmptyState
+        variant="error"
+        title="This table could not be found"
+        description="It may have been deleted, or you may not have access to it."
+        action={{ label: 'Back to data', href: '/data' }}
+      />
+    )
+  }
+
+  const updated = table.updated_at ?? table.created_at
 
   return (
-    <div className="space-y-4">
-      {/* Header with document-style icon + metadata */}
-      <div className="flex items-start gap-4">
-        <Link
-          href="/data"
-          className="rounded-md p-1.5 hover:bg-[var(--theme-surface)] transition-colors shrink-0 mt-1"
-          style={{ color: 'var(--theme-muted-text)' }}
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div
-          className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: 'var(--theme-primary-light)' }}
-        >
-          <FileText size={26} style={{ color: 'var(--theme-primary-text)' }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-            {table.name}
-          </h1>
-          {table.description && (
-            <p className="text-sm mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-              {table.description}
-            </p>
-          )}
-          <div className="flex items-center gap-3 mt-2 text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-            <span className="inline-flex items-center gap-1"><ColumnsIcon size={10} /> {colCount} columns</span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1"><Database size={10} /> {rowCount} rows</span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1" title={new Date(table.updated_at ?? table.created_at).toLocaleString()}>
-              <Clock size={10} /> Updated {formatRelativeDate(table.updated_at ?? table.created_at)}
+    <div>
+      <PageHeader
+        breadcrumbs={[{ label: 'Data', href: '/data' }, { label: table.name }]}
+        icon={<Table2 />}
+        title={table.name}
+        description={
+          <>
+            {table.description && <ClampedText text={table.description} />}
+            <span className="mt-1 block text-xs text-fg-muted">
+              <span className="num">{plural(colCount, 'column')}</span>
+              {' · '}
+              <span className="num">{isRowsLoading && !rows ? '… rows' : plural(rowCount, 'row')}</span>
+              {' · '}
+              <span title={formatAbsolute(updated)}>Updated {formatRelative(updated)}</span>
+              {' · '}
+              {retentionStatus.label}
             </span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1">
-              <Shield size={10} /> {retentionStatus.label}
-            </span>
-          </div>
-        </div>
-        <ExportAssetButton ids={[table.id]} name={table.name} allowRows />
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          {tabs.map(tab => {
-            const Icon = tab.icon
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors"
-                style={{
-                  backgroundColor: activeTab === tab.key ? 'var(--theme-primary)' : 'transparent',
-                  color: activeTab === tab.key ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-                }}
-              >
-                <Icon size={13} />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-        <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-          {activeTab === 'rows' && 'Browse, search, and update table entries.'}
-          {activeTab === 'schema' && 'Manage fields without losing context from the data.'}
-          {activeTab === 'access' && 'Control who can view and edit this table.'}
-        </p>
-      </div>
+          </>
+        }
+        actions={<ExportAssetButton ids={[table.id]} name={table.name} allowRows />}
+        tabs={
+          <Tabs
+            aria-label="Table"
+            idBase="data-table"
+            value={activeTab}
+            onValueChange={setActiveTab}
+            items={[
+              { value: 'rows', label: 'Rows', count: rowCount },
+              { value: 'schema', label: 'Schema', count: colCount },
+              { value: 'access', label: 'Access' },
+            ]}
+          />
+        }
+      />
 
       {activeTab === 'rows' && (
-        <div className="space-y-4">
-          <Card className="!p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Table data</h3>
-                <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-                  Search across values, edit inline, and open row details for full metadata.
-                </p>
-              </div>
-              {isRowsLoading && (
-                <span className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>
-                  Refreshing rows...
-                </span>
-              )}
-            </div>
-          </Card>
+        <TabPanel idBase="data-table" value="rows">
           <DataGrid
             tableId={table.id}
             tenantId={table.tenant_id}
             columns={table.columns}
             rows={rows ?? []}
           />
-        </div>
+        </TabPanel>
       )}
 
       {activeTab === 'schema' && (
-        <div className="space-y-4">
-          <Card className="!p-4">
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Schema overview</h3>
-            <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-              Keep the editor collapsed until you need it. The summary below helps you scan the structure quickly.
-            </p>
-          </Card>
+        <TabPanel idBase="data-table" value="schema">
           <TableDesigner tableId={table.id} columns={table.columns} />
-        </div>
+        </TabPanel>
       )}
 
       {activeTab === 'access' && (
-        <div
-          className="rounded-xl border p-4"
-          style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}
-        >
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--theme-card-text)' }}>Table access</h3>
-            <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-              Permissions are separated here so schema and data work stay focused. Use this tab when you need to restrict who can open or manage the table.
-            </p>
-          </div>
-          <ObjectPermissions
-            objectType="data_table"
-            objectId={table.id}
-            objectName={table.name}
-            showExecute={false}
-          />
-          <div className="mt-4 rounded-xl border p-4" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <TabPanel idBase="data-table" value="access" className="max-w-4xl space-y-8">
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-base font-semibold text-fg">Permissions</h2>
+              <p className="mt-0.5 text-ui text-fg-muted">Control who can open, edit and manage this table.</p>
+            </div>
+            <ObjectPermissions
+              objectType="data_table"
+              objectId={table.id}
+              objectName={table.name}
+              showExecute={false}
+            />
+          </section>
+          <section className="space-y-3 border-t border-border-subtle pt-6">
+            <div>
+              <h2 className="text-base font-semibold text-fg">Retention</h2>
+              <p className="mt-0.5 text-ui text-fg-muted">Current status: {retentionStatus.label}</p>
+            </div>
             <RetentionPolicyAssignment
               targetType="data_table"
               targetId={table.id}
               currentPolicyId={table.retention_policy_id}
               allowedScope="data_tables"
             />
-            <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-              Current status: {retentionStatus.label}
-            </p>
-          </div>
-        </div>
+          </section>
+        </TabPanel>
       )}
     </div>
+  )
+}
+
+/** A description clamped to two lines, with "more" / "less" when it overflows. */
+function ClampedText({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1)
+    measure()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    ro?.observe(el)
+    return () => ro?.disconnect()
+  }, [text])
+  return (
+    <>
+      <span ref={ref} className={expanded ? 'block' : 'block line-clamp-2'}>{text}</span>
+      {(overflows || expanded) && (
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="text-ui font-medium text-primary-text hover:underline">
+          {expanded ? 'Less' : 'More'}
+        </button>
+      )}
+    </>
   )
 }

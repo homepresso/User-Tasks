@@ -144,11 +144,14 @@ export interface SwitchJob {
   force: boolean
 }
 
+/** A switch log row's area: a provider area, or `instance` (the cloud lock, migration 20261123000000). */
+export type SwitchLogArea = ProviderArea | 'instance'
+
 export interface SwitchRecordRow {
   id: string
-  /** settings: provider options changed without a switch (Settings → Infrastructure). */
+  /** settings: provider options changed without a switch (Settings → Infrastructure, or the cloud lock). */
   kind: 'switch' | 'rollback' | 'settings'
-  area: ProviderArea
+  area: SwitchLogArea
   from_provider: string | null
   to_provider: string
   /** queued / cancelled: background switches started from Settings → Infrastructure. */

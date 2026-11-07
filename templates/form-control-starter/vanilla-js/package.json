@@ -1,0 +1,13 @@
+{
+  "name": "ut-star-rating-vanilla",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A UserTasks custom form control as a plain custom element (no dependencies)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "package": "node scripts/build.mjs && node scripts/package.mjs"
+  }
+}

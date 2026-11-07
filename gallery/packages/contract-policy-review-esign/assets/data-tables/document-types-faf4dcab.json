@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "faf4dcab-ed96-5e25-b5e0-6d4acbbe1bed",
+  "asset": {
+    "id": "faf4dcab-ed96-5e25-b5e0-6d4acbbe1bed",
+    "name": "Document types",
+    "description": "The kinds of document that go through review, with what each one needs: how long its records are kept, who signs it off and how often it is reviewed again. The submission form looks the type up here; the workflow reads the row.",
+    "columns": [
+      {
+        "id": "f0cd8b49-3436-50cd-bdc5-916466394ecd",
+        "required": true,
+        "key": "type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "bf29d56c-4742-5639-84ef-17ab2d43b229",
+        "required": false,
+        "key": "type_description",
+        "name": "Description",
+        "type": "text"
+      },
+      {
+        "id": "77d8574a-57e6-52a8-8cf0-557c2fde6c9c",
+        "required": false,
+        "key": "route_summary",
+        "name": "Review route (shown on the form)",
+        "type": "text"
+      },
+      {
+        "id": "a901df6e-19e4-59b6-bbe2-336fac112dc1",
+        "required": false,
+        "key": "sign_off_role",
+        "name": "Signed off by",
+        "type": "text"
+      },
+      {
+        "id": "ac14252c-6151-5a7a-90cd-2e844ffaf7f9",
+        "required": false,
+        "key": "retention_years",
+        "name": "Keep records (years)",
+        "type": "number"
+      },
+      {
+        "id": "fcd884da-9bf5-5261-b7c4-64d18c454692",
+        "required": false,
+        "key": "review_cycle_months",
+        "name": "Review again after (months)",
+        "type": "number"
+      },
+      {
+        "id": "a9f6b75e-2baf-5f9e-ab72-92f7ff6dc467",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

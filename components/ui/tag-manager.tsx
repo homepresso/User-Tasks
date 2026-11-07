@@ -48,7 +48,7 @@ export function TagBadge({ tag, color, selected, onSelect, onRemove }: TagBadgeP
 
   return (
     <span
-      className="inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full cursor-pointer transition-colors"
+      className="inline-flex items-center gap-0.5 text-2xs font-medium px-1.5 py-0.5 rounded-full cursor-pointer transition-colors"
       style={{ backgroundColor: bg, color: fg }}
       onClick={(e) => {
         e.preventDefault()
@@ -217,12 +217,11 @@ export function InlineTagEditor({
               onChange={(e) => { setInput(e.target.value); setShowSuggestions(true) }}
               onFocus={() => setShowSuggestions(true)}
               placeholder="add tag..."
-              className="w-24 text-[9px] px-1.5 py-0.5 rounded border outline-none"
-              style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)" }}
+              className="w-24 text-2xs px-1.5 py-0.5 rounded border outline-none border-border bg-panel"
               autoFocus
             />
             {input.trim() && (
-              <button type="submit" className="text-[9px]" style={{ color: "var(--theme-primary-text)" }}>
+              <button type="submit" className="text-2xs text-primary-text">
                 <Plus size={8} />
               </button>
             )}
@@ -230,15 +229,13 @@ export function InlineTagEditor({
 
           {/* Suggestion dropdown */}
           {showDropdown && !pendingNewTag && (
-            <div className="absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border shadow-lg overflow-hidden"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+            <div className="absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border shadow-lg overflow-hidden bg-panel border-border"
             >
               {suggestions.map(s => (
                 <button
                   key={s.name}
                   onMouseDown={(e) => { e.preventDefault(); handleSubmit(s.name) }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-[10px] text-left hover:opacity-80 transition-colors"
-                  style={{ color: "var(--theme-card-text)" }}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-2xs text-left hover:opacity-80 transition-colors text-fg"
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
                   {s.name}
@@ -247,8 +244,7 @@ export function InlineTagEditor({
               {input.trim() && !suggestions.some(s => s.name === input.trim().toLowerCase()) && (
                 <button
                   onMouseDown={(e) => { e.preventDefault(); handleSubmit() }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-[10px] text-left border-t"
-                  style={{ color: "var(--theme-primary-text)", borderColor: "var(--theme-surface-border)" }}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-2xs text-left border-t text-primary-text border-border"
                 >
                   <Plus size={10} />
                   Create &ldquo;{input.trim().toLowerCase()}&rdquo;
@@ -259,18 +255,17 @@ export function InlineTagEditor({
 
           {/* New tag color picker step */}
           {pendingNewTag && (
-            <div className="absolute top-full left-0 z-20 mt-1 w-52 rounded-lg border shadow-lg"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+            <div className="absolute top-full left-0 z-20 mt-1 w-52 rounded-lg border shadow-lg bg-panel border-border"
               onClick={e => e.stopPropagation()}
             >
               <div className="px-3 pt-2.5 pb-1">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pendingColor }} />
-                  <span className="text-[10px] font-semibold" style={{ color: "var(--theme-card-text)" }}>
+                  <span className="text-2xs font-semibold text-fg">
                     {pendingNewTag}
                   </span>
                 </div>
-                <p className="text-[9px] mb-2" style={{ color: "var(--theme-muted-text)" }}>Choose a color for this tag</p>
+                <p className="text-2xs mb-2 text-fg-muted">Choose a color for this tag</p>
                 <div className="grid grid-cols-5 gap-1.5 mb-2">
                   {TAG_COLORS.map(c => (
                     <button
@@ -297,22 +292,20 @@ export function InlineTagEditor({
                     type="text"
                     value={pendingColor}
                     onChange={(e) => setPendingColor(e.target.value)}
-                    className="flex-1 text-[9px] font-mono px-1.5 py-1 rounded border outline-none"
-                    style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}
+                    className="flex-1 text-2xs font-mono px-1.5 py-1 rounded border outline-none border-border bg-bg"
                   />
                 </div>
               </div>
-              <div className="flex border-t" style={{ borderColor: "var(--theme-surface-border)" }}>
+              <div className="flex border-t border-border">
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPendingNewTag(null) }}
-                  className="flex-1 px-3 py-2 text-[10px] font-medium hover:opacity-70"
-                  style={{ color: "var(--theme-muted-text)" }}
+                  className="flex-1 px-3 py-2 text-2xs font-medium hover:opacity-70 text-fg-muted"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={async (e) => { e.preventDefault(); e.stopPropagation(); await confirmNewTag() }}
-                  className="flex-1 px-3 py-2 text-[10px] font-medium rounded-br-lg"
+                  className="flex-1 px-3 py-2 text-2xs font-medium rounded-br-lg"
                   style={{ backgroundColor: pendingColor, color: "white" }}
                 >
                   Create Tag
@@ -324,8 +317,7 @@ export function InlineTagEditor({
       ) : (
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsEditing(true); setInput("") }}
-          className="text-[9px] px-1 py-0.5 rounded hover:opacity-70"
-          style={{ color: "var(--theme-muted-text)" }}
+          className="text-2xs px-1 py-0.5 rounded hover:opacity-70 text-fg-muted"
         >
           <Plus size={8} />
         </button>
@@ -346,8 +338,7 @@ function TagColorPicker({ currentColor, onSelect, onClose }: {
 
   return (
     <div
-      className="absolute top-full left-0 z-20 mt-1 rounded-lg border shadow-lg"
-      style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+      className="absolute top-full left-0 z-20 mt-1 rounded-lg border shadow-lg bg-panel border-border"
       onClick={e => e.stopPropagation()}
     >
       {/* Preset colors */}
@@ -366,7 +357,7 @@ function TagColorPicker({ currentColor, onSelect, onClose }: {
       </div>
 
       {/* Custom color toggle */}
-      <div className="border-t px-2 py-1.5" style={{ borderColor: "var(--theme-surface-border)" }}>
+      <div className="border-t px-2 py-1.5 border-border">
         {showCustom ? (
           <div className="flex items-center gap-1.5">
             <div className="w-6 h-6 rounded-full shrink-0 border" style={{ backgroundColor: customHex, borderColor: "var(--theme-surface-border)" }} />
@@ -376,8 +367,7 @@ function TagColorPicker({ currentColor, onSelect, onClose }: {
               onChange={(e) => setCustomHex(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onSelect(customHex) } }}
               placeholder="#hex"
-              className="w-[72px] text-[10px] font-mono px-1.5 py-1 rounded border outline-none"
-              style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}
+              className="w-[72px] text-2xs font-mono px-1.5 py-1 rounded border outline-none border-border bg-bg"
               autoFocus
             />
             <input
@@ -389,8 +379,7 @@ function TagColorPicker({ currentColor, onSelect, onClose }: {
             />
             <button
               onClick={async (e) => { e.preventDefault(); e.stopPropagation(); await onSelect(customHex) }}
-              className="text-[9px] font-medium px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: "var(--theme-primary)", color: 'var(--theme-on-primary)' }}
+              className="text-2xs font-medium px-1.5 py-0.5 rounded bg-primary text-primary-fg"
             >
               Apply
             </button>
@@ -398,8 +387,7 @@ function TagColorPicker({ currentColor, onSelect, onClose }: {
         ) : (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowCustom(true) }}
-            className="flex items-center gap-1.5 text-[10px] w-full py-0.5 hover:opacity-70"
-            style={{ color: "var(--theme-muted-text)" }}
+            className="flex items-center gap-1.5 text-2xs w-full py-0.5 hover:opacity-70 text-fg-muted"
           >
             <Pipette size={10} />
             Custom color...
@@ -427,7 +415,7 @@ export function TagFilterBar({ tags, tagDefinitions, selectedTag, onSelectTag }:
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <Tag size={12} style={{ color: "var(--theme-muted-text)" }} />
+      <Tag size={12} className="text-fg-muted" />
       {tags.map(tag => {
         const color = defMap.get(tag)?.color
         const isSelected = selectedTag === tag
@@ -435,7 +423,7 @@ export function TagFilterBar({ tags, tagDefinitions, selectedTag, onSelectTag }:
           <button
             key={tag}
             onClick={() => onSelectTag(isSelected ? null : tag)}
-            className="text-[10px] px-2 py-0.5 rounded-full transition-colors"
+            className="text-2xs px-2 py-0.5 rounded-full transition-colors"
             style={{
               backgroundColor: isSelected ? (color || "var(--theme-primary)") : color ? `color-mix(in srgb, ${color} 15%, transparent)` : "var(--theme-surface)",
               color: isSelected ? 'var(--theme-on-primary)' : color || "var(--theme-muted-text)",
@@ -446,7 +434,7 @@ export function TagFilterBar({ tags, tagDefinitions, selectedTag, onSelectTag }:
         )
       })}
       {selectedTag && (
-        <button onClick={() => onSelectTag(null)} className="text-[10px] hover:opacity-70" style={{ color: "var(--theme-muted-text)" }}>
+        <button onClick={() => onSelectTag(null)} className="text-2xs hover:opacity-70 text-fg-muted">
           <X size={12} />
         </button>
       )}

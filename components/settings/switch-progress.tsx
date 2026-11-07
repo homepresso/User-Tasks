@@ -85,7 +85,7 @@ export function SwitchProgress({ record, showLog = true }: { record: SwitchRecor
       )}
       {record.error && <p className="text-xs break-words" style={{ color: 'var(--status-blocked)' }}>{record.error}</p>}
       {Object.keys(record.envChanges).length > 0 && (
-        <div className="text-xs rounded-lg border p-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
+        <div className="text-xs rounded-lg border p-2 border-border">
           <p className="font-medium mb-1">Set these in the app environment and restart it:</p>
           <pre className="whitespace-pre-wrap break-all">{Object.entries(record.envChanges).map(([k, v]) => (v === '(unset)' ? `unset ${k}` : `${k}=${v}`)).join('\n')}</pre>
         </div>

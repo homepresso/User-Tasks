@@ -1,0 +1,47 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-slider",
+  "name": "Slider",
+  "description": "A range slider for numbers (0 to 100, $0 to $5,000, 1 to 10) with a value bubble, mark labels such as Low / Medium / High and an optional box for exact entry.",
+  "icon": "sliders",
+  "version": "1.2.0",
+  "entry": "ut-slider.js",
+  "value": {
+    "type": "number",
+    "schema": {
+      "type": "number"
+    }
+  },
+  "props": [
+    { "name": "min", "bindable": true, "label": "Minimum", "type": "number", "default": 0 },
+    { "name": "max", "bindable": true, "label": "Maximum", "type": "number", "default": 100 },
+    { "name": "step", "label": "Step", "type": "number", "default": 1, "min": 0.000001, "description": "The slider moves in steps of this size (1, 5, 0.5, …)." },
+    { "name": "value_prefix", "label": "Prefix", "type": "string", "description": "Shown before the value, e.g. $." },
+    { "name": "value_suffix", "label": "Suffix (unit)", "type": "string", "description": "Shown after the value, e.g. % or kg." },
+    { "name": "show_value", "label": "Show value bubble", "type": "boolean", "default": true },
+    { "name": "marks", "label": "Mark labels", "type": "string[]", "description": "Labels spread evenly under the track, lowest first (e.g. Low, Medium, High). Without marks the minimum and maximum are shown." },
+    { "name": "show_input", "label": "Show number box", "type": "boolean", "default": false, "description": "A small number box beside the slider for typing an exact value." },
+    { "name": "default_value", "label": "Starting position", "type": "number", "description": "Where the slider starts. The field stays empty until the person moves it (or presses Enter)." }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 87, "min_height": 48, "max_height": 120 },
+  "capabilities": [],
+  "context": [],
+  "display": { "template": "{{value}}", "format": "text" },
+  "output": { "type": "number", "description": "The value chosen" },
+  "accessibility": {
+    "role": "slider",
+    "keyboard": "Tab to the slider; Left / Right (or Up / Down) move one step, Page Up / Page Down move further, Home / End jump to the minimum / maximum. Enter or Space accepts the starting position while the field is still empty. With the number box, Tab again to type an exact value.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/slider",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

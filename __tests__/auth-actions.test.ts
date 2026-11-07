@@ -56,8 +56,8 @@ describe('signInAction', () => {
     const { signInAction } = await import('@/app/actions/auth')
     state.provider = stubProvider({ signInWithPassword: vi.fn(async () => ({ id: 'u-1', email: 'a@x.test' })) })
     expect(await signInAction(input)).toEqual({ ok: true, redirect: '/reports', step: 'signed_in' })
-    expect(await signInAction({ ...input, redirect: 'https://evil.example' })).toMatchObject({ ok: true, redirect: '/tasks' })
-    expect(await signInAction({ ...input, redirect: '//evil.example' })).toMatchObject({ redirect: '/tasks' })
+    expect(await signInAction({ ...input, redirect: 'https://evil.example' })).toMatchObject({ ok: true, redirect: '/home' })
+    expect(await signInAction({ ...input, redirect: '//evil.example' })).toMatchObject({ redirect: '/home' })
   })
 
   it('no invitation: the generic error, nothing created', async () => {

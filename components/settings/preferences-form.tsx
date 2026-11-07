@@ -4,6 +4,12 @@ import { useState } from "react"
 import { updateUserPreferences } from "@/app/actions/profile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Field } from "@/components/ui/field"
+import { Select } from "@/components/ui/select"
+import { SettingsSaveBar, SettingsSection, SettingsSections } from "./settings-section"
+import { QueueRulesEditor } from "./queue-rules-editor"
+import { FollowPreferenceSwitch } from "@/components/tasks/follow-preferences"
+import { resolveQueueRules, type QueueRules } from "@/lib/tasks/queue-rules"
 import { useRouter } from "next/navigation"
 
 interface PreferencesFormProps {
@@ -11,6 +17,7 @@ interface PreferencesFormProps {
   preferences: {
     default_priority?: string
     queue_bypass_priority?: string
+    queue_rules?: QueueRules
     notifications_enabled?: boolean
     available_hours_week?: number
     hours_per_day?: Record<string, number>
@@ -27,63 +34,66 @@ const DAYS = [
   { key: "sun", label: "Sunday" },
 ]
 
+function initialState(preferences: PreferencesFormProps["preferences"]) {
+  const defaults = preferences.hours_per_day ?? {}
+  const hoursPerDay: Record<string, string> = {}
+  for (const day of DAYS) {
+    hoursPerDay[day.key] = String(defaults[day.key] ?? (day.key === "sat" || day.key === "sun" ? 0 : 8))
+  }
+  return {
+    defaultPriority: preferences.default_priority ?? "medium",
+    // Stored rules, else the legacy threshold as rules (lib/tasks/queue-rules).
+    queueRules: resolveQueueRules(preferences),
+    weeklyHours: String(preferences.available_hours_week ?? 40),
+    hoursPerDay,
+  }
+}
+
+type PrefState = ReturnType<typeof initialState>
+
+function sameState(a: PrefState, b: PrefState) {
+  return a.defaultPriority === b.defaultPriority && JSON.stringify(a.queueRules) === JSON.stringify(b.queueRules) && a.weeklyHours === b.weeklyHours
+    && DAYS.every((d) => a.hoursPerDay[d.key] === b.hoursPerDay[d.key])
+}
+
 export function PreferencesForm({
   preferences,
 }: PreferencesFormProps) {
-  const [defaultPriority, setDefaultPriority] = useState(
-    preferences.default_priority ?? "medium"
-  )
-  const [queueBypass, setQueueBypass] = useState(
-    preferences.queue_bypass_priority ?? "high"
-  )
-  const [weeklyHours, setWeeklyHours] = useState(
-    String(preferences.available_hours_week ?? 40)
-  )
-  const [hoursPerDay, setHoursPerDay] = useState<Record<string, string>>(() => {
-    const defaults = preferences.hours_per_day ?? {}
-    const result: Record<string, string> = {}
-    for (const day of DAYS) {
-      result[day.key] = String(defaults[day.key] ?? (day.key === "sat" || day.key === "sun" ? 0 : 8))
-    }
-    return result
-  })
+  const [saved, setSaved] = useState(() => initialState(preferences))
+  const [draft, setDraft] = useState(saved)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const dirty = !sameState(draft, saved)
+  const update = (patch: Partial<PrefState>) => { setDraft((d) => ({ ...d, ...patch })); setError(null) }
 
-  const computedWeekly = DAYS.reduce((sum, d) => sum + (parseFloat(hoursPerDay[d.key]) || 0), 0)
-
-  function syncFromDaily() {
-    setWeeklyHours(String(computedWeekly))
-  }
+  const computedWeekly = DAYS.reduce((sum, d) => sum + (parseFloat(draft.hoursPerDay[d.key]) || 0), 0)
 
   function distributeEvenly() {
-    const total = parseFloat(weeklyHours) || 40
+    const total = parseFloat(draft.weeklyHours) || 40
     const perDay = Math.round((total / 5) * 10) / 10
     const updated: Record<string, string> = {}
     for (const day of DAYS) {
       updated[day.key] = day.key === "sat" || day.key === "sun" ? "0" : String(perDay)
     }
-    setHoursPerDay(updated)
+    update({ hoursPerDay: updated })
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setSaved(false)
+    setError(null)
 
     const parsedHoursPerDay: Record<string, number> = {}
     for (const day of DAYS) {
-      parsedHoursPerDay[day.key] = parseFloat(hoursPerDay[day.key]) || 0
+      parsedHoursPerDay[day.key] = parseFloat(draft.hoursPerDay[day.key]) || 0
     }
 
-    setError(null)
     // Merged into the signed-in user's own preferences server-side.
     const result = await updateUserPreferences({
-      default_priority: defaultPriority,
-      queue_bypass_priority: queueBypass,
-      available_hours_week: parseFloat(weeklyHours) || 40,
+      default_priority: draft.defaultPriority,
+      queue_rules: draft.queueRules,
+      available_hours_week: parseFloat(draft.weeklyHours) || 40,
       hours_per_day: parsedHoursPerDay,
     })
 
@@ -92,145 +102,87 @@ export function PreferencesForm({
       setError(result.error)
       return
     }
-    setSaved(true)
+    setSaved(draft)
     router.refresh()
-    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-6">
-      {/* Default priority */}
-      <div>
-        <label className="block text-sm font-medium mb-1"
-          style={{ color: "var(--theme-card-text)" }}>
-          Default priority for new tasks
-        </label>
-        <select
-          value={defaultPriority}
-          onChange={(e) => setDefaultPriority(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
-          style={{
-            borderColor: "var(--theme-surface-border)",
-            backgroundColor: "var(--theme-card-bg)",
-            color: "var(--theme-card-text)",
-          }}
-        >
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-          <option value="none">None</option>
-        </select>
-      </div>
-
-      {/* Queue bypass threshold */}
-      <div>
-        <label className="block text-sm font-medium mb-1"
-          style={{ color: "var(--theme-card-text)" }}>
-          Priority level to skip the Task Queue
-        </label>
-        <p className="text-xs mb-2" style={{ color: "var(--theme-muted-text)" }}>
-          Tasks at this priority level or higher will bypass the Task Queue and go directly to My Tasks.
-        </p>
-        <select
-          value={preferences.queue_bypass_priority ?? 'high'}
-          onChange={(e) => setQueueBypass(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
-          style={{
-            borderColor: "var(--theme-surface-border)",
-            backgroundColor: "var(--theme-card-bg)",
-            color: "var(--theme-card-text)",
-          }}
-        >
-          <option value="critical">Critical only</option>
-          <option value="high">High and above</option>
-          <option value="medium">Medium and above</option>
-          <option value="low">Low and above (all tasks skip queue)</option>
-          <option value="none">None (all tasks go to queue)</option>
-        </select>
-      </div>
-
-      {/* Weekly available hours */}
-      <div style={{ borderTop: "1px solid var(--theme-surface-border)", paddingTop: "1.5rem" }}>
-        <h3 className="text-sm font-semibold mb-1"
-          style={{ color: "var(--theme-card-text)" }}>
-          Availability
-        </h3>
-        <p className="text-xs mb-4" style={{ color: "var(--theme-muted-text)" }}>
-          Set your weekly available hours so managers can plan assignments.
-        </p>
-
-        <div className="flex items-end gap-3 mb-4">
-          <div className="flex-1">
-            <label className="block text-xs font-medium mb-1"
-              style={{ color: "var(--theme-muted-text)" }}>
-              Weekly hours
-            </label>
-            <Input
-              type="number"
-              min="0"
-              max="168"
-              step="0.5"
-              value={weeklyHours}
-              onChange={(e) => setWeeklyHours(e.target.value)}
-            />
+    <form onSubmit={handleSave}>
+      <SettingsSections>
+        <SettingsSection title="Task defaults" description="Applied to tasks you create.">
+          <div className="space-y-4">
+            <Field label="Default priority for new tasks">
+              <Select value={draft.defaultPriority} onChange={(e) => update({ defaultPriority: e.target.value })}>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="none">None</option>
+              </Select>
+            </Field>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={distributeEvenly}>
-            Distribute evenly
-          </Button>
-        </div>
+        </SettingsSection>
 
-        {/* Daily hours */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium"
-              style={{ color: "var(--theme-muted-text)" }}>
-              Hours per day (for heatmap)
-            </label>
-            <button
-              type="button"
-              onClick={syncFromDaily}
-              className="text-[10px] font-medium hover:underline"
-              style={{ color: "var(--theme-primary-text)" }}
-            >
-              Sync weekly total ({computedWeekly}h)
-            </button>
+        <SettingsSection title="Task queue rules" description="Decide which tasks wait for you to accept them (they show as Queued in My tasks) and which go straight onto your list. A workflow step can override these.">
+          <QueueRulesEditor value={draft.queueRules} onChange={(queueRules) => update({ queueRules })} />
+        </SettingsSection>
+
+        <SettingsSection title="Following" description="Followed processes show on Home → Following, and their open tasks in Task tracker → Following. Saved as soon as you switch.">
+          <div className="flex flex-col gap-3" data-follow-preferences>
+            <FollowPreferenceSwitch name="auto_follow_runs" size="md" label={<span className="text-ui text-fg">Follow processes I start <span className="block text-xs text-fg-muted">Including the ones my form submissions start.</span></span>} />
+            <FollowPreferenceSwitch name="auto_follow_acted_runs" size="md" label={<span className="text-ui text-fg">Follow processes I act on <span className="block text-xs text-fg-muted">When I complete or respond to a workflow task (on someone’s behalf too), I follow its process to see what happens next.</span></span>} />
           </div>
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-            {DAYS.map((day) => (
-              <div key={day.key}>
-                <label className="block text-[10px] text-center mb-1 font-medium"
-                  style={{ color: "var(--theme-muted-text)" }}>
-                  {day.label.slice(0, 3)}
-                </label>
+        </SettingsSection>
+
+        <SettingsSection title="Availability" description="Your weekly hours, so managers can plan assignments. The heatmap uses the hours per day.">
+          <div className="space-y-4">
+            <div className="flex items-end gap-3">
+              <Field label="Weekly hours" className="flex-1">
                 <Input
                   type="number"
                   min="0"
-                  max="24"
+                  max="168"
                   step="0.5"
-                  value={hoursPerDay[day.key]}
-                  onChange={(e) =>
-                    setHoursPerDay((prev) => ({ ...prev, [day.key]: e.target.value }))
-                  }
-                  className="text-center !px-1"
+                  className="num"
+                  value={draft.weeklyHours}
+                  onChange={(e) => update({ weeklyHours: e.target.value })}
                 />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+              </Field>
+              <Button type="button" variant="secondary" onClick={distributeEvenly}>
+                Distribute evenly
+              </Button>
+            </div>
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save Preferences"}
-        </Button>
-        {saved && (
-          <span className="text-sm" style={{ color: "var(--theme-success)" }}>Saved!</span>
-        )}
-        {error && (
-          <span className="text-sm" style={{ color: "var(--theme-danger)" }}>{error}</span>
-        )}
-      </div>
+            <div role="group" aria-labelledby="pref-hours-per-day">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span id="pref-hours-per-day" className="text-ui font-medium text-fg">Hours per day</span>
+                <Button type="button" variant="link" size="sm" onClick={() => update({ weeklyHours: String(computedWeekly) })}>
+                  Use as weekly total ({computedWeekly} h)
+                </Button>
+              </div>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {DAYS.map((day) => (
+                  <label key={day.key} className="block">
+                    <span className="mb-1 block text-center text-xs text-fg-muted">{day.label.slice(0, 3)}</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="24"
+                      step="0.5"
+                      aria-label={`${day.label} hours`}
+                      value={draft.hoursPerDay[day.key]}
+                      onChange={(e) => update({ hoursPerDay: { ...draft.hoursPerDay, [day.key]: e.target.value } })}
+                      className="num px-1 text-center"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SettingsSection>
+      </SettingsSections>
+
+      <SettingsSaveBar dirty={dirty} saving={saving} error={error} onDiscard={() => { setDraft(saved); setError(null) }} />
     </form>
   )
 }

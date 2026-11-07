@@ -1,0 +1,81 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+  "asset": {
+    "id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+    "name": "Sites rows",
+    "rows": [
+      {
+        "id": "1576c7c9-00f0-5e3e-b9dc-9cb7a62fd840",
+        "data": {
+          "site_code": "WLG-HQ",
+          "name": "Wellington head office",
+          "address": "12 Harbour Quay, Wellington",
+          "site_type": "Office",
+          "risk_class": "Low",
+          "site_manager": "Avery Example",
+          "site_manager_email": "avery.example@example.com",
+          "last_inspected": "2026-10-02",
+          "last_outcome": "Compliant"
+        }
+      },
+      {
+        "id": "68389dc3-f928-5a10-b873-8f63845d601e",
+        "data": {
+          "site_code": "AKL-DC",
+          "name": "Auckland distribution centre",
+          "address": "48 Freight Drive, Auckland",
+          "site_type": "Warehouse",
+          "risk_class": "High",
+          "site_manager": "Jordan Sample",
+          "site_manager_email": "jordan.sample@example.com",
+          "last_inspected": "2026-09-24",
+          "last_outcome": "Major actions"
+        }
+      },
+      {
+        "id": "a060da8e-f0d0-540b-80d5-c30996e83a4c",
+        "data": {
+          "site_code": "CHC-WS",
+          "name": "Christchurch workshop",
+          "address": "7 Foundry Lane, Christchurch",
+          "site_type": "Workshop",
+          "risk_class": "High",
+          "site_manager": "Riley Test",
+          "site_manager_email": "riley.test@example.com",
+          "last_inspected": "2026-10-09",
+          "last_outcome": "Minor actions"
+        }
+      },
+      {
+        "id": "f17f9eed-4bf8-5aae-8a6c-6e9f7ddf6e95",
+        "data": {
+          "site_code": "HAM-RT",
+          "name": "Hamilton retail store",
+          "address": "201 Victoria Street, Hamilton",
+          "site_type": "Retail",
+          "risk_class": "Medium",
+          "site_manager": "Casey Demo",
+          "site_manager_email": "casey.demo@example.com",
+          "last_inspected": "2026-10-15",
+          "last_outcome": "Compliant"
+        }
+      },
+      {
+        "id": "a4764d8f-cc27-53be-905b-ff1ac3b1f7f5",
+        "data": {
+          "site_code": "DUD-LB",
+          "name": "Dunedin laboratory",
+          "address": "3 Wharf Road, Dunedin",
+          "site_type": "Laboratory",
+          "risk_class": "High",
+          "site_manager": "Morgan Placeholder",
+          "site_manager_email": "morgan.placeholder@example.com",
+          "last_inspected": "2026-10-20",
+          "last_outcome": "Minor actions"
+        }
+      }
+    ]
+  }
+}

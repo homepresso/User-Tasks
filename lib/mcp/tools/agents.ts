@@ -2,76 +2,74 @@ import type { McpToolServer } from '../server'
 import { z } from 'zod'
 import type { McpContext } from '../server'
 import { mcpOk, mcpErr } from '../server'
-import { normalizeAgentOutputConfig, type NormalizedAgentOutputConfig } from '@/lib/agent-knowledge'
 import { agentExecutionRateLimit } from '@/lib/rate-limit'
-import { kickAgentQueueProcessor } from '@/lib/process-queue'
-import { deactivateWorkflowsReferencingAgent } from '@/lib/agent-references'
+import { fromMcpContext, isServiceError } from '@/lib/services/context'
+import * as agents from '@/lib/services/agents'
 
-/**
- * Best-effort, NON-FATAL validation of an agent's integration + governed output
- * config. Every finding is a warning (never an error) so authoring flows aren't
- * blocked on a stale/typo'd reference. Existence checks are batched with
- * `.in('id', [...])` — one query per referenced table.
- */
-async function collectAgentConfigWarnings(
-  supabase: any,
-  tenantId: string,
-  opts: { model?: string | null; integrationId?: string | null; outputConfig?: NormalizedAgentOutputConfig | null },
-): Promise<string[]> {
-  const warnings: string[] = []
-
-  // model — cheap, no query
-  if (opts.model !== undefined) {
-    const model = String(opts.model ?? '').trim()
-    if (!model) warnings.push('model is empty; the agent will fall back to a default provider model.')
-    else if (!/^[\w.\-\/:]+$/.test(model)) warnings.push(`model "${model}" contains unexpected characters and may not resolve to a valid provider model.`)
-  }
-
-  // integration_id existence
-  if (opts.integrationId) {
-    const { data } = await supabase.from('integrations').select('id').eq('tenant_id', tenantId).eq('id', opts.integrationId).maybeSingle()
-    if (!data) warnings.push(`integration_id "${opts.integrationId}" was not found in this workspace; the agent may fail to reach its model provider.`)
-  }
-
-  const oc = opts.outputConfig
-  if (oc) {
-    // data_access.table_ids -> custom_tables
-    const tableIds = oc.data_access.table_ids
-    if (tableIds.length > 0) {
-      const { data } = await supabase.from('custom_tables').select('id').eq('tenant_id', tenantId).in('id', tableIds)
-      const found = new Set((data ?? []).map((r: any) => r.id))
-      for (const id of tableIds) if (!found.has(id)) warnings.push(`data_access table "${id}" was not found in this workspace.`)
-    }
-
-    // workflow_scope.workflow_ids -> workflows
-    const workflowIds = oc.workflow_scope.workflow_ids
-    if (workflowIds.length > 0) {
-      const { data } = await supabase.from('workflows').select('id').eq('tenant_id', tenantId).in('id', workflowIds)
-      const found = new Set((data ?? []).map((r: any) => r.id))
-      for (const id of workflowIds) if (!found.has(id)) warnings.push(`workflow_scope workflow "${id}" was not found in this workspace.`)
-    }
-  }
-
-  return warnings
+function parseJson(value: string | undefined, label: string): { ok: true; value: any } | { ok: false; error: string } {
+  if (value === undefined) return { ok: true, value: undefined }
+  try { return { ok: true, value: JSON.parse(value) } } catch { return { ok: false, error: `${label} must be valid JSON` } }
 }
+
+async function run<T>(fn: () => Promise<T>) {
+  try {
+    return mcpOk(await fn())
+  } catch (error) {
+    if (isServiceError(error)) return mcpErr(error.message)
+    return mcpErr(error instanceof Error ? error.message : 'Request failed')
+  }
+}
+
+const TOOLS_DESCRIPTION = 'JSON array of tool objects: {"type":"builtin","name":"http_get"} | {"type":"reference","referenceId":"<integration reference id>"} (the reference\'s inputs become the tool parameters; a bare reference id string is accepted too) | {"type":"mcp","mcpServerId":"<id>","mcpToolName":"<tool>"}. Add "requiresApproval":true to make a person approve each call. References and MCP servers must belong to this workspace.'
+const OUTPUT_CONFIG_DESCRIPTION = 'JSON object: {"variables":[{"name":"summary","type":"string|number|integer|boolean|array|object","required":true,"enum":["a","b"],"description":"..."}],"strict_outputs":false,"document_access":true,"data_access":{"grants":[{"table_id":"...","read":true,"insert":false,"update":false,"delete":false}]},"task_access":true,"task_scope":{"mode":"selected","team_ids":[],"workflow_ids":[]},"workflow_access":true,"workflow_scope":{"mode":"selected","workflow_ids":[]},"knowledge":{"table_ids":[],"files":[]},"limits":{"max_run_tokens":0,"max_tool_calls":0,"daily_token_budget":0,"monthly_token_budget":0,"daily_cost_budget":0,"monthly_cost_budget":0,"budget_currency":"USD"},"approval":{"tools":["http_post"] or ["*"],"assignee_user_id":null,"assignee_team_id":null},"egress":{"allowed_hosts":["api.example.com","*.example.org"]}}'
 
 export function registerAgentTools(server: McpToolServer, ctx: McpContext) {
   const { tenantId, supabase } = ctx
+  const svc = () => fromMcpContext(ctx)
   const capabilityModelNote = [
     'Capability model:',
-    '- document_access controls governed file helpers such as CSV reading, downloads, and spreadsheet/document generation',
-    '- data_access controls governed table query/insert/update actions',
+    '- document_access controls governed file helpers such as CSV reading, downloads, and spreadsheet generation',
+    '- data_access.grants lists the tables the agent may use and, per table, read / insert / update / delete (none by default)',
     '- task_access + task_scope controls task inspection and task actions',
     '- workflow_access + workflow_scope controls workflow start/run/server-event actions',
-    '- tools is still available for advanced low-level reference/builtin configuration, but most MCP build flows should treat output_config as the main governed capability surface.',
+    '- knowledge (tables / uploaded documents) adds search_knowledge; approval lists tools a person must approve; limits cap tokens and tool calls; egress.allowed_hosts limits URL tools',
+    '- tools adds low-level builtin, integration reference and MCP tools.',
   ].join('\n')
+
+  const fieldsSchema = {
+    description: z.string().optional(),
+    model: z.string().optional().describe('Model id for the provider (e.g. gpt-4.1, claude-opus-5-5, gemini-2.5-flash)'),
+    system_prompt: z.string().optional().describe('Custom instructions appended to the generated prompt'),
+    role: z.string().optional().describe('Agent role (e.g. assistant, analyst, reviewer)'),
+    task: z.string().optional().describe('Primary task description for the agent'),
+    boundaries: z.string().optional().describe('Constraints and boundaries for agent behavior'),
+    tools: z.string().optional().describe(TOOLS_DESCRIPTION),
+    output_config: z.string().optional().describe(OUTPUT_CONFIG_DESCRIPTION),
+    integration_id: z.string().optional().describe('The AI provider integration (must belong to this workspace)'),
+    temperature: z.number().optional().describe('Sampling temperature 0–2 (default 0.7; ignored by models that do not take one)'),
+    max_tokens: z.number().optional().describe('Maximum output tokens per model call (default 4096)'),
+    max_iterations: z.number().optional().describe('Maximum tool/model iterations (default 10, max 50)'),
+  }
+  const collect = (args: Record<string, any>) => {
+    const tools = parseJson(args.tools, 'tools')
+    if (!tools.ok) return { error: tools.error }
+    const outputConfig = parseJson(args.output_config, 'output_config')
+    if (!outputConfig.ok) return { error: outputConfig.error }
+    const input: Record<string, any> = {}
+    for (const key of ['name', 'description', 'model', 'system_prompt', 'role', 'task', 'boundaries', 'integration_id', 'temperature', 'max_tokens', 'max_iterations', 'is_active']) {
+      if (args[key] !== undefined) input[key] = args[key]
+    }
+    if (tools.value !== undefined) input.tools = tools.value
+    if (outputConfig.value !== undefined) input.output_config = outputConfig.value
+    return { input }
+  }
 
   server.tool('agents_list', 'List AI agents. Agents can be used in workflow run_agent nodes to execute AI tasks within automations.', {
     active: z.boolean().optional(),
     limit: z.number().optional(),
   }, async (args) => {
     let query = (supabase as any).from('agents')
-      .select('id, name, description, model, system_prompt, role, task, boundaries, tools, output_config, integration_id, temperature, max_tokens, max_iterations, is_active, created_at, updated_at')
+      .select('id, name, description, model, system_prompt, role, task, boundaries, tools, output_config, integration_id, temperature, max_tokens, max_iterations, is_active, version, created_at, updated_at')
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false }).limit(Math.min(args.limit ?? 50, 200))
     if (args.active !== undefined) query = query.eq('is_active', args.active)
@@ -91,132 +89,58 @@ export function registerAgentTools(server: McpToolServer, ctx: McpContext) {
     let runs = null
     if (args.include_runs) {
       const { data: r } = await (supabase as any).from('agent_runs')
-        .select('id, status, input_message, output_response, iterations, duration_ms, created_at')
+        .select('id, status, input_message, output_response, iterations, total_tokens, duration_ms, created_at')
         .eq('agent_id', args.agent_id).eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(10)
       runs = r
     }
     return mcpOk({ ...data, recent_runs: runs })
   })
 
-  server.tool('agents_create', `Create a new AI agent that can be referenced in workflow run_agent nodes. MCP can define the agent prompt, tool access, output variables, governed document/file access, governed table scope, governed workflow scope, governed task scope, model settings in one call. To enable document/file helpers, set output_config.document_access to true. To constrain app access, set output_config.data_access to {"mode":"all"} or {"mode":"selected","table_ids":["table-id"]}. For workflow actions, set output_config.workflow_access to true and optionally limit it with output_config.workflow_scope such as {"mode":"selected","workflow_ids":["workflow-id-1","workflow-id-2"]}. For task actions, set output_config.task_access to true and optionally narrow it with output_config.task_scope such as {"mode":"selected","team_ids":["team-id"],"workflow_ids":["workflow-id"]}.
+  server.tool('agents_create', `Create a new AI agent that can be referenced in workflow run_agent nodes. Define the prompt, AI provider, tools, typed output variables and governed access in one call. To enable document/file helpers, set output_config.document_access to true. New agents have no data-table access; grant tables with output_config.data_access = {"grants":[{"table_id":"table-id","read":true,"insert":false,"update":false,"delete":false}]}. For workflow actions, set output_config.workflow_access to true and optionally limit it with output_config.workflow_scope. For task actions, set output_config.task_access to true and optionally narrow it with output_config.task_scope.
 
 ${capabilityModelNote}`, {
     name: z.string().describe('Agent name'),
-    description: z.string().optional(),
-    model: z.string().optional().describe('Model ID (default: gpt-4o)'),
-    system_prompt: z.string().optional().describe('System prompt that defines the agent personality and instructions'),
-    role: z.string().optional().describe('Agent role (e.g. assistant, analyst, reviewer)'),
-    task: z.string().optional().describe('Primary task description for the agent'),
-    boundaries: z.string().optional().describe('Constraints and boundaries for agent behavior'),
-    tools: z.string().optional().describe('JSON string array of integration reference IDs the agent can call'),
-    output_config: z.string().optional().describe('JSON string configuring output variables and governed access. Recommended MCP-first pattern: {"variables":[{"name":"summary","type":"string"}],"document_access":true,"data_access":{"mode":"selected","table_ids":["table-id-1"]},"task_access":true,"task_scope":{"mode":"selected","team_ids":["team-id"]},"workflow_access":true,"workflow_scope":{"mode":"selected","workflow_ids":["workflow-id-1"]}}'),
-    integration_id: z.string().optional().describe('Optional backing integration/model provider connection'),
-    temperature: z.number().optional().describe('Sampling temperature (default: 0.7)'),
-    max_tokens: z.number().optional().describe('Maximum output tokens (default: 4096)'),
-    max_iterations: z.number().optional().describe('Maximum tool/model iterations (default: 10)'),
+    ...fieldsSchema,
   }, async (args) => {
-    let parsedTools: string[] = []
-    if (args.tools) {
-      try { parsedTools = JSON.parse(args.tools) } catch { return mcpErr('tools must be a valid JSON string array') }
-    }
-    let parsedOutputConfig: any = null
-    if (args.output_config) {
-      try { parsedOutputConfig = JSON.parse(args.output_config) } catch { return mcpErr('output_config must be a valid JSON string') }
-    }
-    const normalizedOutputConfig = normalizeAgentOutputConfig(parsedOutputConfig ?? { variables: [] })
-    const warnings = await collectAgentConfigWarnings(supabase, tenantId, {
-      model: args.model ?? 'gpt-4o',
-      integrationId: args.integration_id ?? null,
-      outputConfig: normalizedOutputConfig,
+    const collected = collect(args)
+    if ('error' in collected) return mcpErr(collected.error as string)
+    return run(async () => {
+      const agent = await agents.createAgent(svc(), collected.input)
+      return { created: true, agent: { id: agent.id, name: agent.name, model: agent.model, integration_id: agent.integration_id, is_active: agent.is_active, version: agent.version }, tools: agent.tools }
     })
-    const { data, error } = await (supabase as any).from('agents').insert({
-      tenant_id: tenantId,
-      name: args.name,
-      description: args.description ?? null,
-      model: args.model ?? 'gpt-4o',
-      system_prompt: args.system_prompt ?? '',
-      role: args.role ?? '',
-      task: args.task ?? '',
-      boundaries: args.boundaries ?? '',
-      tools: parsedTools,
-      output_config: normalizedOutputConfig,
-      integration_id: args.integration_id ?? null,
-      temperature: args.temperature ?? 0.7,
-      max_tokens: args.max_tokens ?? 4096,
-      max_iterations: args.max_iterations ?? 10,
-      is_active: true,
-    }).select('id, name, model, integration_id, is_active').single()
-    if (error) return mcpErr(error.message)
-    return mcpOk({ created: true, agent: data, warnings })
   })
 
-  server.tool('agents_update', `Update an existing AI agent by ID, including prompt, tools, output config, governed document/file access, governed data/table scope, governed workflow scope, governed task scope, model settings, and active state.
+  server.tool('agents_update', `Update an existing AI agent by ID, including prompt, tools, output config, governed access, limits, approvals, model settings, and active state. Every change is saved as a new version (agents_versions_list / agents_version_restore).
 
 ${capabilityModelNote}`, {
     agent_id: z.string().describe('Agent ID'),
     name: z.string().optional(),
-    description: z.string().optional(),
-    model: z.string().optional(),
-    system_prompt: z.string().optional(),
-    role: z.string().optional(),
-    task: z.string().optional(),
-    boundaries: z.string().optional(),
-    tools: z.string().optional().describe('JSON string array of integration reference IDs'),
-    output_config: z.string().optional().describe('JSON string configuring output variables plus optional document_access, data_access, task_access, task_scope, workflow_access, and workflow_scope using the same capability model as agents_create'),
-    integration_id: z.string().optional().describe('Optional backing integration/model provider connection'),
-    temperature: z.number().optional(),
-    max_tokens: z.number().optional(),
-    max_iterations: z.number().optional(),
+    ...fieldsSchema,
     is_active: z.boolean().optional(),
   }, async (args) => {
-    const updates: any = {}
-    if (args.name !== undefined) updates.name = args.name
-    if (args.description !== undefined) updates.description = args.description
-    if (args.model !== undefined) updates.model = args.model
-    if (args.system_prompt !== undefined) updates.system_prompt = args.system_prompt
-    if (args.role !== undefined) updates.role = args.role
-    if (args.task !== undefined) updates.task = args.task
-    if (args.boundaries !== undefined) updates.boundaries = args.boundaries
-    if (args.integration_id !== undefined) updates.integration_id = args.integration_id
-    if (args.temperature !== undefined) updates.temperature = args.temperature
-    if (args.max_tokens !== undefined) updates.max_tokens = args.max_tokens
-    if (args.max_iterations !== undefined) updates.max_iterations = args.max_iterations
-    if (args.is_active !== undefined) updates.is_active = args.is_active
-    if (args.tools !== undefined) {
-      try { updates.tools = JSON.parse(args.tools) } catch { return mcpErr('tools must be a valid JSON string array') }
-    }
-    if (args.output_config !== undefined) {
-      try { updates.output_config = normalizeAgentOutputConfig(JSON.parse(args.output_config)) } catch { return mcpErr('output_config must be a valid JSON string') }
-    }
-    if (Object.keys(updates).length === 0) return mcpErr('No fields to update')
-    const warnings = await collectAgentConfigWarnings(supabase, tenantId, {
-      model: args.model !== undefined ? args.model : undefined,
-      integrationId: args.integration_id !== undefined ? args.integration_id : null,
-      outputConfig: (updates.output_config as NormalizedAgentOutputConfig | undefined) ?? null,
+    const collected = collect(args)
+    if ('error' in collected) return mcpErr(collected.error as string)
+    if (Object.keys(collected.input).length === 0) return mcpErr('No fields to update')
+    return run(async () => {
+      const agent = await agents.updateAgent(svc(), args.agent_id, collected.input)
+      return { updated: true, agent_id: args.agent_id, version: agent.version }
     })
-    const { error } = await (supabase as any).from('agents').update(updates).eq('id', args.agent_id).eq('tenant_id', tenantId)
-    if (error) return mcpErr(error.message)
-    return mcpOk({ updated: true, agent_id: args.agent_id, warnings })
   })
 
-  server.tool('agents_delete', 'Delete an AI agent by ID. Any workflows that reference this agent in a run_agent node are deactivated (paused) first so they cannot run broken; the deactivated workflows are returned.', {
+  server.tool('agents_delete', 'Delete an AI agent by ID (queued). Any workflows that reference this agent in a run_agent node are deactivated (paused) first so they cannot run broken; the deactivated workflows are returned.', {
     agent_id: z.string().describe('Agent ID'),
-  }, async (args) => {
-    // Reference integrity: deactivate any workflow referencing this agent before deleting.
-    const deactivated = await deactivateWorkflowsReferencingAgent(supabase, tenantId, args.agent_id)
-    const { error } = await (supabase as any).from('agents').delete().eq('id', args.agent_id).eq('tenant_id', tenantId)
-    if (error) return mcpErr(error.message)
-    return mcpOk({
-      deleted: true,
+  }, async (args) => run(async () => {
+    const result = await agents.deleteAgent(svc(), args.agent_id)
+    return {
+      ...result,
       agent_id: args.agent_id,
-      deactivated_workflows: deactivated,
-      message: deactivated.length > 0
-        ? `Agent deleted. Deactivated ${deactivated.length} referencing workflow(s): ${deactivated.map((w) => w.name).join(', ')}.`
-        : 'Agent deleted. No referencing workflows were affected.',
-    })
-  })
+      message: result.deactivated_workflows.length > 0
+        ? `Agent deletion queued. Deactivated ${result.deactivated_workflows.length} referencing workflow(s): ${result.deactivated_workflows.map((w) => w.name).join(', ')}.`
+        : 'Agent deletion queued. No referencing workflows were affected.',
+    }
+  }))
 
-  server.tool('agents_execute', 'Execute an agent with a message by queueing a run. Use this for direct MCP-driven agent invocation outside workflow execution.', {
+  server.tool('agents_execute', 'Execute an agent with a message by queueing a run (acting as the credential\'s user). Poll agents_job_get with the returned job_id for the result.', {
     agent_id: z.string().describe('Agent ID'),
     message: z.string().describe('Input message to the agent (max 100k characters)'),
   }, async (args) => {
@@ -226,44 +150,22 @@ ${capabilityModelNote}`, {
 
     // Bound the input so a single call can't enqueue an unbounded prompt.
     const MAX_MESSAGE_CHARS = 100_000
-    if (typeof args.message !== 'string' || args.message.length === 0) {
-      return mcpErr('message is required')
-    }
-    if (args.message.length > MAX_MESSAGE_CHARS) {
-      return mcpErr(`message exceeds the maximum length of ${MAX_MESSAGE_CHARS} characters`)
-    }
+    if (typeof args.message !== 'string' || args.message.length === 0) return mcpErr('message is required')
+    if (args.message.length > MAX_MESSAGE_CHARS) return mcpErr(`message exceeds the maximum length of ${MAX_MESSAGE_CHARS} characters`)
 
-    // Verify the agent belongs to this tenant before enqueueing a run against it.
-    const { data: agent, error: agentErr } = await (supabase as any)
-      .from('agents')
-      .select('id')
-      .eq('id', args.agent_id)
-      .eq('tenant_id', tenantId)
-      .maybeSingle()
-    if (agentErr) return mcpErr(agentErr.message)
-    if (!agent) return mcpErr('Agent not found')
-
-    // Queue the agent execution
-    const { data, error } = await (supabase as any).from('agent_queue').insert({
-      agent_id: args.agent_id,
-      tenant_id: tenantId,
-      input_message: args.message,
-      status: 'pending',
-      priority: 5,
-    }).select('id').single()
-    if (error) return mcpErr(error.message)
-    // Kick the drainer so the queued job is actually processed promptly;
-    // if this fetch dies the cron sweep still drains it on its next tick.
-    kickAgentQueueProcessor(1)
-    return mcpOk({ queued: true, job_id: data?.id, agent_id: args.agent_id })
+    return run(async () => ({ ...(await agents.enqueueAgentRun(svc(), args.agent_id, { message: args.message })), agent_id: args.agent_id }))
   })
+
+  server.tool('agents_job_get', 'Get a queued agent job (from agents_execute or a REST async run): status, result (response, outputs, usage) and the agent run id.', {
+    job_id: z.string().describe('Job ID'),
+  }, async (args) => run(() => agents.getAgentQueueJob(svc(), args.job_id)))
 
   server.tool('agents_runs_list', 'List agent execution runs so MCP can audit outputs, durations, and recent agent activity.', {
     agent_id: z.string().optional(),
     limit: z.number().optional(),
   }, async (args) => {
     let query = (supabase as any).from('agent_runs')
-      .select('id, agent_id, status, input_message, output_response, iterations, duration_ms, created_at')
+      .select('id, agent_id, status, input_message, output_response, iterations, total_tokens, cost_amount, cost_currency, cost_status, agent_version, duration_ms, caller_type, created_at')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false }).limit(Math.min(args.limit ?? 20, 200))
     if (args.agent_id) query = query.eq('agent_id', args.agent_id)
@@ -271,4 +173,69 @@ ${capabilityModelNote}`, {
     if (error) return mcpErr(error.message)
     return mcpOk({ runs: data ?? [], count: (data ?? []).length })
   })
+
+  server.tool('agents_versions_list', 'List the saved versions of an agent (every change is a version), newest first, with their snapshots.', {
+    agent_id: z.string().describe('Agent ID'),
+  }, async (args) => run(() => agents.listAgentVersions(svc(), args.agent_id)))
+
+  server.tool('agents_version_restore', 'Restore an earlier version of an agent (saved as a new version, so it can be undone).', {
+    agent_id: z.string().describe('Agent ID'),
+    version: z.number().describe('Version number to restore'),
+  }, async (args) => run(async () => {
+    const agent = await agents.restoreAgentVersion(svc(), args.agent_id, args.version)
+    return { restored: true, agent_id: args.agent_id, version: agent.version }
+  }))
+
+  server.tool('agents_eval_cases_list', 'List an agent\'s evaluation test cases (input + expectations).', {
+    agent_id: z.string().describe('Agent ID'),
+  }, async (args) => run(() => agents.listEvalCases(svc(), args.agent_id)))
+
+  server.tool('agents_eval_case_save', 'Create or update an evaluation test case of an agent. expected: {"contains":[],"not_contains":[],"outputs":{"key":"value"},"tools_called":[],"tools_not_called":[],"status":"completed","max_tokens":0,"rubric":"criterion graded by the model"}.', {
+    agent_id: z.string().describe('Agent ID'),
+    case_id: z.string().optional().describe('Existing case to update'),
+    name: z.string(),
+    input_message: z.string(),
+    expected: z.string().optional().describe('JSON object of expectations'),
+    is_active: z.boolean().optional(),
+  }, async (args) => {
+    const expected = parseJson(args.expected, 'expected')
+    if (!expected.ok) return mcpErr(expected.error)
+    return run(() => agents.saveEvalCase(svc(), args.agent_id, { id: args.case_id ?? null, name: args.name, input_message: args.input_message, expected: expected.value ?? {}, is_active: args.is_active }))
+  })
+
+  server.tool('agents_eval_case_delete', 'Delete an evaluation test case of an agent.', {
+    agent_id: z.string().describe('Agent ID'),
+    case_id: z.string().describe('Test case ID'),
+  }, async (args) => run(() => agents.deleteEvalCase(svc(), args.agent_id, args.case_id)))
+
+  server.tool('agents_eval_runs_list', 'List an agent\'s evaluation runs, newest first (passed / failed counts).', {
+    agent_id: z.string().describe('Agent ID'),
+    limit: z.number().optional(),
+  }, async (args) => run(() => agents.listEvalRuns(svc(), args.agent_id, args.limit ?? 20)))
+
+  server.tool('agents_usage_get', 'Token usage and cost of an agent per day (last 30 days by default), the last 24 hours, this month, and its budgets / limits. Cost is per currency; runs whose model has no price are counted in unpriced_runs, never guessed.', {
+    agent_id: z.string().describe('Agent ID'),
+    days: z.number().optional(),
+  }, async (args) => run(() => agents.agentUsage(svc(), args.agent_id, args.days ?? 30)))
+
+  server.tool('agents_workspace_usage_get', 'Workspace AI agent usage: tokens and cost per day and per agent (last 30 days by default), this month, the workspace budgets and the model price table in effect (workspace overrides, instance prices, shipped list prices).', {
+    days: z.number().optional(),
+  }, async (args) => run(() => agents.workspaceAgentUsage(svc(), args.days ?? 30)))
+
+  server.tool('agents_cost_settings_update', 'Set the workspace\'s model price overrides and agent budgets. model_prices: JSON list of {"provider":"openai","model":"gpt-4.1","input_per_1m":2,"output_per_1m":8,"cached_input_per_1m":0.5,"currency":"USD","effective_date":"2026-10-29"}; budgets: {"daily_token_budget":0,"monthly_token_budget":0,"daily_cost_budget":0,"monthly_cost_budget":0,"budget_currency":"USD"} (0 = none).', {
+    model_prices: z.string().optional().describe('JSON array of price entries'),
+    budgets: z.string().optional().describe('JSON object of budgets'),
+  }, async (args) => run(() => {
+    const parse = (v?: string) => (v === undefined ? undefined : JSON.parse(v))
+    return agents.saveAgentCostSettings(svc(), { model_prices: parse(args.model_prices), budgets: parse(args.budgets) })
+  }))
+
+  server.tool('agents_eval_run', 'Run an agent\'s evaluation suite (all active cases, or case_ids). Side-effecting tools are simulated. Returns the evaluation run; poll agents_eval_run_get for results.', {
+    agent_id: z.string().describe('Agent ID'),
+    case_ids: z.array(z.string()).optional(),
+  }, async (args) => run(() => agents.startEvalRun(svc(), args.agent_id, { case_ids: args.case_ids })))
+
+  server.tool('agents_eval_run_get', 'Get an evaluation run: status, passed / failed counts and per-case checks.', {
+    eval_run_id: z.string(),
+  }, async (args) => run(() => agents.getEvalRun(svc(), args.eval_run_id)))
 }

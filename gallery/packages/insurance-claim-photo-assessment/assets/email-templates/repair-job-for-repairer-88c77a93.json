@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "88c77a93-7f0f-579b-88c9-5f08ce7f219d",
+  "asset": {
+    "id": "88c77a93-7f0f-579b-88c9-5f08ce7f219d",
+    "name": "Repair job for repairer",
+    "description": "Sent to the chosen repairer with the redacted photos (faces and plates blurred).",
+    "subject": "Repair job {{claim_ref}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">New repair job</h2><p>Claim {{claim_ref}}: {{assessment.damaged_parts}} ({{assessment.severity}}). Approved up to {{task_data.approved_amount}}.</p><p>Photos are attached with faces and licence plates blurred. The claimant will contact you to book.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Claim {{claim_ref}} · policy {{form.policy_number}}</p></div>",
+    "text_body": "Repair job {{claim_ref}}: approved up to {{task_data.approved_amount}}. Redacted photos attached.",
+    "is_default": false
+  }
+}

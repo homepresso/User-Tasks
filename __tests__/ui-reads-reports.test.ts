@@ -12,7 +12,10 @@ import { createMemorySupabase } from './fixtures/supabase-memory'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- memory rows */
 
-function ctx(db: any, permissions: string[] = ['reports.view'], actorId = 'user-1'): ServiceContext {
+/** Everything the report pages need (each analytics read needs its domain's permission). */
+const ALL = ['reports.view', 'tasks.view_all', 'integrations.view', 'team.change_roles', 'workflows.view', 'workflows.view_runs']
+
+function ctx(db: any, permissions: string[] = ALL, actorId = 'user-1'): ServiceContext {
   return { db, supabase: db, tenantId: 'tenant-a', actorId, permissions: new Set(permissions), authKind: 'session', source: 'ui' }
 }
 
@@ -53,12 +56,35 @@ describe('reports reads: permission and args', () => {
     ['reports.workflowCompare', { a: 'wf1', b: 'wf2', since: '2026-05-01T00:00:00.000Z' }],
   ]
 
-  it.each(names)('%s needs reports.view', async (name, args) => {
+  it.each(names)('%s needs its permission', async (name, args) => {
     const memory = db()
     const spy = vi.spyOn(memory, 'from')
     expect(await run(ctx(memory, ['tasks.view_own']), name, args)).toMatchObject({ ok: false, status: 403 })
     expect(spy).not.toHaveBeenCalled()
     expect(await run(ctx(db()), name, args)).toMatchObject({ ok: true })
+  })
+
+  // Governance audit 2026-11: workspace-wide analytics need the domain's
+  // permission — reports.view alone (every Viewer) no longer reads them.
+  const DOMAIN: Record<string, string[]> = {
+    'reports.tasks': ['tasks.view_all'],
+    'reports.integrations': ['integrations.view'],
+    'reports.retention': ['team.change_roles'],
+    'reports.businessRules': ['workflows.view'],
+    'reports.workflowHub': ['workflows.view_runs'],
+    'reports.workflowOverview': ['workflows.view_runs'],
+    'reports.workflowOptions': ['workflows.view_runs'],
+    'reports.workflowCompare': ['workflows.view_runs'],
+  }
+  it.each(names.filter(([n]) => DOMAIN[n]))('%s is refused with reports.view alone and allowed with its domain permission', async (name, args) => {
+    expect(await run(ctx(db(), ['reports.view']), name, args)).toMatchObject({ ok: false, status: 403 })
+    expect(await run(ctx(db(), DOMAIN[name]), name, args)).toMatchObject({ ok: true })
+  })
+
+  it('own reports (list, get, individual) stay on reports.view', async () => {
+    for (const [name, args] of names.filter(([n]) => !DOMAIN[n])) {
+      expect(await run(ctx(db(), ['reports.view']), name, args)).toMatchObject({ ok: true })
+    }
   })
 
   it('validates ids and dates', async () => {
@@ -109,7 +135,7 @@ describe('reports.individual', () => {
     expect(result.data.escalations.map((e: any) => e.id)).toEqual(['e1'])
     expect(result.data.lifecycleEvents.map((e: any) => e.id)).toEqual(['l2'])
 
-    const other = await run(ctx(db(seed), ['reports.view'], 'user-2'), 'reports.individual') as any
+    const other = await run(ctx(db(seed), ALL, 'user-2'), 'reports.individual') as any
     expect(other.data.assignedTasks.map((t: any) => t.id)).toEqual(['t3', 't2'])
   })
 })

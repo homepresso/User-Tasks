@@ -18,7 +18,14 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   Archive, BarChart3, Bot, Cable, Check, FileText, Grid3x3, Mail, Palette, Plug, Puzzle, ScrollText, Search, Server, Shield, Table2, Workflow, type LucideIcon,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { formatDate as formatDay } from '@/lib/format/date'
+import { formatCount } from '@/lib/format/number'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select } from '@/components/ui/select'
+import { Tooltip } from '@/components/ui/tooltip'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { searchPackageAssetsAction } from '@/app/actions/packages'
 import {
@@ -30,7 +37,7 @@ import type { AssetHit, AssetSearchInput } from '@/lib/services/package-assets'
 export const TYPE_ICON: Record<string, LucideIcon> = {
   workflow: Workflow, workflow_activity: Puzzle, data_table: Table2, integration: Plug, connector: Cable, decision_table: Grid3x3,
   email_template: Mail, agent: Bot, report: BarChart3, role: Shield, mcp_server: Server, retention_policy: Archive, log_destination: ScrollText,
-  form: FileText, form_theme: Palette,
+  form: FileText, form_theme: Palette, form_control: Puzzle,
 }
 
 const ROW_HEIGHT = 56
@@ -38,7 +45,6 @@ const VIEWPORT = 336
 const PAGE_SIZE = 50
 const SINCE_OPTIONS = [{ value: '', label: 'Any time' }, { value: '24h', label: 'Last 24 hours' }, { value: '7d', label: 'Last 7 days' }, { value: '30d', label: 'Last 30 days' }, { value: '90d', label: 'Last 90 days' }]
 const MEMBERSHIP_LABEL: Record<string, string> = { root: 'In package', manual: 'In package', dependency: 'Dependency', excluded: 'Left out' }
-const selectStyle = { borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -58,7 +64,7 @@ async function search(input: AssetSearchInput) {
 function formatDate(value: string | null) {
   if (!value) return ''
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  return Number.isNaN(date.getTime()) ? '' : formatDay(date)
 }
 
 export interface AssetPickerProps {
@@ -173,9 +179,9 @@ export function AssetPicker({ membership, emptyPackage, onAdd, escapeRef }: Asse
   const chipTypes = (first?.types ?? []).filter((t) => types.includes(t.type) || (chipSource?.counts[t.type] ?? 0) > 0)
 
   return (
-    <div ref={rootRef} className="rounded-lg border mb-3" style={{ borderColor: 'var(--theme-surface-border)' }} data-testid="asset-picker">
-      <div className="flex items-center gap-2 px-3 py-2">
-        <Search size={14} style={{ color: 'var(--theme-muted-text)' }} aria-hidden />
+    <div ref={rootRef} className="mb-4 rounded-lg border border-border bg-panel transition-colors duration-[var(--ds-dur-fast)] focus-within:border-border-strong" data-testid="asset-picker">
+      <div className="flex h-10 items-center gap-2 px-3">
+        <Search size={16} className="shrink-0 text-fg-muted" aria-hidden />
         <input
           ref={inputRef}
           role="combobox"
@@ -184,7 +190,7 @@ export function AssetPicker({ membership, emptyPackage, onAdd, escapeRef }: Asse
           aria-activedescendant={state.open ? activeId : undefined}
           aria-autocomplete="list"
           aria-label={emptyPackage ? 'Search for what the package starts from' : 'Search assets to add'}
-          className="flex-1 bg-transparent text-sm outline-none"
+          className="min-w-0 flex-1 bg-transparent text-ui text-fg placeholder:text-fg-subtle focus-visible:outline-none"
           placeholder={emptyPackage ? 'Start from… search workflows, tables, integrations…' : 'Add items… search every asset'}
           value={text}
           onChange={(event) => { setText(event.target.value); open() }}
@@ -193,33 +199,25 @@ export function AssetPicker({ membership, emptyPackage, onAdd, escapeRef }: Asse
           onKeyDown={onKeyDown}
           data-testid="asset-picker-search"
         />
-        {!state.open && <Button size="sm" variant="outline" onClick={() => { open(); inputRef.current?.focus() }}>Browse</Button>}
+        {!state.open && <Button size="sm" variant="secondary" onClick={() => { open(); inputRef.current?.focus() }}>Browse</Button>}
       </div>
 
       {state.open && (
         <>
-          <div className="px-3 pb-2 flex flex-wrap gap-1.5" role="group" aria-label="Filter by type">
+          <div className="flex flex-wrap gap-1.5 px-3 pb-2" role="group" aria-label="Filter by type">
             <Chip active={!types.length} onClick={() => setTypes([])} label="All" count={chipSource?.total} />
             {chipTypes.map((t) => <Chip key={t.type} active={types.includes(t.type)} onClick={() => toggleType(t.type)} label={t.label} count={chipSource?.counts[t.type]} icon={TYPE_ICON[t.type]} testId={`asset-type-${t.type}`} />)}
           </div>
-          <div className="px-3 pb-2 flex flex-wrap items-center gap-2 text-xs">
-            <select className="rounded border px-1.5 py-1" style={selectStyle} value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag or category">
-              <option value="">Any tag</option>
-              {facetTags.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <select className="rounded border px-1.5 py-1" style={selectStyle} value={since} onChange={(e) => setSince(e.target.value)} aria-label="Updated">
-              {SINCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <select className="rounded border px-1.5 py-1" style={selectStyle} value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Owner">
-              <option value="">Anyone</option>
-              <option value="me">Created by me</option>
-            </select>
-            <select className="rounded border px-1.5 py-1" style={selectStyle} value={sort} onChange={(e) => setSort(e.target.value as 'name' | 'updated')} aria-label="Sort">
-              <option value="name">Name A–Z</option>
-              <option value="updated">Recently updated</option>
-            </select>
-            <span className="ml-auto" style={{ color: 'var(--theme-muted-text)' }} aria-live="polite" data-testid="asset-picker-total">
-              {query.isFetching && !isFetchingNextPage ? 'Searching…' : first ? `${total.toLocaleString()} match${total === 1 ? '' : 'es'}` : ''}
+          <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
+            <Select size="sm" wrapperClassName="w-auto" value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag or category"
+              options={[{ value: '', label: 'Any tag' }, ...facetTags.map((t) => ({ value: t, label: t }))]} />
+            <Select size="sm" wrapperClassName="w-auto" value={since} onChange={(e) => setSince(e.target.value)} aria-label="Updated" options={SINCE_OPTIONS} />
+            <Select size="sm" wrapperClassName="w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Owner"
+              options={[{ value: '', label: 'Anyone' }, { value: 'me', label: 'Created by me' }]} />
+            <Select size="sm" wrapperClassName="w-auto" value={sort} onChange={(e) => setSort(e.target.value as 'name' | 'updated')} aria-label="Sort"
+              options={[{ value: 'name', label: 'Name A–Z' }, { value: 'updated', label: 'Recently updated' }]} />
+            <span className="num ml-auto text-xs text-fg-muted" aria-live="polite" data-testid="asset-picker-total">
+              {query.isFetching && !isFetchingNextPage ? 'Searching…' : first ? `${formatCount(total)} match${total === 1 ? '' : 'es'}` : ''}
             </span>
           </div>
 
@@ -231,13 +229,13 @@ export function AssetPicker({ membership, emptyPackage, onAdd, escapeRef }: Asse
             role="listbox"
             aria-multiselectable="true"
             aria-label="Assets"
-            className="relative overflow-y-auto border-t"
-            style={{ height: rows.length ? Math.min(VIEWPORT, rows.length * ROW_HEIGHT) : 72, borderColor: 'var(--theme-surface-border)' }}
+            className="relative overflow-y-auto border-t border-border-subtle scrollbar-thin"
+            style={{ height: rows.length ? Math.min(VIEWPORT, rows.length * ROW_HEIGHT) : 72 }}
             onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
             data-testid="asset-picker-list"
           >
             {!rows.length && !query.isFetching && first && (
-              <p className="px-3 py-6 text-sm text-center" style={{ color: 'var(--theme-muted-text)' }}>No assets match{searchText ? ` “${searchText}”` : ''}.</p>
+              <p className="px-3 py-6 text-center text-ui text-fg-muted">No assets match{searchText ? ` “${searchText}”` : ''}.</p>
             )}
             <div style={{ height: win.totalHeight, position: 'relative' }}>
               {rows.slice(win.start, win.end).map((row, offset) => {
@@ -256,12 +254,12 @@ export function AssetPicker({ membership, emptyPackage, onAdd, escapeRef }: Asse
                     aria-disabled={!selectable}
                     aria-setsize={total || rows.length}
                     aria-posinset={index + 1}
-                    className="absolute left-0 right-0 px-3 flex items-center gap-2.5 cursor-pointer select-none"
-                    style={{
-                      top: index * ROW_HEIGHT, height: ROW_HEIGHT,
-                      backgroundColor: index === state.active ? 'var(--theme-row-highlight-strong)' : selected ? 'var(--theme-row-highlight)' : undefined,
-                      opacity: selectable ? 1 : 0.7,
-                    }}
+                    className={cn(
+                      'absolute left-0 right-0 flex cursor-pointer select-none items-center gap-2.5 px-3',
+                      index === state.active ? 'bg-muted' : selected ? 'bg-primary-wash' : undefined,
+                      !selectable && 'opacity-70',
+                    )}
+                    style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
                     onMouseDown={(event) => event.preventDefault()}
                     onMouseMove={() => { if (state.active !== index) setState((prev) => ({ ...prev, active: index })) }}
                     onClick={() => setState((prev) => ({ ...prev, active: index, selected: toggle(prev.selected, row, membership) }))}
@@ -269,43 +267,38 @@ export function AssetPicker({ membership, emptyPackage, onAdd, escapeRef }: Asse
                     data-testid="asset-option"
                   >
                     <span
-                      className="h-4 w-4 shrink-0 rounded border flex items-center justify-center"
-                      style={{ borderColor: selected ? 'var(--theme-primary)' : 'var(--theme-surface-border)', backgroundColor: selected ? 'var(--theme-primary)' : undefined, color: 'var(--theme-on-primary)' }}
+                      className={cn('flex size-4 shrink-0 items-center justify-center rounded-sm border text-primary-fg', selected ? 'border-primary bg-primary' : 'border-border-strong bg-input')}
                       aria-hidden
                     >
                       {selected && <Check size={12} />}
                     </span>
-                    <Icon size={16} className="shrink-0" style={{ color: 'var(--theme-muted-text)' }} aria-hidden />
+                    <Icon size={16} className="shrink-0 text-fg-muted" aria-hidden />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{row.name}</span>
-                      <span className="block truncate text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                      <span className="block truncate text-ui text-fg">{row.name}</span>
+                      <span className="block truncate text-xs text-fg-muted">
                         {row.label}
                         {row.matched_reference ? ` · reference “${row.matched_reference}”` : ''}
                         {row.description ? ` · ${row.description}` : ''}
                       </span>
                     </span>
-                    {member && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: member === 'excluded' ? 'var(--theme-surface)' : 'var(--theme-primary-light)', color: member === 'excluded' ? 'var(--theme-muted-text)' : 'var(--theme-primary-text)' }}>
-                        {MEMBERSHIP_LABEL[member]}
-                      </span>
-                    )}
-                    <span className="text-xs shrink-0 w-24 text-right tabular-nums" style={{ color: 'var(--theme-muted-text)' }}>{formatDate(row.updated_at)}</span>
+                    {member && <Badge tone={member === 'excluded' ? 'neutral' : 'brand'}>{MEMBERSHIP_LABEL[member]}</Badge>}
+                    <span className="num w-24 shrink-0 text-right text-xs text-fg-muted">{formatDate(row.updated_at)}</span>
                   </div>
                 )
               })}
             </div>
-            {isFetchingNextPage && <p className="px-3 py-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>Loading more…</p>}
+            {isFetchingNextPage && <p className="px-3 py-1 text-xs text-fg-muted">Loading more…</p>}
           </div>
 
-          <div className="px-3 py-2 border-t flex flex-wrap items-center gap-3 text-xs" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <span data-testid="asset-picker-selected">{selectedCount ? `${selectedCount} selected` : rows.length ? `${rows.length.toLocaleString()} of ${total.toLocaleString()} loaded` : ''}</span>
-            {selectedCount > 0 && <button type="button" className="underline" style={{ color: 'var(--theme-muted-text)' }} onClick={() => setState((prev) => ({ ...prev, selected: new Map() }))}>Clear</button>}
-            <label className="flex items-center gap-1.5 cursor-pointer" title="Everything the selected assets use is added too (recommended). Unticked, their dependencies are left out and must already exist where the package is installed.">
-              <input type="checkbox" checked={withDeps} onChange={(e) => setWithDeps(e.target.checked)} data-testid="asset-picker-with-deps" /> Include dependencies
-            </label>
-            <span className="hidden sm:inline" style={{ color: 'var(--theme-muted-text)' }}>↑↓ move · Enter select · Ctrl/⌘+Enter add · Esc close</span>
-            <Button size="sm" className="ml-auto" disabled={!selectedCount || adding} onClick={() => void commit([...state.selected.values()])} data-testid="asset-picker-add">
-              {adding ? 'Adding…' : emptyPackage ? `Start from selected${selectedCount ? ` (${selectedCount})` : ''}` : `Add selected${selectedCount ? ` (${selectedCount})` : ''}`}
+          <div className="flex flex-wrap items-center gap-3 border-t border-border-subtle px-3 py-2 text-xs text-fg">
+            <span className="num" data-testid="asset-picker-selected">{selectedCount ? `${selectedCount} selected` : rows.length ? `${formatCount(rows.length)} of ${formatCount(total)} loaded` : ''}</span>
+            {selectedCount > 0 && <Button size="sm" variant="link" onClick={() => setState((prev) => ({ ...prev, selected: new Map() }))}>Clear</Button>}
+            <Tooltip content="Everything the selected assets use is added too (recommended). Unticked, their dependencies are left out and must already exist where the package is installed.">
+              <span><Checkbox checked={withDeps} onChange={(e) => setWithDeps(e.target.checked)} data-testid="asset-picker-with-deps" label="Include dependencies" /></span>
+            </Tooltip>
+            <span className="hidden text-fg-muted sm:inline">↑↓ move · Enter select · Ctrl/⌘+Enter add · Esc close</span>
+            <Button size="sm" className="ml-auto" disabled={!selectedCount} loading={adding} onClick={() => void commit([...state.selected.values()])} data-testid="asset-picker-add">
+              {emptyPackage ? `Start from selected${selectedCount ? ` (${selectedCount})` : ''}` : `Add selected${selectedCount ? ` (${selectedCount})` : ''}`}
             </Button>
           </div>
         </>
@@ -320,17 +313,15 @@ function Chip({ active, onClick, label, count, icon: Icon, testId }: { active: b
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
-      style={{
-        borderColor: active ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-        backgroundColor: active ? 'var(--theme-primary-light)' : 'transparent',
-        color: active ? 'var(--theme-primary-text)' : 'var(--theme-card-text)',
-      }}
+      className={cn(
+        'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-xs transition-colors duration-[var(--ds-dur-fast)]',
+        active ? 'border-primary bg-primary-wash text-primary-text' : 'border-border text-fg hover:bg-subtle',
+      )}
       data-testid={testId}
     >
-      {Icon && <Icon size={12} aria-hidden />}
+      {Icon && <Icon size={14} aria-hidden />}
       {label}
-      {count !== undefined && <span style={{ color: 'var(--theme-muted-text)' }}>{count.toLocaleString()}</span>}
+      {count !== undefined && <span className="num text-fg-muted">{formatCount(count)}</span>}
     </button>
   )
 }

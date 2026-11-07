@@ -40,7 +40,7 @@ describe('decideTaskAction', () => {
     expect(decideTaskAction({ task: TASK, actorId: 'mia', permissions: perms(), facts: f, onBehalf: true, note: '  ' })).toMatchObject({ allowed: false, status: 400 })
     expect(decideTaskAction({ task: TASK, actorId: 'mia', permissions: perms(), facts: f, onBehalf: true, note: 'x'.repeat(2001) })).toMatchObject({ allowed: false, status: 400 })
     expect(decideTaskAction({ task: TASK, actorId: 'mia', permissions: perms(), facts: f, onBehalf: true, note: 'Alice is on leave' }))
-      .toEqual({ allowed: true, mode: 'on_behalf', onBehalfOf: 'alice' })
+      .toEqual({ allowed: true, mode: 'on_behalf', onBehalfOf: 'alice', basis: 'manager' })
     // Draft saves need no note.
     expect(decideTaskAction({ task: TASK, actorId: 'mia', permissions: perms(), facts: f, onBehalf: true, requireNote: false }))
       .toMatchObject({ allowed: true, mode: 'on_behalf' })
@@ -48,7 +48,7 @@ describe('decideTaskAction', () => {
 
   it('break-glass: tasks.complete_any outside the chain, on behalf with a note', () => {
     expect(decideTaskAction({ task: TASK, actorId: 'owen', permissions: perms('tasks.complete_any'), facts: facts(), onBehalf: true, note: 'Audit request' }))
-      .toEqual({ allowed: true, mode: 'break_glass', onBehalfOf: 'alice' })
+      .toEqual({ allowed: true, mode: 'break_glass', onBehalfOf: 'alice', basis: 'break_glass' })
     expect(decideTaskAction({ task: TASK, actorId: 'owen', permissions: perms('tasks.complete_any'), facts: facts() })).toMatchObject({ allowed: false, status: 403 })
     // Team task without an individual assignee: nobody to act for.
     expect(decideTaskAction({ task: { ...TASK, assignee_id: null }, actorId: 'owen', permissions: perms('tasks.complete_any'), facts: facts({ assigneeIds: [] }), onBehalf: true, note: 'x' }))
@@ -164,5 +164,56 @@ describe('authorizeTaskAction (loads the task, team, collaborators, reporting li
     expect(await findOpenWorkflowTaskForEvent(db(), 'ta', 'evt')).toBe('t1')
     expect(await findOpenWorkflowTaskForEvent(db(), 'ta', 'evt5')).toBeNull()
     expect(await findOpenWorkflowTaskForEvent(db(), 'ta', 'evt4')).toBeNull()
+  })
+})
+
+describe('workflow managers act on behalf (explicit Edit grant on the task\'s workflow)', () => {
+  const db = () => createMemorySupabase({
+    tasks: [
+      { id: 'wt1', tenant_id: 'ta', status: 'todo', is_workflow_task: true, event_id: 'e1', assignee_id: 'alice', workflow_id: 'wf1' },
+      // workflow_id unset: resolved through the run.
+      { id: 'wt2', tenant_id: 'ta', status: 'todo', is_workflow_task: true, event_id: 'e2', assignee_id: 'alice', workflow_id: null, workflow_run_id: 'run2' },
+      { id: 'wt3', tenant_id: 'ta', status: 'todo', is_workflow_task: true, event_id: 'e3', assignee_id: 'alice', workflow_id: 'wf-other' },
+    ],
+    workflow_runs: [{ id: 'run2', tenant_id: 'ta', workflow_id: 'wf1' }],
+    user_roles: [{ tenant_id: 'ta', user_id: 'olga', role_id: 'role-ops' }],
+    user_memberships: [{ tenant_id: 'ta', user_id: 'alice', manager_user_id: 'mia', is_active: true }],
+    object_permissions: [
+      // Olga manages wf1 through her role; Vic only has a View grant; Wes has Edit on wf1 in another workspace.
+      { tenant_id: 'ta', object_type: 'workflow', object_id: 'wf1', role_id: 'role-ops', user_id: null, team_id: null, can_view: true, can_edit: true },
+      { tenant_id: 'ta', object_type: 'workflow', object_id: 'wf1', role_id: null, user_id: 'vic', team_id: null, can_view: true, can_edit: false },
+      { tenant_id: 'tb', object_type: 'workflow', object_id: 'wf1', role_id: null, user_id: 'wes', team_id: null, can_view: true, can_edit: true },
+    ],
+  })
+  const run = (actorId: string, taskId: string, extra: Record<string, unknown> = {}) =>
+    authorizeTaskAction(db(), { tenantId: 'ta', taskId, actorId, permissions: perms(), ...extra })
+
+  it('an Edit grant (by role) allows acting on behalf with a note, recorded as workflow_manager', async () => {
+    await expect(run('olga', 'wt1', { onBehalf: true, note: 'Alice is away' })).resolves.toMatchObject({ mode: 'on_behalf', onBehalfOf: 'alice', basis: 'workflow_manager', note: 'Alice is away' })
+    await expect(run('olga', 'wt2', { onBehalf: true, note: 'x' })).resolves.toMatchObject({ basis: 'workflow_manager' })
+    await expect(run('olga', 'wt1')).rejects.toMatchObject({ status: 403 })
+    await expect(run('olga', 'wt1', { onBehalf: true })).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('not for another workflow, a View-only grant, or a grant in another workspace', async () => {
+    await expect(run('olga', 'wt3', { onBehalf: true, note: 'x' })).rejects.toMatchObject({ status: 403 })
+    await expect(run('vic', 'wt1', { onBehalf: true, note: 'x' })).rejects.toMatchObject({ status: 403 })
+    await expect(run('wes', 'wt1', { onBehalf: true, note: 'x' })).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('a manager of the assignee keeps the manager basis', async () => {
+    await expect(run('mia', 'wt1', { onBehalf: true, note: 'x' })).resolves.toMatchObject({ basis: 'manager' })
+  })
+
+  it('canUserSeeTask / describeTaskAccess (the task page opens and offers on behalf)', async () => {
+    expect(await canUserSeeTask(db(), 'ta', 'olga', 'wt1')).toBe(true)
+    expect(await canUserSeeTask(db(), 'ta', 'vic', 'wt1')).toBe(false)
+    expect(await describeTaskAccess(db(), { tenantId: 'ta', taskId: 'wt1', actorId: 'olga', permissions: perms() })).toMatchObject({ mode: 'on_behalf', onBehalfOf: 'alice', basis: 'workflow_manager' })
+    expect(await describeTaskAccess(db(), { tenantId: 'ta', taskId: 'wt3', actorId: 'olga', permissions: perms() })).toMatchObject({ mode: 'none' })
+  })
+
+  it('decideTaskAction: workflow manager fact', () => {
+    expect(decideTaskAction({ task: TASK, actorId: 'olga', permissions: perms(), facts: facts({ isWorkflowManager: true }), onBehalf: true, note: 'x' }))
+      .toEqual({ allowed: true, mode: 'on_behalf', onBehalfOf: 'alice', basis: 'workflow_manager' })
   })
 })

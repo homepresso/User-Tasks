@@ -1,0 +1,572 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "3df16d71-8090-5a02-9f9c-a38689a2bd55",
+  "asset": {
+    "id": "3df16d71-8090-5a02-9f9c-a38689a2bd55",
+    "name": "New starters",
+    "description": "Every new hire in one Data table: start dates, employment-type and status badges, \"IT ready by\" as relative time, search, filters and sorting on the server, and a base filter that keeps the last 90 days and everyone still to start. Click a row to open the Details tab; change a status or note and Save changes writes it back (for each changed row).",
+    "tags": [
+      "onboarding",
+      "new hire",
+      "register"
+    ],
+    "fields": [
+      {
+        "key": "intro",
+        "label": "New hires starting from 90 days ago onwards. Click a row for the details; double-click a Status or Notes cell to change it, then Save changes.",
+        "type": "heading"
+      },
+      {
+        "key": "starters",
+        "label": "New starters",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+          "mode": "edit",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "new_hire_name",
+              "label": "New hire",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "key": "job_title",
+              "label": "Job title",
+              "type": "text",
+              "read_only": true,
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "department",
+              "label": "Department",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "engineering",
+                "sales",
+                "marketing",
+                "finance",
+                "operations",
+                "people"
+              ]
+            },
+            {
+              "key": "employment_type",
+              "label": "Type",
+              "type": "choice",
+              "read_only": true,
+              "filterable": true,
+              "options": [
+                "permanent",
+                "fixed-term",
+                "contractor"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "permanent",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "fixed-term",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "contractor",
+                    "color": "pink"
+                  }
+                ],
+                "default_color": "gray"
+              },
+              "hidden": true
+            },
+            {
+              "key": "start_date",
+              "label": "Starts",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "manager_name",
+              "label": "Manager",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "key": "it_ready_by",
+              "label": "IT ready by",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "format": {
+                "kind": "relative"
+              },
+              "hidden": true
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Preparing",
+                "Ready for day one",
+                "Onboarded",
+                "Withdrawn"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Preparing",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Ready for day one",
+                    "color": "teal"
+                  },
+                  {
+                    "value": "Onboarded",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Withdrawn",
+                    "color": "gray"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "text",
+              "max_length": 500,
+              "format": {
+                "kind": "text",
+                "max_length": 50
+              }
+            },
+            {
+              "key": "starter_ref",
+              "label": "Reference",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "location",
+              "label": "Location",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "contract_end_date",
+              "label": "Contract end",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "manager_email",
+              "label": "Manager email",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "employee_id",
+              "label": "Employee id",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "track",
+              "label": "Track",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "submitted_on",
+              "label": "Submitted",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "start_date",
+                "operator": "gte",
+                "value": "{{today-90d}}"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "start_date",
+              "direction": "asc"
+            }
+          ],
+          "page_size": 10
+        }
+      },
+      {
+        "key": "save_changes",
+        "label": "Save changes",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "apply_table_changes",
+              "table_changes": {
+                "field": "starters",
+                "kinds": [
+                  "updated"
+                ],
+                "target": "table",
+                "table_id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+                "operation": "update",
+                "match_column": "row_id",
+                "match_value": "{{key}}",
+                "mapping": {
+                  "status": "{{row.status}}",
+                  "notes": "{{row.notes}}"
+                },
+                "on_error": "continue"
+              }
+            }
+          ],
+          "icon": "save",
+          "align": "right"
+        }
+      },
+      {
+        "key": "d_hint",
+        "label": "Pick a new starter on the list to see them here.",
+        "type": "heading"
+      },
+      {
+        "key": "d_name",
+        "label": "New hire",
+        "type": "text"
+      },
+      {
+        "key": "d_status",
+        "label": "Status",
+        "type": "text"
+      },
+      {
+        "key": "d_ref",
+        "label": "Reference",
+        "type": "text"
+      },
+      {
+        "key": "d_role",
+        "label": "Job title and department",
+        "type": "text"
+      },
+      {
+        "key": "d_terms",
+        "label": "Employment",
+        "type": "text"
+      },
+      {
+        "key": "d_start",
+        "label": "Start date",
+        "type": "text"
+      },
+      {
+        "key": "d_end",
+        "label": "Contract end",
+        "type": "text"
+      },
+      {
+        "key": "d_manager",
+        "label": "Manager",
+        "type": "text"
+      },
+      {
+        "key": "d_employee_id",
+        "label": "Employee id",
+        "type": "text"
+      },
+      {
+        "key": "d_track",
+        "label": "Track and IT ready-by",
+        "type": "text"
+      },
+      {
+        "key": "d_notes",
+        "label": "Notes",
+        "type": "textarea"
+      },
+      {
+        "key": "to_list",
+        "label": "Back to the list",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "go_to_page",
+              "page": "list"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "tabs",
+      "pages": [
+        {
+          "id": "list",
+          "title": "New starters",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "intro",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "starters",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "save_changes",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "users"
+        },
+        {
+          "id": "details",
+          "title": "Details",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_hint",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_status",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_ref",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_role",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_terms",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_employee_id",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_start",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_end",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_manager",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_track",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_notes",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "to_list",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "user"
+        }
+      ],
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_open_details",
+          "name": "Row clicked → fill the details tab",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_name": "{{event.row.new_hire_name}}",
+                "d_status": "{{event.row.status}}",
+                "d_ref": "{{event.row.starter_ref}}",
+                "d_role": "{{event.row.job_title}} · {{event.row.department}}",
+                "d_terms": "{{event.row.employment_type}} · {{event.row.location}}",
+                "d_start": "{{event.row.start_date}}",
+                "d_end": "{{event.row.contract_end_date}}",
+                "d_manager": "{{event.row.manager_name}} ({{event.row.manager_email}})",
+                "d_employee_id": "{{event.row.employee_id}}",
+                "d_track": "{{event.row.track}} · IT ready by {{event.row.it_ready_by}}",
+                "d_notes": "{{event.row.notes}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "starters"
+        },
+        {
+          "id": "r_details_read_only",
+          "name": "Details are read-only",
+          "event": "always",
+          "then": [
+            {
+              "type": "enable_disable",
+              "mode": "disable",
+              "targets": [
+                "field:d_name",
+                "field:d_status",
+                "field:d_ref",
+                "field:d_role",
+                "field:d_terms",
+                "field:d_start",
+                "field:d_end",
+                "field:d_manager",
+                "field:d_employee_id",
+                "field:d_track",
+                "field:d_notes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit",
+        "kind": "submit",
+        "style": "primary"
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0D9488",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#E8F5F3",
+            "page_to": "#F6FBFA"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "New starters",
+          "subtitle": "Who is joining, when, and where their onboarding is."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New starters",
+      "align": "left",
+      "subtitle": "Who is joining, when, and where their onboarding is."
+    }
+  }
+}

@@ -1,0 +1,722 @@
+{
+  "manifest_version": 1,
+  "key": "ut_dates",
+  "name": "Dates & business calendar",
+  "version": "1.0.0",
+  "description": "Business-day arithmetic, SLA due times within working hours, durations and ages, time zone conversion, recurring schedules and fiscal periods.",
+  "icon": "calendar-clock",
+  "color": "#0D9488",
+  "category": "Dates & time",
+  "entry": "dist/action.js",
+  "operations": [
+    {
+      "id": "add_business_days",
+      "label": "Add business days",
+      "description": "Add (or with a negative number, subtract) business days to a date, skipping weekends and holidays. Adding 0 returns the date itself, or the next business day when it falls on a weekend or holiday.",
+      "inputs": [
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "date",
+          "description": "The starting date (YYYY-MM-DD).",
+          "required": true,
+          "example": "2026-12-23"
+        },
+        {
+          "name": "days",
+          "label": "Business days",
+          "type": "integer",
+          "description": "How many business days to add; negative to go back.",
+          "required": true,
+          "example": 3
+        },
+        {
+          "name": "weekend_days",
+          "label": "Weekend days",
+          "type": "array",
+          "description": "Days that are not business days (names such as Saturday, or ISO numbers 1 = Monday … 7 = Sunday).",
+          "default": [
+            "Saturday",
+            "Sunday"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "holidays",
+          "label": "Holidays",
+          "type": "array",
+          "description": "Dates that are not business days, as YYYY-MM-DD (a list, or one per line).",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "2026-12-25",
+            "2026-12-28",
+            "2027-01-01"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "date",
+          "description": "The resulting business day."
+        },
+        {
+          "name": "weekday",
+          "label": "Weekday",
+          "type": "string",
+          "description": "Monday … Sunday."
+        },
+        {
+          "name": "calendar_days",
+          "label": "Calendar days",
+          "type": "integer",
+          "description": "Calendar days between the start and the result (negative when going back)."
+        }
+      ],
+      "sample": {
+        "date": "2026-12-23",
+        "days": 3,
+        "holidays": [
+          "2026-12-25",
+          "2026-12-28",
+          "2027-01-01"
+        ]
+      }
+    },
+    {
+      "id": "sla_due",
+      "label": "SLA due time",
+      "description": "The moment a number of working hours after a start time runs out, counting only working hours on working days in a time zone and skipping holidays. Daylight-saving changes are handled: working hours are wall-clock times.",
+      "inputs": [
+        {
+          "name": "start",
+          "label": "Start",
+          "type": "datetime",
+          "description": "When the clock starts (ISO 8601). Without Z or an offset it is local time in Time zone.",
+          "required": true,
+          "example": "2026-11-06T15:30:00+13:00"
+        },
+        {
+          "name": "hours",
+          "label": "Working hours",
+          "type": "number",
+          "description": "The SLA in working hours (decimals allowed, e.g. 0.5).",
+          "required": true,
+          "example": 8
+        },
+        {
+          "name": "working_hours",
+          "label": "Working hours of the day",
+          "type": "string",
+          "description": "Start and end of the working day, e.g. 09:00-17:00 (use 00:00-24:00 for round the clock).",
+          "default": "09:00-17:00",
+          "example": "08:30-17:00"
+        },
+        {
+          "name": "working_days",
+          "label": "Working days",
+          "type": "array",
+          "description": "Weekdays that have working hours (names or ISO numbers 1–7).",
+          "default": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "time_zone",
+          "label": "Time zone",
+          "type": "string",
+          "description": "IANA time zone of the working hours and holidays.",
+          "default": "UTC",
+          "example": "Pacific/Auckland",
+          "placeholder": "Europe/London"
+        },
+        {
+          "name": "holidays",
+          "label": "Holidays",
+          "type": "array",
+          "description": "Dates that are not business days, as YYYY-MM-DD (a list, or one per line).",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "2026-12-25",
+            "2026-12-28",
+            "2027-01-01"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "due",
+          "label": "Due (UTC)",
+          "type": "datetime",
+          "description": "The due moment as an ISO 8601 UTC instant."
+        },
+        {
+          "name": "due_local",
+          "label": "Due (local)",
+          "type": "string",
+          "description": "The due moment in the time zone, with its offset, e.g. 2026-11-09T14:30:00+13:00."
+        },
+        {
+          "name": "due_date",
+          "label": "Due date (local)",
+          "type": "date"
+        },
+        {
+          "name": "start_local",
+          "label": "Start (local)",
+          "type": "string",
+          "description": "The start in the time zone, with its offset."
+        },
+        {
+          "name": "calendar_hours",
+          "label": "Calendar hours",
+          "type": "number",
+          "description": "Elapsed real time from start to due, in hours."
+        }
+      ],
+      "sample": {
+        "start": "2026-11-06T15:30:00",
+        "hours": 8,
+        "working_hours": "09:00-17:00",
+        "time_zone": "Pacific/Auckland"
+      }
+    },
+    {
+      "id": "duration",
+      "label": "Duration / age",
+      "description": "The time between two dates or date-times: calendar days, business days, hours and minutes, a readable text and the age in years, months and days. Negative when To is before From.",
+      "inputs": [
+        {
+          "name": "from",
+          "label": "From",
+          "type": "datetime",
+          "description": "Date (YYYY-MM-DD) or date-time.",
+          "required": true,
+          "example": "1990-07-15"
+        },
+        {
+          "name": "to",
+          "label": "To",
+          "type": "datetime",
+          "description": "Date or date-time; empty for now.",
+          "example": "2026-11-01"
+        },
+        {
+          "name": "time_zone",
+          "label": "Time zone",
+          "type": "string",
+          "description": "Time zone for dates and times without an offset, and for counting calendar days.",
+          "default": "UTC",
+          "example": "Pacific/Auckland",
+          "placeholder": "Europe/London"
+        },
+        {
+          "name": "weekend_days",
+          "label": "Weekend days",
+          "type": "array",
+          "description": "Days that are not business days (names such as Saturday, or ISO numbers 1 = Monday … 7 = Sunday).",
+          "default": [
+            "Saturday",
+            "Sunday"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "holidays",
+          "label": "Holidays",
+          "type": "array",
+          "description": "Dates that are not business days, as YYYY-MM-DD (a list, or one per line).",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "2026-12-25",
+            "2026-12-28",
+            "2027-01-01"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "days",
+          "label": "Days",
+          "type": "integer",
+          "description": "Whole calendar days."
+        },
+        {
+          "name": "business_days",
+          "label": "Business days",
+          "type": "integer",
+          "description": "Business days after From up to and including To."
+        },
+        {
+          "name": "hours",
+          "label": "Hours",
+          "type": "number",
+          "description": "Elapsed hours (2 decimals)."
+        },
+        {
+          "name": "minutes",
+          "label": "Minutes",
+          "type": "integer",
+          "description": "Elapsed whole minutes."
+        },
+        {
+          "name": "human",
+          "label": "As text",
+          "type": "string",
+          "description": "For example \"36 years, 3 months, 17 days\" or \"2 hours, 15 minutes\"."
+        },
+        {
+          "name": "age_years",
+          "label": "Years",
+          "type": "integer",
+          "description": "Whole years (age)."
+        },
+        {
+          "name": "age_months",
+          "label": "Months",
+          "type": "integer",
+          "description": "Months after the whole years."
+        },
+        {
+          "name": "age_days",
+          "label": "Days after months",
+          "type": "integer",
+          "description": "Days after the whole months."
+        }
+      ],
+      "sample": {
+        "from": "1990-07-15",
+        "to": "2026-11-01"
+      }
+    },
+    {
+      "id": "convert_timezone",
+      "label": "Convert time zone",
+      "description": "Show a moment in another time zone: the UTC instant, the local date-time with its offset, date, time and weekday.",
+      "inputs": [
+        {
+          "name": "datetime",
+          "label": "Date-time",
+          "type": "datetime",
+          "description": "ISO 8601. Without Z or an offset it is read in From zone.",
+          "required": true,
+          "example": "2026-11-02T09:00:00"
+        },
+        {
+          "name": "from_zone",
+          "label": "From zone",
+          "type": "string",
+          "description": "IANA time zone of a date-time without an offset.",
+          "default": "UTC",
+          "example": "America/New_York"
+        },
+        {
+          "name": "to_zone",
+          "label": "To zone",
+          "type": "string",
+          "description": "IANA time zone to show the moment in.",
+          "required": true,
+          "example": "Pacific/Auckland"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "iso",
+          "label": "UTC instant",
+          "type": "datetime"
+        },
+        {
+          "name": "local",
+          "label": "Local date-time",
+          "type": "string",
+          "description": "With its offset, e.g. 2026-11-03T03:00:00+13:00."
+        },
+        {
+          "name": "local_date",
+          "label": "Local date",
+          "type": "date"
+        },
+        {
+          "name": "local_time",
+          "label": "Local time",
+          "type": "string",
+          "description": "HH:mm."
+        },
+        {
+          "name": "weekday",
+          "label": "Weekday",
+          "type": "string"
+        },
+        {
+          "name": "offset",
+          "label": "UTC offset",
+          "type": "string",
+          "description": "For example +13:00."
+        },
+        {
+          "name": "offset_minutes",
+          "label": "UTC offset (minutes)",
+          "type": "integer"
+        }
+      ],
+      "sample": {
+        "datetime": "2026-11-02T09:00:00",
+        "from_zone": "America/New_York",
+        "to_zone": "Pacific/Auckland"
+      }
+    },
+    {
+      "id": "next_occurrence",
+      "label": "Next occurrences",
+      "description": "The next dates of a recurring schedule: daily, weekly on chosen days, monthly on a day of the month or the nth weekday (e.g. last Friday), or yearly, every N periods, at a time of day in a time zone.",
+      "inputs": [
+        {
+          "name": "frequency",
+          "label": "Frequency",
+          "type": "select",
+          "description": "How often it repeats.",
+          "default": "weekly",
+          "options": [
+            {
+              "value": "daily",
+              "label": "Daily"
+            },
+            {
+              "value": "weekly",
+              "label": "Weekly"
+            },
+            {
+              "value": "monthly",
+              "label": "Monthly"
+            },
+            {
+              "value": "yearly",
+              "label": "Yearly"
+            }
+          ]
+        },
+        {
+          "name": "interval",
+          "label": "Every",
+          "type": "integer",
+          "description": "Repeat every N days / weeks / months / years.",
+          "default": 1
+        },
+        {
+          "name": "days_of_week",
+          "label": "Days of the week",
+          "type": "array",
+          "description": "Weekly: the days (names or ISO numbers); default the weekday of Start.",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "Monday",
+            "Thursday"
+          ]
+        },
+        {
+          "name": "day_of_month",
+          "label": "Day of the month",
+          "type": "integer",
+          "description": "Monthly / yearly: 1–31 (later than the month has = its last day) or -1 for the last day; default the day of Start.",
+          "example": 15
+        },
+        {
+          "name": "nth_week",
+          "label": "Nth weekday",
+          "type": "select",
+          "description": "Monthly / yearly: instead of a day of the month, the first … fourth or last Weekday.",
+          "default": "none",
+          "options": [
+            {
+              "value": "none",
+              "label": "Not used (day of the month)"
+            },
+            {
+              "value": "first",
+              "label": "First"
+            },
+            {
+              "value": "second",
+              "label": "Second"
+            },
+            {
+              "value": "third",
+              "label": "Third"
+            },
+            {
+              "value": "fourth",
+              "label": "Fourth"
+            },
+            {
+              "value": "last",
+              "label": "Last"
+            }
+          ]
+        },
+        {
+          "name": "weekday",
+          "label": "Weekday",
+          "type": "string",
+          "description": "With Nth weekday: Monday … Sunday.",
+          "example": "Friday"
+        },
+        {
+          "name": "month",
+          "label": "Month",
+          "type": "integer",
+          "description": "Yearly: 1–12; default the month of Start.",
+          "example": 4
+        },
+        {
+          "name": "time",
+          "label": "Time of day",
+          "type": "string",
+          "description": "Local time of each occurrence (HH:mm).",
+          "default": "09:00"
+        },
+        {
+          "name": "time_zone",
+          "label": "Time zone",
+          "type": "string",
+          "description": "IANA time zone of the schedule.",
+          "default": "UTC",
+          "example": "Pacific/Auckland",
+          "placeholder": "Europe/London"
+        },
+        {
+          "name": "after",
+          "label": "After",
+          "type": "datetime",
+          "description": "List occurrences after this moment; empty for now.",
+          "example": "2026-11-01T00:00:00Z"
+        },
+        {
+          "name": "start",
+          "label": "Start",
+          "type": "date",
+          "description": "First possible date of the schedule (the anchor for Every N); default the date of After.",
+          "example": "2026-11-01"
+        },
+        {
+          "name": "count",
+          "label": "How many",
+          "type": "integer",
+          "description": "Number of occurrences to return (1–100).",
+          "default": 5
+        },
+        {
+          "name": "exclude_dates",
+          "label": "Skip dates",
+          "type": "array",
+          "description": "Dates (YYYY-MM-DD) to leave out, e.g. holidays.",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "next",
+          "label": "Next",
+          "type": "datetime",
+          "description": "The next occurrence (UTC instant); empty when none was found."
+        },
+        {
+          "name": "next_local",
+          "label": "Next (local)",
+          "type": "string",
+          "description": "With its offset."
+        },
+        {
+          "name": "occurrences",
+          "label": "Occurrences",
+          "type": "array",
+          "description": "UTC instants, in order.",
+          "items": {
+            "type": "datetime"
+          }
+        },
+        {
+          "name": "occurrences_local",
+          "label": "Occurrences (local)",
+          "type": "array",
+          "description": "Local date-times with offsets.",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "sample": {
+        "frequency": "monthly",
+        "nth_week": "last",
+        "weekday": "Friday",
+        "time": "16:00",
+        "time_zone": "Europe/London",
+        "after": "2026-11-01T00:00:00Z",
+        "count": 3
+      }
+    },
+    {
+      "id": "fiscal_period",
+      "label": "Fiscal period",
+      "description": "The fiscal year, quarter and period (month) of a date for a fiscal year starting in any month, with the start and end dates of the period, quarter and year and a label such as FY2027 Q2.",
+      "inputs": [
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "date",
+          "description": "The date; empty for today (in Time zone).",
+          "example": "2026-11-01"
+        },
+        {
+          "name": "start_month",
+          "label": "Fiscal year starts in month",
+          "type": "integer",
+          "description": "1 = January … 12 = December, e.g. 7 for July (Australia, NZ public sector), 4 for April (UK, India, Japan, Canada).",
+          "default": 7,
+          "example": 7
+        },
+        {
+          "name": "year_naming",
+          "label": "Fiscal year named by",
+          "type": "select",
+          "description": "The calendar year in which the fiscal year ends (FY2027 = July 2026–June 2027) or starts.",
+          "default": "end",
+          "options": [
+            {
+              "value": "end",
+              "label": "The year it ends"
+            },
+            {
+              "value": "start",
+              "label": "The year it starts"
+            }
+          ]
+        },
+        {
+          "name": "time_zone",
+          "label": "Time zone",
+          "type": "string",
+          "description": "For \"today\" when Date is empty.",
+          "default": "UTC"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "fiscal_year",
+          "label": "Fiscal year",
+          "type": "integer"
+        },
+        {
+          "name": "quarter",
+          "label": "Quarter",
+          "type": "integer",
+          "description": "1–4."
+        },
+        {
+          "name": "period",
+          "label": "Period",
+          "type": "integer",
+          "description": "Month of the fiscal year, 1–12."
+        },
+        {
+          "name": "label",
+          "label": "Label",
+          "type": "string",
+          "description": "For example FY2027 Q2."
+        },
+        {
+          "name": "period_label",
+          "label": "Period label",
+          "type": "string",
+          "description": "For example FY2027 P05."
+        },
+        {
+          "name": "period_start",
+          "label": "Period start",
+          "type": "date"
+        },
+        {
+          "name": "period_end",
+          "label": "Period end",
+          "type": "date"
+        },
+        {
+          "name": "quarter_start",
+          "label": "Quarter start",
+          "type": "date"
+        },
+        {
+          "name": "quarter_end",
+          "label": "Quarter end",
+          "type": "date"
+        },
+        {
+          "name": "year_start",
+          "label": "Fiscal year start",
+          "type": "date"
+        },
+        {
+          "name": "year_end",
+          "label": "Fiscal year end",
+          "type": "date"
+        },
+        {
+          "name": "day_of_year",
+          "label": "Day of the fiscal year",
+          "type": "integer",
+          "description": "1 on the first day."
+        }
+      ],
+      "sample": {
+        "date": "2026-11-01",
+        "start_month": 7
+      }
+    }
+  ],
+  "capabilities": {},
+  "limits": {
+    "timeout_ms": 5000,
+    "memory_mb": 32
+  },
+  "summary": "Date logic workflows need: add business days around weekends and holidays, compute SLA due times within working hours in any time zone (DST-safe), measure durations and ages, convert between time zones, list the next occurrences of a schedule and find the fiscal year, quarter and period of a date.",
+  "purpose": "Get deadlines, schedules and reporting periods right in one step, including time zones, daylight saving and holidays.",
+  "recommended_for": "Service-level deadlines, approval due dates, payment terms, recurring reviews, reporting periods and anything that depends on business days.",
+  "setup_notes": [
+    "Pure computation: no network, data or secrets. Nothing to configure after installing.",
+    "Time zones are IANA names (Pacific/Auckland, America/New_York, Europe/London). A date-time without Z or an offset is read as wall-clock time in the operation's time zone.",
+    "Holidays are an explicit list of YYYY-MM-DD dates: keep them in a data table or workflow variable and map them in."
+  ],
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "tags": [
+    "dates",
+    "business days",
+    "sla",
+    "time zone",
+    "holidays",
+    "fiscal year",
+    "schedule",
+    "duration"
+  ]
+}

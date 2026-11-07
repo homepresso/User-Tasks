@@ -7,6 +7,8 @@ import * as roles from '@/lib/services/roles'
 import * as teams from '@/lib/services/teams'
 import * as invitations from '@/lib/services/invitations'
 import * as managers from '@/lib/services/manager-tasks'
+import * as objectPermissions from '@/lib/services/object-permissions'
+import { OBJECT_PERMISSION_TYPES } from '@/lib/object-permission-types'
 import { messageOf } from './_util'
 
 /*
@@ -26,6 +28,32 @@ async function run(fn: () => Promise<unknown>) {
 
 export function registerGovernanceTools(server: McpToolServer, ctx: McpContext) {
   const svc = () => fromMcpContext(ctx)
+
+  const GRANT_HELP = 'Grant columns: can_view, can_edit, can_delete, can_execute. Forms use View and Submit (can_execute): with the form in Available forms, a grant lists it in the person\'s Forms menu; Edit and Delete do not apply to forms.'
+
+  server.tool('object_permissions_list', `List the explicit grants (role, team or person) on one object. ${GRANT_HELP}`, {
+    object_type: z.enum(OBJECT_PERMISSION_TYPES).describe('Object type'),
+    object_id: z.string().describe('Object ID'),
+  }, async (args) => run(async () => {
+    const permissions = await objectPermissions.listObjectPermissions(svc(), args.object_type, args.object_id)
+    return { permissions, count: permissions.length }
+  }))
+
+  server.tool('object_permissions_set', `Add or change one grantee's grant on an object (team.change_roles; audited as grant on the object). Give exactly one of role_id, team_id, user_id. ${GRANT_HELP}`, {
+    object_type: z.enum(OBJECT_PERMISSION_TYPES).describe('Object type'),
+    object_id: z.string().describe('Object ID'),
+    role_id: z.string().optional().describe('Grant to a role'),
+    team_id: z.string().optional().describe('Grant to a team'),
+    user_id: z.string().optional().describe('Grant to a person'),
+    can_view: z.boolean().optional().describe('View (default true)'),
+    can_edit: z.boolean().optional().describe('Edit (not used by forms)'),
+    can_delete: z.boolean().optional().describe('Delete (not used by forms)'),
+    can_execute: z.boolean().optional().describe('Execute; Submit for forms'),
+  }, async (args) => run(async () => ({ permission: await objectPermissions.setObjectPermission(svc(), args) })))
+
+  server.tool('object_permissions_remove', 'Remove one grant by its id (object_permissions_list → id); audited as revoke on the object.', {
+    permission_id: z.string().describe('Grant ID'),
+  }, async (args) => run(async () => objectPermissions.removeObjectPermission(svc(), args.permission_id)))
 
   server.tool('users_list', 'List users in the tenant so MCP can discover assignees, role targets, team members, and user-context API key subjects. Supports search and can include roles and teams for richer prompt-driven coordination.', {
     search: z.string().optional().describe('Search display name or email'),
@@ -134,18 +162,28 @@ export function registerGovernanceTools(server: McpToolServer, ctx: McpContext) 
     team_id: z.string().describe('Team ID'),
   }, async (args) => run(() => teams.getTeam(svc(), args.team_id)))
 
+  const teamFields = {
+    parent_id: z.string().nullable().optional().describe('Parent team ID (loops are refused)'),
+    lead_user_id: z.string().nullable().optional().describe('Team lead (an active member)'),
+    org_unit_id: z.string().nullable().optional().describe('Org unit the team belongs to'),
+    colour: z.string().nullable().optional().describe('Hex colour like #3366FF'),
+    kind: z.string().nullable().optional().describe('team (default), squad, guild or custom'),
+  }
+
   server.tool('teams_create', 'Create a new team that can be used for task routing, governance, and workflow assignment.', {
     name: z.string().describe('Team name'),
     description: z.string().optional(),
+    ...teamFields,
   }, async (args) => run(async () => ({ created: true, team: await teams.createTeam(svc(), args) })))
 
   server.tool('teams_update', 'Update a team including its name or description.', {
     team_id: z.string().describe('Team ID'),
     name: z.string().optional(),
     description: z.string().optional(),
-  }, async (args) => run(async () => {
-    await teams.updateTeam(svc(), args.team_id, { name: args.name, description: args.description })
-    return { updated: true, team_id: args.team_id }
+    ...teamFields,
+  }, async ({ team_id, ...input }) => run(async () => {
+    await teams.updateTeam(svc(), team_id, input)
+    return { updated: true, team_id }
   }))
 
   server.tool('teams_delete', 'Delete a team and remove all member associations. Use with care because workflows and assignments may depend on team targeting.', {

@@ -1,19 +1,22 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServiceDb } from '@/lib/providers/db'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/logo'
 
 export default async function InviteAcceptPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const supabase = await createClient()
-
-  // Look up invitation by token
-  const { data: invite } = await (supabase as any)
-    .from('invitations')
-    .select('*, tenant:tenants(id, name, slug)')
-    .eq('token', token)
-    .is('accepted_at', null)
-    .single()
+  // Look up the invitation by its token. The token is the secret, and the
+  // visitor is usually not a member yet (often signed out), so this runs with
+  // the service role — invitations are readable only by people who can invite
+  // (RLS, 20261226100000_governance_audit). Only what the page shows is read.
+  const { data: invite } = token && token.length <= 200
+    ? await (getServiceDb() as any)
+      .from('invitations')
+      .select('expires_at, tenant:tenants(id, name, slug)')
+      .eq('token', token)
+      .is('accepted_at', null)
+      .maybeSingle()
+    : { data: null }
 
   if (!invite) {
     return (

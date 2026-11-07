@@ -19,7 +19,7 @@ import {
 } from '../ops/instance-db'
 import { pgDump, writeJson } from './backup'
 import {
-  cancelRequested, clearJobSecrets, flushProgress, getRecord, hasSwitchLog, hasSwitchLogExtras, insertRecord, newRecord, newSwitchId, readMirroredRecord, setRecordStatus,
+  cancelRequested, clearJobSecrets, flushProgress, getRecord, hasSwitchLog, hasSwitchLogExtras, insertRecord, newRecord, newSwitchId, readMirroredRecord, saveConfigBefore, setRecordStatus,
   startQueuedRecord, tryLockSwitches, unlockSwitches, updateRecord,
 } from './log'
 import { SwitchPaused, type AreaSwitch, type PreflightCheck, type RollbackContext, type StepRecord, type SwitchContext, type SwitchOptions, type SwitchRecordRow, type SwitchStep } from './types'
@@ -269,7 +269,7 @@ export async function runSwitch({ db, dbUrl, area, plan, options, io: outer, res
     ctx.persist = () => {
       record.config_before = { ...record.config_before!, rollback: ctx.rollbackData }
       // One statement, issued synchronously (see flushProgress).
-      return db.query('UPDATE public.instance_provider_switches SET config_before = $2::jsonb WHERE id = $1', [record.id, JSON.stringify(record.config_before)]).then(() => undefined)
+      return saveConfigBefore(db, record)
     }
 
     let lastFlush = 0
@@ -324,7 +324,7 @@ export async function runSwitch({ db, dbUrl, area, plan, options, io: outer, res
         }
         for (const file of backups) io.log(`  backup: ${file}`)
         record.config_before = { ...record.config_before!, ...(Object.keys(ctx.rollbackData).length ? { rollback: ctx.rollbackData } : {}), backed_up_at: new Date().toISOString() }
-        await db.query('UPDATE public.instance_provider_switches SET config_before = $2::jsonb WHERE id = $1', [record.id, JSON.stringify(record.config_before)])
+        await saveConfigBefore(db, record)
       }
 
       for (const [i, step] of steps.entries()) {
@@ -527,7 +527,7 @@ export async function runRollback({ db, dbUrl, id, plans, yes, dryRun, backupRoo
   const keys = record.config_after ? changedSettingKeys(before, record.config_after.settings) : []
   const current = await readSettingRows(db)
   const drifted = record.config_after ? changedSettingKeys(record.config_after.settings, current).filter((k) => keys.includes(k)) : []
-  const name = areaName(record.area)
+  const name = record.area === 'instance' ? 'instance' : areaName(record.area)
   io.log(`Rollback ${name} switch ${id}: ${record.to_provider} → ${record.from_provider}${dryRun ? ' (dry run)' : ''}`)
   io.log(`  settings to restore: ${keys.length ? keys.join(', ') : 'none'}`)
   if (drifted.length) io.warn(`  warning: changed since the switch (will be overwritten): ${drifted.join(', ')}`)
@@ -538,7 +538,7 @@ export async function runRollback({ db, dbUrl, id, plans, yes, dryRun, backupRoo
     envChanges[k] = previous ?? '(unset)'
   }
   const backupDir = record.backup_dir && (await import('node:fs')).existsSync(record.backup_dir) ? record.backup_dir : null
-  const plan = plans[record.area]
+  const plan = record.area === 'instance' ? undefined : plans[record.area]
   const rctx: RollbackContext = { db, dbUrl, record, backupDir, dryRun, log: io.log, warn: io.warn, envChanges }
   if (dryRun) {
     if (plan?.rollback && record.kind === 'switch') for (const line of await plan.rollback(rctx)) io.log(`  ${line}`)

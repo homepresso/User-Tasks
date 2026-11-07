@@ -1,20 +1,23 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, Play, Save, ChevronDown, ChevronRight, Plus, X, Trash2,
+  Play, Save, ChevronDown, ChevronRight, Plus, X, Trash2,
   Database, Calendar, SortAsc, SortDesc, Hash, Search, CheckCircle2, AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import { Card } from '@/components/ui/card'
 import { ReferenceInputsEditor } from '@/components/shared/reference-inputs-editor'
 import { SearchableOptionPicker } from '@/components/ui/searchable-option-picker'
 import { SearchableMultiOptionPicker } from '@/components/ui/searchable-multi-option-picker'
 import {
-  REPORT_SOURCES, buildJoinedReportColumns, customTableToSource, DRILL_TARGETS, resolveDrillHref, CHART_PALETTES,
+  REPORT_SOURCES, buildJoinedReportColumns, customTableToSource, DRILL_TARGETS, resolveDrillHref, CHART_PALETTES, reportResultColumnLabel,
   type ReportSource, type ReportConfig, type ReportFilter, type ReportAggregation, type ReportJoinConfig, type ReportSourceInput,
 } from '@/lib/report-sources'
 import {
@@ -23,10 +26,17 @@ import {
   normalizeReferenceInputPayload,
   validateReferenceInputsJson,
 } from '@/lib/reference-input-utils'
-import { ReportChart } from '@/components/reports/lazy-charts'
+import { ReportChart, ReportSummaryCharts } from '@/components/reports/lazy-charts'
+import { ReportChartsEditor, validCharts } from '@/components/reports/report-charts-editor'
+import type { ReportChartResult, ReportChartSpec } from '@/lib/report-charts'
+import { normalizeReportConfig } from '@/lib/report-config'
 import { ReportDataTable } from '@/components/reports/report-data-table'
 import { ReportExportButton } from '@/components/reports/report-export'
-import { createReport } from '@/app/actions/reports'
+import { createReport, updateReport } from '@/app/actions/reports'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { serverQuery } from '@/lib/server-read'
+import { usePermissions } from '@/lib/permissions-context'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 
 const VIZ_OPTIONS = [
   { value: 'table', label: 'Table', icon: '▦' },
@@ -72,6 +82,17 @@ const SOURCE_SORT_OPTIONS = [
   { value: 'columns-asc', label: 'Fewest columns' },
 ] as const
 
+/** Picker group of a column: a workflow variable's origin, else its type. */
+function columnGroup(column: { type?: string | null; group?: string }) {
+  return column.group ? `Workflow variables · ${column.group}` : getColumnGroupLabel(column.type)
+}
+
+/** Base columns preselected for a workflow-scoped source, before its first variables. */
+const SCOPED_DEFAULT_COLUMNS: Record<string, string[]> = {
+  workflow_runs: ['title', 'status', 'started_at', 'completed_at'],
+  tasks: ['title', 'status', 'assignee.display_name', 'completed_at'],
+}
+
 function getColumnGroupLabel(type?: string | null) {
   switch (type) {
     case 'date':
@@ -115,18 +136,14 @@ function SourceSummaryCard({
 
   return (
     <div
-      className="rounded-lg border px-3 py-2"
-      style={{
-        borderColor: 'var(--theme-surface-border)',
-        backgroundColor: 'var(--theme-surface)',
-      }}
+      className="rounded-lg border px-3 py-2 border-border bg-bg"
     >
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+          <div className="text-xs font-semibold text-fg">
             {source.label}
           </div>
-          <div className="mt-0.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <div className="mt-0.5 text-2xs text-fg-muted">
             {source.category} · {getSourceTypeLabel(source)}
           </div>
         </div>
@@ -134,12 +151,7 @@ function SourceSummaryCard({
           {badges.map((badge) => (
             <span
               key={badge}
-              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium"
-              style={{
-                backgroundColor: 'var(--theme-card-bg)',
-                color: 'var(--theme-muted-text)',
-                border: '1px solid var(--theme-surface-border)',
-              }}
+              className="inline-flex items-center rounded-full border border-border bg-panel px-1.5 py-0.5 text-2xs font-medium text-fg-muted"
             >
               {badge}
             </span>
@@ -147,11 +159,11 @@ function SourceSummaryCard({
         </div>
       </div>
       {source.description ? (
-        <div className="mt-2 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <div className="mt-2 text-2xs text-fg-muted">
           {source.description}
         </div>
       ) : null}
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-2xs text-fg-muted">
         <span>Default sort: {source.defaultSort.field} {source.defaultSort.direction.toUpperCase()}</span>
         <span>{source.columns.length} fields available</span>
         <span>{needsInputs ? `${inputLabel ?? 'Inputs'} required` : 'No source inputs required'}</span>
@@ -170,6 +182,7 @@ type BuilderJoinConfig = ReportJoinConfig & {
 
 export default function ReportBuilderPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   // Dynamic sources (custom tables loaded from API)
   const [dynamicSources, setDynamicSources] = useState<ReportSource[]>([])
@@ -244,6 +257,10 @@ export default function ReportBuilderPage() {
   // Builder state
   const [source, setSource] = useState('')
   const [sourceInputsJson, setSourceInputsJson] = useState('{}')
+  // Workflow runs / Tasks scoped to one workflow: its variables become columns.
+  const [workflowScopeId, setWorkflowScopeId] = useState('')
+  const { can } = usePermissions()
+  const canViewWorkflows = can('workflows.view')
   const [selectedCols, setSelectedCols] = useState<string[]>([])
   const [filters, setFilters] = useState<ReportFilter[]>([])
   const [joins, setJoins] = useState<BuilderJoinConfig[]>([])
@@ -294,12 +311,76 @@ export default function ReportBuilderPage() {
   const [previewError, setPreviewError] = useState('')
   const [previewTime, setPreviewTime] = useState(0)
 
+  // Summary charts (config.charts) and their preview series.
+  const [charts, setCharts] = useState<ReportChartSpec[]>([])
+  const [previewCharts, setPreviewCharts] = useState<ReportChartResult[] | null>(null)
+  // ?edit=<id>: the saved report being edited (Save updates it when it is the user's own).
+  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null)
+  const [autoRun, setAutoRun] = useState(false)
+
   const [saveName, setSaveName] = useState('')
   const [saveDesc, setSaveDesc] = useState('')
   const [saveShared, setSaveShared] = useState(false)
   const [showSave, setShowSave] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const sourceDef = allSources.find(s => s.key === source)
+  // Synchronous guard so a double click on Save Report can't create two reports.
+  const { pending: saving, run: runSave } = useSubmitGuard()
+  const baseSourceDef = allSources.find(s => s.key === source)
+  const isWorkflowScopable = Boolean(baseSourceDef?.workflowScoped) && canViewWorkflows
+  const { data: workflowOptionsData } = useQuery({
+    queryKey: ['report-builder-workflows'],
+    enabled: isWorkflowScopable,
+    staleTime: 60_000,
+    queryFn: () => serverQuery('automations.list'),
+  })
+  const workflowOptions = useMemo(() => ((workflowOptionsData ?? []) as any[]).map((workflow) => ({
+    value: String(workflow.id),
+    label: String(workflow.name ?? 'Untitled workflow'),
+    subtitle: `${workflow.run_count ?? 0} runs${workflow.is_active ? ' · active' : ''}`,
+    keywords: [String(workflow.id), ...(Array.isArray(workflow.tags) ? workflow.tags : [])],
+  })), [workflowOptionsData])
+  const { data: scopedSources, isFetching: loadingScopedSource, error: scopedSourceError } = useQuery({
+    queryKey: ['report-sources', 'workflow', workflowScopeId],
+    enabled: isWorkflowScopable && Boolean(workflowScopeId),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/reports/sources?workflow_id=${encodeURIComponent(workflowScopeId)}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Failed to load the workflow variables')
+      return (json.sources ?? []) as ReportSource[]
+    },
+  })
+  const scopedSourceDef = isWorkflowScopable && workflowScopeId ? scopedSources?.find((candidate) => candidate.key === source) : undefined
+  const sourceDef = scopedSourceDef ?? baseSourceDef
+  const workflowVariableCount = scopedSourceDef ? scopedSourceDef.columns.filter((column) => column.group).length : 0
+  // Preselect the first variables once a workflow's columns arrive (once per
+  // source + workflow pick).
+  const appliedScopeRef = useRef('')
+  useEffect(() => {
+    if (!scopedSourceDef) return
+    const scopeKey = `${scopedSourceDef.key}:${workflowScopeId}`
+    if (appliedScopeRef.current === scopeKey) return
+    appliedScopeRef.current = scopeKey
+    // Inputs and form fields first; step outputs (ids, statuses) only when nothing else is declared.
+    const secondary = (group?: string) => Boolean(group && (group.startsWith('Step ›') || group.startsWith('Stored on')))
+    const variableColumns = scopedSourceDef.columns.filter((column) => column.group)
+    const primary = variableColumns.filter((column) => !secondary(column.group))
+    const variableKeys = (primary.length > 0 ? primary : variableColumns).map((column) => column.key)
+    const baseKeys = (SCOPED_DEFAULT_COLUMNS[scopedSourceDef.key] ?? []).filter((key) => scopedSourceDef.columns.some((column) => column.key === key))
+    setSelectedCols([...baseKeys, ...variableKeys.slice(0, 6)])
+    setPreviewData(null)
+  }, [scopedSourceDef, workflowScopeId])
+  // Clearing the workflow drops its variable columns, filters and groupings.
+  useEffect(() => {
+    if (workflowScopeId) return
+    appliedScopeRef.current = ''
+    const isVariableKey = (key: string | undefined) => Boolean(key && (key.startsWith('vars.') || key.startsWith('fields.')))
+    setSelectedCols((prev) => (prev.some(isVariableKey) ? prev.filter((key) => !isVariableKey(key)) : prev))
+    setFilters((prev) => (prev.some((filter) => isVariableKey(filter.field)) ? prev.filter((filter) => !isVariableKey(filter.field)) : prev))
+    setGroupBy((prev) => (prev.some(isVariableKey) ? prev.filter((key) => !isVariableKey(key)) : prev))
+    setAggregations((prev) => (prev.some((aggregation) => isVariableKey(aggregation.field)) ? prev.filter((aggregation) => !isVariableKey(aggregation.field)) : prev))
+  }, [workflowScopeId])
+  const workflowSourceInputs = isWorkflowScopable && workflowScopeId ? { workflow_id: workflowScopeId } : undefined
   const sourceInputsValidation = useMemo(
     () => applyRequiredReferenceInputValidation(
       validateReferenceInputsJson(sourceInputsJson),
@@ -360,6 +441,8 @@ export default function ReportBuilderPage() {
     }
     return merged
   }, [sourceColumns, previewData])
+  const chartColumnKeys = useMemo(() => (availableSourceColumns.length > 0 ? availableSourceColumns.map((c) => c.key) : undefined), [availableSourceColumns])
+  const savedCharts = useMemo(() => validCharts(charts, chartColumnKeys), [charts, chartColumnKeys])
   const dateColumns = availableSourceColumns.filter(c => c.type === 'date')
   const numericColumns = availableSourceColumns.filter(c => c.type === 'number')
   const visibleSelectedColumns = useMemo(() => {
@@ -388,21 +471,21 @@ export default function ReportBuilderPage() {
     label: column.label,
     subtitle: `${column.key} · ${column.type}`,
     keywords: [column.key, column.type],
-    group: getColumnGroupLabel(column.type),
+    group: columnGroup(column),
   })), [visibleDateColumns])
   const sortFieldOptions = useMemo(() => visibleSortColumns.map((column) => ({
     value: column.key,
     label: column.label,
     subtitle: `${column.key} · ${column.type}`,
     keywords: [column.key, column.type],
-    group: getColumnGroupLabel(column.type),
+    group: columnGroup(column),
   })), [visibleSortColumns])
   const selectedColumnOptions = useMemo(() => visibleSelectedColumns.map((column) => ({
     value: column.key,
     label: column.label,
     subtitle: `${column.key} · ${column.type}`,
     keywords: [column.key, column.type],
-    group: getColumnGroupLabel(column.type),
+    group: columnGroup(column),
   })), [visibleSelectedColumns])
 
   const buildVisibleJoinSources = useCallback((join: BuilderJoinConfig) => {
@@ -440,6 +523,7 @@ export default function ReportBuilderPage() {
   function resetSource(key: string) {
     setSource(key)
     setSourceInputsJson('{}')
+    setWorkflowScopeId('')
     setColumnsSearch('')
     setDateFieldSearch('')
     setSortFieldSearch('')
@@ -457,6 +541,8 @@ export default function ReportBuilderPage() {
     setJoins([])
     setGroupBy([])
     setAggregations([])
+    setCharts([])
+    setPreviewCharts(null)
     setPreviewData(null)
     setPreviewError('')
     // Auto-populate a sensible date range field — prefer created_at /
@@ -480,6 +566,76 @@ export default function ReportBuilderPage() {
     const preset = DRILL_TARGETS.find(d => d.source === key)
     setDrillHref(preset?.href_template ?? '')
   }
+
+  // Deep link: /reports/builder?source=workflow_runs&workflow_id=<id> (from a
+  // workflow's process overview) opens the source scoped to that workflow.
+  const deepLinkAppliedRef = useRef(false)
+  useEffect(() => {
+    if (deepLinkAppliedRef.current || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const linkedSource = params.get('source')
+    if (!linkedSource || !REPORT_SOURCES.some((candidate) => candidate.key === linkedSource)) return
+    deepLinkAppliedRef.current = true
+    resetSource(linkedSource)
+    const linkedWorkflow = params.get('workflow_id')
+    if (linkedWorkflow && /^[0-9a-f-]{36}$/i.test(linkedWorkflow)) setWorkflowScopeId(linkedWorkflow)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ?edit=<id> (the saved report's Edit button): load its config into the builder.
+  const editAppliedRef = useRef(false)
+  useEffect(() => {
+    if (editAppliedRef.current || loadingSources || typeof window === 'undefined') return
+    const editId = new URLSearchParams(window.location.search).get('edit')
+    if (!editId || !/^[0-9a-f-]{36}$/i.test(editId)) return
+    editAppliedRef.current = true
+    serverQuery('reports.get', { id: editId }).then((report: any) => {
+      const c = normalizeReportConfig(report?.config) as Partial<ReportConfig>
+      if (!report || !c.data_source) return
+      setSource(c.data_source)
+      const inputs = (c.source_inputs ?? {}) as Record<string, any>
+      if (typeof inputs.workflow_id === 'string' && inputs.workflow_id) {
+        // Keep the saved columns when the workflow's variable columns arrive.
+        appliedScopeRef.current = `${c.data_source}:${inputs.workflow_id}`
+        setWorkflowScopeId(inputs.workflow_id)
+      } else if (c.data_source.startsWith('reference_')) {
+        setSourceInputsJson(JSON.stringify(inputs, null, 2))
+      }
+      setSelectedCols(Array.isArray(c.columns) ? c.columns : [])
+      setFilters(Array.isArray(c.filters) ? c.filters : [])
+      setJoins((c.joins ?? []).map((join) => ({ ...join, source_inputs_json: join.source_inputs ? JSON.stringify(join.source_inputs, null, 2) : '' })) as BuilderJoinConfig[])
+      setGroupBy(c.group_by ?? [])
+      setAggregations(c.aggregations ?? [])
+      setViz(c.visualization ?? 'table')
+      setSortField(c.sort?.field ?? '')
+      setSortDir(c.sort?.direction ?? 'desc')
+      setDateRangeField(c.date_range?.field ?? '')
+      setDatePreset(0)
+      setDateFrom(c.date_range?.from ?? '')
+      setDateTo(c.date_range?.to ?? '')
+      setRowLimit(typeof c.row_limit === 'number' ? c.row_limit : 1000)
+      setDrillHref(c.drill_target?.href_template ?? '')
+      const style = c.chart_style
+      if (style) {
+        const colors = style.colors ?? []
+        const preset = colors.length ? CHART_PALETTES.find((p) => p.colors.join(',').toLowerCase() === colors.join(',').toLowerCase()) : undefined
+        setChartPaletteId(!colors.length ? 'default' : preset ? preset.id : 'custom')
+        if (colors.length && !preset) setCustomColors(colors)
+        setChartTitle(style.chart_title ?? '')
+        setXAxisLabel(style.x_axis_label ?? '')
+        setYAxisLabel(style.y_axis_label ?? '')
+        setHideLegend(Boolean(style.hide_legend))
+        setHideGrid(Boolean(style.hide_grid))
+      }
+      setCharts(c.charts ?? [])
+      setSaveName(report.name ?? '')
+      setSaveDesc(report.description ?? '')
+      setSaveShared(Boolean(report.is_shared))
+      setEditing({ id: report.id, name: report.name })
+      setExpandedSections((prev) => new Set([...prev, 'charts']))
+      setAutoRun(true)
+    }).catch(() => { /* not found / not visible: start blank */ })
+  }, [loadingSources])
 
   // Compute date range for preview
   function getDateRange() {
@@ -508,17 +664,20 @@ export default function ReportBuilderPage() {
     const t0 = performance.now()
     const parsedSourceInputs = source.startsWith('reference_')
       ? normalizeReferenceInputPayload(sourceInputsValidation.parsed, sourceDef?.inputs)
-      : undefined
+      : workflowSourceInputs
     if (source.startsWith('reference_') && sourceInputsValidation.error) {
       setPreviewError(sourceInputsValidation.error)
       setPreviewLoading(false)
       return
     }
     try {
-      const res = await fetch('/api/v1/reports/preview', {
+      // Summary chart time buckets follow the viewer's own time zone.
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const res = await fetch(`/api/v1/reports/preview${timezone ? `?timezone=${encodeURIComponent(timezone)}` : ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          charts: savedCharts.length ? savedCharts : undefined,
           data_source: source,
           source_inputs: parsedSourceInputs,
           columns: selectedCols,
@@ -545,24 +704,36 @@ export default function ReportBuilderPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
       setPreviewData(json.data)
+      setPreviewCharts(Array.isArray(json.charts) ? json.charts : null)
       setPreviewTime(Math.round(performance.now() - t0))
     } catch (err: any) {
       setPreviewError(err.message)
       setPreviewData(null)
+      setPreviewCharts(null)
     }
     setPreviewLoading(false)
-  }, [allSources, source, sourceDef?.inputs, sourceInputsValidation, selectedCols, filters, joins, groupBy, aggregations, sortField, sortDir, dateRangeField, datePreset, dateFrom, dateTo, rowLimit])
+  }, [allSources, source, sourceDef?.inputs, sourceInputsValidation, workflowSourceInputs?.workflow_id, selectedCols, filters, joins, groupBy, aggregations, sortField, sortDir, dateRangeField, datePreset, dateFrom, dateTo, rowLimit, savedCharts])
+
+  useEffect(() => {
+    if (!autoRun || !sourceDef) return
+    setAutoRun(false)
+    void runPreview()
+  }, [autoRun, sourceDef, runPreview])
 
   async function handleSave() {
     if (!saveName.trim() || !source) return
-    setSaving(true)
+    await runSave(saveReport)
+  }
+
+  async function saveReport() {
+    if (!source) return
     try {
       if (source.startsWith('reference_') && sourceInputsValidation.error) {
         throw new Error(sourceInputsValidation.error)
       }
       const parsedSourceInputs = source.startsWith('reference_')
         ? normalizeReferenceInputPayload(sourceInputsValidation.parsed, sourceDef?.inputs)
-        : undefined
+        : workflowSourceInputs
       // Only persist chart_style if the user actually customized something —
       // otherwise leave it off so the saved config stays compact.
       const hasCustomStyle =
@@ -606,6 +777,17 @@ export default function ReportBuilderPage() {
               hide_grid: hideGrid || undefined,
             }
           : undefined,
+        charts: savedCharts.length ? savedCharts : undefined,
+      }
+      if (editing) {
+        // The user's own report is updated in place; anyone else's is saved as a new one.
+        const updated = await updateReport(editing.id, { name: saveName, description: saveDesc, config })
+        if (updated.updated) {
+          // The report page reads it through TanStack Query: drop the cached copy.
+          await queryClient.invalidateQueries({ queryKey: ['report', editing.id] })
+          router.push(`/reports/${editing.id}`)
+          return
+        }
       }
       const result = await createReport({
         name: saveName,
@@ -618,7 +800,6 @@ export default function ReportBuilderPage() {
     } catch (err: any) {
       alert(err.message)
     }
-    setSaving(false)
   }
 
   // Preview columns
@@ -637,7 +818,7 @@ export default function ReportBuilderPage() {
             const col = availableSourceColumns.find((sourceCol) => sourceCol.key === key)
             return {
               key,
-              label: col?.label ?? key.replace(/^data_/, '').replace(/_/g, ' '),
+              label: reportResultColumnLabel(key, availableSourceColumns),
               type: col?.type,
             }
           })
@@ -662,22 +843,23 @@ export default function ReportBuilderPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Report Builder</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={runPreview} disabled={!source || previewLoading || hasInputValidationErrors}>
-            <Play size={14} className="mr-1" /> {previewLoading ? 'Running...' : 'Run Query'}
-          </Button>
-          <Button size="sm" onClick={() => setShowSave(true)} disabled={!source || hasInputValidationErrors}>
-            <Save size={14} className="mr-1" /> Save
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumbs={editing
+          ? [{ label: 'Reports', href: '/reports' }, { label: editing.name, href: `/reports/${editing.id}` }, { label: 'Edit' }]
+          : [{ label: 'Reports', href: '/reports' }, { label: 'Report builder' }]}
+        title={editing ? `Edit "${editing.name}"` : 'Report builder'}
+        className="mb-0"
+        actions={
+          <>
+            <Button variant="secondary" leadingIcon={<Play />} onClick={runPreview} loading={previewLoading} disabled={!source || previewLoading || hasInputValidationErrors}>
+              {previewLoading ? 'Running…' : 'Run query'}
+            </Button>
+            <Button leadingIcon={<Save />} onClick={() => setShowSave(true)} disabled={!source || hasInputValidationErrors}>
+              Save
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Config panel */}
@@ -690,8 +872,7 @@ export default function ReportBuilderPage() {
                 <select
                   value={sourceCategoryFilter}
                   onChange={(e) => setSourceCategoryFilter(e.target.value)}
-                  className="w-full rounded border px-2 py-1.5 text-xs"
-                  style={{ borderColor: 'var(--theme-surface-border)' }}
+                  className="w-full rounded border px-2 py-1.5 text-xs border-border"
                 >
                   {sourceCategoryOptions.map((category) => (
                     <option key={category} value={category}>
@@ -702,8 +883,7 @@ export default function ReportBuilderPage() {
                 <select
                   value={sourceSortMode}
                   onChange={(e) => setSourceSortMode(e.target.value as (typeof SOURCE_SORT_OPTIONS)[number]['value'])}
-                  className="w-full rounded border px-2 py-1.5 text-xs"
-                  style={{ borderColor: 'var(--theme-surface-border)' }}
+                  className="w-full rounded border px-2 py-1.5 text-xs border-border"
                 >
                   {SOURCE_SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -723,9 +903,43 @@ export default function ReportBuilderPage() {
               {sourceDef ? (
                 <SourceSummaryCard source={sourceDef} inputLabel="Reference inputs" />
               ) : null}
+              {baseSourceDef?.workflowScoped && !canViewWorkflows ? (
+                <p className="text-2xs text-fg-muted">
+                  Workflow variables need the View workflows permission.
+                </p>
+              ) : null}
+              {isWorkflowScopable ? (
+                <div className="rounded-lg border p-2 space-y-1.5 border-border" data-testid="report-workflow-scope">
+                  <div className="text-2xs font-semibold text-fg">Workflow</div>
+                  <SearchableOptionPicker
+                    value={workflowScopeId}
+                    onChange={setWorkflowScopeId}
+                    placeholder="All workflows"
+                    searchPlaceholder="Search workflows..."
+                    emptyLabel="No workflows found."
+                    options={workflowOptions}
+                  />
+                  <p className="text-2xs text-fg-muted">
+                    {!workflowScopeId
+                      ? source === 'tasks'
+                        ? 'Pick a workflow to report on the tasks it created, with their form fields as columns.'
+                        : 'Pick a workflow to add its variables — inputs, task form fields, step outputs — as columns, filters and groupings.'
+                      : loadingScopedSource
+                        ? 'Loading the workflow variables...'
+                        : scopedSourceError
+                          ? (scopedSourceError as Error).message
+                          : `${workflowVariableCount} workflow ${source === 'tasks' ? 'form field' : 'variable'}${workflowVariableCount === 1 ? '' : 's'} added as columns.${source === 'workflow_runs' ? ' Runs that finished before variables were stored show blanks.' : ''}`}
+                  </p>
+                  {workflowScopeId ? (
+                    <button type="button" onClick={() => setWorkflowScopeId('')} className="text-2xs hover:underline text-fg">
+                      Clear workflow
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             {source.startsWith('reference_') && (
-              <div className="mt-3 rounded-lg border p-2 space-y-1" style={{ borderColor: 'var(--theme-surface-border)' }}>
+              <div className="mt-3 rounded-lg border p-2 space-y-1 border-border">
                 <ReferenceInputsEditor
                   title="Reference inputs"
                   description="Use the form fields below for the common setup path, or open the JSON editor for advanced payloads."
@@ -744,16 +958,16 @@ export default function ReportBuilderPage() {
           {sourceDef && (
             <AccordionSection title={`Columns (${selectedCols.length}/${availableSourceColumns.length})`} id="columns" expanded={expandedSections} onToggle={toggleSection}>
               <div className="flex gap-1 mb-2">
-                <button onClick={() => setSelectedCols(availableSourceColumns.map(c => c.key))} className="text-[10px] text-[color:var(--theme-card-text)] hover:underline">Select all</button>
-                <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>·</span>
-                <button onClick={() => setSelectedCols([])} className="text-[10px] text-[color:var(--theme-card-text)] hover:underline">Clear</button>
+                <button onClick={() => setSelectedCols(availableSourceColumns.map(c => c.key))} className="text-xs font-medium text-primary-text hover:underline">Select all</button>
+                <span className="text-2xs text-fg-muted">·</span>
+                <button onClick={() => setSelectedCols([])} className="text-xs font-medium text-primary-text hover:underline">Clear</button>
               </div>
               <div className="relative mb-2">
-                <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                 <Input
                   value={columnsSearch}
                   onChange={(e) => setColumnsSearch(e.target.value)}
-                  className="!h-8 !pl-7 !text-xs"
+                  size="sm" className="pl-7"
                   placeholder="Search columns..."
                 />
               </div>
@@ -774,11 +988,11 @@ export default function ReportBuilderPage() {
             <AccordionSection title="Date Range" id="daterange" expanded={expandedSections} onToggle={toggleSection}>
               <div className="space-y-2">
                 <div className="relative">
-                  <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                  <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                   <Input
                     value={dateFieldSearch}
                     onChange={(e) => setDateFieldSearch(e.target.value)}
-                    className="!h-8 !pl-7 !text-xs"
+                    size="sm" className="pl-7"
                     placeholder="Search date fields..."
                   />
                 </div>
@@ -798,11 +1012,7 @@ export default function ReportBuilderPage() {
                         <button
                           key={p.label}
                           onClick={() => { setDatePreset(p.days); setDateFrom(''); setDateTo('') }}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
-                          style={{
-                            backgroundColor: datePreset === p.days ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                            color: datePreset === p.days ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                          }}
+                          className={cn("px-2 py-0.5 rounded-full text-2xs font-medium transition-colors", datePreset === p.days ? "bg-primary-wash text-primary-text ring-1 ring-primary" : "bg-subtle text-fg-muted hover:text-fg")}
                         >
                           {p.label}
                         </button>
@@ -813,16 +1023,14 @@ export default function ReportBuilderPage() {
                         type="date"
                         value={dateFrom ? dateFrom.split('T')[0] : ''}
                         onChange={e => { setDateFrom(e.target.value ? `${e.target.value}T00:00:00` : ''); setDatePreset(0) }}
-                        className="flex-1 rounded border px-1.5 py-1 text-xs"
-                        style={{ borderColor: 'var(--theme-surface-border)' }}
+                        className="flex-1 rounded border px-1.5 py-1 text-xs border-border"
                       />
-                      <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>to</span>
+                      <span className="text-2xs text-fg-muted">to</span>
                       <input
                         type="date"
                         value={dateTo ? dateTo.split('T')[0] : ''}
                         onChange={e => { setDateTo(e.target.value ? `${e.target.value}T23:59:59` : ''); setDatePreset(0) }}
-                        className="flex-1 rounded border px-1.5 py-1 text-xs"
-                        style={{ borderColor: 'var(--theme-surface-border)' }}
+                        className="flex-1 rounded border px-1.5 py-1 text-xs border-border"
                       />
                     </div>
                   </>
@@ -849,16 +1057,16 @@ export default function ReportBuilderPage() {
                           label: column.label,
                           subtitle: `${column.key} · ${column.type}`,
                           keywords: [column.key, column.type],
-                          group: getColumnGroupLabel(column.type),
+                          group: columnGroup(column),
                         }))
                       return (
                         <>
                           <div className="relative">
-                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                             <Input
                               value={filterFieldSearch[i] ?? ''}
                               onChange={e => setFilterFieldSearch(prev => ({ ...prev, [i]: e.target.value }))}
-                              className="!h-8 !pl-7 !text-xs"
+                              size="sm" className="pl-7"
                               placeholder="Search filter fields..."
                             />
                           </div>
@@ -877,8 +1085,7 @@ export default function ReportBuilderPage() {
                             <select
                               value={f.operator}
                               onChange={e => setFilters(prev => prev.map((ff, fi) => fi === i ? { ...ff, operator: e.target.value as any } : ff))}
-                              className="w-20 rounded border px-1 py-1 text-xs"
-                              style={{ borderColor: 'var(--theme-surface-border)' }}
+                              className="w-20 rounded border px-1 py-1 text-xs border-border"
                             >
                               {OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
@@ -890,7 +1097,7 @@ export default function ReportBuilderPage() {
                                 placeholder="Value"
                               />
                             )}
-                            <button onClick={() => setFilters(prev => prev.filter((_, fi) => fi !== i))} className="shrink-0 p-1 text-red-400 hover:text-red-600">
+                            <button onClick={() => setFilters(prev => prev.filter((_, fi) => fi !== i))} className="shrink-0 rounded-md p-1 text-fg-muted hover:bg-danger-wash hover:text-danger">
                               <X size={12} />
                             </button>
                           </div>
@@ -901,7 +1108,7 @@ export default function ReportBuilderPage() {
                 ))}
                 <button
                   onClick={() => setFilters(prev => [...prev, { field: '', operator: 'eq', value: '' }])}
-                  className="text-xs text-[color:var(--theme-card-text)] hover:underline flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs font-medium text-primary-text hover:underline"
                 >
                   <Plus size={11} /> Add filter
                 </button>
@@ -929,7 +1136,7 @@ export default function ReportBuilderPage() {
                       label: col.label,
                       subtitle: `${col.key} · ${col.type}`,
                       keywords: [col.key, col.type],
-                      group: getColumnGroupLabel(col.type),
+                      group: columnGroup(col),
                     }))
                   const targetFieldOptions = targetColumns
                     .filter((col) => {
@@ -942,7 +1149,7 @@ export default function ReportBuilderPage() {
                       label: col.label,
                       subtitle: `${col.key} · ${col.type}`,
                       keywords: [col.key, col.type],
-                      group: getColumnGroupLabel(col.type),
+                      group: columnGroup(col),
                     }))
                   const joinColumnOptions = targetColumns
                     .filter((col) => {
@@ -955,7 +1162,7 @@ export default function ReportBuilderPage() {
                       label: col.label,
                       subtitle: `${col.key} · ${col.type}`,
                       keywords: [col.key, col.type],
-                      group: getColumnGroupLabel(col.type),
+                      group: columnGroup(col),
                     }))
                   const joinVisibleSources = buildVisibleJoinSources(join)
                   const joinSourceOptions = joinVisibleSources.map((candidate) => ({
@@ -975,9 +1182,9 @@ export default function ReportBuilderPage() {
                       .filter(Boolean),
                   )] as string[]
                   return (
-                    <div key={join.id ?? index} className="rounded-lg border p-2 space-y-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                    <div key={join.id ?? index} className="rounded-lg border p-2 space-y-2 border-border">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
+                        <span className="text-2xs font-semibold text-fg-muted">
                           Join {index + 1}
                         </span>
                         <button
@@ -994,7 +1201,7 @@ export default function ReportBuilderPage() {
                               setDateRangeField((prev) => (prev.startsWith(prefix) ? '' : prev))
                             }
                           }}
-                          className="p-1 text-red-400 hover:text-red-600"
+                          className="rounded-md p-1 text-fg-muted hover:bg-danger-wash hover:text-danger"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -1002,7 +1209,7 @@ export default function ReportBuilderPage() {
 
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Join source</label>
+                          <label className="text-2xs font-medium block mb-1 text-fg-muted">Join source</label>
                           <div className="space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                               <select
@@ -1011,8 +1218,7 @@ export default function ReportBuilderPage() {
                                   ...item,
                                   source_category: e.target.value,
                                 } : item))}
-                                className="w-full rounded border px-2 py-1.5 text-xs"
-                                style={{ borderColor: 'var(--theme-surface-border)' }}
+                                className="w-full rounded border px-2 py-1.5 text-xs border-border"
                               >
                                 {joinCategoryOptions.map((category) => (
                                   <option key={category} value={category}>
@@ -1026,8 +1232,7 @@ export default function ReportBuilderPage() {
                                   ...item,
                                   source_sort: e.target.value as (typeof SOURCE_SORT_OPTIONS)[number]['value'],
                                 } : item))}
-                                className="w-full rounded border px-2 py-1.5 text-xs"
-                                style={{ borderColor: 'var(--theme-surface-border)' }}
+                                className="w-full rounded border px-2 py-1.5 text-xs border-border"
                               >
                                 {SOURCE_SORT_OPTIONS.map((option) => (
                                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -1055,11 +1260,11 @@ export default function ReportBuilderPage() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Alias</label>
+                          <label className="text-2xs font-medium block mb-1 text-fg-muted">Alias</label>
                           <Input
                             value={join.alias}
                             onChange={(e) => setJoins((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, alias: e.target.value.replace(/[^a-zA-Z0-9_]/g, '_') } : item))}
-                            className="!h-8 !text-xs"
+                            size="sm"
                             placeholder="customer"
                           />
                         </div>
@@ -1067,13 +1272,13 @@ export default function ReportBuilderPage() {
 
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Current field</label>
+                          <label className="text-2xs font-medium block mb-1 text-fg-muted">Current field</label>
                           <div className="relative mb-1">
-                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                             <Input
                               value={joinLocalFieldSearch[index] ?? ''}
                               onChange={(e) => setJoinLocalFieldSearch((prev) => ({ ...prev, [index]: e.target.value }))}
-                              className="!h-8 !pl-7 !text-xs"
+                              size="sm" className="pl-7"
                               placeholder="Search current fields..."
                             />
                           </div>
@@ -1088,22 +1293,22 @@ export default function ReportBuilderPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Matches target field</label>
+                          <label className="text-2xs font-medium block mb-1 text-fg-muted">Matches target field</label>
                           {targetIsFlexible ? (
                             <Input
                               value={join.foreign_field}
                               onChange={(e) => setJoins((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, foreign_field: e.target.value } : item))}
-                              className="!h-8 !text-xs"
+                              size="sm"
                               placeholder="customer_id"
                             />
                           ) : (
                             <>
                               <div className="relative mb-1">
-                                <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                                <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                                 <Input
                                   value={joinTargetFieldSearch[index] ?? ''}
                                   onChange={(e) => setJoinTargetFieldSearch((prev) => ({ ...prev, [index]: e.target.value }))}
-                                  className="!h-8 !pl-7 !text-xs"
+                                  size="sm" className="pl-7"
                                   placeholder="Search target fields..."
                                 />
                               </div>
@@ -1120,12 +1325,11 @@ export default function ReportBuilderPage() {
                           )}
                         </div>
                         <div>
-                          <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Join type</label>
+                          <label className="text-2xs font-medium block mb-1 text-fg-muted">Join type</label>
                           <select
                             value={join.join_type ?? 'left'}
                             onChange={(e) => setJoins((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, join_type: e.target.value as 'left' | 'inner' } : item))}
-                            className="w-full rounded border px-2 py-1.5 text-xs"
-                            style={{ borderColor: 'var(--theme-surface-border)' }}
+                            className="w-full rounded border px-2 py-1.5 text-xs border-border"
                           >
                             <option value="left">Left join</option>
                             <option value="inner">Inner join</option>
@@ -1135,7 +1339,7 @@ export default function ReportBuilderPage() {
 
                       {(targetColumns.length > 0 || targetIsFlexible) && (
                         <div>
-                          <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Columns to bring in</label>
+                          <label className="text-2xs font-medium block mb-1 text-fg-muted">Columns to bring in</label>
                           {targetIsFlexible ? (
                             <>
                               <Input
@@ -1147,21 +1351,21 @@ export default function ReportBuilderPage() {
                                     .map((value) => value.trim())
                                     .filter(Boolean),
                                 } : item))}
-                                className="!h-8 !text-xs"
+                                size="sm"
                                 placeholder="name, status, amount"
                               />
-                              <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                              <p className="mt-1 text-2xs text-fg-muted">
                                 Enter response field names as a comma-separated list for flexible API sources.
                               </p>
                             </>
                           ) : (
                             <>
                               <div className="relative mb-2">
-                                <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                                <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                                 <Input
                                   value={joinColumnSearch[index] ?? ''}
                                   onChange={(e) => setJoinColumnSearch((prev) => ({ ...prev, [index]: e.target.value }))}
-                                  className="!h-8 !pl-7 !text-xs"
+                                  size="sm" className="pl-7"
                                   placeholder="Search target columns..."
                                 />
                               </div>
@@ -1217,7 +1421,7 @@ export default function ReportBuilderPage() {
                     source_category: 'all',
                     source_sort: 'label-asc',
                   }])}
-                  className="text-xs text-[color:var(--theme-card-text)] hover:underline flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs font-medium text-primary-text hover:underline"
                 >
                   <Plus size={11} /> Add join
                 </button>
@@ -1230,11 +1434,11 @@ export default function ReportBuilderPage() {
             <AccordionSection title="Sort & Limit" id="sort" expanded={expandedSections} onToggle={toggleSection}>
               <div className="space-y-2">
                 <div className="relative">
-                  <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+                  <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted" />
                   <Input
                     value={sortFieldSearch}
                     onChange={(e) => setSortFieldSearch(e.target.value)}
-                    className="!h-8 !pl-7 !text-xs"
+                    size="sm" className="pl-7"
                     placeholder="Search sort fields..."
                   />
                 </div>
@@ -1252,26 +1456,21 @@ export default function ReportBuilderPage() {
                   </div>
                   <button
                     onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                    className="px-2 py-1 rounded border text-xs flex items-center gap-1"
-                    style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                    className="px-2 py-1 rounded border text-xs flex items-center gap-1 border-border text-fg"
                   >
                     {sortDir === 'asc' ? <SortAsc size={13} /> : <SortDesc size={13} />}
                     {sortDir.toUpperCase()}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Hash size={12} style={{ color: 'var(--theme-muted-text)' }} />
-                  <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Row limit</span>
+                  <Hash size={12} className="text-fg-muted" />
+                  <span className="text-2xs text-fg-muted">Row limit</span>
                   <div className="flex gap-1 ml-auto">
                     {ROW_LIMITS.map(l => (
                       <button
                         key={l}
                         onClick={() => setRowLimit(l)}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors"
-                        style={{
-                          backgroundColor: rowLimit === l ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                          color: rowLimit === l ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                        }}
+                        className={cn("px-1.5 py-0.5 rounded text-2xs font-medium transition-colors", rowLimit === l ? "bg-primary-wash text-primary-text ring-1 ring-primary" : "bg-subtle text-fg-muted hover:text-fg")}
                       >
                         {l >= 1000 ? `${l / 1000}k` : l}
                       </button>
@@ -1280,12 +1479,12 @@ export default function ReportBuilderPage() {
                 </div>
 
                 {/* Drill-down target — makes each row in the table view clickable */}
-                <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                <div className="pt-2 border-t border-border">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="text-2xs font-medium text-fg-muted">
                       Row click target (drill-down)
                     </span>
-                    <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="text-2xs text-fg-muted">
                       optional · use {'{column}'} placeholders
                     </span>
                   </div>
@@ -1293,10 +1492,10 @@ export default function ReportBuilderPage() {
                     value={drillHref}
                     onChange={(e) => setDrillHref(e.target.value)}
                     placeholder="/tasks/{id}"
-                    className="!h-7 !text-[10px] font-mono"
+                    size="sm" className="font-mono"
                   />
                   {DRILL_TARGETS.find(d => d.source === source) && (
-                    <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="text-2xs mt-1 text-fg-muted">
                       Preset for <span className="font-mono">{source}</span> auto-populated · edit to customize.
                     </p>
                   )}
@@ -1309,17 +1508,13 @@ export default function ReportBuilderPage() {
           {sourceDef && (
             <AccordionSection title={`Group & Aggregate${groupBy.length ? ` (${groupBy.length})` : ''}`} id="group" expanded={expandedSections} onToggle={toggleSection}>
               <div className="space-y-2">
-                <label className="text-[10px] font-medium block" style={{ color: 'var(--theme-muted-text)' }}>Group By</label>
+                <label className="text-2xs font-medium block text-fg-muted">Group By</label>
                 <div className="flex flex-wrap gap-1">
                   {availableSourceColumns.map(col => (
                     <button
                       key={col.key}
                       onClick={() => setGroupBy(prev => prev.includes(col.key) ? prev.filter(k => k !== col.key) : [...prev, col.key])}
-                      className="px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
-                      style={{
-                        backgroundColor: groupBy.includes(col.key) ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                        color: groupBy.includes(col.key) ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                      }}
+                      className={cn("px-2 py-0.5 rounded-full text-2xs font-medium transition-colors", groupBy.includes(col.key) ? "bg-primary-wash text-primary-text ring-1 ring-primary" : "bg-subtle text-fg-muted hover:text-fg")}
                     >
                       {col.label}
                     </button>
@@ -1327,32 +1522,30 @@ export default function ReportBuilderPage() {
                 </div>
                 {groupBy.length > 0 && (
                   <>
-                    <label className="text-[10px] font-medium block mt-2" style={{ color: 'var(--theme-muted-text)' }}>Aggregations</label>
+                    <label className="text-2xs font-medium block mt-2 text-fg-muted">Aggregations</label>
                     {aggregations.map((a, i) => (
                       <div key={i} className="flex items-center gap-1">
                         <select
                           value={a.fn}
                           onChange={e => setAggregations(prev => prev.map((aa, ai) => ai === i ? { ...aa, fn: e.target.value as any } : aa))}
-                          className="w-20 rounded border px-1 py-1 text-xs"
-                          style={{ borderColor: 'var(--theme-surface-border)' }}
+                          className="w-20 rounded border px-1 py-1 text-xs border-border"
                         >
                           {AGG_FNS.map(f => <option key={f} value={f}>{f}</option>)}
                         </select>
                         <select
                           value={a.field}
                           onChange={e => setAggregations(prev => prev.map((aa, ai) => ai === i ? { ...aa, field: e.target.value } : aa))}
-                          className="flex-1 rounded border px-1 py-1 text-xs"
-                          style={{ borderColor: 'var(--theme-surface-border)' }}
+                          className="flex-1 rounded border px-1 py-1 text-xs border-border"
                         >
                           <option value="">Field</option>
                           {availableSourceColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                         </select>
-                        <button onClick={() => setAggregations(prev => prev.filter((_, ai) => ai !== i))} className="text-red-400 hover:text-red-600 p-1">
+                        <button onClick={() => setAggregations(prev => prev.filter((_, ai) => ai !== i))} className="rounded-md p-1 text-fg-muted hover:bg-danger-wash hover:text-danger">
                           <Trash2 size={11} />
                         </button>
                       </div>
                     ))}
-                    <button onClick={() => setAggregations(prev => [...prev, { fn: 'COUNT', field: numericColumns[0]?.key ?? availableSourceColumns[0]?.key ?? '' }])} className="text-xs text-[color:var(--theme-card-text)] hover:underline flex items-center gap-1">
+                    <button onClick={() => setAggregations(prev => [...prev, { fn: 'COUNT', field: numericColumns[0]?.key ?? availableSourceColumns[0]?.key ?? '' }])} className="flex items-center gap-1 text-xs font-medium text-primary-text hover:underline">
                       <Plus size={11} /> Add aggregation
                     </button>
                   </>
@@ -1369,26 +1562,21 @@ export default function ReportBuilderPage() {
                   <button
                     key={v.value}
                     onClick={() => setViz(v.value)}
-                    className="px-2 py-2 rounded-lg text-center transition-colors"
-                    style={{
-                      backgroundColor: viz === v.value ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                      color: viz === v.value ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
-                      boxShadow: viz === v.value ? '0 0 0 1px var(--theme-primary)' : undefined,
-                    }}
+                    className={cn("px-2 py-2 rounded-lg text-center transition-colors", viz === v.value ? "bg-primary-wash text-primary-text ring-1 ring-primary" : "bg-subtle text-fg-muted hover:text-fg")}
                   >
                     <span className="text-lg block">{v.icon}</span>
-                    <span className="text-[9px] font-medium">{v.label}</span>
+                    <span className="text-2xs font-medium">{v.label}</span>
                   </button>
                 ))}
               </div>
               {viz !== 'table' && (
                 <div className="mt-3 space-y-2">
-                  <label className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>X Axis / Label</label>
-                  <select value={xKey} onChange={e => setXKey(e.target.value)} className="w-full rounded border px-2 py-1 text-xs" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                  <label className="text-2xs font-medium text-fg-muted">X Axis / Label</label>
+                  <select value={xKey} onChange={e => setXKey(e.target.value)} className="w-full rounded border px-2 py-1 text-xs border-border">
                     <option value="">Auto</option>
                     {(previewData ? previewColumns : availableSourceColumns).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                   </select>
-                  <label className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Y Axis / Value</label>
+                  <label className="text-2xs font-medium text-fg-muted">Y Axis / Value</label>
                   {/* Allow any column for Y axis. Originally this was filtered
                       to type === 'number', but custom data tables store
                       everything in JSONB and often surface numeric columns
@@ -1397,7 +1585,7 @@ export default function ReportBuilderPage() {
                       obviously-non-numeric columns; Recharts will simply
                       render 0/NaN for those which is recoverable. Numeric
                       columns are grouped first for convenience. */}
-                  <select value={yKey} onChange={e => setYKey(e.target.value)} className="w-full rounded border px-2 py-1 text-xs" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                  <select value={yKey} onChange={e => setYKey(e.target.value)} className="w-full rounded border px-2 py-1 text-xs border-border">
                     <option value="">Auto</option>
                     {(() => {
                       const cols = previewData ? previewColumns : availableSourceColumns
@@ -1429,24 +1617,20 @@ export default function ReportBuilderPage() {
             <AccordionSection title="Chart Style" id="style" expanded={expandedSections} onToggle={toggleSection}>
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] font-medium block mb-1.5" style={{ color: 'var(--theme-muted-text)' }}>Color Palette</label>
+                  <label className="text-2xs font-medium block mb-1.5 text-fg-muted">Color Palette</label>
                   <div className="grid grid-cols-2 gap-1.5">
                     {CHART_PALETTES.map(p => (
                       <button
                         key={p.id}
                         onClick={() => setChartPaletteId(p.id)}
-                        className="rounded-md p-1.5 text-left transition-colors"
-                        style={{
-                          backgroundColor: chartPaletteId === p.id ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                          boxShadow: chartPaletteId === p.id ? '0 0 0 1px var(--theme-primary)' : undefined,
-                        }}
+                        className={cn("rounded-md p-1.5 text-left transition-colors", chartPaletteId === p.id ? "bg-primary-wash ring-1 ring-primary" : "bg-subtle")}
                       >
                         <div className="flex gap-0.5 mb-1">
                           {p.colors.slice(0, 6).map((c, i) => (
                             <span key={i} className="h-3 flex-1 rounded-sm" style={{ backgroundColor: c }} />
                           ))}
                         </div>
-                        <span className="text-[9px] font-medium" style={{ color: chartPaletteId === p.id ? 'var(--theme-primary-text)' : 'var(--theme-card-text)' }}>{p.label}</span>
+                        <span className={cn("text-2xs font-medium", chartPaletteId === p.id ? "text-primary-text" : "text-fg")}>{p.label}</span>
                       </button>
                     ))}
                     <button
@@ -1454,18 +1638,14 @@ export default function ReportBuilderPage() {
                         setChartPaletteId('custom')
                         if (customColors.length === 0) setCustomColors([...CHART_PALETTES[0].colors])
                       }}
-                      className="rounded-md p-1.5 text-left transition-colors col-span-2"
-                      style={{
-                        backgroundColor: chartPaletteId === 'custom' ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
-                        boxShadow: chartPaletteId === 'custom' ? '0 0 0 1px var(--theme-primary)' : undefined,
-                      }}
+                      className={cn("rounded-md p-1.5 text-left transition-colors col-span-2", chartPaletteId === 'custom' ? "bg-primary-wash ring-1 ring-primary" : "bg-subtle")}
                     >
-                      <span className="text-[9px] font-medium" style={{ color: chartPaletteId === 'custom' ? 'var(--theme-primary-text)' : 'var(--theme-card-text)' }}>Custom colors</span>
+                      <span className={cn("text-2xs font-medium", chartPaletteId === 'custom' ? "text-primary-text" : "text-fg")}>Custom colors</span>
                     </button>
                   </div>
                   {chartPaletteId === 'custom' && (
                     <div className="mt-2 space-y-1.5">
-                      <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                      <p className="text-2xs text-fg-muted">
                         Pick up to 10 colors — applied in order to chart series.
                       </p>
                       <div className="flex flex-wrap gap-1">
@@ -1475,14 +1655,12 @@ export default function ReportBuilderPage() {
                               type="color"
                               value={c}
                               onChange={e => setCustomColors(prev => prev.map((cc, ci) => ci === i ? e.target.value : cc))}
-                              className="h-7 w-7 rounded cursor-pointer border"
-                              style={{ borderColor: 'var(--theme-surface-border)' }}
+                              className="h-7 w-7 rounded cursor-pointer border border-border"
                             />
                             <button
                               onClick={() => setCustomColors(prev => prev.filter((_, ci) => ci !== i))}
-                              className="absolute -top-1 -right-1 rounded-full w-3 h-3 flex items-center justify-center text-[8px]"
-                              style={{ backgroundColor: 'var(--status-error)', color: 'var(--theme-on-danger)' }}
-                              title="Remove"
+                              aria-label="Remove colour"
+                              className="absolute -top-1 -right-1 flex size-3 items-center justify-center rounded-full bg-danger text-2xs text-danger-fg"
                             >
                               ×
                             </button>
@@ -1491,8 +1669,7 @@ export default function ReportBuilderPage() {
                         {customColors.length < 10 && (
                           <button
                             onClick={() => setCustomColors(prev => [...prev, '#17150F'])}
-                            className="h-7 w-7 rounded border flex items-center justify-center"
-                            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+                            className="h-7 w-7 rounded border flex items-center justify-center border-border text-fg-muted"
                           >
                             <Plus size={11} />
                           </button>
@@ -1503,42 +1680,42 @@ export default function ReportBuilderPage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Chart Title</label>
+                  <label className="text-2xs font-medium block mb-1 text-fg-muted">Chart Title</label>
                   <Input
                     value={chartTitle}
                     onChange={e => setChartTitle(e.target.value)}
                     placeholder="Optional — defaults to report name"
-                    className="!h-7 !text-xs"
+                    size="sm"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>X Axis Label</label>
+                    <label className="text-2xs font-medium block mb-1 text-fg-muted">X Axis Label</label>
                     <Input
                       value={xAxisLabel}
                       onChange={e => setXAxisLabel(e.target.value)}
                       placeholder="e.g. Date"
-                      className="!h-7 !text-xs"
+                      size="sm"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium block mb-1" style={{ color: 'var(--theme-muted-text)' }}>Y Axis Label</label>
+                    <label className="text-2xs font-medium block mb-1 text-fg-muted">Y Axis Label</label>
                     <Input
                       value={yAxisLabel}
                       onChange={e => setYAxisLabel(e.target.value)}
                       placeholder="e.g. Count"
-                      className="!h-7 !text-xs"
+                      size="sm"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-1.5 text-[10px] cursor-pointer" style={{ color: 'var(--theme-card-text)' }}>
+                  <label className="flex items-center gap-1.5 text-2xs cursor-pointer text-fg">
                     <input type="checkbox" checked={hideLegend} onChange={e => setHideLegend(e.target.checked)} className="rounded" />
                     Hide legend
                   </label>
-                  <label className="flex items-center gap-1.5 text-[10px] cursor-pointer" style={{ color: 'var(--theme-card-text)' }}>
+                  <label className="flex items-center gap-1.5 text-2xs cursor-pointer text-fg">
                     <input type="checkbox" checked={hideGrid} onChange={e => setHideGrid(e.target.checked)} className="rounded" />
                     Hide gridlines
                   </label>
@@ -1546,22 +1723,29 @@ export default function ReportBuilderPage() {
               </div>
             </AccordionSection>
           )}
+
+          {/* Summary charts — chart cards above the report's table */}
+          {sourceDef && (
+            <AccordionSection title={`Charts${charts.length ? ` (${charts.length})` : ''}`} id="charts" expanded={expandedSections} onToggle={toggleSection}>
+              <ReportChartsEditor
+                charts={charts}
+                onChange={setCharts}
+                columns={availableSourceColumns.map((c) => ({ key: c.key, label: c.label, type: c.type }))}
+              />
+            </AccordionSection>
+          )}
         </div>
 
         {/* Preview panel */}
         <div className="lg:col-span-2 space-y-4">
           {previewError && (
-            <div
-              className="rounded-lg border px-4 py-3 text-sm"
-              style={{
-                borderColor: 'var(--status-error)',
-                backgroundColor: 'var(--status-error-bg)',
-                color: 'var(--status-error)',
-              }}
-            >
-              <div className="font-semibold mb-1">Query failed</div>
-              <div className="text-xs break-words whitespace-pre-wrap font-mono opacity-90">{previewError}</div>
-            </div>
+            <InlineNotice tone="danger" title="Query failed">
+              <div className="whitespace-pre-wrap break-words font-mono text-xs">{previewError}</div>
+            </InlineNotice>
+          )}
+
+          {previewData && savedCharts.length > 0 && (
+            <ReportSummaryCharts specs={savedCharts} results={previewCharts} loading={previewLoading} />
           )}
 
           {previewData && viz !== 'table' && (() => {
@@ -1595,19 +1779,19 @@ export default function ReportBuilderPage() {
                 title={chartTitle || 'Preview'}
                 height={350}
                 style={chartStyle}
+                seriesLabels={Object.fromEntries(previewColumns.map((column) => [column.key, column.label]))}
               />
             )
           })()}
 
           {previewData && (
             <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+              <span className="text-xs text-fg-muted">
                 {previewData.length} row{previewData.length !== 1 ? 's' : ''}
                 {previewTime > 0 && ` · ${previewTime}ms`}
                 {sourceDef?.dynamic && (
                   <span
-                    className="ml-1.5 px-1 py-0.5 rounded text-[9px]"
-                    style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
+                    className="ml-1.5 px-1 py-0.5 rounded text-2xs bg-primary-wash text-primary-text"
                   >Data Table</span>
                 )}
               </span>
@@ -1623,13 +1807,13 @@ export default function ReportBuilderPage() {
               rowHref={drillHref.trim() ? (row) => resolveDrillHref(drillHref.trim(), row) : undefined}
             />
           ) : (
-            <div className="flex items-center justify-center rounded-xl border p-16" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+            <div className="flex items-center justify-center rounded-xl border p-16 border-border bg-panel">
               <div className="text-center">
                 <Database size={32} className="mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>
+                <p className="text-sm font-medium text-fg">
                   {source ? 'Click Run Query to execute' : 'Select a data source to begin'}
                 </p>
-                <p className="text-xs mt-1 max-w-[300px] mx-auto" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-xs mt-1 max-w-[300px] mx-auto text-fg-muted">
                   {source
                     ? 'Configure columns, filters, and grouping, then hit Run Query to see results'
                     : `Choose from ${allSources.length} sources including system tables and your custom data tables`}
@@ -1643,8 +1827,8 @@ export default function ReportBuilderPage() {
       {/* Save dialog */}
       {showSave && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowSave(false)}>
-          <Card className="w-full max-w-md p-6 space-y-4" style={{ backgroundColor: 'var(--theme-card-bg)' }} onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>Save Report</h2>
+          <Card className="w-full max-w-md p-6 space-y-4 bg-panel" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-fg">Save report</h2>
             <div className="space-y-3">
               <Input value={saveName} onChange={e => setSaveName(e.target.value)} placeholder="Report name" autoFocus />
               <textarea
@@ -1652,12 +1836,11 @@ export default function ReportBuilderPage() {
                 onChange={e => setSaveDesc(e.target.value)}
                 placeholder="Description (optional)"
                 rows={2}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+                className="w-full rounded-lg border px-3 py-2 text-sm border-border bg-panel text-fg"
               />
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={saveShared} onChange={e => setSaveShared(e.target.checked)} className="rounded" />
-                <span style={{ color: 'var(--theme-card-text)' }}>Share with team</span>
+                <span className="text-fg">Share with team</span>
               </label>
             </div>
             <div className="flex justify-end gap-2">
@@ -1680,11 +1863,10 @@ function AccordionSection({
 }) {
   const isOpen = expanded.has(id)
   return (
-    <div className="rounded-lg border" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+    <div className="rounded-lg border border-border bg-panel">
       <button
         onClick={() => onToggle(id)}
-        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold"
-        style={{ color: 'var(--theme-card-text)' }}
+        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-fg"
       >
         {title}
         {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}

@@ -16,6 +16,7 @@ import { normalizeTaskFieldValue, UPDATABLE_TASK_FIELDS, validateTaskFieldValue 
 import { withDescriptionText } from '@/lib/task-description-format'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { dbError } from './_shared'
+import { canReachTask } from '@/lib/task-authz'
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- task metadata is free-form jsonb */
@@ -57,6 +58,7 @@ export async function updateTask(ctx: ServiceContext, taskId: string, input: Tas
   if (Object.keys(errors).length) throw ServiceError.validation(`Invalid task update: ${Object.values(errors).join('; ')}`, { errors })
   if (Object.keys(updates).length === 0 && !values) throw ServiceError.validation('No fields to update')
 
+  await requireTaskReach(ctx, taskId)
   const { data: task, error: loadError } = await (ctx.supabase as any).from('tasks')
     .select('id, status, metadata, is_workflow_task, event_id').eq('id', taskId).eq('tenant_id', ctx.tenantId).is('deleted_at', null).maybeSingle()
   if (loadError) throw dbError(loadError)
@@ -101,12 +103,30 @@ export async function updateTask(ctx: ServiceContext, taskId: string, input: Tas
  * adapter acts in the task's own workspace.
  */
 
+/**
+ * 404 unless the caller may change this task: tasks.view_all, its assigner,
+ * someone who can see it (assignee, collaborator, team, manager) or who can
+ * reach its parent (lib/task-authz canReachTask). Not found rather than
+ * forbidden, so task ids can't be probed.
+ */
+export async function requireTaskReach(ctx: ServiceContext, taskId: string): Promise<void> {
+  if (ctx.permissions === null || ctx.permissions.has('tasks.view_all')) return
+  // Tenant-wide credentials (no user) are bounded by their explicit permission list.
+  if (!ctx.actorId) return
+  // The caller's own client: the task, its collaborators, teams and reporting
+  // lines are readable to workspace members (RLS), and the service role isn't
+  // needed for a yes / no on the caller's own reach.
+  const ok = await canReachTask(ctx.supabase, { tenantId: ctx.tenantId, taskId, actorId: ctx.actorId, permissions: ctx.permissions })
+  if (!ok) throw ServiceError.notFound('Task not found')
+}
+
 async function loadScopedTask(ctx: ServiceContext, taskId: string, columns: string) {
   requirePerm(ctx, 'tasks.complete')
   const { data, error } = await (ctx.supabase as any).from('tasks')
     .select(columns).eq('id', taskId).eq('tenant_id', ctx.tenantId).is('deleted_at', null).maybeSingle()
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Task not found')
+  await requireTaskReach(ctx, taskId)
   return data as Record<string, any>
 }
 
@@ -162,6 +182,55 @@ export async function setSubtaskCompleted(ctx: ServiceContext, subtaskId: string
   return { status }
 }
 
+export const SUBTASK_TITLE_MAX = 500
+
+/**
+ * Add a subtask to an open task (the task lists' detail panel). Same rule as
+ * ticking one: tasks.complete and a task the person can reach (assignee,
+ * collaborator, team member, the assignee's manager, the assigner, or
+ * tasks.view_all). The subtask goes to the parent's assignee (else the
+ * caller), with the parent's priority, at the end of its subtasks, already
+ * accepted (it is part of work they have). The parent's timeline records it.
+ */
+export async function addSubtask(ctx: ServiceContext, parentTaskId: string, input: { title: string; due_date?: string | null }) {
+  const title = typeof input?.title === 'string' ? input.title.trim() : ''
+  if (!title) throw ServiceError.validation('Give the subtask a title')
+  if (title.length > SUBTASK_TITLE_MAX) throw ServiceError.validation(`A subtask title is at most ${SUBTASK_TITLE_MAX} characters`)
+  let dueDate: string | null = null
+  if (input.due_date) {
+    const due = new Date(String(input.due_date))
+    if (Number.isNaN(due.getTime())) throw ServiceError.validation('due_date must be a date')
+    dueDate = due.toISOString()
+  }
+  if (!ctx.actorId) throw ServiceError.forbidden('Forbidden: subtasks are added by a user')
+  const parent = await loadScopedTask(ctx, parentTaskId, 'id, tenant_id, status, priority, assignee_id')
+  if (parent.status === 'completed' || parent.status === 'cancelled') throw ServiceError.conflict('This task is closed — reopen it to add subtasks')
+
+  const { data: last } = await (ctx.supabase as any).from('tasks').select('sequence')
+    .eq('tenant_id', parent.tenant_id).eq('parent_task_id', parentTaskId).is('deleted_at', null)
+    .order('sequence', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+  const sequence = Number(last?.sequence ?? 0) + 1
+
+  const { data, error } = await (ctx.supabase as any).from('tasks').insert({
+    tenant_id: parent.tenant_id,
+    parent_task_id: parentTaskId,
+    title,
+    status: 'todo',
+    priority: parent.priority ?? 'medium',
+    assignee_id: parent.assignee_id ?? ctx.actorId,
+    assigner_id: ctx.actorId,
+    acceptance_status: 'accepted',
+    sequence,
+    due_date: dueDate,
+  }).select('id, title, status, priority, due_date, sequence').single()
+  if (error) throw dbError(error, 'Failed to add the subtask')
+  await writeLifecycleEvent({
+    supabase: ctx.supabase, tenantId: parent.tenant_id, taskId: parentTaskId, eventType: 'comment_added', actorId: ctx.actorId,
+    metadata: { message: `Added subtask “${title}”`, subtask_id: data.id, source: 'subtask_added' },
+  })
+  return data as { id: string; title: string; status: string; priority: string; due_date: string | null; sequence: number }
+}
+
 /** Activity timeline comment. */
 export async function addTaskComment(ctx: ServiceContext, taskId: string, message: string) {
   const text = typeof message === 'string' ? message.trim() : ''
@@ -187,6 +256,10 @@ export async function addTaskComment(ctx: ServiceContext, taskId: string, messag
  * access (workspace member, assignee or assigner); null when not visible.
  */
 export async function getTaskTree(ctx: ServiceContext, taskId: string) {
+  // get_task_tree only checks workspace membership: a person with own-task
+  // access sees their own tasks (and subtasks of them); tasks.view_all sees any.
+  if (!ctx.permissions?.has('tasks.view_own') && !ctx.permissions?.has('tasks.view_all') && ctx.permissions !== null) return null
+  try { await requireTaskReach(ctx, taskId) } catch { return null }
   const { data, error } = await (ctx.supabase as any).rpc('get_task_tree', { p_task_id: taskId })
   if (error) throw dbError(error)
   const tree = data as { task: Record<string, any> | null; subtasks: Record<string, any>[]; total_count: number; completed_count: number } | null

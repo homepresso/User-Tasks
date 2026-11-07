@@ -23,7 +23,7 @@ function InputValidationHint({
 
   return (
     <div
-      className="mt-2 rounded-md border px-2 py-1.5 text-[10px]"
+      className="mt-2 rounded-md border px-2 py-1.5 text-2xs"
       style={{
         borderColor: hasError ? 'var(--status-error)' : 'var(--theme-surface-border)',
         backgroundColor: hasError ? 'var(--status-error-bg)' : 'var(--theme-surface)',
@@ -101,7 +101,7 @@ export function ReferenceInputsEditor({
 
     if (type === 'boolean' || type === 'bool') {
       return (
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--theme-card-text)' }}>
+        <label className="flex items-center gap-2 text-xs text-fg">
           <input
             type="checkbox"
             checked={Boolean(currentValue)}
@@ -129,8 +129,7 @@ export function ReferenceInputsEditor({
               onChange(rawJson)
             }
           }}
-          className="min-h-[70px] w-full rounded border px-2 py-1.5 text-[11px] font-mono"
-          style={{ borderColor: 'var(--theme-surface-border)' }}
+          className="min-h-[70px] w-full rounded border px-2 py-1.5 text-2xs font-mono border-border"
           placeholder={type === 'array' ? '[]' : '{}'}
         />
       )
@@ -183,20 +182,19 @@ export function ReferenceInputsEditor({
   return (
     <div className="space-y-2">
       <div
-        className="rounded-md border px-2 py-2 text-[10px]"
-        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}
+        className="rounded-md border px-2 py-2 text-2xs border-border bg-bg"
       >
-        <div className="font-medium" style={{ color: 'var(--theme-card-text)' }}>
+        <div className="font-medium text-fg">
           {title}
         </div>
-        <div className="mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+        <div className="mt-1 text-fg-muted">
           {description}
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
           {inputs.map((input) => (
             <span
               key={input.name}
-              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium"
+              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-medium"
               style={{
                 backgroundColor: 'var(--theme-card-bg)',
                 color: 'var(--theme-muted-text)',
@@ -211,7 +209,7 @@ export function ReferenceInputsEditor({
         <button
           type="button"
           onClick={() => onChange(template)}
-          className="mt-2 text-[10px] font-medium text-[color:var(--theme-card-text)] hover:underline"
+          className="mt-2 text-2xs font-medium text-[color:var(--theme-card-text)] hover:underline"
         >
           Fill starter payload
         </button>
@@ -219,7 +217,7 @@ export function ReferenceInputsEditor({
 
       {validation.error ? (
         <div
-          className="rounded-md border px-2 py-2 text-[10px]"
+          className="rounded-md border px-2 py-2 text-2xs"
           style={{ borderColor: 'var(--status-error)', backgroundColor: 'var(--status-error-bg)', color: 'var(--status-error)' }}
         >
           Fix the JSON below to use the form editor again.
@@ -241,20 +239,20 @@ export function ReferenceInputsEditor({
               >
                 <div className="flex items-center justify-between gap-2">
                   <label
-                    className="text-[10px] font-medium"
+                    className="text-2xs font-medium"
                     style={{ color: isMissing ? 'var(--status-error)' : 'var(--theme-card-text)' }}
                   >
                     {fieldLabel}
                     {input.required ? ' *' : ''}
                   </label>
                   {input.type ? (
-                    <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="text-2xs text-fg-muted">
                       {input.type}
                     </span>
                   ) : null}
                 </div>
                 {renderField(input)}
-                <div className="flex items-center gap-3 text-[10px]">
+                <div className="flex items-center gap-3 text-2xs">
                   <button
                     type="button"
                     onClick={() => onChange(removeJsonInputFieldValue(currentObject, input.name))}
@@ -271,12 +269,12 @@ export function ReferenceInputsEditor({
                   </button>
                 </div>
                 {input.description ? (
-                  <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                  <div className="text-2xs text-fg-muted">
                     {input.description}
                   </div>
                 ) : null}
                 {isMissing ? (
-                  <div className="text-[10px]" style={{ color: 'var(--status-error)' }}>
+                  <div className="text-2xs" style={{ color: 'var(--status-error)' }}>
                     Required input
                   </div>
                 ) : null}
@@ -287,21 +285,21 @@ export function ReferenceInputsEditor({
       )}
 
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+        <label className="text-2xs font-medium text-fg-muted">
           Raw JSON
         </label>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setShowPayloadPreview((current) => !current)}
-            className="text-[10px] font-medium text-[color:var(--theme-card-text)] hover:underline"
+            className="text-2xs font-medium text-[color:var(--theme-card-text)] hover:underline"
           >
             {showPayloadPreview ? 'Hide payload preview' : 'Show payload preview'}
           </button>
           <button
             type="button"
             onClick={() => setShowJsonEditor((current) => !current)}
-            className="text-[10px] font-medium text-[color:var(--theme-card-text)] hover:underline"
+            className="text-2xs font-medium text-[color:var(--theme-card-text)] hover:underline"
           >
             {showJsonEditor ? 'Hide JSON' : 'Show JSON'}
           </button>
@@ -309,13 +307,12 @@ export function ReferenceInputsEditor({
       </div>
       {showPayloadPreview ? (
         <div
-          className="rounded-md border px-2 py-2"
-          style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}
+          className="rounded-md border px-2 py-2 border-border bg-bg"
         >
-          <div className="mb-1 text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+          <div className="mb-1 text-2xs font-medium text-fg-muted">
             Normalized payload
           </div>
-          <pre className="overflow-x-auto whitespace-pre-wrap text-[11px] font-mono" style={{ color: 'var(--theme-card-text)' }}>
+          <pre className="overflow-x-auto whitespace-pre-wrap text-2xs font-mono text-fg">
             {JSON.stringify(normalizedPayload ?? {}, null, 2)}
           </pre>
         </div>
@@ -324,8 +321,7 @@ export function ReferenceInputsEditor({
         <textarea
           value={rawJson}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-[88px] w-full rounded border px-2 py-1.5 text-[11px] font-mono"
-          style={{ borderColor: 'var(--theme-surface-border)' }}
+          className="min-h-[88px] w-full rounded border px-2 py-1.5 text-2xs font-mono border-border"
           placeholder={placeholder}
         />
       ) : null}

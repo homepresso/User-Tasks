@@ -1,0 +1,992 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "aa54b243-834d-51be-ad5b-627a4e8418eb",
+  "asset": {
+    "id": "aa54b243-834d-51be-ad5b-627a4e8418eb",
+    "name": "Legal requests",
+    "description": "The legal team’s view of every request: Open requests (base filter on the open statuses, soonest SLA first, editable assignee and status saved back for each changed row) and All requests (the last 12 months), with type, urgency and status badges, dates and relative SLA times, search, filters by type, status, queue and assignee, and sorting on the server. Click a row to open its details tab.",
+    "tags": [
+      "legal",
+      "requests",
+      "queue"
+    ],
+    "fields": [
+      {
+        "key": "open_intro",
+        "label": "Open requests, soonest SLA first. Filter by type, status, queue or assignee; click a row for the details. Double-click Assigned to or Status to change them, then Save changes.",
+        "type": "heading"
+      },
+      {
+        "key": "open_requests",
+        "label": "Open legal requests",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "mode": "edit",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "request_ref",
+              "label": "Request",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "width": 150,
+              "hidden": true
+            },
+            {
+              "key": "submitted_on",
+              "label": "Submitted",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              },
+              "hidden": true
+            },
+            {
+              "key": "request_type",
+              "label": "Type",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "NDA",
+                "Contract review",
+                "Legal question",
+                "Dispute or claim"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "NDA",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Contract review",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Legal question",
+                    "color": "teal"
+                  },
+                  {
+                    "value": "Dispute or claim",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "title",
+              "label": "Title",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "requester_name",
+              "label": "Requester",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "urgency",
+              "label": "Urgency",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Low",
+                "Normal",
+                "High",
+                "Critical"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Low",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Normal",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "High",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Critical",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "queue",
+              "label": "Queue",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Commercial",
+                "Employment",
+                "Privacy & IP",
+                "Disputes",
+                "General counsel"
+              ],
+              "hidden": true
+            },
+            {
+              "key": "sla_due",
+              "label": "SLA due",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "relative"
+              }
+            },
+            {
+              "key": "assigned_to",
+              "label": "Assigned to",
+              "type": "text",
+              "sortable": true,
+              "filterable": true,
+              "max_length": 80
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Triaged",
+                "In progress",
+                "Waiting on requester",
+                "Completed",
+                "Declined",
+                "Withdrawn"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Triaged",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "In progress",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Waiting on requester",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Completed",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Declined",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Withdrawn",
+                    "color": "gray"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "requester_email",
+              "label": "Requester email",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "department",
+              "label": "Department",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "details",
+              "label": "Details",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "counterparty",
+              "label": "Counterparty",
+              "type": "text",
+              "hidden": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "contract_value",
+              "label": "Contract value",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "needed_by",
+              "label": "Needed by",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "documents",
+              "label": "Documents",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "outcome_summary",
+              "label": "Outcome",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "closed_on",
+              "label": "Closed",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "status",
+                "operator": "in",
+                "value": "Triaged,In progress,Waiting on requester"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "sla_due",
+              "direction": "asc"
+            }
+          ],
+          "page_size": 10
+        }
+      },
+      {
+        "key": "save_changes",
+        "label": "Save changes",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "apply_table_changes",
+              "table_changes": {
+                "field": "open_requests",
+                "kinds": [
+                  "updated"
+                ],
+                "target": "table",
+                "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+                "operation": "update",
+                "match_column": "row_id",
+                "match_value": "{{key}}",
+                "mapping": {
+                  "status": "{{row.status}}",
+                  "assigned_to": "{{row.assigned_to}}"
+                },
+                "on_error": "continue"
+              }
+            }
+          ],
+          "icon": "save",
+          "align": "right"
+        }
+      },
+      {
+        "key": "all_intro",
+        "label": "Every request from the last 12 months.",
+        "type": "heading"
+      },
+      {
+        "key": "all_requests",
+        "label": "All legal requests",
+        "type": "data_table",
+        "data_table": {
+          "source": "table",
+          "table_id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+          "mode": "display",
+          "key_column": "row_id",
+          "columns": [
+            {
+              "key": "request_ref",
+              "label": "Request",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "width": 150,
+              "hidden": true
+            },
+            {
+              "key": "submitted_on",
+              "label": "Submitted",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "date",
+                "style": "medium"
+              }
+            },
+            {
+              "key": "request_type",
+              "label": "Type",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "NDA",
+                "Contract review",
+                "Legal question",
+                "Dispute or claim"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "NDA",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "Contract review",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Legal question",
+                    "color": "teal"
+                  },
+                  {
+                    "value": "Dispute or claim",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "title",
+              "label": "Title",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "requester_name",
+              "label": "Requester",
+              "type": "text",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "hidden": true
+            },
+            {
+              "key": "urgency",
+              "label": "Urgency",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Low",
+                "Normal",
+                "High",
+                "Critical"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Low",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Normal",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "High",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Critical",
+                    "color": "red"
+                  }
+                ],
+                "default_color": "gray"
+              }
+            },
+            {
+              "key": "queue",
+              "label": "Queue",
+              "type": "choice",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Commercial",
+                "Employment",
+                "Privacy & IP",
+                "Disputes",
+                "General counsel"
+              ],
+              "hidden": true
+            },
+            {
+              "key": "sla_due",
+              "label": "SLA due",
+              "type": "date",
+              "read_only": true,
+              "sortable": true,
+              "filterable": true,
+              "format": {
+                "kind": "relative"
+              }
+            },
+            {
+              "key": "assigned_to",
+              "label": "Assigned to",
+              "type": "text",
+              "sortable": true,
+              "filterable": true,
+              "max_length": 80,
+              "read_only": true,
+              "hidden": true
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "choice",
+              "sortable": true,
+              "filterable": true,
+              "options": [
+                "Triaged",
+                "In progress",
+                "Waiting on requester",
+                "Completed",
+                "Declined",
+                "Withdrawn"
+              ],
+              "format": {
+                "kind": "badge",
+                "badges": [
+                  {
+                    "value": "Triaged",
+                    "color": "blue"
+                  },
+                  {
+                    "value": "In progress",
+                    "color": "purple"
+                  },
+                  {
+                    "value": "Waiting on requester",
+                    "color": "amber"
+                  },
+                  {
+                    "value": "Completed",
+                    "color": "green"
+                  },
+                  {
+                    "value": "Declined",
+                    "color": "gray"
+                  },
+                  {
+                    "value": "Withdrawn",
+                    "color": "gray"
+                  }
+                ],
+                "default_color": "gray"
+              },
+              "read_only": true
+            },
+            {
+              "key": "requester_email",
+              "label": "Requester email",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "department",
+              "label": "Department",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "details",
+              "label": "Details",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "counterparty",
+              "label": "Counterparty",
+              "type": "text",
+              "hidden": true,
+              "format": {
+                "kind": "text",
+                "max_length": 28
+              }
+            },
+            {
+              "key": "contract_value",
+              "label": "Contract value",
+              "type": "number",
+              "hidden": true
+            },
+            {
+              "key": "needed_by",
+              "label": "Needed by",
+              "type": "date",
+              "hidden": true
+            },
+            {
+              "key": "documents",
+              "label": "Documents",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "outcome_summary",
+              "label": "Outcome",
+              "type": "text",
+              "hidden": true
+            },
+            {
+              "key": "closed_on",
+              "label": "Closed",
+              "type": "date",
+              "hidden": true
+            }
+          ],
+          "base_filter": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "submitted_on",
+                "operator": "gte",
+                "value": "{{today-12m}}"
+              }
+            ]
+          },
+          "sort": [
+            {
+              "column": "submitted_on",
+              "direction": "desc"
+            }
+          ],
+          "page_size": 15
+        }
+      },
+      {
+        "key": "d_hint",
+        "label": "Pick a request on either list to see it here.",
+        "type": "heading"
+      },
+      {
+        "key": "d_ref",
+        "label": "Request",
+        "type": "text"
+      },
+      {
+        "key": "d_status",
+        "label": "Status",
+        "type": "text"
+      },
+      {
+        "key": "d_type",
+        "label": "Type and queue",
+        "type": "text"
+      },
+      {
+        "key": "d_title",
+        "label": "Title",
+        "type": "text"
+      },
+      {
+        "key": "d_requester",
+        "label": "Requester",
+        "type": "text"
+      },
+      {
+        "key": "d_counterparty",
+        "label": "Other party and value",
+        "type": "text"
+      },
+      {
+        "key": "d_dates",
+        "label": "Submitted, needed by, SLA due",
+        "type": "text"
+      },
+      {
+        "key": "d_assigned",
+        "label": "Assigned to",
+        "type": "text"
+      },
+      {
+        "key": "d_details",
+        "label": "Details",
+        "type": "textarea"
+      },
+      {
+        "key": "d_documents",
+        "label": "Documents",
+        "type": "text"
+      },
+      {
+        "key": "d_outcome",
+        "label": "Outcome",
+        "type": "textarea"
+      },
+      {
+        "key": "to_list",
+        "label": "Back to open requests",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "go_to_page",
+              "page": "open"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "tabs",
+      "pages": [
+        {
+          "id": "open",
+          "title": "Open requests",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "open_intro",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "open_requests",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "save_changes",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "list"
+        },
+        {
+          "id": "all",
+          "title": "All requests",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "all_intro",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "all_requests",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "clock"
+        },
+        {
+          "id": "details",
+          "title": "Request details",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_hint",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_ref",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_status",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_assigned",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_title",
+                  "span": 2
+                },
+                {
+                  "field_key": "d_type",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_requester",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_counterparty",
+                  "span": 1
+                },
+                {
+                  "field_key": "d_dates",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_details",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_documents",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "d_outcome",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "to_list",
+                  "span": 3
+                }
+              ]
+            }
+          ],
+          "icon": "file-text"
+        }
+      ],
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_open_from_open",
+          "name": "Open requests: row clicked → details",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.request_ref}}",
+                "d_status": "{{event.row.status}}",
+                "d_type": "{{event.row.request_type}} · {{event.row.queue}} · {{event.row.urgency}} urgency",
+                "d_title": "{{event.row.title}}",
+                "d_requester": "{{event.row.requester_name}} ({{event.row.department}}, {{event.row.requester_email}})",
+                "d_counterparty": "{{event.row.counterparty}} {{event.row.contract_value}}",
+                "d_dates": "{{event.row.submitted_on}} · needed by {{event.row.needed_by}} · SLA {{event.row.sla_due}}",
+                "d_assigned": "{{event.row.assigned_to}}",
+                "d_details": "{{event.row.details}}",
+                "d_documents": "{{event.row.documents}}",
+                "d_outcome": "{{event.row.outcome_summary}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "open_requests"
+        },
+        {
+          "id": "r_open_from_all",
+          "name": "All requests: row clicked → details",
+          "event": "row_click",
+          "then": [
+            {
+              "type": "copy_values",
+              "assign": {
+                "d_ref": "{{event.row.request_ref}}",
+                "d_status": "{{event.row.status}}",
+                "d_type": "{{event.row.request_type}} · {{event.row.queue}} · {{event.row.urgency}} urgency",
+                "d_title": "{{event.row.title}}",
+                "d_requester": "{{event.row.requester_name}} ({{event.row.department}}, {{event.row.requester_email}})",
+                "d_counterparty": "{{event.row.counterparty}} {{event.row.contract_value}}",
+                "d_dates": "{{event.row.submitted_on}} · needed by {{event.row.needed_by}} · SLA {{event.row.sla_due}}",
+                "d_assigned": "{{event.row.assigned_to}}",
+                "d_details": "{{event.row.details}}",
+                "d_documents": "{{event.row.documents}}",
+                "d_outcome": "{{event.row.outcome_summary}}"
+              }
+            },
+            {
+              "type": "go_to_page",
+              "page": "details"
+            }
+          ],
+          "target": "all_requests"
+        },
+        {
+          "id": "r_details_read_only",
+          "name": "Details are read-only",
+          "event": "always",
+          "then": [
+            {
+              "type": "enable_disable",
+              "mode": "disable",
+              "targets": [
+                "field:d_ref",
+                "field:d_status",
+                "field:d_type",
+                "field:d_title",
+                "field:d_requester",
+                "field:d_counterparty",
+                "field:d_dates",
+                "field:d_assigned",
+                "field:d_details",
+                "field:d_documents",
+                "field:d_outcome"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit",
+        "kind": "submit",
+        "style": "primary"
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#4338CA",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#ECEDFB",
+            "page_to": "#F8F8FE"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "Legal requests",
+          "subtitle": "The legal team’s queue: what is open, what is due, and who has it."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Legal requests",
+      "align": "left",
+      "subtitle": "The legal team’s queue: what is open, what is due, and who has it."
+    }
+  }
+}

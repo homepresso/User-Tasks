@@ -10,7 +10,7 @@ import { registerAuthCommands } from './commands/auth'
 import { registerCompletionCommand } from './commands/completion'
 import { registerConfigCommands } from './commands/config'
 import { registerJobCommands } from './commands/jobs'
-import { registerFileCommands } from './commands/files'
+import { registerFileCommands, registerTaskAttachCommand } from './commands/files'
 import { registerLogCommands } from './commands/logs'
 import { registerPackageAuthoringCommands } from './commands/package-authoring'
 import { registerPackageCommands } from './commands/packages'
@@ -57,6 +57,7 @@ export function buildProgram(runtime: Runtime, specs: readonly CommandSpec[] = C
   registerResourceCommands(program, specs, runtime)
   registerTaskCommands(program, runtime)
   registerFileCommands(program, runtime)
+  registerTaskAttachCommand(program, runtime)
   registerWorkflowCommands(program, runtime)
   registerLogCommands(program, runtime)
   registerPackageCommands(program, runtime)

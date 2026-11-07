@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "087fc1f2-44fa-5349-bfe3-44cd46a8604a",
+  "asset": {
+    "id": "087fc1f2-44fa-5349-bfe3-44cd46a8604a",
+    "name": "Waitlisted registrations",
+    "description": "Organiser tasks for waitlisted registrations that are still open (the Event registration workflow's tasks).",
+    "category": "Events",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "40d6cad7-b2d0-5b01-bbdf-ad094df25cea"
+      },
+      "columns": [
+        "title",
+        "priority",
+        "due_date",
+        "status",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 100,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

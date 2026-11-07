@@ -1,0 +1,203 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+  "asset": {
+    "id": "c671c5ad-a7d6-54b6-a083-07371b92e4b6",
+    "name": "Legal requests rows",
+    "rows": [
+      {
+        "id": "c9061727-7141-5870-833f-f66043684acf",
+        "data": {
+          "request_ref": "LR-20261005-7KQ2",
+          "submitted_on": "2026-10-05",
+          "requester_name": "Sam Patel",
+          "requester_email": "sam.patel@example.com",
+          "department": "Sales",
+          "request_type": "NDA",
+          "title": "Mutual NDA with Kauri Analytics",
+          "details": "Exploring a data partnership; they sent their own NDA.",
+          "counterparty": "Kauri Analytics Ltd",
+          "contract_value": null,
+          "urgency": "Normal",
+          "needed_by": "2026-10-09",
+          "queue": "Commercial",
+          "sla_due": "2026-10-07",
+          "assigned_to": "Hannah Moore",
+          "status": "Completed",
+          "documents": "kauri-nda.docx",
+          "outcome_summary": "Signed on our mutual template; their governing-law clause accepted.",
+          "closed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "ea193b80-428d-5987-a77e-0ab20c557d37",
+        "data": {
+          "request_ref": "LR-20261009-2HM5",
+          "submitted_on": "2026-10-09",
+          "requester_name": "Mia Walker",
+          "requester_email": "mia.walker@example.com",
+          "department": "Procurement",
+          "request_type": "Contract review",
+          "title": "Cloud hosting renewal: Stratus Cloud",
+          "details": "Three-year renewal with a 9% uplift and new data-processing terms.",
+          "counterparty": "Stratus Cloud Pty Ltd",
+          "contract_value": 640000,
+          "urgency": "High",
+          "needed_by": "2026-10-30",
+          "queue": "Commercial",
+          "sla_due": "2026-10-14",
+          "assigned_to": "Hannah Moore",
+          "status": "In progress",
+          "documents": "stratus-msa-v3.pdf, stratus-dpa.pdf",
+          "outcome_summary": "",
+          "closed_on": null
+        }
+      },
+      {
+        "id": "8e32a5b0-0571-5e1b-a6db-b25379ae074a",
+        "data": {
+          "request_ref": "LR-20261013-9PX1",
+          "submitted_on": "2026-10-13",
+          "requester_name": "Tom Reid",
+          "requester_email": "tom.reid@example.com",
+          "department": "People",
+          "request_type": "Legal question",
+          "title": "Fixed-term contract extension",
+          "details": "Can we extend a fixed-term contract a second time without it becoming permanent?",
+          "counterparty": "",
+          "contract_value": null,
+          "urgency": "Normal",
+          "needed_by": "2026-10-24",
+          "queue": "Employment",
+          "sla_due": "2026-10-16",
+          "assigned_to": "Arjun Mehta",
+          "status": "Completed",
+          "documents": "",
+          "outcome_summary": "Advice sent: a second extension needs a genuine reason recorded in the agreement.",
+          "closed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "eb7fc438-0cf5-51b5-9243-1e8bbbc808f1",
+        "data": {
+          "request_ref": "LR-20261019-4WD8",
+          "submitted_on": "2026-10-19",
+          "requester_name": "Oliver Brown",
+          "requester_email": "oliver.brown@example.com",
+          "department": "Operations",
+          "request_type": "Dispute or claim",
+          "title": "Supplier claims unpaid invoices",
+          "details": "Freightway says we owe NZD 48,200 for July; we dispute two of the invoices.",
+          "counterparty": "Freightway Logistics",
+          "contract_value": null,
+          "urgency": "High",
+          "needed_by": "2026-10-26",
+          "queue": "Disputes",
+          "sla_due": "2026-10-21",
+          "assigned_to": "Arjun Mehta",
+          "status": "Waiting on requester",
+          "documents": "freightway-letter.pdf",
+          "outcome_summary": "Asked for the delivery dockets for the disputed invoices.",
+          "closed_on": null
+        }
+      },
+      {
+        "id": "4d74b277-1af6-5cf2-b3e8-637cfc6b7447",
+        "data": {
+          "request_ref": "LR-20261022-1RB3",
+          "submitted_on": "2026-10-22",
+          "requester_name": "Lena Fischer",
+          "requester_email": "lena.fischer@example.com",
+          "department": "Product",
+          "request_type": "Legal question",
+          "title": "Customer data in the new analytics feature",
+          "details": "Do we need consent to use customer usage data for benchmarking?",
+          "counterparty": "",
+          "contract_value": null,
+          "urgency": "Normal",
+          "needed_by": "2026-11-06",
+          "queue": "Privacy & IP",
+          "sla_due": "2026-10-25",
+          "assigned_to": "",
+          "status": "Triaged",
+          "documents": "",
+          "outcome_summary": "",
+          "closed_on": null
+        }
+      },
+      {
+        "id": "1dc956ab-ad29-531b-a576-448fc7c01600",
+        "data": {
+          "request_ref": "LR-20261026-6CN7",
+          "submitted_on": "2026-10-26",
+          "requester_name": "Sam Patel",
+          "requester_email": "sam.patel@example.com",
+          "department": "Sales",
+          "request_type": "Contract review",
+          "title": "Reseller agreement: Pacific Partners",
+          "details": "Their paper; they want exclusivity for the Pacific Islands.",
+          "counterparty": "Pacific Partners Ltd",
+          "contract_value": 180000,
+          "urgency": "Normal",
+          "needed_by": "2026-11-13",
+          "queue": "Commercial",
+          "sla_due": "2026-10-31",
+          "assigned_to": "Hannah Moore",
+          "status": "In progress",
+          "documents": "pacific-reseller-draft.docx",
+          "outcome_summary": "",
+          "closed_on": null
+        }
+      },
+      {
+        "id": "7c7dbd82-b39c-57aa-94ee-91254e8270f7",
+        "data": {
+          "request_ref": "LR-20261028-3TF4",
+          "submitted_on": "2026-10-28",
+          "requester_name": "Priya Shah",
+          "requester_email": "priya.shah@example.com",
+          "department": "Marketing",
+          "request_type": "Legal question",
+          "title": "Prize draw terms for the summer campaign",
+          "details": "Need terms and conditions for a prize draw run on social media.",
+          "counterparty": "",
+          "contract_value": null,
+          "urgency": "Low",
+          "needed_by": "2026-11-20",
+          "queue": "General counsel",
+          "sla_due": "2026-11-02",
+          "assigned_to": "",
+          "status": "Triaged",
+          "documents": "",
+          "outcome_summary": "",
+          "closed_on": null
+        }
+      },
+      {
+        "id": "2f459ee5-0240-5d86-ac5a-acab1d167ccc",
+        "data": {
+          "request_ref": "LR-20261029-8ZL6",
+          "submitted_on": "2026-10-29",
+          "requester_name": "Mia Walker",
+          "requester_email": "mia.walker@example.com",
+          "department": "Procurement",
+          "request_type": "NDA",
+          "title": "One-way NDA for an RFP",
+          "details": "Bidders for the warehouse RFP need to sign before they get the specs.",
+          "counterparty": "RFP bidders",
+          "contract_value": null,
+          "urgency": "Critical",
+          "needed_by": "2026-10-30",
+          "queue": "Commercial",
+          "sla_due": "2026-10-30",
+          "assigned_to": "Hannah Moore",
+          "status": "Completed",
+          "documents": "",
+          "outcome_summary": "Template issued for all bidders.",
+          "closed_on": "2026-10-29"
+        }
+      }
+    ]
+  }
+}

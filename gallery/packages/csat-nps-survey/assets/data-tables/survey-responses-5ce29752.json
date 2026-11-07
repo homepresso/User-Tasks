@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+  "asset": {
+    "id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+    "name": "Survey responses",
+    "description": "Every customer satisfaction response: the 1-5 rating, the 0-10 likelihood to recommend, the NPS category and points (+100 promoter, 0 passive, -100 detractor: their average is the NPS), the experience score and the follow-up status.",
+    "columns": [
+      {
+        "id": "3730b20e-672f-53f0-9912-b7bf3733b803",
+        "required": true,
+        "key": "response_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "28ca4260-ba2c-5fa9-9eb8-a3661e5c4091",
+        "required": false,
+        "key": "submitted_on",
+        "name": "Submitted",
+        "type": "date"
+      },
+      {
+        "id": "89eae131-224d-5f90-8328-84b3ce397a87",
+        "required": false,
+        "key": "month",
+        "name": "Month",
+        "type": "text"
+      },
+      {
+        "id": "a983eeef-5d7d-5a38-9a77-c827bfe87096",
+        "required": false,
+        "key": "customer_name",
+        "name": "Customer",
+        "type": "text"
+      },
+      {
+        "id": "824268b5-aa63-55af-b9f9-daae3ba5317c",
+        "required": false,
+        "key": "customer_email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "0b5ad1ee-f528-5f7e-a3ae-54b74fefde00",
+        "required": false,
+        "key": "product_area",
+        "name": "Product area",
+        "type": "text"
+      },
+      {
+        "id": "fba82d15-f473-52ac-a7a3-958380361ff1",
+        "required": false,
+        "key": "channel",
+        "name": "Channel",
+        "type": "text"
+      },
+      {
+        "id": "5e6da326-4220-5e08-aad8-7d9385d3d62c",
+        "required": false,
+        "key": "overall_rating",
+        "name": "Overall rating",
+        "type": "number"
+      },
+      {
+        "id": "206c2ee3-43f8-5945-8c75-9372ba64ab49",
+        "required": false,
+        "key": "nps",
+        "name": "Likelihood to recommend",
+        "type": "number"
+      },
+      {
+        "id": "166f5faf-8749-5440-8e2a-92aa984b46aa",
+        "required": false,
+        "key": "nps_category",
+        "name": "NPS category",
+        "type": "text"
+      },
+      {
+        "id": "f149e6c3-244d-53f5-8bdb-5e8e25ce7c69",
+        "required": false,
+        "key": "nps_points",
+        "name": "NPS points",
+        "type": "number"
+      },
+      {
+        "id": "2d4725c9-da5e-5284-ad72-7970b6cbe6ff",
+        "required": false,
+        "key": "experience_score",
+        "name": "Experience score",
+        "type": "number"
+      },
+      {
+        "id": "7a30f113-423e-5a6a-9026-9a2d9fa2ca22",
+        "required": false,
+        "key": "comment",
+        "name": "Comment",
+        "type": "text"
+      },
+      {
+        "id": "90aeb42a-8d4c-5e48-a223-d6dd965400cd",
+        "required": false,
+        "key": "follow_up",
+        "name": "Follow-up",
+        "type": "boolean"
+      },
+      {
+        "id": "e6679449-3081-5308-9339-6aeb3227a35c",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      }
+    ]
+  }
+}

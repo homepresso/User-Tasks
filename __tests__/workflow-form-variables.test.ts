@@ -67,6 +67,7 @@ const EXPECTED_TASK_DATA = [
   ['task_data.owner', 'Owner', 'string'],
   ['task_data.customer', 'Customer', 'string'],
   ['task_data.customer_item', 'Customer (selected item)', 'object'],
+  ['task_data.customer_label', 'Customer (display label)', 'string'],
 ]
 
 const n = (id: string, type: string, label: string, config: Record<string, any> = {}, y = 0): PickerNodeLike & { position: { x: number; y: number } } =>
@@ -202,8 +203,9 @@ describe('4. Workflow start form (inputs)', () => {
     })
     expect(groups.map((g) => g.id)).toEqual(['workflow-variables', 'form:ut', 'step:ut'])
     expect(groups[0].label).toBe('Start form › Workflow inputs')
-    expect(shape(groups[0].roots)).toEqual([['claimReference', 'Claim reference', 'string'], ['expected_amount', 'Expected amount', 'number']])
-    expect(formFieldSuggestions(groups).map((s) => s.name)).toEqual(['claimReference', 'expected_amount', 'task_data.ok'])
+    // A designed start form's runs also carry the submission details ({{submission.*}}).
+    expect(shape(groups[0].roots)).toEqual([['claimReference', 'Claim reference', 'string'], ['expected_amount', 'Expected amount', 'number'], ['submission', 'Submission details', 'object']])
+    expect(formFieldSuggestions(groups).map((s) => s.name)).toEqual(['claimReference', 'expected_amount', 'submission', 'task_data.ok'])
   })
 })
 
@@ -214,7 +216,8 @@ describe('5. Task triggers with a task form', () => {
       const groups = buildDataTree({ nodes, edges, currentNodeId: 'log' })
       expect(groups[0]).toMatchObject({ kind: 'form', label: 'Task event › Task form' })
       expect(shape(groups[0].roots).slice(0, EXPECTED_TASK_DATA.length)).toEqual(EXPECTED_TASK_DATA.map(([p, l, t]) => [p.replace('task_data.', 'task.data.'), l, t]))
-      expect(groups[0].roots.at(-1)!.path).toBe('task.data')
+      // The whole object, then the task's Attachments tab files.
+      expect(groups[0].roots.slice(-2).map((r) => r.path)).toEqual(['task.data', 'task.attachments'])
     }
   })
 })

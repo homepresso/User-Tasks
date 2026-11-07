@@ -188,7 +188,8 @@ describe('job kinds', () => {
       ['connectors.regenerate_references', { connector_id: id }, 'integrations.manage_references'],
       ['workflow_instances.migrate', { workflowId: id, toVersionId: id }, 'workflows.manage_runs'],
       ['workflow_queue.bulk', { action: 'pause', items: [{ job_id: 'q1', run_id: id }] }, 'workflows.activate'],
-      ['sync.watch', { source: 'github_sync', run_id: id }, 'settings.edit'],
+      ['sync.watch', { source: 'github_sync', run_id: id }, 'sync.manage'],
+      ['sync.watch', { source: 'directory_sync', run_id: id }, 'settings.edit'],
       ['directory_sync.run', { provider: 'ldap' }, 'settings.edit'],
       ['object_permissions.bulk_set', { objectType: 'workflow', objectIds: [id], roleId: id, canView: true, canEdit: false, canDelete: false, canExecute: false }, 'team.change_roles'],
     ]

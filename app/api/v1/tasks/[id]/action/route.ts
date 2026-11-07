@@ -53,10 +53,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         kickQueueProcessor()
         if (result.status === 'invalid') return err(`Invalid field values: ${Object.values(result.errors).join('; ')}`, 400)
         if (result.status === 'waiting') return ok({ action: 'waiting', responses: result.responses, needed: result.needed, acted_as: result.acted_as, on_behalf_of: result.on_behalf_of })
+        // What happens next (the Task completed screen's summary), after a brief bounded wait for the queue.
+        const { nextStepForResponse } = await import('@/lib/services/task-completion-screen')
         return ok({
           action: 'completed', outcome: result.outcome, workflow_resumed: result.workflow_resumed,
           ...(result.workflow_resumed ? { workflow_status: 'queued', run_id: result.run_id, resumed: 'queued' } : { workflow_error: result.workflow_error }),
           acted_as: result.acted_as, on_behalf_of: result.on_behalf_of,
+          next: await nextStepForResponse(ctx, taskId),
         })
       }
       if ((body.action === 'hold' || body.action === 'reject') && body.on_behalf && !body.comment?.trim() && !body.on_behalf_note?.trim()) {
@@ -156,7 +159,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       } as any)
 
       kickQueueProcessor()
-      return ok({ action: 'completed' })
+      return ok({ action: 'completed', next: { state: 'none', run_id: null, steps: [], process: null, run_view: null } })
     }
 
     case 'escalate':

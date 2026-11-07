@@ -1,0 +1,188 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "21cdc4a0-733d-56bd-b021-b3cfb8b693c1",
+  "asset": {
+    "id": "21cdc4a0-733d-56bd-b021-b3cfb8b693c1",
+    "name": "Monthly NPS summary",
+    "description": "From the Survey results page: counts promoters, passives and detractors for a month in the Survey responses table, works out the NPS and emails it to whoever asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Summary requested",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "3a97ba38-0f2f-5012-93c7-a3e4599285c0",
+          "form_name": "Survey results"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Responses that month",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "table_id": "5ce29752-3ad1-53d5-a804-d72cfa28dffb",
+          "table_name": "Survey responses",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "month",
+              "operator": "eq",
+              "value": "{{form.summary_month}}"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "month_rows",
+          "output_count_var": "response_count"
+        }
+      },
+      {
+        "id": "p",
+        "type": "set_variable",
+        "label": "Promoters",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "name": "promoters",
+          "expression": "{{=COUNT(FILTER_WHERE(month_rows, \"nps_category\", \"Promoter\"))}}"
+        }
+      },
+      {
+        "id": "pa",
+        "type": "set_variable",
+        "label": "Passives",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "name": "passives",
+          "expression": "{{=COUNT(FILTER_WHERE(month_rows, \"nps_category\", \"Passive\"))}}"
+        }
+      },
+      {
+        "id": "d",
+        "type": "set_variable",
+        "label": "Detractors",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "detractors",
+          "expression": "{{=COUNT(FILTER_WHERE(month_rows, \"nps_category\", \"Detractor\"))}}"
+        }
+      },
+      {
+        "id": "nps",
+        "type": "set_variable",
+        "label": "NPS",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "name": "nps_score",
+          "expression": "{{=IF(response_count > 0, ROUND((promoters - detractors) * 100 / response_count, 0), 0)}}"
+        }
+      },
+      {
+        "id": "avg",
+        "type": "set_variable",
+        "label": "Average rating",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "avg_rating",
+          "expression": "{{=IF(response_count > 0, ROUND(AVG(PLUCK(month_rows, \"overall_rating\")), 1), \"-\")}}"
+        }
+      },
+      {
+        "id": "open",
+        "type": "set_variable",
+        "label": "Open follow-ups",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "name": "open_follow_ups",
+          "expression": "{{=COUNT(FILTER_WHERE(month_rows, \"status\", \"Follow-up due\"))}}"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the summary",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "beba16ff-cfe8-520a-85b1-7d785f6252c7"
+        },
+        "onError": "continue"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-list",
+        "source": "trigger",
+        "target": "list"
+      },
+      {
+        "id": "e-list-p",
+        "source": "list",
+        "target": "p"
+      },
+      {
+        "id": "e-p-pa",
+        "source": "p",
+        "target": "pa"
+      },
+      {
+        "id": "e-pa-d",
+        "source": "pa",
+        "target": "d"
+      },
+      {
+        "id": "e-d-nps",
+        "source": "d",
+        "target": "nps"
+      },
+      {
+        "id": "e-nps-avg",
+        "source": "nps",
+        "target": "avg"
+      },
+      {
+        "id": "e-avg-open",
+        "source": "avg",
+        "target": "open"
+      },
+      {
+        "id": "e-open-mail",
+        "source": "open",
+        "target": "mail"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

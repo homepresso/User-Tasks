@@ -1,0 +1,65 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "bcf4bd0a-e3b9-565a-8cab-9f43f0392660",
+  "asset": {
+    "id": "bcf4bd0a-e3b9-565a-8cab-9f43f0392660",
+    "name": "Attendees by dietary need",
+    "description": "Vegetarian, vegan, gluten-free, halal and other dietary needs per event, summed over the registration runs (workflow variables): the catering numbers.",
+    "category": "Events",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "40d6cad7-b2d0-5b01-bbdf-ad094df25cea"
+      },
+      "columns": [
+        "vars.event_title",
+        "SUM_vars.diet_vegetarian",
+        "SUM_vars.diet_vegan",
+        "SUM_vars.diet_gluten_free",
+        "SUM_vars.diet_halal",
+        "SUM_vars.diet_other"
+      ],
+      "group_by": [
+        "vars.event_title"
+      ],
+      "aggregations": [
+        {
+          "fn": "SUM",
+          "field": "vars.diet_vegetarian"
+        },
+        {
+          "fn": "SUM",
+          "field": "vars.diet_vegan"
+        },
+        {
+          "fn": "SUM",
+          "field": "vars.diet_gluten_free"
+        },
+        {
+          "fn": "SUM",
+          "field": "vars.diet_halal"
+        },
+        {
+          "fn": "SUM",
+          "field": "vars.diet_other"
+        }
+      ],
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "Dietary needs by event",
+        "stacked": true,
+        "colors": [
+          "#16A34A",
+          "#65A30D",
+          "#D97706",
+          "#0EA5E9",
+          "#7C3AED"
+        ],
+        "y_axis_label": "Attendees"
+      }
+    }
+  }
+}

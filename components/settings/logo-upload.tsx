@@ -12,7 +12,7 @@ import { resolveStorageUrl } from "@/lib/storage/refs"
  * Which image: the workspace logo, the theme's light / dark logo, or the
  * favicon. Each has its own file in the workspace's `logos` folder.
  */
-export type LogoVariant = "logo" | "logo-light" | "logo-dark" | "favicon"
+export type LogoVariant = "logo" | "logo-light" | "logo-dark" | "favicon" | "form-sign-in"
 
 const VARIANTS: Record<LogoVariant, { types: string[]; maxBytes: number; button: string; hint: string; empty: string }> = {
   logo: {
@@ -26,6 +26,10 @@ const VARIANTS: Record<LogoVariant, { types: string[]; maxBytes: number; button:
   "logo-dark": {
     types: ["image/png", "image/svg+xml", "image/jpeg", "image/webp"], maxBytes: 2 * 1024 * 1024,
     button: "Upload dark logo", empty: "No dark logo", hint: "Shown on dark sidebars. PNG, SVG, JPEG, or WebP. Max 2MB.",
+  },
+  "form-sign-in": {
+    types: ["image/png", "image/svg+xml", "image/jpeg", "image/webp"], maxBytes: 2 * 1024 * 1024,
+    button: "Upload logo", empty: "No logo", hint: "Shown on the form sign-in page. PNG, SVG, JPEG, or WebP. Max 2MB. SVGs are cleaned of scripts. Without a logo the workspace name shows.",
   },
   favicon: {
     types: ["image/png", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon", "image/webp"], maxBytes: 512 * 1024,
@@ -133,8 +137,8 @@ export function LogoUpload({ tenantId, currentLogoUrl, readOnly = false, variant
       <div className="flex items-center gap-4">
         {/* Preview */}
         <div
-          className="flex h-16 w-40 items-center justify-center rounded-lg border-2 border-dashed overflow-hidden"
-          style={{ borderColor: "var(--theme-surface-border)", ...(previewBackground ? { backgroundColor: previewBackground } : {}) }}
+          className="flex h-16 w-40 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border-strong"
+          style={previewBackground ? { backgroundColor: previewBackground } : undefined}
         >
           {logoUrl ? (
             <img
@@ -143,18 +147,15 @@ export function LogoUpload({ tenantId, currentLogoUrl, readOnly = false, variant
               className="max-h-14 max-w-36 object-contain"
             />
           ) : (
-            <div
-              className="flex flex-col items-center gap-1"
-              style={{ color: "var(--theme-muted-text)" }}
-            >
-              <ImageIcon size={20} />
-              <span className="text-[10px]">{spec.empty}</span>
+            <div className="flex flex-col items-center gap-1 text-fg-muted">
+              <ImageIcon className="size-5" aria-hidden />
+              <span className="text-2xs">{spec.empty}</span>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        {!readOnly && <div className="space-y-2">
+        {!readOnly && <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileRef}
             type="file"
@@ -164,31 +165,30 @@ export function LogoUpload({ tenantId, currentLogoUrl, readOnly = false, variant
             className="hidden"
           />
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => fileRef.current?.click()}
-            disabled={uploading}
+            loading={uploading}
+            leadingIcon={<Upload />}
           >
-            <Upload size={14} className="mr-1" />
-            {uploading ? "Uploading..." : spec.button}
+            {uploading ? "Uploading…" : spec.button}
           </Button>
           {logoUrl && (
             <Button
-              variant="ghost"
+              variant="danger-ghost"
               size="sm"
               onClick={handleRemove}
               disabled={uploading}
-              className="text-red-500"
+              leadingIcon={<X />}
             >
-              <X size={14} className="mr-1" />
               Remove
             </Button>
           )}
         </div>}
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+      <p className="text-xs text-fg-muted">
         {readOnly
           ? "Only members who can edit workspace settings can change the logo."
           : spec.hint}

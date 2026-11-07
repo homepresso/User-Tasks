@@ -1,0 +1,144 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+  "asset": {
+    "id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+    "name": "Corrective actions",
+    "description": "Every failed checklist item becomes a corrective action: what was found, its severity and due date, and, once fixed, what was done, who signed it off and how many evidence photos were attached.",
+    "columns": [
+      {
+        "id": "14526722-d9e9-5b3b-a1cb-d1585d1b9d8f",
+        "required": true,
+        "key": "action_ref",
+        "name": "Action",
+        "type": "text"
+      },
+      {
+        "id": "bed078bf-7e82-52e1-b2b6-82c93c13c808",
+        "required": false,
+        "key": "inspection_ref",
+        "name": "Inspection",
+        "type": "text"
+      },
+      {
+        "id": "a5963a3f-e8bb-5139-83d2-32fcb02852db",
+        "required": false,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "f3315c46-9dc9-5cdf-a941-776dc97976fc",
+        "required": false,
+        "key": "site_name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "a2e36709-a4f0-5b34-b889-32cc3ce69b06",
+        "required": false,
+        "key": "item",
+        "name": "Checklist item",
+        "type": "text"
+      },
+      {
+        "id": "3854c582-cde5-5c4a-b473-e3c7d037fc44",
+        "required": false,
+        "key": "area",
+        "name": "Area",
+        "type": "select",
+        "options": [
+          "Fire safety",
+          "Housekeeping",
+          "Electrical",
+          "Equipment",
+          "PPE",
+          "Hazardous substances",
+          "First aid",
+          "Other"
+        ]
+      },
+      {
+        "id": "8c75f95a-5a7e-580b-8e52-e6d30224efec",
+        "required": false,
+        "key": "severity",
+        "name": "Severity",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      {
+        "id": "96f114ca-fe26-5945-9be3-901b9775a5d9",
+        "required": false,
+        "key": "found",
+        "name": "What was found",
+        "type": "text"
+      },
+      {
+        "id": "83ef8b20-39d2-50c3-9873-eb3e4484273c",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "date"
+      },
+      {
+        "id": "c91d4a89-9e09-5eb4-8830-64d92463bc31",
+        "required": false,
+        "key": "sla_days",
+        "name": "Days to fix",
+        "type": "number"
+      },
+      {
+        "id": "4f70e134-f6c8-5a41-9f61-ffb7081413c3",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Open",
+          "Closed",
+          "Escalated"
+        ]
+      },
+      {
+        "id": "dedbd166-aa9b-59a0-b7ad-e2c290b26a19",
+        "required": false,
+        "key": "fix",
+        "name": "What was done",
+        "type": "text"
+      },
+      {
+        "id": "4b00c3a0-7ade-553d-95b0-fde0a55d4a10",
+        "required": false,
+        "key": "closed_on",
+        "name": "Closed on",
+        "type": "date"
+      },
+      {
+        "id": "39f708d6-222c-52fb-80a8-b1c86de61c34",
+        "required": false,
+        "key": "signed_off_by",
+        "name": "Signed off by",
+        "type": "text"
+      },
+      {
+        "id": "951e7332-1cc4-5ce9-8c32-d90b1cab7d29",
+        "required": false,
+        "key": "evidence_files",
+        "name": "Evidence photos",
+        "type": "number"
+      },
+      {
+        "id": "b396ec54-f08a-5347-8737-dcae02d9e7bc",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -171,6 +171,7 @@ describe('validateApiKey credential cache', () => {
     seedApiKey({ key_type: 'user', user_id: 'u-2', permissions: null })
     db.user_roles = [{ tenant_id: 'tenant-1', user_id: 'u-2', role: { permissions: ['workflows.view', 'workflows.edit'] } }]
     db.roles = [{ id: 'r-1', tenant_id: 'tenant-1', name: 'Editor', is_system: false, permissions: ['workflows.view', 'workflows.edit'] }]
+    db.user_memberships = [{ id: 'm-2', user_id: 'u-2', tenant_id: 'tenant-1', is_active: true }]
     const before = await validateApiKey(request(API_KEY))
     expect(before.success && before.permissions.sort()).toEqual(['workflows.edit', 'workflows.view'])
 

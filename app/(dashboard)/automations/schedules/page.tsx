@@ -9,6 +9,13 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { usePermissions } from '@/lib/permissions-context'
 import { describeSchedule, getNextOccurrence, type ScheduleConfig } from '@/lib/workflow-schedule'
 import { Clock, Pencil, TriangleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Button } from '@/components/ui/button'
+import { StatusPill } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
+import { Tooltip } from '@/components/ui/tooltip'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
 
 /**
  * Every workflow on a schedule, in one place: what it runs on, when it fires
@@ -60,117 +67,113 @@ export default function ScheduledWorkflowsPage() {
   }
 
   if (!can('workflows.view')) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
   if (isLoading && !workflows) return <PageSkeleton variant="list" />
 
   const rows = workflows ?? []
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Scheduled Workflows</h1>
-        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-          Workflows that run automatically on a schedule. Pause or resume them here; edit the schedule on the workflow&apos;s trigger.
+    <div>
+      <PageHeader
+        title="Scheduled workflows"
+        description="Workflows that run automatically on a schedule. Pause or resume them here; edit the schedule on the workflow's trigger."
+      />
+
+      <div className="space-y-4">
+        {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
+
+        {rows.length === 0 ? (
+          <div className="rounded-lg border border-border bg-panel">
+            <EmptyState
+              icon={Clock}
+              title="No scheduled workflows yet"
+              description={'Create a workflow with the "Schedule" trigger, pick when it should run, and it will appear here.'}
+            />
+          </div>
+        ) : (
+          <Table containerClassName="max-lg:overflow-x-auto" className="max-lg:min-w-[860px]">
+            <THead>
+              <tr>
+                <TH>Workflow</TH>
+                <TH>Schedule</TH>
+                <TH>Next run</TH>
+                <TH>Last fired</TH>
+                <TH>Status</TH>
+                <TH><span className="sr-only">Actions</span></TH>
+              </tr>
+            </THead>
+            <TBody>
+              {rows.map((workflow) => {
+                const nextRun = workflow.config && workflow.is_active ? getNextOccurrence(workflow.config, now) : null
+                return (
+                  <TR key={workflow.id}>
+                    <TD className="max-w-0">
+                      <Link href={`/automations/${workflow.id}`} className="block truncate text-ui font-medium text-fg hover:underline">
+                        {workflow.name}
+                      </Link>
+                    </TD>
+                    <TD className="text-ui text-fg">
+                      {workflow.config ? (
+                        <span>{describeSchedule(workflow.config)}</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-warning">
+                          <TriangleAlert size={14} aria-hidden="true" /> Not configured
+                        </span>
+                      )}
+                    </TD>
+                    <TD className="whitespace-nowrap text-ui text-fg-muted">
+                      {nextRun ? (
+                        <Tooltip content={formatAbsolute(nextRun)}>
+                          <span>{formatRelative(nextRun, { now })}</span>
+                        </Tooltip>
+                      ) : workflow.is_active ? '—' : 'Paused'}
+                    </TD>
+                    <TD className="whitespace-nowrap text-ui text-fg-muted">
+                      {workflow.schedule_last_fired_at ? (
+                        <Tooltip content={formatAbsolute(workflow.schedule_last_fired_at)}>
+                          <span>{formatRelative(workflow.schedule_last_fired_at)}</span>
+                        </Tooltip>
+                      ) : 'Never'}
+                    </TD>
+                    <TD className="w-px whitespace-nowrap">
+                      <StatusPill status={workflow.is_active ? 'active' : 'paused'} />
+                    </TD>
+                    <TD className="w-px whitespace-nowrap text-right">
+                      <div className="inline-flex items-center gap-1">
+                      {can('workflows.activate') && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={togglingId === workflow.id}
+                          loading={togglingId === workflow.id}
+                          onClick={() => toggleActive(workflow)}
+                        >
+                          {workflow.is_active ? 'Pause' : 'Resume'}
+                        </Button>
+                      )}
+                      <Tooltip content="Edit schedule in the builder">
+                        <Button asChild size="icon-sm" variant="ghost">
+                          <Link href={`/automations/${workflow.id}`} aria-label="Edit schedule in the builder">
+                            <Pencil aria-hidden="true" />
+                          </Link>
+                        </Button>
+                      </Tooltip>
+                      </div>
+                    </TD>
+                  </TR>
+                )
+              })}
+            </TBody>
+          </Table>
+        )}
+
+        <p className="text-xs text-fg-muted">
+          Schedules are checked by the platform&apos;s scheduler sweep — a workflow fires at most once per scheduled occurrence,
+          and the effective precision matches how often the sweep runs.
         </p>
       </div>
-
-      {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
-
-      {rows.length === 0 ? (
-        <div className="rounded-2xl border p-10 text-center" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          <Clock size={28} className="mx-auto mb-3" style={{ color: 'var(--theme-primary-text)' }} />
-          <p className="text-sm font-semibold">No scheduled workflows yet</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
-            Create a workflow with the &quot;Schedule&quot; trigger, pick when it should run, and it will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-hidden max-lg:overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <div
-            className="grid text-[10px] font-semibold uppercase tracking-wider max-lg:min-w-[860px]"
-            style={{ gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 90px 90px', backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-          >
-            <div className="px-3 py-2">Workflow</div>
-            <div className="px-2 py-2">Schedule</div>
-            <div className="px-2 py-2">Next run</div>
-            <div className="px-2 py-2">Last fired</div>
-            <div className="px-2 py-2">Status</div>
-            <div className="px-2 py-2 text-right">Actions</div>
-          </div>
-
-          {rows.map((workflow) => {
-            const nextRun = workflow.config && workflow.is_active ? getNextOccurrence(workflow.config, now) : null
-            return (
-              <div
-                key={workflow.id}
-                className="grid items-center border-t text-xs max-lg:min-w-[860px]"
-                style={{ gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 90px 90px', borderColor: 'var(--theme-surface-border)' }}
-              >
-                <div className="min-w-0 px-3 py-3">
-                  <Link href={`/automations/${workflow.id}`} className="truncate font-medium hover:underline block">
-                    {workflow.name}
-                  </Link>
-                </div>
-                <div className="px-2 py-3">
-                  {workflow.config ? (
-                    <span>{describeSchedule(workflow.config)}</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1" style={{ color: 'var(--theme-warning)' }}>
-                      <TriangleAlert size={11} /> Not configured
-                    </span>
-                  )}
-                </div>
-                <div className="px-2 py-3" style={{ color: 'var(--theme-muted-text)' }}>
-                  {nextRun ? nextRun.toLocaleString() : workflow.is_active ? '—' : 'Paused'}
-                </div>
-                <div className="px-2 py-3" style={{ color: 'var(--theme-muted-text)' }}>
-                  {workflow.schedule_last_fired_at ? new Date(workflow.schedule_last_fired_at).toLocaleString() : 'Never'}
-                </div>
-                <div className="px-2 py-3">
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    style={{
-                      backgroundColor: workflow.is_active
-                        ? 'color-mix(in srgb, var(--theme-success) 12%, var(--theme-card-bg))'
-                        : 'var(--theme-surface)',
-                      color: workflow.is_active ? 'var(--theme-success)' : 'var(--theme-muted-text)',
-                    }}
-                  >
-                    {workflow.is_active ? 'Active' : 'Paused'}
-                  </span>
-                </div>
-                <div className="px-2 py-3 flex items-center justify-end gap-1">
-                  {can('workflows.activate') && (
-                    <button
-                      type="button"
-                      disabled={togglingId === workflow.id}
-                      onClick={() => toggleActive(workflow)}
-                      className="rounded-md border px-2 py-1 text-[10px] font-medium transition-colors hover:opacity-80 disabled:opacity-50"
-                      style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
-                    >
-                      {togglingId === workflow.id ? '…' : workflow.is_active ? 'Pause' : 'Resume'}
-                    </button>
-                  )}
-                  <Link
-                    href={`/automations/${workflow.id}`}
-                    title="Edit schedule in the builder"
-                    className="rounded-md border p-1.5 transition-colors hover:opacity-80"
-                    style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
-                  >
-                    <Pencil size={11} />
-                  </Link>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      <p className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
-        Schedules are checked by the platform&apos;s scheduler sweep — a workflow fires at most once per scheduled occurrence,
-        and the effective precision matches how often the sweep runs.
-      </p>
     </div>
   )
 }

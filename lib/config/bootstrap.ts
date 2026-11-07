@@ -28,11 +28,16 @@ export function readEnv(name: string): string | undefined {
   return process.env[name]
 }
 
-/** First variable that is set and non-empty. */
+/**
+ * First variable that is set and non-empty, trimmed: URLs and keys never
+ * contain whitespace, and a value pasted into a hosting dashboard with a
+ * trailing newline (production's anon key had one) broke the Realtime
+ * websocket ("apikey=…%0A", HTTP Authentication failed).
+ */
 function firstEnv(...names: string[]): string | undefined {
   for (const name of names) {
-    const value = readEnv(name)
-    if (value !== undefined && value !== '') return value
+    const value = readEnv(name)?.trim()
+    if (value) return value
   }
   return undefined
 }
@@ -49,8 +54,8 @@ export function getBootstrapConfig(): BootstrapConfig {
     encryptionKey: firstEnv('ENCRYPTION_KEY'),
     appUrl: firstEnv('APP_URL', 'NEXT_PUBLIC_APP_URL'),
     deploymentMode: readEnv('DEPLOYMENT_MODE')?.trim().toLowerCase() === 'cloud' ? 'cloud' : 'self_hosted',
-    processorSecret: readEnv('WORKFLOW_PROCESSOR_SECRET') ?? readEnv('CRON_SECRET'),
-    cronSecret: readEnv('CRON_SECRET'),
+    processorSecret: readEnv('WORKFLOW_PROCESSOR_SECRET')?.trim() ?? readEnv('CRON_SECRET')?.trim(),
+    cronSecret: readEnv('CRON_SECRET')?.trim(),
     ssoMicrosoft: firstEnv('SSO_MICROSOFT', 'NEXT_PUBLIC_SSO_MICROSOFT') === '1',
   })
 }

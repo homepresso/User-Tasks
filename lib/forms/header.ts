@@ -16,6 +16,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
+import { formContextPath } from './form-params'
 import { pathValue } from './lookup'
 
 export type FormHeaderImageSource = 'default' | 'workspace_logo' | 'upload' | 'none'
@@ -25,6 +26,8 @@ export interface FormHeader {
   image: FormHeaderImageSource
   /** Uploaded image (image === 'upload'): storage reference or own-storage URL. */
   image_url?: string
+  /** Text alternative for the image (WCAG 1.1.1); absent = decorative (alt=""). */
+  image_alt?: string
   title?: string
   subtitle?: string
   align?: 'left' | 'center'
@@ -72,6 +75,8 @@ export function normalizeFormHeader(raw: unknown): FormHeader | null {
     if (isHeaderImageUrl(raw.image_url)) out.image_url = raw.image_url.trim()
     else out.image = 'default'
   }
+  const alt = out.image === 'none' ? undefined : text(raw.image_alt, 200)
+  if (alt) out.image_alt = alt
   const title = text(raw.title, MAX_TITLE)
   const subtitle = text(raw.subtitle, MAX_SUBTITLE)
   if (title) out.title = title
@@ -96,7 +101,7 @@ export function resolveHeaderText(template: string | undefined, values: Record<s
     const field = /^(?:task_data|form|task\.data)\.(.+)$/.exec(path)
     if (field) v = pathValue(values, field[1])
     else if (/^task\./.test(path)) v = task ? pathValue(task, path.slice(5)) : undefined
-    else v = pathValue(values, path)
+    else v = pathValue(values, formContextPath(path) ?? path)
     if (v === null || v === undefined) return ''
     if (Array.isArray(v)) return v.map((x) => (typeof x === 'object' ? '' : String(x))).filter(Boolean).join(', ')
     if (typeof v === 'object') {
@@ -106,6 +111,25 @@ export function resolveHeaderText(template: string | undefined, values: Record<s
     }
     return String(v)
   })
+}
+
+/**
+ * The header as drawn, given the mini theme's own header (Form theme tab →
+ * Header). The form's header replaces the theme's when it is on, but the
+ * two used to be edited in different tabs: a title / subtitle typed in the
+ * theme's header was silently dropped behind a form header with none (new
+ * forms start with one on). The form header's empty title / subtitle fall
+ * back to the theme header's, so that text shows where the form is drawn.
+ */
+export function withThemeHeaderText<H extends Pick<FormHeader, 'enabled' | 'title' | 'subtitle'>>(
+  header: H | null | undefined,
+  themeHeader: { enabled?: boolean; title?: string; subtitle?: string } | null | undefined,
+): H | null | undefined {
+  if (!header?.enabled || !themeHeader?.enabled) return header
+  const title = header.title?.trim() ? header.title : themeHeader.title?.trim() || undefined
+  const subtitle = header.subtitle?.trim() ? header.subtitle : themeHeader.subtitle?.trim() || undefined
+  if (title === header.title && subtitle === header.subtitle) return header
+  return { ...header, ...(title ? { title } : {}), ...(subtitle ? { subtitle } : {}) }
 }
 
 /** Header ready to draw (null when off). `workspaceLogo` = the workspace logo URL, if any. */

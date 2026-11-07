@@ -13,12 +13,12 @@ export interface SidebarSection {
 function NavList({ sections, pathname, onNavigate }: { sections: SidebarSection[]; pathname: string; onNavigate?: () => void }) {
   return (
     <nav aria-label="Documentation" className="space-y-6 text-sm">
-      <Link href="/docs" onClick={onNavigate} className={`block rounded-md px-3 py-1.5 ${pathname === '/docs' ? 'bg-[#17150F]/[0.07] font-semibold text-[#1B1916]' : 'text-[#5C564C] hover:text-[#1B1916]'}`}>
+      <Link href="/docs" onClick={onNavigate} className={`block rounded-md px-3 py-1.5 ${pathname === '/docs' ? 'bg-(color:--mkt-primary)/[0.07] font-semibold text-(color:--mkt-ink)' : 'text-(color:--mkt-muted-strong) hover:text-(color:--mkt-ink)'}`}>
         Overview
       </Link>
       {sections.map((section) => (
         <div key={section.title}>
-          <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8A6D45]">{section.title}</p>
+          <p className="mb-1.5 px-3 text-2xs font-semibold uppercase tracking-[0.14em] text-(color:--mkt-bronze)">{section.title}</p>
           <ul className="space-y-0.5">
             {section.items.map((item) => {
               const active = pathname === item.href
@@ -28,7 +28,7 @@ function NavList({ sections, pathname, onNavigate }: { sections: SidebarSection[
                     href={item.href}
                     onClick={onNavigate}
                     aria-current={active ? 'page' : undefined}
-                    className={`block rounded-md px-3 py-1.5 leading-5 transition ${active ? 'bg-[#17150F]/[0.07] font-semibold text-[#1B1916]' : 'text-[#5C564C] hover:bg-[#1B1916]/[0.04] hover:text-[#1B1916]'}`}
+                    className={`block rounded-md px-3 py-1.5 leading-5 transition ${active ? 'bg-(color:--mkt-primary)/[0.07] font-semibold text-(color:--mkt-ink)' : 'text-(color:--mkt-muted-strong) hover:bg-(color:--mkt-ink)/[0.04] hover:text-(color:--mkt-ink)'}`}
                   >
                     {item.title}
                   </Link>
@@ -64,17 +64,17 @@ export function DocsSidebar({ sections }: { sections: SidebarSection[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-4 z-40 inline-flex items-center gap-2 rounded-full bg-[#17150F] px-4 py-2.5 text-sm font-semibold text-[#FAF8F3] shadow-lg lg:hidden"
+        className="fixed bottom-4 left-4 z-40 inline-flex items-center gap-2 rounded-full bg-(color:--mkt-primary) px-4 py-2.5 text-sm font-semibold text-(color:--mkt-paper) shadow-lg lg:hidden"
         aria-label="Open documentation menu"
       >
         <Menu size={16} aria-hidden="true" /> Menu
       </button>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Documentation menu">
-          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-[#1B1916]/40" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs overflow-y-auto bg-[#FAF8F3] p-4 shadow-xl">
+          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-(color:--mkt-ink)/40" onClick={() => setOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs overflow-y-auto bg-(color:--mkt-paper) p-4 shadow-xl">
             <div className="mb-4 flex justify-end">
-              <button type="button" onClick={() => setOpen(false)} className="rounded-md p-2 text-[#5C564C]" aria-label="Close menu"><X size={18} /></button>
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md p-2 text-(color:--mkt-muted-strong)" aria-label="Close menu"><X size={18} /></button>
             </div>
             <NavList sections={sections} pathname={pathname} onNavigate={() => setOpen(false)} />
           </div>

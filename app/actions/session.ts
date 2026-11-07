@@ -4,6 +4,7 @@ import type { ActionResult } from '@/lib/action-result'
 import { runAction } from '@/lib/actions/run-action'
 import { getSessionDbWithUser } from '@/lib/providers/db/session'
 import { ServiceError } from '@/lib/services/context'
+import { expandPermissions } from '@/lib/permissions'
 
 /*
  * Session-level reads and the workspace switch the dashboard shell made
@@ -41,7 +42,7 @@ export async function getMySession(): Promise<ActionResult<{ profile: any | null
     return {
       profile: profile.data ?? null,
       role: role.error ? null : ((role.data as string | null) ?? null),
-      permissions: permissions.error ? [] : (((permissions.data as unknown) as string[] | null) ?? []),
+      permissions: permissions.error ? [] : expandPermissions(((permissions.data as unknown) as string[] | null) ?? []),
     }
   })
 }
@@ -66,7 +67,7 @@ export async function getMyAccess(): Promise<ActionResult<{ role: string | null;
     ])
     return {
       role: role.error ? null : ((role.data as string | null) ?? null),
-      permissions: permissions.error ? [] : (((permissions.data as unknown) as string[] | null) ?? []),
+      permissions: permissions.error ? [] : expandPermissions(((permissions.data as unknown) as string[] | null) ?? []),
     }
   })
 }

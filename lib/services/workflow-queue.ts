@@ -6,7 +6,9 @@
  * DELETE policy, on purpose — deletes go through here).
  *
  * Rules: `workflows.activate`; the job must belong to ctx.tenantId (and the
- * credential's workflow allowlist); every change is audited.
+ * credential's workflow allowlist) and be in the caller's run scope
+ * (lib/services/run-visibility: all with view_runs, involved / granted with
+ * view_queue); every change is audited.
  *  - A job a worker holds (`processing`) is never cancelled or deleted: the
  *    worker would carry on and write its result over the change.
  *  - delete: pending / failed / dead / completed jobs only. The status is
@@ -18,6 +20,7 @@
  */
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
+import { queueJobInScope, resolveRunScope } from './run-visibility'
 import { audit, dbError } from './_shared'
 import { appUrlOrLocalhost } from '@/lib/config/bootstrap'
 
@@ -34,6 +37,8 @@ export interface QueueJob {
   status: string
   workflow_id: string | null
   trigger_type: string | null
+  result?: unknown
+  trigger_data?: unknown
 }
 
 export type QueueJobActionResult =
@@ -49,6 +54,7 @@ export interface QueueJobDeleteResult {
 const CANCEL_NOTES: Record<ServiceContext['source'], string> = {
   api: 'Cancelled via API',
   mcp: 'Cancelled via MCP',
+  anonymous: 'Cancelled',
   ui: 'Cancelled from queue',
   job: 'Cancelled by a background job',
 }
@@ -67,13 +73,15 @@ export async function loadQueueJob(ctx: ServiceContext, jobId: string): Promise<
   if (!jobId || !UUID_RE.test(jobId)) throw ServiceError.notFound('Queue job not found')
   const { data, error } = await (ctx.supabase as any)
     .from('workflow_queue')
-    .select('id, status, workflow_id, trigger_type')
+    .select('id, status, workflow_id, trigger_type, result, trigger_data')
     .eq('id', jobId)
     .eq('tenant_id', ctx.tenantId)
     .maybeSingle()
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Queue job not found')
   requireWorkflowScope(ctx, data.workflow_id ?? null)
+  // The job must also be in the person's run scope (lib/services/run-visibility).
+  if (!queueJobInScope(await resolveRunScope(ctx), data)) throw ServiceError.notFound('Queue job not found')
   return data as QueueJob
 }
 

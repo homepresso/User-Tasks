@@ -1,11 +1,35 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { Map as MapIcon, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { IconButton } from "@/components/ui/icon-button"
 import { canvasToMinimap, minimapLayout, minimapToCanvas, unionBounds, visibleCanvasRect, type Bounds, type CanvasView, type Point } from "@/lib/canvas-zoom"
 import { CANVAS_VIEW_EVENT } from "./use-canvas-zoom"
 
+/** localStorage key of the minimap's shown / hidden choice (shared by every canvas). */
+const MINIMAP_STORAGE_KEY = "ut.canvas.minimap"
+
+const minimapListeners = new Set<() => void>()
+
+function readMinimapShown(): boolean {
+  try { return window.localStorage.getItem(MINIMAP_STORAGE_KEY) !== "hidden" } catch { return true }
+}
+
+function subscribeMinimapShown(onChange: () => void) {
+  minimapListeners.add(onChange)
+  window.addEventListener("storage", onChange)
+  return () => { minimapListeners.delete(onChange); window.removeEventListener("storage", onChange) }
+}
+
+function writeMinimapShown(shown: boolean) {
+  try { window.localStorage.setItem(MINIMAP_STORAGE_KEY, shown ? "shown" : "hidden") } catch { /* private mode */ }
+  minimapListeners.forEach((l) => l())
+}
+
 export interface MinimapItem extends Bounds {
   id: string
+  /** Any CSS colour (hex, `var(--…)`, `color-mix(…)`); used as the block's fill as is. */
   color: string
   selected?: boolean
 }
@@ -19,6 +43,8 @@ interface CanvasMinimapProps {
   onNavigate: (c: Point) => void
   width?: number
   height?: number
+  /** Position classes of the frame (default bottom-right). */
+  className?: string
 }
 
 /**
@@ -26,9 +52,12 @@ interface CanvasMinimapProps {
  * Click or drag to move the viewport. Re-renders on scroll / zoom only
  * itself, not the designer.
  */
-export function CanvasMinimap({ items, scrollRef, getView, onNavigate, width = 160, height = 100 }: CanvasMinimapProps) {
+export function CanvasMinimap({ items, scrollRef, getView, onNavigate, width = 160, height = 100, className }: CanvasMinimapProps) {
   const [viewport, setViewport] = useState<Bounds | null>(null)
   const dragging = useRef(false)
+  // Shown by default (and on the server); the stored choice applies after hydration.
+  const shown = useSyncExternalStore(subscribeMinimapShown, readMinimapShown, () => true)
+  const toggleShown = writeMinimapShown
 
   useEffect(() => {
     const el = scrollRef.current
@@ -65,14 +94,29 @@ export function CanvasMinimap({ items, scrollRef, getView, onNavigate, width = 1
 
   const vp = viewport ? { a: canvasToMinimap(viewport, layout), w: viewport.width * layout.scale, h: viewport.height * layout.scale } : null
 
+  // Hidden on phones by default: it would cover most of a small canvas.
+  const position = className ?? "absolute bottom-3 right-3 z-20 max-sm:hidden"
+
+  if (!shown) {
+    return (
+      <div className={position} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} data-canvas-minimap="" data-collapsed="">
+        <IconButton type="button" size="sm" variant="secondary" label="Show minimap" icon={<MapIcon />} tooltipSide="left"
+          className="bg-elevated shadow-elev-2" onClick={() => toggleShown(true)} />
+      </div>
+    )
+  }
+
   return (
     <div
-      className="absolute bottom-3 left-3 rounded-lg border overflow-hidden z-20 shadow-sm"
-      style={{ width, height, backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+      className={cn(position, "group/minimap rounded-lg border border-border bg-elevated shadow-elev-2 overflow-hidden")}
+      style={{ width, height }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       data-canvas-minimap=""
     >
+      <IconButton type="button" size="sm" label="Hide minimap" icon={<X />} tooltipSide="left"
+        className="absolute top-0.5 right-0.5 z-10 size-6 min-h-0 min-w-0 bg-elevated opacity-0 group-hover/minimap:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+        onClick={() => toggleShown(false)} />
       <svg
         width={width}
         height={height}

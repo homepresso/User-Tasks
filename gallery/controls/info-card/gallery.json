@@ -1,0 +1,37 @@
+{
+  "id": "09434d96-867d-4ff9-b734-d179caa32d58",
+  "asset_id": "18a5312e-ddd3-4978-ade9-5b3c09c15d5a",
+  "slug": "info-card",
+  "title": "Info card",
+  "kind": "display",
+  "summary": "Info, success, warning, error or neutral callout that can show up to six other form values, formatted for the reader, as text or a key / value list.",
+  "description": "Give people the context they need right where they act: a warning that a request is over budget, a success note once checks have passed, the key facts of a request (cost centre, amount, date raised) at the top of an approval form, or plain guidance on what to do next.\n\nWrite a title and text with {{field1}} to {{field6}} placeholders and map each to another field of the form; numbers and dates are formatted for the reader's locale and line breaks are kept. The text is always plain text, never HTML, so values typed by requesters can't change the page. Switch to the key / value layout to list the mapped fields with your own labels. Each variant has its own colour and icon, and screen readers hear the variant first (\"Warning: Over budget for Marketing\"), so colour is never the only signal.",
+  "icon": "info",
+  "tags": ["callout", "alert", "note", "summary", "display"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: body, card_title, labels can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: text (display only)." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Over-budget or policy warning on an approval step",
+    "Key facts of a request (cost centre, amount, date) at the top of a review form",
+    "Guidance or next steps for the person filling in the form"
+  ],
+  "setup": [
+    "Install the package: Info card appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Info card onto a form, choose the variant and type the title and text.",
+    "To show other values, map Field 1 … Field 6 (context) to fields of the form and use {{field1}} … {{field6}} in the title or text, or switch the layout to Key / value and give each field a label."
+  ],
+  "preview": {
+    "props": {
+      "variant": "warning",
+      "card_title": "Over budget for {{field1}}",
+      "body": "This request is {{field2}} and was raised on {{field3}}.\nCheck with the budget holder before approving.",
+      "layout": "callout",
+      "show_icon": true
+    },
+    "value": null,
+    "label": "Approval check",
+    "height": 96,
+    "context": { "field1": "Marketing", "field2": 12500.5, "field3": "2026-10-28" },
+    "fixtures": {}
+  }
+}

@@ -23,8 +23,8 @@ export async function refreshExpiringConnectorTokens(options: { supabase?: Supab
   let refreshed = 0
   let failed = 0
   // getFreshConnectorToken (lib/oauth/client-token) performs the refresh +
-  // persist when a token is within 60s of expiry; call it per due connector.
-  let getFreshConnectorToken: ((args: { supabase: any; connectorId: string }) => Promise<string>) | null = null
+  // persist; ask for 10 minutes of validity so tokens due soon really refresh.
+  let getFreshConnectorToken: ((args: { supabase: any; connectorId: string; tenantId?: string | null; minValidityMs?: number }) => Promise<string>) | null = null
   try {
     ;({ getFreshConnectorToken } = await import('@/lib/oauth/client-token'))
   } catch {
@@ -34,7 +34,7 @@ export async function refreshExpiringConnectorTokens(options: { supabase?: Supab
 
   for (const connector of (connectors ?? []) as any[]) {
     try {
-      await getFreshConnectorToken!({ supabase, connectorId: String(connector.id) })
+      await getFreshConnectorToken!({ supabase, connectorId: String(connector.id), tenantId: null, minValidityMs: 10 * 60 * 1000 })
       refreshed++
     } catch {
       failed++

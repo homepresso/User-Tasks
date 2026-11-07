@@ -1,5 +1,8 @@
 import { getWorkflowActivitySummary } from "@/lib/extensibility"
 import { dataTableLabel, type TableNames } from "@/lib/workflow-table-refs"
+import { isMediaNodeType } from "@/lib/media/catalog"
+import { mediaOutputVar } from "@/lib/media/schemas"
+import { setVariableSummary } from "@/lib/workflow-set-variable"
 
 /** Names of referenced records, so summaries show names rather than ids. */
 export interface SummaryLookups {
@@ -44,7 +47,7 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       return parts.length > 0 ? parts.join(' · ') : 'Configure SLA'
     }
     case 'set_variable':
-      return c.name ? `${c.name} = ${c.expression ?? '...'}` : null
+      return setVariableSummary(c)
     case 'delay':
       return c.duration ? `${c.duration} ${c.unit ?? 'minutes'}` : null
     case 'http_request':
@@ -56,6 +59,8 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       }
       return null
     case 'custom_activity': {
+      // The card's description already names the function; the summary line shows the action key (and a pinned version).
+      if (c.operation_label || c.operation) return [c.custom_activity_key, c.custom_activity_version ? `v${c.custom_activity_version}` : null].filter(Boolean).join(' · ') || null
       const summary = getWorkflowActivitySummary(c.manifest)
       if (summary) return summary
       const key = c.custom_activity_key || c.activity_name || null
@@ -100,6 +105,11 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       return c.items ? `each in ${c.items}` : null
     case 'loop_n_times':
       return c.count ? `${c.count} times` : null
+    case 'add_task_attachment': {
+      const what = c.name ? `"${c.name}"` : c.file ? String(c.file) : null
+      const task = String(c.task_id ?? '').trim()
+      return what ? (task ? `${what} → ${task}` : what) : null
+    }
     case 'create_subtask': {
       const parent = String(c.parent_task_id ?? '').trim()
       const title = c.title ? `"${c.title}"` : null
@@ -148,6 +158,7 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       const parts: string[] = []
       if (c.task_title) parts.push(c.task_title.slice(0, 25))
       if (c.assignment_type === 'team') parts.push('→ team')
+      if (c.assignment_type === 'aad_group') parts.push(`→ AAD ${c.aad_group_name ? String(c.aad_group_name).slice(0, 25) : 'group'}${c.aad_group_mode === 'everyone' ? ' (everyone)' : ''}`)
       if (c.allow_redirect) parts.push('redirect')
       if (c.allow_redirect && c.redirect_assignment_mode === 'many') parts.push('many')
       if (c.allow_redirect && c.redirect_assignment_mode === 'many' && c.redirect_recipient_limit_mode === 'capped' && c.redirect_recipient_limit) {
@@ -203,11 +214,39 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       return c.source ? `${parts.join(' · ') || 'nothing selected'}${table}` : null
     }
     case 'doc_redact': {
-      const n = (Array.isArray(c.presets) ? c.presets.length : 0) + (String(c.terms ?? '').trim() ? 1 : 0) + (Array.isArray(c.patterns) ? c.patterns.length : 0)
-      return c.source ? `${Array.isArray(c.presets) && c.presets.length ? c.presets.join(', ') : `${n} rule${n === 1 ? '' : 's'}`} → ${c.output_var || 'redacted'}` : null
+      const types = Array.isArray(c.info_types) ? c.info_types.length : 0
+      const what = [types ? (c.info_types.includes('*') ? 'all types' : c.info_types.includes('@high') ? 'high-confidence types' : `${types} type${types === 1 ? '' : 's'}`) : '', Array.isArray(c.presets) && c.presets.length ? c.presets.join(', ') : '', String(c.terms ?? '').trim() ? 'terms' : '', Array.isArray(c.patterns) && c.patterns.length ? `${c.patterns.length} pattern${c.patterns.length === 1 ? '' : 's'}` : '', c.ai_detection ? 'AI' : ''].filter(Boolean).join(', ')
+      const detect = c.mode === 'detect_only'
+      return c.source ? `${detect ? 'Find ' : ''}${what || 'nothing selected'} → ${c.output_var || (detect ? 'detected' : 'redacted')}` : null
+    }
+    case 'esign_send': {
+      const n = Array.isArray(c.recipients) ? c.recipients.filter((r: any) => String(r?.email ?? '').trim()).length : 0
+      const who = n ? `${n} recipient${n === 1 ? '' : 's'}` : c.recipients_expr ? 'recipients from a variable' : null
+      if (!who) return null
+      const what = c.source === 'template' ? (c.template_name ? `template "${String(c.template_name).slice(0, 24)}"` : 'template') : 'documents'
+      return `${c.provider_label ? `${c.provider_label} · ` : ''}${what} → ${who} → ${c.output_var || 'envelope'}`
+    }
+    case 'esign_envelope': {
+      const labels: Record<string, string> = { status: 'Get status', download: 'Download signed document', cancel: 'Void envelope', signing_url: 'Signing URL', list_templates: 'List templates' }
+      return `${labels[String(c.action ?? 'status')] ?? c.action} → ${c.output_var || 'esign_result'}`
+    }
+    case 'esign_wait':
+      return c.envelope_id ? `Until final (timeout ${Number(c.timeout_days) || 30} d)${c.download !== false ? ' + signed PDF' : ''} → ${c.output_var || 'signature'}` : null
+    case 'esign_event': {
+      const events = Array.isArray(c.events) ? c.events : []
+      return events.length ? events.map((e: string) => e.replace(/^envelope_|^recipient_/, '')).join(', ') : 'Any e-signature event'
     }
     case 'doc_inspect':
       return c.source ? (c.operation === 'search' && c.query ? `Find "${String(c.query).slice(0, 24)}"` : `${c.operation ?? 'all'} → ${c.output_var || 'inspection'}`) : null
+    case 'media_transcribe':
+    case 'media_analyze_image':
+    case 'media_analyze_video':
+    case 'media_redact_image':
+    case 'media_redact_video':
+    case 'media_generate_image':
+    case 'media_tts':
+    case 'media_tools':
+      return mediaNodeSummary(node.type, c)
     case 'doc_word':
     case 'doc_excel':
     case 'doc_powerpoint': {
@@ -218,4 +257,65 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
     default:
       return null
   }
+}
+
+/* ── Media actions (lib/media) ─────────────────────────────────────── */
+
+const MEDIA_TARGET_SHORT: Record<string, string> = { faces: 'faces', text_pii: 'sensitive text', plates: 'license plates', custom: 'boxes' }
+const MEDIA_TOOL_LABELS: Record<string, string> = { info: 'Media info', extract_audio: 'Extract audio', frames: 'Frames', thumbnail: 'Thumbnail', trim: 'Trim', convert: 'Convert', compress: 'Compress', burn_subtitles: 'Burn in subtitles' }
+
+function mediaList(value: unknown, fallback: string[]): string[] {
+  return Array.isArray(value) ? value.map(String) : fallback
+}
+
+/** Short canvas summary of a media step ("Google Gemini · SRT, VTT → transcript"). */
+export function mediaNodeSummary(type: string, c: Record<string, unknown>): string | null {
+  if (!isMediaNodeType(type)) return null
+  const ov = mediaOutputVar(type, c)
+  const provider = typeof c.provider_label === 'string' && c.provider_label.trim() ? `${c.provider_label.trim()} · ` : ''
+  const hasSource = Boolean(String(c.source ?? '').trim())
+  const quote = (v: unknown, n = 28) => { const t = String(v ?? '').replace(/\s+/g, ' ').trim(); return `"${t.length > n ? `${t.slice(0, n - 1)}…` : t}"` }
+  switch (type) {
+    case 'media_transcribe': {
+      if (!hasSource) return null
+      const formats = mediaList(c.formats, ['srt']).map((f) => f.toUpperCase())
+      return `${provider}${formats.join(', ') || 'text'}${c.diarize ? ' · speakers' : ''} → ${ov}`
+    }
+    case 'media_analyze_image':
+    case 'media_analyze_video': {
+      if (!hasSource) return null
+      const features = mediaList(c.features, type === 'media_analyze_image' ? ['description', 'labels', 'text'] : ['summary', 'scenes'])
+      return `${provider}${features.join(', ') || 'nothing selected'}${String(c.prompt ?? '').trim() ? ' + question' : ''} → ${ov}`
+    }
+    case 'media_redact_image':
+    case 'media_redact_video': {
+      if (!hasSource) return null
+      const targets = mediaList(c.targets, ['faces', 'text_pii']).map((t) => MEDIA_TARGET_SHORT[t] ?? t)
+      const speech = type === 'media_redact_video' && c.audio && c.audio !== 'none' ? `${c.audio} speech` : ''
+      if (c.mode === 'detect_only') return `Find ${[...targets, speech ? 'speech' : ''].filter(Boolean).join(', ') || 'nothing selected'} → ${ov}`
+      if (!targets.length) return `${speech ? `${speech[0].toUpperCase()}${speech.slice(1)}` : 'Nothing selected'} → ${ov}`
+      return `${targets.join(', ')} · ${c.style || 'blur'}${speech ? ` + ${speech}` : ''} → ${ov}`
+    }
+    case 'media_generate_image': {
+      if (!String(c.prompt ?? '').trim()) return null
+      const count = Number(c.count) > 1 ? ` ×${Number(c.count)}` : ''
+      return `${provider}${c.operation === 'edit' ? 'Edit' : 'Generate'}${count} ${quote(c.prompt)}`
+    }
+    case 'media_tts': {
+      if (!String(c.text ?? '').trim()) return null
+      return `${provider}${c.voice ? `${c.voice} · ` : ''}${String(c.format || 'mp3').toUpperCase()} → ${ov}`
+    }
+    case 'media_tools': {
+      const op = String(c.operation ?? 'info')
+      const label = MEDIA_TOOL_LABELS[op] ?? op
+      if (op === 'trim') return `Trim ${String(c.start ?? '').trim() || '0:00'}–${String(c.end ?? '').trim() || 'end'}`
+      if (op === 'convert') return c.format ? `${label} → ${String(c.format).toUpperCase()}` : label
+      if (op === 'extract_audio') return `${label} → ${String(c.format || 'mp3').toUpperCase()}`
+      if (op === 'frames') return `Frames every ${c.interval || 1} s (max ${c.count || 10})`
+      if (op === 'thumbnail') return c.at ? `Thumbnail at ${c.at}` : 'Thumbnail'
+      if (op === 'compress') return `Compress (${c.quality || 'medium'})`
+      return `${label} → ${ov}`
+    }
+  }
+  return null
 }

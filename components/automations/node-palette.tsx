@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useReducer, useId } from "react"
 import { useDraggable } from "@dnd-kit/core"
-import { NODE_CATALOG, type NodeType } from "@/lib/workflow-schema"
+import { NODE_CATALOG, nodeColorCategory, nodeColorTextVar, type NodeType } from "@/lib/workflow-schema"
 import { getWorkflowActivityDisplayName, getWorkflowActivityPresentation, getWorkflowActivitySetupNotes, getWorkflowActivitySummary } from "@/lib/extensibility"
 import {
   Plus, RefreshCw, CheckCircle, Clock, GitBranch, GitMerge, Repeat, RotateCw, Timer,
@@ -12,12 +12,24 @@ import {
   CircleStop, Inbox, Search, Users, MessageSquareDashed, Radio, CornerDownRight, XCircle, AlertTriangle, Presentation,
   GitFork, FileUp, FileDown, Download, Tag, Braces, Brackets, FileSpreadsheet, Sheet,
   Star, Scale, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
-  Puzzle, Briefcase, FilePen, Milestone, Link, Gauge, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan, ChevronRight, ChevronsDownUp, ChevronsUpDown, PanelLeftClose } from 'lucide-react'
+  Puzzle, Briefcase, FilePen, Milestone, Link, Gauge, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan, Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard, ChevronRight, ChevronsDownUp, ChevronsUpDown, PanelLeftClose, Shuffle, BadgeCheck, KeyRound, CalendarDays, Signature, FileSignature, Hourglass, FileCheck } from 'lucide-react'
 import {
   allCollapsed, allExpanded, initialPaletteCollapse, isGroupCollapsed, loadCollapseMap, paletteCollapseReducer, safeLocalStorage, saveCollapseMap,
 } from "@/lib/palette-collapse"
 import { cn } from "@/lib/utils"
 import { serverRead } from "@/lib/server-read"
+import { IconButton } from "@/components/ui/icon-button"
+import { SearchInput } from "@/components/ui/input"
+import { Tooltip } from "@/components/ui/tooltip"
+import { CountBadge } from "@/components/ui/badge"
+
+/** Action icons are Lucide names in kebab case (manifest) or Pascal case (older activities). */
+function paletteIconName(name: unknown): string {
+  const raw = String(name ?? '').trim()
+  if (!raw) return 'Puzzle'
+  const pascal = raw.includes('-') || /^[a-z]/.test(raw) ? raw.split('-').map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('') : raw
+  return pascal in iconMap ? pascal : 'Puzzle'
+}
 
 const iconMap: Record<string, any> = {
   Plus, RefreshCw, CheckCircle, Clock, GitBranch, GitMerge, Repeat, RotateCw, Timer,
@@ -31,6 +43,9 @@ const iconMap: Record<string, any> = {
   Gauge,
   Briefcase, FilePen, Milestone, Link, Search,
   FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
+  Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard,
+  Shuffle, BadgeCheck, KeyRound, CalendarDays,
+  Signature, FileSignature, Hourglass, FileCheck,
 }
 
 interface NodePaletteProps {
@@ -61,43 +76,40 @@ function DraggablePaletteItem({
     disabled: isDisabled,
   })
 
-  return (
+  const row = (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
       className={cn(
-        "flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-[11px] text-left transition-all group",
+        "flex items-center gap-2 w-full h-8 rounded-md px-2 text-ui text-fg text-left transition-colors group",
         isDisabled && "opacity-40 cursor-not-allowed",
-        !isDisabled && !isDragging && "cursor-grab hover:shadow-sm active:cursor-grabbing",
+        !isDisabled && !isDragging && "cursor-grab hover:bg-subtle active:cursor-grabbing",
         isDragging && "opacity-30",
       )}
-      style={{
-        backgroundColor: "var(--theme-surface)",
-        border: "1px solid transparent",
-      }}
       onClick={() => !isDisabled && !isDragging && onAddNode(type as NodeType)}
     >
-      <Icon size={12} className="shrink-0" style={{ color }} />
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{label}</p>
-        {description && (
-          <p className="text-[10px] leading-tight line-clamp-2" style={{ color: "var(--theme-muted-text)" }}>
-            {description}
-          </p>
-        )}
-      </div>
+      <Icon size={16} className="shrink-0" style={{ color }} aria-hidden="true" />
+      <span className="flex-1 min-w-0 truncate">{label}</span>
       {!isDisabled && onToggleFavorite && (
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleFavorite() }}
           onPointerDown={(e) => e.stopPropagation()}
-          className={cn("shrink-0 transition-opacity", isFavorite ? "opacity-100" : "opacity-0 group-hover:opacity-40")}
-          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          className={cn("shrink-0 inline-flex size-5 items-center justify-center rounded-sm transition-opacity hover:bg-muted", isFavorite ? "opacity-100 text-warning" : "opacity-0 text-fg-muted group-hover:opacity-60 focus-visible:opacity-100")}
+          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-pressed={isFavorite}
         >
-          <Star size={10} fill={isFavorite ? "var(--theme-warning)" : "none"} style={{ color: isFavorite ? "var(--theme-warning)" : "var(--theme-muted-text)" }} />
+          <Star size={12} fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" />
         </button>
       )}
     </div>
+  )
+  if (!description) return row
+  return (
+    <Tooltip content={description} side="right" align="start" className="max-w-64 font-normal">
+      {row}
+    </Tooltip>
   )
 }
 
@@ -105,7 +117,7 @@ const categories = [
   { key: "section", label: "Tools" },
   { key: "trigger", label: "Triggers" },
   { key: "action", label: "Actions" },
-  { key: "logic", label: "Logic & Flow" },
+  { key: "logic", label: "Logic & flow" },
   { key: "operation", label: "Operations" },
   { key: "collection", label: "Collections" },
 ]
@@ -122,17 +134,12 @@ function PaletteGroup({ id, label, count, collapsed, onToggle, icon, children }:
         onClick={onToggle}
         aria-expanded={!collapsed}
         aria-controls={panelId}
-        className="group/hdr text-[10px] font-semibold uppercase tracking-wider mb-1 flex items-center gap-1 w-full text-left rounded-md px-1 py-1 -mx-1 transition-colors hover:bg-[var(--theme-surface)] focus-visible:outline-none focus-visible:ring-2"
-        style={{ color: "var(--theme-muted-text)", ["--tw-ring-color" as string]: "var(--theme-focus-ring)" } as React.CSSProperties}
+        className="group/hdr text-xs font-medium text-fg-muted mb-0.5 flex items-center gap-1.5 w-full h-7 text-left rounded-md px-1 -mx-1 transition-colors hover:bg-subtle hover:text-fg"
       >
-        <ChevronRight size={11} aria-hidden="true" className={cn("shrink-0 transition-transform", !collapsed && "rotate-90")} />
+        <ChevronRight size={12} aria-hidden="true" className={cn("shrink-0 transition-transform", !collapsed && "rotate-90")} />
         {icon}
         <span className="flex-1 truncate">{label}</span>
-        <span className="text-[9px] font-medium tabular-nums rounded-full px-1.5 py-px"
-          style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}
-          aria-label={`${count} ${count === 1 ? "item" : "items"}`}>
-          {count}
-        </span>
+        <CountBadge count={count} max={999} aria-label={`${count} ${count === 1 ? "item" : "items"}`} />
       </button>
       {!collapsed && (
         <div id={panelId} role="group" aria-label={label} className="space-y-0.5">
@@ -187,6 +194,7 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
   const favoriteItems = NODE_CATALOG.filter(n => favorites.has(n.type))
     .filter(n => !q || n.label.toLowerCase().includes(q) || n.description.toLowerCase().includes(q))
   const filteredCustomActivities = customActivities.filter((activity: any) => {
+    if (activity.enabled === false) return false
     if (!q) return true
     return [activity.name, activity.description, activity.key]
       .some((value) => String(value ?? '').toLowerCase().includes(q))
@@ -208,7 +216,7 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
       key: "_favorites",
       label: "Favorites",
       count: favoriteItems.length,
-      icon: <Star size={10} aria-hidden="true" fill="var(--theme-warning)" style={{ color: "var(--theme-warning)" }} />,
+      icon: <Star size={12} aria-hidden="true" fill="currentColor" className="shrink-0 text-warning" />,
       items: favoriteItems.map((item) => (
         <DraggablePaletteItem
           key={`fav-${item.type}`}
@@ -216,7 +224,7 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
           label={item.label}
           description={item.description}
           icon={item.icon}
-          color={item.color}
+          color={nodeColorTextVar(nodeColorCategory(item.type))}
           isDisabled={disabledNodeTypes.includes(item.type)}
           isFavorite={true}
           onAddNode={onAddNode}
@@ -239,7 +247,7 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
           label={item.label}
           description={item.description}
           icon={item.icon}
-          color={item.color}
+          color={nodeColorTextVar(nodeColorCategory(item.type))}
           isDisabled={disabledNodeTypes.includes(item.type)}
           isFavorite={favorites.has(item.type)}
           onAddNode={onAddNode}
@@ -251,7 +259,7 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
   if (customActivityCards.length > 0) {
     groups.push({
       key: "custom_activities",
-      label: "Custom Activities",
+      label: "Custom actions",
       count: customActivityCards.length,
       items: customActivityCards.map((activity: any) => (
         <DraggablePaletteItem
@@ -259,8 +267,8 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
           type="custom_activity"
           label={activity.displayLabel}
           description={activity.helperText}
-          icon={activity.icon_name || 'Puzzle'}
-          color={activity.color || '#0EA5E9'}
+          icon={paletteIconName(activity.icon_name)}
+          color={activity.color || nodeColorTextVar(nodeColorCategory('custom_activity'))}
           isDisabled={disabledNodeTypes.includes('custom_activity')}
           isFavorite={false}
           onAddNode={() => onAddCustomActivity?.(activity.id)}
@@ -270,53 +278,40 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
     })
   }
   const groupKeys = groups.map((g) => g.key)
-  const iconBtn = "p-1 rounded-md transition-colors hover:bg-[var(--theme-surface)] disabled:opacity-40 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2"
-  const iconBtnStyle = { color: "var(--theme-muted-text)", ["--tw-ring-color" as string]: "var(--theme-focus-ring)" } as React.CSSProperties
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
-        <h3 className="flex-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>
+        <h3 className="flex-1 text-xs font-medium text-fg-muted">
           Nodes
         </h3>
         {onCollapseSidebar && (
-          <button type="button" onClick={onCollapseSidebar} className={iconBtn} style={iconBtnStyle}
-            title="Collapse the node sidebar" aria-label="Collapse the node sidebar">
-            <PanelLeftClose size={13} aria-hidden="true" />
-          </button>
+          <IconButton size="sm" onClick={onCollapseSidebar} label="Collapse the node sidebar" icon={<PanelLeftClose />} className="text-fg-muted" />
         )}
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: "var(--theme-muted-text)" }} />
-        <input
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); dispatch({ type: "searchChanged" }) }}
-          onKeyDown={(e) => { if (e.key === "Escape" && search) { e.stopPropagation(); setSearch(""); dispatch({ type: "searchChanged" }) } }}
-          placeholder="Search nodes..."
-          aria-label="Search nodes"
-          className="w-full rounded-lg border pl-7 pr-2 py-1.5 text-[11px]"
-          style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
-        />
-      </div>
+      <SearchInput
+        size="sm"
+        value={search}
+        onValueChange={(v) => { setSearch(v); dispatch({ type: "searchChanged" }) }}
+        onKeyDown={(e) => { if (e.key === "Escape" && search) e.stopPropagation() }}
+        placeholder="Search nodes…"
+        aria-label="Search nodes"
+      />
 
       {/* Expand / collapse all */}
       <div className="flex items-center justify-end gap-0.5 -mt-1" role="toolbar" aria-label="Palette groups">
-        <button type="button" onClick={() => dispatch({ type: "setAll", keys: groupKeys, collapsed: false, searching })}
+        <IconButton size="sm" onClick={() => dispatch({ type: "setAll", keys: groupKeys, collapsed: false, searching })}
           disabled={allExpanded(collapse, groupKeys, searching)}
-          className={iconBtn} style={iconBtnStyle} title="Expand all groups" aria-label="Expand all groups">
-          <ChevronsUpDown size={13} aria-hidden="true" />
-        </button>
-        <button type="button" onClick={() => dispatch({ type: "setAll", keys: groupKeys, collapsed: true, searching })}
+          className="text-fg-muted" label="Expand all groups" aria-label="Expand all groups" icon={<ChevronsUpDown />} />
+        <IconButton size="sm" onClick={() => dispatch({ type: "setAll", keys: groupKeys, collapsed: true, searching })}
           disabled={allCollapsed(collapse, groupKeys, searching)}
-          className={iconBtn} style={iconBtnStyle} title="Collapse all groups" aria-label="Collapse all groups">
-          <ChevronsDownUp size={13} aria-hidden="true" />
-        </button>
+          className="text-fg-muted" label="Collapse all groups" aria-label="Collapse all groups" icon={<ChevronsDownUp />} />
       </div>
 
       {groups.length === 0 && (
-        <p className="text-[11px] px-1 py-2" style={{ color: "var(--theme-muted-text)" }}>No nodes match “{search.trim()}”.</p>
+        <p className="text-xs text-fg-muted px-1 py-2">No nodes match “{search.trim()}”.</p>
       )}
 
       {groups.map((g) => (

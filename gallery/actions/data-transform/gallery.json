@@ -1,0 +1,260 @@
+{
+  "id": "e67e8683-e7ba-44cb-be96-60e88fe27ce5",
+  "asset_id": "f6114bc5-d4d1-4571-b9ce-9d7ebdab1b7e",
+  "slug": "data-transform",
+  "title": "Data transform",
+  "summary": "Select by JSON path, map, filter, sort, group and aggregate, pivot, de-duplicate and join lists of records, and convert CSV to JSON and back.",
+  "description": "Data transform reshapes lists of records inside a workflow, the work that otherwise takes loops and a chain of collection nodes. Pick values out of an API response with a JSON path (order.lines[*].sku), rename and nest fields, filter with conditions such as status = paid and amount >= 500, sort on several keys, group by one or more fields with count, sum, average, minimum, maximum and distinct counts, pivot values into columns or unpivot columns into rows, and remove duplicates by chosen fields.\n\nJoin combines two lists on matching keys (inner, left, right or full), for example orders with the managers of their regions, and reports what did not match. CSV to JSON parses spreadsheet exports to RFC 4180 (quoted fields, embedded commas and line breaks, header row, number and boolean inference) and JSON to CSV writes lists back out with chosen columns, CRLF line endings and protection against formula injection. Everything runs in the sandbox with no network or data access.",
+  "icon": "shuffle",
+  "tags": [
+    "data",
+    "json",
+    "csv",
+    "group by",
+    "pivot",
+    "join"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Total and average order values per region before a weekly summary email",
+    "Join API results with a data table of owners and keep the unmatched rows for review",
+    "Import a CSV export, filter it and write a clean CSV back out"
+  ],
+  "setup": [
+    "Install the package: the action appears in Extensibility → Workflow actions and in the workflow designer's palette under Custom actions.",
+    "Drag Data transform onto a workflow, choose the function and map Items to a list (a data table query result, an API response path or a JSON variable).",
+    "Chain functions: map the {{prefix_items}} output of one step into the Items of the next, e.g. Filter, then Group & aggregate.",
+    "Try the included \"Sales by region (sample)\" workflow from the API or its start form: it filters paid orders, groups them by region and writes the totals as CSV."
+  ],
+  "examples": [
+    {
+      "operation": "group",
+      "title": "Totals per region",
+      "inputs": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "group_by": [
+          "region"
+        ],
+        "aggregates": [
+          "sum:amount",
+          "avg:amount",
+          "count_distinct:product"
+        ]
+      }
+    },
+    {
+      "operation": "filter",
+      "title": "Paid orders of 500 or more",
+      "inputs": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "conditions": [
+          {
+            "field": "status",
+            "operator": "eq",
+            "value": "paid"
+          },
+          {
+            "field": "amount",
+            "operator": "gte",
+            "value": 500
+          }
+        ]
+      }
+    },
+    {
+      "operation": "pivot",
+      "title": "Products as columns",
+      "inputs": {
+        "items": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          },
+          {
+            "id": "SO-4",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 600,
+            "qty": 1
+          },
+          {
+            "id": "SO-5",
+            "region": "South",
+            "product": "Lamp",
+            "status": "void",
+            "amount": 80,
+            "qty": 2
+          }
+        ],
+        "rows": [
+          "region"
+        ],
+        "column": "product",
+        "value": "amount",
+        "fill": 0
+      }
+    },
+    {
+      "operation": "join",
+      "title": "Orders with their region manager",
+      "inputs": {
+        "left": [
+          {
+            "id": "SO-1",
+            "region": "North",
+            "product": "Desk",
+            "status": "paid",
+            "amount": 1200,
+            "qty": 2
+          },
+          {
+            "id": "SO-2",
+            "region": "South",
+            "product": "Chair",
+            "status": "paid",
+            "amount": 300,
+            "qty": 3
+          },
+          {
+            "id": "SO-3",
+            "region": "North",
+            "product": "Chair",
+            "status": "open",
+            "amount": 450,
+            "qty": 5
+          }
+        ],
+        "right": [
+          {
+            "region": "North",
+            "manager": "Aroha"
+          },
+          {
+            "region": "South",
+            "manager": "Ben"
+          }
+        ],
+        "left_key": [
+          "region"
+        ]
+      }
+    },
+    {
+      "operation": "csv_to_json",
+      "title": "Parse a CSV export",
+      "inputs": {
+        "csv": "id,name,amount\n1,\"Smith, Jo\",12.50\n2,Ana,7"
+      }
+    }
+  ]
+}

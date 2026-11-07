@@ -57,7 +57,7 @@ describe('deleteQueueJob server action', () => {
   beforeEach(() => {
     db = seed()
     vi.mocked(createServiceClient).mockReturnValue(db)
-    vi.mocked(fromSession).mockResolvedValue(session(['workflows.activate']))
+    vi.mocked(fromSession).mockResolvedValue(session(['workflows.activate', 'workflows.view_runs']))
     vi.mocked(writeAudit).mockClear()
   })
 
@@ -82,6 +82,14 @@ describe('deleteQueueJob server action', () => {
     expect(vi.mocked(writeAudit)).not.toHaveBeenCalled()
   })
 
+  it('needs the job in the run scope too: activate + involved-only queue access cannot delete a job they are not involved in', async () => {
+    vi.mocked(fromSession).mockResolvedValue(session(['workflows.activate', 'workflows.view_queue']))
+    expect(await deleteQueueJob(J.pending)).toEqual({ error: 'Queue job not found' })
+    expect(ids(db)).toContain(J.pending)
+    vi.mocked(fromSession).mockResolvedValue(session(['workflows.activate']))
+    expect(await deleteQueueJob(J.pending)).toEqual({ error: "Forbidden: you lack the 'workflows.view_queue' permission" })
+  })
+
   it('refuses a job a worker is processing', async () => {
     const result = await deleteQueueJob(J.processing)
     expect(result).toEqual({ error: expect.stringMatching(/being processed/) })
@@ -93,7 +101,7 @@ describe('deleteQueueJob server action', () => {
     expect(ids(db)).toContain(J.otherTenant)
     // …even with the permission held in that other workspace, the job of the
     // current one is the only thing in scope.
-    vi.mocked(fromSession).mockResolvedValue(session(['workflows.activate'], B))
+    vi.mocked(fromSession).mockResolvedValue(session(['workflows.activate', 'workflows.view_runs'], B))
     expect(await deleteQueueJob(J.pending)).toEqual({ error: 'Queue job not found' })
     expect(ids(db)).toContain(J.pending)
   })
@@ -144,7 +152,7 @@ describe('POST /workflows/queue/{id}/action (shares the queue rules)', () => {
     vi.mocked(writeAudit).mockClear()
     vi.mocked(validateApiKey).mockResolvedValue({
       success: true, tenantId: A, keyId: 'key-1', keyType: 'tenant', createdBy: 'u1', actingUserId: null,
-      scopes: { workflow_ids: [], table_ids: [] }, permissions: ['workflows.activate'],
+      scopes: { workflow_ids: [], table_ids: [] }, permissions: ['workflows.activate', 'workflows.view_runs'],
       supabase: db as unknown as ApiKeySuccessResult['supabase'], authKind: 'api_key', expiresAt: null,
     } as any)
   })
@@ -185,7 +193,7 @@ describe('POST /workflows/queue/{id}/action (shares the queue rules)', () => {
     expect(row(J.otherTenant).status).toBe('pending')
     vi.mocked(validateApiKey).mockResolvedValue({
       success: true, tenantId: A, keyId: 'key-1', keyType: 'tenant', createdBy: 'u1', actingUserId: null,
-      scopes: { workflow_ids: ['cccccccc-0000-4000-8000-000000000000'], table_ids: [] }, permissions: ['workflows.activate'],
+      scopes: { workflow_ids: ['cccccccc-0000-4000-8000-000000000000'], table_ids: [] }, permissions: ['workflows.activate', 'workflows.view_runs'],
       supabase: db as unknown as ApiKeySuccessResult['supabase'], authKind: 'api_key', expiresAt: null,
     } as any)
     expect((await call(J.pending, 'cancel')).status).toBe(403)

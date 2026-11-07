@@ -21,7 +21,8 @@ import { publicBasesFor, storageConfigSync } from './providers/storage/options'
  * script-src stays permissive ('unsafe-inline') because the App Router
  * injects inline bootstrap scripts; tightening to a nonce-based CSP is a
  * follow-up that needs full-app verification. Everything else is locked
- * down: no framing, no plugins, no base-tag hijack.
+ * down: no framing (except the form link pages other sites may embed —
+ * lib/forms/embed.ts), no plugins, no base-tag hijack.
  */
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
@@ -88,29 +89,42 @@ export function storageUploadSources(id: string | undefined, options: Record<str
   return []
 }
 
-export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[] }): string {
+/**
+ * Bot-protection widgets an admin may turn on for anonymous form links
+ * (Settings → Forms): only on /p/<token> pages, only these hosts, and the
+ * widget is only loaded when the workspace configured one.
+ */
+export const CAPTCHA_SOURCES = {
+  script: ['https://challenges.cloudflare.com', 'https://js.hcaptcha.com', 'https://*.hcaptcha.com'],
+  frame: ['https://challenges.cloudflare.com', 'https://*.hcaptcha.com'],
+  connect: ['https://challenges.cloudflare.com', 'https://*.hcaptcha.com'],
+} as const
+
+export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[]; captcha?: boolean; /** `'none'` (default) or `*` for form link pages (lib/forms/embed.ts). */ frameAncestors?: "'none'" | '*' }): string {
   // Stored files: Supabase public URLs (https is already allowed; a loopback
   // http stack — `supabase start` — needs its origin) and direct store URLs.
   const loopbackSupabase = supabaseConnectSources(opts.supabaseUrl).filter((s) => s.startsWith('http://'))
   const media = [...new Set([...loopbackSupabase, ...storageMediaSources(opts.storagePublicBases)])].map((s) => ` ${s}`).join('')
+  const captcha = (list: readonly string[]) => (opts.captcha ? ` ${list.join(' ')}` : '')
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${opts.isDev ? " 'unsafe-eval'" : ''} blob:`,
+    `script-src 'self' 'unsafe-inline'${opts.isDev ? " 'unsafe-eval'" : ''} blob:${captcha(CAPTCHA_SOURCES.script)}`,
     "style-src 'self' 'unsafe-inline' https:",
     `img-src 'self' blob: data: https:${media}`,
     `font-src 'self' data: https:${media}`,
-    `connect-src 'self' ${[...new Set([...supabaseConnectSources(opts.supabaseUrl), ...(opts.storageUploadSources ?? [])])].join(' ')}`,
+    `connect-src 'self' ${[...new Set([...supabaseConnectSources(opts.supabaseUrl), ...(opts.storageUploadSources ?? [])])].join(' ')}${captcha(CAPTCHA_SOURCES.connect)}`,
     `media-src 'self' blob: data:${media}`,
     "worker-src 'self' blob:",
+    ...(opts.captcha ? [`frame-src 'self'${captcha(CAPTCHA_SOURCES.frame)}`] : []),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    `frame-ancestors ${opts.frameAncestors === '*' ? '*' : "'none'"}`,
   ].join('; ')
 }
 
 /** The policy for the current runtime config (lib/config). */
-export function contentSecurityPolicy(): string {
+export function contentSecurityPolicy(options: { captcha?: boolean; frameAncestors?: "'none'" | '*' } = {}): string {
   let storagePublicBases: Record<string, string> | undefined
   let uploadSources: string[] = []
   try {
@@ -125,5 +139,7 @@ export function contentSecurityPolicy(): string {
     isDev: process.env.NODE_ENV === 'development',
     storagePublicBases,
     storageUploadSources: uploadSources,
+    captcha: options.captcha === true,
+    frameAncestors: options.frameAncestors,
   })
 }

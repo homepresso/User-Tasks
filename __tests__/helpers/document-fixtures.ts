@@ -60,13 +60,12 @@ function slideXml(title: string, bullets: string[]): string {
 }
 
 /** A two-slide PowerPoint deck with speaker notes on the first slide. */
-export function deckPptx(): Buffer {
+export function deckPptx(slides: Array<[string, string[]]> = [['Q3 Sales Review', ['Revenue up 12%', 'Beverages lead']], ['Next Steps', ['Expand to Oceania']]]): Buffer {
   const zip = new PizZip()
   zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>')
   zip.file('ppt/presentation.xml', `<?xml version="1.0" encoding="UTF-8"?><p:presentation ${P}><p:sldIdLst><p:sldId id="256" r:id="rId2"/><p:sldId id="257" r:id="rId3"/></p:sldIdLst></p:presentation>`)
   zip.file('ppt/_rels/presentation.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide2.xml"/></Relationships>')
-  zip.file('ppt/slides/slide1.xml', slideXml('Q3 Sales Review', ['Revenue up 12%', 'Beverages lead']))
-  zip.file('ppt/slides/slide2.xml', slideXml('Next Steps', ['Expand to Oceania']))
+  slides.forEach(([title, bullets], k) => zip.file(`ppt/slides/slide${k + 1}.xml`, slideXml(title, bullets)))
   zip.file('ppt/slides/_rels/slide1.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide1.xml"/></Relationships>')
   zip.file('ppt/notesSlides/notesSlide1.xml', `<?xml version="1.0" encoding="UTF-8"?><p:notes ${P}><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="2" name="Notes"/><p:cNvSpPr/><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:txBody><a:p><a:r><a:t>Mention the Chai promotion</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:notes>`)
   zip.file('docProps/app.xml', '<?xml version="1.0" encoding="UTF-8"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Slides>2</Slides></Properties>')
@@ -181,3 +180,21 @@ export const HTML = `<!doctype html><html><head><title>Supplier page</title><met
 <body><h1>Exotic Liquids</h1><p>Contact <a href="mailto:sales@exotic.example">sales</a> or <a href="javascript:alert(1)">click</a>.</p>
 <p onclick="evil()">Line one<br>Line two</p><table><tr><th>Product</th><th>Units</th></tr><tr><td>Chai</td><td>39</td></tr></table>
 <iframe src="https://evil.example"></iframe><ul><li>One</li><li>Two<ul><li>Two point one</li></ul></li></ul></body></html>`
+
+/**
+ * A Word document of plain paragraphs. A paragraph given as an array is
+ * split over several runs (the second bold), as Word does mid-word.
+ */
+export function paragraphsDocx(paragraphs: Array<string | string[]>, author = 'Test Author'): Buffer {
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const zip = new PizZip()
+  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>')
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>')
+  zip.file('docProps/core.xml', `<?xml version="1.0" encoding="UTF-8"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Test document</dc:title><dc:creator>${esc(author)}</dc:creator></cp:coreProperties>`)
+  const body = paragraphs.map((p) => {
+    const runs = Array.isArray(p) ? p : [p]
+    return `<w:p>${runs.map((r, k) => `<w:r>${k === 1 ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${esc(r)}</w:t></w:r>`).join('')}</w:p>`
+  }).join('\n')
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8"?><w:document ${W}><w:body>\n${body}\n<w:sectPr/></w:body></w:document>`)
+  return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }) as Buffer
+}

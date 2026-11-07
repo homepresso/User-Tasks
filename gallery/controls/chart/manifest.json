@@ -1,0 +1,83 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-chart",
+  "name": "Chart",
+  "description": "Bar, line, area, pie or doughnut chart of static data, another field's rows, lookup results or a saved report. Keyboard-navigable points, a data table view, and optional point selection.",
+  "icon": "bar-chart",
+  "version": "1.2.0",
+  "entry": "ut-chart.js",
+  "value": {
+    "type": "json",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "label": { "type": "string", "maxLength": 1000 },
+        "value": { "type": "number" },
+        "series": { "type": ["string", "null"], "maxLength": 1000 }
+      },
+      "required": ["label", "value"],
+      "additionalProperties": false
+    }
+  },
+  "props": [
+    { "name": "chart_title", "bindable": true, "label": "Chart title", "type": "string", "description": "Shown above the chart and used as the data table's caption." },
+    { "name": "chart_type", "label": "Chart type", "type": "select", "default": "bar", "options": [
+      { "value": "bar", "label": "Bar" },
+      { "value": "horizontal-bar", "label": "Horizontal bar" },
+      { "value": "line", "label": "Line" },
+      { "value": "area", "label": "Area" },
+      { "value": "pie", "label": "Pie" },
+      { "value": "doughnut", "label": "Doughnut" }
+    ] },
+    { "name": "source", "label": "Data source", "type": "select", "default": "static", "options": [
+      { "value": "static", "label": "Static data (below)" },
+      { "value": "context", "label": "Another field (map the Data context entry)" },
+      { "value": "lookup", "label": "Lookup source (set the field's lookup, Min characters 0)" },
+      { "value": "report", "label": "Saved report (set the report_id property)" }
+    ] },
+    { "name": "data", "bindable": true, "label": "Static data", "type": "json", "default": [
+      { "label": "Jan", "value": 12 }, { "label": "Feb", "value": 19 }, { "label": "Mar", "value": 15 }, { "label": "Apr", "value": 23 }
+    ], "description": "For Static data: [{\"label\":\"Jan\",\"value\":12}, …] or {\"labels\":[…],\"datasets\":[{\"label\":\"Sales\",\"data\":[…]}]}." },
+    { "name": "report_id", "label": "Saved report", "type": "string", "description": "For Saved report: the report's id (open it in Reports — the id is in the address bar). People see only what they can see in Reports." },
+    { "name": "lookup_query", "label": "Lookup query", "type": "string", "default": "", "description": "For Lookup source: the search text sent to the lookup (empty = everything)." },
+    { "name": "label_field", "label": "Label field", "type": "string", "description": "The row field (or report column key) for the labels. Defaults to the first text field." },
+    { "name": "value_field", "label": "Value field", "type": "string", "description": "The row field for the values. Defaults to the first numeric field." },
+    { "name": "series_fields", "label": "Series fields", "type": "string[]", "description": "Several numeric fields, one series each (instead of Value field)." },
+    { "name": "aggregate", "label": "Group by label", "type": "select", "default": "none", "options": [
+      { "value": "none", "label": "No grouping" },
+      { "value": "sum", "label": "Sum" },
+      { "value": "count", "label": "Count rows" },
+      { "value": "average", "label": "Average" }
+    ] },
+    { "name": "show_legend", "label": "Show legend", "type": "boolean", "default": true, "description": "Shown for pie / doughnut charts and when there is more than one series." },
+    { "name": "stacked", "label": "Stack series", "type": "boolean", "default": false },
+    { "name": "colors", "label": "Colours", "type": "string[]", "description": "Series / slice colours (#hex). Defaults to the theme's primary colour plus accessible companions for light and dark mode." },
+    { "name": "height", "label": "Chart height (px)", "type": "number", "default": 280, "min": 120, "max": 1000 },
+    { "name": "selectable", "label": "Selectable points", "type": "boolean", "default": false, "description": "Clicking a point (or Enter on it) makes it the field's value: { label, value, series }." }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 340, "min_height": 120, "max_height": 1400, "full_width": true },
+  "capabilities": ["lookup", "reports"],
+  "context": [
+    { "name": "data", "label": "Data", "description": "For 'Another field': a field whose value is a list of rows, such as an editable table. Label field / Value field pick the columns." }
+  ],
+  "display": { "template": "{{value.label}}: {{value.value}}", "format": "text" },
+  "output": { "type": "string", "template": "{{value.label}}", "extras": { "value": "value", "series": "series" }, "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series" },
+  "accessibility": {
+    "role": "group",
+    "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/chart",
+  "dependencies": {
+    "@kurkle/color": "0.3.4",
+    "@lit/reactive-element": "2.1.2",
+    "chart.js": "4.5.1",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

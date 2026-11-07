@@ -1,0 +1,70 @@
+{
+  "id": "000aef06-b55e-4b8f-9052-fd40f137c80a",
+  "asset_id": "7e72614d-1830-49fc-afdb-c31cabb521ef",
+  "slug": "map",
+  "title": "Map",
+  "kind": "input",
+  "summary": "Shows an address or coordinates from another field on an OpenStreetMap map, and can let people drop a pin to record a location.",
+  "description": "A map for any form that deals with places: a site visit, a delivery drop-off, a fault report, an event venue. Map it to an Address field (or any field holding coordinates or \"lat,lng\" text) and it centres on that location with a pin, following the field as it changes.\n\nTurn on \"Let people drop a pin\" and the map becomes an input: click or tap the map, drag the pin, or type exact coordinates, and the field stores { lat, lng }. Keyboard users Tab to the map, pan with the arrow keys, zoom with + and -, and press Enter to drop the pin at the centre (a crosshair marks it).\n\nTiles come from OpenStreetMap (dimmed to match dark mode, or always light). The frame fetches them itself and draws them from memory, so nothing but the approved tile hosts is contacted. Attribution is always shown.",
+  "icon": "map",
+  "tags": [
+    "map",
+    "location",
+    "coordinates",
+    "pin",
+    "openstreetmap",
+    "geo"
+  ],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: a new Markers prop ({ lat, lng, label } list) the form designer can bind to a data table or an API reference." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Workflow output: the field is \"lat,lng\" (text), with <key>_lat and <key>_lng as numbers and the { lat, lng } value as <key>_raw." },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Show where a chosen address is, next to an Address field",
+    "Record the exact spot of a fault, hazard or delivery drop-off",
+    "Confirm a site location on an inspection or field-service task"
+  ],
+  "setup": [
+    "Install the package: the control appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Approve the tile hosts in Extensibility → Form controls → Map: tile.openstreetmap.org. Until then the map shows the pin on a plain background and says which host to approve.",
+    "Drag Map onto a form and map its Location to the field it should show (for example an Address field), or leave it unmapped and turn on \"Let people drop a pin\".",
+    "Choose the map style, zoom, height and whether coordinates are shown in the properties panel."
+  ],
+  "systems": [
+    "OpenStreetMap"
+  ],
+  "preview": {
+    "props": {
+      "tiles": "auto",
+      "zoom": 15,
+      "height": 300,
+      "pick": true,
+      "show_coordinates": true
+    },
+    "value": {
+      "lat": -36.844149,
+      "lng": 174.76716
+    },
+    "label": "Site location",
+    "height": 400,
+    "context": {
+      "location": {
+        "formatted": "1 Queen Street, Auckland CBD, Auckland 1010, New Zealand",
+        "street": "1 Queen Street",
+        "city": "Auckland",
+        "region": "Auckland",
+        "postcode": "1010",
+        "country": "New Zealand",
+        "country_code": "NZ",
+        "lat": -36.8441486,
+        "lng": 174.7671598,
+        "place_id": "ChIJLWl7ckhIDW0RRhZBrhyJUBE"
+      }
+    },
+    "note": "Click the map to move the pin. Map data © OpenStreetMap contributors."
+  }
+}

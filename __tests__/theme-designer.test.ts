@@ -142,7 +142,7 @@ describe('preview CSS scoping', () => {
     expect(html).toContain(`#${id}{`)
     expect(html).toContain(`--theme-surface:${theme.colors.dark.surface}`)
     expect(html).toContain('data-density="compact"')
-    expect(html).toContain('data-theme-headings="display"')
+    expect(html).toContain('data-theme-headings="sans"')
     expect(html).toMatch(/inert=""/)
     // Light mode uses the light palette.
     expect(renderToStaticMarkup(createElement(ThemePreview, { theme, mode: 'light', appBaseSize: 16 }))).toContain(`--theme-surface:${theme.colors.light.surface}`)

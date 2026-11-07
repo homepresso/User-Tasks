@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getDb, type ServiceContext } from '../context'
+import { getDb, hasPerm, type ServiceContext } from '../context'
 import * as analytics from '../report-analytics'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 
@@ -107,7 +107,19 @@ async function workflowOverview(ctx: ServiceContext, workflowId: string) {
     const { data: agents } = await db.from('agents').select('id, name').in('id', workflowAgentIds)
     return Object.fromEntries(((agents ?? []) as any[]).map((agent) => [agent.id, agent.name as string]))
   }
-  const [taskById, agentRunsByRunId, agentNameById] = await Promise.all([loadTasks(), loadAgentRuns(), loadAgentNames()])
+  // Stored run variables (workflow_runs.variables), for the instances table —
+  // run data, so only with workflows.view (as the run pages need).
+  const loadVariables = async () => {
+    if (runIds.length === 0 || !hasPerm(ctx, 'workflows.view')) return {}
+    const { data } = await db.from('workflow_runs')
+      .select('id, variables')
+      .eq('workflow_id', workflowId)
+      .not('variables', 'is', null)
+      .order('started_at', { ascending: false })
+      .limit(2000)
+    return Object.fromEntries(((data ?? []) as any[]).map((row) => [row.id, row.variables]))
+  }
+  const [taskById, agentRunsByRunId, agentNameById, variablesByRunId] = await Promise.all([loadTasks(), loadAgentRuns(), loadAgentNames(), loadVariables().catch(() => ({}))])
 
   return {
     workflow,
@@ -116,6 +128,7 @@ async function workflowOverview(ctx: ServiceContext, workflowId: string) {
     taskById: taskById as Record<string, any>,
     agentRunsByRunId: agentRunsByRunId as Record<string, any[]>,
     agentNameById: agentNameById as Record<string, string>,
+    variablesByRunId: variablesByRunId as Record<string, Record<string, unknown>>,
   }
 }
 
@@ -123,6 +136,13 @@ async function workflowOverview(ctx: ServiceContext, workflowId: string) {
 function visibleTo(ctx: { actorId: string | null }): string {
   return ctx.actorId ? `created_by.eq.${ctx.actorId},is_shared.eq.true` : 'is_shared.eq.true'
 }
+
+// Workspace-wide analytics need the domain's own permission, not just
+// reports.view (governance audit 2026-11: every Viewer could read every task in
+// the workspace, workflow definitions, integrations and retention through these).
+const TASKS_ALL = 'tasks.view_all'
+const RUNS_ALL = 'workflows.view_runs'
+const RETENTION = ['team.change_roles', 'settings.view']
 
 export const reads = {
   'reports.list': defineRead({
@@ -193,7 +213,7 @@ export const reads = {
   /** Task report. Effort records arrive collapsed per task (collapseEffortRecords). */
   'reports.tasks': defineRead({
     args: NO_ARGS,
-    perm: PERM,
+    perm: TASKS_ALL,
     run: async (ctx) => {
       const db = getDb(ctx) as any
       const now = new Date()
@@ -244,7 +264,7 @@ export const reads = {
 
   'reports.integrations': defineRead({
     args: NO_ARGS,
-    perm: PERM,
+    perm: 'integrations.view',
     run: async (ctx) => {
       const db = getDb(ctx) as any
       const [{ data: integrations }, { data: references }, { data: connectors }] = await Promise.all([
@@ -263,7 +283,7 @@ export const reads = {
   /** Retention report. Governed assets are counted per policy, so their row data isn't sent. */
   'reports.retention': defineRead({
     args: NO_ARGS,
-    perm: PERM,
+    perm: RETENTION,
     run: async (ctx) => {
       const db = getDb(ctx) as any
       const [
@@ -295,7 +315,7 @@ export const reads = {
   /** Business-rules report. Log metadata is cut down to the fields the report reads. */
   'reports.businessRules': defineRead({
     args: NO_ARGS,
-    perm: PERM,
+    perm: 'workflows.view',
     run: async (ctx) => {
       const db = getDb(ctx) as any
       const [{ data: logs }, { data: tables }] = await Promise.all([
@@ -326,7 +346,7 @@ export const reads = {
   /** Workflow reports hub: workflows, per-day run aggregates since `since`, live queue. */
   'reports.workflowHub': defineRead({
     args: z.object({ since: isoDate }),
-    perm: PERM,
+    perm: RUNS_ALL,
     run: async (ctx, { since }) => {
       const db = getDb(ctx) as any
       const [workflows, daily, queue] = await Promise.all([
@@ -349,13 +369,13 @@ export const reads = {
   /** Process overview for one workflow (definition, runs, live queue, originators, agent runs). */
   'reports.workflowOverview': defineRead({
     args: z.object({ id }),
-    perm: PERM,
+    perm: RUNS_ALL,
     run: async (ctx, { id }) => workflowOverview(ctx, id),
   }),
 
   'reports.workflowOptions': defineRead({
     args: NO_ARGS,
-    perm: PERM,
+    perm: RUNS_ALL,
     run: async (ctx) => {
       const { data } = await (getDb(ctx) as any).from('workflows').select('id, name').order('name')
       return (data ?? []) as any[]
@@ -365,7 +385,7 @@ export const reads = {
   /** Side-by-side compare of two workflows over runs since `since` (newest 5000). */
   'reports.workflowCompare': defineRead({
     args: z.object({ a: id, b: id, since: isoDate }),
-    perm: PERM,
+    perm: RUNS_ALL,
     run: async (ctx, { a, b, since }) => {
       const db = getDb(ctx) as any
       const ids = [a, b]

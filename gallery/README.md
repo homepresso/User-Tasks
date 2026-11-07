@@ -53,6 +53,12 @@ lib/gallery/catalog.json           what the /gallery pages render (generated, co
   `start_form: { layout, theme }` on the trigger node) or from a reusable **form page**
   (`entry_form`): its Form submitted trigger, or its Submit button's Start workflow action.
   `sample_input` values may be `"$owner"` (the verifying user, for Person fields).
+- **Official form controls**: a form field (or start-form variable) with `type: "custom"` and
+  `custom.tag` = an official control's tag (`ut-rating`, `ut-likert`, `ut-chart`, …) makes the package
+  ship that control from `gallery/controls/<slug>` (`lib/gallery/source.ts` adds it to
+  `form_controls` by tag), so a source never copies a module. Any other tag must be in the package's
+  own `assets/form-controls/`. Saved reports (`assets/reports/`) use workflow-scoped sources
+  (`workflow_runs` / `tasks` with `source_inputs.workflow_id`) so their ids remap on install.
 - `systems` names the third-party systems for the chips (`["Workday"]`, `["SAP S/4HANA"]`).
 - **No integrations needed**: a package with no integration, connector, AI agent or MCP server and
   no install-time requirement gets the badge automatically (`isNativeContents`); its install is

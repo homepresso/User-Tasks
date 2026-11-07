@@ -1,0 +1,63 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+  "asset": {
+    "id": "3e2bc701-acd7-5fa5-a652-5ae368be0108",
+    "name": "Audit log rows",
+    "rows": [
+      {
+        "id": "ee0335f4-695a-508c-b84a-24b8ba540f0e",
+        "data": {
+          "reference": "DOC-20261021-K6F2",
+          "at": "2026-10-21T08:12:00Z",
+          "step": "Submitted",
+          "actor": "Jordan Sample",
+          "outcome": "Submitted",
+          "version": 1,
+          "document_name": "new-starter-onboarding-procedure-v1.pdf",
+          "detail": "Procedure · minor change · effective 2026-11-10"
+        }
+      },
+      {
+        "id": "6978914e-809d-5f10-97b0-9db6764d3b21",
+        "data": {
+          "reference": "DOC-20261021-K6F2",
+          "at": "2026-10-22T14:40:00Z",
+          "step": "Review 1",
+          "actor": "Riley Test",
+          "outcome": "Approve",
+          "version": 1,
+          "document_name": "new-starter-onboarding-procedure-v1.pdf",
+          "detail": "Clear and complete."
+        }
+      },
+      {
+        "id": "3f68d995-7e95-5280-85ed-ea7d65826faf",
+        "data": {
+          "reference": "DOC-20261006-J4E9",
+          "at": "2026-10-06T10:05:00Z",
+          "step": "Submitted",
+          "actor": "Morgan Placeholder",
+          "outcome": "Submitted",
+          "version": 1,
+          "document_name": "acceptable-use-policy-v1.pdf",
+          "detail": "Policy · major change · effective 2026-11-15"
+        }
+      },
+      {
+        "id": "4440663b-8db8-5163-b02b-701cc2bd3eca",
+        "data": {
+          "reference": "DOC-20261006-J4E9",
+          "at": "2026-10-08T16:20:00Z",
+          "step": "Review 1",
+          "actor": "Avery Example",
+          "outcome": "Request changes",
+          "version": 1,
+          "document_name": "acceptable-use-policy-v1.pdf",
+          "detail": "Section 4 should cover personal devices."
+        }
+      }
+    ]
+  }
+}

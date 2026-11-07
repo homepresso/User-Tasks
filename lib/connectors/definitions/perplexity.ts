@@ -17,7 +17,7 @@ export const perplexityConnector: ConnectorDefinition = {
         { value: 'sonar-pro', label: 'Sonar Pro (search + reasoning)' },
         { value: 'sonar', label: 'Sonar (search)' },
         { value: 'sonar-reasoning-pro', label: 'Sonar Reasoning Pro' },
-        { value: 'sonar-reasoning', label: 'Sonar Reasoning' },
+        { value: 'sonar-deep-research', label: 'Sonar Deep Research' },
       ],
       defaultValue: 'sonar-pro',
     },
@@ -29,15 +29,15 @@ export const perplexityConnector: ConnectorDefinition = {
     {
       key: 'chat_completion', name: 'Chat Completion', description: 'Generate a response with web search', method: 'POST', pathTemplate: '/chat/completions',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ model: '{{model}}', messages: [{ role: 'system', content: '{{system_prompt}}' }, { role: 'user', content: '{{user_message}}' }], max_tokens: '{{max_tokens}}', temperature: '{{temperature}}' }),
+      bodyTemplate: '{"model":"{{model}}","messages":[{"role":"system","content":"{{system_prompt}}"},{"role":"user","content":"{{user_message}}"}],"max_tokens":{{max_tokens}},"temperature":{{temperature}}}',
       inputs: [
         { name: 'model', type: 'string', required: false, description: 'Model name', defaultValue: 'sonar-pro' },
-        { name: 'system_prompt', type: 'string', required: false, description: 'System prompt' },
+        { name: 'system_prompt', type: 'string', required: false, description: 'System prompt', defaultValue: 'You are a helpful assistant.' },
         { name: 'user_message', type: 'string', required: true, description: 'User message' },
         { name: 'max_tokens', type: 'number', required: false, description: 'Max tokens', defaultValue: '1024' },
         { name: 'temperature', type: 'number', required: false, description: 'Temperature 0-2', defaultValue: '0.2' },
       ],
-      outputs: [{ name: 'content', type: 'string' }, { name: 'citations', type: 'array' }, { name: 'usage', type: 'object' }],
+      outputs: [{ name: 'choices.0.message.content', type: 'string' }, { name: 'citations', type: 'array' }, { name: 'search_results', type: 'array' }, { name: 'usage', type: 'object' }],
     },
   ],
   buildIntegrationConfig: (_config, credentials) => ({

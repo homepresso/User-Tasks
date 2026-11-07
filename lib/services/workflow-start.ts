@@ -16,6 +16,12 @@
  * `workflow_started_via` its channel (ui / api / cli / mcp, or the caller's
  * `via` — a form button passes `form`); start variables never set them.
  * Queued starts carry the initiator signed (lib/workflow-initiator).
+ *
+ * `submission` (lib/forms/submission-meta.ts) is reserved: a value in the
+ * start variables is dropped; a form button passes the server-built one,
+ * and a workflow with a designed start form gets one built here (no stored
+ * row: id / reference empty; source run_dialog from the Run dialog, api
+ * otherwise).
  */
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
@@ -23,6 +29,8 @@ import { dbError, serviceRoleClient } from './_shared'
 import { executeWorkflow } from '@/lib/workflow-engine'
 import { initiatorFromContext, stripInitiatorVariables, withQueuedInitiator, type StartedVia } from '@/lib/workflow-initiator'
 import { kickQueueProcessor } from '@/lib/process-queue'
+import { startFormKind } from '@/lib/forms/workflow-start-form'
+import { buildSubmissionMeta, stripSubmissionMeta, withSubmissionMeta, type SubmissionMeta } from '@/lib/forms/submission-meta'
 import { normalizeFormLayout } from '@/lib/forms/layout'
 import { parseFormThemeRef } from '@/lib/forms/form-theme'
 import { resolveThemeOverrides } from './forms'
@@ -53,6 +61,8 @@ async function requireTenantTask(ctx: ServiceContext, taskId: string) {
 interface LoadedWorkflow {
   schema: WorkflowInputSchema
   publishedVersionId: string | null
+  /** The trigger is a designed start form (its runs carry {{submission.*}}). */
+  startForm: boolean
 }
 
 async function loadWorkflowInputs(ctx: ServiceContext, workflowId: string): Promise<LoadedWorkflow> {
@@ -74,6 +84,7 @@ async function loadWorkflowInputs(ctx: ServiceContext, workflowId: string): Prom
 
   return {
     publishedVersionId,
+    startForm: startFormKind(version ? version.nodes : workflow.nodes) === 'start_form',
     schema: {
       workflow_id: workflow.id,
       workflow_name: workflow.name ?? '',
@@ -99,6 +110,23 @@ async function resolveStartForm(ctx: ServiceContext, nodes: unknown, keys: strin
     theme = await resolveThemeOverrides(ctx.supabase, ctx.tenantId, parseFormThemeRef(stored.theme))
   } catch { theme = null }
   return layout || theme ? { layout, theme: theme as Record<string, unknown> | null } : null
+}
+
+/** A designed start form's submission metadata: the starter, now, the workflow's version (nothing is stored). */
+async function startFormSubmission(ctx: ServiceContext, schema: WorkflowInputSchema, via: StartedVia): Promise<SubmissionMeta> {
+  let profile: { display_name?: string | null; email?: string | null } | null = null
+  if (ctx.actorId) {
+    const db = await serviceRoleClient(ctx)
+    const { data } = await (db as any).from('users').select('display_name, email').eq('id', ctx.actorId).maybeSingle()
+    profile = data ?? null
+  }
+  return buildSubmissionMeta({
+    id: null,
+    submitted_at: new Date().toISOString(),
+    submitter: { id: ctx.actorId ?? null, name: profile?.display_name ?? null, email: profile?.email ?? null },
+    form: { id: null, name: `${schema.workflow_name || 'Workflow'} (start form)`, version: schema.version_number ?? null },
+    source: via === 'ui' ? 'run_dialog' : via === 'test' ? 'test' : 'api',
+  })
 }
 
 /** The input form of a workflow (fields from the published version, else the draft). */
@@ -130,12 +158,14 @@ export async function startWorkflow(ctx: ServiceContext, input: StartWorkflowInp
   via?: StartedVia
   /** Attachments values were built by the server already (a form button's Start workflow, from the stored submission). */
   filesVerified?: boolean
+  /** The submission metadata a form button's start carries ({{submission.*}}); server-built, never from the request. */
+  submission?: SubmissionMeta
 } = {}): Promise<StartWorkflowResult> {
   requirePerm(ctx, 'workflows.activate')
-  const { schema, publishedVersionId } = await loadWorkflowInputs(ctx, input.workflow_id)
+  const { schema, publishedVersionId, startForm } = await loadWorkflowInputs(ctx, input.workflow_id)
   if (!schema.is_active) throw ServiceError.validation('Workflow is not active')
 
-  const checked = validateWorkflowInputs(schema.fields, stripInitiatorVariables(input.variables))
+  const checked = validateWorkflowInputs(schema.fields, stripSubmissionMeta(stripInitiatorVariables(input.variables)))
   if (!checked.ok) {
     throw ServiceError.validation(`Invalid workflow inputs: ${formatInputErrors(checked.errors)}`,
       checked.errors.map((e) => ({ path: `body.variables.${e.field}`, field: e.field, message: e.message })))
@@ -161,6 +191,8 @@ export async function startWorkflow(ctx: ServiceContext, input: StartWorkflowInp
   if (input.task_id) await requireTenantTask(ctx, input.task_id)
   const priority = Math.max(0, Math.min(Math.round(input.priority ?? 50), 100))
   const initiator = initiatorFromContext(ctx, options.via)
+  const meta = options.submission ?? (startForm ? await startFormSubmission(ctx, schema, initiator.via) : null)
+  if (meta) Object.assign(checked.values, withSubmissionMeta({}, meta))
 
   if (input.async) {
     // enqueue_workflow is service-role only (20261118000000): the

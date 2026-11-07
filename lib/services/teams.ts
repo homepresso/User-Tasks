@@ -14,12 +14,20 @@ import { audit, dbError } from './_shared'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- teams/user_teams rows */
 
-const TEAM_COLUMNS = 'id, name, description, parent_id, created_at, updated_at'
+const TEAM_COLUMNS = 'id, name, description, parent_id, lead_user_id, org_unit_id, colour, kind, created_at, updated_at'
 
 export interface TeamInput {
   name: string
   description?: string | null
   parent_id?: string | null
+  /** Team lead (an active member of the workspace). */
+  lead_user_id?: string | null
+  /** Org unit the team belongs to. */
+  org_unit_id?: string | null
+  /** Hex colour like #3366FF. */
+  colour?: string | null
+  /** 'team' (default), 'squad', 'guild' or any custom kind. */
+  kind?: string | null
 }
 
 export type TeamUpdateInput = Partial<TeamInput>
@@ -37,6 +45,44 @@ async function loadTeam(ctx: ServiceContext, teamId: string, select = TEAM_COLUM
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Team not found')
   return data as Record<string, any>
+}
+
+async function checkLead(ctx: ServiceContext, userId: string | null | undefined) {
+  if (!userId) return null
+  const { data, error } = await (ctx.supabase as any).from('user_memberships')
+    .select('user_id, is_active').eq('tenant_id', ctx.tenantId).eq('user_id', userId).maybeSingle()
+  if (error) throw dbError(error)
+  if (!data || data.is_active === false) throw ServiceError.validation('The team lead must be an active member of this workspace')
+  return userId
+}
+
+async function checkOrgUnit(ctx: ServiceContext, unitId: string | null | undefined) {
+  if (!unitId) return null
+  const { data, error } = await (ctx.supabase as any).from('org_units')
+    .select('id').eq('id', unitId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  if (error) throw dbError(error)
+  if (!data) throw ServiceError.validation('Org unit not found')
+  return unitId
+}
+
+function cleanColour(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === '') return null
+  const value = String(raw).trim()
+  if (!/^#[0-9A-Fa-f]{6}$/.test(value)) throw ServiceError.validation('Colour must be a hex colour like #3366FF')
+  return value.toUpperCase()
+}
+
+function cleanKind(raw: unknown): string {
+  const kind = String(raw ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+  if (!kind) return 'team'
+  if (kind.length > 50) throw ServiceError.validation('Team kind too long (max 50 characters)')
+  return kind
+}
+
+function teamDbError(error: { message?: string } | null, fallback: string): Error {
+  const message = error?.message ?? ''
+  if (/team_cycle|team_parent_tenant|team_org_unit_tenant/.test(message)) return ServiceError.validation(message.replace(/^.*?: /, ''))
+  return dbError(error, fallback)
 }
 
 async function checkParent(ctx: ServiceContext, parentId: string | null | undefined, selfId?: string) {
@@ -92,8 +138,12 @@ export async function createTeam(ctx: ServiceContext, input: TeamInput) {
     name,
     description: String(input.description ?? '').trim() || null,
     parent_id: parentId,
+    lead_user_id: await checkLead(ctx, input.lead_user_id),
+    org_unit_id: await checkOrgUnit(ctx, input.org_unit_id),
+    colour: cleanColour(input.colour),
+    kind: cleanKind(input.kind),
   }).select(TEAM_COLUMNS).single()
-  if (error || !data) throw dbError(error, 'Failed to create team')
+  if (error || !data) throw teamDbError(error, 'Failed to create team')
   await audit(ctx, { objectType: 'team', objectId: data.id, action: 'create', summary: `Created team "${name}"` })
   return data as Record<string, any>
 }
@@ -105,11 +155,15 @@ export async function updateTeam(ctx: ServiceContext, teamId: string, input: Tea
   if (input.name !== undefined) updates.name = cleanName(input.name)
   if (input.description !== undefined) updates.description = String(input.description ?? '').trim() || null
   if (input.parent_id !== undefined) updates.parent_id = await checkParent(ctx, input.parent_id, teamId)
+  if (input.lead_user_id !== undefined) updates.lead_user_id = await checkLead(ctx, input.lead_user_id)
+  if (input.org_unit_id !== undefined) updates.org_unit_id = await checkOrgUnit(ctx, input.org_unit_id)
+  if (input.colour !== undefined) updates.colour = cleanColour(input.colour)
+  if (input.kind !== undefined) updates.kind = cleanKind(input.kind)
   if (Object.keys(updates).length === 0) throw ServiceError.validation('No fields to update')
   updates.updated_at = new Date().toISOString()
   const { data, error } = await (ctx.supabase as any).from('teams')
     .update(updates).eq('id', teamId).eq('tenant_id', ctx.tenantId).select(TEAM_COLUMNS).single()
-  if (error || !data) throw dbError(error, 'Failed to update team')
+  if (error || !data) throw teamDbError(error, 'Failed to update team')
   await audit(ctx, {
     objectType: 'team', objectId: teamId, action: 'update', summary: `Updated team "${data.name}"`,
     metadata: { fields: Object.keys(updates).filter((key) => key !== 'updated_at') },

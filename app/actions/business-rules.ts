@@ -7,6 +7,7 @@ import { writeAudit } from '@/lib/audit-log'
 import { shallowDiff } from '@/lib/audit-log'
 import { enqueueDeletionJob, kickDeletionProcessor } from '@/lib/deletion-queue'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -29,6 +30,10 @@ export async function createDecisionTable(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   const description = String(formData.get('description') ?? '').trim()
   if (!name) throw new Error('Name is required')
+
+  // A repeated submit (double click, retry) reuses the table this user just created.
+  const recent = await findRecentDuplicate<{ id: string }>(supabase, 'decision_tables', { tenant_id: tenantId, created_by: user.id, name })
+  if (recent) return recent
 
   const { data, error } = await (supabase as any)
     .from('decision_tables')

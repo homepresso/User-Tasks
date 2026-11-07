@@ -1,5 +1,8 @@
 import type { ConnectorDefinition } from '../registry'
 
+/** Box serves uploads from a separate host. */
+const BOX_UPLOAD_BASE = 'https://upload.box.com/api'
+
 export const boxConnector: ConnectorDefinition = {
   key: 'box',
   name: 'Box',
@@ -8,23 +11,19 @@ export const boxConnector: ConnectorDefinition = {
   icon: 'Archive',
   color: '#0061D5',
   docsUrl: 'https://developer.box.com/reference/',
-  fields: [
-    {
-      key: 'default_folder_id',
-      label: 'Default Folder ID (optional)',
-      type: 'text',
-      placeholder: '0',
-      defaultValue: '0',
-      helpText: 'Default folder for uploads. 0 = root folder.',
-    },
-  ],
+  recommendedPermissions: {
+    title: 'Box app setup',
+    items: ['Server Authentication (Client Credentials Grant)', 'Read and write all files and folders', 'Manage users (only for As-User)'],
+    note: 'Authorise the app in the Box Admin Console. The token acts as the app\'s Service Account unless Box User ID is set (then as that managed or app user). As-User additionally needs the "Make API calls using the as-user header" advanced feature.',
+  },
+  fields: [],
   credentialFields: [
     {
       key: 'auth_type',
       label: 'Authentication Type',
       type: 'select',
       options: [
-        { value: 'developer_token', label: 'Developer Token (testing)' },
+        { value: 'developer_token', label: 'Developer Token (testing only — expires after 60 minutes)' },
         { value: 'client_credentials', label: 'Client Credentials (server-to-server)' },
       ],
       required: true,
@@ -36,7 +35,7 @@ export const boxConnector: ConnectorDefinition = {
       type: 'password',
       visibleWhen: { field: 'auth_type', equals: 'developer_token' },
       requiredWhen: { field: 'auth_type', equals: 'developer_token' },
-      helpText: 'Short-lived developer token from Box Developer Console, or OAuth access token',
+      helpText: 'Developer token from the Box Developer Console (valid 60 minutes) — use Client Credentials for anything long-lived',
     },
     {
       key: 'client_id',
@@ -62,6 +61,19 @@ export const boxConnector: ConnectorDefinition = {
       requiredWhen: { field: 'auth_type', equals: 'client_credentials' },
       helpText: 'Required for Client Credentials (server-to-server) auth',
     },
+    {
+      key: 'box_user_id',
+      label: 'Box User ID (optional)',
+      type: 'text',
+      visibleWhen: { field: 'auth_type', equals: 'client_credentials' },
+      helpText: 'Mint tokens for this managed or app user instead of the app\'s Service Account',
+    },
+    {
+      key: 'as_user_id',
+      label: 'As-User ID (optional)',
+      type: 'text',
+      helpText: 'Send every call with the As-User header (act on behalf of this user; needs admin-approved As-User permission)',
+    },
   ],
   referenceTemplates: [
     // ─── Files ───
@@ -85,36 +97,55 @@ export const boxConnector: ConnectorDefinition = {
     {
       key: 'download_file',
       name: 'Download File',
-      description: 'Download file content by ID',
+      description: 'Download a file as a workflow file',
       method: 'GET',
       pathTemplate: '/2.0/files/{{file_id}}/content',
       inputs: [
         { name: 'file_id', type: 'string', required: true, description: 'Box file ID' },
       ],
       outputs: [
-        { name: 'content', type: 'string' },
+        { name: 'name', type: 'string' },
+        { name: 'url', type: 'string' },
+        { name: 'size', type: 'number' },
         { name: 'content_type', type: 'string' },
       ],
     },
     {
       key: 'upload_file',
       name: 'Upload File',
-      description: 'Upload a new file to a folder',
+      description: 'Upload a workflow file (a form attachment, up to 50 MB) as a new file in a folder. Fails with 409 item_name_in_use if the name exists — use Upload New Version.',
       method: 'POST',
+      baseUrl: BOX_UPLOAD_BASE,
       pathTemplate: '/2.0/files/content',
       headers: { 'Content-Type': 'multipart/form-data' },
-      bodyTemplate: JSON.stringify({
-        attributes: { name: '{{file_name}}', parent: { id: '{{folder_id}}' } },
-        file: '{{content}}',
-      }),
+      // attributes before file (Box requires that order; the multipart builder keeps it).
+      bodyTemplate: '{"attributes": {"name": "{{file_name}}", "parent": {"id": "{{folder_id}}"}}, "file": "{{content}}"}',
       inputs: [
+        { name: 'content', type: 'string', required: true, description: 'The file to upload (an attachment from a form or a previous step)' },
         { name: 'file_name', type: 'string', required: true, description: 'Name for the uploaded file' },
         { name: 'folder_id', type: 'string', required: false, description: 'Parent folder ID (0 = root)', defaultValue: '0' },
-        { name: 'content', type: 'string', required: true, description: 'File content or base64 data' },
       ],
       outputs: [
-        { name: 'id', type: 'string' },
-        { name: 'name', type: 'string' },
+        { name: 'entries', type: 'array' },
+        { name: 'total_count', type: 'number' },
+      ],
+    },
+    {
+      key: 'upload_file_version',
+      name: 'Upload New Version',
+      description: 'Upload a workflow file (up to 50 MB) as a new version of an existing file',
+      method: 'POST',
+      baseUrl: BOX_UPLOAD_BASE,
+      pathTemplate: '/2.0/files/{{file_id}}/content',
+      headers: { 'Content-Type': 'multipart/form-data' },
+      bodyTemplate: '{"attributes": {}, "file": "{{content}}"}',
+      inputs: [
+        { name: 'file_id', type: 'string', required: true, description: 'Box file ID' },
+        { name: 'content', type: 'string', required: true, description: 'The new file contents (an attachment from a form or a previous step)' },
+      ],
+      outputs: [
+        { name: 'entries', type: 'array' },
+        { name: 'total_count', type: 'number' },
       ],
     },
     {
@@ -127,7 +158,7 @@ export const boxConnector: ConnectorDefinition = {
       bodyTemplate: '{{update_json}}',
       inputs: [
         { name: 'file_id', type: 'string', required: true, description: 'Box file ID' },
-        { name: 'update_json', type: 'string', required: true, description: 'JSON with fields to update (e.g. {"name":"new.pdf","description":"Updated"})' },
+        { name: 'update_json', type: 'object', required: true, description: 'JSON with fields to update (e.g. {"name":"new.pdf","description":"Updated"} or {"parent":{"id":"123"}} to move)' },
       ],
       outputs: [
         { name: 'id', type: 'string' },
@@ -143,7 +174,7 @@ export const boxConnector: ConnectorDefinition = {
       inputs: [
         { name: 'file_id', type: 'string', required: true, description: 'Box file ID' },
       ],
-      outputs: [{ name: 'status', type: 'number' }],
+      outputs: [],
     },
     {
       key: 'copy_file',
@@ -152,7 +183,7 @@ export const boxConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/2.0/files/{{file_id}}/copy',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ parent: { id: '{{target_folder_id}}' }, name: '{{new_name}}' }),
+      bodyTemplate: '{"parent": {"id": "{{target_folder_id}}"}, "name": {{new_name}}}',
       inputs: [
         { name: 'file_id', type: 'string', required: true, description: 'Source file ID' },
         { name: 'target_folder_id', type: 'string', required: true, description: 'Destination folder ID' },
@@ -167,11 +198,12 @@ export const boxConnector: ConnectorDefinition = {
       method: 'PUT',
       pathTemplate: '/2.0/files/{{file_id}}?fields=shared_link',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ shared_link: { access: '{{access}}', password: '{{password}}' } }),
+      bodyTemplate: '{"shared_link": {"access": "{{access}}", "password": {{password}}, "unshared_at": {{expires_at}}}}',
       inputs: [
         { name: 'file_id', type: 'string', required: true, description: 'Box file ID' },
         { name: 'access', type: 'string', required: false, description: 'Access level: open, company, collaborators', defaultValue: 'open' },
-        { name: 'password', type: 'string', required: false, description: 'Optional password for the link' },
+        { name: 'password', type: 'string', required: false, description: 'Optional password (open links only)' },
+        { name: 'expires_at', type: 'string', required: false, description: 'Optional expiry (ISO 8601; paid accounts)' },
       ],
       outputs: [{ name: 'shared_link', type: 'object' }],
     },
@@ -179,18 +211,19 @@ export const boxConnector: ConnectorDefinition = {
     {
       key: 'list_folder',
       name: 'List Folder Items',
-      description: 'List files and subfolders in a folder',
+      description: 'List files and subfolders in a folder (marker paging: pass marker = the previous next_marker until it is empty)',
       method: 'GET',
-      pathTemplate: '/2.0/folders/{{folder_id}}/items?fields={{fields}}&limit={{limit}}&offset={{offset}}',
+      pathTemplate: '/2.0/folders/{{folder_id}}/items?fields={{fields}}&limit={{limit}}&usemarker=true&marker={{marker}}',
       inputs: [
         { name: 'folder_id', type: 'string', required: true, description: 'Folder ID (0 = root)' },
         { name: 'fields', type: 'string', required: false, description: 'Fields to return', defaultValue: 'id,name,type,size,modified_at' },
-        { name: 'limit', type: 'number', required: false, description: 'Max items', defaultValue: '100' },
-        { name: 'offset', type: 'number', required: false, description: 'Offset for pagination', defaultValue: '0' },
+        { name: 'limit', type: 'number', required: false, description: 'Items per page (max 1000)', defaultValue: '100' },
+        { name: 'marker', type: 'string', required: false, description: 'next_marker from the previous page' },
       ],
       outputs: [
         { name: 'entries', type: 'array' },
-        { name: 'total_count', type: 'number' },
+        { name: 'next_marker', type: 'string' },
+        { name: 'limit', type: 'number' },
       ],
     },
     {
@@ -200,7 +233,7 @@ export const boxConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/2.0/folders',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ name: '{{folder_name}}', parent: { id: '{{parent_id}}' } }),
+      bodyTemplate: '{"name": "{{folder_name}}", "parent": {"id": "{{parent_id}}"}}',
       inputs: [
         { name: 'folder_name', type: 'string', required: true, description: 'Folder name' },
         { name: 'parent_id', type: 'string', required: false, description: 'Parent folder ID', defaultValue: '0' },
@@ -210,20 +243,20 @@ export const boxConnector: ConnectorDefinition = {
     {
       key: 'delete_folder',
       name: 'Delete Folder',
-      description: 'Move a folder to trash',
+      description: 'Move a folder to trash (a non-empty folder needs recursive = true)',
       method: 'DELETE',
       pathTemplate: '/2.0/folders/{{folder_id}}?recursive={{recursive}}',
       inputs: [
         { name: 'folder_id', type: 'string', required: true, description: 'Folder ID' },
-        { name: 'recursive', type: 'string', required: false, description: 'Delete contents recursively', defaultValue: 'true' },
+        { name: 'recursive', type: 'boolean', required: false, description: 'Also trash the contents', defaultValue: 'false' },
       ],
-      outputs: [{ name: 'status', type: 'number' }],
+      outputs: [],
     },
     // ─── Search ───
     {
       key: 'search',
       name: 'Search Content',
-      description: 'Search for files and folders across Box',
+      description: 'Search for files and folders across Box (offset paging: offset + limit, up to total_count)',
       method: 'GET',
       pathTemplate: '/2.0/search?query={{query}}&type={{type}}&file_extensions={{extensions}}&ancestor_folder_ids={{folder_ids}}&limit={{limit}}&offset={{offset}}',
       inputs: [
@@ -237,6 +270,7 @@ export const boxConnector: ConnectorDefinition = {
       outputs: [
         { name: 'entries', type: 'array' },
         { name: 'total_count', type: 'number' },
+        { name: 'offset', type: 'number' },
       ],
     },
     // ─── Users ───
@@ -261,29 +295,32 @@ export const boxConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/2.0/collaborations',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        item: { type: '{{item_type}}', id: '{{item_id}}' },
-        accessible_by: { type: 'user', login: '{{email}}' },
-        role: '{{role}}',
-      }),
+      bodyTemplate: '{"item": {"type": "{{item_type}}", "id": "{{item_id}}"}, "accessible_by": {"type": "user", "login": "{{email}}"}, "role": "{{role}}"}',
       inputs: [
         { name: 'item_type', type: 'string', required: true, description: 'Item type: file or folder' },
         { name: 'item_id', type: 'string', required: true, description: 'File or folder ID' },
         { name: 'email', type: 'string', required: true, description: 'Collaborator email' },
-        { name: 'role', type: 'string', required: false, description: 'Role: editor, viewer, co-owner, etc.', defaultValue: 'editor' },
+        { name: 'role', type: 'string', required: false, description: 'editor, viewer, previewer, uploader, previewer uploader, viewer uploader, or co-owner', defaultValue: 'editor' },
       ],
       outputs: [{ name: 'id', type: 'string' }, { name: 'role', type: 'string' }],
     },
   ],
-  buildIntegrationConfig: (_config, credentials) => ({
-    base_url: 'https://api.box.com',
-    auth_type: 'bearer',
-    auth_config: {
-      token: credentials.access_token || '',
-      _executor: credentials.auth_type === 'client_credentials' ? 'box_ccg' : undefined,
-      client_id: credentials.client_id,
-      client_secret: credentials.client_secret,
-      enterprise_id: credentials.enterprise_id,
-    },
-  }),
+  buildIntegrationConfig: (_config, credentials) => {
+    const ccg = credentials.auth_type === 'client_credentials'
+    const asUser = String(credentials.as_user_id ?? '').trim()
+    const boxUser = String(credentials.box_user_id ?? '').trim()
+    return {
+      base_url: 'https://api.box.com',
+      auth_type: 'bearer',
+      auth_config: {
+        token: ccg ? '' : credentials.access_token || '',
+        _executor: ccg ? 'box_ccg' : undefined,
+        client_id: credentials.client_id,
+        client_secret: credentials.client_secret,
+        enterprise_id: credentials.enterprise_id,
+        ...(ccg && boxUser ? { box_subject_type: 'user', box_subject_id: boxUser } : {}),
+      },
+      ...(asUser ? { headers: { 'As-User': asUser } } : {}),
+    }
+  },
 }

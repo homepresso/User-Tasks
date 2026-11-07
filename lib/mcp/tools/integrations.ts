@@ -133,6 +133,8 @@ export function registerIntegrationTools(server: McpToolServer, ctx: McpContext)
     display_name: z.string().optional().describe('Friendly connector display name'),
     config: z.string().optional().describe('JSON string of connector configuration fields'),
     credentials: z.string().optional().describe('JSON string of connector credentials/secrets'),
+    reference_mode: z.enum(['all', 'none', 'selected']).optional().describe("'all' (default) generates every catalogue operation as a reference; 'none' starts empty (build custom references); 'selected' generates reference_template_keys"),
+    reference_template_keys: z.array(z.string()).optional().describe("Operation keys to generate when reference_mode is 'selected'"),
   }, async (args) => {
     const configArg = parseJsonArg<Record<string, unknown>>(args.config, 'config')
     if (!configArg.ok) return mcpErr(configArg.error)
@@ -146,6 +148,8 @@ export function registerIntegrationTools(server: McpToolServer, ctx: McpContext)
         display_name: args.display_name,
         config: config ?? {},
         credentials: credentials ?? {},
+        reference_mode: args.reference_mode,
+        reference_template_keys: args.reference_template_keys,
       })
       return { created: true, ...result }
     })
@@ -274,7 +278,7 @@ export function registerIntegrationTools(server: McpToolServer, ctx: McpContext)
     name: z.string().describe('Reference name'),
     description: z.string().optional(),
     method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'QUERY', 'EXEC', 'INSERT']).describe('HTTP or database method'),
-    request_config: z.string().describe('JSON string: {"method": "GET"|"POST"|"PUT"|"DELETE", "path_template": "/api/users/{{id}}", "body_template": "{}", "query_params": {}, "headers": {}}'),
+    request_config: z.string().describe('JSON string: {"method": "GET"|"POST"|"PUT"|"DELETE", "path_template": "/api/users/{{id}}", "body_template": "{}", "query_params": {}, "headers": {}}. A custom reference instead: {"origin": "custom", "custom": {"kind": "list"|"read"|"create"|"update"|"upsert"|"delete"|"execute", "source": {"type": "operation", "reference_id": "<an existing reference of this integration>", "params": [{"name": "<operation input>", "value": "{{input.x}} or a constant"}]}, "inputs": [{"name", "type", "mode": "ask"|"fixed", "fixed_value"?, "fixed_setting"?}], "rows_path": "items", "columns": [{"path", "alias"?}], "filter"?, "sort"?, "distinct"?, "page_size"?, "write"? (write kinds: method, body {mode, fields}, idempotency, set/key columns, procedure, max_affected, not_found)} } — the server builds the request, public inputs, outputs and model'),
     inputs: z.string().optional().describe('JSON string of input definitions: [{"name": "id", "type": "string", "required": true, "location": "path"}]'),
     outputs: z.string().optional().describe('JSON string of output definitions: [{"name": "user_name", "path": "data.name", "type": "string"}]'),
     response_schema: z.string().optional().describe('JSON string response model: {"root": {"type": "object", "fields": [{"name": "data", "type": "array", "items": {"type": "object", "fields": [{"name": "email", "type": "string"}]}}]}}. "null" clears it. Optional — references_get derives one from outputs, and integrations_execute_reference with capture_schema infers it from a real response.'),
@@ -314,7 +318,7 @@ export function registerIntegrationTools(server: McpToolServer, ctx: McpContext)
     name: z.string().optional(),
     description: z.string().optional(),
     method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional(),
-    request_config: z.string().optional().describe('JSON string: {"method": "GET"|"POST"|"PUT"|"DELETE", "path_template": "/api/users/{{id}}", "body_template": "{}", "query_params": {}, "headers": {}}'),
+    request_config: z.string().optional().describe('JSON string: {"method": "GET"|"POST"|"PUT"|"DELETE", "path_template": "/api/users/{{id}}", "body_template": "{}", "query_params": {}, "headers": {}}. A custom reference instead: {"origin": "custom", "custom": {"kind": "list"|"read"|"create"|"update"|"upsert"|"delete"|"execute", "source": {"type": "operation", "reference_id": "<an existing reference of this integration>", "params": [{"name": "<operation input>", "value": "{{input.x}} or a constant"}]}, "inputs": [{"name", "type", "mode": "ask"|"fixed", "fixed_value"?, "fixed_setting"?}], "rows_path": "items", "columns": [{"path", "alias"?}], "filter"?, "sort"?, "distinct"?, "page_size"?, "write"? (write kinds: method, body {mode, fields}, idempotency, set/key columns, procedure, max_affected, not_found)} } — the server builds the request, public inputs, outputs and model'),
     inputs: z.string().optional().describe('JSON string of input definitions: [{"name": "id", "type": "string", "required": true, "location": "path"}]'),
     outputs: z.string().optional().describe('JSON string of output definitions: [{"name": "user_name", "path": "data.name", "type": "string"}]'),
     response_schema: z.string().optional().describe('JSON string response model: {"root": {"type": "object", "fields": [{"name": "data", "type": "array", "items": {"type": "object", "fields": [{"name": "email", "type": "string"}]}}]}}. "null" clears it. Optional — references_get derives one from outputs, and integrations_execute_reference with capture_schema infers it from a real response.'),

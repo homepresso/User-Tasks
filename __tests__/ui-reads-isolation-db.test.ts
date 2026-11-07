@@ -26,6 +26,8 @@ import type { ServiceContext } from '@/lib/services/context'
 /* eslint-disable @typescript-eslint/no-explicit-any -- fixture rows and zod shapes */
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+/** Reads whose answer repeats their text input (see the leak check). */
+const ECHO_READS = new Set(['forms.systemNameCheck', 'forms.systemNameSuggest', 'settings.workspaceAddressCheck'])
 
 type K = 'A' | 'B'
 function uid(key: string): string {
@@ -76,6 +78,8 @@ const SPECS: Array<{ table: string; make: (k: K) => Record<string, unknown>; noI
   { table: 'forms', make: (k) => ({ tenant_id: TENANT[k], name: `${MARK[k]} form`, fields: JSON.stringify([{ key: 'note', label: `${MARK[k]} field`, type: 'text' }]) }) },
   { table: 'form_versions', make: (k) => ({ tenant_id: TENANT[k], form_id: id('forms', k), version: 1, name: `${MARK[k]} form v1`, fields: JSON.stringify([{ key: 'note', label: `${MARK[k]} field`, type: 'text' }]) }) },
   { table: 'form_themes', make: (k) => ({ tenant_id: TENANT[k], name: `${MARK[k]} theme`, overrides: { radius: 4 } }) },
+  // Task tracker → Following (20261226000000): each user follows their own workspace's task.
+  { table: 'task_followers', noId: true, make: (k) => ({ tenant_id: TENANT[k], user_id: USER[k], task_id: id('tasks', k) }) },
 ]
 
 /**
@@ -134,13 +138,13 @@ describe.skipIf(!DB_URL)('dashboard reads: tenant isolation (local DB)', () => {
     }
     for (const spec of SPECS) {
       for (const k of ['A', 'B'] as const) {
-        const values = { id: id(spec.table, k), ...spec.make(k) }
+        const values: Record<string, unknown> = spec.noId ? spec.make(k) : { id: id(spec.table, k), ...spec.make(k) }
         const cols = Object.keys(values)
         await db.query('SAVEPOINT row')
         try {
           await db.query(`INSERT INTO public.${spec.table} (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`, Object.values(values))
           await db.query('RELEASE SAVEPOINT row')
-          ;(k === 'A' ? aIds : bIds).add(values.id)
+          if (typeof values.id === 'string') (k === 'A' ? aIds : bIds).add(values.id)
         } catch (error) {
           await db.query('ROLLBACK TO SAVEPOINT row')
           throw new Error(`fixture ${spec.table}: ${(error as Error).message}`)
@@ -194,7 +198,10 @@ describe.skipIf(!DB_URL)('dashboard reads: tenant isolation (local DB)', () => {
 
   it('no read returns another workspace\'s rows, by any id', async () => {
     const leaks = (await runAll(bIds))
-      .filter(({ json }) => json.includes(MARK.B) || [...bIds].some((b) => json.includes(b)))
+      // Reads that echo a free-text argument back (a system name check / suggestion
+      // normalises the text it was given) contain the id only because it was the
+      // input; they're still checked for B's marked rows.
+      .filter(({ name, json }) => json.includes(MARK.B) || (!ECHO_READS.has(name) && [...bIds].some((b) => json.includes(b))))
       .map(({ name, args }) => `${name} ${JSON.stringify(args)}`)
     expect(leaks).toEqual([])
   }, 300_000)
@@ -205,5 +212,7 @@ describe.skipIf(!DB_URL)('dashboard reads: tenant isolation (local DB)', () => {
     expect(found.size).toBeGreaterThan(10)
     // The forms library reads see the caller's forms, versions, themes and tables.
     for (const name of ['forms.list', 'forms.get', 'forms.versions', 'forms.themes', 'forms.tableColumns']) expect(found, name).toContain(name)
+    // Task tracker → Following: the caller's followed task through RLS.
+    expect(found, 'tasks.following').toContain('tasks.following')
   }, 300_000)
 })

@@ -31,6 +31,7 @@ import { ColorSchema, isOwnStorageUrl, type ThemeMode, type ThemePalette } from 
 import { CURATED_FONTS, FONT_FAMILY_RE, SYSTEM_FONT_STACKS, findCuratedFont } from '@/lib/theme/fonts'
 import { fontFamilyValue, paletteVars } from '@/lib/theme/to-css'
 import { presetToWorkspaceTheme } from '@/lib/theme/presets'
+import { clampFormWidthPct } from './form-width'
 
 export const FormThemeColorsSchema = z.object({
   /** Buttons, focus ring, links, selected options. */
@@ -79,6 +80,10 @@ export const FormThemeOverridesSchema = z.object({
   label_position: z.enum(['top', 'left']).optional(),
   /** Where the form's buttons sit: left, right (default) or full width. */
   button_placement: z.enum(['left', 'right', 'full']).optional(),
+  /** How wide the form card may grow: narrow, normal (default), wide, full or custom (lib/forms/form-width.ts). */
+  form_width: z.enum(['narrow', 'normal', 'wide', 'full', 'custom']).optional(),
+  /** custom: the share of the available width, 40–100 % (clamped and rounded; never under ~320px, 100 % on phones). */
+  form_width_pct: z.number().finite().transform(clampFormWidthPct).optional(),
   header: z.object({
     enabled: z.boolean(),
     title: SafeText(120).optional(),

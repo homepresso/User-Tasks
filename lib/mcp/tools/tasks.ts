@@ -1,4 +1,6 @@
 import type { McpToolServer } from '../server'
+import { registerTaskAttachmentTools } from './task-attachments'
+import { registerTaskFollowTools } from './task-follows'
 import { buildTaskDataObject } from '@/lib/task-data'
 import { z } from 'zod'
 import type { McpContext } from '../server'
@@ -10,13 +12,23 @@ import type { Json } from '@/lib/database.types'
 import { sanitizeTaskDescription } from '@/lib/html-sanitize'
 import { withDescriptionText } from '@/lib/task-description-format'
 import { fromMcpContext } from '@/lib/services/context'
+import { acceptanceForAssignee } from '@/lib/tasks/queue-rules-server'
+import { QUEUE_TASK_COLUMNS, queueFactsFromTask } from '@/lib/tasks/queue-rules'
 
 const DESCRIPTION_HTML = 'Plain text or HTML (sanitised to an allowlist: formatting, lists, headings, links, tables, https images)'
 
 const taskFieldValuesSchema = z.record(z.string(), z.unknown()).optional()
   .describe('Values for the user_task node\'s fields, keyed by field key (see tasks_get → metadata.fields). Stored on the task as task.data.<key> and passed to the resumed workflow as {{task_data.<key>}}.')
 
+/** Queued or added for the new assignee of a redirected / escalated task (their queue rules). */
+async function acceptanceOnReassign(supabase: any, tenantId: string, taskId: string, targetUserId: string, actingUserId: string | null | undefined, kind: 'redirect' | 'escalation') {
+  const { data: task } = await supabase.from('tasks').select(QUEUE_TASK_COLUMNS).eq('id', taskId).eq('tenant_id', tenantId).maybeSingle()
+  return acceptanceForAssignee(supabase, targetUserId, queueFactsFromTask(task, { assignedBy: actingUserId ?? null, origins: ['mcp', kind] }), undefined, { tenantId })
+}
+
 export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
+  registerTaskAttachmentTools(server, ctx)
+  registerTaskFollowTools(server, ctx)
   const { tenantId, supabase } = ctx
   const actingUserId = ctx.actingUserId ?? null
 
@@ -35,6 +47,8 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
         completed: true, task_id: args.task_id, outcome: result.outcome, workflow_resumed: result.workflow_resumed,
         ...(result.workflow_resumed ? { workflow_status: 'queued', run_id: result.run_id, resumed: 'queued' } : { workflow_error: result.workflow_error }),
         acted_as: result.acted_as, on_behalf_of: result.on_behalf_of,
+        // What happens next (as the Task completed screen shows it), after a brief bounded wait for the queue.
+        next: await (await import('@/lib/services/task-completion-screen')).nextStepForResponse(fromMcpContext(ctx), args.task_id),
       })
     } catch (error) {
       return mcpErr(error instanceof Error ? error.message : 'Failed to complete the task')
@@ -115,15 +129,30 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     return mcpOk(withDescriptionText(buildTaskDataObject({ task: data as any, responses, events }), args.strip_html === true))
   })
 
-  server.tool('tasks_lookup', 'Suggestions for an Autocomplete / lookup field of an open task\'s form (field type "lookup" in tasks_get → metadata.fields). Runs only the lookup stored on the task (its data table or API reference, columns and filters); returns items { value, label, description?, fields }. Complete the task with the chosen item\'s value as values.<field_key>; the server confirms it and stores the item as task_data.<field_key>_item.', {
+  server.tool('tasks_data_table', 'Rows of a Data table field of an open task\'s form (field type "data_table" in tasks_get → metadata.fields): search, column filters, sort and paging on the server against the stored source; the author\'s base filter always applies and only the selected columns are returned. Returns { rows [{ key, values }], total, page, page_size }.', {
+    task_id: z.string().describe('Task ID'),
+    field_key: z.string().describe('Key of the Data table field'),
+    query: z.record(z.string(), z.unknown()).optional().describe('{ search?, filters? [{ column, operator, value }], sort? [{ column, direction }], page?, page_size? }'),
+    values: z.record(z.string(), z.unknown()).optional().describe('The form\'s current values, for {{form.<key>}} in the base filter / API inputs'),
+  }, async (args) => {
+    try {
+      const [{ fromMcpContext }, { queryDataTable }] = await Promise.all([import('@/lib/services/context'), import('@/lib/services/form-data-table')])
+      return mcpOk(await queryDataTable(fromMcpContext(ctx), { task_id: args.task_id }, { field_key: args.field_key, query: args.query, values: args.values }))
+    } catch (error) {
+      return mcpErr(error instanceof Error ? error.message : 'Data table query failed')
+    }
+  })
+
+  server.tool('tasks_lookup', 'Suggestions for an Autocomplete / lookup field of an open task\'s form (field type "lookup" in tasks_get → metadata.fields). Runs only the lookup stored on the task (its data table or API reference, columns and filters); returns items { value, label, description?, fields }. Complete the task with the chosen item\'s value as values.<field_key>; the server confirms it and stores the item as task_data.<field_key>_item and its display label as task_data.<field_key>_label. Pass resolve: [values] to get the items (labels) of stored values instead of searching.', {
     task_id: z.string().describe('Task ID'),
     field_key: z.string().describe('Key of the lookup field'),
     query: z.string().optional().describe('Search text'),
     values: z.record(z.string(), z.unknown()).optional().describe('The form\'s current values, for {{task_data.<key>}} placeholders in the lookup\'s filters / inputs'),
+    resolve: z.array(z.string()).max(50).optional().describe('Stored values to resolve to their items / display labels (instead of a search)'),
   }, async (args) => {
     try {
       const [{ fromMcpContext }, { lookupTaskField }] = await Promise.all([import('@/lib/services/context'), import('@/lib/services/form-lookup')])
-      return mcpOk(await lookupTaskField(fromMcpContext(ctx), args.task_id, { field_key: args.field_key, query: args.query, values: args.values }))
+      return mcpOk(await lookupTaskField(fromMcpContext(ctx), args.task_id, { field_key: args.field_key, query: args.query, values: args.values, resolve: args.resolve }))
     } catch (error) {
       return mcpErr(error instanceof Error ? error.message : 'Lookup failed')
     }
@@ -219,7 +248,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     }
     const { error } = await supabase.from('tasks').update({
       assignee_id: args.escalate_to,
-      acceptance_status: 'pending',
+      acceptance_status: await acceptanceOnReassign(supabase, tenantId, args.task_id, args.escalate_to, actingUserId, 'escalation'),
     }).eq('id', args.task_id).eq('tenant_id', tenantId)
     if (error) return mcpErr(error.message)
     return mcpOk({ escalated: true, task_id: args.task_id, escalated_to: args.escalate_to })
@@ -235,7 +264,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     }
     const { error } = await supabase.from('tasks').update({
       assignee_id: args.redirect_to,
-      acceptance_status: 'pending',
+      acceptance_status: await acceptanceOnReassign(supabase, tenantId, args.task_id, args.redirect_to, actingUserId, 'redirect'),
     }).eq('id', args.task_id).eq('tenant_id', tenantId)
     if (error) return mcpErr(error.message)
     return mcpOk({ redirected: true, task_id: args.task_id, redirected_to: args.redirect_to })

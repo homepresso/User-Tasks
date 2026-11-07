@@ -3,6 +3,12 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 
+/** The language of a code well (`shell`, `json`, `ts` …) as a small mono tag. */
+export function LanguageTag({ lang }: { lang?: string }) {
+  if (!lang) return null
+  return <span className="rounded bg-(color:--mkt-white)/[0.08] px-1.5 py-0.5 font-mono text-2xs text-(color:--mkt-faint)">{lang}</span>
+}
+
 /** Copies `text` to the clipboard; used on docs and marketing code blocks. */
 export function CopyButton({ text, className = '' }: { text: string; className?: string }) {
   const [copied, setCopied] = useState(false)
@@ -16,7 +22,7 @@ export function CopyButton({ text, className = '' }: { text: string; className?:
           setTimeout(() => setCopied(false), 1500)
         })
       }}
-      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[#B9B2A3] transition hover:bg-[#FFFFFF]/10 hover:text-[#FFFFFF] ${className}`}
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-(color:--mkt-faint) transition hover:bg-(color:--mkt-white)/10 hover:text-(color:--mkt-white) ${className}`}
     >
       {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
       {copied ? 'Copied' : 'Copy'}

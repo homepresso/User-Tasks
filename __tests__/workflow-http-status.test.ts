@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { __testing } from '@/lib/workflow-engine'
 
+// The shared executor resolves provider hosts through the egress guard.
+vi.mock('node:dns/promises', () => ({ lookup: async () => [{ address: '93.184.216.34', family: 4 }] }))
+
 /**
  * Contract: call_reference and http_request treat an HTTP error status as a
  * response, not a step failure — the step succeeds and stores the status so
@@ -12,11 +15,12 @@ import { __testing } from '@/lib/workflow-engine'
 const REF_ID = 'ref-1'
 const reference = {
   id: REF_ID,
+  tenant_id: 'tenant-1',
   name: 'Get vendor',
   request_config: { method: 'GET', path_template: '/vendors/{{vendor_id}}' },
   inputs: [{ name: 'vendor_id', location: 'path' }],
   outputs: [],
-  integration: { name: 'ERP', config: { base_url: 'https://erp.example.com', auth_type: 'none' } },
+  integration: { id: 'int-1', tenant_id: 'tenant-1', name: 'ERP', config: { base_url: 'https://erp.example.com', auth_type: 'none' } },
 }
 
 type Ctx = Parameters<typeof __testing.executeNode>[3]

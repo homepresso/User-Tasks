@@ -27,7 +27,7 @@ const C = {
   muted: "var(--theme-muted-text, #6E6759)",
   border: "var(--theme-surface-border, #E6E1D5)",
   surface: "var(--theme-surface, #F5F2EA)",
-  accent: "#A0804F",
+  accent: "var(--mkt-gold-deep)",
 }
 
 const fill = (color: string): CSSProperties => ({ fill: color })

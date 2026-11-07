@@ -1,0 +1,209 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+  "asset": {
+    "id": "8f8f3a4f-2150-5e52-87b1-227fcd68c4ac",
+    "name": "Documents register rows",
+    "rows": [
+      {
+        "id": "10c33192-44fe-57df-b4e0-69d77de8fa04",
+        "data": {
+          "reference": "DOC-20250114-A1C4",
+          "title": "Information security policy",
+          "doc_type": "Policy",
+          "owner_name": "Avery Example",
+          "status": "Published",
+          "version": 3,
+          "effective_date": "2025-02-01",
+          "next_review_date": "2026-02-01",
+          "signed_by": "Jordan Sample",
+          "signed_at": "2025-02-01T09:30:00Z",
+          "review_days": 9,
+          "document_name": "information-security-policy-v3.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "07f8f841-6f01-57f4-a3fa-153ac11e95a0",
+        "data": {
+          "reference": "DOC-20250303-B7D2",
+          "title": "Supplier agreement template",
+          "doc_type": "Contract",
+          "owner_name": "Riley Test",
+          "status": "Published",
+          "version": 2,
+          "effective_date": "2025-03-15",
+          "next_review_date": "2027-03-15",
+          "signed_by": "Riley Test",
+          "signed_at": "2025-03-15T09:30:00Z",
+          "review_days": 14,
+          "document_name": "supplier-agreement-template-v2.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "eeff5262-b899-57f4-87b3-db2e1491ce60",
+        "data": {
+          "reference": "DOC-20250610-C3E8",
+          "title": "Expenses policy",
+          "doc_type": "Policy",
+          "owner_name": "Casey Demo",
+          "status": "Published",
+          "version": 4,
+          "effective_date": "2025-07-01",
+          "next_review_date": "2026-07-01",
+          "signed_by": "Casey Demo",
+          "signed_at": "2025-07-01T09:30:00Z",
+          "review_days": 6,
+          "document_name": "expenses-policy-v4.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "6a3c73f1-044e-5021-b6d6-5def820e9fbc",
+        "data": {
+          "reference": "DOC-20251002-D9F1",
+          "title": "Incident handling procedure",
+          "doc_type": "Procedure",
+          "owner_name": "Morgan Placeholder",
+          "status": "Published",
+          "version": 1,
+          "effective_date": "2025-10-15",
+          "next_review_date": "2026-10-15",
+          "signed_by": "Morgan Placeholder",
+          "signed_at": "2025-10-15T09:30:00Z",
+          "review_days": 4,
+          "document_name": "incident-handling-procedure-v1.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "d7eb6b83-e75d-5ec6-81b8-96810e9d3817",
+        "data": {
+          "reference": "DOC-20251120-E2A6",
+          "title": "Mutual NDA template",
+          "doc_type": "Contract",
+          "owner_name": "Riley Test",
+          "status": "Published",
+          "version": 1,
+          "effective_date": "2025-12-01",
+          "next_review_date": "2027-12-01",
+          "signed_by": "Riley Test",
+          "signed_at": "2025-12-01T09:30:00Z",
+          "review_days": 11,
+          "document_name": "mutual-nda-template-v1.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "58842e92-aea9-5afc-8168-1eb33646d76b",
+        "data": {
+          "reference": "DOC-20260115-F5B3",
+          "title": "Remote working policy",
+          "doc_type": "Policy",
+          "owner_name": "Avery Example",
+          "status": "Published",
+          "version": 2,
+          "effective_date": "2026-02-01",
+          "next_review_date": "2026-11-20",
+          "signed_by": "Avery Example",
+          "signed_at": "2026-02-01T09:30:00Z",
+          "review_days": 8,
+          "document_name": "remote-working-policy-v2.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "7bc8b5fe-6feb-5551-a2fb-d799d543d21f",
+        "data": {
+          "reference": "DOC-20260402-G8C7",
+          "title": "Month-end close procedure",
+          "doc_type": "Procedure",
+          "owner_name": "Jordan Sample",
+          "status": "Published",
+          "version": 3,
+          "effective_date": "2026-04-15",
+          "next_review_date": "2027-04-15",
+          "signed_by": "Jordan Sample",
+          "signed_at": "2026-04-15T09:30:00Z",
+          "review_days": 3,
+          "document_name": "month-end-close-procedure-v3.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "7ea8fa82-95a6-5e00-a0bb-dba1cef25406",
+        "data": {
+          "reference": "DOC-20260918-H1D5",
+          "title": "Customer terms of service",
+          "doc_type": "Contract",
+          "owner_name": "Casey Demo",
+          "status": "In review",
+          "version": 5,
+          "effective_date": "2026-11-01",
+          "next_review_date": "",
+          "signed_by": "",
+          "signed_at": "",
+          "review_days": 0,
+          "document_name": "customer-terms-of-service-v5.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "753b5216-5c25-5f7b-b602-884857c0005e",
+        "data": {
+          "reference": "DOC-20261006-J4E9",
+          "title": "Acceptable use policy",
+          "doc_type": "Policy",
+          "owner_name": "Morgan Placeholder",
+          "status": "Changes requested",
+          "version": 2,
+          "effective_date": "2026-11-15",
+          "next_review_date": "",
+          "signed_by": "",
+          "signed_at": "",
+          "review_days": 0,
+          "document_name": "acceptable-use-policy-v2.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "09d4d5dc-daee-58c3-8092-5b408fb28640",
+        "data": {
+          "reference": "DOC-20261021-K6F2",
+          "title": "New starter onboarding procedure",
+          "doc_type": "Procedure",
+          "owner_name": "Jordan Sample",
+          "status": "Awaiting sign-off",
+          "version": 1,
+          "effective_date": "2026-11-10",
+          "next_review_date": "",
+          "signed_by": "",
+          "signed_at": "",
+          "review_days": 0,
+          "document_name": "new-starter-onboarding-procedure-v1.pdf",
+          "checksum_sha256": ""
+        }
+      },
+      {
+        "id": "c892f94e-36ee-5a5a-8da0-82590451b74c",
+        "data": {
+          "reference": "DOC-20240501-L2G3",
+          "title": "Travel policy (2024)",
+          "doc_type": "Policy",
+          "owner_name": "Casey Demo",
+          "status": "Withdrawn",
+          "version": 1,
+          "effective_date": "2024-06-01",
+          "next_review_date": "",
+          "signed_by": "",
+          "signed_at": "",
+          "review_days": 0,
+          "document_name": "travel-policy-2024-v1.pdf",
+          "checksum_sha256": ""
+        }
+      }
+    ]
+  }
+}

@@ -61,9 +61,40 @@ export async function authorizeTaskForContext(ctx: ServiceContext, db: AnySupaba
 
 function behalfOf(access: AuthorizedTaskAction, actorId: string | null) {
   if ((access.mode === 'on_behalf' || access.mode === 'break_glass') && actorId && access.onBehalfOf) {
-    return { actorId, note: access.note, actedAs: access.mode }
+    return { actorId, note: access.note, actedAs: access.mode, basis: access.basis ?? (access.mode === 'break_glass' ? 'break_glass' : 'manager') }
   }
   return null
+}
+
+/**
+ * Auto-follow what I act on: after a person completes or responds to a
+ * workflow task (acting on behalf included), they follow its run
+ * (run_followers, source 'auto') so the Task tracker's Following tab shows
+ * the request's later steps — unless their "Follow processes I act on"
+ * preference (users.preferences.auto_follow_acted_runs) is off. Only for a
+ * person (credentials with no user and agents don't follow), only a run they
+ * may see (can_view_run_progress), and it never fails the action.
+ */
+export async function autoFollowActedRun(db: AnySupabaseClient, task: { tenant_id?: unknown; workflow_run_id?: unknown; event_id?: unknown }, actorId: string | null, via: TaskActionVia): Promise<string | null> {
+  if (!actorId || via === 'agent') return null
+  try {
+    const tenantId = String(task.tenant_id ?? '')
+    let runId = task.workflow_run_id ? String(task.workflow_run_id) : null
+    if (!runId && task.event_id) {
+      const { data } = await (db as any).from('workflow_runs').select('id').eq('tenant_id', tenantId).eq('event_id', String(task.event_id)).limit(1).maybeSingle()
+      runId = data?.id ? String(data.id) : null
+    }
+    if (!runId) return null
+    const { data: user } = await (db as any).from('users').select('preferences').eq('id', actorId).maybeSingle()
+    if ((user?.preferences as Record<string, unknown> | null)?.auto_follow_acted_runs === false) return null
+    const { data: visible } = await (db as any).rpc('can_view_run_progress', { p_run_id: runId, p_user_id: actorId })
+    if (visible !== true) return null
+    const { error } = await (db as any).from('run_followers')
+      .upsert({ tenant_id: tenantId, user_id: actorId, run_id: runId, source: 'auto' }, { onConflict: 'user_id,run_id', ignoreDuplicates: true })
+    return error ? null : runId
+  } catch {
+    return null
+  }
 }
 
 export interface CompleteWorkflowTaskInput extends OnBehalfInput {
@@ -113,6 +144,7 @@ export async function completeWorkflowTaskAction(ctx: ServiceContext, taskId: st
   })
   if (result.status === 'invalid') return result
 
+  await autoFollowActedRun(db, task, ctx.actorId, options.via)
   if (onBehalf) await afterOnBehalf(ctx, db, task, onBehalf, { onBehalfOf: access.onBehalfOf, outcome: result.status === 'completed' ? result.outcome : outcome, completed: result.status === 'completed', via: options.via })
 
   if (result.status === 'waiting') {
@@ -123,9 +155,19 @@ export async function completeWorkflowTaskAction(ctx: ServiceContext, taskId: st
   let workflowError: string | null = null
   let runId: string | null = null
   try {
-    const { enqueueResume } = await import('@/lib/workflow-resume-queue')
-    const queued = await enqueueResume({ tenantId: String(task.tenant_id), eventId: String(task.event_id), variables: { ...result.resume } })
-    runId = queued.run_id
+    const { isAgentApprovalEvent, handleAgentApprovalCompletion } = await import('@/lib/agents/approval')
+    if (isAgentApprovalEvent(task.event_id)) {
+      // An agent's tool-call approval: continue the paused agent run (lib/agents/approval.ts).
+      const resumed = await handleAgentApprovalCompletion({
+        db: db as any, tenantId: String(task.tenant_id), eventId: String(task.event_id),
+        outcome: result.outcome, notes: input.notes ?? null, actionedBy: ctx.actorId,
+      })
+      runId = resumed.agent_run_id
+    } else {
+      const { enqueueResume } = await import('@/lib/workflow-resume-queue')
+      const queued = await enqueueResume({ tenantId: String(task.tenant_id), eventId: String(task.event_id), variables: { ...result.resume } })
+      runId = queued.run_id
+    }
   } catch (error) {
     workflowResumed = false
     workflowError = error instanceof Error ? error.message : 'Failed to queue the workflow resume'
@@ -168,7 +210,7 @@ export async function saveWorkflowTaskValues(ctx: ServiceContext, taskId: string
   const onBehalf = behalfOf(access, ctx.actorId)
   await writeLifecycleEvent({
     supabase: db as any, tenantId: String(task.tenant_id), taskId, eventType: 'task_data_saved', actorId: ctx.actorId,
-    metadata: { fields: Object.keys(values), ...(onBehalf ? { on_behalf_of: access.onBehalfOf, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs } : {}) },
+    metadata: { fields: Object.keys(values), ...(onBehalf ? { on_behalf_of: access.onBehalfOf, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs, on_behalf_basis: onBehalf.basis } : {}) },
   })
   return { success: true }
 }
@@ -177,7 +219,7 @@ export async function saveWorkflowTaskValues(ctx: ServiceContext, taskId: string
 export async function respondToWorkflowTask(ctx: ServiceContext, taskId: string, response: 'accepted' | 'held' | 'rejected', input: OnBehalfInput & { comment?: string | null; via: TaskActionVia }) {
   requirePerm(ctx, 'tasks.complete')
   const db = await serviceRoleClient(ctx)
-  const access = await authorizeTaskForContext(ctx, db, taskId, { ...input, columns: 'title, assigner_id' })
+  const access = await authorizeTaskForContext(ctx, db, taskId, { ...input, columns: 'title, assigner_id, workflow_run_id' })
   const task = access.task
   const updates: Record<string, unknown> = { acceptance_status: response }
   if (response === 'accepted') {
@@ -190,8 +232,9 @@ export async function respondToWorkflowTask(ctx: ServiceContext, taskId: string,
   const onBehalf = behalfOf(access, ctx.actorId)
   await writeLifecycleEvent({
     supabase: db as any, tenantId: String(task.tenant_id), taskId, eventType: `task_${response}`, actorId: ctx.actorId,
-    metadata: { comment: input.comment ?? null, via: input.via, ...(onBehalf ? { on_behalf_of: access.onBehalfOf, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs } : access.mode === 'credential' ? { acted_as: 'credential' } : {}) },
+    metadata: { comment: input.comment ?? null, via: input.via, ...(onBehalf ? { on_behalf_of: access.onBehalfOf, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs, on_behalf_basis: onBehalf.basis } : access.mode === 'credential' ? { acted_as: 'credential' } : {}) },
   })
+  if (isWorkflowTask(task)) await autoFollowActedRun(db, task, ctx.actorId, input.via)
   if (onBehalf) await afterOnBehalf(ctx, db, task, onBehalf, { onBehalfOf: access.onBehalfOf, outcome: response, completed: response === 'rejected', via: input.via })
   return { response, acted_as: access.mode, on_behalf_of: onBehalf ? access.onBehalfOf : null }
 }
@@ -201,7 +244,7 @@ function escapeHtml(value: string) {
 }
 
 /** Audit + tell the assignee that someone acted for them. Never throws. */
-async function afterOnBehalf(ctx: ServiceContext, db: AnySupabaseClient, task: Record<string, any>, onBehalf: { actorId: string; note: string | null; actedAs: string }, info: { onBehalfOf: string | null; outcome: string; completed: boolean; via: TaskActionVia }) {
+async function afterOnBehalf(ctx: ServiceContext, db: AnySupabaseClient, task: Record<string, any>, onBehalf: { actorId: string; note: string | null; actedAs: string; basis?: string | null }, info: { onBehalfOf: string | null; outcome: string; completed: boolean; via: TaskActionVia }) {
   try {
     const target = info.onBehalfOf ?? ''
     const { data: people } = await (db as any).from('users').select('id, display_name, email')
@@ -218,8 +261,8 @@ async function afterOnBehalf(ctx: ServiceContext, db: AnySupabaseClient, task: R
       objectType: 'task',
       objectId: String(task.id),
       action: breakGlass ? 'break_glass' : 'act_on_behalf',
-      summary: `${breakGlass ? 'Break-glass: ' : ''}${actorName} actioned "${task.title ?? 'task'}" (${info.outcome}) on behalf of the assignee`,
-      metadata: { on_behalf_of: target || null, note: onBehalf.note, outcome: info.outcome, via: info.via },
+      summary: `${breakGlass ? 'Break-glass: ' : ''}${actorName} actioned "${task.title ?? 'task'}" (${info.outcome}) on behalf of the assignee${onBehalf.basis === 'workflow_manager' ? ' (as a manager of the workflow)' : ''}`,
+      metadata: { on_behalf_of: target || null, note: onBehalf.note, outcome: info.outcome, via: info.via, basis: onBehalf.basis ?? null },
     })
 
     if (!target || target === onBehalf.actorId) return

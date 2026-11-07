@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "472c13e1-5f2c-585c-8c63-94e10195e4da",
+  "asset": {
+    "id": "472c13e1-5f2c-585c-8c63-94e10195e4da",
+    "name": "Signed contracts",
+    "description": "One row per contract signed through DocuSign: the title, counterparty, value, envelope id, the stored signed PDF and when signing completed.",
+    "columns": [
+      {
+        "id": "e01b80ab-7601-57ea-88c7-81d41304a18b",
+        "required": true,
+        "key": "title",
+        "name": "Contract",
+        "type": "text"
+      },
+      {
+        "id": "cdaced0f-fb7d-5606-80d3-87f691e35700",
+        "required": true,
+        "key": "counterparty",
+        "name": "Counterparty",
+        "type": "text"
+      },
+      {
+        "id": "a7df5531-f05b-5058-97d3-95cd03e74e45",
+        "required": false,
+        "key": "value",
+        "name": "Value",
+        "type": "number"
+      },
+      {
+        "id": "44fefa7e-49ac-576a-939c-e2838e133772",
+        "required": true,
+        "key": "envelope_id",
+        "name": "Envelope ID",
+        "type": "text"
+      },
+      {
+        "id": "6c24d23a-a740-5509-bf67-462a720665e8",
+        "required": false,
+        "key": "signed_pdf_url",
+        "name": "Signed PDF",
+        "type": "url"
+      },
+      {
+        "id": "82cd2a7c-9de9-5d34-b329-430aa3f5b411",
+        "required": false,
+        "key": "signed_at",
+        "name": "Signed at",
+        "type": "datetime"
+      }
+    ]
+  }
+}

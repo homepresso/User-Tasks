@@ -1,0 +1,646 @@
+{
+  "manifest_version": 1,
+  "key": "ut_math",
+  "name": "Math & statistics",
+  "version": "1.0.0",
+  "description": "Evaluate formulas, round precisely, summarise numbers, compute percentiles, compound interest and loan schedules, and convert units.",
+  "icon": "calculator",
+  "color": "#2563EB",
+  "category": "Math & data",
+  "entry": "dist/action.js",
+  "operations": [
+    {
+      "id": "evaluate",
+      "label": "Evaluate formula",
+      "description": "Evaluate an arithmetic formula with + - * / % ^ and parentheses, variables from an object and the functions abs, round, floor, ceil, sqrt, min, max, pow, log, ln, exp, sin, cos and tan (constants pi and e). Never runs code.",
+      "inputs": [
+        {
+          "name": "expression",
+          "label": "Formula",
+          "type": "string",
+          "description": "For example (price * qty) * (1 + tax_rate) - discount. Variable names may be dotted paths into Variables (order.total). ^ is power, % is remainder; log(x) is base 10, log(x, b) base b, ln(x) natural.",
+          "required": true,
+          "example": "(price * qty) * (1 + tax_rate) - discount",
+          "placeholder": "(price * qty) * (1 + tax_rate)"
+        },
+        {
+          "name": "variables",
+          "label": "Variables",
+          "type": "object",
+          "description": "The values the formula uses, as an object: { \"price\": 19.99, \"qty\": 3 }. Numeric text is accepted.",
+          "example": {
+            "price": 19.99,
+            "qty": 3,
+            "tax_rate": 0.15,
+            "discount": 5
+          }
+        },
+        {
+          "name": "decimals",
+          "label": "Round to decimals",
+          "type": "integer",
+          "description": "Optional: round the result to this many decimal places (half up). Leave empty for the full result.",
+          "example": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "number",
+          "description": "The value of the formula."
+        }
+      ],
+      "sample": {
+        "expression": "(price * qty) * (1 + tax_rate) - discount",
+        "variables": {
+          "price": 19.99,
+          "qty": 3,
+          "tax_rate": 0.15,
+          "discount": 5
+        },
+        "decimals": 2
+      }
+    },
+    {
+      "id": "round",
+      "label": "Round",
+      "description": "Round a number to a number of decimal places with an explicit rounding mode. Decimal-exact: 1.005 rounds to 1.01.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "number",
+          "description": "The number to round.",
+          "required": true,
+          "example": 2.345
+        },
+        {
+          "name": "decimals",
+          "label": "Decimals",
+          "type": "integer",
+          "description": "Decimal places (0 for whole numbers; negative rounds to tens, hundreds…).",
+          "default": 0,
+          "example": 2
+        },
+        {
+          "name": "mode",
+          "label": "Mode",
+          "type": "select",
+          "description": "How to round a value that sits between two results.",
+          "default": "half_up",
+          "options": [
+            {
+              "value": "half_up",
+              "label": "Half up (away from zero at .5)"
+            },
+            {
+              "value": "half_even",
+              "label": "Half even (banker's rounding)"
+            },
+            {
+              "value": "up",
+              "label": "Up (away from zero)"
+            },
+            {
+              "value": "down",
+              "label": "Down (toward zero, truncate)"
+            },
+            {
+              "value": "floor",
+              "label": "Floor (toward minus infinity)"
+            },
+            {
+              "value": "ceil",
+              "label": "Ceiling (toward plus infinity)"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "number",
+          "description": "The rounded number."
+        }
+      ],
+      "sample": {
+        "value": 2.345,
+        "decimals": 2,
+        "mode": "half_even"
+      }
+    },
+    {
+      "id": "stats",
+      "label": "Statistics",
+      "description": "Descriptive statistics for a list of numbers (or a field of a list of objects): count, sum, mean, min, max, median, mode, variance, standard deviation and range.",
+      "inputs": [
+        {
+          "name": "values",
+          "label": "Values",
+          "type": "array",
+          "description": "The numbers: a list of numbers (or numeric text), or a list of objects with Field naming the number. Blank entries are skipped.",
+          "required": true,
+          "example": [
+            12,
+            15,
+            15,
+            18,
+            21,
+            30
+          ]
+        },
+        {
+          "name": "field",
+          "label": "Field",
+          "type": "string",
+          "description": "When Values is a list of objects: the property holding the number (dotted paths such as amount.total work).",
+          "placeholder": "amount"
+        },
+        {
+          "name": "variance_type",
+          "label": "Variance",
+          "type": "select",
+          "description": "Sample (n - 1, for a sample of a larger population) or population (n, for the whole set).",
+          "default": "sample",
+          "options": [
+            {
+              "value": "sample",
+              "label": "Sample (n - 1)"
+            },
+            {
+              "value": "population",
+              "label": "Population (n)"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many numbers there are (blank entries are skipped)."
+        },
+        {
+          "name": "sum",
+          "label": "Sum",
+          "type": "number"
+        },
+        {
+          "name": "mean",
+          "label": "Mean",
+          "type": "number",
+          "description": "The average (empty when there are no numbers)."
+        },
+        {
+          "name": "min",
+          "label": "Minimum",
+          "type": "number"
+        },
+        {
+          "name": "max",
+          "label": "Maximum",
+          "type": "number"
+        },
+        {
+          "name": "median",
+          "label": "Median",
+          "type": "number",
+          "description": "The middle value (the average of the two middle values for an even count)."
+        },
+        {
+          "name": "mode",
+          "label": "Mode",
+          "type": "number",
+          "description": "The most frequent value (the smallest if several tie); empty when no value repeats."
+        },
+        {
+          "name": "variance",
+          "label": "Variance",
+          "type": "number",
+          "description": "Sample variance needs at least 2 numbers."
+        },
+        {
+          "name": "stddev",
+          "label": "Standard deviation",
+          "type": "number"
+        },
+        {
+          "name": "range",
+          "label": "Range",
+          "type": "number",
+          "description": "Maximum minus minimum."
+        }
+      ],
+      "sample": {
+        "values": [
+          12,
+          15,
+          15,
+          18,
+          21,
+          30
+        ],
+        "variance_type": "sample"
+      }
+    },
+    {
+      "id": "percentile",
+      "label": "Percentile",
+      "description": "The p-th percentile of a list of numbers, with linear interpolation between the closest ranks (the same as Excel PERCENTILE.INC).",
+      "inputs": [
+        {
+          "name": "values",
+          "label": "Values",
+          "type": "array",
+          "description": "The numbers: a list of numbers (or numeric text), or a list of objects with Field naming the number. Blank entries are skipped.",
+          "required": true,
+          "example": [
+            12,
+            15,
+            15,
+            18,
+            21,
+            30
+          ]
+        },
+        {
+          "name": "field",
+          "label": "Field",
+          "type": "string",
+          "description": "When Values is a list of objects: the property holding the number (dotted paths such as amount.total work).",
+          "placeholder": "amount"
+        },
+        {
+          "name": "p",
+          "label": "Percentile",
+          "type": "number",
+          "description": "From 0 to 100: 50 is the median, 90 the 90th percentile.",
+          "required": true,
+          "example": 90
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "number",
+          "description": "The percentile."
+        },
+        {
+          "name": "count",
+          "label": "Count",
+          "type": "integer",
+          "description": "How many numbers were used."
+        }
+      ],
+      "sample": {
+        "values": [
+          12,
+          15,
+          15,
+          18,
+          21,
+          30
+        ],
+        "p": 90
+      }
+    },
+    {
+      "id": "compound_interest",
+      "label": "Compound interest",
+      "description": "Grow a starting amount with compound interest and optional regular contributions; returns the future value and a year-by-year schedule.",
+      "inputs": [
+        {
+          "name": "principal",
+          "label": "Starting amount",
+          "type": "number",
+          "description": "The amount invested at the start.",
+          "required": true,
+          "example": 10000
+        },
+        {
+          "name": "annual_rate",
+          "label": "Annual rate (%)",
+          "type": "number",
+          "description": "Nominal annual interest rate in percent, e.g. 5 for 5%.",
+          "required": true,
+          "example": 5
+        },
+        {
+          "name": "years",
+          "label": "Years",
+          "type": "integer",
+          "description": "How many years (1 to 100).",
+          "required": true,
+          "example": 10
+        },
+        {
+          "name": "compounds_per_year",
+          "label": "Compounding periods per year",
+          "type": "integer",
+          "description": "1 yearly, 4 quarterly, 12 monthly, 52 weekly, 365 daily.",
+          "default": 12,
+          "example": 12
+        },
+        {
+          "name": "contribution",
+          "label": "Contribution per period",
+          "type": "number",
+          "description": "Optional amount added every compounding period (e.g. monthly when compounding monthly).",
+          "default": 0,
+          "example": 200
+        },
+        {
+          "name": "contribution_timing",
+          "label": "Contributions at",
+          "type": "select",
+          "description": "Whether contributions are added at the start or the end of each period.",
+          "default": "end",
+          "options": [
+            {
+              "value": "end",
+              "label": "End of each period"
+            },
+            {
+              "value": "start",
+              "label": "Start of each period"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "future_value",
+          "label": "Future value",
+          "type": "number",
+          "description": "The balance at the end, rounded to 2 decimals."
+        },
+        {
+          "name": "total_contributions",
+          "label": "Total contributions",
+          "type": "number",
+          "description": "The starting amount plus every contribution."
+        },
+        {
+          "name": "interest_earned",
+          "label": "Interest earned",
+          "type": "number",
+          "description": "Future value minus total contributions."
+        },
+        {
+          "name": "schedule",
+          "label": "Schedule by year",
+          "type": "array",
+          "description": "One row per year.",
+          "items": {
+            "type": "object",
+            "fields": [
+              {
+                "name": "year",
+                "label": "Year",
+                "type": "integer"
+              },
+              {
+                "name": "contributions",
+                "label": "Contributions",
+                "type": "number",
+                "description": "Added during the year."
+              },
+              {
+                "name": "interest",
+                "label": "Interest",
+                "type": "number",
+                "description": "Earned during the year."
+              },
+              {
+                "name": "balance",
+                "label": "Balance",
+                "type": "number",
+                "description": "At the end of the year."
+              }
+            ]
+          }
+        }
+      ],
+      "sample": {
+        "principal": 10000,
+        "annual_rate": 5,
+        "years": 10,
+        "compounds_per_year": 12,
+        "contribution": 200
+      }
+    },
+    {
+      "id": "loan_schedule",
+      "label": "Loan schedule",
+      "description": "Monthly amortisation schedule for a fixed-rate loan: the payment (P·r / (1 − (1 + r)^−n)), each period's interest and principal, the balance, totals and the payoff date. Extra payments shorten the loan.",
+      "inputs": [
+        {
+          "name": "principal",
+          "label": "Loan amount",
+          "type": "number",
+          "description": "The amount borrowed.",
+          "required": true,
+          "example": 250000
+        },
+        {
+          "name": "annual_rate",
+          "label": "Annual rate (%)",
+          "type": "number",
+          "description": "Nominal annual interest rate in percent (0 for an interest-free loan).",
+          "required": true,
+          "example": 6.5
+        },
+        {
+          "name": "term_months",
+          "label": "Term (months)",
+          "type": "integer",
+          "description": "Number of monthly payments (1 to 600), e.g. 360 for 30 years.",
+          "required": true,
+          "example": 360
+        },
+        {
+          "name": "start_date",
+          "label": "First payment date",
+          "type": "date",
+          "description": "Optional: the date of the first payment; later payments fall on the same day of each month (the last day in shorter months).",
+          "example": "2026-12-01"
+        },
+        {
+          "name": "extra_payment",
+          "label": "Extra payment per month",
+          "type": "number",
+          "description": "Optional extra principal paid with every payment.",
+          "default": 0,
+          "example": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "payment",
+          "label": "Monthly payment",
+          "type": "number",
+          "description": "The regular payment (the last one may be smaller)."
+        },
+        {
+          "name": "total_interest",
+          "label": "Total interest",
+          "type": "number"
+        },
+        {
+          "name": "total_paid",
+          "label": "Total paid",
+          "type": "number",
+          "description": "Principal plus interest."
+        },
+        {
+          "name": "number_of_payments",
+          "label": "Number of payments",
+          "type": "integer",
+          "description": "Fewer than the term when extra payments are made."
+        },
+        {
+          "name": "payoff_date",
+          "label": "Payoff date",
+          "type": "date",
+          "description": "The date of the last payment (empty without a first payment date)."
+        },
+        {
+          "name": "schedule",
+          "label": "Schedule",
+          "type": "array",
+          "description": "One row per payment.",
+          "items": {
+            "type": "object",
+            "fields": [
+              {
+                "name": "period",
+                "label": "Period",
+                "type": "integer"
+              },
+              {
+                "name": "date",
+                "label": "Date",
+                "type": "date"
+              },
+              {
+                "name": "payment",
+                "label": "Payment",
+                "type": "number"
+              },
+              {
+                "name": "principal",
+                "label": "Principal",
+                "type": "number"
+              },
+              {
+                "name": "interest",
+                "label": "Interest",
+                "type": "number"
+              },
+              {
+                "name": "balance",
+                "label": "Balance",
+                "type": "number",
+                "description": "Remaining after the payment."
+              }
+            ]
+          }
+        }
+      ],
+      "sample": {
+        "principal": 25000,
+        "annual_rate": 7.9,
+        "term_months": 60,
+        "start_date": "2026-12-01"
+      }
+    },
+    {
+      "id": "convert_units",
+      "label": "Convert units",
+      "description": "Convert a value between units of length, mass, volume, temperature, area, speed, data size and time.",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "number",
+          "description": "The amount to convert.",
+          "required": true,
+          "example": 26.2
+        },
+        {
+          "name": "from",
+          "label": "From unit",
+          "type": "string",
+          "description": "Symbol or name: mm cm m km in ft yd mi nmi · mg g kg t oz lb st · ml l m3 tsp tbsp floz cup pt qt gal gal_uk · C F K · m2 km2 ha ac ft2 · m/s km/h mph kn · bit B kB MB GB TB KiB MiB GiB Mb Gb · ms s min h d wk mo yr.",
+          "required": true,
+          "example": "mi"
+        },
+        {
+          "name": "to",
+          "label": "To unit",
+          "type": "string",
+          "description": "A unit of the same kind as From unit.",
+          "required": true,
+          "example": "km"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "number",
+          "description": "The converted value (12 significant digits)."
+        },
+        {
+          "name": "category",
+          "label": "Category",
+          "type": "string",
+          "description": "length, mass, volume, temperature, area, speed, data or time."
+        },
+        {
+          "name": "from_unit",
+          "label": "From unit (symbol)",
+          "type": "string"
+        },
+        {
+          "name": "to_unit",
+          "label": "To unit (symbol)",
+          "type": "string"
+        }
+      ],
+      "sample": {
+        "value": 26.2,
+        "from": "mi",
+        "to": "km"
+      }
+    }
+  ],
+  "capabilities": {},
+  "limits": {
+    "timeout_ms": 5000,
+    "memory_mb": 32
+  },
+  "summary": "Numeric building blocks for workflows: a safe formula evaluator with variables, rounding with banker's and other modes, descriptive statistics, percentiles, compound interest, loan amortisation schedules and unit conversion.",
+  "purpose": "Do the arithmetic a workflow needs in one step, with exact rounding and clear errors, instead of chaining Calculate Value nodes.",
+  "recommended_for": "Finance approvals, quotes, loan and savings illustrations, KPI summaries, measurements and any step that needs reliable numbers.",
+  "setup_notes": [
+    "Pure computation: no network, data or secrets. Nothing to configure after installing.",
+    "Money amounts in compound interest and loan schedules are rounded to 2 decimal places (half up) per period; the final loan payment absorbs the rounding so the balance ends at exactly 0."
+  ],
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "tags": [
+    "math",
+    "statistics",
+    "finance",
+    "loan",
+    "interest",
+    "rounding",
+    "units",
+    "formula"
+  ]
+}

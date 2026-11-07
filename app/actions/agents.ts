@@ -1,142 +1,97 @@
 'use server'
 
-import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { requirePermission } from '@/lib/permissions-server'
-import { writeAudit } from '@/lib/audit-log'
-import { enqueueDeletionJob, kickDeletionProcessor } from '@/lib/deletion-queue'
-import { normalizeAgentOutputConfig } from '@/lib/agent-knowledge'
-import { deactivateWorkflowsReferencingAgent } from '@/lib/agent-references'
-import { recordAssetChange } from '@/lib/github-sync/enqueue'
+import type { ActionResult } from '@/lib/action-result'
+import { runAction } from '@/lib/actions/run-action'
+import { fromSession, ServiceError } from '@/lib/services/context'
+import * as agents from '@/lib/services/agents'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
+
+/*
+ * Agent designer actions — thin wrappers over lib/services/agents (field
+ * allowlist, tenant validation of the provider / tools, versions, audit,
+ * GitHub sync, queued deletes).
+ */
 
 export async function createAgent(data: { name: string; description?: string }) {
-  await requirePermission('agents.create')
-  const supabase = await createClient()
-  const user = await getCachedUser()
-  if (!user) throw new Error('Not authenticated')
-  const { data: profile } = await supabase.from('users').select('current_tenant_id, tenant_id').eq('id', user.id).single()
-  const tenantId = profile?.current_tenant_id ?? profile?.tenant_id
-
-  const { data: agent, error } = await (supabase as any).from('agents').insert({
-    tenant_id: tenantId,
-    name: data.name,
-    description: data.description || null,
-    created_by: user.id,
-    system_prompt: '',
-    role: '',
-    task: '',
-    boundaries: '',
-    output_config: normalizeAgentOutputConfig({ variables: [] }),
-    tools: [],
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  if (tenantId) {
-    await writeAudit({
-      supabase, tenantId, actorId: user.id,
-      objectType: 'agent', objectId: (agent as any).id, action: 'create',
-      summary: `Created agent "${data.name}"`,
-    })
-    void recordAssetChange({ supabase, tenantId, assetType: 'agent', assetId: (agent as any).id, assetName: data.name, action: 'save', actorId: user.id })
-  }
+  const ctx = await fromSession()
+  // A repeated submit (double click, retry) opens the agent this user just
+  // created instead of adding a second one.
+  const recent = ctx.actorId
+    ? await findRecentDuplicate<{ id: string }>(ctx.supabase, 'agents', { tenant_id: ctx.tenantId, created_by: ctx.actorId, name: String(data.name ?? '').trim() })
+    : null
+  if (recent) redirect(`/agents/${recent.id}`)
+  const agent = await agents.createAgent(ctx, { name: data.name, description: data.description || null })
   revalidatePath('/agents')
-  redirect(`/agents/${(agent as any).id}`)
+  redirect(`/agents/${agent.id}`)
 }
 
-export async function saveAgent(agentId: string, updates: Record<string, any>) {
-  await requirePermission('agents.edit')
-  const supabase = await createClient()
-  const user = await getCachedUser()
-  if (!user) throw new Error('Not authenticated')
-  const { data: existing } = await (supabase as any).from('agents').select('id, name, tenant_id').eq('id', agentId).single()
-  if (!existing) throw new Error('Agent not found')
-  const { error } = await (supabase as any).from('agents').update({
-    ...updates,
-    ...(updates.output_config !== undefined ? { output_config: normalizeAgentOutputConfig(updates.output_config) } : {}),
-    updated_at: new Date().toISOString(),
-  }).eq('id', agentId)
-  if (error) throw new Error(error.message)
-  await writeAudit({
-    supabase,
-    tenantId: existing.tenant_id,
-    actorId: user.id,
-    objectType: 'agent',
-    objectId: agentId,
-    action: 'update',
-    summary: `Updated agent "${updates.name ?? existing.name}"`,
+export async function saveAgent(agentId: string, updates: Record<string, unknown>): Promise<ActionResult<{ version: number }>> {
+  return runAction('saveAgent', 'Could not save the agent.', async () => {
+    const agent = await agents.updateAgent(await fromSession(), agentId, updates as agents.AgentInput)
+    revalidatePath('/agents')
+    revalidatePath(`/agents/${agentId}`)
+    return { version: Number(agent.version) || 1 }
   })
-  void recordAssetChange({ supabase, tenantId: existing.tenant_id, assetType: 'agent', assetId: agentId, assetName: updates.name ?? existing.name ?? null, action: 'save', actorId: user.id })
-  revalidatePath('/agents')
-  revalidatePath(`/agents/${agentId}`)
 }
 
 export async function deleteAgent(agentId: string) {
-  await requirePermission('agents.delete')
-  const supabase = await createClient()
-  const user = await getCachedUser()
-  const { data: agent } = await (supabase as any).from('agents').select('name, tenant_id').eq('id', agentId).single()
-  if (!agent) throw new Error('Agent not found')
-  // Reference integrity: deactivate workflows referencing this agent before it's gone.
-  const deactivated = await deactivateWorkflowsReferencingAgent(supabase, agent.tenant_id, agentId)
-  await enqueueDeletionJob(supabase, {
-    tenantId: agent.tenant_id,
-    createdBy: user?.id ?? null,
-    targetType: 'agent',
-    targetId: agentId,
-    payload: { name: agent.name ?? null },
-  })
-  if (user && agent) {
-    await writeAudit({
-      supabase, tenantId: agent.tenant_id, actorId: user.id,
-      objectType: 'agent', objectId: agentId, action: 'delete',
-      summary: `Queued deletion for agent "${agent.name}"`,
-      metadata: deactivated.length > 0 ? { deactivated_workflows: deactivated } : undefined,
-    })
-  }
-  void recordAssetChange({ supabase, tenantId: agent.tenant_id, assetType: 'agent', assetId: agentId, assetName: agent.name ?? null, action: 'delete', actorId: user?.id ?? null })
-  kickDeletionProcessor()
+  await agents.deleteAgent(await fromSession(), agentId)
   revalidatePath('/agents')
 }
 
 export async function bulkDeleteAgents(agentIds: string[]) {
-  await requirePermission('agents.delete')
-  const supabase = await createClient()
-  const user = await getCachedUser()
-
+  const ctx = await fromSession()
   const uniqueIds = Array.from(new Set(agentIds.map((id) => id.trim()).filter(Boolean)))
-  if (uniqueIds.length === 0) return { queued: 0 }
-
-  const { data: agents } = await (supabase as any)
-    .from('agents')
-    .select('id, name, tenant_id')
-    .in('id', uniqueIds)
-
-  for (const agent of agents ?? []) {
-    // Reference integrity: deactivate workflows referencing this agent before it's gone.
-    const deactivated = await deactivateWorkflowsReferencingAgent(supabase, (agent as any).tenant_id, (agent as any).id)
-    await enqueueDeletionJob(supabase, {
-      tenantId: (agent as any).tenant_id,
-      createdBy: user?.id ?? null,
-      targetType: 'agent',
-      targetId: (agent as any).id,
-      payload: { name: (agent as any).name ?? null },
-    })
-    if (user) {
-      await writeAudit({
-        supabase,
-        tenantId: (agent as any).tenant_id,
-        actorId: user.id,
-        objectType: 'agent',
-        objectId: (agent as any).id,
-        action: 'delete',
-        summary: `Queued deletion for agent "${(agent as any).name}"`,
-        metadata: deactivated.length > 0 ? { deactivated_workflows: deactivated } : undefined,
-      })
+  let queued = 0
+  for (const id of uniqueIds) {
+    try {
+      await agents.deleteAgent(ctx, id)
+      queued++
+    } catch (error) {
+      if (!(error instanceof ServiceError && error.code === 'not_found')) throw error
     }
-    void recordAssetChange({ supabase, tenantId: (agent as any).tenant_id, assetType: 'agent', assetId: (agent as any).id, assetName: (agent as any).name ?? null, action: 'delete', actorId: user?.id ?? null })
   }
-
-  kickDeletionProcessor()
   revalidatePath('/agents')
-  return { queued: (agents ?? []).length }
+  return { queued }
+}
+
+export async function restoreAgentVersion(agentId: string, version: number): Promise<ActionResult<{ version: number }>> {
+  return runAction('restoreAgentVersion', 'Could not restore that version.', async () => {
+    const agent = await agents.restoreAgentVersion(await fromSession(), agentId, version)
+    revalidatePath(`/agents/${agentId}`)
+    return { version: Number(agent.version) || 1 }
+  })
+}
+
+export async function saveAgentEvalCase(agentId: string, input: { id?: string | null; name: string; input_message: string; expected?: unknown; is_active?: boolean }): Promise<ActionResult<{ case: any }>> {
+  return runAction('saveAgentEvalCase', 'Could not save the test case.', async () => agents.saveEvalCase(await fromSession(), agentId, input))
+}
+
+export async function deleteAgentEvalCase(agentId: string, caseId: string): Promise<ActionResult<{ deleted: boolean }>> {
+  return runAction('deleteAgentEvalCase', 'Could not delete the test case.', async () => agents.deleteEvalCase(await fromSession(), agentId, caseId))
+}
+
+export async function runAgentEvals(agentId: string, caseIds?: string[]): Promise<ActionResult<{ run: any }>> {
+  return runAction('runAgentEvals', 'Could not start the evaluation.', async () => agents.startEvalRun(await fromSession(), agentId, { case_ids: caseIds }))
+}
+
+/** Upload a knowledge document (FormData `file`); returns the stored file object to add to output_config.knowledge.files. */
+export async function uploadAgentKnowledgeFile(formData: FormData): Promise<ActionResult<{ name: string; url: string; path: string; ref?: string; size: number; mime_type: string }>> {
+  return runAction('uploadAgentKnowledgeFile', 'Upload failed.', async () => {
+    const file = formData.get('file')
+    if (!file || typeof file === 'string') throw ServiceError.validation('No file was uploaded')
+    const { uploadAgentKnowledgeFile: upload } = await import('@/lib/services/uploads')
+    return upload(await fromSession(), { name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })
+  })
+}
+
+/** Agents → Costs & budgets: the workspace's price overrides and budgets (settings.edit). */
+export async function saveAgentCostSettings(input: { model_prices?: unknown; budgets?: unknown }) {
+  return runAction('saveAgentCostSettings', 'Could not save the prices and budgets.', async () => {
+    const result = await agents.saveAgentCostSettings(await fromSession(), input)
+    revalidatePath('/agents/costs')
+    return result
+  })
 }

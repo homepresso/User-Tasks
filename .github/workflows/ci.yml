@@ -58,6 +58,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           DEPLOYMENT_MODE: self_hosted
 
+      # Per-route function size (150 MB budget), the files routes read at
+      # runtime, and every server chunk compiling (check:server-chunks).
+      - name: Server function size and chunks
+        run: npm run check:function-size
+
   # The full suite against a local Supabase stack, once per database provider:
   # `supabase` (supabase-js → PostgREST, the production default) and
   # `postgres` (the same clients served in-process by @usertasks/pg-query over

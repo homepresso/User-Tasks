@@ -5,7 +5,7 @@
   "asset": {
     "id": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
     "name": "Vendor onboarding",
-    "description": "Procurement submits a new vendor; the KYC service screens it, the risk tier rules decide the approvals, compliance reviews medium and high risk vendors, finance verifies the bank account by call-back, and the vendor is created in the ERP.",
+    "description": "Procurement submits the Vendor application form (or the start form); the application is added to the Vendor applications table, the KYC service screens it, the risk tier rules decide the approvals, compliance reviews medium and high risk vendors, finance verifies the bank account by call-back, and the vendor is created in the ERP. The table row follows every step.",
     "trigger_type": "webhook_received",
     "trigger_config": {},
     "nodes": [
@@ -78,6 +78,19 @@
                     },
                     {
                       "field_key": "expected_annual_spend",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "spend_justification",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "conflict_details",
                       "span": 1
                     }
                   ]
@@ -347,7 +360,7 @@
         },
         "config": {
           "task_title": "Review vendor {{legal_name}} ({{risk_tier}} risk, score {{risk_score}})",
-          "task_description": "<p><strong>{{legal_name}}</strong> ({{registration_number}}, {{country}}, country risk {{country_risk}}) for {{spend_category}}, expected spend {{expected_annual_spend}} a year.</p><p>Screening {{kyc_check_id}}: score <strong>{{risk_score}}</strong>, registry {{registry_status}} as “{{registered_name}}”, adverse media {{adverse_media_count}}, flags {{kyc_flags}}.</p><p>Rule “{{rule_label}}” → <strong>{{risk_tier}}</strong>: {{approvals}}. <a href=\"{{kyc_report_url}}\">Open the screening report</a></p>",
+          "task_description": "<p><strong>{{legal_name}}</strong> ({{registration_number}}, {{country}}, country risk {{country_risk}}) for {{spend_category}}, expected spend {{expected_annual_spend}} a year.</p><p>Screening {{kyc_check_id}}: score <strong>{{risk_score}}</strong>, registry {{registry_status}} as “{{registered_name}}”, adverse media {{adverse_media_count}}, flags {{kyc_flags}}.</p><p>Rule “{{rule_label}}” → <strong>{{risk_tier}}</strong>: {{approvals}}. <a href=\"{{kyc_report_url}}\">Open the screening report</a></p><p>Justification: {{spend_justification}}</p><p>Declared conflict of interest: {{conflict_details}}</p><p>Application {{application_ref}}.</p>",
           "task_priority": "high",
           "outcomes": [
             "Approve",
@@ -807,6 +820,144 @@
         "config": {
           "reason": "{{legal_name}} not onboarded: {{decline_reason}}"
         }
+      },
+      {
+        "id": "app_ref",
+        "type": "set_variable",
+        "label": "Application reference",
+        "position": {
+          "x": 1220,
+          "y": 490
+        },
+        "config": {
+          "name": "application_ref",
+          "expression": "VA-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "app_row",
+        "type": "update_data_table",
+        "label": "Add to Vendor applications",
+        "position": {
+          "x": 1220,
+          "y": 600
+        },
+        "config": {
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "table_name": "Vendor applications",
+          "operation": "insert",
+          "output_row_id_var": "application_row_id",
+          "column_values": {
+            "application_ref": "{{application_ref}}",
+            "submitted_on": "{{=TODAY()}}",
+            "legal_name": "{{legal_name}}",
+            "registration_number": "{{registration_number}}",
+            "country": "{{country}}",
+            "spend_category": "{{spend_category}}",
+            "expected_annual_spend": "{{expected_annual_spend}}",
+            "contact_email": "{{contact_email}}",
+            "requester_email": "{{requester_email}}",
+            "risk_tier": "pending",
+            "status": "Screening",
+            "decision_notes": "{{=TRIM(CONCAT(COALESCE(spend_justification, \"\"), \" \", COALESCE(conflict_details, \"\")))}}"
+          }
+        }
+      },
+      {
+        "id": "st_tier",
+        "type": "update_data_table",
+        "label": "Applications: risk tier",
+        "position": {
+          "x": 1220,
+          "y": 1450
+        },
+        "config": {
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "table_name": "Vendor applications",
+          "operation": "update",
+          "row_id": "{{application_row_id}}",
+          "column_values": {
+            "risk_tier": "{{risk_tier}}",
+            "risk_score": "{{risk_score}}",
+            "next_review_date": "{{next_review_date}}"
+          }
+        }
+      },
+      {
+        "id": "st_review",
+        "type": "update_data_table",
+        "label": "Applications: compliance review",
+        "position": {
+          "x": 1000,
+          "y": 1620
+        },
+        "config": {
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "table_name": "Vendor applications",
+          "operation": "update",
+          "row_id": "{{application_row_id}}",
+          "column_values": {
+            "status": "Compliance review"
+          }
+        }
+      },
+      {
+        "id": "st_bank",
+        "type": "update_data_table",
+        "label": "Applications: bank verification",
+        "position": {
+          "x": 1440,
+          "y": 1620
+        },
+        "config": {
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "table_name": "Vendor applications",
+          "operation": "update",
+          "row_id": "{{application_row_id}}",
+          "column_values": {
+            "status": "Bank verification",
+            "next_review_date": "{{next_review_date}}"
+          }
+        }
+      },
+      {
+        "id": "st_live",
+        "type": "update_data_table",
+        "label": "Applications: approved",
+        "position": {
+          "x": 660,
+          "y": 2810
+        },
+        "config": {
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "table_name": "Vendor applications",
+          "operation": "update",
+          "row_id": "{{application_row_id}}",
+          "column_values": {
+            "status": "Approved",
+            "vendor_id": "{{vendor_id}}",
+            "next_review_date": "{{next_review_date}}"
+          }
+        }
+      },
+      {
+        "id": "st_declined",
+        "type": "update_data_table",
+        "label": "Applications: declined",
+        "position": {
+          "x": 340,
+          "y": 2490
+        },
+        "config": {
+          "table_id": "d0a4b816-eaac-5626-8b9f-beb43f4424ab",
+          "table_name": "Vendor applications",
+          "operation": "update",
+          "row_id": "{{application_row_id}}",
+          "column_values": {
+            "status": "Declined",
+            "decision_notes": "{{decline_reason}}"
+          }
+        }
       }
     ],
     "edges": [
@@ -821,9 +972,9 @@
         "target": "sla"
       },
       {
-        "id": "e-sla-country_lookup",
+        "id": "e-sla-app_ref",
         "source": "sla",
-        "target": "country_lookup"
+        "target": "app_ref"
       },
       {
         "id": "e-country_lookup-country_risk",
@@ -851,9 +1002,9 @@
         "target": "review_fmt"
       },
       {
-        "id": "e-review_fmt-route",
+        "id": "e-review_fmt-st_tier",
         "source": "review_fmt",
-        "target": "route"
+        "target": "st_tier"
       },
       {
         "id": "e-route-blocked_reason-blocked",
@@ -862,21 +1013,21 @@
         "label": "blocked"
       },
       {
-        "id": "e-route-compliance-high",
+        "id": "e-route-st_review-high",
         "source": "route",
-        "target": "compliance",
+        "target": "st_review",
         "label": "high"
       },
       {
-        "id": "e-route-compliance-medium",
+        "id": "e-route-st_review-medium",
         "source": "route",
-        "target": "compliance",
+        "target": "st_review",
         "label": "medium"
       },
       {
-        "id": "e-route-bank-default",
+        "id": "e-route-st_bank-default",
         "source": "route",
-        "target": "bank",
+        "target": "st_bank",
         "label": "Default"
       },
       {
@@ -908,9 +1059,9 @@
         "label": "Reject"
       },
       {
-        "id": "e-review_override-bank",
+        "id": "e-review_override-st_bank",
         "source": "review_override",
-        "target": "bank"
+        "target": "st_bank"
       },
       {
         "id": "e-rejected_reason-email_declined",
@@ -952,9 +1103,9 @@
         "target": "welcome"
       },
       {
-        "id": "e-welcome-done",
+        "id": "e-welcome-st_live",
         "source": "welcome",
-        "target": "done"
+        "target": "st_live"
       },
       {
         "id": "e-mismatch_reason-email_declined",
@@ -962,8 +1113,43 @@
         "target": "email_declined"
       },
       {
-        "id": "e-email_declined-closed",
+        "id": "e-email_declined-st_declined",
         "source": "email_declined",
+        "target": "st_declined"
+      },
+      {
+        "id": "e-app_ref-app_row",
+        "source": "app_ref",
+        "target": "app_row"
+      },
+      {
+        "id": "e-app_row-country_lookup",
+        "source": "app_row",
+        "target": "country_lookup"
+      },
+      {
+        "id": "e-st_tier-route",
+        "source": "st_tier",
+        "target": "route"
+      },
+      {
+        "id": "e-st_review-compliance",
+        "source": "st_review",
+        "target": "compliance"
+      },
+      {
+        "id": "e-st_bank-bank",
+        "source": "st_bank",
+        "target": "bank"
+      },
+      {
+        "id": "e-st_live-done",
+        "source": "st_live",
+        "target": "done"
+      },
+      {
+        "id": "e-st_declined-closed",
+        "source": "st_declined",
         "target": "closed"
       }
     ],
@@ -1082,6 +1268,30 @@
         "format": "email"
       },
       {
+        "id": "v-conflict_of_interest",
+        "name": "conflict_of_interest",
+        "type": "boolean",
+        "description": "Optional: someone in the company declared a personal or financial interest in this vendor",
+        "defaultValue": "false",
+        "label": "Conflict of interest declared"
+      },
+      {
+        "id": "v-conflict_details",
+        "name": "conflict_details",
+        "type": "string",
+        "description": "Optional: a personal or financial interest someone in the company has in this vendor",
+        "defaultValue": "",
+        "label": "Conflict of interest"
+      },
+      {
+        "id": "v-spend_justification",
+        "name": "spend_justification",
+        "type": "string",
+        "description": "Optional: why this vendor (asked for spend of 100,000 or more)",
+        "defaultValue": "",
+        "label": "Spend justification"
+      },
+      {
         "id": "v-compliance_reviewer_id",
         "name": "compliance_reviewer_id",
         "type": "string",
@@ -1096,6 +1306,14 @@
         "description": "Optional: user id of the finance verifier (overrides the install-time default)",
         "defaultValue": "",
         "label": "Finance verifier (user id)"
+      },
+      {
+        "id": "v-declaration",
+        "name": "declaration",
+        "type": "boolean",
+        "description": "Optional: the requester confirmed the details come from the vendor's own documents (the Vendor application asks for it)",
+        "defaultValue": "false",
+        "label": "Requester declaration"
       }
     ],
     "swimlanes": [],

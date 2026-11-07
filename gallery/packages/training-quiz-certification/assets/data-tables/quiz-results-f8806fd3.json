@@ -1,0 +1,124 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+  "asset": {
+    "id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+    "name": "Quiz results",
+    "description": "Every completed quiz: learner, course, correct answers, score (%), the course pass mark, the band (Pass / Retake / Fail), feedback ratings, and for passes the certificate number and expiry date.",
+    "columns": [
+      {
+        "id": "17c9279e-e617-5762-b46b-139a111fe44c",
+        "required": true,
+        "key": "result_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "036666e5-5600-55af-84df-def4f077dae0",
+        "required": false,
+        "key": "completed_on",
+        "name": "Completed",
+        "type": "date"
+      },
+      {
+        "id": "8d9f09b0-2fbc-5b25-96a7-db2cd7d8cdcb",
+        "required": false,
+        "key": "learner_name",
+        "name": "Learner",
+        "type": "text"
+      },
+      {
+        "id": "73d274f3-c25c-5fef-93e0-6ff9c566cd59",
+        "required": false,
+        "key": "learner_email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "1e02b66e-a643-50ee-8c89-317794d53a00",
+        "required": false,
+        "key": "course_code",
+        "name": "Course",
+        "type": "text"
+      },
+      {
+        "id": "c85f85a5-1b00-5b0b-98ae-8b2ecc345ab3",
+        "required": false,
+        "key": "course_title",
+        "name": "Course title",
+        "type": "text"
+      },
+      {
+        "id": "64a85bdd-1106-5b5c-bd78-dffbef37c347",
+        "required": false,
+        "key": "correct",
+        "name": "Correct answers",
+        "type": "number"
+      },
+      {
+        "id": "f4d6656e-81ae-5652-aca0-c3596e6336c9",
+        "required": false,
+        "key": "score_pct",
+        "name": "Score (%)",
+        "type": "number"
+      },
+      {
+        "id": "dd80f8a7-ba3e-5bf4-b333-b752542abaa4",
+        "required": false,
+        "key": "pass_mark",
+        "name": "Pass mark (%)",
+        "type": "number"
+      },
+      {
+        "id": "0b4d0f46-a96e-59f2-a63a-6c74fde27e52",
+        "required": false,
+        "key": "band",
+        "name": "Band",
+        "type": "text"
+      },
+      {
+        "id": "3f3d0494-33e3-5017-b8f3-ad31cf038a51",
+        "required": false,
+        "key": "trainer_rating",
+        "name": "Trainer rating",
+        "type": "number"
+      },
+      {
+        "id": "9048de05-2586-5b3b-b89a-7f5de6be4a70",
+        "required": false,
+        "key": "content_rating",
+        "name": "Content rating",
+        "type": "number"
+      },
+      {
+        "id": "87587d49-a639-5f83-85c7-cc8f9a0cbd68",
+        "required": false,
+        "key": "quality_avg",
+        "name": "Course quality (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "8ca6026a-aa02-5082-a304-c9bbc1037292",
+        "required": false,
+        "key": "certificate_no",
+        "name": "Certificate",
+        "type": "text"
+      },
+      {
+        "id": "f9699bfa-985c-5a80-a317-a0c8f3b7e52c",
+        "required": false,
+        "key": "certificate_expires",
+        "name": "Certificate expires",
+        "type": "date"
+      },
+      {
+        "id": "e2e9a4a2-22fa-597e-a195-45d8cd4e98bd",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      }
+    ]
+  }
+}

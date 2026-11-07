@@ -26,7 +26,7 @@
  * never touches it. Pure and isomorphic.
  */
 
-import { compactLayoutForSave } from './layout'
+import { compactLayoutForSave, defaultFormLayout } from './layout'
 import { normalizeFormDefinition, type FormDefinition } from './definition'
 import { normalizeFormButtons, type FormAction, type FormButton } from './buttons'
 import { defaultFormHeader, type FormHeader } from './header'
@@ -86,7 +86,10 @@ export interface FormPageContent {
 export function formPageKey(content: FormPageContent): string {
   const def = normalizeFormDefinition({ fields: content.fields, layout: content.layout, theme: content.theme })
   const keys = def.fields.map((f) => f.key)
-  const layout = def.layout ? compactLayoutForSave(def.layout, keys) : null
+  // The Submitted page is the form's own (never copied from the start form).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omitted from the rest
+  const copied = def.layout?.submitted_page ? (({ submitted_page: _page, ...rest }) => rest)(def.layout) : def.layout
+  const layout = copied ? compactLayoutForSave(copied, keys) : null
   const theme = def.theme.source === 'saved' ? { source: 'saved' } : def.theme
   return fingerprint(stableStringify({ fields: def.fields, layout, theme, inputs: content.inputs ?? {} }))
 }
@@ -226,7 +229,7 @@ export function formPageStatus(form: { fields?: unknown; layout?: unknown; theme
  * Start workflow action's mapping and key refreshed. The rest of the form
  * (header, labels, other actions and buttons) is kept as it is.
  */
-export function syncFormPageUpdate(form: { buttons?: unknown }, workflow: FormPageWorkflow, content: FormPageContent): { fields: FormDefinition['fields']; layout: FormDefinition['layout']; theme: FormThemeRef; buttons: FormButton[] } | null {
+export function syncFormPageUpdate(form: { buttons?: unknown; layout?: unknown }, workflow: FormPageWorkflow, content: FormPageContent): { fields: FormDefinition['fields']; layout: FormDefinition['layout']; theme: FormThemeRef; buttons: FormButton[] } | null {
   const link = findFormPageAction(form.buttons, workflow.id)
   if (!link) return null
   const buttons = normalizeFormButtons(Array.isArray(form.buttons) ? form.buttons : null).map((button) => {
@@ -234,13 +237,17 @@ export function syncFormPageUpdate(form: { buttons?: unknown }, workflow: FormPa
     const actions = (button.actions ?? []).map((action, i) => (i === link.index ? { ...action, ...formPageStartAction(workflow, content) } : action))
     return { ...button, actions }
   })
-  return { fields: content.fields, layout: content.layout, theme: content.theme, buttons }
+  // The form's own Submitted page stays (the start form has none).
+  const own = form.layout && typeof form.layout === 'object' ? (form.layout as { submitted_page?: unknown }).submitted_page : undefined
+  const layout = own ? { ...(content.layout ?? defaultFormLayout(content.fields.map((f) => f.key))), submitted_page: own as NonNullable<FormDefinition['layout']>['submitted_page'] } : content.layout
+  return { fields: content.fields, layout, theme: content.theme, buttons }
 }
 
 /** Buttons with every form page link removed (a duplicate is an ordinary form). */
 export function withoutFormPageLinks(buttons: unknown): unknown {
   if (!Array.isArray(buttons)) return buttons
   return buttons.map((button: any) => (Array.isArray(button?.actions)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omitted from the rest
     ? { ...button, actions: button.actions.map((a: any) => { if (!a || typeof a !== 'object' || !('start_form_page' in a)) return a; const { start_form_page: _link, ...rest } = a; return rest }) }
     : button))
 }

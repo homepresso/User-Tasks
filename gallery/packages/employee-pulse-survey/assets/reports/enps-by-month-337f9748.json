@@ -1,0 +1,49 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "337f9748-4ffc-5495-92a4-92ed9ef5beb6",
+  "asset": {
+    "id": "337f9748-4ffc-5495-92a4-92ed9ef5beb6",
+    "name": "eNPS by month",
+    "description": "Average eNPS points per survey round (+100 for 9-10, 0 for 7-8, -100 for 0-6: the average is the eNPS), from the pulse survey runs.",
+    "category": "Employee pulse",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "a5aa7080-4df2-526a-83a1-dbb9697644e4"
+      },
+      "columns": [
+        "vars.round",
+        "AVG_vars.enps_points",
+        "AVG_vars.form.enps",
+        "_count"
+      ],
+      "group_by": [
+        "vars.round"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.enps_points"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.form.enps"
+        }
+      ],
+      "sort": {
+        "field": "vars.round",
+        "direction": "asc"
+      },
+      "visualization": "line",
+      "chart_style": {
+        "chart_title": "eNPS by month",
+        "colors": [
+          "#BE185D"
+        ]
+      }
+    }
+  }
+}

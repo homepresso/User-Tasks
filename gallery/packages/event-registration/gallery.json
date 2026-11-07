@@ -2,7 +2,7 @@
   "title": "Event registration",
   "category": "customer-sales",
   "summary": "A themed registration form with an event lookup, capacity check and waitlist, confirmation emails and an organiser task for special requests.",
-  "description": "Event registration runs sign-ups for breakfasts, webinars, workshops and customer evenings from one form. The Events table holds each event with its date, venue and capacity; the Event registration form lists the open events and fills in the date, start time and venue when one is picked. Attendees add their details, dietary needs and any accessibility or special request.\n\nRegistering shows a success screen with the reference and starts the workflow through its Form submitted trigger. It counts the confirmed registrations for the event in the Registrations table: while there is room the attendee is confirmed and emailed; once the event is full they join the waitlist with their position.\n\nSpecial requests from confirmed attendees go to the organiser as a task with Confirm and Decline buttons, a reply that is emailed to the attendee, a reminder and escalation. Every registration, waitlist place and request answer is in the Registrations table for name badges and catering numbers. Everything is built in.",
+  "description": "Event registration runs sign-ups for breakfasts, webinars, workshops and customer evenings from one form. The Events table holds each event with its date, venue and capacity; the Event registration form lists the open events and fills in the date, start time and venue when one is picked. Attendees add their details, dietary needs and any accessibility or special request.\n\nRegistering shows a Submitted page with the reference and the event details and starts the workflow through its Form submitted trigger. It counts the confirmed registrations for the event in the Registrations table: while there is room the attendee is confirmed and emailed; once the event is full they join the waitlist with their position.\n\nSpecial requests from confirmed attendees go to the organiser as a task with Confirm and Decline buttons, a reply that is emailed to the attendee, a reminder and escalation. Every registration, waitlist place and request answer is in the Registrations table for name badges and catering numbers. Everything is built in.",
   "trigger": "form",
   "entry_workflow": "c1a9ae1d-6e10-58b3-a80f-ceda50d73c32",
   "entry_form": "46c88b95-e7b2-5bfc-9b9b-97a4023234a7",
@@ -17,8 +17,13 @@
     "lookup",
     "no integrations"
   ],
-  "version": "1.0.1",
+  "version": "1.1.0",
   "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "The registration form ends on a Submitted page: a calendar icon, \"You're registered\" with the reference, a summary of the event, and Register someone else / Close form buttons."
+    },
     {
       "version": "1.0.1",
       "date": "2026-10-28",

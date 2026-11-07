@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateApiKey, requireApiPermission } from "@/lib/api-auth";
 import { normalizeReportConfig } from "@/lib/report-config";
 import { executeReportPreview } from "@/lib/mcp/tools/reports";
+import { executeReportCharts } from "@/lib/report-charts-server";
+import { validTimeZone } from "@/lib/report-charts";
+import { getUserPermissions } from "@/lib/permissions-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,29 +36,45 @@ export async function POST(request: NextRequest) {
     }
 
     let tenantId = apiAuth.success ? apiAuth.tenantId : undefined;
+    let profileTimezone: string | null = null;
     if (!tenantId) {
       const user = await getCachedUser();
       const { data: profile } = await supabase
         .from("users")
-        .select("current_tenant_id, tenant_id")
+        .select("current_tenant_id, tenant_id, timezone")
         .eq("id", user?.id)
         .single();
       tenantId = profile?.current_tenant_id ?? profile?.tenant_id;
+      profileTimezone = profile?.timezone ?? null;
     }
     if (!tenantId)
       return NextResponse.json({ error: "No tenant" }, { status: 403 });
 
+    // Session callers: their roles in the current workspace (agent runs
+    // need agents.view, workflow variable columns workflows.view).
+    const permissions = apiAuth.success ? apiAuth.permissions : await getUserPermissions();
+    // An API key's data table scope applies to reports too (as on data_rows_*).
+    const scopedTableIds = apiAuth.success ? apiAuth.scopes?.table_ids : undefined;
+    // Summary chart time buckets: ?timezone= (the viewer's browser zone),
+    // else the user's profile zone, else UTC.
+    const timezone =
+      validTimeZone(request.nextUrl.searchParams.get("timezone")) ??
+      validTimeZone(profileTimezone) ??
+      "UTC";
+
     try {
-      const preview = await executeReportPreview(
-        supabase,
-        tenantId,
-        body as any,
-      );
+      const [preview, charts] = await Promise.all([
+        executeReportPreview(supabase, tenantId, body as any, scopedTableIds, permissions),
+        body.charts?.length
+          ? executeReportCharts(supabase, tenantId, body as any, { scopedTableIds, permissions, timezone })
+          : Promise.resolve(null),
+      ]);
       return NextResponse.json({
         data: preview.data,
         total: preview.total,
         available_columns: preview.available_columns,
         joins: preview.joins,
+        ...(charts ? { charts, timezone } : {}),
       });
     } catch (error: any) {
       return NextResponse.json(

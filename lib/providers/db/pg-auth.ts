@@ -180,8 +180,8 @@ export function databaseCaFile(mode: DatabaseAuthMode, env: Record<string, strin
   if (mode !== 'aws') return null
   for (const candidate of RDS_CA_BUNDLE_PATHS) {
     // Resolved at runtime only: keeps the build from tracing the whole project.
-    const file = path.resolve(/*turbopackIgnore: true*/ process.cwd(), candidate)
-    if (existsSync(file)) return file
+    const file = path.join(/*turbopackIgnore: true*/ process.cwd(), candidate)
+    if (existsSync(/*turbopackIgnore: true*/ file)) return file
   }
   return null
 }
@@ -192,7 +192,7 @@ function readCa(file: string): string {
   let ca = caCache.get(file)
   if (ca === undefined) {
     try {
-      ca = readFileSync(file, 'utf8')
+      ca = readFileSync(/*turbopackIgnore: true*/ file, 'utf8')
     } catch (error) {
       throw new Error(`DATABASE_SSL_CA_FILE ${file} cannot be read: ${(error as NodeJS.ErrnoException).code ?? (error as Error).message}`)
     }

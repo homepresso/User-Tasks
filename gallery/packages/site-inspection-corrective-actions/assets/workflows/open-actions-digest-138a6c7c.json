@@ -1,0 +1,208 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "138a6c7c-0f43-591a-87de-a2d913b01442",
+  "asset": {
+    "id": "138a6c7c-0f43-591a-87de-a2d913b01442",
+    "name": "Open actions digest",
+    "description": "From the Inspection overview page: lists the open (or overdue) corrective actions, counts them by severity and emails the digest to whoever asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Digest requested",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "12eb3cfb-46be-5bea-ae66-a794315b547a",
+          "form_name": "Inspection overview"
+        }
+      },
+      {
+        "id": "open",
+        "type": "update_data_table",
+        "label": "Open actions",
+        "position": {
+          "x": 600,
+          "y": 180
+        },
+        "config": {
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "table_name": "Corrective actions",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Open"
+            }
+          ],
+          "sort_column": "due_date",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "open_rows",
+          "output_count_var": "open_count"
+        }
+      },
+      {
+        "id": "overdue",
+        "type": "update_data_table",
+        "label": "Overdue actions",
+        "position": {
+          "x": 600,
+          "y": 300
+        },
+        "config": {
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "table_name": "Corrective actions",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Open"
+            },
+            {
+              "column": "due_date",
+              "operator": "lt",
+              "value": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+            }
+          ],
+          "sort_column": "due_date",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "overdue_rows",
+          "output_count_var": "overdue_count"
+        }
+      },
+      {
+        "id": "h",
+        "type": "set_variable",
+        "label": "High",
+        "position": {
+          "x": 600,
+          "y": 420
+        },
+        "config": {
+          "name": "high_open",
+          "expression": "{{=COUNT(FILTER_WHERE(open_rows, \"severity\", \"High\"))}}"
+        }
+      },
+      {
+        "id": "m",
+        "type": "set_variable",
+        "label": "Medium",
+        "position": {
+          "x": 600,
+          "y": 540
+        },
+        "config": {
+          "name": "medium_open",
+          "expression": "{{=COUNT(FILTER_WHERE(open_rows, \"severity\", \"Medium\"))}}"
+        }
+      },
+      {
+        "id": "l",
+        "type": "set_variable",
+        "label": "Low",
+        "position": {
+          "x": 600,
+          "y": 660
+        },
+        "config": {
+          "name": "low_open",
+          "expression": "{{=COUNT(FILTER_WHERE(open_rows, \"severity\", \"Low\"))}}"
+        }
+      },
+      {
+        "id": "lines",
+        "type": "set_variable",
+        "label": "Digest lines",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "name": "digest_lines",
+          "expression": "{{=IF(form.include == \"Overdue actions only\", JOIN(\"<br>\", PLUCK(overdue_rows, \"summary\")), JOIN(\"<br>\", PLUCK(open_rows, \"summary\")))}}"
+        }
+      },
+      {
+        "id": "text",
+        "type": "set_variable",
+        "label": "Digest text",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "digest_text",
+          "expression": "{{=IF(form.include == \"Overdue actions only\", JOIN(\"\\n\", PLUCK(overdue_rows, \"summary\")), JOIN(\"\\n\", PLUCK(open_rows, \"summary\")))}}"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the digest",
+        "position": {
+          "x": 600,
+          "y": 1020
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "7001879b-f779-535b-a20f-1d3041e9d716"
+        },
+        "onError": "continue"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-open",
+        "source": "trigger",
+        "target": "open"
+      },
+      {
+        "id": "e-open-overdue",
+        "source": "open",
+        "target": "overdue"
+      },
+      {
+        "id": "e-overdue-h",
+        "source": "overdue",
+        "target": "h"
+      },
+      {
+        "id": "e-h-m",
+        "source": "h",
+        "target": "m"
+      },
+      {
+        "id": "e-m-l",
+        "source": "m",
+        "target": "l"
+      },
+      {
+        "id": "e-l-lines",
+        "source": "l",
+        "target": "lines"
+      },
+      {
+        "id": "e-lines-text",
+        "source": "lines",
+        "target": "text"
+      },
+      {
+        "id": "e-text-mail",
+        "source": "text",
+        "target": "mail"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

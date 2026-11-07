@@ -43,6 +43,7 @@ export async function createWorkflow(formData: FormData) {
     middleware_received: 'Middleware',
     schedule: 'Schedule',
     webhook_received: 'Webhook',
+    esign_event: 'E-signature Event',
   }
   const initialNode = {
     id: crypto.randomUUID(),
@@ -74,6 +75,22 @@ export async function createWorkflow(formData: FormData) {
       target: endNodeId,
     })
   }
+
+  // A repeated submit of the same dialog (double click, slow network) must not
+  // create a second workflow: reuse one this user created with the same name
+  // and trigger in the last 30 seconds.
+  const recentSince = new Date(Date.now() - 30_000).toISOString()
+  const { data: recent } = await supabase.from('workflows')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('created_by', user.id)
+    .eq('name', name)
+    .eq('trigger_type', triggerType)
+    .gte('created_at', recentSince)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (recent?.id) redirect(`/automations/${recent.id}`)
 
   const { data, error } = await supabase.from('workflows').insert({
     tenant_id: tenantId,
@@ -185,6 +202,9 @@ export async function publishWorkflow(workflowId: string, notes?: string): Promi
   const { pinWorkflowForms } = await import('@/lib/services/forms')
   const { createServiceClient } = await import('@/lib/cron-auth')
   const pinned = await pinWorkflowForms(createServiceClient(), String(tenantId), workflow.nodes, (workflow as any).trigger_config ?? {})
+  // Run Agent steps run the agent version current at publish (lib/agents/pins.ts).
+  const { pinWorkflowAgents } = await import('@/lib/agents/pins')
+  pinned.nodes = await pinWorkflowAgents(createServiceClient(), String(tenantId), pinned.nodes)
 
   // Create version snapshot (includes trigger_config)
   const { data: version, error: versionError } = await (supabase as any)
@@ -250,7 +270,8 @@ export async function revertToVersion(workflowId: string, versionId: string) {
   // Overwrite draft with version's snapshot (includes trigger_config). Form
   // pins are dropped: drafts follow the latest version of linked forms.
   const { unpinFormVersions } = await import('@/lib/forms/definition')
-  const unpinned = unpinFormVersions(version.nodes, version.trigger_config ?? {})
+  const { unpinAgentVersions } = await import('@/lib/agents/pins')
+  const unpinned = unpinFormVersions(unpinAgentVersions(version.nodes), version.trigger_config ?? {})
   await supabase.from('workflows').update({
     nodes: unpinned.nodes,
     edges: version.edges,
@@ -370,4 +391,13 @@ export async function bulkToggleWorkflows(workflowIds: string[], active: boolean
 export async function setNodeFavorite(nodeType: string, favorite: boolean): Promise<ActionResult<{ node_type: string; favorite: boolean }>> {
   return runAction('setNodeFavorite', 'Could not update favorites.', async () =>
     workflowsService.setNodeFavorite(await fromSession(), nodeType, favorite))
+}
+
+/** Designer → Run Agent step: re-pin the published version to the agent's current version (no draft changes are published). */
+export async function updatePinnedAgentVersion(workflowId: string, nodeId?: string | null) {
+  return runAction('updatePinnedAgentVersion', 'Could not update the agent version.', async () => {
+    const result = await workflowsService.updatePinnedAgentVersion(await fromSession(), workflowId, nodeId ?? null)
+    revalidatePath('/automations')
+    return result
+  })
 }

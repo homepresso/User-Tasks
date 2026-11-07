@@ -49,6 +49,17 @@ export const snowflakeConnector: ConnectorDefinition = {
   ],
   credentialFields: [
     {
+      key: 'auth_method',
+      label: 'Authentication',
+      type: 'select',
+      options: [
+        { value: 'key_pair', label: 'Key pair (recommended)' },
+        { value: 'password', label: 'Password' },
+      ],
+      defaultValue: 'key_pair',
+      helpText: 'Snowflake is retiring single-factor password sign-in (service users must use key pair or OAuth). Use a TYPE=SERVICE user with an RSA key pair.',
+    },
+    {
       key: 'username',
       label: 'Username',
       type: 'text',
@@ -58,7 +69,23 @@ export const snowflakeConnector: ConnectorDefinition = {
       key: 'password',
       label: 'Password',
       type: 'password',
-      required: true,
+      visibleWhen: { field: 'auth_method', equals: 'password' },
+      requiredWhen: { field: 'auth_method', equals: 'password' },
+    },
+    {
+      key: 'private_key',
+      label: 'Private Key (PEM, PKCS#8)',
+      type: 'textarea',
+      placeholder: '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----',
+      visibleWhen: { field: 'auth_method', equals: 'key_pair' },
+      requiredWhen: { field: 'auth_method', equals: 'key_pair' },
+      helpText: 'The private key whose public key is set on the user (ALTER USER … SET RSA_PUBLIC_KEY = …).',
+    },
+    {
+      key: 'private_key_passphrase',
+      label: 'Private Key Passphrase (if encrypted)',
+      type: 'password',
+      visibleWhen: { field: 'auth_method', equals: 'key_pair' },
     },
   ],
   referenceTemplates: [
@@ -243,7 +270,11 @@ export const snowflakeConnector: ConnectorDefinition = {
     auth_type: 'basic',
     auth_config: {
       username: credentials.username,
-      password: credentials.password,
+      // Connectors stored before key-pair support have no auth_method: password.
+      auth_method: credentials.auth_method || (credentials.private_key ? 'key_pair' : 'password'),
+      password: credentials.password || '',
+      ...(credentials.private_key ? { private_key: credentials.private_key } : {}),
+      ...(credentials.private_key_passphrase ? { private_key_passphrase: credentials.private_key_passphrase } : {}),
     },
     headers: {
       _executor: 'database',

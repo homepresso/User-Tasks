@@ -5,7 +5,7 @@ import { runAction } from '@/lib/actions/run-action'
 import { fromSession } from '@/lib/services/context'
 import * as analytics from '@/lib/services/report-analytics'
 
-/* Workflow report aggregates (lib/services/report-analytics), reports.view. */
+/* Workflow report aggregates (lib/services/report-analytics), workflows.view_runs. */
 
 export async function getRunDailyStats(input: { since: string; workflowIds?: string[] | null }): Promise<ActionResult<analytics.RunDailyStat[]>> {
   return runAction('getRunDailyStats', 'Could not load run statistics.', async () => analytics.runDailyStats(await fromSession(), input))

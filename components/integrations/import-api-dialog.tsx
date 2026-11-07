@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Upload, FileJson, Globe, Key, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,9 +33,14 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
   const [tagInput, setTagInput] = useState('')
   const [selectedRefs, setSelectedRefs] = useState<Set<number>>(new Set())
   const [expandedRef, setExpandedRef] = useState<number | null>(null)
+  // "Start empty": no references now — every operation stays available to the custom reference builder.
+  const [startEmpty, setStartEmpty] = useState(false)
+  const [refQuery, setRefQuery] = useState('')
 
   // Import progress
   const [importing, setImporting] = useState(false)
+  // Synchronous guard: two clicks in one frame both start an import.
+  const importGuard = useSubmitGuard()
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
   const [importResult, setImportResult] = useState<{ success: boolean; integrationId?: string; refCount?: number; error?: string } | null>(null)
 
@@ -84,70 +90,83 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
   }
 
   async function handleImport() {
-    if (!parsed) return
-    setImporting(true)
-    setStep('importing')
-    setImportResult(null)
+    await importGuard.run(async () => {
+      if (!parsed) return
+      setImporting(true)
+      setStep('importing')
+      setImportResult(null)
 
-    const refsToImport = parsed.references.filter((_, i) => selectedRefs.has(i))
-    setImportProgress({ done: 0, total: refsToImport.length })
+      const refsToImport = startEmpty ? [] : parsed.references.filter((_, i) => selectedRefs.has(i))
+      setImportProgress({ done: 0, total: refsToImport.length })
 
-    try {
-      // Build integration config
-      const integrationConfig: Record<string, any> = {
-        base_url: baseUrl,
-        auth_type: authType,
-        auth_config: {},
-        headers: {},
+      try {
+        // Build integration config
+        const integrationConfig: Record<string, any> = {
+          base_url: baseUrl,
+          auth_type: authType,
+          auth_config: {},
+          headers: {},
+        }
+
+        if (authType === 'api_key') {
+          integrationConfig.auth_config = { key_name: authConfig.key_name || 'X-API-Key', key_value: authConfig.key_value || '' }
+        } else if (authType === 'bearer') {
+          integrationConfig.auth_config = { token: authConfig.token || '' }
+        } else if (authType === 'basic') {
+          integrationConfig.auth_config = { username: authConfig.username || '', password: authConfig.password || '' }
+        }
+
+        const result = await createImportedApiIntegration({
+          name,
+          baseUrl,
+          authType: authType as 'none' | 'api_key' | 'bearer' | 'basic',
+          authConfig: integrationConfig.auth_config,
+          tags,
+          // Every parsed operation is stored on the integration for custom references.
+          operations: parsed.references.map((ref) => ({
+            name: ref.name,
+            description: ref.description,
+            method: ref.method,
+            pathTemplate: ref.pathTemplate,
+            bodyTemplate: ref.bodyTemplate,
+            headers: ref.headers,
+            inputs: ref.inputs.map((inp) => ({ ...inp })),
+            responseSchema: ref.responseSchema,
+          })),
+          references: refsToImport.map((ref) => ({
+            name: ref.name,
+            description: ref.description,
+            method: ref.method,
+            pathTemplate: ref.pathTemplate,
+            bodyTemplate: ref.bodyTemplate,
+            headers: ref.headers,
+            tags: ref.tags,
+            inputs: ref.inputs.map(inp => ({
+              id: crypto.randomUUID(),
+              name: inp.name,
+              type: inp.type,
+              required: inp.required,
+              default_value: inp.default_value,
+              source: 'variable',
+              location: inp.location ?? 'query',
+            })),
+            outputs: ref.outputs.map(out => ({
+              id: crypto.randomUUID(),
+              name: out.name,
+              path: out.path,
+              type: out.type,
+            })),
+            responseSchema: ref.responseSchema,
+          })),
+        })
+        setImportProgress({ done: result.refCount, total: refsToImport.length })
+        setImportResult({ success: true, integrationId: result.integrationId, refCount: result.refCount })
+      } catch (err: any) {
+        setImportResult({ success: false, error: err.message })
       }
 
-      if (authType === 'api_key') {
-        integrationConfig.auth_config = { key_name: authConfig.key_name || 'X-API-Key', key_value: authConfig.key_value || '' }
-      } else if (authType === 'bearer') {
-        integrationConfig.auth_config = { token: authConfig.token || '' }
-      } else if (authType === 'basic') {
-        integrationConfig.auth_config = { username: authConfig.username || '', password: authConfig.password || '' }
-      }
-
-      const result = await createImportedApiIntegration({
-        name,
-        baseUrl,
-        authType: authType as 'none' | 'api_key' | 'bearer' | 'basic',
-        authConfig: integrationConfig.auth_config,
-        tags,
-        references: refsToImport.map((ref) => ({
-          name: ref.name,
-          description: ref.description,
-          method: ref.method,
-          pathTemplate: ref.pathTemplate,
-          bodyTemplate: ref.bodyTemplate,
-          headers: ref.headers,
-          tags: ref.tags,
-          inputs: ref.inputs.map(inp => ({
-            id: crypto.randomUUID(),
-            name: inp.name,
-            type: inp.type,
-            required: inp.required,
-            default_value: inp.default_value,
-            source: 'variable',
-            location: inp.location ?? 'query',
-          })),
-          outputs: ref.outputs.map(out => ({
-            id: crypto.randomUUID(),
-            name: out.name,
-            path: out.path,
-            type: out.type,
-          })),
-          responseSchema: ref.responseSchema,
-        })),
-      })
-      setImportProgress({ done: result.refCount, total: refsToImport.length })
-      setImportResult({ success: true, integrationId: result.integrationId, refCount: result.refCount })
-    } catch (err: any) {
-      setImportResult({ success: false, error: err.message })
-    }
-
-    setImporting(false)
+      setImporting(false)
+    })
   }
 
   function handleDone() {
@@ -163,21 +182,20 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div
-        className="w-[90vw] max-w-3xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+        className="w-[90vw] max-w-3xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden bg-panel border-border"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
           <div className="flex items-center gap-2">
-            <Upload size={16} style={{ color: 'var(--theme-primary-text)' }} />
+            <Upload size={16} className="text-primary-text" />
             <span className="text-sm font-semibold">Import API Specification</span>
             {format && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+              <span className="text-2xs px-2 py-0.5 rounded-full bg-primary-wash text-primary-text">
                 {format}
               </span>
             )}
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
+          <button onClick={onClose} className="p-1 rounded hover:opacity-70 text-fg-muted">
             <XCircle size={18} />
           </button>
         </div>
@@ -198,19 +216,19 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
               >
-                <FileJson size={40} className="mx-auto mb-3" style={{ color: 'var(--theme-muted-text)' }} />
+                <FileJson size={40} className="mx-auto mb-3 text-fg-muted" />
                 <p className="text-sm font-medium">Drop a file or click to browse</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-xs mt-1 text-fg-muted">
                   Supports OpenAPI 2.0 (Swagger), OpenAPI 3.0/3.1, Postman Collection v2.x
                 </p>
-                <p className="text-[10px] mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="text-2xs mt-2 text-fg-muted">
                   JSON or YAML
                 </p>
                 <input ref={fileRef} type="file" accept=".json,.yaml,.yml" className="hidden" onChange={handleFile} />
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 rounded-lg p-3 text-sm" style={{ backgroundColor: '#EF444415', color: '#EF4444' }}>
+                <div className="flex items-start gap-2 rounded-lg bg-danger-wash p-3 text-sm text-danger">
                   <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                   {error}
                 </div>
@@ -223,7 +241,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
             <div className="space-y-5">
               {/* Integration details */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>Integration</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Integration</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium mb-1 block">Name</label>
@@ -235,15 +253,14 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                   </div>
                 </div>
                 {parsed.description && (
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{parsed.description.slice(0, 200)}</p>
+                  <p className="text-2xs text-fg-muted">{parsed.description.slice(0, 200)}</p>
                 )}
                 {/* Tags */}
                 <div>
                   <label className="text-xs font-medium mb-1 block">Tags</label>
                   <div className="flex flex-wrap gap-1 mb-1.5">
                     {tags.map(tag => (
-                      <span key={tag} className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                      <span key={tag} className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded-full bg-primary-wash text-primary-text">
                         {tag}
                         <button onClick={() => setTags(t => t.filter(x => x !== tag))} className="hover:opacity-70">
                           <XCircle size={10} />
@@ -261,12 +278,11 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
 
               {/* Auth */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--theme-muted-text)' }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-fg-muted">
                   <Key size={12} /> Authentication
                 </h3>
                 <select value={authType} onChange={e => setAuthType(e.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-xs"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+                  className="w-full rounded-md border px-3 py-2 text-xs bg-panel border-border text-fg">
                   <option value="none">No Authentication</option>
                   <option value="api_key">API Key</option>
                   <option value="bearer">Bearer Token</option>
@@ -307,21 +323,36 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
 
               {/* References list */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
+                <label className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs" data-testid="import-start-empty"
+                  style={{ borderColor: startEmpty ? 'var(--theme-primary)' : 'var(--theme-surface-border)', backgroundColor: startEmpty ? 'var(--theme-primary-light)' : undefined }}>
+                  <input type="checkbox" className="mt-0.5" checked={startEmpty} onChange={(e) => setStartEmpty(e.target.checked)} />
+                  <span>
+                    <span className="font-medium">Start empty</span>
+                    <span className="block text-2xs text-fg-muted">
+                      Create no references now and build tidy custom ones (columns, filters, sort, inputs). All {parsed.references.length} operations stay available to the custom reference builder.
+                    </span>
+                  </span>
+                </label>
+                {!startEmpty && (
+                <input value={refQuery} onChange={(e) => setRefQuery(e.target.value)} placeholder="Search operations…" data-testid="import-search"
+                  className="h-7 w-full rounded border px-2 text-xs outline-none border-border bg-panel" />
+                )}
+                {!startEmpty && <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
                     References ({selectedRefs.size}/{parsed.references.length} selected)
                   </h3>
                   <div className="flex gap-2">
-                    <button onClick={() => setSelectedRefs(new Set(parsed.references.map((_, i) => i)))} className="text-[10px] underline" style={{ color: 'var(--theme-primary-text)' }}>Select All</button>
-                    <button onClick={() => setSelectedRefs(new Set())} className="text-[10px] underline" style={{ color: 'var(--theme-muted-text)' }}>Clear</button>
+                    <button onClick={() => setSelectedRefs(new Set(parsed.references.map((_, i) => i)))} className="text-2xs underline text-primary-text">Select All</button>
+                    <button onClick={() => setSelectedRefs(new Set())} className="text-2xs underline text-fg-muted">Clear</button>
                   </div>
-                </div>
+                </div>}
 
-                <div className="max-h-[280px] overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                {!startEmpty && <div className="max-h-[280px] overflow-y-auto rounded-lg border border-border">
                   {parsed.references.map((ref, i) => {
+                    if (refQuery.trim() && !`${ref.name} ${ref.method} ${ref.pathTemplate} ${ref.description ?? ''}`.toLowerCase().includes(refQuery.trim().toLowerCase())) return null
                     const isSelected = selectedRefs.has(i)
                     const isExpanded = expandedRef === i
-                    const methodColors: Record<string, string> = { GET: '#22C55E', POST: '#3B82F6', PUT: '#F59E0B', DELETE: '#EF4444', PATCH: '#8B5CF6' }
+                    const methodColors: Record<string, string> = { GET: 'bg-success-wash text-success', POST: 'bg-info-wash text-info', PUT: 'bg-warning-wash text-warning', DELETE: 'bg-danger-wash text-danger', PATCH: 'bg-primary-wash text-primary-text' }
                     return (
                       <div key={i} style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
                         <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:opacity-90"
@@ -335,25 +366,24 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                             onClick={e => e.stopPropagation()}
                             className="shrink-0"
                           />
-                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ color: methodColors[ref.method] ?? '#6B7280', backgroundColor: `${methodColors[ref.method] ?? '#6B7280'}15` }}>
+                          <span className={`text-2xs font-mono font-semibold px-1.5 py-0.5 rounded shrink-0 ${methodColors[ref.method] ?? 'bg-muted text-fg-muted'}`}>
                             {ref.method}
                           </span>
                           <span className="text-xs font-medium flex-1 truncate">{ref.name}</span>
-                          <span className="text-[10px] font-mono truncate max-w-[200px]" style={{ color: 'var(--theme-muted-text)' }}>
+                          <span className="text-2xs font-mono truncate max-w-[200px] text-fg-muted">
                             {ref.pathTemplate}
                           </span>
                           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                         </div>
 
                         {isExpanded && (
-                          <div className="px-3 pb-2 ml-7 space-y-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                          <div className="px-3 pb-2 ml-7 space-y-1 text-2xs text-fg-muted">
                             {ref.description && <p>{ref.description.slice(0, 150)}</p>}
                             {ref.inputs.length > 0 && (
                               <div className="flex flex-wrap gap-1">
                                 <span className="font-semibold">Inputs:</span>
                                 {ref.inputs.map(inp => (
-                                  <span key={inp.name} className="font-mono px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)' }}>
+                                  <span key={inp.name} className="font-mono px-1 py-0.5 rounded bg-bg">
                                     {inp.name}{inp.required ? '*' : ''}
                                   </span>
                                 ))}
@@ -363,7 +393,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                               <div className="flex flex-wrap gap-1">
                                 <span className="font-semibold">Outputs:</span>
                                 {ref.outputs.map(out => (
-                                  <span key={out.name} className="font-mono px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)' }}>
+                                  <span key={out.name} className="font-mono px-1 py-0.5 rounded bg-bg">
                                     {out.name}
                                   </span>
                                 ))}
@@ -372,7 +402,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                             {ref.tags.length > 0 && (
                               <div className="flex gap-1">
                                 {ref.tags.map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>{t}</span>
+                                  <span key={t} className="px-1.5 py-0.5 rounded-full bg-primary-wash text-primary-text">{t}</span>
                                 ))}
                               </div>
                             )}
@@ -381,7 +411,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                       </div>
                     )
                   })}
-                </div>
+                </div>}
               </div>
             </div>
           )}
@@ -391,12 +421,12 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
             <div className="flex flex-col items-center justify-center py-12">
               {importing ? (
                 <>
-                  <Loader2 size={32} className="animate-spin mb-4" style={{ color: 'var(--theme-primary-text)' }} />
+                  <Loader2 size={32} className="animate-spin mb-4 text-primary-text" />
                   <p className="text-sm font-medium">Importing references...</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-xs mt-1 text-fg-muted">
                     {importProgress.done} / {importProgress.total}
                   </p>
-                  <div className="w-48 h-1.5 rounded-full mt-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
+                  <div className="w-48 h-1.5 rounded-full mt-3 bg-bg">
                     <div className="h-full rounded-full transition-all" style={{
                       backgroundColor: 'var(--theme-primary)',
                       width: `${importProgress.total ? (importProgress.done / importProgress.total) * 100 : 0}%`,
@@ -405,9 +435,9 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                 </>
               ) : importResult?.success ? (
                 <>
-                  <CheckCircle size={40} className="mb-4" style={{ color: '#22C55E' }} />
+                  <CheckCircle size={40} className="mb-4 text-success" />
                   <p className="text-sm font-semibold">Import Complete</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-xs mt-1 text-fg-muted">
                     Created integration with {importResult.refCount} references
                   </p>
                   <Button size="sm" onClick={handleDone} className="mt-4">
@@ -416,9 +446,9 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                 </>
               ) : (
                 <>
-                  <XCircle size={40} className="mb-4" style={{ color: '#EF4444' }} />
+                  <XCircle size={40} className="mb-4 text-danger" />
                   <p className="text-sm font-semibold">Import Failed</p>
-                  <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                  <p className="text-xs mt-1 text-danger">
                     {importResult?.error ?? 'Unknown error'}
                   </p>
                   <Button size="sm" variant="outline" onClick={() => setStep('configure')} className="mt-4">
@@ -434,11 +464,11 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
         {step === 'configure' && (
           <div className="px-5 py-3 shrink-0 flex items-center justify-between" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
             <button onClick={() => { setStep('upload'); setParsed(null); setError(null) }}
-              className="text-xs underline" style={{ color: 'var(--theme-muted-text)' }}>
+              className="text-xs underline text-fg-muted">
               Upload Different File
             </button>
-            <Button size="sm" onClick={handleImport} disabled={selectedRefs.size === 0 || !name.trim() || !baseUrl.trim()}>
-              <Upload size={14} className="mr-1" /> Import {selectedRefs.size} Reference{selectedRefs.size !== 1 ? 's' : ''}
+            <Button size="sm" onClick={handleImport} disabled={(!startEmpty && selectedRefs.size === 0) || !name.trim() || !baseUrl.trim()} data-testid="import-submit">
+              <Upload size={14} className="mr-1" /> {startEmpty ? 'Create integration (start empty)' : `Import ${selectedRefs.size} Reference${selectedRefs.size !== 1 ? 's' : ''}`}
             </Button>
           </div>
         )}

@@ -135,10 +135,31 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | get version | `GET /forms/{id}/versions/{version}` | `forms_version_get` | `forms version` |  |
 | usages | `GET /forms/{id}/usages` | `forms_usages` | `forms usages` |  |
 | submit | `POST /forms/{id}/submit` | `forms_submit` | `forms submit` |  |
+| create with the wizard | `POST /forms/wizard` | `forms_wizard_create` | `forms wizard-create` | forms.wizard; form + responses table + optional approval workflow + results page; dry_run returns the plan |
+| list wizard forms | `GET /forms/wizard` | `forms_wizard_list` | `forms wizard-list` |  |
+| get wizard form | `GET /forms/wizard/{id}` | `forms_wizard_get` | `forms wizard-get` |  |
+| update with the wizard | `PATCH /forms/wizard/{id}` | `forms_wizard_update` | `forms wizard-update` | adds columns, never drops data; republishes the workflow |
+| wizard results | `GET /forms/wizard/{id}/results` | `forms_wizard_results` | `forms wizard-results` | owner, chosen roles / teams, or forms.edit |
 | list submissions | `GET /forms/{id}/submissions` | `forms_submissions_list` | `forms submissions` |  |
 | get submission | `GET /form-submissions/{id}` | `forms_submission_get` | `form-submissions get` |  |
 | lookup | `POST /forms/{id}/lookup` | `forms_lookup` | `forms lookup` |  |
-| export | `GET /config/export` | `config_export` | `config export` | one form (with_dependencies adds its saved theme): config export with ids=<id> |
+| data table rows | `POST /forms/{id}/data-table` | `forms_data_table` | `forms data-table` |  |
+| check accessibility | `POST /forms/{id}/accessibility` | `forms_check_accessibility` | `forms check-accessibility` |  |
+| governance | `GET /forms/{id}/governance` | `forms_governance_get` | `forms governance` | retention policy, legal hold and submission count |
+| legal hold | `POST /forms/{id}/legal-hold` | `forms_legal_hold` | `forms legal-hold` | team.change_roles; while held nothing of the form is purged or deleted |
+| anonymous link | `GET /forms/{id}/anonymous` | `forms_anonymous_get` | `forms anonymous` | the public link (/p/<token>), limits and what anonymous visitors would not get |
+| anonymous on / off and limits | `PATCH /forms/{id}/anonymous` | `forms_anonymous_update` | `forms anonymous-set` | forms.edit; turning on needs the workspace switch |
+| regenerate anonymous link | `POST /forms/{id}/anonymous/regenerate` | `forms_anonymous_regenerate` | `forms anonymous-regenerate` | earlier links stop working |
+| links | `GET /forms/{id}/links` | `forms_links` | `forms links` | the friendly link (/form/<system_name> on the workspace address), /f/<id> and the public /p/<token> link |
+| check system name | `GET /forms/system-name-check` | `forms_system_name_check` | `forms check-system-name` | set system_name with update (a rename keeps the old name as a redirect) |
+| anonymous forms workspace settings | `GET /anonymous-forms` | `anonymous_forms_settings_get` | `anonymous-forms get` | the switch and bot protection (never the secret) |
+| update anonymous forms workspace settings | `PATCH /anonymous-forms` | `anonymous_forms_settings_update` | `anonymous-forms update` | settings.edit; the captcha secret is write-only |
+| assign retention policy | `POST /retention-policies/assign` | `retention_policies_assign` | `retention assign` | target_type form: the policy governs the submissions (purge modes delete due submissions and their files) |
+| list grants | `GET /object-permissions` | `object_permissions_list` | `object-permissions list` | object_type form; View and Submit |
+| set grant | `POST /object-permissions` | `object_permissions_set` | `object-permissions set` | object_type form; can_execute is Submit |
+| remove grant | `DELETE /object-permissions/{id}` | `object_permissions_remove` | `object-permissions remove` |  |
+| audit history | `GET /audit-log` | `object_audit_log_query` | `audit-log list` | object_type=form (create, update, toggle, grant, revoke, retention, purge, legal_hold, delete) |
+| export | `GET /config/export` | `config_export` | `config export` | one form (with_dependencies adds its saved theme and retention policy): config export with ids=<id> |
 | import | `POST /config/apply` | `config_apply` | `config apply` | config apply of the exported form (dry run first) |
 
 ## Files
@@ -152,6 +173,28 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | — | — | — | unused uploads expire after 24 h; submitted files go with their task / submission / run |
 | start direct upload | `POST /files/uploads` | `files_upload_init` | `files upload-init` |  |
 | complete direct upload | `POST /files/uploads/{id}/complete` | `files_upload_complete` | `files upload-complete` |  |
+
+## Task attachments
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /tasks/{id}/attachments` | `tasks_attachments_list` | `tasks attachments` | readers of the task |
+| get | `GET /tasks/{id}/attachments/{attachmentId}/download` | `tasks_attachments_download_url` | `tasks attachment-download` | a 5-minute signed link plus the attachment (audited); the list carries every field |
+| create | `POST /tasks/{id}/attachments` | `tasks_attachments_add` | `tasks attachment-add` | base64 inline, or size for a direct upload; `usertasks tasks attach <id> <path>` wraps both |
+| update | — | — | — | attachments are immutable; delete and attach again |
+| delete | `DELETE /tasks/{id}/attachments/{attachmentId}` | `tasks_attachments_delete` | `tasks attachment-delete` | uploader or tasks.delete; refused under the form's legal hold (audited) |
+| start direct upload | `POST /tasks/{id}/attachments` | `tasks_attachments_add_init` | `tasks attachment-add` |  |
+| complete direct upload | `POST /tasks/{id}/attachments/{attachmentId}/complete` | `tasks_attachments_complete` | `tasks attachment-complete` |  |
+
+## Task follows
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /tasks/following` | `tasks_following` | `tasks following` | the caller's own (Task tracker → Following); visibility re-checked on every read |
+| get | — | — | — | a follow has no fields of its own: the list carries each task with followed_at |
+| create | `PUT /tasks/{id}/follow` | `tasks_follow` | `tasks follow` | only a task the caller can see; idempotent |
+| update | — | — | — | a follow has nothing to change |
+| delete | `DELETE /tasks/{id}/follow` | `tasks_unfollow` | `tasks unfollow` | idempotent |
 
 ## Form themes
 
@@ -176,6 +219,25 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | `DELETE /workflow-activities/{id}` | `workflow_activities_delete` | `activities delete` |  |
 | export | `GET /workflow-activities/{id}/export` | `workflow_activities_export` | `activities export` |  |
 | import | `POST /workflow-activities/import` | `workflow_activities_import` | `activities import` |  |
+| upload | `POST /workflow-activities/upload` | `workflow_activities_upload` | `activities upload` | a packaged action (manifest v1 + ES module); same key adds a version |
+| usages | `GET /workflow-activities/{id}/usages` | `workflow_activities_usages` | `activities usages` |  |
+| get version | `GET /workflow-activities/{id}/versions/{version}` | `workflow_activities_version_get` | `activities version` |  |
+| set secrets | `PUT /workflow-activities/{id}/secrets` | `workflow_activities_secrets_set` | `activities secrets` |  |
+| test | `POST /workflow-activities/{id}/test` | `workflow_activities_test` | `activities test` |  |
+
+## Form controls
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /form-controls` | `form_controls_list` | `form-controls list` |  |
+| get | `GET /form-controls/{id}` | `form_controls_get` | `form-controls get` |  |
+| get version | `GET /form-controls/{id}/versions/{version}` | `form_controls_version_get` | `form-controls version` |  |
+| create | `POST /form-controls` | `form_controls_create` | `form-controls create` | upload a zip / module + manifest, or import from a URL; a new tag creates the control, an existing one adds a version |
+| update | `PATCH /form-controls/{id}` | `form_controls_update` | `form-controls update` | enable / disable, rename, approve network hosts; trusted (no sandbox) is UI-only for instance admins |
+| delete | `DELETE /form-controls/{id}` | `form_controls_delete` | `form-controls delete` |  |
+| usages | `GET /form-controls/{id}/usages` | `form_controls_usages` | `form-controls usages` |  |
+| export | `GET /form-controls/{id}/export` | `form_controls_export` | `form-controls export` |  |
+| import | `POST /form-controls/import` | `form_controls_import` | `form-controls import` |  |
 
 ## Data tables
 
@@ -223,7 +285,22 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | create | `POST /agents` | `agents_create` | `agents create` |  |
 | update | `PUT /agents/{id}` | `agents_update` | `agents update` | PATCH is accepted too |
 | delete | `DELETE /agents/{id}` | `agents_delete` | `agents delete` |  |
-| execute | `POST /agents/{id}/execute` | `agents_execute` | `agents execute` |  |
+| execute | `POST /agents/{id}/execute` | `agents_execute` | `agents execute` | MCP always queues (poll agents_job_get); REST / CLI run sync unless async; REST streams with stream: true |
+| get job | `GET /agents/queue/{id}` | `agents_job_get` | `agents job` |  |
+| list runs | `GET /agents/runs` | `agents_runs_list` | `agents runs` |  |
+| get run | `GET /agents/runs/{id}` | `agent_runs_get` | `agents run` | with the step trace |
+| usage | `GET /agents/{id}/usage` | `agents_usage_get` | `agents usage` | tokens and cost |
+| workspace usage | `GET /agents/usage` | `agents_workspace_usage_get` | `agents workspace-usage` | tokens, cost, budgets, prices |
+| set prices / budgets | `PUT /agents/cost-settings` | `agents_cost_settings_update` | `agents cost-settings` |  |
+| list versions | `GET /agents/{id}/versions` | `agents_versions_list` | `agents versions` |  |
+| restore version | `POST /agents/{id}/versions/{version}/restore` | `agents_version_restore` | `agents restore` |  |
+| list test cases | `GET /agents/{id}/evals/cases` | `agents_eval_cases_list` | `agents cases` |  |
+| create test case | `POST /agents/{id}/evals/cases` | `agents_eval_case_save` | `agents case-create` |  |
+| update test case | `PUT /agents/{id}/evals/cases/{caseId}` | `agents_eval_case_save` | `agents case-update` | MCP: agents_eval_case_save with case_id |
+| delete test case | `DELETE /agents/{id}/evals/cases/{caseId}` | `agents_eval_case_delete` | `agents case-delete` |  |
+| run evaluation | `POST /agents/{id}/evals/runs` | `agents_eval_run` | `agents eval` |  |
+| list evaluation runs | `GET /agents/{id}/evals/runs` | `agents_eval_runs_list` | `agents eval-runs` |  |
+| get evaluation run | `GET /agents/{id}/evals/runs/{runId}` | `agents_eval_run_get` | `agents eval-run` |  |
 | export | `GET /config/export` | `config_export` | `config export` | one agent: config export with ids=<id> |
 | import | `POST /config/apply` | `config_apply` | `config apply` | config apply of the exported agent (dry run first) |
 
@@ -240,6 +317,26 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | assign | `POST /retention-policies/assign` | `retention_policies_assign` | `retention assign` |  |
 | export | `GET /config/export` | `config_export` | `config export` | one retention policy: config export with ids=<id> |
 | import | `POST /config/apply` | `config_apply` | `config apply` | config apply of the exported retention policy (dry run first) |
+
+## Object permissions
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /object-permissions` | `object_permissions_list` | `object-permissions list` | the grants on one object (object_type + object_id) |
+| get | — | — | — | the list of one object carries every field of each grant |
+| create | `POST /object-permissions` | `object_permissions_set` | `object-permissions set` | adds the grantee's grant, or changes it when they already have one |
+| update | `POST /object-permissions` | `object_permissions_set` | `object-permissions set` | same call as create |
+| delete | `DELETE /object-permissions/{id}` | `object_permissions_remove` | `object-permissions remove` |  |
+
+## Audit log
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /audit-log` | `object_audit_log_query` | `audit-log list` | filters: object_type (e.g. form), object_id, actor, action, from / to |
+| get | — | — | — | entries are immutable and the list carries every field |
+| create | — | — | — | entries are written by the services as changes happen, never by callers |
+| update | — | — | — | the audit log is append-only |
+| delete | — | — | — | entries expire with the workspace log retention |
 
 ## Roles
 
@@ -266,6 +363,56 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | `DELETE /teams/{id}` | `teams_delete` | `teams delete` |  |
 | add member | `PUT /teams/{id}/members/{userId}` | `teams_add_member` | `teams add-member` |  |
 | remove member | `DELETE /teams/{id}/members/{userId}` | `teams_remove_member` | `teams remove-member` |  |
+| team tree | `GET /org/teams` | `org_team_tree` | `org team-tree` | lead, org unit, counts with sub-teams, member preview, projects |
+| members with sub-teams | `GET /org/teams/{id}/members` | `org_team_members` | `org team-members` | recursive=true adds sub-teams' members |
+
+## Organization (people)
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /org/chart` | `org_chart` | `org chart` | every active member with manager, attributes and report counts |
+| get | `GET /org/people/{id}` | `org_person_get` | `org person` | `me` for yourself |
+| create | — | — | — | people join by invitation or directory sync (invitations send, directory-sync) |
+| update | `PATCH /org/people/{id}` | `org_person_update` | `org update-person` | attributes need org.manage; directory-owned ones need a detach first |
+| delete | — | — | — | members leave through Settings → Members or directory sync; their org data goes with them |
+| detach from directory | `POST /org/people/{id}/detach` | `org_person_detach` | `org detach-person` |  |
+| subordinates | `GET /org/people/{id}/subordinates` | `org_subordinates` | `org reports` | depth=all for every level (capped at 10) |
+| manager chain | `GET /org/people/{id}/manager-chain` | `org_manager_chain` | `org manager-chain` |  |
+| peers | `GET /org/people/{id}/peers` | `org_peers` | `org peers` |  |
+| projects of a person | `GET /org/people/{id}/projects` | `projects_mine` | `org projects` |  |
+| resolve a people scope | `GET /org/scope` | `org_scope_resolve` | `org scope` | me, direct_reports, all_reports, team, org_unit, project |
+| export CSV | `GET /org/export` | `org_export` | `org export` | format=csv returns the file |
+| import CSV | `POST /org/import` | `org_import` | `org import` | dry run by default |
+
+## Org units
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /org/units` | `org_units_list` | `org-units list` |  |
+| get | `GET /org/units/{id}` | `org_unit_get` | `org-units get` |  |
+| create | `POST /org/units` | `org_unit_create` | `org-units create` |  |
+| update | `PATCH /org/units/{id}` | `org_unit_update` | `org-units update` | parent_id moves it; imported units need a detach first |
+| delete | `DELETE /org/units/{id}` | `org_unit_delete` | `org-units delete` | sub-units move up to its parent |
+| detach from source | `POST /org/units/{id}/detach` | `org_unit_detach` | `org-units detach` |  |
+| list members | `GET /org/units/{id}/members` | `org_unit_members` | `org-units members` | recursive=true adds the units below |
+| add member | `PUT /org/units/{id}/members/{userId}` | `org_unit_member_add` | `org-units add-member` |  |
+| remove member | `DELETE /org/units/{id}/members/{userId}` | `org_unit_member_remove` | `org-units remove-member` |  |
+
+## Projects
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /projects` | `projects_list` | `projects list` |  |
+| get | `GET /projects/{id}` | `projects_get` | `projects get` |  |
+| create | `POST /projects` | `projects_create` | `projects create` |  |
+| update | `PATCH /projects/{id}` | `projects_update` | `projects update` |  |
+| delete | `DELETE /projects/{id}` | `projects_delete` | `projects delete` |  |
+| archive | `POST /projects/{id}/archive` | `projects_archive` | `projects archive` | archived=false restores |
+| list people | `GET /projects/{id}/members` | `projects_members` | `projects members` | direct members ∪ attached teams' members |
+| add member | `PUT /projects/{id}/members/{userId}` | `projects_member_add` | `projects add-member` |  |
+| remove member | `DELETE /projects/{id}/members/{userId}` | `projects_member_remove` | `projects remove-member` |  |
+| attach team | `PUT /projects/{id}/teams/{teamId}` | `projects_team_attach` | `projects attach-team` |  |
+| detach team | `DELETE /projects/{id}/teams/{teamId}` | `projects_team_detach` | `projects detach-team` |  |
 
 ## Invitations
 
@@ -316,6 +463,8 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | test | `POST /directory-sync/connections/{provider}/test` | `directory_sync_test` | `directory-sync test` |  |
 | sync now | `POST /directory-sync/connections/{provider}/sync` | `directory_sync_start` | `directory-sync sync` |  |
 | list runs | `GET /directory-sync/runs` | `directory_sync_runs_list` | `directory-sync runs` |  |
+| capabilities | `GET /directory-sync/capabilities` | `directory_capabilities` | `directory-sync capabilities` | AAD group task assignment |
+| search entra groups | `GET /directory-sync/entra/groups` | `directory_entra_groups_search` | `directory-sync groups` | AAD group task assignment |
 
 ## Scim tokens
 
@@ -340,6 +489,51 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | list presets | `GET /workspace-theme/presets` | `workspace_theme_presets_list` | `workspace-theme presets` |  |
 | apply preset | `POST /workspace-theme/apply-preset` | `workspace_theme_apply_preset` | `workspace-theme apply-preset` |  |
 | upload font | `POST /workspace-theme/fonts` | `workspace_theme_font_upload` | `workspace-theme upload-font` |  |
+
+## Workspace address
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one address per workspace: get returns it |
+| get | `GET /workspace/address` | `workspace_address_get` | `workspace-address get` |  |
+| create | — | — | — | set creates it: every workspace has at most one address |
+| update | `PATCH /workspace/address` | `workspace_address_set` | `workspace-address set` | settings.edit; the old address redirects for a year |
+| delete | `PATCH /workspace/address` | `workspace_address_set` | `workspace-address set` | subdomain null removes the address |
+| check | `GET /workspace/address/check` | `workspace_address_check` | `workspace-address check` |  |
+
+## Task completed screen
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one setting per workspace: get returns it |
+| get | `GET /workspace/task-completion` | `task_completion_settings_get` | `task-completion get` |  |
+| create | — | — | — | every workspace has it (the defaults until changed) |
+| update | `PATCH /workspace/task-completion` | `task_completion_settings_update` | `task-completion update` | settings.edit; task forms override it in layout.task_completed |
+| delete | — | — | — | set enabled false to turn the screen off |
+| next step | `GET /tasks/{id}/next` | `tasks_next_step` | `tasks next` | completing a task (REST / MCP) returns the same summary as `next` |
+
+## Form sign-in page
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one setting per workspace: get returns it |
+| get | `GET /workspace/form-sign-in-page` | `form_sign_in_page_get` | `form-sign-in-page get` |  |
+| create | — | — | — | every workspace has it (the defaults until changed) |
+| update | `PATCH /workspace/form-sign-in-page` | `form_sign_in_page_update` | `form-sign-in-page update` | settings.edit; the logo is uploaded in Settings → Forms |
+| delete | — | — | — | update back to the defaults (the settings card has Reset to defaults) |
+
+## Document OCR
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one OCR setting per workspace: get returns it |
+| get | `GET /document-ocr` | `document_ocr_get` | `document-ocr get` |  |
+| create | — | — | — | every workspace has a setting (instance default until changed): update sets it |
+| update | `PUT /document-ocr` | `document_ocr_update` | `document-ocr update` | the Azure key is write-only: "__SECRET__" or omitted keeps it |
+| delete | `DELETE /document-ocr` | `document_ocr_remove_key` | `document-ocr remove-key` | removes the Azure endpoint and key |
+| test | `POST /document-ocr/test` | `document_ocr_test` | `document-ocr test` |  |
+| export | `GET /config/export` | `config_export` | `config export` | config export with types=document_ocr (the key is never exported) |
+| import | `POST /config/apply` | `config_apply` | `config apply` | the Azure key must be entered again after an import |
 
 ## Packages
 
@@ -398,7 +592,7 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | MCP | workflows_catalog, workflows_preflight, workflows_resolve_dependencies | prompt-authoring aids for agents (node catalog, dependency checks); REST/CLI users read the docs and get validation errors from create/update |
 | MCP | integrations_create_bundle | creates an integration and its references in one prompt step; REST/CLI do it with integrations create + references create, or config apply |
 | MCP | reports_query, reports_source_get, reports_remediate_config, data_rows_search | agent-oriented read helpers |
-| MCP | integration_calls_*, agent_runs_*, trace_get, object_audit_log_query | observability reads, not configuration |
+| MCP | integration_calls_*, agent_runs_*, trace_get | observability reads, not configuration |
 | CLI | config diff / new | folder helpers over POST /config/apply (dry run) and local scaffolding; config export / apply themselves are on every surface (MCP: config_export / config_apply, single-manifest form) |
 | CLI | tasks complete | ergonomic wrapper over POST /tasks/{id}/action |
 | CLI | logs tail, logs export | live tail over the SSE endpoint GET /events/stream (auto-reconnect, NDJSON with -o json) and cursor export over GET /events; MCP clients poll events_list with `after` |
@@ -422,5 +616,6 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | Integrations: MCP integrations_get hid the config, so MCP could not edit it from a read | masked config returned (as REST) |
 | Every update: the `{ <item>: {...} }` GET wrapper and null optional fields were rejected or silently ignored | roundTrip handling in apiRoute (prepareRoundTripBody) for every update endpoint |
 | API keys / roles / teams: no MCP delete (keys) or get (roles, teams) | api_keys_delete, roles_get, teams_get |
+| Governance (Nov 2026): object grants were UI-only and unaudited; forms had no retention policy, legal hold or governance read on any surface; the audit log was missing from the matrix | lib/services/object-permissions (GET/POST/DELETE /object-permissions, object_permissions_*, `object-permissions list|set|remove`, audited grant / revoke); retention assign target_type form; GET /forms/{id}/governance, POST /forms/{id}/legal-hold (forms_governance_get, forms_legal_hold, `forms governance|legal-hold`); audit log row |
 
 Verified end to end by `scripts/e2e-surfaces.ts` (create → get → edit file → update → get → delete per resource; workflows add a node and edge, publish, list versions and run the new version).

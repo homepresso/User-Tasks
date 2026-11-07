@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "69f440ab-3e12-5b59-a3c1-164d6edc61f9",
+  "asset": {
+    "id": "69f440ab-3e12-5b59-a3c1-164d6edc61f9",
+    "name": "Survey responses: 24 months",
+    "description": "Survey answers name the customer: purge response rows 24 months after they were created. Apply it to the Survey responses table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 24,
+    "duration_unit": "months",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "8abc2e54-0b2a-51c4-8120-6a11331ddfac",
+  "asset": {
+    "id": "8abc2e54-0b2a-51c4-8120-6a11331ddfac",
+    "name": "Records release portal",
+    "type": "rest_api",
+    "description": "Where released records are shared with the requester (a download link). Replace with your portal, document management system or secure file share.",
+    "config": {
+      "base_url": "https://records-portal.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "records"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d5ff0af9-1f39-5065-a1bf-49a47761ec0b",
+  "asset": {
+    "id": "d5ff0af9-1f39-5065-a1bf-49a47761ec0b",
+    "name": "Approved repairers",
+    "description": "Repairers the adjuster can assign; redacted photos are sent to them.",
+    "columns": [
+      {
+        "id": "73966b55-d91f-562d-a1cb-f4cbf46e9189",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "143b0e9f-1efa-5928-a859-5ead7562e0fb",
+        "required": true,
+        "key": "email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "db5b0374-ef80-56f9-b752-91560ccd7d3a",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "text"
+      },
+      {
+        "id": "b771ed5e-0d36-57b3-b005-d0fc5a9aa0c8",
+        "required": false,
+        "key": "specialty",
+        "name": "Specialty",
+        "type": "text"
+      },
+      {
+        "id": "c90d0e88-7ec1-5184-8b52-67c89b254ed4",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

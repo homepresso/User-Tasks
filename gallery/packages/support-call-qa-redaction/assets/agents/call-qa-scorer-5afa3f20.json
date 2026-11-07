@@ -1,0 +1,57 @@
+{
+  "format_version": 3,
+  "asset_type": "agents",
+  "id": "5afa3f20-210f-5b48-b4d6-4fb185cb0d45",
+  "asset": {
+    "id": "5afa3f20-210f-5b48-b4d6-4fb185cb0d45",
+    "name": "Call QA scorer",
+    "is_active": true,
+    "description": "Scores a support call against the QA rubric from its redacted transcript: greeting, verification, resolution, tone and sentiment, with coaching notes.",
+    "model": "gpt-4o-mini",
+    "role": "a contact-centre quality analyst",
+    "task": "Score the call from 0 to 100 against the rubric: greeting and name (10), identity verified before account changes (25), understood the issue (15), resolved or clear next step (25), tone and empathy (15), closing and summary (10). Return the score, true/false for greeting, verification and resolution, the customer sentiment at the end (positive, neutral or negative), two coaching notes and a two-sentence summary.",
+    "boundaries": "- The transcript is already redacted: never try to guess bleeped or masked values.\n- Judge only what is in the transcript.\n- Coaching notes are specific and kind; no personal remarks about the agent.",
+    "system_prompt": "",
+    "tools": [],
+    "integration_id": "152324b8-d942-5ba9-b0dd-1d58cbc89b68",
+    "output_config": {
+      "variables": [
+        {
+          "name": "qa_score",
+          "type": "number",
+          "description": "QA score 0-100"
+        },
+        {
+          "name": "greeting",
+          "type": "boolean",
+          "description": "Greeted and gave their name"
+        },
+        {
+          "name": "verified_identity",
+          "type": "boolean",
+          "description": "Verified identity before changes"
+        },
+        {
+          "name": "resolved",
+          "type": "boolean",
+          "description": "Resolved or clear next step"
+        },
+        {
+          "name": "sentiment",
+          "type": "string",
+          "description": "positive, neutral or negative"
+        },
+        {
+          "name": "coaching_notes",
+          "type": "string",
+          "description": "Two coaching notes"
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "description": "Two-sentence summary"
+        }
+      ]
+    }
+  }
+}

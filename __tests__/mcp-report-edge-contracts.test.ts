@@ -78,6 +78,7 @@ function createReportEdgeSupabaseMock(seed?: Partial<Record<string, any[]>>) {
       filters: [] as Array<{ type: string; field: string; value?: any; operator?: string }>,
       orderings: [] as Array<{ field: string; ascending: boolean }>,
       limitValue: undefined as number | undefined,
+      offsetValue: 0,
       upsertOptions: undefined as any,
       mode: 'many' as 'many' | 'single',
     }
@@ -139,7 +140,7 @@ function createReportEdgeSupabaseMock(seed?: Partial<Record<string, any[]>>) {
 
       const filtered = applyFilters(rows, state.filters)
       const ordered = applyOrder(filtered, state.orderings)
-      const limited = typeof state.limitValue === 'number' ? ordered.slice(0, state.limitValue) : ordered
+      const limited = typeof state.limitValue === 'number' ? ordered.slice(state.offsetValue, state.offsetValue + state.limitValue) : ordered
       const selected = limited.map((row) => clone(row))
       return state.mode === 'single' ? selected[0] ?? null : selected
     }
@@ -218,6 +219,11 @@ function createReportEdgeSupabaseMock(seed?: Partial<Record<string, any[]>>) {
       },
       limit(value: number) {
         state.limitValue = value
+        return this
+      },
+      range(from: number, to: number) {
+        state.offsetValue = from
+        state.limitValue = to - from + 1
         return this
       },
       single() {
@@ -420,6 +426,7 @@ describe('MCP report edge contracts', () => {
           id: 'report_1',
           tenant_id: 'test-tenant',
           name: 'Workflow Volume',
+          created_by: 'test-user', // user-bound MCP: own reports only (governance audit 2026-11)
           description: null,
           category: null,
           is_shared: false,
@@ -486,5 +493,52 @@ describe('MCP report edge contracts', () => {
       group_by: [],
       visualization: 'table',
     })
+  })
+})
+
+describe('MCP report summary charts', () => {
+  const tasks = [
+    { id: 'task_1', tenant_id: 'test-tenant', title: 'A', status: 'todo', deleted_at: null, created_at: '2026-04-15T10:00:00.000Z' },
+    { id: 'task_2', tenant_id: 'test-tenant', title: 'B', status: 'todo', deleted_at: null, created_at: '2026-04-15T23:00:00.000Z' },
+    { id: 'task_3', tenant_id: 'test-tenant', title: 'C', status: 'done', deleted_at: null, created_at: '2026-04-16T06:00:00.000Z' },
+  ]
+  const server = () => createMcpServer({
+    tenantId: 'test-tenant', supabase: createReportEdgeSupabaseMock({ tasks }), actingUserId: 'test-user', keyType: 'tenant', scopes: { workflow_ids: [], table_ids: [] },
+  })
+
+  it('reports_preview returns each chart series, bucketed in the given time zone', async () => {
+    const result = await server().callTool('reports_preview', {
+      config: JSON.stringify({
+        data_source: 'tasks', columns: ['id', 'status', 'created_at'], visualization: 'table',
+        charts: [
+          { id: 'total', title: 'Total', type: 'number' },
+          { id: 'by_status', title: 'By status', type: 'donut', dimension: { field: 'status' } },
+          { id: 'by_day', title: 'By day', type: 'column', dimension: { field: 'created_at', bucket: 'day' } },
+        ],
+      }),
+      timezone: 'Pacific/Auckland',
+    })
+    expect(result?.isError).not.toBe(true)
+    const payload = parseToolResponse(result)
+    const byId = Object.fromEntries(payload.charts.map((c: any) => [c.id, c]))
+    expect(byId.total.value).toBe(3)
+    expect(byId.by_status.points.map((p: any) => [p.label, p.value])).toEqual([['todo', 2], ['done', 1]])
+    // 15 Apr 23:00 UTC is already 16 Apr in Auckland.
+    expect(byId.by_day.points.map((p: any) => [p.key, p.value])).toEqual([['2026-04-15', 1], ['2026-04-16', 2]])
+  })
+
+  it('reports_create rejects invalid charts and charts on unknown columns', async () => {
+    const bad = await server().callTool('reports_create', {
+      name: 'Bad charts',
+      config: JSON.stringify({ data_source: 'tasks', columns: ['id'], visualization: 'table', charts: [{ id: 'x', title: 'Trend', type: 'line', dimension: { field: 'status' } }] }),
+    })
+    expect(bad?.isError).toBe(true)
+    expect(bad?.content?.[0]?.text).toContain('Line and area charts need a date column split by time')
+    const unknown = await server().callTool('reports_create', {
+      name: 'Unknown column',
+      config: JSON.stringify({ data_source: 'tasks', columns: ['id'], visualization: 'table', charts: [{ id: 'x', title: 'By nope', type: 'bar', dimension: { field: 'nope' } }] }),
+    })
+    expect(unknown?.isError).toBe(true)
+    expect(unknown?.content?.[0]?.text).toContain('Chart "By nope": unknown column nope')
   })
 })

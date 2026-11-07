@@ -11,6 +11,8 @@ export type TaskLifecycleEventType =
   | 'created' | 'assigned' | 'started' | 'reassigned' | 'escalated'
   | 'redirected' | 'delegated' | 'snoozed' | 'blocked' | 'unblocked'
   | 'completed' | 'cancelled' | 'reopened' | 'comment_added'
+  /** Task attachments (20261222000000_task_attachments.sql). */
+  | 'attachment_added' | 'attachment_deleted'
 
 /**
  * Canonical lifecycle-event writer. Historically two different row shapes

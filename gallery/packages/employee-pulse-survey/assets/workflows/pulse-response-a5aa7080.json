@@ -1,0 +1,1078 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "a5aa7080-4df2-526a-83a1-dbb9697644e4",
+  "asset": {
+    "id": "a5aa7080-4df2-526a-83a1-dbb9697644e4",
+    "name": "Pulse response",
+    "description": "An employee answers the pulse survey: section scores and an engagement score are worked out, a decision table sets the risk band, the answer is saved (without a name when anonymous), and named at-risk answers get a manager follow-up with an SLA and an action plan.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Pulse answered",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "2c34a291-69d5-5afc-8877-9972dc60ca63",
+          "form_name": "Employee pulse survey"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Response reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "response_ref",
+          "expression": "PULSE-{{=FORMAT_DATE(NOW(), \"YYYYMM\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "round",
+        "type": "set_variable",
+        "label": "Survey round",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "name": "round",
+          "expression": "{{=FORMAT_DATE(NOW(), \"YYYY-MM\")}}"
+        }
+      },
+      {
+        "id": "anon",
+        "type": "set_variable",
+        "label": "Anonymous?",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "name": "is_anonymous",
+          "expression": "{{=IF(form.anonymous, true, false)}}"
+        }
+      },
+      {
+        "id": "who",
+        "type": "set_variable",
+        "label": "Name to store",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "employee_name",
+          "expression": "{{=IF(is_anonymous, \"\", submitted_by_name)}}"
+        }
+      },
+      {
+        "id": "s_wellbeing",
+        "type": "set_variable",
+        "label": "Wellbeing score",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "name": "wellbeing_score",
+          "expression": "{{=ROUND((COALESCE(form.wellbeing.i_feel_energised_by_my_work_most_days, 0) + COALESCE(form.wellbeing.i_can_switch_off_from_work_when_i_need_to, 0) + COALESCE(form.wellbeing.i_feel_supported_when_things_get_stressful, 0) + COALESCE(form.wellbeing.i_feel_valued_for_the_work_i_do, 0)) / MAX(1, IF(COALESCE(form.wellbeing.i_feel_energised_by_my_work_most_days, 0) > 0, 1, 0) + IF(COALESCE(form.wellbeing.i_can_switch_off_from_work_when_i_need_to, 0) > 0, 1, 0) + IF(COALESCE(form.wellbeing.i_feel_supported_when_things_get_stressful, 0) > 0, 1, 0) + IF(COALESCE(form.wellbeing.i_feel_valued_for_the_work_i_do, 0) > 0, 1, 0)), 2)}}"
+        }
+      },
+      {
+        "id": "s_manager_team",
+        "type": "set_variable",
+        "label": "Manager & team score",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "manager_team_score",
+          "expression": "{{=ROUND((COALESCE(form.manager_team.my_manager_gives_me_useful_regular_feedback, 0) + COALESCE(form.manager_team.i_trust_the_people_i_work_with, 0) + COALESCE(form.manager_team.i_feel_safe_to_speak_up_and_disagree, 0)) / MAX(1, IF(COALESCE(form.manager_team.my_manager_gives_me_useful_regular_feedback, 0) > 0, 1, 0) + IF(COALESCE(form.manager_team.i_trust_the_people_i_work_with, 0) > 0, 1, 0) + IF(COALESCE(form.manager_team.i_feel_safe_to_speak_up_and_disagree, 0) > 0, 1, 0)), 2)}}"
+        }
+      },
+      {
+        "id": "s_growth",
+        "type": "set_variable",
+        "label": "Growth score",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "name": "growth_score",
+          "expression": "{{=ROUND((COALESCE(form.growth.i_am_learning_and_developing_in_my_role, 0) + COALESCE(form.growth.i_can_see_a_future_for_myself_here, 0) + COALESCE(form.growth.i_have_the_tools_and_training_i_need, 0)) / MAX(1, IF(COALESCE(form.growth.i_am_learning_and_developing_in_my_role, 0) > 0, 1, 0) + IF(COALESCE(form.growth.i_can_see_a_future_for_myself_here, 0) > 0, 1, 0) + IF(COALESCE(form.growth.i_have_the_tools_and_training_i_need, 0) > 0, 1, 0)), 2)}}"
+        }
+      },
+      {
+        "id": "s_workload",
+        "type": "set_variable",
+        "label": "Workload score",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "name": "workload_score",
+          "expression": "{{=ROUND((COALESCE(form.workload.my_workload_is_manageable, 0) + COALESCE(form.workload.i_have_enough_time_to_do_good_quality_work, 0) + COALESCE(form.workload.our_priorities_are_clear, 0)) / MAX(1, IF(COALESCE(form.workload.my_workload_is_manageable, 0) > 0, 1, 0) + IF(COALESCE(form.workload.i_have_enough_time_to_do_good_quality_work, 0) > 0, 1, 0) + IF(COALESCE(form.workload.our_priorities_are_clear, 0) > 0, 1, 0)), 2)}}"
+        }
+      },
+      {
+        "id": "eng",
+        "type": "set_variable",
+        "label": "Engagement score",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "name": "engagement_score",
+          "expression": "{{=MAX(0, ROUND(((COALESCE(form.wellbeing.i_feel_energised_by_my_work_most_days, 0) + COALESCE(form.wellbeing.i_can_switch_off_from_work_when_i_need_to, 0) + COALESCE(form.wellbeing.i_feel_supported_when_things_get_stressful, 0) + COALESCE(form.wellbeing.i_feel_valued_for_the_work_i_do, 0) + COALESCE(form.manager_team.my_manager_gives_me_useful_regular_feedback, 0) + COALESCE(form.manager_team.i_trust_the_people_i_work_with, 0) + COALESCE(form.manager_team.i_feel_safe_to_speak_up_and_disagree, 0) + COALESCE(form.growth.i_am_learning_and_developing_in_my_role, 0) + COALESCE(form.growth.i_can_see_a_future_for_myself_here, 0) + COALESCE(form.growth.i_have_the_tools_and_training_i_need, 0) + COALESCE(form.workload.my_workload_is_manageable, 0) + COALESCE(form.workload.i_have_enough_time_to_do_good_quality_work, 0) + COALESCE(form.workload.our_priorities_are_clear, 0)) / MAX(1, IF(COALESCE(form.wellbeing.i_feel_energised_by_my_work_most_days, 0) > 0, 1, 0) + IF(COALESCE(form.wellbeing.i_can_switch_off_from_work_when_i_need_to, 0) > 0, 1, 0) + IF(COALESCE(form.wellbeing.i_feel_supported_when_things_get_stressful, 0) > 0, 1, 0) + IF(COALESCE(form.wellbeing.i_feel_valued_for_the_work_i_do, 0) > 0, 1, 0) + IF(COALESCE(form.manager_team.my_manager_gives_me_useful_regular_feedback, 0) > 0, 1, 0) + IF(COALESCE(form.manager_team.i_trust_the_people_i_work_with, 0) > 0, 1, 0) + IF(COALESCE(form.manager_team.i_feel_safe_to_speak_up_and_disagree, 0) > 0, 1, 0) + IF(COALESCE(form.growth.i_am_learning_and_developing_in_my_role, 0) > 0, 1, 0) + IF(COALESCE(form.growth.i_can_see_a_future_for_myself_here, 0) > 0, 1, 0) + IF(COALESCE(form.growth.i_have_the_tools_and_training_i_need, 0) > 0, 1, 0) + IF(COALESCE(form.workload.my_workload_is_manageable, 0) > 0, 1, 0) + IF(COALESCE(form.workload.i_have_enough_time_to_do_good_quality_work, 0) > 0, 1, 0) + IF(COALESCE(form.workload.our_priorities_are_clear, 0) > 0, 1, 0)) - 1) * 25, 0))}}"
+        }
+      },
+      {
+        "id": "enps_pts",
+        "type": "set_variable",
+        "label": "eNPS points",
+        "position": {
+          "x": 600,
+          "y": 1460
+        },
+        "config": {
+          "name": "enps_points",
+          "expression": "{{=IF(form.enps >= 9, 100, IF(form.enps >= 7, 0, -100))}}"
+        }
+      },
+      {
+        "id": "band",
+        "type": "decision_table",
+        "label": "Risk band",
+        "position": {
+          "x": 600,
+          "y": 1600
+        },
+        "config": {
+          "decision_table_id": "59b5dba7-1e83-5fe7-8065-66ce404c31cc",
+          "decision_table_name": "Engagement risk band",
+          "input_mappings": {
+            "engagement": "{{engagement_score}}",
+            "mood": "{{form.mood}}",
+            "enps": "{{form.enps}}"
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "title": "Pulse {{round}} · {{form.department}}: {{risk_band}} ({{engagement_score}}/100)"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Save the response",
+        "position": {
+          "x": 600,
+          "y": 1880
+        },
+        "config": {
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "table_name": "Pulse responses",
+          "operation": "insert",
+          "output_row_id_var": "response_row_id",
+          "column_values": {
+            "response_ref": "{{response_ref}}",
+            "round": "{{round}}",
+            "submitted_on": "{{=TODAY()}}",
+            "department": "{{form.department}}",
+            "anonymous": "{{is_anonymous}}",
+            "employee_name": "{{employee_name}}",
+            "wellbeing": "{{wellbeing_score}}",
+            "manager_team": "{{manager_team_score}}",
+            "growth": "{{growth_score}}",
+            "workload": "{{workload_score}}",
+            "engagement": "{{engagement_score}}",
+            "enps": "{{form.enps}}",
+            "enps_points": "{{enps_points}}",
+            "mood": "{{form.mood}}",
+            "risk_band": "{{risk_band}}",
+            "follow_up_status": "{{=IF(follow_up, IF(is_anonymous, \"HR aggregate (anonymous)\", \"Follow-up due\"), \"None needed\")}}",
+            "change_suggestion": "{{form.change_text}}"
+          }
+        }
+      },
+      {
+        "id": "route",
+        "type": "condition",
+        "label": "Follow up?",
+        "position": {
+          "x": 600,
+          "y": 2020
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Manager follow-up",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{follow_up}}",
+                  "operator": "is_true",
+                  "value": ""
+                },
+                {
+                  "field": "{{is_anonymous}}",
+                  "operator": "is_false",
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "label": "Anonymous at risk",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{follow_up}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "is_named",
+        "type": "condition",
+        "label": "Named answer?",
+        "position": {
+          "x": 1020,
+          "y": 2180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Named",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{is_anonymous}}",
+                  "operator": "is_false",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "thanks",
+        "type": "send_email",
+        "label": "Thank the employee",
+        "position": {
+          "x": 900,
+          "y": 2340
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "1cac94d6-9a10-5703-aaae-75936753f595"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Response recorded",
+        "position": {
+          "x": 1140,
+          "y": 2500
+        },
+        "config": {
+          "reason": "{{response_ref}}: {{risk_band}} ({{engagement_score}}/100)"
+        }
+      },
+      {
+        "id": "hr_log",
+        "type": "log",
+        "label": "Log for HR aggregate",
+        "position": {
+          "x": 600,
+          "y": 2180
+        },
+        "config": {
+          "message": "Anonymous at-risk answer in {{form.department}} ({{round}}): engagement {{engagement_score}}/100, mood {{form.mood}}/5. Counted in the HR aggregate; no personal follow-up."
+        }
+      },
+      {
+        "id": "hr_end",
+        "type": "end_workflow",
+        "label": "Counted in HR aggregate",
+        "position": {
+          "x": 600,
+          "y": 2340
+        },
+        "config": {
+          "reason": "{{response_ref}}: anonymous, at risk; HR aggregate only"
+        }
+      },
+      {
+        "id": "owner",
+        "type": "set_variable",
+        "label": "Who follows up",
+        "position": {
+          "x": 180,
+          "y": 2180
+        },
+        "config": {
+          "name": "follow_up_owner",
+          "expression": "{{=IF(IS_EMPTY(form.manager), workflow_owner_id, form.manager)}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Follow-up SLA",
+        "position": {
+          "x": 180,
+          "y": 2320
+        },
+        "config": {
+          "sla_label": "Pulse follow-up ({{follow_up_days}} days)",
+          "mode": "relative",
+          "amount": "{{follow_up_days}}",
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "task",
+        "type": "user_task",
+        "label": "Manager follow-up",
+        "position": {
+          "x": 180,
+          "y": 2460
+        },
+        "config": {
+          "task_title": "Pulse follow-up: {{submitted_by_name}} ({{form.department}}, {{engagement_score}}/100)",
+          "task_description": "<p><strong>{{submitted_by_name}}</strong> answered the {{round}} pulse survey and is <strong>{{risk_band}}</strong>: engagement {{engagement_score}} of 100, mood {{form.mood}} of 5, {{form.enps}} of 10 for recommending working here.</p><p>{{band_note}} Have a private one-to-one, agree two or three concrete actions with them and record them below. They receive the plan by email.</p><p>One thing they would change: {{form.change_text}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Plan agreed",
+            "Employee declined"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{follow_up_owner}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), follow_up_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 10080,
+          "fields": [
+            {
+              "key": "t_employee",
+              "label": "Employee",
+              "type": "text",
+              "read_only": true,
+              "default": "{{submitted_by_name}}"
+            },
+            {
+              "key": "t_department",
+              "label": "Department",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.department}}"
+            },
+            {
+              "key": "t_engagement",
+              "label": "Engagement score",
+              "type": "number",
+              "read_only": true,
+              "default": "{{engagement_score}}"
+            },
+            {
+              "key": "t_progress",
+              "type": "custom",
+              "label": "Engagement (out of 100)",
+              "custom": {
+                "tag": "ut-progress",
+                "version": "1.1.0",
+                "name": "Progress",
+                "value_type": "number",
+                "icon": "gauge",
+                "props": {
+                  "appearance": "bar",
+                  "total_value": 100,
+                  "unit": "points",
+                  "show_percentage": false,
+                  "warn_below": 50,
+                  "good_above": 70
+                },
+                "context_map": {
+                  "current": "t_engagement"
+                },
+                "display": {
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "progressbar",
+                  "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 60,
+                  "min_height": 32,
+                  "max_height": 600
+                },
+                "output": {
+                  "type": "number",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "t_wellbeing",
+              "label": "Wellbeing (1-5)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{wellbeing_score}}"
+            },
+            {
+              "key": "t_manager",
+              "label": "Manager & team (1-5)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{manager_team_score}}"
+            },
+            {
+              "key": "t_growth",
+              "label": "Growth (1-5)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{growth_score}}"
+            },
+            {
+              "key": "t_workload",
+              "label": "Workload (1-5)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{workload_score}}"
+            },
+            {
+              "key": "t_enps",
+              "label": "Recommend (0-10)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{form.enps}}"
+            },
+            {
+              "key": "t_mood",
+              "label": "Mood (1-5)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{form.mood}}"
+            },
+            {
+              "key": "t_scores",
+              "type": "custom",
+              "label": "Section scores",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "warning",
+                  "card_title": "Section scores (1 = strongly disagree, 5 = strongly agree)",
+                  "body": "Start the conversation with the lowest sections. Scores at or below 2.5 mean most answers in that section were disagree.",
+                  "layout": "key-value",
+                  "labels": [
+                    "Wellbeing",
+                    "Manager & team",
+                    "Growth",
+                    "Workload",
+                    "Recommend (0-10)",
+                    "Mood (1-5)"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "t_wellbeing",
+                  "field2": "t_manager",
+                  "field3": "t_growth",
+                  "field4": "t_workload",
+                  "field5": "t_enps",
+                  "field6": "t_mood"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "t_change",
+              "label": "One thing they would change",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{form.change_text}}"
+            },
+            {
+              "key": "action_plan",
+              "type": "custom",
+              "label": "Action plan",
+              "custom": {
+                "tag": "ut-table",
+                "version": "1.1.0",
+                "name": "Table",
+                "value_type": "array",
+                "icon": "table",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 200,
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "props": {
+                  "columns": [
+                    {
+                      "key": "action",
+                      "label": "Action",
+                      "type": "text",
+                      "required": true,
+                      "width": 280
+                    },
+                    {
+                      "key": "owner",
+                      "label": "Owner",
+                      "type": "select",
+                      "options": [
+                        "Employee",
+                        "Manager",
+                        "HR",
+                        "Team"
+                      ],
+                      "required": true,
+                      "width": 140
+                    },
+                    {
+                      "key": "due",
+                      "label": "Due date",
+                      "type": "date",
+                      "required": true,
+                      "width": 150
+                    }
+                  ],
+                  "min_rows": 0,
+                  "max_rows": 10,
+                  "allow_add": true,
+                  "allow_delete": true,
+                  "show_totals": false,
+                  "currency": "USD"
+                },
+                "display": {
+                  "format": "json"
+                },
+                "accessibility": {
+                  "role": "grid",
+                  "keyboard": "Tab into the table (one stop). Arrow keys move between cells, Home / End to the row's ends (Ctrl+Home / End to the table's), Enter, F2 or typing edits a cell; Enter saves and moves down, Shift+Enter up, Escape cancels; Tab / Shift+Tab move cell by cell and leave the table at its ends. Delete clears a cell, Space or Enter toggles a tick box, Ctrl+Enter adds a row; each row's Delete row button is the last cell of the row.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 240,
+                  "min_height": 120,
+                  "max_height": 1200,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "array",
+                  "description": "The rows entered"
+                }
+              },
+              "help_text": "Two or three concrete actions you agreed together."
+            },
+            {
+              "key": "conversation_notes",
+              "type": "custom",
+              "label": "Conversation notes (shared with the employee)",
+              "custom": {
+                "tag": "ut-rich-text",
+                "version": "1.1.0",
+                "name": "Rich text",
+                "value_type": "json",
+                "icon": "type",
+                "value_schema": {
+                  "type": "object",
+                  "properties": {
+                    "html": {
+                      "type": "string",
+                      "maxLength": 100000
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100000
+                    }
+                  },
+                  "required": [
+                    "html",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "props": {
+                  "placeholder": "What did you talk about?",
+                  "max_length": 4000,
+                  "toolbar": "basic",
+                  "min_height": 120
+                },
+                "display": {
+                  "template": "{{value.text}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "textbox",
+                  "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 216,
+                  "min_height": 120,
+                  "max_height": 900,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "primary": "html",
+                  "html": true,
+                  "extras": {
+                    "text": "text"
+                  },
+                  "choices": [
+                    {
+                      "value": "html",
+                      "label": "HTML (formatted, sanitised)",
+                      "primary": "html",
+                      "html": true
+                    },
+                    {
+                      "value": "text",
+                      "label": "Plain text",
+                      "primary": "text"
+                    }
+                  ],
+                  "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+                }
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_employee",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "t_department",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_progress",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_scores",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_wellbeing",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "t_manager",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_growth",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "t_workload",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_enps",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "t_mood",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "t_engagement",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "t_change",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "action_plan",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "conversation_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "agreed",
+              "label": "Plan agreed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Plan agreed"
+            },
+            {
+              "id": "declined",
+              "label": "Employee declined",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Employee declined"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Pulse follow-up",
+            "align": "left",
+            "subtitle": "Reference {{response_ref}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#BE185D",
+                  "background": "#FFFFFF",
+                  "text": "#1F1320",
+                  "page": "#FCE7F3",
+                  "page_to": "#FFF7FB"
+                }
+              },
+              "radius": 16,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "plan",
+        "type": "set_variable",
+        "label": "Plan summary",
+        "position": {
+          "x": 0,
+          "y": 2620
+        },
+        "config": {
+          "name": "plan_summary",
+          "expression": "{{=JOIN(\"; \", PLUCK(task_data.action_plan, \"action\"))}}"
+        }
+      },
+      {
+        "id": "mark_plan",
+        "type": "update_data_table",
+        "label": "Mark plan agreed",
+        "position": {
+          "x": 0,
+          "y": 2760
+        },
+        "config": {
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "table_name": "Pulse responses",
+          "operation": "update",
+          "match_column": "response_ref",
+          "match_value": "{{response_ref}}",
+          "column_values": {
+            "follow_up_status": "Plan agreed"
+          }
+        }
+      },
+      {
+        "id": "send_plan",
+        "type": "send_email",
+        "label": "Email the plan",
+        "position": {
+          "x": 0,
+          "y": 2900
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "e43dc269-bc2b-56f8-adb4-2310653242ac"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "mark_declined",
+        "type": "update_data_table",
+        "label": "Mark declined",
+        "position": {
+          "x": 360,
+          "y": 2620
+        },
+        "config": {
+          "table_id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+          "table_name": "Pulse responses",
+          "operation": "update",
+          "match_column": "response_ref",
+          "match_value": "{{response_ref}}",
+          "column_values": {
+            "follow_up_status": "Declined"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-round",
+        "source": "ref",
+        "target": "round"
+      },
+      {
+        "id": "e-round-anon",
+        "source": "round",
+        "target": "anon"
+      },
+      {
+        "id": "e-anon-who",
+        "source": "anon",
+        "target": "who"
+      },
+      {
+        "id": "e-who-s_wellbeing",
+        "source": "who",
+        "target": "s_wellbeing"
+      },
+      {
+        "id": "e-s_wellbeing-s_manager_team",
+        "source": "s_wellbeing",
+        "target": "s_manager_team"
+      },
+      {
+        "id": "e-s_manager_team-s_growth",
+        "source": "s_manager_team",
+        "target": "s_growth"
+      },
+      {
+        "id": "e-s_growth-s_workload",
+        "source": "s_growth",
+        "target": "s_workload"
+      },
+      {
+        "id": "e-s_workload-eng",
+        "source": "s_workload",
+        "target": "eng"
+      },
+      {
+        "id": "e-eng-enps_pts",
+        "source": "eng",
+        "target": "enps_pts"
+      },
+      {
+        "id": "e-enps_pts-band",
+        "source": "enps_pts",
+        "target": "band"
+      },
+      {
+        "id": "e-band-title",
+        "source": "band",
+        "target": "title"
+      },
+      {
+        "id": "e-title-row",
+        "source": "title",
+        "target": "row"
+      },
+      {
+        "id": "e-row-route",
+        "source": "row",
+        "target": "route"
+      },
+      {
+        "id": "e-route-owner-manager-follow-up",
+        "source": "route",
+        "target": "owner",
+        "label": "Manager follow-up"
+      },
+      {
+        "id": "e-route-hr_log-anonymous-at-risk",
+        "source": "route",
+        "target": "hr_log",
+        "label": "Anonymous at risk"
+      },
+      {
+        "id": "e-route-is_named-else",
+        "source": "route",
+        "target": "is_named",
+        "label": "Else"
+      },
+      {
+        "id": "e-is_named-thanks-named",
+        "source": "is_named",
+        "target": "thanks",
+        "label": "Named"
+      },
+      {
+        "id": "e-is_named-done-else",
+        "source": "is_named",
+        "target": "done",
+        "label": "Else"
+      },
+      {
+        "id": "e-thanks-done",
+        "source": "thanks",
+        "target": "done"
+      },
+      {
+        "id": "e-hr_log-hr_end",
+        "source": "hr_log",
+        "target": "hr_end"
+      },
+      {
+        "id": "e-owner-sla",
+        "source": "owner",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-task",
+        "source": "sla",
+        "target": "task"
+      },
+      {
+        "id": "e-task-plan-plan-agreed",
+        "source": "task",
+        "target": "plan",
+        "label": "Plan agreed"
+      },
+      {
+        "id": "e-task-mark_declined-employee-declined",
+        "source": "task",
+        "target": "mark_declined",
+        "label": "Employee declined"
+      },
+      {
+        "id": "e-plan-mark_plan",
+        "source": "plan",
+        "target": "mark_plan"
+      },
+      {
+        "id": "e-mark_plan-send_plan",
+        "source": "mark_plan",
+        "target": "send_plan"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

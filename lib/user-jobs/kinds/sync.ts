@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getDb, requirePerm, ServiceError, type ServiceContext } from '@/lib/services/context'
+import { getDb, requireAny, requirePerm, ServiceError, type ServiceContext } from '@/lib/services/context'
 import { dbError } from '@/lib/services/_shared'
 import { startDirectorySyncRun } from '@/lib/services/directory-sync'
 import { defineJobKind, type JobRun } from '../define'
@@ -73,7 +73,8 @@ export const syncWatchJob = defineJobKind({
   maxAttempts: 3,
   params: z.object({ source: z.enum(['github_sync', 'github_deploy', 'directory_sync']), run_id: z.string().uuid(), label: z.string().max(200).optional() }),
   title: (p) => p.label || SOURCES[p.source].noun,
-  authorize: (ctx) => requirePerm(ctx, 'settings.edit'),
+  // GitHub runs: sync.manage / sync.deploy (as their actions); directory sync: settings.edit.
+  authorize: (ctx, p) => p.source === 'directory_sync' ? requirePerm(ctx, 'settings.edit') : requireAny(ctx, ['sync.manage', 'sync.deploy']),
   run: (run) => follow(run as JobRun<unknown>, run.ctx, run.params.source, run.params.run_id, run.params.label || SOURCES[run.params.source].noun),
 })
 

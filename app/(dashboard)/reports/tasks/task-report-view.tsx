@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { ReportChart } from '@/components/reports/lazy-charts'
 import { ReportDataTable } from '@/components/reports/report-data-table'
@@ -122,41 +121,41 @@ export function TaskReportView({ allTasks, completedRecent, effortRecords, overd
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Task Analytics</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <ReportDateFilter days={days} onDaysChange={setDays} />
-          <ReportExportButton data={recentCompleted} columns={exportColumns} filename="task-report" />
-        </div>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Task analytics' }]}
+        title="Task analytics"
+        description="Completion, priority and overdue work across every task."
+        className="mb-0"
+        actions={
+          <>
+            <ReportDateFilter days={days} onDaysChange={setDays} />
+            <ReportExportButton data={recentCompleted} columns={exportColumns} filename="task-report" />
+          </>
+        }
+      />
 
       <ReportMetricRow metrics={[
-        { label: 'Total Tasks', value: total },
-        { label: 'Completion Rate', value: `${completionRate}%`, subtitle: `${completed} completed` },
-        { label: 'Avg Completion', value: `${avgCompletionDays}d`, subtitle: 'Created to completed' },
-        { label: 'Overdue Rate', value: `${overdueRate}%`, subtitle: `${overdueTasks.length} overdue` },
+        { label: 'Total tasks', value: total },
+        { label: 'Completion rate', value: `${completionRate}%`, subtitle: `${completed} completed` },
+        { label: 'Avg completion', value: `${avgCompletionDays}d`, subtitle: 'Created to completed' },
+        { label: 'Overdue rate', value: `${overdueRate}%`, subtitle: `${overdueTasks.length} overdue` },
       ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ReportChart type="pie" data={statusCounts} title="Status Distribution" />
+        <ReportChart type="pie" data={statusCounts} title="Status distribution" />
         <ReportChart type="line" data={weeklyCompleted} xKey="name" yKeys={['completed']} title="Completion Trend (12 weeks)" />
-        <ReportChart type="bar" data={priorityCounts} xKey="name" yKeys={['value']} title="Priority Breakdown" />
-        <ReportChart type="bar" data={overdueBuckets} xKey="name" yKeys={['value']} title="Overdue by Severity" />
+        <ReportChart type="bar" data={priorityCounts} xKey="name" yKeys={['value']} title="Priority breakdown" />
+        <ReportChart type="bar" data={overdueBuckets} xKey="name" yKeys={['value']} title="Overdue by severity" />
         {effortScatter.length > 0 && (
           <ReportChart type="scatter" data={effortScatter} xKey="estimated" yKeys={['actual']} title="Effort: Estimated vs Actual (minutes)" />
         )}
         {assigneeLeaderboard.length > 0 && (
-          <ReportChart type="bar" data={assigneeLeaderboard} xKey="name" yKeys={['value']} title="Top Assignees (Completed)" />
+          <ReportChart type="bar" data={assigneeLeaderboard} xKey="name" yKeys={['value']} title="Top assignees (completed)" />
         )}
       </div>
 
       <ReportDataTable
-        title="Recently Completed Tasks"
+        title="Recently completed tasks"
         columns={[
           { key: 'title', label: 'Title' },
           { key: 'priority', label: 'Priority', render: (v: string) => <span className="capitalize">{v ?? '—'}</span> },

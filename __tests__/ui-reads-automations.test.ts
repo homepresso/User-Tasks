@@ -8,6 +8,12 @@ import { runUiRead } from '@/lib/services/ui-reads'
 import type { ServiceContext } from '@/lib/services/context'
 import { createMemorySupabase } from './fixtures/supabase-memory'
 
+// The process view's run tasks read with the service-role client (lib/services/run-tasks.ts); no tasks here.
+vi.mock('@/lib/cron-auth', async () => {
+  const { createMemorySupabase: memory } = await import('./fixtures/supabase-memory')
+  return { createServiceClient: () => memory({}) }
+})
+
 /* eslint-disable @typescript-eslint/no-explicit-any -- memory rows */
 
 function ctx(db: any, permissions: string[]): ServiceContext {
@@ -75,10 +81,15 @@ describe('automations reads: permissions', () => {
     ['automations.builder', { id: 'wf1' }],
     ['automations.dependencies', { workflowId: 'wf1' }],
     ['automations.decisionTables', undefined],
-    ['automations.tableRows', { tableId: 't1', limit: 10 }],
   ])('%s needs workflows.view', async (name, args) => {
     expect(await runUiRead(ctx(db(), VIEW), { name, args })).toMatchObject({ ok: true })
     expect(await runUiRead(ctx(db(), ['tasks.view_own']), { name, args })).toMatchObject({ ok: false, status: 403 })
+  })
+
+  it('designer table-row pickers need data.view (rows are data)', async () => {
+    const args = { tableId: 't1', limit: 10 }
+    expect(await runUiRead(ctx(db(), ['data.view']), { name: 'automations.tableRows', args })).toMatchObject({ ok: true })
+    expect(await runUiRead(ctx(db(), VIEW), { name: 'automations.tableRows', args })).toMatchObject({ ok: false, status: 403 })
   })
 
   it('run reads accept workflows.view or workflows.view_runs', async () => {
@@ -88,9 +99,10 @@ describe('automations reads: permissions', () => {
     expect(await runUiRead(ctx(db(), ['tasks.view_own']), { name: 'automations.processView', args: { id: 'r1' } })).toMatchObject({ ok: false, status: 403 })
   })
 
-  it('the queue needs workflows.view_runs (its route gate)', async () => {
+  it('the queue needs workflows.view_queue or workflows.view_runs (its route gate)', async () => {
     expect(await runUiRead(ctx(db(), ['workflows.view_runs']), { name: 'automations.queue' })).toMatchObject({ ok: true })
     expect(await runUiRead(ctx(db(), VIEW), { name: 'automations.queue' })).toMatchObject({ ok: false, status: 403 })
+    expect(await runUiRead(ctx(db(), ['tasks.view_own']), { name: 'automations.processView', args: { id: 'r1' } })).toMatchObject({ ok: false, status: 403 })
   })
 
   it('the live log tail needs settings.view (the logs page gate)', async () => {
@@ -116,7 +128,7 @@ describe('automations reads: arguments', () => {
 })
 
 describe('automations reads: queries', () => {
-  const run = (name: string, args?: unknown, perms = [...VIEW, 'workflows.view_runs', 'settings.view']) =>
+  const run = (name: string, args?: unknown, perms = [...VIEW, 'workflows.view_runs', 'settings.view', 'data.view']) =>
     runUiRead(ctx(db(), perms), { name, args }).then((r) => {
       if (!r.ok) throw new Error(r.error)
       return r.data as any

@@ -14,13 +14,13 @@ export const togetherConnector: ConnectorDefinition = {
       label: 'Default Model',
       type: 'select',
       options: [
-        { value: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', label: 'Llama 3.1 70B Turbo' },
-        { value: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', label: 'Llama 3.1 8B Turbo' },
+        { value: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', label: 'Llama 3.3 70B Turbo' },
+        { value: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
         { value: 'Qwen/Qwen2.5-72B-Instruct-Turbo', label: 'Qwen 2.5 72B Turbo' },
-        { value: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B', label: 'DeepSeek R1 70B' },
-        { value: 'mistralai/Mixtral-8x22B-Instruct-v0.1', label: 'Mixtral 8x22B' },
+        { value: 'deepseek-ai/DeepSeek-R1', label: 'DeepSeek R1' },
+        { value: 'deepseek-ai/DeepSeek-V3', label: 'DeepSeek V3' },
       ],
-      defaultValue: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+      defaultValue: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
     },
   ],
   credentialFields: [
@@ -30,15 +30,15 @@ export const togetherConnector: ConnectorDefinition = {
     {
       key: 'chat_completion', name: 'Chat Completion', description: 'Generate a chat completion', method: 'POST', pathTemplate: '/v1/chat/completions',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ model: '{{model}}', messages: [{ role: 'system', content: '{{system_prompt}}' }, { role: 'user', content: '{{user_message}}' }], max_tokens: '{{max_tokens}}', temperature: '{{temperature}}' }),
+      bodyTemplate: '{"model":"{{model}}","messages":[{"role":"system","content":"{{system_prompt}}"},{"role":"user","content":"{{user_message}}"}],"max_tokens":{{max_tokens}},"temperature":{{temperature}}}',
       inputs: [
-        { name: 'model', type: 'string', required: false, description: 'Model name', defaultValue: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo' },
-        { name: 'system_prompt', type: 'string', required: false, description: 'System prompt' },
+        { name: 'model', type: 'string', required: false, description: 'Model name', defaultValue: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
+        { name: 'system_prompt', type: 'string', required: false, description: 'System prompt', defaultValue: 'You are a helpful assistant.' },
         { name: 'user_message', type: 'string', required: true, description: 'User message' },
         { name: 'max_tokens', type: 'number', required: false, description: 'Max tokens', defaultValue: '1024' },
         { name: 'temperature', type: 'number', required: false, description: 'Temperature 0-2', defaultValue: '0.7' },
       ],
-      outputs: [{ name: 'content', type: 'string' }, { name: 'usage', type: 'object' }],
+      outputs: [{ name: 'choices.0.message.content', type: 'string' }, { name: 'usage', type: 'object' }],
     },
   ],
   buildIntegrationConfig: (_config, credentials) => ({

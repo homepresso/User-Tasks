@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "70764047-f0ca-5fe4-bf9b-7616d796a340",
+  "asset": {
+    "id": "70764047-f0ca-5fe4-bf9b-7616d796a340",
+    "name": "Legal request closed",
+    "description": "Sent to the requester when the request is completed, declined or withdrawn.",
+    "subject": "Legal request {{request_ref}}: {{final_status}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#4338CA;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Your legal request is {{final_status}}</h2>\n  <p style=\"margin:0 0 12px\">Hi {{form.requester_name}},</p>\n  <p style=\"margin:0 0 12px\"><strong>{{form.title}}</strong> ({{request_ref}}) is <strong>{{final_status}}</strong>.</p>\n  <p style=\"margin:0 0 12px\">{{final_note}}</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the legal request workflow</p>\n</div>",
+    "text_body": "Hi {{form.requester_name}},\n\"{{form.title}}\" ({{request_ref}}) is {{final_status}}.\n{{final_note}}",
+    "is_default": false
+  }
+}

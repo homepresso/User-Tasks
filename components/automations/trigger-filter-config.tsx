@@ -15,17 +15,15 @@ export function TriggerFilterConfig({ config, onUpdate }: TriggerFilterConfigPro
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-          This trigger starts the workflow when the event occurs. Use the filters below to narrow which tasks activate this workflow. Task data is available in downstream nodes as {'{{task.field}}'}.
-        </p>
-      </div>
+      <p className="text-xs text-fg-muted">
+        This trigger starts the workflow when the event occurs. Use the filters below to narrow which tasks activate this workflow. Task data is available in downstream nodes as <code className="font-mono text-2xs text-fg">{'{{task.field}}'}</code>.
+      </p>
 
       {/* Priority filter */}
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          Priority Filter
-          <span className="font-normal normal-case ml-1">(optional)</span>
+        <label className="mb-1.5 block text-xs font-medium text-fg">
+          Priority filter
+          <span className="ml-1.5 font-normal text-fg-muted">Optional</span>
         </label>
         <div className="flex flex-wrap gap-1.5">
           {PRIORITY_OPTIONS.map((p) => (
@@ -38,11 +36,12 @@ export function TriggerFilterConfig({ config, onUpdate }: TriggerFilterConfigPro
                   : [...priorityFilter, p]
                 onUpdate('priority_filter', next)
               }}
+              aria-pressed={priorityFilter.includes(p)}
               className={cn(
-                'rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors',
+                'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
                 priorityFilter.includes(p)
-                  ? 'bg-[color:var(--theme-accent-light)] text-[color:var(--theme-card-text)] dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-primary-text)]'
-                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                  ? 'border-primary bg-primary-wash text-primary-text'
+                  : 'border-border text-fg-muted hover:bg-subtle hover:text-fg'
               )}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -50,7 +49,7 @@ export function TriggerFilterConfig({ config, onUpdate }: TriggerFilterConfigPro
           ))}
         </div>
         {priorityFilter.length === 0 && (
-          <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="mt-1.5 text-xs text-fg-muted">
             No filter — triggers for all priorities
           </p>
         )}

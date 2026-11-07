@@ -43,6 +43,7 @@ import { LOG_DESTINATION_TYPES } from '@/lib/api-schemas/log-destinations'
 import { connectorGeneratedIdMap, connectorMissingCredentials } from './connectors'
 import { decryptCredentials, missingCredentials as logDestinationMissingCredentials, unresolvedSecrets } from './log-destinations'
 import { readWorkspaceTheme, resolveManifestWorkspaceTheme, updateWorkspaceTheme, workspaceThemeToManifest } from './workspace-theme'
+import { applyDocumentOcrManifest, parseDocumentOcrManifest, readDocumentOcrManifest, type DocumentOcrManifest } from './document-ocr'
 import { diffValues } from '@/lib/portability/plan'
 import type { WorkspaceTheme } from '@/lib/theme/schema'
 import { hasPerm, ServiceError, type ServiceContext } from './context'
@@ -83,6 +84,7 @@ export const CONFIG_SECTIONS: readonly SectionDef[] = [
   { section: 'email_templates', type: 'email_template', table: 'email_templates', view: 'workflows.view', create: 'workflows.create', edit: 'workflows.edit', topLevel: true },
   { section: 'connectors', type: 'connector', table: 'tenant_connectors', view: 'integrations.view', create: 'integrations.create', edit: 'integrations.edit', topLevel: true, nameColumn: 'display_name' },
   { section: 'log_destinations', type: 'log_destination', table: 'log_destinations', view: 'observability.view', create: 'settings.edit', edit: 'settings.edit', topLevel: true },
+  { section: 'form_controls', type: 'form_control', table: 'form_controls', view: 'extensibility.view', create: 'extensibility.create', edit: 'extensibility.edit', topLevel: true },
   { section: 'form_themes', type: 'form_theme', table: 'form_themes', view: 'forms.view', create: 'forms.edit', edit: 'forms.edit', topLevel: true },
   { section: 'forms', type: 'form', table: 'forms', view: 'forms.view', create: 'forms.edit', edit: 'forms.edit', topLevel: true },
 ]
@@ -103,8 +105,20 @@ export const THEME_SECTION = 'workspace_theme'
 const THEME_EDIT = 'settings.edit'
 const isThemeType = (name: string) => ['workspace_theme', 'workspace-theme'].includes(name.trim())
 
+/**
+ * The workspace OCR setting: a singleton section (`document-ocr.json`):
+ * { provider, connector_id } — the Azure endpoint travels with its connector
+ * (connectors section) and the key is never exported, so after an import it
+ * must be entered again. Export needs settings.view, apply settings.edit.
+ */
+export const OCR_SECTION = 'document_ocr'
+const OCR_VIEW = 'settings.view'
+const OCR_EDIT = 'settings.edit'
+const isOcrType = (name: string) => ['document_ocr', 'document-ocr'].includes(name.trim())
+const isSingletonType = (name: string) => isThemeType(name) || isOcrType(name)
+
 /** Sections a caller may name in `types` (references/objects travel with integrations). */
-export const CONFIG_EXPORT_TYPES = [...CONFIG_SECTIONS.filter((def) => def.topLevel).map((def) => def.section), THEME_SECTION]
+export const CONFIG_EXPORT_TYPES = [...CONFIG_SECTIONS.filter((def) => def.topLevel).map((def) => def.section), THEME_SECTION, OCR_SECTION]
 
 const SYNC_TYPE: Partial<Record<PlanAssetType, SyncAssetType>> = {
   workflow: 'workflow', decision_table: 'decision_table', workflow_activity: 'workflow_activity', data_table: 'data_table',
@@ -126,7 +140,7 @@ const DEPENDENCY_TABLES: Array<{ type: AssetRef['type']; table: string }> = [
   { type: 'email_template', table: 'email_templates' }, { type: 'agent', table: 'agents' },
   { type: 'report', table: 'reports' }, { type: 'role', table: 'roles' }, { type: 'mcp_server', table: 'mcp_servers' },
   { type: 'retention_policy', table: 'retention_policies' }, { type: 'log_destination', table: 'log_destinations' },
-  { type: 'form', table: 'forms' }, { type: 'form_theme', table: 'form_themes' },
+  { type: 'form', table: 'forms' }, { type: 'form_theme', table: 'form_themes' }, { type: 'form_control', table: 'form_controls' },
 ]
 
 /** Asset refs (type + id) for tenant ids of any exportable type. */
@@ -206,11 +220,14 @@ export interface ConfigExportResult {
 
 export async function exportConfig(ctx: ServiceContext, input: ConfigExportInput = {}): Promise<ConfigExportResult> {
   const typeList = input.types?.length ? input.types : null
-  const requested = typeList ? [...new Set(typeList.filter((t) => !isThemeType(t)).map((t) => resolveSection(t)))] : CONFIG_SECTIONS.filter((d) => d.topLevel)
+  const requested = typeList ? [...new Set(typeList.filter((t) => !isSingletonType(t)).map((t) => resolveSection(t)))] : CONFIG_SECTIONS.filter((d) => d.topLevel)
   let idFilter = input.ids?.length ? input.ids.filter(isUuid) : null
   if (idFilter?.length && input.with_dependencies) idFilter = await expandWithDependencies(ctx, idFilter)
   // An id filter selects assets; the theme comes along only when named.
   const wantTheme = typeList ? typeList.some(isThemeType) : !idFilter
+  // The OCR setting: when named, or in a full export once it was changed from the default.
+  const ocrNamed = Boolean(typeList?.some(isOcrType))
+  let wantOcr = typeList ? ocrNamed : !idFilter
 
   const skipped: SkippedSection[] = []
   const idsByType: Partial<Record<string, string[]>> = {}
@@ -255,12 +272,21 @@ export async function exportConfig(ctx: ServiceContext, input: ConfigExportInput
   if (wantTheme) {
     manifest[THEME_SECTION] = workspaceThemeToManifest((await readWorkspaceTheme(ctx.supabase, ctx.tenantId)).theme, ctx.tenantId)
   }
+  if (wantOcr && !hasPerm(ctx, OCR_VIEW)) {
+    if (ocrNamed) skipped.push({ section: OCR_SECTION, permission: OCR_VIEW, reason: `missing permission '${OCR_VIEW}'` })
+    wantOcr = false
+  }
+  if (wantOcr) {
+    const ocr = await readDocumentOcrManifest(ctx.supabase, ctx.tenantId)
+    if (ocrNamed || ocr.provider !== 'instance_default' || ocr.connector_id) manifest[OCR_SECTION] = ocr
+    else wantOcr = false
+  }
 
-  const total = PLAN_SECTIONS.reduce((sum, { section }) => sum + (Array.isArray(manifest[section]) ? manifest[section].length : 0), 0) + (wantTheme ? 1 : 0)
+  const total = PLAN_SECTIONS.reduce((sum, { section }) => sum + (Array.isArray(manifest[section]) ? manifest[section].length : 0), 0) + (wantTheme ? 1 : 0) + (wantOcr ? 1 : 0)
   await audit(ctx, {
     objectType: 'config', objectId: randomUUID(), action: 'export',
     summary: `Exported ${total} configuration asset${total === 1 ? '' : 's'}`,
-    metadata: { types: [...requested.map((d) => d.section), ...(wantTheme ? [THEME_SECTION] : [])], ids: idFilter?.length ?? null, skipped: skipped.map((s) => s.section) },
+    metadata: { types: [...requested.map((d) => d.section), ...(wantTheme ? [THEME_SECTION] : []), ...(wantOcr ? [OCR_SECTION] : [])], ids: idFilter?.length ?? null, skipped: skipped.map((s) => s.section) },
   })
 
   if (input.format === 'manifest') return { format_version: CONFIG_FORMAT_VERSION, manifest, skipped }
@@ -650,6 +676,35 @@ async function planWorkspaceThemeSection(ctx: ServiceContext, value: unknown, fi
   return { asset, theme: resolved.theme, warnings: resolved.warnings }
 }
 
+/**
+ * Plan for the `document_ocr` section. The connector id is remapped like any
+ * other connector reference (source → local); the planned value compares
+ * against the stored setting. An Azure setting whose connector is missing
+ * here, or arrives without its key, warns that the key must be re-entered.
+ */
+async function planDocumentOcrSection(ctx: ServiceContext, value: unknown, file: string | undefined, connectorMap: Record<string, string>, manifest: Record<string, any>) {
+  const base = { section: OCR_SECTION, asset_type: 'document_ocr' as const, source_id: null, local_id: ctx.tenantId, name: 'Document OCR', ...(file ? { file } : {}) }
+  const parsed = parseDocumentOcrManifest(value)
+  const warnings: string[] = []
+  if (!parsed.manifest) return { asset: { ...base, action: 'error' as const, error: parsed.error } as AssetPlan, warnings }
+  const incoming = parsed.manifest
+  const sourceConnector = incoming.connector_id
+  const localConnector = sourceConnector ? (connectorMap[sourceConnector] ?? sourceConnector) : null
+  const current = await readDocumentOcrManifest(ctx.supabase, ctx.tenantId)
+  const next = { provider: incoming.provider, connector_id: localConnector }
+  const diffs = diffValues(current, next)
+  if (incoming.provider === 'azure_document_intelligence') {
+    const travels = Array.isArray(manifest.connectors) && manifest.connectors.some((c: any) => String(c?.id) === sourceConnector)
+    if (!sourceConnector || (!travels && localConnector !== current.connector_id)) {
+      warnings.push('Document OCR uses an Azure AI Document Intelligence connection that is not in these files: enter the endpoint and key in Settings → Document OCR after applying')
+    } else {
+      warnings.push('Document OCR: the Azure key is never exported — enter it again in Settings → Document OCR if this workspace does not have it yet')
+    }
+  }
+  const asset: AssetPlan = { ...base, action: diffs.length ? 'update' : 'unchanged', matched_by: 'id', ...(diffs.length ? { diffs } : {}) }
+  return { asset, manifest: incoming as DocumentOcrManifest, warnings }
+}
+
 export async function applyConfig(ctx: ServiceContext, input: ConfigApplyInput): Promise<ConfigApplyResult> {
   const label = (input.source_label ?? 'default').trim() || 'default'
   if (ctx.resourceScopes?.workflow_ids?.length || ctx.resourceScopes?.table_ids?.length) {
@@ -691,12 +746,21 @@ export async function applyConfig(ctx: ServiceContext, input: ConfigApplyInput):
     plan.summary[themePlan.asset.action]++
     for (const warning of themePlan.warnings) identity.warnings.push({ asset_type: 'workspace_theme', warning })
   }
+  const ocrPlan = manifest[OCR_SECTION] !== undefined
+    ? await planDocumentOcrSection(ctx, manifest[OCR_SECTION], paths[OCR_SECTION]?.[0], identity.seed.connector ?? {}, manifest)
+    : null
+  if (ocrPlan) {
+    plan.assets.push(ocrPlan.asset)
+    plan.summary[ocrPlan.asset.action]++
+    for (const warning of ocrPlan.warnings) identity.warnings.push({ asset_type: 'document_ocr', warning })
+  }
   for (const fileError of fileErrors) {
     plan.assets.unshift({ section: 'files', asset_type: 'workflow', source_id: null, local_id: null, name: fileError.path, action: 'error', error: fileError.error, file: fileError.path })
     plan.summary.error++
   }
   const missing = [...missingPermissions(ctx, plan, 'create'), ...missingPermissions(ctx, plan, 'update')]
   if (themePlan?.asset.action === 'update' && !hasPerm(ctx, THEME_EDIT)) missing.push({ section: THEME_SECTION, permission: THEME_EDIT })
+  if (ocrPlan?.asset.action === 'update' && !hasPerm(ctx, OCR_EDIT)) missing.push({ section: OCR_SECTION, permission: OCR_EDIT })
   const rowsMode: RowMode = input.rows_mode ?? 'merge'
   const rowSets = tableRowSets(manifest)
   for (const set of rowSets) {
@@ -756,6 +820,17 @@ export async function applyConfig(ctx: ServiceContext, input: ConfigApplyInput):
       result.updated = { ...(result.updated ?? {}), workspace_theme: 1 }
     } catch (error) {
       importErrors.push({ asset_type: 'workspace_theme', source_id: '', error: error instanceof Error ? error.message : 'Could not update the workspace theme' })
+    }
+  }
+  if (ocrPlan?.asset.action === 'update' && ocrPlan.manifest) {
+    try {
+      // Connectors created by this apply are in the seed now (source → local).
+      const source = ocrPlan.manifest.connector_id
+      const local = source ? (identity.seed.connector?.[source] ?? source) : null
+      await applyDocumentOcrManifest(ctx, ocrPlan.manifest, local, `cli:${label}`)
+      result.updated = { ...(result.updated ?? {}), document_ocr: 1 }
+    } catch (error) {
+      importErrors.push({ asset_type: 'document_ocr', source_id: '', error: error instanceof Error ? error.message : 'Could not update the document OCR setting' })
     }
   }
   const rowResults = rowSets.length && rowsMode !== 'skip'

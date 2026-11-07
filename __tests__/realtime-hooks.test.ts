@@ -154,19 +154,18 @@ afterEach(() => {
 })
 
 describe('task and notification hooks', () => {
-  it('useTaskQueue: the user\'s tasks and assignments; bursts invalidate once', async () => {
-    const { useTaskQueue } = await import('@/hooks/use-task-queue')
-    const h = mount(() => useTaskQueue())
-    expect(active()).toEqual([]) // user id not known yet: no subscription
+  it('useTasks (mine): the workspace\'s tasks and my collaboration invitations; bursts invalidate once', async () => {
+    const { useTasks } = await import('@/hooks/use-tasks')
+    const h = mount(() => useTasks({ mine: true }))
     await flush()
-    expect(describeSubs()).toEqual([`tasks:assignee_id=${USER}:*`, `task_assignees:user_id=${USER}:*`])
+    expect(describeSubs()).toEqual([`tasks:tenant_id=${TENANT}:*`, `task_assignees:user_id=${USER}:*`])
     change(active()[0])
     change(active()[1], 'INSERT')
     change(active()[0])
     expect(invalidateQueries).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(300)
     expect(invalidateQueries).toHaveBeenCalledTimes(1)
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['task-queue'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['tasks'] })
     h.unmount()
     expect(active()).toEqual([])
   })

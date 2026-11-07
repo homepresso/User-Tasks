@@ -1,0 +1,167 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "0513ba8a-381a-5c4a-8ff8-9f45ccef05b4",
+  "asset": {
+    "id": "0513ba8a-381a-5c4a-8ff8-9f45ccef05b4",
+    "name": "Records request rules (examples)",
+    "description": "Response deadline and default exemption codes per regime. These rows are configurable EXAMPLES to adapt with your counsel, not legal advice: check the statute, how your office counts days, holidays and extensions.",
+    "inputs": [
+      {
+        "key": "jurisdiction",
+        "label": "Jurisdiction / regime",
+        "type": "string",
+        "id": "47ccd06d-bfb2-5f6a-9731-18add0275722"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "deadline_days",
+        "label": "Statutory days",
+        "type": "number",
+        "id": "3b20242f-4668-5663-9231-7e47b7b2b960"
+      },
+      {
+        "key": "day_type",
+        "label": "Day type",
+        "type": "string",
+        "id": "8cd9d607-2bea-504d-9d6f-a4247f204142"
+      },
+      {
+        "key": "calendar_days",
+        "label": "Calendar days for the SLA (approx.)",
+        "type": "number",
+        "id": "d8278e95-dbea-5f86-a466-f49decdee082"
+      },
+      {
+        "key": "extension_days",
+        "label": "Extension (calendar days, approx.)",
+        "type": "number",
+        "id": "44cf799c-0ca1-5173-ae61-65b105c61813"
+      },
+      {
+        "key": "legal_basis",
+        "label": "Basis (example)",
+        "type": "string",
+        "id": "d74f0a33-0601-596d-9572-522f5edf4b82"
+      },
+      {
+        "key": "privacy_exemption",
+        "label": "Default privacy exemption code",
+        "type": "string",
+        "id": "83226486-107b-5ce5-8d61-ec9f3e96c783"
+      },
+      {
+        "key": "law_enforcement_exemption",
+        "label": "Default law-enforcement exemption code",
+        "type": "string",
+        "id": "df3c0bbc-7719-501f-bae2-0593a6f7090e"
+      }
+    ],
+    "rules": [
+      {
+        "label": "US federal FOIA (example)",
+        "conditions": [
+          {
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "US federal FOIA",
+            "id": "423d3b14-d3e6-5e37-b041-cf2db8f76332"
+          }
+        ],
+        "outputs": {
+          "deadline_days": 20,
+          "day_type": "business days",
+          "calendar_days": 28,
+          "extension_days": 14,
+          "legal_basis": "5 U.S.C. 552(a)(6) (example: 20 working days, up to 10 more in unusual circumstances)",
+          "privacy_exemption": "US-B6",
+          "law_enforcement_exemption": "US-B7C"
+        },
+        "id": "941f1e7b-0d3a-5614-9e49-f625a567e161",
+        "enabled": true
+      },
+      {
+        "label": "US state records act (example: 10 business days)",
+        "conditions": [
+          {
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "US state public records (example)",
+            "id": "fca8e9ba-dd15-577f-a8a0-de8ff64d87ba"
+          }
+        ],
+        "outputs": {
+          "deadline_days": 10,
+          "day_type": "business days",
+          "calendar_days": 14,
+          "extension_days": 14,
+          "legal_basis": "Example state public records act: set this row to your state (deadlines range from a few days to \"promptly\")",
+          "privacy_exemption": "STATE-PRIV",
+          "law_enforcement_exemption": "STATE-LE"
+        },
+        "id": "91e6f1f4-68f4-5c68-800d-80db65bf6838",
+        "enabled": true
+      },
+      {
+        "label": "NZ Official Information Act (example)",
+        "conditions": [
+          {
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "NZ Official Information Act",
+            "id": "1fe8281a-6cf7-5841-b10a-278ac3216baa"
+          }
+        ],
+        "outputs": {
+          "deadline_days": 20,
+          "day_type": "working days",
+          "calendar_days": 28,
+          "extension_days": 28,
+          "legal_basis": "OIA 1982 s15 (example: 20 working days; s15A extension for a reasonable period, notified within the 20 days)",
+          "privacy_exemption": "NZ-9(2)(a)",
+          "law_enforcement_exemption": "NZ-6(c)"
+        },
+        "id": "2252b138-74e7-5277-bd6e-ca1eb5500e9b",
+        "enabled": true
+      },
+      {
+        "label": "UK FOIA (example)",
+        "conditions": [
+          {
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "UK Freedom of Information Act",
+            "id": "76ba9ac3-c7bd-5a13-88af-6494cc794579"
+          }
+        ],
+        "outputs": {
+          "deadline_days": 20,
+          "day_type": "working days",
+          "calendar_days": 28,
+          "extension_days": 28,
+          "legal_basis": "FOIA 2000 s10 (example: 20 working days; public interest test extensions)",
+          "privacy_exemption": "UK-S40",
+          "law_enforcement_exemption": "UK-S31"
+        },
+        "id": "b0c4070c-0f96-55bc-bc4c-6d4d1f54dca8",
+        "enabled": true
+      },
+      {
+        "label": "Other / internal policy (catch-all)",
+        "conditions": [],
+        "outputs": {
+          "deadline_days": 20,
+          "day_type": "calendar days",
+          "calendar_days": 20,
+          "extension_days": 20,
+          "legal_basis": "Internal policy: set the rule that applies to you",
+          "privacy_exemption": "PRIV",
+          "law_enforcement_exemption": "LE"
+        },
+        "id": "5dc1f845-e807-5156-97f6-88063c07eb86",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -155,6 +155,7 @@ export function unpinFormVersions<T>(nodes: T, triggerConfig?: unknown): { nodes
   const out = Array.isArray(nodes)
     ? nodes.map((node: any) => {
       if (!node?.config || !('form_version' in node.config)) return node
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omitted from the rest
       const { form_version: _pinned, ...config } = node.config
       return { ...node, config }
     }) as T

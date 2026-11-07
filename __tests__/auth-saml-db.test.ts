@@ -154,9 +154,9 @@ describe.skipIf(!DB_URL || !HAS_NODE_SAML || !HAS_OPENSSL)('SAML sign-in (test I
     expect(await acs({ SAMLResponse: first, RelayState: '/data' })).toBe('/login?error=sso_failed')
     expect(await provider.getSessionUser()).toBeNull()
     resetRequest()
-    expect(await acs({ SAMLResponse: await make(), RelayState: 'https://evil.example/' })).toBe('/tasks')
+    expect(await acs({ SAMLResponse: await make(), RelayState: 'https://evil.example/' })).toBe('/home')
     resetRequest()
-    expect(await acs({ SAMLResponse: await make(), RelayState: '//evil.example' })).toBe('/tasks')
+    expect(await acs({ SAMLResponse: await make(), RelayState: '//evil.example' })).toBe('/home')
 
     resetRequest()
     configure({ allowIdpInitiated: false })
@@ -186,7 +186,7 @@ describe.skipIf(!DB_URL || !HAS_NODE_SAML || !HAS_OPENSSL)('SAML sign-in (test I
     expect(await acs({ SAMLResponse: await buildSamlResponse({ ...base, notOnOrAfterSeconds: -600 }) })).toBe('/login?error=sso_failed')
     expect(await acs({ SAMLResponse: await buildSamlResponse({ ...base, notBeforeSeconds: 600 }) })).toBe('/login?error=sso_failed')
     // Expired 20 s ago: inside the default 60 s skew.
-    expect(await acs({ SAMLResponse: await buildSamlResponse({ ...base, notOnOrAfterSeconds: -20 }) })).toBe('/tasks')
+    expect(await acs({ SAMLResponse: await buildSamlResponse({ ...base, notOnOrAfterSeconds: -20 }) })).toBe('/home')
   })
 
   it('email from NameID, domain allowlist enforced', async () => {
@@ -194,7 +194,7 @@ describe.skipIf(!DB_URL || !HAS_NODE_SAML || !HAS_OPENSSL)('SAML sign-in (test I
     expect(await acs({ SAMLResponse: await buildSamlResponse({ issuer: IDP_ISSUER, audience: SP_ENTITY, acsUrl: ACS, nameId: outsider }) })).toBe('/login?error=sso_failed')
     resetRequest()
     const { email } = user('nameid.only')
-    expect(await acs({ SAMLResponse: await buildSamlResponse({ issuer: IDP_ISSUER, audience: SP_ENTITY, acsUrl: ACS, nameId: email }) })).toBe('/tasks')
+    expect(await acs({ SAMLResponse: await buildSamlResponse({ issuer: IDP_ISSUER, audience: SP_ENTITY, acsUrl: ACS, nameId: email }) })).toBe('/home')
     expect((await provider.getSessionUser())?.email).toBe(email)
   })
 
@@ -205,7 +205,7 @@ describe.skipIf(!DB_URL || !HAS_NODE_SAML || !HAS_OPENSSL)('SAML sign-in (test I
     expect(await provider.getSessionUser()).toBeNull()
     resetRequest()
     configure({ allowedDomains: undefined, trustEmail: true })
-    expect(await acs({ SAMLResponse: await buildSamlResponse({ issuer: IDP_ISSUER, audience: SP_ENTITY, acsUrl: ACS, nameId: email, attributes: { email } }) })).toBe('/tasks')
+    expect(await acs({ SAMLResponse: await buildSamlResponse({ issuer: IDP_ISSUER, audience: SP_ENTITY, acsUrl: ACS, nameId: email, attributes: { email } }) })).toBe('/home')
   })
 
   it('serves SP metadata with the entity id and ACS URL', async () => {

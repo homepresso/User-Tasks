@@ -3,6 +3,10 @@
 import { useMemo, useRef, useState } from "react"
 import { Plus, Trash2, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { InlineNotice } from "@/components/ui/inline-notice"
+import { SearchInput } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import { LogoUpload } from "@/components/settings/logo-upload"
 import { uploadWorkspaceThemeFont } from "@/app/actions/workspace-theme"
 import { paletteContrastChecks, checkThemeContrast, type ContrastCheck } from "@/lib/theme/contrast"
@@ -28,8 +32,6 @@ interface SectionProps {
   mode: ThemeMode
 }
 
-const muted = { color: "var(--theme-muted-text)" }
-
 // ── Start from template ─────────────────────────────────────────────────────
 
 export function TemplateSection({ theme, mode, onApply }: { theme: WorkspaceTheme; mode: ThemeMode; onApply: (id: string) => void }) {
@@ -39,18 +41,8 @@ export function TemplateSection({ theme, mode, onApply }: { theme: WorkspaceThem
   const shown = q ? templates.filter((t) => `${t.name} ${t.description} ${t.category}`.toLowerCase().includes(q)) : templates
   return (
     <DesignerSection title="Start from template" description={`${THEME_TEMPLATES.length} built-in themes; your logos are kept`} defaultOpen>
-      <label className="block text-xs">
-        <span className="sr-only">Search templates</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search templates…"
-          className="h-8 w-full rounded-lg border px-2 text-xs"
-          style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}
-        />
-      </label>
-      <ul className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto p-0.5 sm:grid-cols-3" aria-label="Theme templates">
+      <SearchInput size="sm" value={query} onValueChange={setQuery} placeholder="Search templates…" aria-label="Search templates" />
+      <ul className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3" aria-label="Theme templates">
         {shown.map((t) => {
           const p = t.theme.colors[mode]
           const current = theme.meta.basePreset === t.id
@@ -60,14 +52,14 @@ export function TemplateSection({ theme, mode, onApply }: { theme: WorkspaceThem
                 type="button"
                 onClick={() => onApply(t.id)}
                 aria-pressed={current}
-                title={t.description}
-                className="w-full border p-1.5 text-left focus-visible:outline-none focus-visible:ring-2"
-                style={{
-                  borderRadius: "var(--theme-border-radius)",
-                  borderColor: current ? "var(--theme-primary)" : "var(--theme-surface-border)",
-                  boxShadow: current ? "0 0 0 1px var(--theme-primary)" : undefined,
-                  ["--tw-ring-color" as string]: "var(--theme-focus-ring, var(--theme-primary))",
-                }}
+                aria-describedby={`tpl-${t.id}-desc`}
+                data-variant="interactive"
+                // The interactive Card look (hover border-strong + elev-1); selected = 2px primary outline.
+                className={cn(
+                  "w-full rounded-lg border border-border bg-panel p-1.5 text-left",
+                  "transition-[border-color,box-shadow] duration-[var(--ds-dur-fast)] ease-[var(--ds-ease-standard)] hover:border-border-strong hover:shadow-elev-1",
+                  current && "border-transparent outline outline-2 outline-offset-0 outline-primary",
+                )}
               >
                 <span aria-hidden className="flex h-12 overflow-hidden rounded border" style={{ borderColor: p.surfaceBorder }}>
                   <span className="w-4" style={{ backgroundColor: p.sidebar }} />
@@ -79,13 +71,14 @@ export function TemplateSection({ theme, mode, onApply }: { theme: WorkspaceThem
                     </span>
                   </span>
                 </span>
-                <span className="mt-1 block truncate text-[11px] font-medium">{t.name}</span>
-                <span className="block truncate text-[10px]" style={muted}>{t.category}</span>
+                <span className="mt-1.5 block truncate text-xs font-medium text-fg">{t.name}</span>
+                <span className="block truncate text-2xs text-fg-muted">{t.category}</span>
+                <span id={`tpl-${t.id}-desc`} className="sr-only">{t.description}</span>
               </button>
             </li>
           )
         })}
-        {shown.length === 0 && <li className="col-span-full text-xs" style={muted}>No template matches “{query}”.</li>}
+        {shown.length === 0 && <li className="col-span-full py-4 text-center text-xs text-fg-muted">No template matches “{query}”.</li>}
       </ul>
     </DesignerSection>
   )
@@ -160,23 +153,21 @@ export function ColorsSection({ theme, set, mode, onModeChange }: SectionProps &
     <DesignerSection title="Colours" description="Light and dark palettes with WCAG contrast checks">
       <SegmentedField label="Editing palette" value={mode} options={[{ value: "light", label: "Light" }, { value: "dark", label: "Dark" }]} onChange={onModeChange} />
       {unused && (
-        <p className="text-xs" style={muted}>
+        <p className="text-xs text-fg-muted">
           The theme is always {theme.meta.mode}, so members never see this palette. Change “Appearance” to “Follow device” to use it.
         </p>
       )}
       {blocking.length > 0 && (
-        <p role="alert" className="rounded-lg border px-3 py-2 text-xs" style={{ color: "var(--theme-danger)", borderColor: "var(--theme-danger)" }}>
-          {blocking.map((c) => `${c.pair.replace("/", " on ")} is ${c.ratio}:1`).join("; ")} — below 3:1, so the theme can’t be saved until it is fixed.
-        </p>
+        <div role="alert">
+          <InlineNotice tone="danger" message={`${blocking.map((c) => `${c.pair.replace("/", " on ")} is ${c.ratio}:1`).join("; ")} — below 3:1, so the theme can’t be saved until it is fixed.`} />
+        </div>
       )}
       {lowCount > 0 && (
-        <p className="rounded-lg border px-3 py-2 text-xs" style={{ color: "var(--theme-card-text)", borderColor: "var(--theme-warning)" }}>
-          {lowCount} text {lowCount === 1 ? "pair is" : "pairs are"} below the WCAG target (4.5:1 for text, 3:1 for large text, sidebar highlights and charts) — hover a badge for details. Members see those colours nudged to the nearest readable shade.
-        </p>
+        <InlineNotice tone="warning" message={`${lowCount} text ${lowCount === 1 ? "pair is" : "pairs are"} below the WCAG target (4.5:1 for text, 3:1 for large text, sidebar highlights and charts) — hover a badge for details. Members see those colours nudged to the nearest readable shade.`} />
       )}
       {(blocking.length > 0 || lowCount > 0) && (
         <Button
-          type="button" variant="outline" size="sm"
+          type="button" variant="secondary" size="sm"
           onClick={() => set(["colors"], { light: legiblePalette(theme.colors.light, theme.chrome), dark: legiblePalette(theme.colors.dark, theme.chrome) })}
         >
           Fix contrast in both palettes
@@ -205,18 +196,17 @@ export function ColorsSection({ theme, set, mode, onModeChange }: SectionProps &
         {palette.chart.map((color, i) => (
           <div key={i} className="flex items-center gap-1">
             <div className="flex-1"><ColorField label={`Series ${i + 1}`} value={color} onChange={(v) => v && set(path("chart", i), v)} checks={byField.get(`chart${i + 1}`) ?? []} /></div>
-            <Button
-              type="button" variant="ghost" size="icon" className="h-8 w-8"
-              aria-label={`Remove series ${i + 1}`}
+            <IconButton
+              size="sm"
+              label={`Remove series ${i + 1}`}
+              icon={<Trash2 />}
               disabled={palette.chart.length <= 6}
               onClick={() => set(path("chart"), palette.chart.filter((_, j) => j !== i))}
-            >
-              <Trash2 size={14} aria-hidden />
-            </Button>
+            />
           </div>
         ))}
-        <Button type="button" variant="outline" size="sm" disabled={palette.chart.length >= 10} onClick={() => set(path("chart"), [...palette.chart, palette.chart[palette.chart.length % 6]])}>
-          <Plus size={14} aria-hidden /> Add series
+        <Button type="button" variant="secondary" size="sm" leadingIcon={<Plus />} disabled={palette.chart.length >= 10} onClick={() => set(path("chart"), [...palette.chart, palette.chart[palette.chart.length % 6]])}>
+          Add series
         </Button>
       </FieldGroup>
     </DesignerSection>
@@ -270,17 +260,17 @@ function FontPicker({ slot, font, onChange }: { slot: FontSlot; font: FontRef; o
           else if (source === "system") onChange({ source: "system", family })
         }}
       />
-      <p className="truncate rounded-lg border px-3 py-2 text-sm" style={{ fontFamily: fontFamilyValue(font, slot), borderColor: "var(--theme-surface-border)" }} aria-label={`${SLOT_LABEL[slot]} specimen`}>
+      <p className="truncate rounded-md bg-subtle px-3 py-2 text-sm text-fg" style={{ fontFamily: fontFamilyValue(font, slot) }} aria-label={`${SLOT_LABEL[slot]} specimen`}>
         {SPECIMEN}
       </p>
       <div className="flex items-center gap-2">
         <input ref={fileRef} type="file" accept=".woff2,font/woff2" className="hidden" onChange={upload} aria-label={`Upload a woff2 font for ${SLOT_LABEL[slot]}`} />
-        <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={busy}>
-          <Upload size={13} aria-hidden /> {busy ? "Uploading…" : "Upload woff2"}
+        <Button type="button" variant="ghost" size="sm" leadingIcon={<Upload />} onClick={() => fileRef.current?.click()} loading={busy}>
+          {busy ? "Uploading…" : "Upload woff2"}
         </Button>
-        <span className="text-[11px]" style={muted}>Max 1 MB</span>
+        <span className="text-xs text-fg-muted">Max 1 MB</span>
       </div>
-      {error && <p role="alert" className="text-xs" style={{ color: "var(--theme-danger)" }}>{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
     </div>
   )
 }
@@ -357,10 +347,12 @@ export function ShapeSection({ theme, set }: SectionProps) {
               role="radio"
               aria-checked={active?.id === p.id}
               onClick={() => set(["shadows"], p.value)}
-              className="flex flex-col items-center gap-2 border p-2 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2"
-              style={{ borderRadius: "var(--theme-border-radius)", borderColor: active?.id === p.id ? "var(--theme-primary)" : "var(--theme-surface-border)", ["--tw-ring-color" as string]: "var(--theme-focus-ring, var(--theme-primary))" }}
+              className={cn(
+                "flex flex-col items-center gap-2 rounded-lg border border-border bg-panel p-2 text-xs font-medium text-fg transition-[border-color,box-shadow] duration-[var(--ds-dur-fast)] hover:border-border-strong",
+                active?.id === p.id && "border-transparent outline outline-2 outline-primary",
+              )}
             >
-              <span aria-hidden className="h-8 w-10 rounded-md" style={{ boxShadow: p.value.lg, backgroundColor: "var(--theme-card-bg)", border: "1px solid var(--theme-surface-border)" }} />
+              <span aria-hidden className="h-8 w-10 rounded-md border border-border bg-panel" style={{ boxShadow: p.value.lg }} />
               {p.label}
             </button>
           ))}
@@ -381,15 +373,31 @@ export function ShapeSection({ theme, set }: SectionProps) {
 
 // ── Density & layout ────────────────────────────────────────────────────────
 
-export function LayoutSection({ theme, set }: SectionProps) {
+const DENSITY_HINT: Record<WorkspaceTheme["layout"]["density"], string> = {
+  compact: "32px table rows, 28px controls",
+  comfortable: "40px table rows, 32px controls",
+  spacious: "48px table rows, 36px controls",
+}
+
+/** Density: table row and control heights across the app (the preview follows it). */
+export function DensityField({ theme, set }: Pick<SectionProps, "theme" | "set">) {
   return (
-    <DesignerSection title="Density & layout" description="Row spacing, sidebar width and top bar height">
+    <div className="space-y-1">
       <SegmentedField
         label="Density"
         value={theme.layout.density}
         options={[{ value: "compact", label: "Compact" }, { value: "comfortable", label: "Comfortable" }, { value: "spacious", label: "Spacious" }]}
         onChange={(v) => set(["layout", "density"], v)}
       />
+      <p className="text-xs text-fg-muted sm:pl-[9.75rem]">{DENSITY_HINT[theme.layout.density]}</p>
+    </div>
+  )
+}
+
+export function LayoutSection({ theme, set }: SectionProps) {
+  return (
+    <DesignerSection title="Density & layout" description="Row and control heights, sidebar width and top bar height">
+      <DensityField theme={theme} set={set} />
       <RangeField label="Sidebar width" value={theme.layout.sidebarWidth} min={200} max={360} step={4} onChange={(v) => set(["layout", "sidebarWidth"], v)} />
       <RangeField label="Top bar height" value={theme.layout.topbarHeight} min={48} max={72} onChange={(v) => set(["layout", "topbarHeight"], v)} />
     </DesignerSection>
@@ -419,18 +427,18 @@ function BackgroundEditor({ surface, theme, set }: { surface: Surface } & Sectio
           ...(style === "texture" && !chrome.texture ? { texture } : {}),
         })}
       />
-      {chrome.style === "solid" && <p className="text-xs" style={muted}>Uses the {surface === "sidebar" ? "Sidebar" : "Top bar"} colour of each palette.</p>}
+      {chrome.style === "solid" && <p className="text-xs text-fg-muted">Uses the {surface === "sidebar" ? "Sidebar" : "Top bar"} colour of each palette.</p>}
       {(chrome.style === "gradient" || (chrome.style === "texture" && chrome.gradient)) && (
         <>
           <RangeField label="Gradient angle" value={gradient.angle} min={0} max={360} unit="°" onChange={(v) => set([...root, "gradient", "angle"], v)} />
           {gradient.stops.map((stop, i) => (
-            <div key={i} className="space-y-1 rounded-lg border p-2" style={{ borderColor: "var(--theme-surface-border)" }}>
+            <div key={i} className="space-y-1 rounded-md bg-subtle p-2">
               <ColorField label={`Stop ${i + 1}`} value={stop.color} onChange={(v) => v && set([...root, "gradient", "stops", i, "color"], v)} />
               <RangeField label="Position" value={stop.at} min={0} max={100} unit="%" onChange={(v) => set([...root, "gradient", "stops", i, "at"], v)} />
             </div>
           ))}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={gradient.stops.length >= 3} onClick={() => set([...root, "gradient", "stops"], [...gradient.stops.slice(0, 1), { color: gradient.stops[0].color, at: 50 }, ...gradient.stops.slice(1)])}>Add stop</Button>
+            <Button type="button" variant="secondary" size="sm" disabled={gradient.stops.length >= 3} onClick={() => set([...root, "gradient", "stops"], [...gradient.stops.slice(0, 1), { color: gradient.stops[0].color, at: 50 }, ...gradient.stops.slice(1)])}>Add stop</Button>
             <Button type="button" variant="ghost" size="sm" disabled={gradient.stops.length <= 2} onClick={() => set([...root, "gradient", "stops"], [gradient.stops[0], gradient.stops[gradient.stops.length - 1]])}>Remove middle stop</Button>
           </div>
         </>
@@ -459,7 +467,7 @@ export function ChromeSection({ theme, set, mode }: SectionProps) {
             {gradientIssues.map((i, n) => (
               <li key={n} className="flex items-center gap-2">
                 <ContrastBadge check={{ pair: i.pair, ratio: i.ratio, required: i.required, level: i.level, ok: false }} />
-                <span>{i.pair.split("/")[0]} on a gradient stop ({i.background}, {i.mode})</span>
+                <span className="text-fg">{i.pair.split("/")[0]} on a gradient stop ({i.background}, {i.mode})</span>
               </li>
             ))}
           </ul>
@@ -521,7 +529,7 @@ export function BrandingSection({ theme, set, tenantId, readOnly }: SectionProps
         validate={(v) => (/[<>{}]/.test(v) ? "No <, >, { or }" : null)}
         onChange={(v) => set(["branding", "wordmark"], v.trim() ? v : undefined)}
       />
-      <p className="text-xs" style={muted}>Shown in the sidebar when there is no logo for the current mode.</p>
+      <p className="text-xs text-fg-muted">Shown in the sidebar when there is no logo for the current mode.</p>
     </DesignerSection>
   )
 }

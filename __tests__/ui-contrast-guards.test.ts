@@ -18,7 +18,6 @@ describe('UI contrast guards', () => {
   it.each([
     'components/tasks/task-list-row-summary.tsx',
     'app/(dashboard)/tasks/page.tsx',
-    'app/(dashboard)/tasks/queue/page.tsx',
   ])('%s: emphasised rows keep the normal text hierarchy', (file) => {
     const src = read(file)
     expect(src).not.toMatch(/isDarkRow \?\s*["']text-/)

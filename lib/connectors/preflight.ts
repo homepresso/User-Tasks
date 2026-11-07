@@ -1,5 +1,5 @@
 import { buildConnectorTestResult, type ConnectorTestResult } from "./test-diagnostics"
-import { isCiphertext } from "@/lib/secret-format"
+import { isMaskedSecret } from "@/lib/secret-format"
 
 type Values = Record<string, any>
 
@@ -31,7 +31,7 @@ export function runConnectorPreflight(
     const rawJson = credentials.service_account_json
     // Encrypted-at-rest values (`enc:v1:…` / `enc:v2:…`) can reach client-side preflight via
     // edit-form round-trips; skip JSON checks for those (server decrypts first).
-    if (hasValue(rawJson) && !isCiphertext(String(rawJson))) {
+    if (hasValue(rawJson) && !isMaskedSecret(rawJson)) {
       try {
         const parsed = JSON.parse(String(rawJson))
         const missing = ['client_email', 'private_key'].filter((key) => !hasValue(parsed[key]))
@@ -56,17 +56,77 @@ export function runConnectorPreflight(
     }
   }
 
-  if (connectorKey === 'salesforce') {
+  // Refresh-token renewal needs the client id and the refresh token together
+  // (the secret is optional for public clients but required by these providers).
+  const refreshLabels: Record<string, string> = {
+    salesforce: 'Salesforce',
+    servicenow: 'ServiceNow',
+    workday: 'Workday',
+    docusign: 'DocuSign',
+  }
+  if (refreshLabels[connectorKey] && !(connectorKey === 'docusign' && credentials.auth_method === 'jwt')) {
     const refreshFields = ['client_id', 'client_secret', 'refresh_token']
     const present = refreshFields.filter((key) => hasValue(credentials[key]))
     if (present.length > 0 && present.length < refreshFields.length) {
       const missing = refreshFields.filter((key) => !hasValue(credentials[key]))
       return buildConnectorTestResult(
         connectorKey,
-        `Salesforce refresh-token auth is only partially configured: missing ${missing.join(', ')}.`,
+        `${refreshLabels[connectorKey]} refresh-token auth is only partially configured: missing ${missing.join(', ')}.`,
         'error',
       )
     }
+  }
+
+  if (connectorKey === 'twilio') {
+    const hasApiKey = hasValue(credentials.api_key_sid) && hasValue(credentials.api_key_secret)
+    if (!hasValue(credentials.account_sid)) {
+      return buildConnectorTestResult(connectorKey, 'The Twilio Account SID is required (it is part of every API path).', 'error')
+    }
+    if (!hasApiKey && !hasValue(credentials.auth_token)) {
+      return buildConnectorTestResult(connectorKey, 'Provide the Auth Token, or an API Key SID and secret.', 'error')
+    }
+    if (hasValue(credentials.api_key_sid) !== hasValue(credentials.api_key_secret)) {
+      return buildConnectorTestResult(connectorKey, 'Provide both the API Key SID and the API Key Secret (or neither).', 'error')
+    }
+  }
+
+  if (connectorKey === 'stripe' && hasValue(credentials.secret_key) && !isMaskedSecret(credentials.secret_key)) {
+    const key = String(credentials.secret_key)
+    const live = /^(sk|rk)_live_/.test(key)
+    const test = /^(sk|rk)_test_/.test(key)
+    if (/^pk_/.test(key)) {
+      return buildConnectorTestResult(connectorKey, 'That is a publishable key (pk_…) — use a secret (sk_…) or restricted (rk_…) key.', 'error')
+    }
+    if ((config.mode === 'live' && test) || (config.mode === 'test' && live)) {
+      return buildConnectorTestResult(connectorKey, `The key is a ${live ? 'live' : 'test'}-mode key but Mode is set to ${config.mode}.`, 'error')
+    }
+  }
+
+  if (connectorKey === 'docusign') {
+    if (credentials.auth_method === 'jwt') {
+      const missing = missingKeys(credentials, ['client_id', 'user_id', 'private_key'])
+      if (missing.length) return buildConnectorTestResult(connectorKey, `DocuSign JWT Grant needs ${missing.join(', ')}.`, 'error')
+    } else if (!hasValue(credentials.access_token) && !hasValue(credentials.refresh_token)) {
+      return buildConnectorTestResult(connectorKey, 'Paste a DocuSign access token (or the refresh token with the integration key and secret), choose JWT Grant, or use Connect (OAuth 2.0) on the integration.', 'error')
+    }
+  }
+
+  // E-signature connectors: the credentials each auth method needs.
+  if (connectorKey === 'adobe_sign' && !hasValue(credentials.access_token) && !hasValue(credentials.refresh_token)) {
+    return buildConnectorTestResult(connectorKey, 'Paste an Acrobat Sign integration key or OAuth access token (or a refresh token with the client ID and secret).', 'error')
+  }
+  if (connectorKey === 'adobe_sign' && hasValue(credentials.refresh_token) && missingKeys(credentials, ['client_id', 'client_secret']).length) {
+    return buildConnectorTestResult(connectorKey, 'Acrobat Sign token refresh needs the OAuth client ID and client secret.', 'error')
+  }
+  if ((connectorKey === 'dropbox_sign' || connectorKey === 'pandadoc') && credentials.auth_method === 'oauth' && !hasValue(credentials.access_token) && !hasValue(credentials.refresh_token)) {
+    return buildConnectorTestResult(connectorKey, 'Paste the OAuth access token (or a refresh token with the client ID and secret).', 'error')
+  }
+  if (connectorKey === 'signnow' && credentials.auth_method === 'oauth' && !hasValue(credentials.access_token) && !hasValue(credentials.refresh_token)) {
+    return buildConnectorTestResult(connectorKey, 'Paste the SignNow access token or refresh token, or use the service-user (password) method.', 'error')
+  }
+
+  if (connectorKey === 'workday' && credentials.auth_type !== 'basic' && !hasValue(config.tenant) && !hasValue(config.default_tenant)) {
+    return buildConnectorTestResult(connectorKey, 'Set the Workday tenant name — every REST path includes it.', 'error')
   }
 
   if (connectorKey === 'azure_blob') {

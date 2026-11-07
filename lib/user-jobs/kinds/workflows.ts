@@ -3,6 +3,7 @@ import { getDb, isServiceError, requirePerm, ServiceError } from '@/lib/services
 import { dbError } from '@/lib/services/_shared'
 import { actOnWorkflowRun, migrateInstances, planInstanceMigration, type MigrationResult } from '@/lib/services/workflow-runs'
 import { deleteQueueJob } from '@/lib/services/workflow-queue'
+import { requireVisibleRun } from '@/lib/services/run-visibility'
 import { defineJobKind } from '../define'
 
 /*
@@ -76,9 +77,11 @@ const queueItem = z.object({ job_id: z.string().max(100), run_id: uuid.nullish()
 /** Delete a run and its logs (the queue's Delete), tenant-pinned. */
 async function deleteRun(ctx: Parameters<typeof deleteQueueJob>[0], runId: string): Promise<void> {
   const db = getDb(ctx) as any
-  const { data: run, error } = await db.from('workflow_runs').select('id').eq('id', runId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  const { data: run, error } = await db.from('workflow_runs').select('id, workflow_id').eq('id', runId).eq('tenant_id', ctx.tenantId).maybeSingle()
   if (error) throw dbError(error)
   if (!run) return // already gone
+  // Only a run in the person's run scope (lib/services/run-visibility).
+  await requireVisibleRun(ctx, run)
   const { error: logsError } = await db.from('workflow_logs').delete().eq('run_id', run.id).eq('tenant_id', ctx.tenantId)
   if (logsError) throw dbError(logsError)
   const { error: runError } = await db.from('workflow_runs').delete().eq('id', run.id).eq('tenant_id', ctx.tenantId)

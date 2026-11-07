@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+  "asset": {
+    "id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+    "name": "Action items",
+    "description": "Action items from meetings, with owner, due date and status (updated when the owner closes their task).",
+    "columns": [
+      {
+        "id": "b823e8cd-9d72-5460-adca-9c8c166d2d2a",
+        "required": true,
+        "key": "item_key",
+        "name": "Key",
+        "type": "text"
+      },
+      {
+        "id": "6ef76ee6-87fc-51af-8830-d4277aac0d4c",
+        "required": true,
+        "key": "minutes_ref",
+        "name": "Minutes",
+        "type": "text"
+      },
+      {
+        "id": "4d1ba818-9426-596a-8bbd-d8fbfb9542d5",
+        "required": false,
+        "key": "meeting_title",
+        "name": "Meeting",
+        "type": "text"
+      },
+      {
+        "id": "6081a85a-d370-58a2-bb30-dd631b0ec10f",
+        "required": true,
+        "key": "action",
+        "name": "Action",
+        "type": "text"
+      },
+      {
+        "id": "9c79fc8f-b69e-50ab-91df-a5a7b5acdad0",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "31aa50f4-59f8-5a33-b8b9-a3ae996276a0",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "date"
+      },
+      {
+        "id": "0b915ea3-6f6c-5200-b1d1-3d87eed4a2de",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "56028126-ec23-5b13-a663-0873da20c31a",
+        "required": false,
+        "key": "closed_note",
+        "name": "Note",
+        "type": "text"
+      }
+    ]
+  }
+}

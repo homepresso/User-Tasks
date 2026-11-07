@@ -28,6 +28,8 @@ export const directoryConnectionCreateBody = z.object({
   credentials: z.record(z.string(), z.unknown()).optional().describe(`Secrets: ${CREDENTIALS_NOTE}`),
   sync_groups: z.boolean().optional().describe('Directory groups become teams (default true)'),
   auto_provision: z.boolean().optional().describe('Create accounts for directory users without one (default true)'),
+  import_org_units: z.boolean().optional().describe('Build org units from company / division / department (Google: organizational units) (default true)'),
+  import_profiles: z.boolean().optional().describe("Import members' job title, department, location, employee id and cost centre (default true)"),
 })
 
 export const directoryConnectionUpdateBody = z.object({
@@ -36,6 +38,8 @@ export const directoryConnectionUpdateBody = z.object({
   credentials: z.record(z.string(), z.unknown()).optional().describe('Merged over the stored credentials; __SECRET__ keeps a value'),
   sync_groups: z.boolean().optional(),
   auto_provision: z.boolean().optional(),
+  import_org_units: z.boolean().optional(),
+  import_profiles: z.boolean().optional(),
 })
 
 export const directoryConnectionTestBody = z.object({
@@ -65,6 +69,8 @@ const connection = z.looseObject({
   credentials: z.record(z.string(), z.unknown()).describe('Masked: every secret is __SECRET__'),
   sync_groups: z.boolean(),
   auto_provision: z.boolean(),
+  import_org_units: z.boolean().describe('Org units from the directory (off for connections made before the option)'),
+  import_profiles: z.boolean().describe('Member attributes from the directory (off for connections made before the option)'),
   last_sync_at: z.string().nullable(),
   last_sync_stats: z.record(z.string(), z.number()).nullable(),
   linked_users: z.number().int(),
@@ -195,9 +201,41 @@ export const rotateScimTokenEndpoint = defineEndpoint({
   cli: { resource: 'scim-tokens', verb: 'rotate', positional: ['id'] },
 })
 
+export const getDirectoryCapabilitiesEndpoint = defineEndpoint({
+  method: 'GET', path: '/directory-sync/capabilities', operationId: 'getDirectoryCapabilities', tags,
+  summary: 'What the directory connections make available to workflows (AAD group task assignment)',
+  description: 'entraGroups: an enabled Entra ID connection with credentials — User Task nodes may use assignment_type aad_group. syncedGroups: the connection also syncs groups into teams.',
+  permission: 'workflows.view',
+  response: z.looseObject({ entraGroups: z.boolean(), syncedGroups: z.boolean() }),
+  cli: { resource: 'directory-sync', verb: 'capabilities' },
+})
+
+const entraGroup = z.looseObject({
+  id: z.string().describe('Entra group object id (a User Task node\'s aad_group_id)'),
+  name: z.string(),
+  description: z.string().nullable(),
+  team_id: z.string().nullable().describe('The team directory sync keeps for this group, when it syncs groups'),
+})
+
+export const searchEntraGroupsEndpoint = defineEndpoint({
+  method: 'GET', path: '/directory-sync/entra/groups', operationId: 'searchEntraGroups', tags,
+  summary: 'Search the workspace\'s Entra ID groups (for AAD group task assignment)',
+  description: 'Groups directory sync stored when the connection syncs groups, else a live Microsoft Graph search (GroupMember.Read.All or Group.Read.All). 409 when Entra ID is not configured.',
+  permission: 'workflows.view',
+  query: z.object({
+    search: z.string().max(100).optional().describe('Matches group display names'),
+    limit: z.coerce.number().int().min(1).max(50).optional().describe('Default 25'),
+    cursor: z.string().max(4000).optional().describe('next_cursor of the previous page'),
+  }),
+  response: z.looseObject({ groups: z.array(entraGroup), next_cursor: z.string().nullable(), source: z.enum(['synced', 'graph']) }),
+  listKey: 'groups',
+  cli: { resource: 'directory-sync', verb: 'groups' },
+})
+
 export const directorySyncEndpoints = [
   listDirectoryConnectionsEndpoint, createDirectoryConnectionEndpoint, getDirectoryConnectionEndpoint,
   updateDirectoryConnectionEndpoint, deleteDirectoryConnectionEndpoint, testDirectoryConnectionEndpoint,
   startDirectorySyncEndpoint, listDirectorySyncRunsEndpoint,
   listScimTokensEndpoint, createScimTokenEndpoint, deleteScimTokenEndpoint, rotateScimTokenEndpoint,
+  getDirectoryCapabilitiesEndpoint, searchEntraGroupsEndpoint,
 ]

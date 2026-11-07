@@ -59,13 +59,13 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-4 page-transition">
       <div>
-        <Link href={`/integrations/${integrationId}`} className="inline-flex items-center gap-1 text-xs mb-1 hover:underline" style={{ color: 'var(--theme-muted-text)' }}>
+        <Link href={`/integrations/${integrationId}`} className="inline-flex items-center gap-1 text-xs mb-1 hover:underline text-fg-muted">
           <ChevronLeft size={12} /> Back to integration
         </Link>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+        <h1 className="text-2xl font-semibold text-fg">
           {(integration as any)?.name ?? 'Integration'} — Calls
         </h1>
-        <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs mt-1 text-fg-muted">
           {callsData?.total ?? 0} total API call{(callsData?.total ?? 0) === 1 ? '' : 's'}
         </p>
       </div>
@@ -82,14 +82,13 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
       <Card className="!p-4">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search URL or error..." className="pl-9" />
           </div>
           <select
             value={methodFilter}
             onChange={(e) => { setMethodFilter(e.target.value); setPage(0) }}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+            className="h-9 rounded-lg border px-3 text-xs border-border bg-panel text-fg"
           >
             <option value="">All methods</option>
             {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => <option key={m} value={m}>{m}</option>)}
@@ -97,8 +96,7 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
-            className="h-9 rounded-lg border px-3 text-xs"
-            style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+            className="h-9 rounded-lg border px-3 text-xs border-border bg-panel text-fg"
           >
             <option value="">All statuses</option>
             <option value="success">Success (2xx/3xx)</option>
@@ -109,20 +107,20 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
 
       <Card className="!p-0 overflow-hidden">
         {isLoading ? (
-          <div className="py-12 text-center text-sm" style={{ color: 'var(--theme-muted-text)' }}>Loading...</div>
+          <div className="py-12 text-center text-sm text-fg-muted">Loading...</div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center">
-            <Network size={32} className="mx-auto mb-2" style={{ color: 'var(--theme-muted-text)' }} />
-            <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+            <Network size={32} className="mx-auto mb-2 text-fg-muted" />
+            <p className="text-sm text-fg-muted">
               {search || methodFilter || statusFilter ? 'No calls match your filters' : 'No API calls recorded yet'}
             </p>
-            <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-2xs mt-1 text-fg-muted">
               Calls are logged from the moment observability was enabled.
             </p>
           </div>
         ) : (
           <>
-            <div className="grid text-[10px] font-semibold uppercase tracking-wider select-none px-4 py-2"
+            <div className="grid text-2xs font-semibold select-none px-4 py-2"
               style={{
                 gridTemplateColumns: '60px 1fr 60px 80px 110px 120px 32px',
                 backgroundColor: 'var(--theme-row-highlight)',
@@ -150,26 +148,26 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
                     borderBottom: '1px solid var(--theme-surface-border)',
                   }}
                 >
-                  <div className="font-mono font-semibold" style={{ color: 'var(--theme-muted-text)' }}>
+                  <div className="font-mono font-semibold text-fg-muted">
                     {call.method ?? '—'}
                   </div>
-                  <div className="truncate pr-4 font-mono text-[10px]" style={{ color: 'var(--theme-card-text)' }}>
-                    {call.url ?? <span style={{ color: 'var(--theme-danger)' }}>{call.error?.slice(0, 80) ?? '(error)'}</span>}
+                  <div className="truncate pr-4 font-mono text-2xs text-fg">
+                    {call.url ?? <span className="text-danger">{call.error?.slice(0, 80) ?? '(error)'}</span>}
                   </div>
-                  <div className="font-mono font-semibold text-[11px]"
+                  <div className="font-mono font-semibold text-2xs"
                     style={{ color: isError ? 'var(--theme-danger)' : 'var(--theme-success)' }}>
                     {call.response_status ?? 'err'}
                   </div>
-                  <div className="font-mono" style={{ color: 'var(--theme-muted-text)' }}>
+                  <div className="font-mono text-fg-muted">
                     {call.duration_ms != null ? `${call.duration_ms}ms` : '—'}
                   </div>
-                  <div className="truncate capitalize" style={{ color: 'var(--theme-muted-text)' }}>
+                  <div className="truncate capitalize text-fg-muted">
                     {call.caller_type?.replace('_', ' ') ?? '—'}
                   </div>
-                  <div style={{ color: 'var(--theme-muted-text)' }}>
+                  <div className="text-fg-muted">
                     {formatRelativeDate(call.started_at)}
                   </div>
-                  <ArrowRight size={12} style={{ color: 'var(--theme-muted-text)' }} />
+                  <ArrowRight size={12} className="text-fg-muted" />
                 </Link>
               )
             })}
@@ -177,8 +175,8 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
         )}
 
         {(callsData?.total ?? 0) > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-2 border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border">
+            <span className="text-2xs text-fg-muted">
               Page {page + 1} of {totalPages}
             </span>
             <div className="flex gap-2">

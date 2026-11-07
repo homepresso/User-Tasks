@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+  "asset": {
+    "id": "921f040d-c965-5f63-9cf5-e26a0abb0d16",
+    "name": "Exemptions log",
+    "description": "One row per released item: what was redacted, the exemption applied and who approved it. It becomes the exemption log PDF sent with the release.",
+    "columns": [
+      {
+        "id": "55673117-cbc8-5115-ad26-4a2835c4a3ff",
+        "required": true,
+        "key": "item_key",
+        "name": "Item key",
+        "type": "text"
+      },
+      {
+        "id": "91522eea-83a8-5ad6-b271-c0cacf596536",
+        "required": true,
+        "key": "request_ref",
+        "name": "Request",
+        "type": "text"
+      },
+      {
+        "id": "048f6240-e7cd-59c7-8f79-72b1b67535cb",
+        "required": false,
+        "key": "item",
+        "name": "Item",
+        "type": "text"
+      },
+      {
+        "id": "d1678847-2b58-5c56-97af-6327507cb399",
+        "required": false,
+        "key": "media_type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "d9809610-524f-58a0-a1e7-c6159fd65622",
+        "required": false,
+        "key": "redactions",
+        "name": "Redactions",
+        "type": "text"
+      },
+      {
+        "id": "edc4c2ab-c4f2-55fd-91fc-d4d63b0646d3",
+        "required": false,
+        "key": "exemption_code",
+        "name": "Exemption",
+        "type": "text"
+      },
+      {
+        "id": "66deae18-cd39-5ae4-8692-c2f654a6b9b8",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "609e8268-32bd-534a-8c6b-2e5db9ed957b",
+        "required": false,
+        "key": "approved_by",
+        "name": "Approved by",
+        "type": "text"
+      },
+      {
+        "id": "815dec70-3da8-505f-929a-a0a1c14bc36b",
+        "required": false,
+        "key": "logged_at",
+        "name": "Logged",
+        "type": "date"
+      }
+    ]
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "title": "FOIA / public records request: evidence redaction and release",
+  "summary": "Public records requests from a form to release: statutory SLA, evidence gathering, AI-assisted redaction of video, photos, audio and documents, legal approval and an exemptions log.",
+  "description": "Public records requests (US FOIA and state public records acts, the NZ Official Information Act, the UK Freedom of Information Act or your own policy) start on a standalone form page: the requester gives their details, the records they want, the date range and how to receive them. The workflow gives the request a reference, looks up the response deadline in a configurable rules table, sets an SLA to match and emails an acknowledgement with the date.\n\nA records officer attaches the responsive records: body-worn camera or CCTV video, photos, interview audio and documents. Redact Video blurs faces, licence plates and on-screen ID numbers and bleeps personal details it hears; Redact Image does the same for each photo; the interview is transcribed, bleeped and its transcript redacted; Redact Document finds personal information in the statement for review. Each item gets a proposed exemption in the Exemptions log.\n\nA legal reviewer compares every original with its redacted copy (originals stay restricted to the request and are never released) and approves a full or partial release, denies it or sends it back. On release the document is redacted, the cover letter and exemption log become PDFs merged into a release package, and the requester gets the package by email or a download link. No-records, extension and denial letters are included, every step is written to an audit trail table, and a 7-year retention policy is applied. Redaction aids the reviewer; it does not replace them, and the deadline and exemption rows are examples to adapt with your counsel, not legal advice.",
+  "trigger": "form",
+  "entry_workflow": "538851e8-fed6-5871-8c91-90ba3e1dd519",
+  "entry_form": "5125fbfd-ec4d-5703-a854-ca155966f4dc",
+  "start": "Starts from a form page: share the Public records request form (/f/<id>) on your website; each submission starts the workflow.",
+  "difficulty": "advanced",
+  "setup_minutes": 30,
+  "tags": [
+    "FOIA",
+    "public records",
+    "OIA",
+    "redaction",
+    "evidence",
+    "body-worn camera",
+    "media"
+  ],
+  "needs": [
+    "media_ai",
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "optional_needs": [],
+  "systems": [
+    "Google Gemini"
+  ],
+  "setup": [
+    "Google Gemini (media AI): paste your API key from aistudio.google.com. Redaction runs with your own key; to use another provider (OpenAI, Azure AI Vision, AWS) add that integration and choose it on the media steps.",
+    "Records release portal: set the base URL and token of the system that hosts download links (or remove the Create release link step and send attachments only).",
+    "Assignees: pick the records officer who gathers records and the legal reviewer who approves releases.",
+    "Review the Records request rules and Exemption codes tables with your counsel: the rows are examples (deadline counts, day types, extensions and exemption codes differ by statute and agency). They are not legal advice.",
+    "Apply the \"Records requests: 7 years\" retention policy to the Records requests, Exemptions log and Request activity tables to match your records schedule, and set EMAIL_PROVIDER so requesters receive their letters.",
+    "Background media steps need FFmpeg (Docker image or FFMPEG_PATH) and the media job scheduler (process-media) running, as for any long video."
+  ],
+  "steps": [
+    {
+      "title": "Request form",
+      "body": "The requester fills in the themed form page: who they are, the law, the records sought, dates and delivery preference."
+    },
+    {
+      "title": "Deadline and SLA",
+      "body": "The rules table gives the statutory days (for example 20 business days, 10 state days or 20 working days), an approximate calendar due date and default exemption codes; the run SLA and the register use it."
+    },
+    {
+      "title": "Acknowledge",
+      "body": "The requester is emailed the reference and the response date."
+    },
+    {
+      "title": "Gather records",
+      "body": "The records officer attaches video, photos, interview audio and documents, or answers No records (letter) or Extend deadline (new SLA and notice)."
+    },
+    {
+      "title": "Automated redaction",
+      "body": "Redact Video blurs faces, plates and on-screen text and bleeps personal details in the speech; each photo goes through Redact Image; the interview is transcribed and bleeped; the document is checked for personal information. Each item gets a proposed exemption in the log."
+    },
+    {
+      "title": "Legal review",
+      "body": "The legal reviewer compares originals with redacted copies, confirms the exemption codes and approves, approves in part, denies or sends back."
+    },
+    {
+      "title": "Release package",
+      "body": "The document is redacted, the cover letter and exemption log become PDFs merged into one package, and the requester receives it by email or download link."
+    },
+    {
+      "title": "Audit and retention",
+      "body": "Every step is recorded in the Request activity table and the request row gets the 7-year retention policy."
+    }
+  ],
+  "sample_input": {
+    "requester_name": "Jordan Example",
+    "requester_email": "jordan.example@example.com",
+    "phone": "+1 555 0100",
+    "organisation": "Example Community News",
+    "jurisdiction": "US federal FOIA",
+    "records_sought": "Body-worn camera video, photos, the witness interview and statement for incident SAMPLE-2026-0042 on Sample Street.",
+    "incident_ref": "SAMPLE-2026-0042",
+    "date_from": "2026-10-30",
+    "date_to": "2026-10-30",
+    "location": "Sample Street",
+    "delivery_preference": "Email attachments",
+    "acknowledge": true
+  },
+  "expect": "waiting",
+  "icon": "eye-off",
+  "verify_mocks": {
+    "media": {
+      "transcript": "interview"
+    },
+    "tasks": [
+      {
+        "outcome": "Records gathered",
+        "button": "gathered",
+        "values": {
+          "search_notes": "Searched the body-worn camera system, the evidence store and the case file."
+        },
+        "uploads": {
+          "bodycam_video": [
+            "bodycam-clip.mp4"
+          ],
+          "photos": [
+            "scene-photo.png"
+          ],
+          "interview_audio": [
+            "interview-audio.mp3"
+          ],
+          "documents": [
+            "witness-statement.docx"
+          ]
+        }
+      }
+    ],
+    "expect_outputs": [
+      "redacted_video_file",
+      "redacted_photos",
+      "redacted_audio_file",
+      "redacted_transcript_file",
+      "doc_findings_count"
+    ]
+  },
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-30",
+      "notes": "First release."
+    }
+  ],
+  "category": "media-evidence",
+  "id": "6ee39276-a71f-5153-91cf-17ba05665a3f",
+  "slug": "foia-records-request-redaction"
+}

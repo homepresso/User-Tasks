@@ -1,0 +1,104 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "793281a7-54b7-53a1-b18f-253efe196c9a",
+  "asset": {
+    "id": "793281a7-54b7-53a1-b18f-253efe196c9a",
+    "integration_id": "78a81331-8caa-5608-841a-c2b50a867ad1",
+    "name": "Publish upload",
+    "description": "Publishes an approved upload.",
+    "tags": [
+      "content"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "path_template": "/uploads/{{upload_id}}/publish",
+      "body_template": "{\"decided_by\":\"{{decided_by}}\",\"note\":\"{{note}}\"}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "type": "string",
+              "example": "UP-20261030-0042",
+              "name": "id"
+            },
+            {
+              "type": "string",
+              "example": "published",
+              "name": "status"
+            },
+            {
+              "type": "string",
+              "example": "https://community.example.com/p/UP-20261030-0042",
+              "name": "url"
+            },
+            {
+              "type": "string",
+              "example": "2026-10-30T10:00:00Z",
+              "name": "updated_at"
+            }
+          ]
+        },
+        "sample": {
+          "id": "UP-20261030-0042",
+          "status": "published",
+          "url": "https://community.example.com/p/UP-20261030-0042",
+          "updated_at": "2026-10-30T10:00:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-30T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "de2c2190-17f1-53a5-9147-4bd4d4fc072a",
+        "name": "upload_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "97e29728-bd8e-56b3-ba6a-2ab220732a11",
+        "name": "decided_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "b30ae2d4-5c36-5dcf-a957-116b3c9d2a08",
+        "name": "note",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7ff29cb7-1dc0-578d-bb18-396344ee09cd",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "7981f75d-4380-564d-ac0c-71ce7ef6e37a",
+        "name": "public_url",
+        "path": "url",
+        "type": "string"
+      }
+    ]
+  }
+}

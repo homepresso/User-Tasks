@@ -1,0 +1,199 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "f52a7628-4102-53ea-a206-9f055bc0dfde",
+  "asset": {
+    "id": "f52a7628-4102-53ea-a206-9f055bc0dfde",
+    "name": "Meeting action item",
+    "description": "One action item from approved minutes: a task for its owner with the due date; the Action items row is updated when it is closed.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Action item assigned",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "task",
+        "type": "user_task",
+        "label": "Do the action",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "task_title": "{{action}}",
+          "task_description": "<p>Action from <strong>{{meeting_title}}</strong> ({{minutes_ref}}).</p><p>{{action}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done",
+            "Cannot do"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=COALESCE(due_date, FORMAT_DATE(ADD_DAYS(TODAY(), 7), \"YYYY-MM-DD\"))}}T17:00:00Z",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "note",
+              "label": "Note",
+              "type": "textarea"
+            }
+          ],
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            },
+            {
+              "id": "cannot",
+              "label": "Cannot do",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Cannot do"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{meeting_title}}",
+            "align": "left",
+            "subtitle": "Action item · {{minutes_ref}}"
+          }
+        }
+      },
+      {
+        "id": "close",
+        "type": "update_data_table",
+        "label": "Update action item",
+        "position": {
+          "x": 240,
+          "y": 380
+        },
+        "config": {
+          "table_id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+          "table_name": "Action items",
+          "operation": "update",
+          "match_column": "item_key",
+          "match_value": "{{item_key}}",
+          "column_values": {
+            "status": "{{outcome}}",
+            "closed_note": "{{task_data.note}}"
+          }
+        }
+      },
+      {
+        "id": "close2",
+        "type": "update_data_table",
+        "label": "Mark cannot do",
+        "position": {
+          "x": 560,
+          "y": 380
+        },
+        "config": {
+          "table_id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+          "table_name": "Action items",
+          "operation": "update",
+          "match_column": "item_key",
+          "match_value": "{{item_key}}",
+          "column_values": {
+            "status": "Cannot do",
+            "closed_note": "{{task_data.note}}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-task",
+        "source": "trigger",
+        "target": "task"
+      },
+      {
+        "id": "e-task-close-done",
+        "source": "task",
+        "target": "close",
+        "label": "Done"
+      },
+      {
+        "id": "e-task-close2-cannot-do",
+        "source": "task",
+        "target": "close2",
+        "label": "Cannot do"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-action",
+        "name": "action",
+        "type": "string",
+        "description": "What has to be done",
+        "defaultValue": "",
+        "required": true,
+        "label": "Action"
+      },
+      {
+        "id": "v-owner_id",
+        "name": "owner_id",
+        "type": "string",
+        "description": "The person who owns the action",
+        "defaultValue": "",
+        "required": true,
+        "label": "Owner (user id)"
+      },
+      {
+        "id": "v-due_date",
+        "name": "due_date",
+        "type": "string",
+        "description": "Due date (YYYY-MM-DD); empty = in 7 days",
+        "defaultValue": "",
+        "required": false,
+        "label": "Due date",
+        "format": "date"
+      },
+      {
+        "id": "v-meeting_title",
+        "name": "meeting_title",
+        "type": "string",
+        "description": "Meeting the action came from",
+        "defaultValue": "",
+        "required": true,
+        "label": "Meeting"
+      },
+      {
+        "id": "v-minutes_ref",
+        "name": "minutes_ref",
+        "type": "string",
+        "description": "The minutes this belongs to",
+        "defaultValue": "",
+        "required": true,
+        "label": "Minutes reference"
+      },
+      {
+        "id": "v-item_key",
+        "name": "item_key",
+        "type": "string",
+        "description": "Action items row key",
+        "defaultValue": "",
+        "required": true,
+        "label": "Item key"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

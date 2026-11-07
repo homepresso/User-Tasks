@@ -1,24 +1,52 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { Fragment, useState, useEffect, useMemo } from "react"
 import { useAssignedTasks } from "@/hooks/use-assigned-tasks"
-import { AssignedTaskRow } from "@/components/tasks/assigned-task-row"
+import { useFollowedTasks, useFollowingCount } from "@/hooks/use-followed-tasks"
+import { useRealtimeUserId } from "@/hooks/use-realtime"
+import { useFollowedTaskIds } from "@/components/tasks/task-follow-button"
+import { ASSIGNED_TASK_COLUMNS, AssignedTaskRow } from "@/components/tasks/assigned-task-row"
 import { Pagination } from "@/components/ui/list-controls"
-import { Input } from "@/components/ui/input"
-import { ChevronDown, ChevronRight, Loader2, Search } from "lucide-react"
+import { SearchInput } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Bell, ChevronDown, ChevronRight, ListChecks, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 import { PageSkeleton } from "@/components/ui/page-skeleton"
+import { PageHeader } from "@/components/ui/page-header"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { Tabs } from "@/components/ui/tabs"
+import { StatCard, StatGrid } from "@/components/ui/stat-card"
+import { Table, TBody, TH, THead, TableEmpty, TableSkeleton } from "@/components/ui/table"
+import { formatCount, formatPercent } from "@/lib/format/number"
+import { plural } from "@/lib/format/plural"
 import { useQuery } from "@tanstack/react-query"
 import { serverRead } from "@/lib/server-read"
-import { Card } from "@/components/ui/card"
+import { FilterMenu } from "@/components/tasks/filter-menu"
+import { StatusFilterControls } from "@/components/tasks/status-filter-controls"
+import { FollowPreferenceSwitch } from "@/components/tasks/follow-preferences"
+import { SortableTH } from "@/components/tasks/sortable-header"
+import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
+import { useListSort, usePersistedChoice } from "@/hooks/use-list-sort"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { TeamHierarchy } from "@/components/tasks/team-hierarchy"
+import { useStatusFilter } from "@/hooks/use-status-filter"
+import { isStatusFiltered } from "@/lib/tasks/status-filter"
+import type { TaskSortKey } from "@/lib/tasks/list-sort"
+import { defaultTrackerTab, readStoredTrackerTab, storeTrackerTab, TRACKER_TABS, type TrackerTab } from "@/lib/tasks/tracker-tabs"
 
+/** The Status menu: open statuses (Completed / Cancelled come back with "Show completed"). */
 const STATUS_OPTIONS = [
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
+  { value: "todo", label: "To do" },
+  { value: "in_progress", label: "In progress" },
   { value: "blocked", label: "Blocked" },
-  { value: "completed", label: "Completed" },
 ]
+/** Every open status (drafts too): what the list asks for by default. */
+const OPEN_STATUSES = ["draft", "todo", "in_progress", "blocked"] as const
+
+const SORT_KEYS: readonly TaskSortKey[] = ["title", "assignee", "status", "priority", "progress", "due", "updated", "created"]
+
+/** Refresh: the tracker's lists (each tab) and the open rows' panels. */
+const REFRESH_KEYS = [["assigned-tasks"], ["task-follows"], ["tasks", "panel"]] as const
 
 const PRIORITY_OPTIONS = [
   { value: "critical", label: "Critical" },
@@ -27,13 +55,23 @@ const PRIORITY_OPTIONS = [
   { value: "low", label: "Low" },
 ]
 
+/** 'reporting': the reporting-line tree (Team members tab only, its default). */
+type GroupBy = 'none' | 'person' | 'team' | 'reporting'
+const TEAM_GROUP_BYS: readonly GroupBy[] = ['reporting', 'none', 'person', 'team']
+
 export default function AssignedTasksPage() {
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const statusFilter = useStatusFilter("tracker", OPEN_STATUSES)
+  const { sort, toggle: toggleSort, sorted } = useListSort("tracker", SORT_KEYS)
   const [priorityFilter, setPriorityFilter] = useState<string[]>([])
-  const [scope, setScope] = useState<'assigned_by_me' | 'team_members' | 'all'>('assigned_by_me')
-  const [groupBy, setGroupBy] = useState<'none' | 'person' | 'team'>('none')
+  const userId = useRealtimeUserId()
+  // The tab picked on this visit; else the one remembered for this user in this browser.
+  const [pickedTab, setPickedTab] = useState<TrackerTab | null>(null)
+  const [userIdTimedOut, setUserIdTimedOut] = useState(false)
+  const [pickedGroupBy, setPickedGroupBy] = useState<GroupBy>('none')
+  const [teamGroupBy, setTeamGroupBy] = usePersistedChoice<GroupBy>('tracker-team-groupby', TEAM_GROUP_BYS, 'reporting')
+  const isMobile = useIsMobile()
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   const [teamId, setTeamId] = useState('')
   const [page, setPage] = useState(1)
@@ -44,17 +82,59 @@ export default function AssignedTasksPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const { data: tasks, isLoading, isFetching } = useAssignedTasks({
-    status: statusFilter,
+  // undefined = not known yet (the user id loads after mount); null = nothing remembered.
+  const storedTab = useMemo(() => (userId ? readStoredTrackerTab(userId) : undefined), [userId])
+  // Never wait on the user id for long (signed-out edge cases): fall back to the default tab.
+  useEffect(() => {
+    const timer = setTimeout(() => setUserIdTimedOut(true), 1500)
+    return () => clearTimeout(timer)
+  }, [])
+  const rememberedTab = storedTab === undefined && userIdTimedOut ? null : storedTab
+
+  const followingCount = useFollowingCount()
+  // Following first: opened when remembered, or by default when the person follows something.
+  const tab: TrackerTab | null = pickedTab
+    ?? (rememberedTab === undefined
+      ? null
+      : rememberedTab ?? (followingCount.isPending ? null : defaultTrackerTab(null, followingCount.data?.total)))
+  const onFollowing = tab === 'following'
+  // Team members: the reporting-line tree by default (remembered); other tabs: None / People / Teams.
+  const groupBy: GroupBy = tab === 'team_members' ? teamGroupBy : pickedGroupBy === 'reporting' ? 'none' : pickedGroupBy
+  const setGroupBy = (next: GroupBy) => (tab === 'team_members' ? setTeamGroupBy(next) : setPickedGroupBy(next))
+  const onTree = groupBy === 'reporting'
+
+  const statuses = statusFilter.statuses ?? undefined
+  const assigned = useAssignedTasks({
+    status: statuses,
     priority: priorityFilter,
     search: debouncedSearch || undefined,
-    scope,
+    scope: tab && tab !== 'following' ? tab : 'assigned_by_me',
     teamId: teamId || undefined,
-  })
+  }, { enabled: tab !== null && !onFollowing && !onTree })
+  // Following: the same status filter (its old "Hide completed" is "Show completed" off).
+  const followed = useFollowedTasks({
+    status: statuses,
+    priority: priorityFilter,
+    search: debouncedSearch || undefined,
+    hideCompleted: !statusFilter.showCompleted,
+  }, { enabled: onFollowing })
+  const active = onFollowing ? followed : assigned
+  // Sorted before paging (and within groups) so every page follows the sort.
+  const tasks = useMemo(() => (active.data ? sorted(active.data as any[]) : active.data), [active.data, sorted])
+  const isLoading = tab === null || active.isLoading
+  const isFetching = active.isFetching
 
+  function selectTab(next: TrackerTab) {
+    setPickedTab(next)
+    storeTrackerTab(userId, next)
+    setPage(1)
+  }
+
+  const statusesKey = statuses?.join(",") ?? ""
+  const sortKey = sort ? `${sort.key}:${sort.dir}` : ""
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, statusFilter, priorityFilter, scope, teamId])
+  }, [debouncedSearch, statusesKey, priorityFilter, tab, teamId, sortKey])
 
   const { data: teams } = useQuery({
     queryKey: ['assigned-task-teams'],
@@ -63,7 +143,6 @@ export default function AssignedTasksPage() {
 
   // Compute aggregate stats
   const total = tasks?.length ?? 0
-  const completed = tasks?.filter((t: any) => t.status === "completed").length ?? 0
   const overdue = tasks?.filter((t: any) =>
     t.due_date && new Date(t.due_date) < new Date() && t.status !== "completed"
   ).length ?? 0
@@ -73,7 +152,7 @@ export default function AssignedTasksPage() {
     : 0
 
   const groupedTasks = useMemo(() => {
-    if (!tasks?.length || groupBy === 'none') return []
+    if (!tasks?.length || groupBy === 'none' || groupBy === 'reporting') return []
     const groups = new Map<string, any[]>()
 
     const addToGroup = (label: string, task: any) => {
@@ -92,7 +171,8 @@ export default function AssignedTasksPage() {
     return Array.from(groups.entries())
       .map(([label, rows]) => ({
         label,
-        rows: [...rows].sort((a, b) => {
+        // A column sort applies inside each group; else due date, then title.
+        rows: sort ? rows : [...rows].sort((a, b) => {
           const dueA = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER
           const dueB = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER
           if (dueA !== dueB) return dueA - dueB
@@ -100,10 +180,19 @@ export default function AssignedTasksPage() {
         }),
       }))
       .sort((a, b) => a.label.localeCompare(b.label))
-  }, [groupBy, tasks])
+  }, [groupBy, tasks, sort])
+
+  // The bells' state: one read for the rows on screen (every row when grouped).
+  const shownIds = useMemo(() => {
+    const rows = (tasks ?? []) as Array<{ id: string }>
+    const shown = groupBy === 'none' ? rows.slice((page - 1) * pageSize, page * pageSize) : rows
+    return shown.map((task) => String(task.id))
+  }, [tasks, groupBy, page, pageSize])
+  const followedIds = useFollowedTaskIds(shownIds)
+  const followingOf = (taskId: string) => (followedIds ? followedIds.has(taskId) : undefined)
 
   useEffect(() => {
-    if (groupBy === 'none') return
+    if (groupBy === 'none' || groupBy === 'reporting') return
     setCollapsedGroups((prev) => {
       const next: Record<string, boolean> = {}
       for (const group of groupedTasks) next[group.label] = prev[group.label] ?? false
@@ -111,251 +200,177 @@ export default function AssignedTasksPage() {
     })
   }, [groupBy, groupedTasks])
 
-  if (isLoading && !tasks) {
+  // First paint only: which tab opens isn't known yet. Switching tabs keeps the page and shows row skeletons.
+  if (tab === null) {
     return <PageSkeleton variant="list" />
-  }
-
-  function toggleStatus(status: string) {
-    setStatusFilter(prev =>
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
-    )
-  }
-
-  function togglePriority(priority: string) {
-    setPriorityFilter(prev =>
-      prev.includes(priority) ? prev.filter(p => p !== priority) : [...prev, priority]
-    )
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Task Tracker
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Track assigned work, team member work, or an all-up operational view
-          </p>
-        </div>
-        <div className="min-w-[120px] text-right">
-          {isFetching && tasks?.length ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--theme-primary-light)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--theme-card-text)] dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-card-text)]">
-              <Loader2 size={12} className="animate-spin" />
-              Refreshing
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <PageHeader
+        className="mb-2"
+        title="Task tracker"
+        description="Track assigned work, team member work, or an all-up operational view."
+        actions={(
+          <>
+            {isFetching && tasks?.length ? (
+              <span className="inline-flex items-center gap-1.5 text-xs text-fg-muted" role="status">
+                <Loader2 className="size-3.5 motion-safe:animate-spin" aria-hidden />
+                Refreshing
+              </span>
+            ) : null}
+            <ListRefreshButton queryKeys={REFRESH_KEYS} />
+          </>
+        )}
+      />
 
-      {/* Stats cards */}
+      <Tabs<TrackerTab>
+        aria-label="Task tracker views"
+        value={tab ?? 'following'}
+        onValueChange={selectTab}
+        items={TRACKER_TABS.map((item) => item.value === 'following'
+          ? { ...item, icon: <Bell />, count: followingCount.data?.total }
+          : item)}
+      />
+
+      {/* Stats */}
       {!isLoading && total > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Total Assigned" value={total} />
-          <StatCard
-            label="Avg Progress"
-            value={`${avgProgress}%`}
-            color={avgProgress >= 75 ? "text-[color:var(--theme-card-text)]" : avgProgress >= 40 ? "text-yellow-600" : "text-gray-600"}
-          />
-          <StatCard
-            label="Overdue"
-            value={overdue}
-            color={overdue > 0 ? "text-red-600" : "text-gray-600"}
-          />
-          <StatCard
-            label="Blocked"
-            value={blocked}
-            color={blocked > 0 ? "text-orange-600" : "text-gray-600"}
-          />
-        </div>
+        <StatGrid>
+          <StatCard label={onFollowing ? "Total followed" : "Total assigned"} value={formatCount(total)} />
+          <StatCard label="Average progress" value={formatPercent(avgProgress, { fromPercent: true })} />
+          <StatCard label="Overdue" value={formatCount(overdue)} tone={overdue > 0 ? "danger" : "default"} />
+          <StatCard label="Blocked" value={formatCount(blocked)} tone={blocked > 0 ? "warning" : "default"} />
+        </StatGrid>
       )}
 
-      {/* Filters */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search task name, ID, workflow, form, assignee, assigner, team, status, priority..."
-            className="pl-9"
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-medium text-gray-500 self-center mr-1">
-            Scope:
-          </span>
-          {([
-            { value: 'assigned_by_me', label: 'Assigned By Me' },
-            { value: 'team_members', label: 'Team Members' },
-            { value: 'all', label: 'All Tasks' },
-          ] as const).map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => { setScope(opt.value); setPage(1) }}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                scope === opt.value
-                  ? "bg-[color:var(--theme-accent-light)] text-[color:var(--theme-card-text)] dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-primary-text)]"
-                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-medium text-gray-500 self-center mr-1">
-            Group by:
-          </span>
-          {([
-            { value: 'none', label: 'None' },
-            { value: 'person', label: 'People' },
-            { value: 'team', label: 'Teams' },
-          ] as const).map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setGroupBy(opt.value)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                groupBy === opt.value
-                  ? "bg-[color:var(--theme-accent-light)] text-[color:var(--theme-card-text)] dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-primary-text)]"
-                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {scope === 'team_members' && (
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={teamId}
-              onChange={(e) => { setTeamId(e.target.value); setPage(1) }}
-              className="h-9 rounded-lg border px-3 text-xs"
-            >
+      {/* Toolbar */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {tab === 'team_members' && !onTree && (
+            <Select size="sm" wrapperClassName="w-auto" aria-label="Team" value={teamId} onChange={(e) => { setTeamId(e.target.value); setPage(1) }}>
               <option value="">All my teams</option>
               {(teams ?? []).map((team: any) => (
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
-            </select>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-medium text-gray-500 self-center mr-1">
-            Status:
+            </Select>
+          )}
+          <span className="ml-auto inline-flex items-center gap-2 text-xs text-fg-muted">
+            Group by
+            <SegmentedControl<GroupBy>
+              aria-label="Group by"
+              size="sm"
+              value={groupBy}
+              onValueChange={setGroupBy}
+              options={[
+                ...(tab === 'team_members' ? [{ value: 'reporting' as const, text: 'Reporting line' }] : []),
+                { value: 'none', text: 'None' },
+                { value: 'person', text: 'People' },
+                { value: 'team', text: 'Teams' },
+              ]}
+            />
           </span>
-          {STATUS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => toggleStatus(opt.value)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                statusFilter.includes(opt.value)
-                  ? "bg-[color:var(--theme-accent-light)] text-[color:var(--theme-card-text)] dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-primary-text)]"
-                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-
-          <span className="text-xs font-medium text-gray-500 self-center ml-3 mr-1">
-            Priority:
-          </span>
-          {PRIORITY_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => togglePriority(opt.value)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                priorityFilter.includes(opt.value)
-                  ? "bg-[color:var(--theme-accent-light)] text-[color:var(--theme-card-text)] dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-primary-text)]"
-                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Search task name, ID, workflow, form, assignee, assigner, team, status, priority…"
+            aria-label="Search tracked tasks"
+            className="min-w-[16rem]"
+            wrapperClassName="flex-1"
+          />
+          <FilterMenu label="Priority" options={PRIORITY_OPTIONS} selected={priorityFilter} onChange={setPriorityFilter} />
+          {onFollowing && <FollowPreferenceSwitch name="auto_follow_acted_runs" />}
+          <StatusFilterControls options={STATUS_OPTIONS} selected={statusFilter.selected} onSelectedChange={statusFilter.setSelected}
+            showCompleted={statusFilter.showCompleted} onShowCompletedChange={statusFilter.setShowCompleted} />
         </div>
       </div>
 
       {/* Task list */}
-      <Card className="!p-0 overflow-hidden relative">
-        {isFetching && tasks?.length ? (
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-[color:var(--theme-primary)] to-transparent animate-pulse" />
-        ) : null}
-        {isLoading ? null : !tasks?.length ? (
-          <div className="px-4 py-8 text-center text-sm text-gray-500">
-            No tasks assigned to others yet.{" "}
-            <Link
-              href="/tasks/new"
-              className="text-[color:var(--theme-card-text)] hover:text-[color:var(--theme-card-text)]"
-            >
-              Create and assign a task
-            </Link>
-          </div>
-        ) : groupBy !== 'none' ? (
-          <div className={cn("transition-opacity duration-200 divide-y divide-[var(--theme-surface-border)]", isFetching ? "opacity-80" : "opacity-100")}>
-            {groupedTasks.map((group) => (
-              <div key={group.label}>
-                <div
-                  className="sticky top-0 z-[1] flex items-center justify-between gap-3 px-4 py-2 text-xs font-semibold cursor-pointer"
-                  style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-                  onClick={() => setCollapsedGroups((prev) => ({ ...prev, [group.label]: !prev[group.label] }))}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {collapsedGroups[group.label] ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                    <span className="truncate">{group.label}</span>
-                    <span>{group.rows.length} task{group.rows.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px]">
-                    <span>{group.rows.filter((task: any) => task.status === 'blocked').length} blocked</span>
-                    <span>{group.rows.filter((task: any) => task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed').length} overdue</span>
-                    <span>
-                      {Math.round(group.rows.reduce((sum: number, task: any) => sum + (task.progress_pct ?? 0), 0) / Math.max(group.rows.length, 1))}% avg
-                    </span>
-                  </div>
-                </div>
-                {!collapsedGroups[group.label] && (
-                  <div>
-                    {group.rows.map((task: any) => (
-                      <AssignedTaskRow key={task.id} task={task} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className={cn("transition-opacity duration-200", isFetching ? "opacity-80" : "opacity-100")}>
-            {tasks.slice((page - 1) * pageSize, page * pageSize).map((task: any) => (
-              <AssignedTaskRow key={task.id} task={task} />
-            ))}
-          </div>
-        )}
-      </Card>
+      {onTree ? (
+        <TeamHierarchy list="tracker" readOnly={isMobile}
+          filters={{ status: statuses, includeClosed: statusFilter.showCompleted, priority: priorityFilter, search: debouncedSearch }} />
+      ) : (
+      <>
+      <Table className={cn("transition-opacity duration-[var(--ds-dur-base)]", isFetching && tasks?.length ? "opacity-80" : "opacity-100")}>
+        <THead className={isMobile ? "hidden" : undefined}>
+          <tr>
+            <TH className="w-8"><span className="sr-only">Follow</span></TH>
+            <SortableTH sortKey="title" sort={sort} onSort={toggleSort}>Task</SortableTH>
+            <SortableTH sortKey="assignee" sort={sort} onSort={toggleSort} className="w-36">Assignee</SortableTH>
+            <SortableTH sortKey="status" sort={sort} onSort={toggleSort} className="w-32">Status</SortableTH>
+            <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} className="w-28">Priority</SortableTH>
+            <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28">Progress</SortableTH>
+            <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric className="w-28">Due</SortableTH>
+            <SortableTH sortKey="updated" sort={sort} onSort={toggleSort} numeric className="w-28">Updated</SortableTH>
+            <TH className="w-16"><span className="sr-only">Open</span></TH>
+            <TH className="w-24"><span className="sr-only">Actions</span></TH>
+          </tr>
+        </THead>
+        <TBody>
+          {isLoading && !tasks ? (
+            <TableSkeleton columns={ASSIGNED_TASK_COLUMNS} rows={5} />
+          ) : !tasks?.length && onFollowing ? (
+            <TableEmpty
+              colSpan={ASSIGNED_TASK_COLUMNS}
+              icon={Bell}
+              title={debouncedSearch || isStatusFiltered(statusFilter.state) || priorityFilter.length ? "No followed tasks match these filters" : "You're not following any open tasks"}
+              description="Click the bell on any task in the tracker (or Follow on a task's page) to follow it here. The open tasks of processes you follow — ones you started or acted on — show here too."
+            />
+          ) : !tasks?.length ? (
+            <TableEmpty
+              colSpan={ASSIGNED_TASK_COLUMNS}
+              icon={ListChecks}
+              title={debouncedSearch || statusFilter.selected.length || priorityFilter.length ? "No tasks match these filters" : statusFilter.showCompleted ? "No tasks assigned to others yet" : "No open tasks assigned to others"}
+              description={statusFilter.showCompleted ? undefined : "Completed tasks are hidden — turn on Show completed to see them."}
+              action={{ label: "Create and assign a task", href: "/tasks/new" }}
+            />
+          ) : groupBy !== 'none' ? (
+            groupedTasks.map((group) => {
+              const groupBlocked = group.rows.filter((task: any) => task.status === 'blocked').length
+              const groupOverdue = group.rows.filter((task: any) => task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed').length
+              const groupAvg = Math.round(group.rows.reduce((sum: number, task: any) => sum + (task.progress_pct ?? 0), 0) / Math.max(group.rows.length, 1))
+              return (
+                <Fragment key={group.label}>
+                  <tr className="border-b border-border-subtle bg-subtle">
+                    <td colSpan={ASSIGNED_TASK_COLUMNS} className="p-0">
+                      <button
+                        type="button"
+                        aria-expanded={!collapsedGroups[group.label]}
+                        className="flex h-8 w-full items-center justify-between gap-3 px-[var(--theme-density-cell-x)] text-xs font-medium text-fg-muted hover:text-fg"
+                        onClick={() => setCollapsedGroups((prev) => ({ ...prev, [group.label]: !prev[group.label] }))}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          {collapsedGroups[group.label] ? <ChevronRight className="size-3.5" aria-hidden /> : <ChevronDown className="size-3.5" aria-hidden />}
+                          <span className="truncate text-fg">{group.label}</span>
+                          <span className="num">{plural(group.rows.length, "task")}</span>
+                        </span>
+                        <span className="num flex items-center gap-3">
+                          <span>{formatCount(groupBlocked)} blocked</span>
+                          <span className={groupOverdue ? "text-danger" : undefined}>{formatCount(groupOverdue)} overdue</span>
+                          <span>{formatPercent(groupAvg, { fromPercent: true })} avg</span>
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                  {!collapsedGroups[group.label] && group.rows.map((task: any) => (
+                    <AssignedTaskRow key={task.id} task={task} following={followingOf(task.id)} />
+                  ))}
+                </Fragment>
+              )
+            })
+          ) : (
+            tasks.slice((page - 1) * pageSize, page * pageSize).map((task: any) => (
+              <AssignedTaskRow key={task.id} task={task} following={followingOf(task.id)} />
+            ))
+          )}
+        </TBody>
+      </Table>
       {groupBy === 'none' && (
         <Pagination page={page} pageSize={pageSize} total={tasks?.length ?? 0} onPageChange={setPage} onPageSizeChange={setPageSize} />
       )}
-    </div>
-  )
-}
-
-function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className={cn("text-xl font-semibold mt-0.5", color ?? "text-gray-900 dark:text-white")}>
-        {value}
-      </p>
+      </>
+      )}
     </div>
   )
 }

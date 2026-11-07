@@ -4,9 +4,13 @@ import { ReactNode } from 'react'
 import { ExternalLink, GripVertical, Pencil, Clock, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react'
 import { OrgBadge } from '@/components/ui/org-badge'
 import { PriorityBadge } from '@/components/ui/priority-badge'
+import { StatusPill } from '@/components/ui/badge'
+import { IconButton } from '@/components/ui/icon-button'
+import { Tooltip } from '@/components/ui/tooltip'
 import { TaskProgressStrip } from '@/components/tasks/task-progress-strip'
-import { EffortBadge, getEffortBadge, getTaskCode } from '@/components/tasks/timesheet-helpers'
-import { formatRelativeDate, cn } from '@/lib/utils'
+import { getTaskCode } from '@/components/tasks/timesheet-helpers'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { cn } from '@/lib/utils'
 
 interface TaskListRowSummaryProps {
   task: any
@@ -23,6 +27,40 @@ interface TaskListRowSummaryProps {
   rightMeta?: ReactNode
 }
 
+/** Progress of a task row: subtasks done when it has any, else its own progress (100 when closed). */
+export function taskRowProgress(task: any): { pct: number; hasChildren: boolean; completed: number; total: number } {
+  const isDone = task.status === 'completed' || task.status === 'cancelled'
+  const total = task.subtask_count ?? task.child_count ?? 0
+  const completed = task.completed_subtask_count ?? task.completed_child_count ?? 0
+  const hasChildren = total > 0
+  const pct = hasChildren ? Math.round((completed / Math.max(total, 1)) * 100) : (task.progress_pct ?? (isDone ? 100 : 0))
+  return { pct, hasChildren, completed, total }
+}
+
+/** Overdue: past its due date and not completed. */
+export function isTaskOverdue(task: { due_date?: string | null; status?: string }): boolean {
+  return Boolean(task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed')
+}
+
+/** Due date cell content: relative, tabular; overdue in danger text with a 14px clock; absolute in a tooltip. */
+export function TaskDue({ task }: { task: { due_date?: string | null; status?: string } }) {
+  if (!task.due_date) return <span className="text-fg-subtle">—</span>
+  const overdue = isTaskOverdue(task)
+  return (
+    <Tooltip content={formatAbsolute(task.due_date)}>
+      <span className={cn('num inline-flex items-center justify-end gap-1 whitespace-nowrap', overdue ? 'text-danger' : 'text-fg-muted')}>
+        {overdue && <Clock className="size-3.5" aria-hidden />}
+        {overdue && <span className="sr-only">Overdue: </span>}
+        {formatRelative(task.due_date)}
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * One task as a flat summary row (legacy list layout). Lists that render a
+ * Table use the helpers above instead (AssignedTaskRow).
+ */
 export function TaskListRowSummary({
   task,
   expanded = false,
@@ -34,50 +72,40 @@ export function TaskListRowSummary({
   rightMeta = null,
 }: TaskListRowSummaryProps) {
   const isDone = task.status === 'completed' || task.status === 'cancelled'
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed'
   const isDarkRow = task.workflow_source != null || task.is_workflow_task || task.priority === 'critical'
-  const hasChildren = (task.subtask_count ?? task.child_count ?? 0) > 0
-  const completedChildren = task.completed_subtask_count ?? task.completed_child_count ?? 0
-  const totalChildren = task.subtask_count ?? task.child_count ?? 0
-  const progressPct = hasChildren
-    ? Math.round((completedChildren / Math.max(totalChildren, 1)) * 100)
-    : (task.progress_pct ?? (isDone ? 100 : 0))
-  const badge = getEffortBadge(task.status, task.priority)
+  const { pct: progressPct, hasChildren, completed: completedChildren, total: totalChildren } = taskRowProgress(task)
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors"
-      style={{
-        backgroundColor: isDarkRow ? 'var(--theme-row-highlight-strong)' : 'var(--theme-card-bg)',
-        borderLeftWidth: 3,
-        borderLeftColor: isOverdue ? 'var(--theme-danger)' : 'transparent',
-      }}
+      className={cn('flex cursor-pointer items-center gap-3 px-3 py-2.5 text-ui transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle', isDarkRow ? 'bg-subtle' : 'bg-panel')}
       onClick={onToggle}
       onDoubleClick={onOpen}
     >
       {dragHandle ? (
-        <button
-          ref={dragHandle.ref}
-          {...(dragHandle.attributes ?? {})}
-          {...(dragHandle.listeners ?? {})}
-          className={cn(
-            'shrink-0 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none',
-          )}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <GripVertical size={14} />
-        </button>
+        <Tooltip content="Drag to reorder">
+          <button
+            ref={dragHandle.ref}
+            {...(dragHandle.attributes ?? {})}
+            {...(dragHandle.listeners ?? {})}
+            aria-label="Drag to reorder"
+            className="shrink-0 cursor-grab touch-none text-fg-subtle hover:text-fg-muted active:cursor-grabbing"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <GripVertical className="size-4" />
+          </button>
+        </Tooltip>
       ) : (
         <button
           type="button"
-          className="shrink-0"
-          style={{ color: 'var(--theme-muted-text)' }}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse' : 'Expand'}
+          className="shrink-0 text-fg-muted"
           onClick={(event) => {
             event.stopPropagation()
             onToggle?.()
           }}
         >
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
         </button>
       )}
 
@@ -85,16 +113,16 @@ export function TaskListRowSummary({
         <TaskProgressStrip value={progressPct} />
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-400">
-            {task.workflow_source || task.is_workflow_task ? <Pencil size={12} /> : <Clock size={12} />}
-          </div>
-          <span className={cn('font-bold text-sm', 'text-gray-900 dark:text-white', isDone && 'line-through opacity-60')}>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex size-5 shrink-0 items-center justify-center text-fg-subtle" aria-hidden>
+            {task.workflow_source || task.is_workflow_task ? <Pencil className="size-3.5" /> : <Clock className="size-3.5" />}
+          </span>
+          <span className={cn('shrink-0 font-mono text-xs text-fg-muted', isDone && 'line-through')}>
             {getTaskCode(task)}
           </span>
-          <span className={cn('text-sm truncate', 'text-gray-700 dark:text-gray-300', isDone && 'line-through opacity-60')}>
-            · {task.title}
+          <span className={cn('truncate font-medium text-fg', isDone && 'line-through text-fg-muted')}>
+            {task.title}
           </span>
           {task.tenant && (
             <OrgBadge
@@ -106,68 +134,40 @@ export function TaskListRowSummary({
           )}
         </div>
 
-        <div className="mt-0.5 flex flex-wrap items-center gap-2">
-          {task.assignee && (
-            <span className="text-xs text-gray-500">
-              {task.assignee.display_name}
-            </span>
-          )}
-          {task.assignee && (hasChildren || topMeta) && (
-            <span className="text-xs text-gray-400">·</span>
-          )}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
+          {task.assignee && <span>{task.assignee.display_name}</span>}
+          {task.assignee && (hasChildren || topMeta) && <span aria-hidden>·</span>}
           {hasChildren && (
             <>
-              <span className="text-xs text-gray-500">
-                {completedChildren}/{totalChildren} subtasks
-              </span>
-              {topMeta && <span className="text-xs text-gray-400">·</span>}
+              <span className="num">{completedChildren}/{totalChildren} subtasks</span>
+              {topMeta && <span aria-hidden>·</span>}
             </>
           )}
-          {topMeta ? (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-              {topMeta}
-            </div>
-          ) : null}
+          {topMeta ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{topMeta}</div> : null}
         </div>
 
-        {bottomBadges ? (
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {bottomBadges}
-          </div>
-        ) : null}
+        {bottomBadges ? <div className="mt-1 flex flex-wrap items-center gap-2">{bottomBadges}</div> : null}
       </div>
 
-      {rightMeta ? (
-        <div className="flex flex-col items-end shrink-0 gap-1">
-          {rightMeta}
-        </div>
-      ) : null}
+      {rightMeta ? <div className="flex shrink-0 flex-col items-end gap-1">{rightMeta}</div> : null}
 
-      <EffortBadge config={badge} />
+      <StatusPill status={task.status} />
       <PriorityBadge priority={task.priority} />
+      {task.due_date && <TaskDue task={task} />}
 
-      {task.due_date && (
-        <span className={cn('text-xs whitespace-nowrap shrink-0', isOverdue ? 'text-red-600 font-medium' : 'text-gray-500')}>
-          {formatRelativeDate(task.due_date)}
-        </span>
-      )}
-
-      <button
-        type="button"
-        className="shrink-0 hover:opacity-70 transition-opacity"
-        style={{ color: 'var(--theme-primary-text)' }}
-        title="Open task"
+      <IconButton
+        size="sm"
+        label="Open task"
+        icon={<ExternalLink />}
         onClick={(event) => {
           event.stopPropagation()
           onOpen?.()
         }}
-      >
-        <ExternalLink size={14} />
-      </button>
+      />
 
       {dragHandle ? (
-        <span className="shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
-          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        <span className="shrink-0 text-fg-muted" aria-hidden>
+          {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
         </span>
       ) : null}
     </div>

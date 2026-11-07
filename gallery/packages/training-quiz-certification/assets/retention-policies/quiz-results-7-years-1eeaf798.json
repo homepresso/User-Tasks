@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "1eeaf798-7674-5172-b53c-2abbc03d12b5",
+  "asset": {
+    "id": "1eeaf798-7674-5172-b53c-2abbc03d12b5",
+    "name": "Quiz results: 7 years",
+    "description": "Training records are evidence for audits: purge quiz result rows seven years after they were created. Apply it to the Quiz results table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 7,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

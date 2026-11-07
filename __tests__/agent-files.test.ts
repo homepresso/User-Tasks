@@ -106,7 +106,10 @@ describe('executeAgent with files', () => {
     const user = bodies[0].messages.find((m: any) => m.role === 'user')
     expect(user.content).toEqual([{ type: 'text', text: 'Read the receipt' }, parts[0]])
     expect(bodies[0].tools.map((t: any) => t.function.name)).toEqual(['read_attached_file'])
-    const toolResult = JSON.parse(bodies[1].messages.find((m: any) => m.role === 'tool').content)
+    // Tool output reaches the model inside an untrusted-data envelope.
+    const envelope = JSON.parse(bodies[1].messages.find((m: any) => m.role === 'tool').content)
+    expect(envelope).toMatchObject({ tool: 'read_attached_file', untrusted_data: true })
+    const toolResult = JSON.parse(envelope.result)
     expect(toolResult).toMatchObject({ name: 'receipt.pdf', text: expect.stringContaining('Total 42.50') })
     // What comes back holds names, never base64.
     expect(JSON.stringify(result.messages)).not.toContain(Buffer.from(PNG).toString('base64'))

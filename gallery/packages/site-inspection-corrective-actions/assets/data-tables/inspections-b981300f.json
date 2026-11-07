@@ -1,0 +1,136 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+  "asset": {
+    "id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+    "name": "Inspections",
+    "description": "One row per inspection: the checklist result (failed checks, high-severity failures, pass rate), the site condition rating, the outcome band and close-out SLA from the decision table, and the status.",
+    "columns": [
+      {
+        "id": "5db07bda-9dbb-52a4-a859-13a8607045dd",
+        "required": true,
+        "key": "inspection_ref",
+        "name": "Inspection",
+        "type": "text"
+      },
+      {
+        "id": "84cf0f84-50a4-55db-8214-cf706e662d19",
+        "required": false,
+        "key": "inspected_on",
+        "name": "Inspected on",
+        "type": "date"
+      },
+      {
+        "id": "8091c45a-b423-50d3-9f83-f4bc5e38b32c",
+        "required": false,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "db575c38-7c8c-5e38-8124-bf1a15fc921f",
+        "required": false,
+        "key": "site_name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "9f42b0d6-0f38-5544-b7f9-49cbdc730082",
+        "required": false,
+        "key": "inspection_type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "97e38f97-de49-5381-b977-33b462e880b1",
+        "required": false,
+        "key": "inspector",
+        "name": "Inspector",
+        "type": "text"
+      },
+      {
+        "id": "3b4b614f-5302-5995-9c5e-44fb25ab3616",
+        "required": false,
+        "key": "items_checked",
+        "name": "Items checked",
+        "type": "number"
+      },
+      {
+        "id": "b60ebc1e-7dbc-57ed-9402-fe85492390c3",
+        "required": false,
+        "key": "fail_count",
+        "name": "Failed",
+        "type": "number"
+      },
+      {
+        "id": "b5b68d94-68cb-596b-8062-1ece80edaddf",
+        "required": false,
+        "key": "high_fails",
+        "name": "High severity",
+        "type": "number"
+      },
+      {
+        "id": "789ceb24-8b0c-5761-9faf-e14b8d01250a",
+        "required": false,
+        "key": "pass_rate",
+        "name": "Pass rate %",
+        "type": "number"
+      },
+      {
+        "id": "0d5530b0-69f3-58c4-98f9-8904619c77b2",
+        "required": false,
+        "key": "site_condition",
+        "name": "Site condition (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "51c91986-6d12-5458-860c-c0ff99336f71",
+        "required": false,
+        "key": "outcome_band",
+        "name": "Outcome",
+        "type": "select",
+        "options": [
+          "Compliant",
+          "Minor actions",
+          "Major actions",
+          "Stop work"
+        ]
+      },
+      {
+        "id": "dd96d8a0-e77b-5f70-9a66-24b20633fb08",
+        "required": false,
+        "key": "sla_days",
+        "name": "Close out within (days)",
+        "type": "number"
+      },
+      {
+        "id": "2426cdf1-f816-5ffb-b252-7ca798868e0d",
+        "required": false,
+        "key": "photos",
+        "name": "Photos",
+        "type": "number"
+      },
+      {
+        "id": "34e5dd1c-2a6b-513b-9440-f9ca521c082c",
+        "required": false,
+        "key": "observations",
+        "name": "Observations",
+        "type": "text"
+      },
+      {
+        "id": "e7fdb46e-7afb-58c3-acb0-c32dce9bdd4b",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Compliant",
+          "Actions open",
+          "Closed",
+          "Re-inspect"
+        ]
+      }
+    ]
+  }
+}

@@ -1,392 +1,407 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react"
-import { createPortal } from "react-dom"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import * as RadixDialog from "@radix-ui/react-dialog"
+import { Command } from "cmdk"
 import { globalSearch } from "@/app/actions/search"
+import type { SearchHit, SearchHitKind, SearchSection } from "@/lib/services/search"
+import { usePermissions } from "@/lib/permissions-context"
+import { searchPageShortcuts, visiblePageShortcuts } from "@/lib/search/pages"
+import { searchDocsIndex, searchGalleryIndex, type DocsIndexEntry, type GalleryIndexItem } from "@/lib/search/static-indexes"
+import { matchScore } from "@/lib/search/rank"
+import { cn } from "@/lib/utils"
+import { overlayClass } from "@/components/ui/dialog"
+import { Kbd } from "@/components/ui/kbd"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
+import { IconButton } from "@/components/ui/icon-button"
+import { OPEN_COMMAND_EVENT, openCommandPalette } from "./command-palette-event"
+import { CREATE_ACTIONS, type CreateAction } from "./create-actions"
+import { readRecentPages, type RecentPage } from "./recent-pages"
 import {
-  Search, FileText, Workflow, Bot, Database, Network, Users } from 'lucide-react'
+  Search, FileInput, Globe, SquareCheck, Workflow, CalendarClock, History, Database, Rows3, BarChart3, Scale, Mail,
+  Bot, Network, Plug, Link2, Server, Puzzle, Package, Archive, Inbox, Paperclip, UsersRound, User, Compass,
+  LayoutGrid, BookOpen, ChevronDown, ExternalLink, Clock, Plus, CornerDownLeft, X,
+} from "lucide-react"
 
-interface SearchResult {
-  id: string
+/**
+ * The ⌘K command palette (docs/design/ui-polish-spec.md §4.3), on cmdk in a
+ * Radix dialog: 640px, elev-3, 12vh from the top (full screen on phones).
+ *
+ * - Empty: Recent pages, Pages, Actions ("Create workflow").
+ * - Typing (2+ characters): lib/services/search as the user (every object
+ *   type they may open, per-type permission gates, Forms first, "Show
+ *   more"), the navigation shortcuts (lib/search/pages), matching actions,
+ *   and the static gallery / docs indexes.
+ * - Keyboard: ↑↓ move, ↵ opens, ⌘↵ opens in a new tab, Esc closes.
+ *
+ * Opened by ⌘K / Ctrl+K anywhere, the top-bar trigger, or
+ * `openCommandPalette()` (the 404 page's "Search").
+ */
+
+type ClientKind = "page" | "gallery" | "doc" | "recent" | "action"
+
+interface Row {
+  key: string
+  section: string
+  kind: SearchHitKind | ClientKind | "more"
   title: string
   subtitle?: string
   meta?: string
-  href: string
-  icon: React.ReactNode
-  category: string
+  href?: string
+  /** Opens in a new tab (docs, gallery). */
+  external?: boolean
 }
 
-function getSearchableValue(value: unknown): string {
-  if (value == null) return ""
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value)
-  }
-  if (Array.isArray(value)) {
-    return value.map(getSearchableValue).filter(Boolean).join(" ")
-  }
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>
-    if (typeof record.name === "string") return record.name
-    if (typeof record.title === "string") return record.title
-    if (typeof record.label === "string") return record.label
-    if (typeof record.url === "string") return record.url
-    return Object.values(record).map(getSearchableValue).filter(Boolean).join(" ")
-  }
-  return String(value)
+interface Group {
+  key: string
+  label: string
+  rows: Row[]
+  more: boolean
 }
 
-const CATEGORY_ORDER = ["Tasks", "Workflows", "Agents", "Integrations", "Data Tables", "Data Rows", "Team"]
-
-const STATUS_LABELS: Record<string, string> = {
-  todo: "To Do", in_progress: "In Progress", blocked: "Blocked",
-  completed: "Completed", cancelled: "Cancelled",
-}
-const PRIORITY_LABELS: Record<string, string> = {
-  critical: "Critical", high: "High", medium: "Medium", low: "Low", none: "None",
+const KIND_ICONS: Record<Row["kind"], React.ComponentType<{ className?: string }>> = {
+  form: FileInput, form_page: Globe, task: SquareCheck, workflow: Workflow, schedule: CalendarClock, run: History,
+  table: Database, row: Rows3, report: BarChart3, rule: Scale, email_template: Mail, agent: Bot, integration: Network,
+  connector: Plug, reference: Link2, mcp_server: Server, custom_step: Puzzle, package: Package,
+  retention_policy: Archive, submission: Inbox, file: Paperclip, team: UsersRound, person: User,
+  page: Compass, gallery: LayoutGrid, doc: BookOpen, more: ChevronDown, recent: Clock, action: Plus,
 }
 
-function formatShortDate(d: string | null) {
-  if (!d) return null
-  return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+/** Short type tag on the right of a result row. */
+const KIND_TAG: Partial<Record<Row["kind"], string>> = {
+  form: "Form", form_page: "Form page", task: "Task", workflow: "Workflow", schedule: "Schedule", run: "Run", table: "Table",
+  row: "Row", report: "Report", rule: "Rule", email_template: "Template", agent: "Agent", integration: "Integration",
+  connector: "Connector", reference: "Reference", mcp_server: "MCP server", custom_step: "Custom step", package: "Package",
+  retention_policy: "Policy", submission: "Submission", file: "File", team: "Team", person: "Person", page: "Page",
+  gallery: "Gallery", doc: "Docs",
 }
 
-export function GlobalSearch() {
-  const router = useRouter()
-  const [query, setQuery] = useState("")
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [focused, setFocused] = useState(false)
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [mounted, setMounted] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [position, setPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 384 })
-  const inputRef = useRef<HTMLInputElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+const DEBOUNCE_MS = 200
+const CLIENT_LIMIT = 4
+const CLIENT_MORE_LIMIT = 20
 
-  const showDropdown = focused && query.length >= 2
+/** Static public indexes, fetched once per page load the first time someone searches. */
+let docsIndex: Promise<DocsIndexEntry[]> | null = null
+let galleryIndex: Promise<GalleryIndexItem[]> | null = null
+function loadDocsIndex() {
+  docsIndex ??= fetch("/docs/search-index.json").then((r) => (r.ok ? r.json() : [])).then((j) => (Array.isArray(j) ? j : [])).catch(() => [])
+  return docsIndex
+}
+function loadGalleryIndex() {
+  galleryIndex ??= fetch("/gallery/index.json").then((r) => (r.ok ? r.json() : null)).then((j) => (Array.isArray(j?.packages) ? j.packages : [])).catch(() => [])
+  return galleryIndex
+}
 
-  useEffect(() => { setMounted(true) }, [])
+function hitRow(section: string, hit: SearchHit): Row {
+  // Forms open inside the app (/fill/<id>); their shareable links open without the shell.
+  const href = hit.href
+  return { key: `${section}:${hit.kind}:${hit.id}`, section, kind: hit.kind, title: hit.title, subtitle: hit.subtitle, meta: hit.meta, href }
+}
 
-  // Compute the dropdown's fixed position from the input's bounding
-  // rect. Portalled to document.body so it escapes the topbar's
-  // overflow clipping and always floats above whatever is on screen
-  // (including dashboard cards, drawers, modals without their own
-  // z-index stacking context).
-  useLayoutEffect(() => {
-    if (!showDropdown || !containerRef.current) return
-    function updatePosition() {
-      const rect = containerRef.current!.getBoundingClientRect()
-      const width = Math.min(Math.max(rect.width, 384), window.innerWidth - 16)
-      setPosition({
-        top: rect.bottom + 4,
-        left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
-        width,
-      })
-    }
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [showDropdown])
+function actionRow(action: CreateAction): Row {
+  return { key: `actions:${action.id}`, section: "actions", kind: "action", title: action.paletteLabel, href: action.href }
+}
 
-  // Cmd+K / Ctrl+K shortcut
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault()
-        inputRef.current?.focus()
-        setFocused(true)
-      }
-    }
-    document.addEventListener("keydown", onKeyDown)
-    return () => document.removeEventListener("keydown", onKeyDown)
-  }, [])
+function recentRow(page: RecentPage): Row {
+  return { key: `recent:${page.href}`, section: "recent", kind: "recent", title: page.title, subtitle: page.area, href: page.href }
+}
 
-  // Click outside to close. The dropdown is portalled to document.body
-  // so a click on it is "outside" the container ref — we need to also
-  // check the dropdown's own ref so clicking a result doesn't get
-  // treated as an outside click and dismiss before the nav fires.
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      const target = e.target as Node
-      if (
-        containerRef.current && !containerRef.current.contains(target) &&
-        (!dropdownRef.current || !dropdownRef.current.contains(target))
-      ) {
-        setFocused(false)
-      }
-    }
-    document.addEventListener("mousedown", onClick)
-    return () => document.removeEventListener("mousedown", onClick)
-  }, [])
-
-  const search = useCallback(async (q: string) => {
-    if (!q.trim() || q.length < 2) { setResults([]); return }
-    setLoading(true)
-    // Queried server-side as the user (lib/services/search): same ILIKE
-    // matches, RLS and the search_custom_table_rows RPC for row content.
-    const response = await globalSearch(q)
-    if (!response.ok) {
-      setResults([])
-      setLoading(false)
-      return
-    }
-    const found = response.data
-    const lowerQ = q.toLowerCase()
-    const all: SearchResult[] = []
-
-    // Title, description, then status/priority keyword matches (deduplicated).
-    found.tasks.forEach((t: any) => {
-      const assigneeName = (t.assignee as any)?.display_name
-      const parts = [STATUS_LABELS[t.status] ?? t.status, PRIORITY_LABELS[t.priority] ?? t.priority]
-      if (assigneeName) parts.push(assigneeName)
-      all.push({
-        id: t.id,
-        title: t.title,
-        subtitle: parts.join(" · "),
-        meta: t.due_date ? formatShortDate(t.due_date) ?? undefined : undefined,
-        href: `/tasks/${t.id}`,
-        icon: <FileText size={14} />,
-        category: "Tasks",
-      })
-    })
-
-    found.workflows.forEach((w: any) => all.push({
-      id: w.id, title: w.name,
-      subtitle: `${w.is_active ? "Active" : "Draft"} · ${w.trigger_type}`,
-      href: `/automations/${w.id}`,
-      icon: <Workflow size={14} />,
-      category: "Workflows",
-    }))
-
-    found.agents.forEach((a: any) => all.push({
-      id: a.id, title: a.name,
-      subtitle: a.is_active ? "Active" : "Inactive",
-      href: `/agents/${a.id}`,
-      icon: <Bot size={14} />,
-      category: "Agents",
-    }))
-
-    found.integrations.forEach((i: any) => all.push({
-      id: i.id, title: i.name,
-      subtitle: `${i.type} · ${i.is_active ? "Active" : "Inactive"}`,
-      href: `/integrations/${i.id}`,
-      icon: <Network size={14} />,
-      category: "Integrations",
-    }))
-
-    found.tables.forEach((t: any) => all.push({
-      id: t.id, title: t.name,
-      href: `/data/${t.id}`,
-      icon: <Database size={14} />,
-      category: "Data Tables",
-    }))
-
-    // Row content results — RPC returns { id, table_id, data, table_name }.
-    // Show "<matched snippet>" as the title and "<table> · <field>" as
-    // the subtitle so the user sees which field matched.
-    found.tableRows.forEach((r: any) => {
-      const tableName = r.table_name ?? 'Table'
-      let snippet = ''
-      let fieldName = ''
-      if (r.data && typeof r.data === 'object') {
-        for (const [key, value] of Object.entries(r.data as Record<string, unknown>)) {
-          const str = getSearchableValue(value)
-          if (str.toLowerCase().includes(lowerQ)) {
-            snippet = str.length > 60 ? str.slice(0, 60) + '…' : str
-            fieldName = key
-            break
-          }
-        }
-      }
-      all.push({
-        id: r.id,
-        title: fieldName ? `${fieldName}: ${snippet || 'Match found'}` : snippet || `Row ${String(r.id).slice(0, 8)}`,
-        subtitle: fieldName ? `${tableName} · matching column` : tableName,
-        href: `/data/${r.table_id}`,
-        icon: <Database size={14} />,
-        category: "Data Rows",
-      })
-    })
-
-    found.members.forEach((m: any) => all.push({
-      id: m.id, title: m.display_name,
-      subtitle: m.email,
-      href: `/team`,
-      icon: <Users size={14} />,
-      category: "Team",
-    }))
-
-    setResults(all)
-    setSelectedIndex(0)
-    setLoading(false)
-  }, [])
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => search(query), 150)
-    return () => clearTimeout(timer)
-  }, [query, search])
-
-  function handleSelect(href: string) {
-    setFocused(false)
-    setMobileOpen(false)
-    setQuery("")
-    setResults([])
-    router.push(href)
-  }
-
-  // Keyboard navigation
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (!showDropdown || results.length === 0) return
-    if (e.key === "ArrowDown") {
-      e.preventDefault()
-      setSelectedIndex(i => Math.min(i + 1, results.length - 1))
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault()
-      setSelectedIndex(i => Math.max(i - 1, 0))
-    } else if (e.key === "Enter") {
-      e.preventDefault()
-      if (results[selectedIndex]) handleSelect(results[selectedIndex].href)
-    } else if (e.key === "Escape") {
-      setFocused(false)
-      setMobileOpen(false)
-    }
-  }
-
-  // Group results by category with flat indices for keyboard navigation
-  const grouped: { category: string; items: (SearchResult & { flatIdx: number })[] }[] = []
-  let idx = 0
-  for (const cat of CATEGORY_ORDER) {
-    const items = results.filter(r => r.category === cat).map(r => ({ ...r, flatIdx: idx++ }))
-    if (items.length > 0) grouped.push({ category: cat, items })
-  }
-
+/** The top-bar trigger: a 280px search-styled button with ⌘K; an icon on phones. */
+export function CommandTrigger() {
   return (
     <>
-    {/* Mobile: search is a topbar icon that opens a full-width overlay bar. */}
-    {!mobileOpen && (
       <button
         type="button"
-        className="rounded-md p-2 transition-colors hover:bg-[var(--theme-row-highlight)] md:hidden"
-        style={{ color: "var(--theme-topbar-text)" }}
-        aria-label="Search"
-        onClick={() => {
-          setMobileOpen(true)
-          setTimeout(() => inputRef.current?.focus(), 0)
-        }}
+        onClick={() => openCommandPalette()}
+        className="hidden h-8 w-[280px] items-center gap-2 rounded-md border border-input-border bg-input px-2.5 text-left text-ui text-fg-subtle transition-colors duration-[var(--ds-dur-fast)] hover:border-border-strong lg:inline-flex"
+        aria-label="Search or jump to (⌘K)"
+        aria-haspopup="dialog"
+        data-command-trigger
       >
-        <Search className="h-4 w-4" />
+        <Search className="size-4 shrink-0 text-fg-muted" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">Search or jump to…</span>
+        <Kbd aria-hidden>⌘K</Kbd>
       </button>
-    )}
-    <div
-      ref={containerRef}
-      className={
-        mobileOpen
-          ? "fixed left-2 right-2 top-2 z-[1001] md:relative md:inset-auto md:z-auto md:block"
-          : "relative hidden md:block"
-      }
-    >
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 z-10 pointer-events-none" style={{ color: "var(--theme-muted-text)" }} />
-      <input
-        ref={inputRef}
-        type="text"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onKeyDown={handleKeyDown}
-        placeholder="Search..."
-        className="h-8 w-64 max-md:h-10 max-md:w-full rounded-lg border pl-9 pr-12 text-sm outline-none transition-all md:focus:w-80 focus:ring-2 focus:ring-[color:var(--theme-primary)]/30"
-        style={{
-          borderColor: "var(--theme-surface-border)",
-          backgroundColor: "var(--theme-surface)",
-          color: "var(--theme-card-text)",
-        }}
-      />
-      <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 rounded border px-1.5 text-[10px] font-mono pointer-events-none"
-        style={{ borderColor: "var(--theme-surface-border)", color: "var(--theme-muted-text)" }}>
-        ⌘K
-      </kbd>
-
-      {/* Autocomplete dropdown — portalled to document.body with fixed
-          positioning so it always overlays everything on screen and can
-          never be clipped by parent overflow-hidden containers (the
-          topbar + dashboard shell both create stacking contexts that
-          previously hid the dropdown behind page content). */}
-      {showDropdown && mounted && createPortal(
-        <div
-          ref={dropdownRef}
-          className="fixed max-h-96 overflow-y-auto rounded-xl border shadow-xl"
-          style={{
-            top: `${position.top}px`,
-            left: `${position.left}px`,
-            width: `${position.width}px`,
-            zIndex: 1000,
-            backgroundColor: "var(--theme-card-bg)",
-            borderColor: "var(--theme-surface-border)",
-          }}
-        >
-          {loading && (
-            <p className="px-4 py-3 text-xs" style={{ color: "var(--theme-muted-text)" }}>Searching...</p>
-          )}
-
-          {!loading && results.length === 0 && (
-            <p className="px-4 py-3 text-xs" style={{ color: "var(--theme-muted-text)" }}>
-              No results for &quot;{query}&quot;
-            </p>
-          )}
-
-          {!loading && grouped.map(group => (
-            <div key={group.category}>
-              <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-                style={{ color: "var(--theme-muted-text)" }}>
-                {group.category}
-              </p>
-              {group.items.map(item => {
-                const isSelected = item.flatIdx === selectedIndex
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelect(item.href)}
-                    onMouseEnter={() => setSelectedIndex(item.flatIdx)}
-                    className="flex items-center gap-3 w-full px-4 py-2 text-left text-sm transition-colors"
-                    style={{
-                      backgroundColor: isSelected ? "var(--theme-surface)" : "transparent",
-                      color: "var(--theme-card-text)",
-                    }}
-                  >
-                    <span className="shrink-0" style={{ color: "var(--theme-primary-text)" }}>{item.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-medium text-sm">{item.title}</p>
-                      {item.subtitle && (
-                        <p className="truncate text-[11px]" style={{ color: "var(--theme-muted-text)" }}>{item.subtitle}</p>
-                      )}
-                    </div>
-                    {item.meta && (
-                      <span className="shrink-0 text-[10px]" style={{ color: "var(--theme-muted-text)" }}>{item.meta}</span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          ))}
-        </div>,
-        document.body
-      )}
-    </div>
-    {mobileOpen && (
-      <button
-        type="button"
-        className="fixed inset-0 z-[1000] md:hidden"
-        aria-label="Close search"
-        onClick={() => { setMobileOpen(false); setFocused(false) }}
-      />
-    )}
+      <IconButton label="Search" kbd="⌘K" icon={<Search />} onClick={() => openCommandPalette()} className="lg:hidden" aria-haspopup="dialog" />
     </>
   )
+}
+
+/** Mounted once by the dashboard shell. */
+export function GlobalSearch() {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setOpen((v) => !v)
+      }
+    }
+    function onOpen(e: Event) {
+      const q = (e as CustomEvent<{ query?: string }>).detail?.query
+      if (typeof q === "string") setQuery(q)
+      setOpen(true)
+    }
+    document.addEventListener("keydown", onKeyDown)
+    window.addEventListener(OPEN_COMMAND_EVENT, onOpen)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener(OPEN_COMMAND_EVENT, onOpen)
+    }
+  }, [])
+
+  return (
+    <RadixDialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery("") }}>
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className={overlayClass} />
+        <RadixDialog.Content
+          className={cn(
+            "ds-dialog fixed left-1/2 top-[12vh] z-50 flex max-h-[min(560px,76vh)] w-[min(640px,calc(100vw-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-xl bg-elevated text-fg shadow-elev-3 outline-none",
+            "max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:translate-x-0 max-sm:rounded-none",
+          )}
+          aria-describedby={undefined}
+          data-testid="command-palette"
+        >
+          <RadixDialog.Title className="sr-only">Search or jump to</RadixDialog.Title>
+          {open && <Palette query={query} setQuery={setQuery} onClose={() => { setOpen(false); setQuery("") }} />}
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
+  )
+}
+
+function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: string) => void; onClose: () => void }) {
+  const router = useRouter()
+  const { permissions, can } = usePermissions()
+  const [sections, setSections] = useState<SearchSection[]>([])
+  const [docs, setDocs] = useState<DocsIndexEntry[]>([])
+  const [gallery, setGallery] = useState<GalleryIndexItem[]>([])
+  const [clientLimits, setClientLimits] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState<string | null>(null)
+  const [error, setError] = useState(false)
+  const [selected, setSelected] = useState("")
+  const [recent, setRecent] = useState<RecentPage[]>([])
+  // Only the latest request may update the results (typing fast).
+  const requestSeq = useRef(0)
+
+  const trimmed = query.trim()
+  const searching = trimmed.length >= 2
+  const canGallery = permissions.has("packages.view")
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is read on open (client only)
+  useEffect(() => { setRecent(readRecentPages()) }, [])
+
+  const actions = useMemo(() => CREATE_ACTIONS.filter((a) => can(a.requires)), [can])
+
+  const search = useCallback(async (q: string) => {
+    const seq = ++requestSeq.current
+    if (q.length < 2) { setSections([]); setLoading(false); setError(false); return }
+    setLoading(true)
+    setClientLimits({})
+    const [response, docsEntries, galleryItems] = await Promise.all([
+      globalSearch(q).catch(() => null),
+      loadDocsIndex(),
+      canGallery ? loadGalleryIndex() : Promise.resolve([] as GalleryIndexItem[]),
+    ])
+    if (seq !== requestSeq.current) return
+    setDocs(docsEntries)
+    setGallery(galleryItems)
+    setError(!response?.ok)
+    setSections(response?.ok ? response.data.sections : [])
+    setLoading(false)
+  }, [canGallery])
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void search(trimmed) }, DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [trimmed, search])
+
+  async function showMore(sectionKey: string) {
+    if (["pages", "gallery", "docs"].includes(sectionKey)) {
+      setClientLimits((limits) => ({ ...limits, [sectionKey]: CLIENT_MORE_LIMIT }))
+      return
+    }
+    const seq = requestSeq.current
+    setLoadingMore(sectionKey)
+    const response = await globalSearch(trimmed, { section: sectionKey as SearchSection["key"] }).catch(() => null)
+    setLoadingMore(null)
+    if (seq !== requestSeq.current || !response?.ok) return
+    const expanded = response.data.sections.find((s) => s.key === sectionKey)
+    if (expanded) setSections((current) => current.map((s) => (s.key === sectionKey ? expanded : s)))
+  }
+
+  const groups = useMemo<Group[]>(() => {
+    const out: Group[] = []
+    if (!searching) {
+      // Start page: recent pages, then the main destinations and the create actions.
+      const here = typeof window === "undefined" ? "" : window.location.pathname + window.location.search
+      const rec = recent.filter((r) => r.href !== here && (!trimmed || matchScore(r.title, trimmed) > 0)).slice(0, 5)
+      if (rec.length) out.push({ key: "recent", label: "Recent", rows: rec.map(recentRow), more: false })
+      const starter = trimmed
+        ? visiblePageShortcuts(permissions).filter((p) => matchScore(p.title, trimmed) > 0).slice(0, 8)
+        : searchPageShortcutsStarter(permissions)
+      if (starter.length) out.push({ key: "pages", label: "Pages", more: false, rows: starter.map((p) => ({ key: `pages:${p.href}`, section: "pages", kind: "page" as const, title: p.title, subtitle: p.area, href: p.href })) })
+      const acts = actions.filter((a) => !trimmed || matchScore(`${a.paletteLabel} ${a.keywords}`, trimmed) > 0)
+      if (acts.length) out.push({ key: "actions", label: "Actions", rows: acts.map(actionRow), more: false })
+      return out
+    }
+    for (const s of sections) out.push({ key: s.key, label: s.label, more: s.more, rows: s.hits.map((hit) => hitRow(s.key, hit)) })
+    const client = (key: string, label: string, all: Row[]) => {
+      const limit = clientLimits[key] ?? CLIENT_LIMIT
+      if (all.length) out.push({ key, label, rows: all.slice(0, limit), more: all.length > limit })
+    }
+    client("pages", "Pages", searchPageShortcuts(trimmed, permissions, CLIENT_MORE_LIMIT + 1).map((p) => ({
+      key: `pages:${p.href}`, section: "pages", kind: "page", title: p.title, subtitle: p.area, href: p.href,
+    })))
+    const acts = actions.filter((a) => matchScore(`${a.paletteLabel} ${a.keywords}`, trimmed) > 0)
+    if (acts.length) out.push({ key: "actions", label: "Actions", rows: acts.map(actionRow), more: false })
+    if (canGallery) {
+      client("gallery", "Gallery", searchGalleryIndex(gallery, trimmed, CLIENT_MORE_LIMIT + 1).map((p) => ({
+        key: `gallery:${p.slug}`, section: "gallery", kind: "gallery", title: p.title, subtitle: p.summary, href: `/gallery/${p.slug}`, external: true,
+      })))
+    }
+    client("docs", "Docs", searchDocsIndex(docs, trimmed, CLIENT_MORE_LIMIT + 1).map((d) => ({
+      key: `docs:${d.h}`, section: "docs", kind: "doc", title: d.t, subtitle: d.s, href: d.h, external: true,
+    })))
+    return out
+  }, [searching, trimmed, recent, permissions, actions, sections, clientLimits, canGallery, gallery, docs])
+
+  const rowsByKey = useMemo(() => {
+    const map = new Map<string, Row>()
+    for (const g of groups) {
+      for (const r of g.rows) map.set(r.key, r)
+      if (g.more) map.set(`${g.key}:more`, { key: `${g.key}:more`, section: g.key, kind: "more", title: `Show more ${g.label.toLowerCase()}` })
+    }
+    return map
+  }, [groups])
+
+  function activate(row: Row, newTab = false) {
+    if (row.kind === "more") { void showMore(row.section); return }
+    if (!row.href) return
+    onClose()
+    if (row.external || newTab) window.open(row.href, "_blank", "noopener,noreferrer")
+    else router.push(row.href)
+  }
+
+  const showSkeleton = searching && loading && sections.length === 0
+  const empty = !showSkeleton && groups.length === 0
+
+  return (
+    <Command
+      label="Search or jump to"
+      shouldFilter={false}
+      loop
+      value={selected}
+      onValueChange={setSelected}
+      className="flex min-h-0 flex-1 flex-col"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          const row = rowsByKey.get(selected)
+          if (row) { e.preventDefault(); activate(row, true) }
+        }
+      }}
+    >
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border-subtle px-4">
+        <Search className="size-4 shrink-0 text-fg-muted" aria-hidden />
+        <Command.Input
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Search or jump to…"
+          // The open palette is the focus context: no extra ring on its input.
+          className="h-full min-w-0 flex-1 bg-transparent text-base text-fg placeholder:text-fg-subtle focus-visible:shadow-none"
+          data-testid="global-search-input"
+        />
+        <RadixDialog.Close asChild>
+          <button type="button" className="inline-flex items-center rounded-sm max-sm:hidden" aria-label="Close"><Kbd>Esc</Kbd></button>
+        </RadixDialog.Close>
+        <RadixDialog.Close asChild>
+          <IconButton label="Close" icon={<X />} size="sm" className="sm:hidden" noTooltip />
+        </RadixDialog.Close>
+      </div>
+
+      <Command.List className="min-h-0 flex-1 overflow-y-auto scrollbar-thin p-2" data-testid="global-search-results">
+        {showSkeleton && (
+          <Command.Loading>
+            <div className="space-y-1 p-1" aria-label="Searching">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex h-9 items-center gap-3 px-2">
+                  <Skeleton className="size-4 rounded-sm" />
+                  <Skeleton className={cn("h-2.5", i === 1 ? "w-1/3" : "w-1/2")} />
+                </div>
+              ))}
+            </div>
+          </Command.Loading>
+        )}
+        {empty && (
+          <EmptyState
+            size="sm"
+            variant={error ? "error" : "no-results"}
+            title={error ? "Search failed" : trimmed ? `No results for “${trimmed}”` : "Nothing here yet"}
+            description={error ? "Please try again." : "Try another word, or open a page from the menu."}
+          />
+        )}
+        {groups.map((group) => (
+          <Command.Group
+            key={group.key}
+            heading={group.label}
+            data-search-section={group.key}
+            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-muted"
+          >
+            {group.rows.map((row) => <ResultRow key={row.key} row={row} onSelect={() => activate(row)} />)}
+            {group.more && (
+              <Command.Item
+                value={`${group.key}:more`}
+                onSelect={() => void showMore(group.key)}
+                className="flex h-8 cursor-default items-center gap-2 rounded-md px-2 text-xs font-medium text-primary-text data-[selected=true]:bg-subtle"
+              >
+                <ChevronDown className="size-3.5" aria-hidden />
+                {loadingMore === group.key ? "Loading…" : `Show more ${group.label.toLowerCase()}`}
+              </Command.Item>
+            )}
+          </Command.Group>
+        ))}
+      </Command.List>
+
+      <div className="flex h-9 shrink-0 items-center gap-3 border-t border-border-subtle px-4 text-2xs text-fg-muted max-sm:hidden" aria-hidden>
+        <span className="inline-flex items-center gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+        <span className="inline-flex items-center gap-1"><Kbd><CornerDownLeft className="size-3" /></Kbd> open</span>
+        <span className="inline-flex items-center gap-1"><Kbd>⌘</Kbd><Kbd><CornerDownLeft className="size-3" /></Kbd> open in new tab</span>
+        <span className="ml-auto inline-flex items-center gap-1"><Kbd>esc</Kbd> close</span>
+      </div>
+    </Command>
+  )
+}
+
+function ResultRow({ row, onSelect }: { row: Row; onSelect: () => void }) {
+  const Icon = KIND_ICONS[row.kind]
+  const tag = row.meta ?? KIND_TAG[row.kind]
+  return (
+    <Command.Item
+      value={row.key}
+      onSelect={onSelect}
+      data-search-kind={row.kind}
+      className="group/row flex h-9 cursor-default items-center gap-3 rounded-md px-2 text-left data-[selected=true]:bg-subtle"
+    >
+      <Icon className="size-4 shrink-0 text-fg-muted" aria-hidden />
+      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+        <span className="truncate text-ui font-medium text-fg">{row.title}</span>
+        {row.subtitle && row.subtitle !== row.title && <span className="min-w-0 truncate text-xs text-fg-muted max-sm:hidden">{row.subtitle}</span>}
+      </span>
+      {row.external && <ExternalLink className="size-3.5 shrink-0 text-fg-subtle" aria-label="Opens in a new tab" />}
+      {tag && <span className="shrink-0 text-xs text-fg-subtle group-data-[selected=true]/row:hidden">{tag}</span>}
+      <CornerDownLeft className="hidden size-3.5 shrink-0 text-fg-muted group-data-[selected=true]/row:block" aria-hidden />
+    </Command.Item>
+  )
+}
+
+/** The palette's start list: the main destinations the person can open. */
+function searchPageShortcutsStarter(permissions: Iterable<string>) {
+  const starters = ["/home", "/tasks", "/automations", "/automations/forms", "/data", "/reports", "/integrations", "/settings"]
+  const all = visiblePageShortcuts(permissions)
+  return starters.map((href) => all.find((p) => p.href === href)).filter((p): p is NonNullable<typeof p> => !!p)
 }

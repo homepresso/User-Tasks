@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { getDb, requirePerm, ServiceError, type ServiceContext } from '@/lib/services/context'
 import { dbError } from '@/lib/services/_shared'
+import { describeGrant, OBJECT_PERMISSION_META, type ObjectPermissionType } from '@/lib/object-permission-types'
 import { BULK_DELETE_TYPES, bulkDeletePermission, bulkQueueDeletion, MAX_BULK_IDS, type BulkDeleteType } from '@/lib/services/bulk-delete'
 import * as references from '@/lib/services/references'
 import * as apiKeys from '@/lib/services/api-keys'
@@ -100,7 +101,7 @@ export const workflowsSetActiveJob = defineJobKind({
   },
 })
 
-const OBJECT_TABLES: Record<string, string> = { workflow: 'workflows', data_table: 'custom_tables' }
+const OBJECT_TABLES: Record<string, string> = { workflow: 'workflows', data_table: 'custom_tables', form: 'forms' }
 
 /**
  * Grant one role / team / user the same object permissions on many objects
@@ -154,6 +155,13 @@ export async function bulkSetObjectPermissions(ctx: ServiceContext, input: {
         if (insertError) throw dbError(insertError)
         inserted += fresh.length
       }
+      // One audit row per object, like a single grant (lib/services/object-permissions).
+      const grantType = OBJECT_PERMISSION_META[input.objectType as ObjectPermissionType]
+      await db.from('object_audit_log').insert(ownedIds.map((objectId: string) => ({
+        tenant_id: ctx.tenantId, actor_id: ctx.actorId, object_type: input.objectType, object_id: objectId, action: 'grant',
+        summary: `Gave ${matchCol.replace('_id', '')} ${describeGrant(input.objectType as ObjectPermissionType, flags)} on ${grantType?.label.toLowerCase() ?? 'object'} (bulk)`,
+        metadata: { via: ctx.source, grantee_type: matchCol.replace('_id', ''), grantee_id: matchVal, ...flags, bulk: true },
+      }))).then(() => undefined, () => undefined)
     }
     await onProgress?.(Math.min(i + 100, objectIds.length), objectIds.length)
   }
@@ -164,7 +172,7 @@ export const objectPermissionsJob = defineJobKind({
   kind: 'object_permissions.bulk_set',
   effect: 'change',
   params: z.object({
-    objectType: z.enum(['workflow', 'data_table']),
+    objectType: z.enum(['workflow', 'data_table', 'form']),
     objectIds: ids,
     roleId: uuid.nullish(), teamId: uuid.nullish(), userId: uuid.nullish(),
     canView: z.boolean(), canEdit: z.boolean(), canDelete: z.boolean(), canExecute: z.boolean(),

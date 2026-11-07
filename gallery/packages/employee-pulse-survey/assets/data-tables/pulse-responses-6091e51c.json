@@ -1,0 +1,131 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+  "asset": {
+    "id": "6091e51c-f905-57c0-be3e-33c5745c7cb2",
+    "name": "Pulse responses",
+    "description": "One row per pulse survey answer: the survey round (month), department, the four section averages (1-5), the engagement score (0-100), eNPS answer and points, mood, risk band and follow-up status. Anonymous answers have no name.",
+    "columns": [
+      {
+        "id": "b3a3420d-c535-56a3-a0ec-11ece29eca25",
+        "required": true,
+        "key": "response_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "920cf17e-6d26-5930-b0e6-4f767578f1e6",
+        "required": false,
+        "key": "round",
+        "name": "Round",
+        "type": "text"
+      },
+      {
+        "id": "5f7d3cb3-d9a6-5299-a65a-9b41ce02df7b",
+        "required": false,
+        "key": "submitted_on",
+        "name": "Submitted",
+        "type": "date"
+      },
+      {
+        "id": "93d396e0-3deb-52e2-9cca-91a7252fc4cf",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "e77b973f-5eba-5086-ab76-3798f6ec6d90",
+        "required": false,
+        "key": "anonymous",
+        "name": "Anonymous",
+        "type": "boolean"
+      },
+      {
+        "id": "302b7ee5-e765-579d-991a-e56762d5dc35",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "2dae9a6d-a83b-5bb0-a927-ec574031aac2",
+        "required": false,
+        "key": "wellbeing",
+        "name": "Wellbeing",
+        "type": "number"
+      },
+      {
+        "id": "9f21a892-d26f-54e1-b939-e5efe2e407a5",
+        "required": false,
+        "key": "manager_team",
+        "name": "Manager & team",
+        "type": "number"
+      },
+      {
+        "id": "1eae68da-b373-5a72-be9b-d4918db32edd",
+        "required": false,
+        "key": "growth",
+        "name": "Growth",
+        "type": "number"
+      },
+      {
+        "id": "9c610498-ae1c-50c0-83c8-1f8851b67488",
+        "required": false,
+        "key": "workload",
+        "name": "Workload",
+        "type": "number"
+      },
+      {
+        "id": "9c6fa1fa-ae1c-595a-89d0-e47e7ff56938",
+        "required": false,
+        "key": "engagement",
+        "name": "Engagement (0-100)",
+        "type": "number"
+      },
+      {
+        "id": "cd7d0741-5415-5481-bbda-8d22cbcaeaf2",
+        "required": false,
+        "key": "enps",
+        "name": "eNPS answer (0-10)",
+        "type": "number"
+      },
+      {
+        "id": "e4c24f44-4e1f-59d3-9782-9088acb40d0a",
+        "required": false,
+        "key": "enps_points",
+        "name": "eNPS points",
+        "type": "number"
+      },
+      {
+        "id": "1ef4b4a4-dd04-541b-a974-2dc798ff499c",
+        "required": false,
+        "key": "mood",
+        "name": "Mood (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "2b512e60-fd30-51b2-bf73-3196f36d32da",
+        "required": false,
+        "key": "risk_band",
+        "name": "Risk band",
+        "type": "text"
+      },
+      {
+        "id": "e89fafa3-00c6-5e4a-8460-92a7b107d28c",
+        "required": false,
+        "key": "follow_up_status",
+        "name": "Follow-up",
+        "type": "text"
+      },
+      {
+        "id": "5a056e62-da7f-590d-8a38-58f64a2a120a",
+        "required": false,
+        "key": "change_suggestion",
+        "name": "One thing to change",
+        "type": "text"
+      }
+    ]
+  }
+}

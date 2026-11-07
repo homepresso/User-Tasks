@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "7cf58004-b978-5dfd-8d69-211cd61b78eb",
+  "asset": {
+    "id": "7cf58004-b978-5dfd-8d69-211cd61b78eb",
+    "name": "Moderation log: 1 year",
+    "description": "Moderation decisions are kept one year for appeals and transparency reports, then purged.",
+    "policy_mode": "purge_on",
+    "duration_value": 1,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

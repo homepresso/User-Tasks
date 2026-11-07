@@ -16,7 +16,7 @@ export default async function OAuthConsentPage({
   searchParams: Promise<{ request?: string }>
 }) {
   const { request } = await searchParams
-  if (!request) redirect('/tasks')
+  if (!request) redirect('/home')
 
   const consent = await getConsentRequest(request)
   if (!consent) {

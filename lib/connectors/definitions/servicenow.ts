@@ -1,5 +1,13 @@
 import type { ConnectorDefinition } from '../registry'
 
+/** Instance name ("acme") → https://acme.service-now.com; a full host or URL is kept (custom domains). */
+export function servicenowBaseUrl(instance: unknown): string {
+  const raw = String(instance ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '')
+  if (!raw) return ''
+  if (raw.includes('.')) return `https://${raw}`
+  return `https://${raw}.service-now.com`
+}
+
 export const servicenowConnector: ConnectorDefinition = {
   key: 'servicenow',
   name: 'ServiceNow',
@@ -15,7 +23,7 @@ export const servicenowConnector: ConnectorDefinition = {
       type: 'text',
       placeholder: 'your-instance',
       required: true,
-      helpText: 'ServiceNow instance name (e.g. your-instance for your-instance.service-now.com)',
+      helpText: 'ServiceNow instance name (your-instance for your-instance.service-now.com), or the full host / URL for custom domains',
     },
   ],
   credentialFields: [
@@ -52,7 +60,27 @@ export const servicenowConnector: ConnectorDefinition = {
       type: 'password',
       visibleWhen: { field: 'auth_type', equals: 'bearer' },
       requiredWhen: { field: 'auth_type', equals: 'bearer' },
-      helpText: 'For OAuth2 auth',
+      helpText: 'OAuth access token (expires — add the client and refresh token below for automatic renewal)',
+    },
+    {
+      key: 'client_id',
+      label: 'OAuth Client ID (optional)',
+      type: 'text',
+      visibleWhen: { field: 'auth_type', equals: 'bearer' },
+      helpText: 'Application Registry client ID, used with the refresh token to renew access tokens',
+    },
+    {
+      key: 'client_secret',
+      label: 'OAuth Client Secret (optional)',
+      type: 'password',
+      visibleWhen: { field: 'auth_type', equals: 'bearer' },
+    },
+    {
+      key: 'refresh_token',
+      label: 'Refresh Token (optional)',
+      type: 'password',
+      visibleWhen: { field: 'auth_type', equals: 'bearer' },
+      helpText: 'Refresh token from /oauth_token.do',
     },
   ],
   referenceTemplates: [
@@ -62,15 +90,15 @@ export const servicenowConnector: ConnectorDefinition = {
       name: 'Query Table',
       description: 'Query any ServiceNow table with filters, ordering, and pagination',
       method: 'GET',
-      pathTemplate: '/api/now/table/{{table}}?sysparm_query={{query}}&sysparm_fields={{fields}}&sysparm_limit={{limit}}&sysparm_offset={{offset}}&sysparm_display_value={{display_value}}&sysparm_order_by={{order_by}}',
+      pathTemplate: '/api/now/table/{{table}}?sysparm_query={{query}}&sysparm_fields={{fields}}&sysparm_limit={{limit}}&sysparm_offset={{offset}}&sysparm_display_value={{display_value}}&sysparm_exclude_reference_link={{exclude_reference_link}}',
       inputs: [
         { name: 'table', type: 'string', required: true, description: 'Table name (e.g. incident, sc_request, sys_user, cmdb_ci)' },
-        { name: 'query', type: 'string', required: false, description: 'Encoded query (e.g. active=true^priority=1^ORDERBYDESCsys_created_on)' },
+        { name: 'query', type: 'string', required: false, description: 'Encoded query, trusted text (e.g. active=true^priority=1^ORDERBYDESCsys_created_on). Order with ORDERBY<field> / ORDERBYDESC<field>. When inserting workflow values, escape ^ as ^^.' },
         { name: 'fields', type: 'string', required: false, description: 'Comma-separated fields to return' },
-        { name: 'limit', type: 'number', required: false, description: 'Max records', defaultValue: '100' },
-        { name: 'offset', type: 'number', required: false, description: 'Records to skip', defaultValue: '0' },
-        { name: 'display_value', type: 'string', required: false, description: 'true = display values, false = sys_ids, all = both', defaultValue: 'true' },
-        { name: 'order_by', type: 'string', required: false, description: 'Order by field' },
+        { name: 'limit', type: 'number', required: false, description: 'Max records (page size)', defaultValue: '100' },
+        { name: 'offset', type: 'number', required: false, description: 'Records to skip (next page = offset + limit; stop when fewer than limit are returned)', defaultValue: '0' },
+        { name: 'display_value', type: 'string', required: false, description: 'true = display values, false = raw values/sys_ids (use for write-back), all = both', defaultValue: 'true' },
+        { name: 'exclude_reference_link', type: 'string', required: false, description: 'true to omit reference link URLs', defaultValue: 'true' },
       ],
       outputs: [{ name: 'result', type: 'array' }],
     },
@@ -98,7 +126,7 @@ export const servicenowConnector: ConnectorDefinition = {
       bodyTemplate: '{{record_json}}',
       inputs: [
         { name: 'table', type: 'string', required: true, description: 'Table name' },
-        { name: 'record_json', type: 'string', required: true, description: 'JSON object with field values' },
+        { name: 'record_json', type: 'object', required: true, description: 'JSON object with field values' },
       ],
       outputs: [{ name: 'result', type: 'object' }],
     },
@@ -113,7 +141,7 @@ export const servicenowConnector: ConnectorDefinition = {
       inputs: [
         { name: 'table', type: 'string', required: true, description: 'Table name' },
         { name: 'sys_id', type: 'string', required: true, description: 'Record sys_id' },
-        { name: 'record_json', type: 'string', required: true, description: 'JSON with fields to update' },
+        { name: 'record_json', type: 'object', required: true, description: 'JSON with fields to update' },
       ],
       outputs: [{ name: 'result', type: 'object' }],
     },
@@ -137,21 +165,12 @@ export const servicenowConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/api/now/table/incident',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        short_description: '{{short_description}}',
-        description: '{{description}}',
-        urgency: '{{urgency}}',
-        impact: '{{impact}}',
-        category: '{{category}}',
-        assignment_group: '{{assignment_group}}',
-        assigned_to: '{{assigned_to}}',
-        caller_id: '{{caller_id}}',
-      }),
+      bodyTemplate: '{"short_description":"{{short_description}}","description":{{description}},"urgency":{{urgency}},"impact":{{impact}},"category":{{category}},"assignment_group":{{assignment_group}},"assigned_to":{{assigned_to}},"caller_id":{{caller_id}}}',
       inputs: [
         { name: 'short_description', type: 'string', required: true, description: 'Incident title' },
         { name: 'description', type: 'string', required: false, description: 'Detailed description' },
-        { name: 'urgency', type: 'string', required: false, description: '1=High, 2=Medium, 3=Low', defaultValue: '2' },
-        { name: 'impact', type: 'string', required: false, description: '1=High, 2=Medium, 3=Low', defaultValue: '2' },
+        { name: 'urgency', type: 'number', required: false, description: '1=High, 2=Medium, 3=Low', defaultValue: '2' },
+        { name: 'impact', type: 'number', required: false, description: '1=High, 2=Medium, 3=Low', defaultValue: '2' },
         { name: 'category', type: 'string', required: false, description: 'Category' },
         { name: 'assignment_group', type: 'string', required: false, description: 'Assignment group sys_id or name' },
         { name: 'assigned_to', type: 'string', required: false, description: 'Assigned user sys_id' },
@@ -166,11 +185,7 @@ export const servicenowConnector: ConnectorDefinition = {
       method: 'PATCH',
       pathTemplate: '/api/now/table/incident/{{sys_id}}',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({
-        state: '6',
-        close_code: '{{close_code}}',
-        close_notes: '{{close_notes}}',
-      }),
+      bodyTemplate: '{"state":"6","close_code":"{{close_code}}","close_notes":"{{close_notes}}"}',
       inputs: [
         { name: 'sys_id', type: 'string', required: true, description: 'Incident sys_id' },
         { name: 'close_code', type: 'string', required: false, description: 'Resolution code (e.g. Solved (Permanently))', defaultValue: 'Solved (Permanently)' },
@@ -181,15 +196,30 @@ export const servicenowConnector: ConnectorDefinition = {
     {
       key: 'add_work_note',
       name: 'Add Work Note',
-      description: 'Add a work note or comment to a record',
+      description: 'Add an internal work note to a record (use Add Comment for customer-visible comments)',
       method: 'PATCH',
       pathTemplate: '/api/now/table/{{table}}/{{sys_id}}',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ work_notes: '{{note}}' }),
+      bodyTemplate: '{"work_notes":"{{note}}"}',
       inputs: [
         { name: 'table', type: 'string', required: false, description: 'Table name', defaultValue: 'incident' },
         { name: 'sys_id', type: 'string', required: true, description: 'Record sys_id' },
         { name: 'note', type: 'string', required: true, description: 'Work note text' },
+      ],
+      outputs: [{ name: 'result', type: 'object' }],
+    },
+    {
+      key: 'add_comment',
+      name: 'Add Comment',
+      description: 'Add a customer-visible comment (additional comments) to a record',
+      method: 'PATCH',
+      pathTemplate: '/api/now/table/{{table}}/{{sys_id}}',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: '{"comments":"{{comment}}"}',
+      inputs: [
+        { name: 'table', type: 'string', required: false, description: 'Table name', defaultValue: 'incident' },
+        { name: 'sys_id', type: 'string', required: true, description: 'Record sys_id' },
+        { name: 'comment', type: 'string', required: true, description: 'Comment text' },
       ],
       outputs: [{ name: 'result', type: 'object' }],
     },
@@ -206,7 +236,7 @@ export const servicenowConnector: ConnectorDefinition = {
         { name: 'table', type: 'string', required: true, description: 'Table name (e.g. incident)' },
         { name: 'sys_id', type: 'string', required: true, description: 'Record sys_id' },
         { name: 'file_name', type: 'string', required: true, description: 'Attachment filename' },
-        { name: 'content', type: 'string', required: true, description: 'File content' },
+        { name: 'content', type: 'string', required: true, description: 'File content: a form attachment, a file URL, base64 or plain text' },
         { name: 'content_type', type: 'string', required: false, description: 'MIME type', defaultValue: 'application/octet-stream' },
       ],
       outputs: [{ name: 'result', type: 'object' }],
@@ -217,20 +247,36 @@ export const servicenowConnector: ConnectorDefinition = {
       name: 'Aggregate Query',
       description: 'Run aggregate queries (COUNT, SUM, AVG, MIN, MAX) on a table',
       method: 'GET',
-      pathTemplate: '/api/now/stats/{{table}}?sysparm_query={{query}}&sysparm_count=true&sysparm_group_by={{group_by}}&sysparm_avg_fields={{avg_fields}}&sysparm_sum_fields={{sum_fields}}',
+      pathTemplate: '/api/now/stats/{{table}}?sysparm_query={{query}}&sysparm_count=true&sysparm_group_by={{group_by}}&sysparm_avg_fields={{avg_fields}}&sysparm_sum_fields={{sum_fields}}&sysparm_min_fields={{min_fields}}&sysparm_max_fields={{max_fields}}',
       inputs: [
         { name: 'table', type: 'string', required: true, description: 'Table name' },
         { name: 'query', type: 'string', required: false, description: 'Filter query' },
         { name: 'group_by', type: 'string', required: false, description: 'Group by field' },
         { name: 'avg_fields', type: 'string', required: false, description: 'Fields to average' },
         { name: 'sum_fields', type: 'string', required: false, description: 'Fields to sum' },
+        { name: 'min_fields', type: 'string', required: false, description: 'Fields to take the minimum of' },
+        { name: 'max_fields', type: 'string', required: false, description: 'Fields to take the maximum of' },
       ],
       outputs: [{ name: 'result', type: 'object' }],
     },
   ],
   buildIntegrationConfig: (config, credentials) => {
-    const baseUrl = `https://${config.instance}.service-now.com`
+    const baseUrl = servicenowBaseUrl(config.instance)
     if (credentials.auth_type === 'bearer') {
+      if (credentials.refresh_token && credentials.client_id) {
+        return {
+          base_url: baseUrl,
+          auth_type: 'bearer',
+          auth_config: {
+            _executor: 'oauth_refresh',
+            token: credentials.token || '',
+            refresh_token: credentials.refresh_token,
+            client_id: credentials.client_id,
+            client_secret: credentials.client_secret || '',
+            token_url: `${baseUrl}/oauth_token.do`,
+          },
+        }
+      }
       return {
         base_url: baseUrl,
         auth_type: 'bearer',

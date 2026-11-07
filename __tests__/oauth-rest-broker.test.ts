@@ -80,7 +80,7 @@ describe('generic REST broker OAuth', () => {
     })
 
     expect(result).toMatchObject({ status: 200, data: { items: [{ id: 1 }] } })
-    expect(getFreshConnectorToken).toHaveBeenCalledWith({ supabase, connectorId: 'connector-1' })
+    expect(getFreshConnectorToken).toHaveBeenCalledWith(expect.objectContaining({ supabase, connectorId: 'connector-1' }))
     expect(assertSafeEgressUrl).toHaveBeenCalledWith('https://api.example.com/widgets')
     expect(fetch).toHaveBeenCalledWith(
       'https://api.example.com/widgets',
@@ -102,7 +102,7 @@ describe('generic REST broker OAuth', () => {
     )
 
     expect(headers.Authorization).toBe('Bearer fresh-provider-token')
-    expect(getFreshConnectorToken).toHaveBeenCalledWith({ supabase, connectorId: 'connector-explicit' })
+    expect(getFreshConnectorToken).toHaveBeenCalledWith(expect.objectContaining({ supabase, connectorId: 'connector-explicit' }))
   })
 
   it('fails closed when OAuth has not been connected', async () => {

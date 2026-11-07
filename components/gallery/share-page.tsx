@@ -73,7 +73,7 @@ export function SharePage({ user, submissions, enabled }: { user: { name: string
             <aside className="grid h-fit gap-5">
               <div className="rounded-2xl border border-[#1B1916]/[0.09] bg-[#FFFFFF] p-5 text-sm">
                 <p className="flex items-center gap-2 font-semibold"><ShieldCheck size={16} className="text-[#4F7A5B]" aria-hidden="true" /> What we check automatically</p>
-                <ul className="mt-3 space-y-2 text-[13px] leading-5 text-[#4A463E]">{CHECKS.map((c) => <li key={c} className="flex gap-2"><CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#4F7A5B]" aria-hidden="true" />{c}</li>)}</ul>
+                <ul className="mt-3 space-y-2 text-ui leading-5 text-[#4A463E]">{CHECKS.map((c) => <li key={c} className="flex gap-2"><CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#4F7A5B]" aria-hidden="true" />{c}</li>)}</ul>
               </div>
               <div className="rounded-2xl border border-[#1B1916]/[0.09] bg-[#F1EDE3] p-5 text-sm leading-6 text-[#4A463E]">
                 <p className="font-semibold text-[#1B1916]">Then a moderator reviews it</p>

@@ -51,7 +51,7 @@ export function OptionCheckbox({
       />
       <span>
         {label}
-        {hint && <span className="block text-xs" style={{ color: 'var(--theme-muted-text)' }}>{hint}</span>}
+        {hint && <span className="block text-xs text-fg-muted">{hint}</span>}
       </span>
     </label>
   )
@@ -62,7 +62,7 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
     <div className="min-w-0">
       <label className="block text-xs font-medium mb-1.5">{label}</label>
       {children}
-      {hint && <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{hint}</p>}
+      {hint && <p className="text-2xs mt-1 text-fg-muted">{hint}</p>}
     </div>
   )
 }
@@ -104,9 +104,50 @@ export function Select({ value, onChange, options, disabled }: {
 
 export function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg px-3 py-2 min-w-0" style={{ backgroundColor: 'var(--theme-surface)' }}>
-      <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>{label}</p>
+    <div className="rounded-lg px-3 py-2 min-w-0 bg-subtle">
+      <p className="text-2xs text-fg-muted">{label}</p>
       <p className="text-sm font-medium truncate" title={value}>{value}</p>
+    </div>
+  )
+}
+
+/**
+ * The org-structure import options of a directory connection
+ * (lib/directory-sync/profiles.ts). Connections made before these options
+ * existed start with both off.
+ */
+export function OrgImportOptions({
+  importOrgUnits,
+  importProfiles,
+  disabled,
+  onChange,
+}: {
+  importOrgUnits: boolean
+  importProfiles: boolean
+  disabled: boolean
+  onChange: (options: { importOrgUnits?: boolean; importProfiles?: boolean }) => void
+}) {
+  return (
+    <div className="mt-3 space-y-1.5">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <OptionCheckbox
+          label="Import org structure (departments / divisions)"
+          hint="Org units from company, division and department (Google Workspace: organizational units), each person in theirs. Imported units are read-only on the Organization page until detached."
+          checked={importOrgUnits}
+          disabled={disabled}
+          onChange={(checked) => onChange({ importOrgUnits: checked })}
+        />
+        <OptionCheckbox
+          label="Import job titles & locations"
+          hint="Job title, department, location, employee id and cost centre for each person. Attributes edited by hand (detached) are left alone."
+          checked={importProfiles}
+          disabled={disabled}
+          onChange={(checked) => onChange({ importProfiles: checked })}
+        />
+      </div>
+      <p className="text-xs text-fg-muted">
+        Applied from the next sync (SCIM: the next change your identity provider pushes). Connections made before these options existed start with them off.
+      </p>
     </div>
   )
 }

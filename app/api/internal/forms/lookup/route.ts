@@ -20,6 +20,8 @@ const Body = z.object({
   field: z.record(z.string(), z.unknown()).optional(),
   query: z.string().max(500).optional(),
   values: z.record(z.string(), z.unknown()).optional(),
+  /** Resolve these stored values to their items / labels instead of searching. */
+  resolve: z.array(z.union([z.string().max(1000), z.number()]).transform(String)).max(50).optional(),
 })
 
 const NO_STORE = { 'Cache-Control': 'no-store' }
@@ -47,18 +49,18 @@ export async function POST(request: NextRequest) {
       const { data: task } = await session.supabase.from('tasks').select('tenant_id').eq('id', body.task_id).maybeSingle()
       if (!task) throw ServiceError.notFound('Task not found')
       const ctx = await fromSession({ tenantId: String((task as { tenant_id: string }).tenant_id) })
-      const result = await lookupTaskField(ctx, body.task_id, { field_key: body.field_key, query: body.query, values: body.values })
+      const result = await lookupTaskField(ctx, body.task_id, { field_key: body.field_key, query: body.query, values: body.values, resolve: body.resolve })
       return NextResponse.json(result, { headers: NO_STORE })
     }
     if (body.form_id) {
       if (!body.field_key) throw ServiceError.validation('field_key is required')
       const ctx = await fromSession()
-      const result = await lookupFormField(ctx, body.form_id, { field_key: body.field_key, query: body.query, values: body.values })
+      const result = await lookupFormField(ctx, body.form_id, { field_key: body.field_key, query: body.query, values: body.values, resolve: body.resolve })
       return NextResponse.json(result, { headers: NO_STORE })
     }
     if (!body.field) throw ServiceError.validation('task_id, form_id or field is required')
     const ctx = await fromSession()
-    const result = await previewLookup(ctx, { field: body.field, query: body.query, values: body.values })
+    const result = await previewLookup(ctx, { field: body.field, query: body.query, values: body.values, resolve: body.resolve })
     return NextResponse.json(result, { headers: NO_STORE })
   } catch (error) {
     return fail(error)

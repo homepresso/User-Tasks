@@ -3,14 +3,15 @@
 import Link from 'next/link'
 import { serverRead } from '@/lib/server-read'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { CreateTableDialog } from '@/components/data/create-table-dialog'
 import { DataTableList } from '@/components/data/data-table-list'
-import { McpBanner } from '@/components/shared/mcp-banner'
 import { ImportConfigButton } from '@/components/shared/config-transfer'
 import { usePermissions } from '@/lib/permissions-context'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
-import { ShieldCheck } from 'lucide-react'
+import { Database, ShieldCheck } from 'lucide-react'
 
 export default function DataStorePage() {
   const queryClient = useQueryClient()
@@ -29,35 +30,32 @@ export default function DataStorePage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Data Store</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/settings/governance?tab=retention"
-            className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:opacity-90"
-            style={{
-              borderColor: 'var(--theme-surface-border)',
-              backgroundColor: 'var(--theme-card-bg)',
-              color: 'var(--theme-card-text)',
-            }}
-          >
-            <ShieldCheck size={15} style={{ color: 'var(--theme-primary-text)' }} />
-            Configure Policies
-          </Link>
-          {can('data.create') && <ImportConfigButton allowRows onImported={() => void queryClient.invalidateQueries({ queryKey: ['custom-tables'] })} />}
-          <CreateTableDialog />
-        </div>
-      </div>
-
-      <McpBanner />
+    <div>
+      <PageHeader
+        title="Data"
+        description="Tables your workflows, forms and agents read and write. Open a table to browse its rows or edit its schema."
+        actions={
+          <>
+            <Button asChild variant="secondary">
+              <Link href="/settings/governance?tab=retention"><ShieldCheck className="size-4" aria-hidden="true" />Configure policies</Link>
+            </Button>
+            {can('data.create') && (
+              <ImportConfigButton size="default" allowRows onImported={() => void queryClient.invalidateQueries({ queryKey: ['custom-tables'] })} />
+            )}
+            <CreateTableDialog />
+          </>
+        }
+      />
 
       {!tables?.length ? (
-        <Card>
-          <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
-            No tables yet. Create one to start storing data.
-          </p>
-        </Card>
+        <div className="rounded-lg border border-border bg-panel">
+          <EmptyState
+            size="lg"
+            icon={Database}
+            title="No tables yet"
+            description="Tables store records your workflows, forms and agents can read and write. Create one, or import a table from a file."
+          />
+        </div>
       ) : (
         <DataTableList tables={tables} />
       )}

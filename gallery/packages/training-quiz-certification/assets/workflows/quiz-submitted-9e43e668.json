@@ -1,0 +1,1164 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "9e43e668-3f2e-5fd5-a94b-daaaca6213bd",
+  "asset": {
+    "id": "9e43e668-3f2e-5fd5-a94b-daaaca6213bd",
+    "name": "Quiz submitted",
+    "description": "A learner submits the training feedback and quiz: the answers are scored, a decision table bands the result against the course pass mark, the result is saved, and a pass gets a PDF certificate by email while a retake or a booked session follows otherwise.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Quiz submitted",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "33312887-82dc-5aa8-92e5-5e123fca005c",
+          "form_name": "Training feedback and quiz"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Result reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "result_ref",
+          "expression": "QZ-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "course",
+        "type": "update_data_table",
+        "label": "Read the course",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "table_id": "b763c481-c305-51cd-b2ff-ecebd67f8608",
+          "table_name": "Courses",
+          "operation": "get",
+          "match_column": "course_code",
+          "match_value": "{{form.course}}",
+          "output_row_var": "course_row"
+        }
+      },
+      {
+        "id": "code",
+        "type": "set_variable",
+        "label": "Course code",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "name": "course_code",
+          "expression": "{{form.course}}"
+        }
+      },
+      {
+        "id": "ctitle",
+        "type": "set_variable",
+        "label": "Course title",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "course_title",
+          "expression": "{{=COALESCE(course_row.title, form.course_title, form.course)}}"
+        }
+      },
+      {
+        "id": "trainer",
+        "type": "set_variable",
+        "label": "Trainer",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "name": "trainer_name",
+          "expression": "{{=COALESCE(course_row.trainer, form.trainer, \"\")}}"
+        }
+      },
+      {
+        "id": "mark",
+        "type": "set_variable",
+        "label": "Pass mark",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "pass_mark",
+          "expression": "{{=TO_NUMBER(COALESCE(course_row.pass_mark, form.pass_mark, 80))}}"
+        }
+      },
+      {
+        "id": "validity",
+        "type": "set_variable",
+        "label": "Validity (months)",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "name": "validity_months",
+          "expression": "{{=TO_NUMBER(COALESCE(course_row.validity_months, form.validity_months, 12))}}"
+        }
+      },
+      {
+        "id": "correct",
+        "type": "set_variable",
+        "label": "Correct answers",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "name": "correct_count",
+          "expression": "{{=SUM(IF(form.q1 == \"Report it as phishing and delete it\", 1, 0), IF(form.q2 == \"A long passphrase of four or more random words\", 1, 0), IF(form.q3 == \"Hand it to IT or security without plugging it in\", 1, 0), IF(form.q4 == \"Whenever you leave your desk\", 1, 0), IF(form.q5 == \"Deny it and report it to IT or security\", 1, 0), IF(form.q6 == \"Only in approved company systems\", 1, 0))}}"
+        }
+      },
+      {
+        "id": "score",
+        "type": "set_variable",
+        "label": "Score (%)",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "name": "score_pct",
+          "expression": "{{=ROUND(correct_count * 100 / 6, 0)}}"
+        }
+      },
+      {
+        "id": "revise",
+        "type": "set_variable",
+        "label": "Topics to revise",
+        "position": {
+          "x": 600,
+          "y": 1460
+        },
+        "config": {
+          "name": "revise_topics",
+          "expression": "{{=CONCAT(IF(form.q1 == \"Report it as phishing and delete it\", \"\", \"Phishing emails; \"), IF(form.q2 == \"A long passphrase of four or more random words\", \"\", \"Passwords and passphrases; \"), IF(form.q3 == \"Hand it to IT or security without plugging it in\", \"\", \"Removable media; \"), IF(form.q4 == \"Whenever you leave your desk\", \"\", \"Clear desk and screen; \"), IF(form.q5 == \"Deny it and report it to IT or security\", \"\", \"Multi-factor authentication; \"), IF(form.q6 == \"Only in approved company systems\", \"\", \"Handling customer data; \"))}}"
+        }
+      },
+      {
+        "id": "quality",
+        "type": "set_variable",
+        "label": "Course quality",
+        "position": {
+          "x": 600,
+          "y": 1600
+        },
+        "config": {
+          "name": "quality_avg",
+          "expression": "{{=ROUND((COALESCE(form.quality.the_course_objectives_were_clear, 0) + COALESCE(form.quality.the_content_is_relevant_to_my_job, 0) + COALESCE(form.quality.the_pace_was_about_right, 0) + COALESCE(form.quality.i_can_apply_what_i_learned_straight_away, 0)) / 4, 1)}}"
+        }
+      },
+      {
+        "id": "band",
+        "type": "decision_table",
+        "label": "Result band",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "decision_table_id": "d07d4ce4-1956-52ba-b128-6dad947eef87",
+          "decision_table_name": "Quiz result band",
+          "input_mappings": {
+            "points_below_pass": "{{=pass_mark - score_pct}}"
+          }
+        }
+      },
+      {
+        "id": "passed",
+        "type": "set_variable",
+        "label": "Passed (1/0)",
+        "position": {
+          "x": 600,
+          "y": 1880
+        },
+        "config": {
+          "name": "passed",
+          "expression": "{{=IF(band == \"Pass\", 1, 0)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 2020
+        },
+        "config": {
+          "title": "Quiz {{course_code}} · {{form.learner_name}}: {{band}} ({{score_pct}}%)"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Save the result",
+        "position": {
+          "x": 600,
+          "y": 2160
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "insert",
+          "output_row_id_var": "result_row_id",
+          "column_values": {
+            "result_ref": "{{result_ref}}",
+            "completed_on": "{{form.completed_on}}",
+            "learner_name": "{{form.learner_name}}",
+            "learner_email": "{{submitted_by_email}}",
+            "course_code": "{{course_code}}",
+            "course_title": "{{course_title}}",
+            "correct": "{{correct_count}}",
+            "score_pct": "{{score_pct}}",
+            "pass_mark": "{{pass_mark}}",
+            "band": "{{band}}",
+            "trainer_rating": "{{form.trainer_rating}}",
+            "content_rating": "{{form.content_rating}}",
+            "quality_avg": "{{quality_avg}}",
+            "status": "{{=IF(band == \"Pass\", \"Certifying\", IF(band == \"Retake\", \"Retake due\", \"Session needed\"))}}"
+          }
+        }
+      },
+      {
+        "id": "route",
+        "type": "condition",
+        "label": "Which band?",
+        "position": {
+          "x": 600,
+          "y": 2300
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Pass",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{band}}",
+                  "operator": "equals",
+                  "value": "Pass"
+                }
+              ]
+            },
+            {
+              "label": "Retake",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{band}}",
+                  "operator": "equals",
+                  "value": "Retake"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "cert_no",
+        "type": "set_variable",
+        "label": "Certificate number",
+        "position": {
+          "x": 120,
+          "y": 2460
+        },
+        "config": {
+          "name": "certificate_no",
+          "expression": "CERT-{{course_code}}-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "expiry",
+        "type": "date_math",
+        "label": "Expiry date",
+        "position": {
+          "x": 120,
+          "y": 2600
+        },
+        "config": {
+          "date": "{{=NOW()}}",
+          "operation": "add",
+          "amount": "{{validity_months}}",
+          "unit": "months",
+          "output_var": "certificate_expires_at"
+        }
+      },
+      {
+        "id": "expiry_fmt",
+        "type": "set_variable",
+        "label": "Expiry (YYYY-MM-DD)",
+        "position": {
+          "x": 120,
+          "y": 2740
+        },
+        "config": {
+          "name": "certificate_expires",
+          "expression": "{{=FORMAT_DATE(certificate_expires_at, \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "cert_html",
+        "type": "text_template",
+        "label": "Certificate (HTML)",
+        "position": {
+          "x": 120,
+          "y": 2880
+        },
+        "config": {
+          "output_var": "certificate_html",
+          "template": "<html><body>\n<div style=\"text-align:center\">\n<h1>Certificate of completion</h1>\n<p>This certifies that</p>\n<h2>{{form.learner_name}}</h2>\n<p>has completed the course</p>\n<h2>{{course_title}} ({{course_code}})</h2>\n<p>and passed its assessment with a score of <strong>{{score_pct}}%</strong> (pass mark {{pass_mark}}%).</p>\n<table style=\"margin:24px auto;border-collapse:collapse\">\n<tr><td><strong>Certificate number</strong></td><td>{{certificate_no}}</td></tr>\n<tr><td><strong>Training completed</strong></td><td>{{form.completed_on}}</td></tr>\n<tr><td><strong>Issued</strong></td><td>{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}</td></tr>\n<tr><td><strong>Valid until</strong></td><td>{{certificate_expires}}</td></tr>\n<tr><td><strong>Trainer</strong></td><td>{{trainer_name}}</td></tr>\n</table>\n<p>The learner signed an attestation that they completed the training and the assessment themselves.</p>\n</div>\n</body></html>"
+        }
+      },
+      {
+        "id": "cert_pdf",
+        "type": "doc_convert",
+        "label": "Certificate to PDF",
+        "position": {
+          "x": 120,
+          "y": 3020
+        },
+        "config": {
+          "source": "{{certificate_html}}",
+          "target": "pdf",
+          "engine": "builtin",
+          "title": "Certificate {{certificate_no}}",
+          "output_name": "{{certificate_no}}",
+          "output_var": "certificate_pdf",
+          "page_size": "A4"
+        }
+      },
+      {
+        "id": "record",
+        "type": "update_data_table",
+        "label": "Record the certificate",
+        "position": {
+          "x": 120,
+          "y": 3160
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "update",
+          "match_column": "result_ref",
+          "match_value": "{{result_ref}}",
+          "column_values": {
+            "certificate_no": "{{certificate_no}}",
+            "certificate_expires": "{{certificate_expires}}",
+            "status": "Certified"
+          }
+        }
+      },
+      {
+        "id": "cert_mail",
+        "type": "send_email",
+        "label": "Email the certificate",
+        "position": {
+          "x": 120,
+          "y": 3300
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "899f144b-67db-5cef-bc8b-a785549a3abc",
+          "attachments": "{{certificate_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "cert_done",
+        "type": "end_workflow",
+        "label": "Certified",
+        "position": {
+          "x": 120,
+          "y": 3440
+        },
+        "config": {
+          "reason": "{{certificate_no}} valid until {{certificate_expires}}"
+        }
+      },
+      {
+        "id": "retake",
+        "type": "user_task",
+        "label": "Retake the quiz",
+        "position": {
+          "x": 600,
+          "y": 2460
+        },
+        "config": {
+          "task_title": "Retake the {{course_code}} quiz ({{score_pct}}%, pass mark {{pass_mark}}%)",
+          "task_description": "<p>You scored <strong>{{score_pct}}%</strong> on the <strong>{{course_title}}</strong> quiz; the pass mark is {{pass_mark}}%. You were close.</p><p>Revise: {{revise_topics}}</p><p>Then open the Training feedback and quiz page again and retake it within {{follow_up_days}} days, or ask for help if you would rather join a session.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "I will retake it",
+            "I need help"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), follow_up_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ],
+          "fields": [
+            {
+              "key": "r_score",
+              "label": "Your score (%)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{score_pct}}"
+            },
+            {
+              "key": "r_pass",
+              "label": "Pass mark (%)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{pass_mark}}"
+            },
+            {
+              "key": "r_progress",
+              "type": "custom",
+              "label": "Your score",
+              "custom": {
+                "tag": "ut-progress",
+                "version": "1.1.0",
+                "name": "Progress",
+                "value_type": "number",
+                "icon": "gauge",
+                "props": {
+                  "appearance": "bar",
+                  "total_value": 100,
+                  "unit": "%",
+                  "show_percentage": true,
+                  "warn_below": 60,
+                  "good_above": 80
+                },
+                "context_map": {
+                  "current": "r_score"
+                },
+                "display": {
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "progressbar",
+                  "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 60,
+                  "min_height": 32,
+                  "max_height": 600
+                },
+                "output": {
+                  "type": "number",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "r_card",
+              "type": "custom",
+              "label": "What to revise",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "warning",
+                  "card_title": "Topics to revise",
+                  "body": "{{field1}}",
+                  "layout": "callout",
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "r_topics"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "r_topics",
+              "label": "Topics",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{revise_topics}}"
+            },
+            {
+              "key": "retake_by",
+              "label": "I will retake it by",
+              "type": "date"
+            },
+            {
+              "key": "help_note",
+              "label": "What would help?",
+              "type": "textarea",
+              "visible_when": {
+                "field": "retake_by",
+                "operator": "is_not_set"
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "r_progress",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "r_score",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "r_pass",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "r_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "r_topics",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "retake_by",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "help_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "retake",
+              "label": "I will retake it",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "I will retake it"
+            },
+            {
+              "id": "help",
+              "label": "I need help",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "I need help"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Retake the quiz",
+            "align": "left",
+            "subtitle": "{{course_title}} · {{result_ref}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#1D4ED8",
+                  "background": "#FFFFFF",
+                  "text": "#13202B",
+                  "page": "#E8EEFC",
+                  "page_to": "#F7F9FF"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "retake_row",
+        "type": "update_data_table",
+        "label": "Mark retake planned",
+        "position": {
+          "x": 480,
+          "y": 2620
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "update",
+          "match_column": "result_ref",
+          "match_value": "{{result_ref}}",
+          "column_values": {
+            "status": "Retake planned"
+          }
+        }
+      },
+      {
+        "id": "help_row",
+        "type": "update_data_table",
+        "label": "Mark help requested",
+        "position": {
+          "x": 760,
+          "y": 2620
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "update",
+          "match_column": "result_ref",
+          "match_value": "{{result_ref}}",
+          "column_values": {
+            "status": "Help requested"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Booking SLA",
+        "position": {
+          "x": 1080,
+          "y": 2760
+        },
+        "config": {
+          "sla_label": "Book a training session ({{follow_up_days}} days)",
+          "mode": "relative",
+          "amount": "{{follow_up_days}}",
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "book",
+        "type": "user_task",
+        "label": "Book a training session",
+        "position": {
+          "x": 1080,
+          "y": 2900
+        },
+        "config": {
+          "task_title": "Book a session: {{form.learner_name}} · {{course_code}} ({{score_pct}}%)",
+          "task_description": "<p><strong>{{form.learner_name}}</strong> scored <strong>{{score_pct}}%</strong> on the {{course_title}} quiz (pass mark {{pass_mark}}%).</p><p>Topics they missed: {{revise_topics}}</p><p>Book them onto a classroom or one-to-one session and record the date; they are emailed the booking.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Session booked",
+            "Not required"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), follow_up_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 10080,
+          "fields": [
+            {
+              "key": "b_learner",
+              "label": "Learner",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.learner_name}}"
+            },
+            {
+              "key": "b_email",
+              "label": "Email",
+              "type": "email",
+              "read_only": true,
+              "default": "{{submitted_by_email}}"
+            },
+            {
+              "key": "b_score",
+              "label": "Score (%)",
+              "type": "number",
+              "read_only": true,
+              "default": "{{score_pct}}"
+            },
+            {
+              "key": "b_progress",
+              "type": "custom",
+              "label": "Score",
+              "custom": {
+                "tag": "ut-progress",
+                "version": "1.1.0",
+                "name": "Progress",
+                "value_type": "number",
+                "icon": "gauge",
+                "props": {
+                  "appearance": "bar",
+                  "total_value": 100,
+                  "unit": "%",
+                  "show_percentage": true,
+                  "warn_below": 60,
+                  "good_above": 80
+                },
+                "context_map": {
+                  "current": "b_score"
+                },
+                "display": {
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "progressbar",
+                  "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 60,
+                  "min_height": 32,
+                  "max_height": 600
+                },
+                "output": {
+                  "type": "number",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "b_topics",
+              "label": "Topics missed",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{revise_topics}}"
+            },
+            {
+              "key": "session_date",
+              "label": "Session date",
+              "type": "date"
+            },
+            {
+              "key": "session_type",
+              "label": "Session type",
+              "type": "choice",
+              "options": [
+                "Classroom",
+                "Online live",
+                "One-to-one"
+              ]
+            },
+            {
+              "key": "coordinator_note",
+              "label": "Note to the learner",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "b_learner",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "b_email",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "b_progress",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "b_score",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "b_topics",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "session_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "session_type",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "coordinator_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "booked",
+              "label": "Session booked",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Session booked"
+            },
+            {
+              "id": "not_required",
+              "label": "Not required",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Not required"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Book a training session",
+            "align": "left",
+            "subtitle": "{{course_title}} · {{result_ref}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#1D4ED8",
+                  "background": "#FFFFFF",
+                  "text": "#13202B",
+                  "page": "#E8EEFC",
+                  "page_to": "#F7F9FF"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "booked_row",
+        "type": "update_data_table",
+        "label": "Mark session booked",
+        "position": {
+          "x": 960,
+          "y": 3060
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "update",
+          "match_column": "result_ref",
+          "match_value": "{{result_ref}}",
+          "column_values": {
+            "status": "Session booked"
+          }
+        }
+      },
+      {
+        "id": "booked_mail",
+        "type": "send_email",
+        "label": "Email the booking",
+        "position": {
+          "x": 960,
+          "y": 3200
+        },
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "edfb2356-c3e0-5a7c-a922-3e603dfcad7c"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "nr_row",
+        "type": "update_data_table",
+        "label": "Mark not required",
+        "position": {
+          "x": 1280,
+          "y": 3060
+        },
+        "config": {
+          "table_id": "f8806fd3-ca1f-549f-8aeb-9bc859a858cc",
+          "table_name": "Quiz results",
+          "operation": "update",
+          "match_column": "result_ref",
+          "match_value": "{{result_ref}}",
+          "column_values": {
+            "status": "Closed: not required"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-course",
+        "source": "ref",
+        "target": "course"
+      },
+      {
+        "id": "e-course-code",
+        "source": "course",
+        "target": "code"
+      },
+      {
+        "id": "e-code-ctitle",
+        "source": "code",
+        "target": "ctitle"
+      },
+      {
+        "id": "e-ctitle-trainer",
+        "source": "ctitle",
+        "target": "trainer"
+      },
+      {
+        "id": "e-trainer-mark",
+        "source": "trainer",
+        "target": "mark"
+      },
+      {
+        "id": "e-mark-validity",
+        "source": "mark",
+        "target": "validity"
+      },
+      {
+        "id": "e-validity-correct",
+        "source": "validity",
+        "target": "correct"
+      },
+      {
+        "id": "e-correct-score",
+        "source": "correct",
+        "target": "score"
+      },
+      {
+        "id": "e-score-revise",
+        "source": "score",
+        "target": "revise"
+      },
+      {
+        "id": "e-revise-quality",
+        "source": "revise",
+        "target": "quality"
+      },
+      {
+        "id": "e-quality-band",
+        "source": "quality",
+        "target": "band"
+      },
+      {
+        "id": "e-band-passed",
+        "source": "band",
+        "target": "passed"
+      },
+      {
+        "id": "e-passed-title",
+        "source": "passed",
+        "target": "title"
+      },
+      {
+        "id": "e-title-row",
+        "source": "title",
+        "target": "row"
+      },
+      {
+        "id": "e-row-route",
+        "source": "row",
+        "target": "route"
+      },
+      {
+        "id": "e-route-cert_no-pass",
+        "source": "route",
+        "target": "cert_no",
+        "label": "Pass"
+      },
+      {
+        "id": "e-route-retake-retake",
+        "source": "route",
+        "target": "retake",
+        "label": "Retake"
+      },
+      {
+        "id": "e-route-sla-else",
+        "source": "route",
+        "target": "sla",
+        "label": "Else"
+      },
+      {
+        "id": "e-cert_no-expiry",
+        "source": "cert_no",
+        "target": "expiry"
+      },
+      {
+        "id": "e-expiry-expiry_fmt",
+        "source": "expiry",
+        "target": "expiry_fmt"
+      },
+      {
+        "id": "e-expiry_fmt-cert_html",
+        "source": "expiry_fmt",
+        "target": "cert_html"
+      },
+      {
+        "id": "e-cert_html-cert_pdf",
+        "source": "cert_html",
+        "target": "cert_pdf"
+      },
+      {
+        "id": "e-cert_pdf-record",
+        "source": "cert_pdf",
+        "target": "record"
+      },
+      {
+        "id": "e-record-cert_mail",
+        "source": "record",
+        "target": "cert_mail"
+      },
+      {
+        "id": "e-cert_mail-cert_done",
+        "source": "cert_mail",
+        "target": "cert_done"
+      },
+      {
+        "id": "e-retake-retake_row-i-will-retake-it",
+        "source": "retake",
+        "target": "retake_row",
+        "label": "I will retake it"
+      },
+      {
+        "id": "e-retake-help_row-i-need-help",
+        "source": "retake",
+        "target": "help_row",
+        "label": "I need help"
+      },
+      {
+        "id": "e-sla-book",
+        "source": "sla",
+        "target": "book"
+      },
+      {
+        "id": "e-book-booked_row-session-booked",
+        "source": "book",
+        "target": "booked_row",
+        "label": "Session booked"
+      },
+      {
+        "id": "e-book-nr_row-not-required",
+        "source": "book",
+        "target": "nr_row",
+        "label": "Not required"
+      },
+      {
+        "id": "e-booked_row-booked_mail",
+        "source": "booked_row",
+        "target": "booked_mail"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

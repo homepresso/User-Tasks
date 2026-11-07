@@ -409,4 +409,13 @@ describe('id maps: role and mcp_server', () => {
     expect(remapped.config.mcp_server_id).toBe('local-mcp')
     expect(remapped.config.other_id).toBe('untouched')
   })
+
+  it("remaps a media step's speech provider (transcribe_integration_id) like its main provider", () => {
+    const idMaps = createEmptyAssetIdMaps()
+    idMaps.integration['src-vision'] = 'local-vision'
+    idMaps.integration['src-speech'] = 'local-speech'
+    const remapped = remapKnownIds({ type: 'media_redact_video', config: { integration_id: 'src-vision', transcribe_integration_id: 'src-speech' } }, idMaps)
+    expect(remapped.config).toEqual({ integration_id: 'local-vision', transcribe_integration_id: 'local-speech' })
+    expect(ID_KEY_TO_MAP.transcribe_integration_id).toBe('integration')
+  })
 })

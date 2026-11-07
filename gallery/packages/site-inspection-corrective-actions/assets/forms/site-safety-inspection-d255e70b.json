@@ -1,0 +1,747 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "d255e70b-9ea0-5d64-a2a6-c429ba3f40a5",
+  "asset": {
+    "id": "d255e70b-9ea0-5d64-a2a6-c429ba3f40a5",
+    "name": "Site safety inspection",
+    "description": "The inspector's form: pick the site (the manager, address and risk class fill in), work through the checklist table (Pass / Fail / N/A with a severity for each failure), rate the site, add photos and sign. Each submission starts the Site inspection workflow.",
+    "tags": [
+      "inspection",
+      "health and safety",
+      "checklist"
+    ],
+    "fields": [
+      {
+        "key": "site",
+        "label": "Site",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Start typing a site name or code.",
+        "lookup": {
+          "source": "table",
+          "table_id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+          "search_columns": [
+            "name",
+            "site_code",
+            "address"
+          ],
+          "display_columns": [
+            "name",
+            "address",
+            "risk_class"
+          ],
+          "value_column": "site_code",
+          "fill": [
+            {
+              "from": "name",
+              "to": "site_name"
+            },
+            {
+              "from": "site_manager",
+              "to": "site_manager"
+            },
+            {
+              "from": "site_manager_email",
+              "to": "site_manager_email"
+            },
+            {
+              "from": "address",
+              "to": "site_address"
+            },
+            {
+              "from": "risk_class",
+              "to": "risk_class"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "site_name",
+        "label": "Site name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "site_address",
+        "label": "Address",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "site_manager",
+        "label": "Site manager",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "site_manager_email",
+        "label": "Site manager email",
+        "type": "email",
+        "read_only": true
+      },
+      {
+        "key": "risk_class",
+        "label": "Risk class",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "inspection_date",
+        "label": "Inspection date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "inspection_type",
+        "label": "Inspection type",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Routine",
+          "Follow-up",
+          "Incident",
+          "Pre-start"
+        ],
+        "default": "Routine",
+        "display": "radio"
+      },
+      {
+        "key": "checklist",
+        "type": "custom",
+        "label": "Checklist",
+        "custom": {
+          "tag": "ut-table",
+          "version": "1.1.0",
+          "name": "Table",
+          "value_type": "array",
+          "icon": "table",
+          "value_schema": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "object"
+            }
+          },
+          "props": {
+            "columns": [
+              {
+                "key": "item",
+                "label": "Item",
+                "type": "text",
+                "required": true,
+                "width": 260
+              },
+              {
+                "key": "area",
+                "label": "Area",
+                "type": "select",
+                "options": [
+                  "Fire safety",
+                  "Housekeeping",
+                  "Electrical",
+                  "Equipment",
+                  "PPE",
+                  "Hazardous substances",
+                  "First aid",
+                  "Other"
+                ],
+                "width": 150
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "type": "select",
+                "options": [
+                  "Pass",
+                  "Fail",
+                  "N/A"
+                ],
+                "required": true,
+                "width": 100
+              },
+              {
+                "key": "severity",
+                "label": "Severity",
+                "type": "select",
+                "options": [
+                  "Low",
+                  "Medium",
+                  "High"
+                ],
+                "width": 110
+              },
+              {
+                "key": "notes",
+                "label": "Notes (what you found)",
+                "type": "text",
+                "width": 240
+              }
+            ],
+            "min_rows": 1,
+            "max_rows": 40,
+            "allow_add": true,
+            "allow_delete": true,
+            "show_totals": false,
+            "currency": "USD",
+            "default_rows": [
+              {
+                "item": "Fire exits and escape routes clear and signed",
+                "area": "Fire safety",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "Fire extinguishers in place, tagged and in date",
+                "area": "Fire safety",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "Walkways and stairs free of trip hazards",
+                "area": "Housekeeping",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "Electrical leads and equipment tested and tagged",
+                "area": "Electrical",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "Machine guards fitted and working",
+                "area": "Equipment",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "Required PPE available and worn",
+                "area": "PPE",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "Chemicals labelled, safety data sheets on hand",
+                "area": "Hazardous substances",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              },
+              {
+                "item": "First aid kit stocked, first aiders listed",
+                "area": "First aid",
+                "status": "",
+                "severity": "",
+                "notes": ""
+              }
+            ]
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "grid",
+            "keyboard": "Tab into the table (one stop). Arrow keys move between cells, Home / End to the row's ends (Ctrl+Home / End to the table's), Enter, F2 or typing edits a cell; Enter saves and moves down, Shift+Enter up, Escape cancels; Tab / Shift+Tab move cell by cell and leave the table at its ends. Delete clears a cell, Space or Enter toggles a tick box, Ctrl+Enter adds a row; each row's Delete row button is the last cell of the row.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 240,
+            "min_height": 120,
+            "max_height": 1200,
+            "full_width": true
+          },
+          "output": {
+            "type": "array",
+            "description": "The rows entered"
+          }
+        },
+        "required": true,
+        "help_text": "Mark every item Pass, Fail or N/A. For a failure, pick a severity and note what you found: each one becomes a corrective action. Add rows for site-specific checks."
+      },
+      {
+        "key": "site_condition",
+        "type": "custom",
+        "label": "Overall site condition",
+        "custom": {
+          "tag": "ut-rating",
+          "version": "1.1.0",
+          "name": "Rating",
+          "value_type": "number",
+          "icon": "star",
+          "value_schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "props": {
+            "max": 5,
+            "symbol": "star",
+            "size": "large",
+            "labels": [
+              "Unsafe",
+              "Poor",
+              "Acceptable",
+              "Good",
+              "Excellent"
+            ],
+            "allow_clear": false
+          },
+          "display": {
+            "template": "{{value}} of {{props.max}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 52,
+            "min_height": 36,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The rating (1 to the maximum)"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "photos",
+        "label": "Photos",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 10,
+          "max_file_mb": 20,
+          "types": [
+            "images"
+          ]
+        },
+        "help_text": "Photos of hazards and of the site. They are attached to the report emailed to the site manager."
+      },
+      {
+        "key": "observations",
+        "type": "custom",
+        "label": "General observations",
+        "custom": {
+          "tag": "ut-rich-text",
+          "version": "1.1.0",
+          "name": "Rich text",
+          "value_type": "json",
+          "icon": "type",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "html": {
+                "type": "string",
+                "maxLength": 100000
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 100000
+              }
+            },
+            "required": [
+              "html",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "placeholder": "Anything else you noticed: good practice, near misses, conversations with staff…",
+            "max_length": 4000,
+            "toolbar": "basic",
+            "min_height": 120
+          },
+          "display": {
+            "template": "{{value.text}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "textbox",
+            "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 216,
+            "min_height": 120,
+            "max_height": 900,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "primary": "html",
+            "html": true,
+            "extras": {
+              "text": "text"
+            },
+            "choices": [
+              {
+                "value": "html",
+                "label": "HTML (formatted, sanitised)",
+                "primary": "html",
+                "html": true
+              },
+              {
+                "value": "text",
+                "label": "Plain text",
+                "primary": "text"
+              }
+            ],
+            "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+          }
+        }
+      },
+      {
+        "key": "summary_card",
+        "type": "custom",
+        "label": "Summary",
+        "custom": {
+          "tag": "ut-info-card",
+          "version": "1.1.0",
+          "name": "Info card",
+          "value_type": "string",
+          "icon": "info",
+          "props": {
+            "variant": "info",
+            "card_title": "You are signing off this inspection",
+            "body": "",
+            "layout": "key-value",
+            "labels": [
+              "Site",
+              "Address",
+              "Site manager",
+              "Risk class",
+              "Date",
+              "Type"
+            ],
+            "format": "auto",
+            "show_icon": true
+          },
+          "context_map": {
+            "field1": "site_name",
+            "field2": "site_address",
+            "field3": "site_manager",
+            "field4": "risk_class",
+            "field5": "inspection_date",
+            "field6": "inspection_type"
+          },
+          "display": {
+            "template": "{{props.card_title}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "note",
+            "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 72,
+            "min_height": 32,
+            "max_height": 800,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "declaration",
+        "label": "I inspected this site in person and the checklist is accurate",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "inspector_signature",
+        "type": "custom",
+        "label": "Inspector signature",
+        "custom": {
+          "tag": "ut-signature",
+          "version": "1.1.0",
+          "name": "Signature",
+          "value_type": "files",
+          "icon": "signature",
+          "value_schema": {
+            "type": "array",
+            "maxItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "type": {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          "props": {
+            "background": "white",
+            "height": 160,
+            "allow_typed": true,
+            "prompt": "Inspector signature"
+          },
+          "display": {
+            "format": "list"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the drawing area and the buttons. Keyboard users choose \"Type your name instead\", type their name and press Enter (or \"Use this signature\"). Undo removes the last stroke, Clear empties the pad, \"Sign again\" replaces a saved signature.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 222,
+            "min_height": 140,
+            "max_height": 640,
+            "full_width": true
+          },
+          "capabilities": [
+            "files"
+          ],
+          "output": {
+            "type": "array",
+            "description": "The signature image as an uploaded file (a list of one, like Attachments)"
+          }
+        },
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "page_1",
+          "title": "Site",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "site",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "site_name",
+                  "span": 1
+                },
+                {
+                  "field_key": "risk_class",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "site_address",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "site_manager",
+                  "span": 1
+                },
+                {
+                  "field_key": "site_manager_email",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "inspection_date",
+                  "span": 1
+                },
+                {
+                  "field_key": "inspection_type",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "map-pin",
+          "description": "Which site, when and why."
+        },
+        {
+          "id": "page_2",
+          "title": "Checklist",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "checklist",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "clipboard-check",
+          "description": "Pass, Fail or N/A for each item; a severity for every failure."
+        },
+        {
+          "id": "page_3",
+          "title": "Condition and photos",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "site_condition",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "photos",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "observations",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "camera"
+        },
+        {
+          "id": "page_4",
+          "title": "Sign off",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "summary_card",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "declaration",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "inspector_signature",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "pen-line"
+        }
+      ],
+      "page_settings": {
+        "indicator": "numbered",
+        "review": true,
+        "review_title": "Check the inspection",
+        "next_label": "Next",
+        "resume": true
+      }
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#CA8A04",
+            "background": "#FFFFFF",
+            "text": "#1C1917",
+            "page": "#FEF9E7",
+            "page_to": "#FFFDF5"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit inspection",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Inspection submitted",
+            "screen_button": "submit_another",
+            "text": "The report is on its way to the site manager. Any failed items are now corrective actions in your task list.",
+            "screen_button_label": "Inspect another site"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Site safety inspection",
+      "align": "left",
+      "subtitle": "Four steps: the site, the checklist, condition and photos, and your signature. Failed items become corrective actions automatically."
+    }
+  }
+}

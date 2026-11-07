@@ -85,6 +85,17 @@ export function installEncryptionKey(raw: string): void {
   cachedKey = undefined
 }
 
+/**
+ * The configured ENCRYPTION_KEY as text (installed from the secret store, else
+ * the environment; trimmed), for deriving other server keys from it
+ * (lib/config/signing). Null when unset or an unresolved secret reference.
+ */
+export function encryptionKeyMaterial(): string | null {
+  const raw = (installedRaw ?? process.env.ENCRYPTION_KEY)?.trim()
+  if (!raw || raw.startsWith("secret://")) return null
+  return raw
+}
+
 /** Whether a key is available (env or installed), without throwing. */
 export function hasEncryptionKey(): boolean {
   try {

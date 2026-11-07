@@ -169,7 +169,7 @@ export async function finishOidc(
 
   return {
     identity: toExternalIdentity(idp, merged),
-    redirect: String(flow.redirect ?? '/tasks'),
+    redirect: String(flow.redirect ?? '/home'),
     org: typeof flow.org === 'string' && flow.org ? flow.org : null,
   }
 }

@@ -1,0 +1,152 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "5f426f85-80ff-5cb0-b52c-adb538376fcc",
+  "asset": {
+    "id": "5f426f85-80ff-5cb0-b52c-adb538376fcc",
+    "name": "Review route",
+    "description": "Decides how many reviewers a document needs, whether legal reviews it and how many days reviewers get, from the document type and the size of the change. Edit the rows to match your governance.",
+    "inputs": [
+      {
+        "key": "doc_type",
+        "label": "Document type",
+        "type": "string",
+        "id": "c46b3a7a-6c97-541a-b576-a2eecf5fcd19"
+      },
+      {
+        "key": "change_size",
+        "label": "Change",
+        "type": "string",
+        "id": "13fe447a-2267-5be5-8f0e-8fc626181a98"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "reviewers_needed",
+        "label": "Reviewers",
+        "type": "number",
+        "id": "e215b66c-d65e-5e8e-8d92-0b769933d493"
+      },
+      {
+        "key": "legal_review",
+        "label": "Legal review",
+        "type": "boolean",
+        "id": "537daa26-9108-52e3-9fce-31313dc8c8fb"
+      },
+      {
+        "key": "review_days",
+        "label": "Days per review",
+        "type": "number",
+        "id": "29e16337-d784-5972-a2b1-4faa8655ecea"
+      },
+      {
+        "key": "route_name",
+        "label": "Route",
+        "type": "string",
+        "id": "ec6bdcfd-9a5a-5460-be8d-4e892da1c051"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Contract, major change",
+        "conditions": [
+          {
+            "inputKey": "doc_type",
+            "operator": "equals",
+            "value": "Contract",
+            "id": "e7a7a072-9f19-5eb7-b241-91fc7d686bca"
+          },
+          {
+            "inputKey": "change_size",
+            "operator": "equals",
+            "value": "Major change",
+            "id": "ba718347-efb0-5f63-a750-cd64b1869f85"
+          }
+        ],
+        "outputs": {
+          "reviewers_needed": 2,
+          "legal_review": true,
+          "review_days": 5,
+          "route_name": "2 reviewers + legal"
+        },
+        "id": "1f724c71-846b-51e7-84dc-ea36879c3ac6",
+        "enabled": true
+      },
+      {
+        "label": "Contract",
+        "conditions": [
+          {
+            "inputKey": "doc_type",
+            "operator": "equals",
+            "value": "Contract",
+            "id": "6d3b335c-1bf2-5963-8d27-e0fddb1d1238"
+          }
+        ],
+        "outputs": {
+          "reviewers_needed": 1,
+          "legal_review": true,
+          "review_days": 5,
+          "route_name": "1 reviewer + legal"
+        },
+        "id": "b830913b-2250-516e-8bd3-4975bfb0b7af",
+        "enabled": true
+      },
+      {
+        "label": "Policy, major change or new",
+        "conditions": [
+          {
+            "inputKey": "doc_type",
+            "operator": "equals",
+            "value": "Policy",
+            "id": "7a68b261-78c5-5cec-9c19-af2ae42bbd9b"
+          },
+          {
+            "inputKey": "change_size",
+            "operator": "not_equals",
+            "value": "Minor change",
+            "id": "cc4cb6dc-6044-56d1-918f-6eec06d53b0e"
+          }
+        ],
+        "outputs": {
+          "reviewers_needed": 2,
+          "legal_review": true,
+          "review_days": 5,
+          "route_name": "2 reviewers + legal"
+        },
+        "id": "ac81e2b5-ef93-5362-ba7f-c7faf57ee7d7",
+        "enabled": true
+      },
+      {
+        "label": "Policy, minor change",
+        "conditions": [
+          {
+            "inputKey": "doc_type",
+            "operator": "equals",
+            "value": "Policy",
+            "id": "111ca0da-0bb6-50ab-ab8d-832529e0b0fa"
+          }
+        ],
+        "outputs": {
+          "reviewers_needed": 1,
+          "legal_review": false,
+          "review_days": 3,
+          "route_name": "1 reviewer"
+        },
+        "id": "e9d68855-9849-5a92-883f-34922121c119",
+        "enabled": true
+      },
+      {
+        "label": "Procedure (and anything else)",
+        "conditions": [],
+        "outputs": {
+          "reviewers_needed": 1,
+          "legal_review": false,
+          "review_days": 3,
+          "route_name": "1 reviewer"
+        },
+        "id": "dc7cf2c1-de6a-5d06-9b85-aafdabf28535",
+        "enabled": true
+      }
+    ]
+  }
+}

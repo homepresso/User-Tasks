@@ -20,12 +20,18 @@ import type { InstanceConfig } from '@/lib/config'
 import { hasSwitchLog, listRecords } from './switch/log'
 import { SWITCH_PLANS } from './switch/plans'
 import type { SwitchOptions } from './switch/types'
+import { serviceSqlClient, NEEDS_DIRECT_REMEDY, type ServiceApiClient } from '@/lib/admin/ops/service-sql'
+import type { SqlClient } from '@/lib/admin/ops/instance-db'
+import { DIRECT_ONLY_SWITCH_AREAS } from '@/lib/admin/switch-runtime'
+import { setUiSwitching } from '@/lib/admin/switch/ui-lock'
 
 /**
  * usertasks-admin — server-side administration, run where the app runs
  * (same environment: DATABASE_URL, provider variables, ENCRYPTION_KEY).
  * status and doctor also run without DATABASE_URL on the Supabase provider,
- * through its API with SUPABASE_SERVICE_ROLE_KEY (see supabaseApi below).
+ * through its API with SUPABASE_SERVICE_ROLE_KEY (see supabaseApi below), and
+ * so do config-only switches and settings rollbacks, history, instance-admins
+ * and ui-switching (withStore: the same engine over the service-role API).
  * `run(argv, io)` returns the exit code (0 ok, 1 failed, 2 usage / refused).
  */
 
@@ -345,6 +351,20 @@ async function withDb<T>(url: string | undefined, fn: (db: pg.Client | null) => 
   }
 }
 
+/**
+ * A direct connection when DATABASE_URL / --db-url is set; otherwise, on the
+ * Supabase provider with its service-role key, the service-role API
+ * (dbUrl ''), or null (the caller says what to set).
+ */
+async function withStore<T>(url: string | undefined, io: CliIO, fn: (db: SqlClient, dbUrl: string, viaApi: boolean) => Promise<T>): Promise<T | null> {
+  if (url) return withDb(url, (db) => fn(db!, url, false), io.err)
+  const api = await supabaseApi(io)
+  if (!api) return null
+  return fn(serviceSqlClient(api.rpc as unknown as ServiceApiClient), '', true)
+}
+
+const NO_STORE = 'reach the app database (or, on the Supabase database provider, set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for configuration changes through its API)'
+
 export async function run(argv: string[], io: CliIO = defaultIO): Promise<number> {
   let command: Command
   let values: ParsedValues
@@ -433,44 +453,48 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
       }, io.err)
 
     case 'switch': {
-      if (!url) return needDb('reach the app database')
+      if (!url && DIRECT_ONLY_SWITCH_AREAS.includes(command.area)) {
+        io.err(`Switching ${areaName(command.area)} copies data and needs a direct connection: set DATABASE_URL (or --db-url). On Supabase: ${NEEDS_DIRECT_REMEDY.replace(/^add /, 'use ')}.`)
+        return 2
+      }
       const plan = SWITCH_PLANS[command.area]
-      return withDb(url, async (db) => {
-        const result = await runSwitch({ db: db!, dbUrl: url, area: command.area, plan, options: command.options, io: { log: io.out, warn: io.err } })
+      const code = await withStore(url, io, async (db, dbUrl, viaApi) => {
+        if (viaApi) io.err('No DATABASE_URL: switching through the Supabase service-role API (configuration only).')
+        const result = await runSwitch({ db, dbUrl, area: command.area, plan, options: command.options, io: { log: io.out, warn: io.err } })
         return result.code
-      }, io.err)
+      })
+      return code ?? needDb(NO_STORE)
     }
 
     case 'rollback': {
-      if (!url) return needDb('reach the app database')
-      return withDb(url, async (db) => {
+      const code = await withStore(url, io, async (db, dbUrl) => {
         const result = await runRollback({
-          db: db!, dbUrl: url, id: command.id, plans: SWITCH_PLANS, yes: values.yes === true, dryRun: values['dry-run'] === true,
+          db, dbUrl, id: command.id, plans: SWITCH_PLANS, yes: values.yes === true, dryRun: values['dry-run'] === true,
           backupRoot: backupRoot(values, io.env), actor: values.actor || defaultActor(), io: { log: io.out, warn: io.err },
-        })
+        }).catch((error: Error) => { io.err(error.message); return { code: 1 as const } })
         return result.code
-      }, io.err)
+      })
+      return code ?? needDb(NO_STORE)
     }
 
     case 'history': {
-      if (!url) return needDb('read the switch log')
-      return withDb(url, async (db) => {
-        if (!(await hasSwitchLog(db!))) { io.err('No switch log in this database (apply the migrations: usertasks-admin db migrate).'); return 1 }
-        const records = await listRecords(db!, Number(values.limit ?? 20))
+      const code = await withStore(url, io, async (db) => {
+        if (!(await hasSwitchLog(db))) { io.err('No switch log in this database (apply the migrations: usertasks-admin db migrate).'); return 1 }
+        const records = await listRecords(db, Number(values.limit ?? 20))
         if (values.json) { io.out(JSON.stringify(records.map((r) => ({ ...r, config_before: undefined, config_after: undefined })), null, 2)); return 0 }
         if (!records.length) io.out('No provider switches yet.')
         for (const r of records) {
-          io.out(`${r.id}  ${r.started_at}  ${r.kind.padEnd(8)} ${areaName(r.area).padEnd(9)} ${String(r.from_provider ?? '?')} → ${r.to_provider}  ${r.status}${r.actor ? `  ${r.actor}` : ''}`)
+          io.out(`${r.id}  ${r.started_at}  ${r.kind.padEnd(8)} ${(r.area === 'instance' ? 'instance' : areaName(r.area)).padEnd(9)} ${String(r.from_provider ?? '?')} → ${r.to_provider}  ${r.status}${r.actor ? `  ${r.actor}` : ''}`)
           if (r.error) io.out(`    error: ${r.error}`)
         }
         return 0
-      }, io.err)
+      })
+      return code ?? needDb('read the switch log')
     }
 
     case 'instance-admins': {
-      if (!url) return needDb('read and write instance settings')
-      return withDb(url, async (db) => {
-        const rows = await readSettingRows(db!)
+      const code = await withStore(url, io, async (db) => {
+        const rows = await readSettingRows(db)
         const current = parseAdminEmails(decodeSettings(rows).get(INSTANCE_ADMINS_SETTING))
         const fromEnv = parseAdminEmails(io.env.INSTANCE_ADMIN_EMAILS)
         if (command.action === 'list') {
@@ -482,31 +506,38 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
         const next = command.action === 'add'
           ? [...new Set([...current, ...command.emails])]
           : current.filter((e) => !command.emails.includes(e))
-        await upsertSettingRow(db!, encodeSetting(INSTANCE_ADMINS_SETTING, next, false))
-        const warning = await notifyConfigChanged(db!, [resolveInstanceConfig(decodeSettings(rows))])
+        await upsertSettingRow(db, encodeSetting(INSTANCE_ADMINS_SETTING, next, false))
+        const warning = await notifyConfigChanged(db, [resolveInstanceConfig(decodeSettings(rows))])
         if (warning) io.err(`warning: ${warning}`)
         io.out(`Instance admins (setting): ${next.join(', ') || 'none'}`)
         return 0
-      }, io.err)
+      })
+      return code ?? needDb('read and write instance settings')
     }
 
     case 'ui-switching': {
-      if (!url) return needDb('read and write instance settings')
-      return withDb(url, async (db) => {
-        const rows = await readSettingRows(db!)
+      const code = await withStore(url, io, async (db) => {
+        const rows = await readSettingRows(db)
         const gate = () => switchingGate({ flag: io.env.INFRA_UI_SWITCHING, deploymentMode: io.env.DEPLOYMENT_MODE?.trim().toLowerCase() === 'cloud' ? 'cloud' : 'self_hosted', allowSetting: decodeSettings(rows).get(ALLOW_UI_SWITCHING_SETTING) })
         if (command.action !== 'status') {
-          await upsertSettingRow(db!, encodeSetting(ALLOW_UI_SWITCHING_SETTING, command.action === 'on', false))
-          rows.splice(0, rows.length, ...(await readSettingRows(db!)))
-          const warning = await notifyConfigChanged(db!, [resolveInstanceConfig(decodeSettings(rows))])
-          if (warning) io.err(`warning: ${warning}`)
+          // Recorded in the switch log (area instance) like the page's Unlock / Lock.
+          try {
+            const result = await setUiSwitching(db, command.action === 'on', values.actor || defaultActor())
+            if (result.warning) io.err(`warning: ${result.warning}`)
+            if (result.record) io.out(`Recorded in the switch log: ${result.record.id} (usertasks-admin rollback ${result.record.id} --yes undoes it)`)
+          } catch (error) {
+            io.err((error as Error).message)
+            return 1
+          }
+          rows.splice(0, rows.length, ...(await readSettingRows(db)))
         }
         const allowed = decodeSettings(rows).get(ALLOW_UI_SWITCHING_SETTING) === true
         const result = gate()
         io.out(`${ALLOW_UI_SWITCHING_SETTING} = ${allowed}${io.env.INFRA_UI_SWITCHING !== undefined ? ` · INFRA_UI_SWITCHING=${io.env.INFRA_UI_SWITCHING} (this shell)` : ''}`)
         io.out(result.enabled ? 'Provider changes from Settings → Infrastructure: allowed (with this environment).' : `Provider changes from Settings → Infrastructure: off — ${result.reason}`)
         return 0
-      }, io.err)
+      })
+      return code ?? needDb('read and write instance settings')
     }
 
     case 'housekeeping':

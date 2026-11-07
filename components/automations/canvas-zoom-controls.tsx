@@ -3,6 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react"
 import { ChevronDown, Crosshair, Maximize, Minus, Plus } from "lucide-react"
 import { formatZoom, MAX_ZOOM, MIN_ZOOM, ZOOM_PRESETS, zoomShortcutHints } from "@/lib/canvas-zoom"
+import { cn } from "@/lib/utils"
+import { Kbd } from "@/components/ui/kbd"
+import { IconButton } from "@/components/ui/icon-button"
+import { Tooltip } from "@/components/ui/tooltip"
+import { floatingSurfaceClass } from "@/components/ui/dropdown-menu"
 
 interface CanvasZoomControlsProps {
   zoom: number
@@ -20,13 +25,18 @@ interface CanvasZoomControlsProps {
   focusStepLabel?: string
   /** Where the bar sits: the menu opens away from the edge (default bottom). */
   placement?: "top" | "bottom"
+  /**
+   * Horizontal bar (default) or a vertical column (designer, bottom-left):
+   * +, zoom %, −, then Fit / step / children. A vertical bar's menu opens to its right.
+   */
+  orientation?: "horizontal" | "vertical"
   /** Extra buttons after Fit (e.g. full screen). */
   children?: React.ReactNode
   className?: string
 }
 
-/** Bottom-right canvas zoom bar: −, zoom % menu (presets, fit, selection), +, Fit. */
-export function CanvasZoomControls({ zoom, isMac, onZoomIn, onZoomOut, onZoomTo, onFit, onFitSelection, hasSelection = false, onFocusStep, focusStepLabel = "Zoom to step", placement = "bottom", children, className }: CanvasZoomControlsProps) {
+/** Canvas zoom bar: −, zoom % menu (presets, fit, selection), +, Fit (or a vertical column). */
+export function CanvasZoomControls({ zoom, isMac, onZoomIn, onZoomOut, onZoomTo, onFit, onFitSelection, hasSelection = false, onFocusStep, focusStepLabel = "Zoom to step", placement = "bottom", orientation = "horizontal", children, className }: CanvasZoomControlsProps) {
   const hints = zoomShortcutHints(isMac)
   const [open, setOpen] = useState(false)
   const menuId = useId()
@@ -61,9 +71,54 @@ export function CanvasZoomControls({ zoom, isMac, onZoomIn, onZoomOut, onZoomTo,
     else if (e.key === "Tab") setOpen(false)
   }
 
-  const btn = "flex items-center justify-center h-7 min-w-7 px-1.5 transition-colors hover:bg-[var(--theme-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:opacity-40 disabled:cursor-not-allowed"
-  const ring = { "--tw-ring-color": "var(--theme-focus-ring)" } as React.CSSProperties
-  const item = "w-full flex items-center justify-between gap-4 px-3 py-1.5 text-left text-xs transition-colors hover:bg-[var(--theme-surface)] focus:bg-[var(--theme-surface)] focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+  const vertical = orientation === "vertical"
+  const btn = "flex items-center justify-center h-7 min-w-7 px-1.5 text-fg transition-colors hover:bg-subtle disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+  const item = "w-full flex h-8 items-center justify-between gap-4 rounded-md px-2 text-left text-ui text-fg transition-colors hover:bg-subtle focus:bg-subtle outline-none disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+  const surface = "rounded-lg border border-border bg-elevated shadow-elev-2"
+
+  // Tooltips open away from the canvas edge the bar sits on.
+  const tipSide = vertical ? "right" : placement === "top" ? "bottom" : "top"
+  const iconBtn = cn("text-fg rounded-none", vertical && "w-full")
+  const zoomOut = (
+    <IconButton type="button" size="sm" className={iconBtn} tooltipSide={tipSide} onClick={onZoomOut} disabled={zoom <= MIN_ZOOM + 1e-6}
+      label={`Zoom out (${hints.out})`} icon={<Minus />} />
+  )
+  const zoomIn = (
+    <IconButton type="button" size="sm" className={iconBtn} tooltipSide={tipSide} onClick={onZoomIn} disabled={zoom >= MAX_ZOOM - 1e-6}
+      label={`Zoom in (${hints.in})`} icon={<Plus />} />
+  )
+  const level = (
+    <Tooltip content="Zoom level" side={tipSide}>
+    <button
+      ref={triggerRef}
+      type="button"
+      className={cn(btn, "num text-2xs font-medium", vertical ? "w-full h-7 px-0 border-y border-border-subtle" : "gap-0.5 min-w-[58px] border-x border-border-subtle")}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-controls={open ? menuId : undefined}
+      aria-label={`Zoom level ${formatZoom(zoom)}, choose zoom`}
+      onClick={() => setOpen((o) => !o)}
+      onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); setOpen(true) } }}
+    >
+      {formatZoom(zoom)}
+      {!vertical && <ChevronDown size={12} aria-hidden="true" className="text-fg-muted" />}
+    </button>
+    </Tooltip>
+  )
+  // Standalone (horizontal) buttons sit on their own elevated tile.
+  const tileBtn = vertical ? iconBtn : cn("text-fg", surface, "hover:bg-subtle")
+  const fit = (
+    <IconButton type="button" size="sm" className={tileBtn} tooltipSide={tipSide}
+      onClick={onFit} label={`Zoom to fit (${hints.fit})`} icon={<Maximize />} />
+  )
+  const focus = onFocusStep && (
+    <IconButton type="button" size="sm" className={tileBtn} tooltipSide={tipSide}
+      onClick={onFocusStep} label={`${focusStepLabel} (${hints.step})`} icon={<Crosshair />} />
+  )
+
+  const menuPosition = vertical
+    ? (placement === "top" ? "left-full top-0 ml-1.5" : "left-full bottom-0 ml-1.5")
+    : (placement === "top" ? "right-0 top-full mt-1.5" : "right-0 bottom-full mb-1.5")
 
   return (
     <div
@@ -72,51 +127,31 @@ export function CanvasZoomControls({ zoom, isMac, onZoomIn, onZoomOut, onZoomTo,
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       data-canvas-zoom-controls=""
+      data-orientation={orientation}
     >
-      <div role="toolbar" aria-label="Canvas zoom" className="flex items-center gap-1">
-        <div className="flex items-center rounded-lg border shadow-sm overflow-hidden"
-          style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}>
-          <button type="button" className={btn} style={ring} onClick={onZoomOut} disabled={zoom <= MIN_ZOOM + 1e-6}
-            aria-label={`Zoom out (${hints.out})`} title={`Zoom out (${hints.out})`}>
-            <Minus size={14} aria-hidden="true" />
-          </button>
-          <button
-            ref={triggerRef}
-            type="button"
-            className={`${btn} gap-0.5 text-[11px] font-medium tabular-nums min-w-[58px]`}
-            style={{ ...ring, borderLeft: "1px solid var(--theme-surface-border)", borderRight: "1px solid var(--theme-surface-border)" }}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            aria-controls={open ? menuId : undefined}
-            aria-label={`Zoom level ${formatZoom(zoom)}, choose zoom`}
-            title="Zoom level"
-            onClick={() => setOpen((o) => !o)}
-            onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); setOpen(true) } }}
-          >
-            {formatZoom(zoom)}
-            <ChevronDown size={11} aria-hidden="true" style={{ color: "var(--theme-muted-text)" }} />
-          </button>
-          <button type="button" className={btn} style={ring} onClick={onZoomIn} disabled={zoom >= MAX_ZOOM - 1e-6}
-            aria-label={`Zoom in (${hints.in})`} title={`Zoom in (${hints.in})`}>
-            <Plus size={14} aria-hidden="true" />
-          </button>
+      {vertical ? (
+        <div role="toolbar" aria-label="Canvas zoom" aria-orientation="vertical"
+          className={cn(surface, "relative flex w-8 flex-col items-stretch overflow-hidden")}>
+          {zoomIn}
+          {level}
+          {zoomOut}
+          <div role="separator" className="h-px bg-border-subtle" />
+          {fit}
+          {focus}
+          {children}
         </div>
-        <button type="button"
-          className={`${btn} rounded-lg border shadow-sm`}
-          style={{ ...ring, backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
-          onClick={onFit} aria-label={`Zoom to fit (${hints.fit})`} title={`Zoom to fit (${hints.fit})`}>
-          <Maximize size={14} aria-hidden="true" />
-        </button>
-        {onFocusStep && (
-          <button type="button"
-            className={`${btn} rounded-lg border shadow-sm`}
-            style={{ ...ring, backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
-            onClick={onFocusStep} aria-label={`${focusStepLabel} (${hints.step})`} title={`${focusStepLabel} (${hints.step})`}>
-            <Crosshair size={14} aria-hidden="true" />
-          </button>
-        )}
-        {children}
-      </div>
+      ) : (
+        <div role="toolbar" aria-label="Canvas zoom" className="flex items-center gap-1">
+          <div className={cn(surface, "flex items-center overflow-hidden")}>
+            {zoomOut}
+            {level}
+            {zoomIn}
+          </div>
+          {fit}
+          {focus}
+          {children}
+        </div>
+      )}
 
       {open && (
         <div
@@ -124,32 +159,31 @@ export function CanvasZoomControls({ zoom, isMac, onZoomIn, onZoomOut, onZoomTo,
           id={menuId}
           role="menu"
           aria-label="Zoom"
-          className={`absolute right-0 min-w-[200px] rounded-lg border shadow-lg py-1 z-30 ${placement === "top" ? "top-full mt-1.5" : "bottom-full mb-1.5"}`}
-          style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+          className={cn("absolute min-w-[200px] p-1 z-30", floatingSurfaceClass, menuPosition)}
           onKeyDown={onMenuKey}
         >
           {ZOOM_PRESETS.map((z) => (
             <button key={z} type="button" role="menuitem" className={item} onClick={() => choose(() => onZoomTo(z))}>
-              <span>{formatZoom(z)}</span>
-              {z === 1 && <kbd className="text-[10px] font-sans" style={{ color: "var(--theme-muted-text)" }}>{hints.reset}</kbd>}
+              <span className="num">{formatZoom(z)}</span>
+              {z === 1 && <Kbd>{hints.reset}</Kbd>}
             </button>
           ))}
-          <div role="separator" className="my-1 h-px" style={{ backgroundColor: "var(--theme-surface-border)" }} />
+          <div role="separator" className="-mx-1 my-1 h-px bg-border-subtle" />
           <button type="button" role="menuitem" className={item} onClick={() => choose(onFit)}>
             <span>Zoom to fit</span>
-            <kbd className="text-[10px] font-sans" style={{ color: "var(--theme-muted-text)" }}>{hints.fit}</kbd>
+            <Kbd>{hints.fit}</Kbd>
           </button>
           {onFitSelection && (
             <button type="button" role="menuitem" className={item} disabled={!hasSelection} onClick={() => choose(onFitSelection)}
               title={hasSelection ? undefined : "Select steps or a connection first"}>
               <span>Zoom to selection</span>
-              <kbd className="text-[10px] font-sans" style={{ color: "var(--theme-muted-text)" }}>{hints.selection}</kbd>
+              <Kbd>{hints.selection}</Kbd>
             </button>
           )}
           {onFocusStep && (
             <button type="button" role="menuitem" className={item} onClick={() => choose(onFocusStep)}>
               <span>{focusStepLabel}</span>
-              <kbd className="text-[10px] font-sans" style={{ color: "var(--theme-muted-text)" }}>{hints.step}</kbd>
+              <Kbd>{hints.step}</Kbd>
             </button>
           )}
         </div>

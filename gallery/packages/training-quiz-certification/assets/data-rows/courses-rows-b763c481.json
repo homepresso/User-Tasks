@@ -1,0 +1,76 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b763c481-c305-51cd-b2ff-ecebd67f8608",
+  "asset": {
+    "id": "b763c481-c305-51cd-b2ff-ecebd67f8608",
+    "name": "Courses rows",
+    "rows": [
+      {
+        "id": "eee8edd6-fb9b-5470-9d81-3cdeba97e4ad",
+        "data": {
+          "course_code": "ISEC-101",
+          "title": "Information security basics",
+          "topic": "Security",
+          "pass_mark": 80,
+          "validity_months": 12,
+          "trainer": "Avery Example",
+          "duration_hours": 1.5,
+          "active": true
+        }
+      },
+      {
+        "id": "65149beb-3455-5f40-86b8-cc2e9fe7be89",
+        "data": {
+          "course_code": "SAFE-201",
+          "title": "Workplace safety essentials",
+          "topic": "Health & safety",
+          "pass_mark": 80,
+          "validity_months": 24,
+          "trainer": "Jordan Sample",
+          "duration_hours": 3,
+          "active": true
+        }
+      },
+      {
+        "id": "5ed77204-c950-5717-8af0-2c7774b5d2a6",
+        "data": {
+          "course_code": "PRIV-110",
+          "title": "Privacy and data handling",
+          "topic": "Privacy",
+          "pass_mark": 75,
+          "validity_months": 12,
+          "trainer": "Riley Test",
+          "duration_hours": 2,
+          "active": true
+        }
+      },
+      {
+        "id": "1096fde7-48db-5a06-a76b-6e27a2b6cc88",
+        "data": {
+          "course_code": "FIRE-120",
+          "title": "Fire warden refresher",
+          "topic": "Health & safety",
+          "pass_mark": 85,
+          "validity_months": 36,
+          "trainer": "Casey Demo",
+          "duration_hours": 2.5,
+          "active": true
+        }
+      },
+      {
+        "id": "00a629ce-e9ea-5f49-9103-ff7962089503",
+        "data": {
+          "course_code": "ABC-130",
+          "title": "Anti-bribery and gifts",
+          "topic": "Compliance",
+          "pass_mark": 80,
+          "validity_months": 24,
+          "trainer": "Morgan Placeholder",
+          "duration_hours": 1,
+          "active": false
+        }
+      }
+    ]
+  }
+}

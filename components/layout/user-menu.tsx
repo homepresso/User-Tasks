@@ -1,10 +1,19 @@
 "use client"
 
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { LogOut, Settings, User } from "lucide-react"
-import { signOutAndRedirect } from "@/lib/auth-client"
-import { getInitials } from "@/lib/utils"
 import Link from "next/link"
+import { BookOpen, LogOut, Settings, User } from "lucide-react"
+import { signOutAndRedirect } from "@/lib/auth-client"
+import { useCurrentWorkspaceName, WorkspaceMenuItems } from "./workspace-switcher"
+import { Avatar } from "@/components/ui/avatar"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+/**
+ * The avatar menu in the top bar (28px avatar): who you are and which
+ * workspace you're in, the workspace switcher, profile and settings, help,
+ * and sign out.
+ */
 
 interface UserMenuProps {
   user: {
@@ -12,71 +21,65 @@ interface UserMenuProps {
     email: string
     avatar_url: string | null
   }
+  /** The active workspace (null = "All organizations"). */
+  currentTenantId: string | null
 }
 
-export function UserMenu({ user }: UserMenuProps) {
+export function UserMenu({ user, currentTenantId }: UserMenuProps) {
+  const workspaceName = useCurrentWorkspaceName(currentTenantId)
+  const label = `Account and workspaces: ${user.display_name}${workspaceName ? `, ${workspaceName}` : ""}`
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--theme-accent-light)] text-sm font-medium text-[color:var(--theme-card-text)] transition-colors hover:bg-[color:var(--theme-accent-light)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-primary)] focus:ring-offset-2 dark:bg-[color:var(--theme-accent-light)] dark:text-[color:var(--theme-primary-text)]">
-          {user.avatar_url ? (
-            <img
-              src={user.avatar_url}
-              alt={user.display_name}
-              className="h-8 w-8 rounded-full"
-            />
-          ) : (
-            getInitials(user.display_name)
-          )}
-        </button>
-      </DropdownMenu.Trigger>
-
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={8}
-          className="z-50 min-w-[200px] rounded-xl border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          data-user-menu-trigger
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-subtle data-[state=open]:bg-subtle"
         >
-          <div className="px-3 py-2">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {user.display_name}
-            </p>
-            <p className="text-xs text-gray-500">{user.email}</p>
+          <Avatar name={user.display_name} src={user.avatar_url} size="md" aria-hidden role={undefined} aria-label={undefined} />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-1rem)]">
+        <div className="flex items-center gap-2.5 px-2 py-2">
+          <Avatar name={user.display_name} src={user.avatar_url} size="lg" aria-hidden role={undefined} aria-label={undefined} />
+          <div className="min-w-0">
+            <p className="truncate text-ui font-semibold text-fg">{user.display_name}</p>
+            <p className="truncate text-xs text-fg-muted">{user.email}</p>
           </div>
+        </div>
 
-          <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+        <DropdownMenuSeparator />
+        <WorkspaceMenuItems currentTenantId={currentTenantId} />
+        <DropdownMenuSeparator />
 
-          <DropdownMenu.Item asChild>
-            <Link
-              href="/settings"
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              <User className="h-4 w-4" />
-              Profile
-            </Link>
-          </DropdownMenu.Item>
+        <DropdownMenuItem asChild>
+          <Link href="/settings" className="cursor-pointer"><MenuRow icon={<User />}>Profile</MenuRow></Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings" className="cursor-pointer"><MenuRow icon={<Settings />}>Settings</MenuRow></Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/docs" target="_blank" rel="noopener noreferrer" className="cursor-pointer"><MenuRow icon={<BookOpen />}>Help &amp; docs</MenuRow></a>
+        </DropdownMenuItem>
 
-          <DropdownMenu.Item asChild>
-            <Link
-              href="/settings"
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Link>
-          </DropdownMenu.Item>
+        <DropdownMenuSeparator />
 
-          <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+        <DropdownMenuItem danger icon={<LogOut />} onSelect={() => { void signOutAndRedirect() }}>
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
-          <DropdownMenu.Item
-            onSelect={() => { void signOutAndRedirect() }}
-            className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 outline-none hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+/** The inside of an `asChild` menu item (link items render their own icon + label). */
+function MenuRow({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <>
+      <span className="inline-flex shrink-0 text-fg-muted [&>svg]:size-4" aria-hidden>{icon}</span>
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+    </>
   )
 }

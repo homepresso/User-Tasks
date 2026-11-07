@@ -21,6 +21,7 @@
 
 import { inflateSync } from 'node:zlib'
 import type { StepFile } from './workflow-files'
+import { providerFileSupport, type AgentProviderKind } from './agents/provider'
 
 export type AgentContentPart =
   | { type: 'text'; text: string }
@@ -146,17 +147,17 @@ export async function extractFileText(file: Pick<StepFile, 'name' | 'mime_type' 
 
 /* ── Shaping the message ── */
 
-export interface AgentFileSummary { name: string; size: number; mime_type: string; sent_as: 'image' | 'document' | 'text' }
+export interface AgentFileSummary { name: string; size: number; mime_type: string; sent_as: 'image' | 'document' | 'text' | 'reference' }
 
 /**
  * The content parts for a user message carrying `files`, shaped for the
  * provider, plus a summary for logs (names, sizes, how sent — no contents).
  */
-export async function buildAgentFileParts(files: StepFile[], baseUrl: string): Promise<{ parts: AgentContentPart[]; summary: AgentFileSummary[] }> {
+export async function buildAgentFileParts(files: StepFile[], baseUrl: string, providerKind?: AgentProviderKind): Promise<{ parts: AgentContentPart[]; summary: AgentFileSummary[] }> {
   if (files.length > AGENT_FILE_LIMITS.maxFiles) throw new Error(`An agent step takes at most ${AGENT_FILE_LIMITS.maxFiles} files (got ${files.length})`)
   const total = files.reduce((sum, f) => sum + f.size, 0)
   if (total > AGENT_FILE_LIMITS.maxTotalBytes) throw new Error(`The files add up to more than ${AGENT_FILE_LIMITS.maxTotalBytes / 1024 / 1024} MB`)
-  const accepts = providerAccepts(agentFileProvider(baseUrl))
+  const accepts = providerKind ? providerFileSupport(providerKind) : providerAccepts(agentFileProvider(baseUrl))
   const parts: AgentContentPart[] = []
   const summary: AgentFileSummary[] = []
   let textChars = 0
@@ -167,6 +168,12 @@ export async function buildAgentFileParts(files: StepFile[], baseUrl: string): P
       if (file.size > AGENT_FILE_LIMITS.maxImageBytes) throw new Error(`"${file.name}" is larger than ${AGENT_FILE_LIMITS.maxImageBytes / 1024 / 1024} MB (images sent to a model)`)
       parts.push({ type: 'image_url', image_url: { url: `data:${file.mime_type.toLowerCase()};base64,${base64()}` } })
       summary.push({ name: file.name, size: file.size, mime_type: file.mime_type, sent_as: 'image' })
+      continue
+    }
+    // Audio / video: not sent to the chat model; named so a media-enabled agent can pass it to transcribe_media.
+    if (/^(audio|video)\//i.test(file.mime_type)) {
+      parts.push({ type: 'text', text: `File "${file.name}" (${file.mime_type}, ${Math.round(file.size / 1024)} KB):\nA recording — not included in this message. If you have the transcribe_media tool, call it with file_id "${file.name}".` })
+      summary.push({ name: file.name, size: file.size, mime_type: file.mime_type, sent_as: 'reference' })
       continue
     }
     const isPdf = file.mime_type.toLowerCase() === 'application/pdf'

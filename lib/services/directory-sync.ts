@@ -73,6 +73,10 @@ export interface DirectoryConnectionView {
   credentials: Record<string, unknown>
   sync_groups: boolean
   auto_provision: boolean
+  /** Org units from company / division / department (Google: OUs). Off for connections made before the option. */
+  import_org_units: boolean
+  /** Job title, department, location, employee id, cost centre. Off for connections made before the option. */
+  import_profiles: boolean
   last_sync_at: string | null
   last_sync_stats: Record<string, number> | null
   linked_users: number
@@ -118,6 +122,8 @@ async function toView(db: AnySupabaseClient, tenantId: string, connection: Direc
     credentials: maskCredentials(connection.provider, (connection.credentials ?? {}) as Record<string, unknown>),
     sync_groups: connection.syncGroups,
     auto_provision: connection.autoProvision,
+    import_org_units: connection.importOrgUnits,
+    import_profiles: connection.importProfiles,
     last_sync_at: connection.lastSyncAt,
     last_sync_stats: connection.lastSyncStats,
     linked_users: counts.users,
@@ -247,6 +253,10 @@ export interface DirectoryConnectionInput {
   credentials?: Record<string, unknown>
   sync_groups?: boolean
   auto_provision?: boolean
+  /** Default true for a new connection. */
+  import_org_units?: boolean
+  /** Default true for a new connection. */
+  import_profiles?: boolean
 }
 
 export async function createDirectoryConnection(ctx: ServiceContext, input: DirectoryConnectionInput): Promise<{ connection: DirectoryConnectionView; test?: LdapTestResult }> {
@@ -264,6 +274,8 @@ export async function createDirectoryConnection(ctx: ServiceContext, input: Dire
     orgName,
     syncGroups: input.sync_groups ?? true,
     autoProvision: input.auto_provision ?? true,
+    importOrgUnits: input.import_org_units ?? true,
+    importProfiles: input.import_profiles ?? true,
     settings,
     credentials,
     resetDelta: true,
@@ -293,6 +305,8 @@ export async function updateDirectoryConnection(ctx: ServiceContext, rawProvider
     || JSON.stringify(nextCredentials) !== JSON.stringify(storedCredentials)
   const optionsChanged = (input.sync_groups !== undefined && input.sync_groups !== existing.syncGroups)
     || (input.auto_provision !== undefined && input.auto_provision !== existing.autoProvision)
+    || (input.import_org_units !== undefined && input.import_org_units !== existing.importOrgUnits)
+    || (input.import_profiles !== undefined && input.import_profiles !== existing.importProfiles)
   if (!connectionChanged && !optionsChanged) return { connection: await toView(db, ctx.tenantId, existing), changed: false }
 
   let orgName = existing.orgName
@@ -311,6 +325,8 @@ export async function updateDirectoryConnection(ctx: ServiceContext, rawProvider
     orgName,
     syncGroups: input.sync_groups ?? existing.syncGroups,
     autoProvision: input.auto_provision ?? existing.autoProvision,
+    importOrgUnits: input.import_org_units,
+    importProfiles: input.import_profiles,
     settings,
     credentials,
     resetDelta: connectionChanged,
@@ -411,6 +427,9 @@ async function ensureScimConnector(ctx: ServiceContext, db: AnySupabaseClient): 
     orgName: null,
     syncGroups: existing?.syncGroups ?? true,
     autoProvision: existing?.autoProvision ?? true,
+    // A first SCIM connector imports org structure; a re-enabled one keeps its choice.
+    importOrgUnits: existing ? existing.importOrgUnits : true,
+    importProfiles: existing ? existing.importProfiles : true,
     settings: existing?.settings ?? {},
     credentials: {},
     actorId: ctx.actorId,

@@ -218,12 +218,12 @@ export async function finishSaml(
 
   // Where to go: the SP-initiated flow's stored target, or an IdP-initiated
   // RelayState that is a safe local path.
-  let redirect = '/tasks'
+  let redirect = '/home'
   let org: string | null = null
   const relay = body.RelayState ?? null
   const flow = relay ? await takeFlowState(relay, `saml_relay:${idp.id}`) : null
   if (flow) {
-    redirect = String(flow.redirect ?? '/tasks')
+    redirect = String(flow.redirect ?? '/home')
     org = typeof flow.org === 'string' && flow.org ? flow.org : null
   } else {
     if (!idp.allowIdpInitiated) throw new AuthError('sso_failed', 'Unsolicited SAML responses are not accepted.')

@@ -1,0 +1,91 @@
+{
+  "id": "455e1136-29e4-495a-b209-6f9e08dc3d7c",
+  "asset_id": "ed93d6e0-796c-4424-ad87-d88b55dd1238",
+  "slug": "date-business-calendar",
+  "title": "Dates & business calendar",
+  "summary": "Business days around holidays, SLA due times in working hours across time zones and DST, durations and ages, recurring schedules and fiscal periods.",
+  "description": "Dates & business calendar handles the date rules that decide deadlines. Add or subtract business days around weekends and your holiday list, and compute an SLA due time from a start moment and a number of working hours: only working hours on working days count, in the time zone of the team, with daylight-saving changes handled because working hours are wall-clock times. The result comes back as a UTC instant and as local time with its offset.\n\nIt also measures durations (calendar days, business days, hours, a readable \"2 years, 3 months\" text and an exact age), converts a moment between time zones, lists the next occurrences of a schedule such as \"the last Friday of every month at 16:00 London time\", and finds the fiscal year, quarter and period of a date for a fiscal year that starts in any month, with the period, quarter and year boundaries and a label like FY2027 Q2.",
+  "icon": "calendar-clock",
+  "tags": [
+    "dates",
+    "business days",
+    "sla",
+    "time zones",
+    "holidays",
+    "fiscal year"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Set a due date 8 working hours after a ticket arrives, in the support team's time zone",
+    "Pay an invoice 10 business days after approval, skipping public holidays",
+    "Tag records with the fiscal year and quarter for reporting"
+  ],
+  "setup": [
+    "Install the package: the action appears in Extensibility → Workflow actions and in the workflow designer's palette under Custom actions.",
+    "Drag Dates & business calendar onto a workflow, choose the function and map its inputs; keep holidays in a data table or variable and map the list into Holidays.",
+    "Use the outputs from the data picker, e.g. {{sla_due}} for a Set SLA or Pause Until step, or {{fiscal_label}} in a title.",
+    "Try the included \"Business-hours SLA (sample)\" workflow from the API or its start form: it computes a due time in Pacific/Auckland working hours and the business days until then."
+  ],
+  "examples": [
+    {
+      "operation": "sla_due",
+      "title": "8 working hours from Friday afternoon",
+      "inputs": {
+        "start": "2026-11-06T15:30:00",
+        "hours": 8,
+        "working_hours": "09:00-17:00",
+        "time_zone": "Pacific/Auckland"
+      },
+      "note": "1.5 hours on Friday, the rest on Monday."
+    },
+    {
+      "operation": "add_business_days",
+      "title": "3 business days over Christmas",
+      "inputs": {
+        "date": "2026-12-23",
+        "days": 3,
+        "holidays": [
+          "2026-12-25",
+          "2026-12-28",
+          "2027-01-01"
+        ]
+      }
+    },
+    {
+      "operation": "fiscal_period",
+      "title": "Fiscal quarter (year from July)",
+      "inputs": {
+        "date": "2026-11-01",
+        "start_month": 7
+      }
+    },
+    {
+      "operation": "next_occurrence",
+      "title": "Last Friday of the month at 16:00 London",
+      "inputs": {
+        "frequency": "monthly",
+        "nth_week": "last",
+        "weekday": "Friday",
+        "time": "16:00",
+        "time_zone": "Europe/London",
+        "after": "2026-11-01T00:00:00Z",
+        "count": 3
+      }
+    },
+    {
+      "operation": "duration",
+      "title": "Age on a date",
+      "inputs": {
+        "from": "1990-07-15",
+        "to": "2026-11-01"
+      }
+    }
+  ]
+}

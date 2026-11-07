@@ -1,0 +1,560 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "5ed124e1-38ec-5863-a7a0-95bf3a103bf7",
+  "asset": {
+    "id": "5ed124e1-38ec-5863-a7a0-95bf3a103bf7",
+    "name": "Organiser dashboard",
+    "description": "The organiser's page: pick an event to see its seats filled, seats taken against capacity for every session, registrations by status, attendees by session and dietary needs from saved reports, and a button that emails the attendee list.",
+    "tags": [
+      "events",
+      "dashboard"
+    ],
+    "fields": [
+      {
+        "key": "event",
+        "label": "Event",
+        "type": "lookup",
+        "required": true,
+        "help_text": "The event the progress bar and the attendee list are for.",
+        "lookup": {
+          "source": "table",
+          "table_id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+          "search_columns": [
+            "title",
+            "event_code"
+          ],
+          "display_columns": [
+            "title",
+            "event_date",
+            "seats_taken",
+            "capacity"
+          ],
+          "value_column": "event_code",
+          "fill": [
+            {
+              "from": "title",
+              "to": "ev_title"
+            },
+            {
+              "from": "capacity",
+              "to": "ev_capacity"
+            },
+            {
+              "from": "seats_taken",
+              "to": "ev_taken"
+            }
+          ],
+          "sort": {
+            "column": "event_date",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "ev_title",
+        "label": "Event name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "ev_taken",
+        "label": "Seats taken",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "ev_capacity",
+        "label": "Capacity",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "seats",
+        "type": "custom",
+        "label": "Seats filled",
+        "custom": {
+          "tag": "ut-progress",
+          "version": "1.1.0",
+          "name": "Progress",
+          "value_type": "number",
+          "icon": "gauge",
+          "props": {
+            "appearance": "bar",
+            "total_value": 100,
+            "unit": "seats",
+            "show_percentage": true,
+            "label_template": "{{current}} of {{total}} seats filled ({{remaining}} left)",
+            "good_above": 80
+          },
+          "context_map": {
+            "current": "ev_taken",
+            "total": "ev_capacity"
+          },
+          "display": {
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "progressbar",
+            "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 60,
+            "min_height": 32,
+            "max_height": 600
+          },
+          "output": {
+            "type": "number",
+            "description": "Display only: stays empty"
+          }
+        }
+      },
+      {
+        "key": "session_chart",
+        "type": "custom",
+        "label": "Seats by session",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Seats taken vs capacity",
+            "chart_type": "bar",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "session_code",
+            "series_fields": [
+              "capacity",
+              "seats_taken"
+            ],
+            "aggregate": "none",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#C4B5FD",
+              "#7C3AED"
+            ],
+            "height": 300,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+          "search_columns": [
+            "session_code",
+            "title"
+          ],
+          "display_columns": [
+            "session_code",
+            "capacity",
+            "seats_taken"
+          ],
+          "value_column": "session_code",
+          "sort": {
+            "column": "session_code",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "status_chart",
+        "type": "custom",
+        "label": "Registrations by status",
+        "custom": {
+          "tag": "ut-chart",
+          "version": "1.1.0",
+          "name": "Chart",
+          "value_type": "json",
+          "icon": "bar-chart",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "value": {
+                "type": "number"
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "chart_title": "Registrations by status",
+            "chart_type": "doughnut",
+            "source": "lookup",
+            "data": [
+              {
+                "label": "Jan",
+                "value": 12
+              },
+              {
+                "label": "Feb",
+                "value": 19
+              },
+              {
+                "label": "Mar",
+                "value": 15
+              },
+              {
+                "label": "Apr",
+                "value": 23
+              }
+            ],
+            "lookup_query": "",
+            "label_field": "status",
+            "value_field": "attendees",
+            "aggregate": "count",
+            "show_legend": true,
+            "stacked": false,
+            "colors": [
+              "#7C3AED",
+              "#D97706",
+              "#0EA5E9"
+            ],
+            "height": 260,
+            "selectable": false
+          },
+          "display": {
+            "template": "{{value.label}}: {{value.value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "group",
+            "keyboard": "Tab to the chart; Left / Right move through the points (Up / Down change series), Home / End jump to the first / last, Enter selects the point when points are selectable, Escape leaves the point. The 'Show data table' button shows every value in a table.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 340,
+            "min_height": 120,
+            "max_height": 1400,
+            "full_width": true
+          },
+          "capabilities": [
+            "lookup",
+            "reports"
+          ],
+          "output": {
+            "type": "string",
+            "template": "{{value.label}}",
+            "extras": {
+              "value": "value",
+              "series": "series"
+            },
+            "description": "The label of the point picked (Selectable points); <key>_value is its number, <key>_series its series"
+          }
+        },
+        "lookup": {
+          "source": "table",
+          "table_id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+          "search_columns": [
+            "status"
+          ],
+          "display_columns": [
+            "status",
+            "attendees"
+          ],
+          "value_column": "reg_ref",
+          "sort": {
+            "column": "status",
+            "direction": "asc"
+          },
+          "min_chars": 0,
+          "max_results": 50
+        }
+      },
+      {
+        "key": "session_report",
+        "type": "custom",
+        "label": "Attendees by session",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "9a8d5190-6d8d-520f-b80e-49536109def4",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      },
+      {
+        "key": "diet_report",
+        "type": "custom",
+        "label": "Attendees by dietary need",
+        "custom": {
+          "tag": "ut-saved-report",
+          "version": "1.1.0",
+          "name": "Saved report",
+          "value_type": "json",
+          "icon": "table",
+          "value_schema": {
+            "type": "object"
+          },
+          "props": {
+            "report_id": "bcf4bd0a-e3b9-565a-8cab-9f43f0392660",
+            "view": "chart",
+            "page_size": 10,
+            "max_rows": 100,
+            "height": 280,
+            "show_title": true,
+            "selectable": false
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "table",
+            "keyboard": "Tab through the view switch, Refresh, the column headers (Enter or Space sorts; again reverses), the row select buttons (when rows are selectable; Enter or Space picks / unpicks) and Previous / Next. The table scrolls sideways inside its own frame on narrow screens.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 420,
+            "min_height": 80,
+            "max_height": 1600,
+            "full_width": true
+          },
+          "capabilities": [
+            "reports"
+          ],
+          "output": {
+            "type": "object",
+            "description": "The row picked (Selectable rows)"
+          }
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "event",
+              "span": 1
+            },
+            {
+              "field_key": "ev_title",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "ev_taken",
+              "span": 1
+            },
+            {
+              "field_key": "ev_capacity",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "seats",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "session_chart",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "status_chart",
+              "span": 1
+            },
+            {
+              "field_key": "session_report",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "diet_report",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#7C3AED",
+            "background": "#FFFFFF",
+            "text": "#1E1B2E",
+            "page": "#F3EEFF",
+            "page_to": "#FBF9FF"
+          }
+        },
+        "radius": 16,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Email me the attendee list",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Attendee list on its way",
+            "screen_button": "submit_another",
+            "text": "The attendee list for {{ev_title}} is being emailed to you.",
+            "screen_button_label": "Back to the dashboard"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Organiser dashboard",
+      "align": "left",
+      "subtitle": "Seats, sessions, registrations and catering at a glance. Pick an event, then email yourself its attendee list."
+    }
+  }
+}

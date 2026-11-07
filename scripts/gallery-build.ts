@@ -12,6 +12,20 @@
  *   npm run gallery:build -- --validate expense-claims   # validate one package, no output
  *   npm run gallery:build -- --out /tmp/g expense-claims  # build a subset elsewhere (for gallery:verify --dir)
  *
+ * Official form controls (gallery/controls/<slug>: manifest, the committed
+ * module in dist/, gallery.json, README, optional assets/) and control
+ * bundles (gallery/controls/bundles/<slug>) are built the same way, signed
+ * with the same key, into form-control-<slug>-<version>.utpkg /
+ * form-controls-<slug>-<version>.utpkg, listed in index.json with
+ * `kind: form_control | control_bundle` and in the catalog's `controls`.
+ * Name a control by its folder slug (`--validate chart`).
+ *
+ * Official workflow actions (gallery/actions/<slug>: manifest v1, the
+ * committed module in dist/action.js, gallery.json, README, a sample
+ * workflow in assets/) become workflow-action-<slug>-<version>.utpkg, listed
+ * with `kind: workflow_action` and in the catalog's `actions` (each
+ * gallery.json example is run in the sandbox and its outputs recorded).
+ *
  * GALLERY_SIGNING_KEY is the "UserTasks Gallery" ed25519 private key (PEM,
  * PKCS#8; `\n` escapes allowed). It is never committed: see gallery/README.md
  * for how the maintainer creates and stores it. Its public fingerprint is
@@ -27,6 +41,16 @@ import { catalogEntry, type GalleryCatalog } from '@/lib/gallery/catalog'
 import { GALLERY_CATALOG_FILE, GALLERY_OUTPUT_DIR, GALLERY_SIGNING_FILE, readAllGallerySources, readGallerySigningConfig, readGallerySource, type GallerySource } from '@/lib/gallery/source'
 import { GALLERY_CATEGORIES, type GalleryIndex, type GalleryIndexEntry } from '@/lib/gallery/types'
 import { validateGallerySource } from '@/lib/gallery/validate'
+import {
+  buildControlBundlePackage, buildControlPackage, companionControls, controlBundleCatalogEntry, controlCatalogEntry, controlIndexEntry, listControlBundleSlugs, listControlSlugs,
+  readAllControlBundleSources, readAllControlSources, validateControlBundleSource, validateControlSource,
+  type ControlBundleSource, type ControlSource,
+} from '@/lib/gallery/controls'
+import type { ControlCatalogEntry } from '@/lib/gallery/catalog'
+import {
+  actionCatalogEntry, actionIndexEntry, buildActionPackage, listActionSlugs, readAllActionSources, runActionExamples, validateActionSource,
+  type ActionCatalogEntry, type ActionExampleResult, type ActionSource,
+} from '@/lib/gallery/actions'
 
 const args = process.argv.slice(2)
 const check = args.includes('--check')
@@ -45,7 +69,7 @@ function stable(value: unknown): string {
   return JSON.stringify(value, null, 2) + '\n'
 }
 
-function main() {
+async function main() {
   if (args.includes('--print-key') || args.includes('--pin')) {
     // Public values of GALLERY_SIGNING_KEY only (never the private key).
     const key = parseGallerySigningKey(process.env.GALLERY_SIGNING_KEY)
@@ -58,26 +82,63 @@ function main() {
     }
     return
   }
-  let sources: GallerySource[] = only.length ? only.map((slug) => readGallerySource(slug)) : readAllGallerySources()
+  const controlSlugs = new Set(listControlSlugs())
+  const bundleSlugs = new Set(listControlBundleSlugs())
+  const actionSlugs = new Set(listActionSlugs())
+  const processOnly = only.filter((slug) => !controlSlugs.has(slug) && !bundleSlugs.has(slug) && !actionSlugs.has(slug))
+  let sources: GallerySource[] = only.length ? processOnly.map((slug) => readGallerySource(slug)) : readAllGallerySources()
+  // Form controls: every control (bundles need their members), or the named ones.
+  const allControls: ControlSource[] = readAllControlSources()
+  const controlsBySlug = new Map(allControls.map((c) => [c.slug, c]))
+  let controls: ControlSource[] = only.length ? allControls.filter((c) => only.includes(c.slug)) : allControls
+  let bundles: ControlBundleSource[] = only.length ? readAllControlBundleSources().filter((b) => only.includes(b.slug)) : readAllControlBundleSources()
   // --skip-invalid (local previews while packages are being written): build only the valid ones.
   if (args.includes('--skip-invalid')) {
     const skipped = sources.filter((source) => validateGallerySource(source).length)
     for (const source of skipped) console.warn(`gallery: skipping invalid ${source.slug}`)
     sources = sources.filter((source) => !skipped.includes(source))
   }
-  if (!sources.length) fail('no packages in gallery/packages')
+  if (args.includes('--skip-invalid')) {
+    const skipped = controls.filter((c) => validateControlSource(c, controlsBySlug).length)
+    for (const c of skipped) console.warn(`gallery: skipping invalid control ${c.slug}`)
+    controls = controls.filter((c) => !skipped.includes(c))
+    for (const c of skipped) controlsBySlug.delete(c.slug)
+    bundles = bundles.filter((b) => !validateControlBundleSource(b, controlsBySlug).length)
+  }
+  // Workflow actions (gallery/actions): every one, or the named ones.
+  let actions: ActionSource[] = only.length ? readAllActionSources().filter((a) => only.includes(a.slug)) : readAllActionSources()
+  const actionExamples = new Map<string, ActionExampleResult[]>()
+  const actionIssues = new Map<string, Array<{ path: string; message: string }>>()
+  for (const action of actions) {
+    const issues = validateActionSource(action)
+    if (!issues.length) {
+      const ran = await runActionExamples(action)
+      issues.push(...ran.issues)
+      actionExamples.set(action.slug, ran.examples)
+    }
+    actionIssues.set(action.slug, issues)
+  }
+  if (args.includes('--skip-invalid')) {
+    for (const a of actions.filter((a) => actionIssues.get(a.slug)?.length)) console.warn(`gallery: skipping invalid action ${a.slug}`)
+    actions = actions.filter((a) => !actionIssues.get(a.slug)?.length)
+  }
+  if (!sources.length && !controls.length && !bundles.length && !actions.length) fail('no packages in gallery/packages')
 
   let invalid = 0
-  for (const source of sources) {
-    const issues = validateGallerySource(source)
-    if (!issues.length) continue
+  const report = (slug: string, issues: Array<{ path: string; message: string }>) => {
+    if (!issues.length) return
     invalid++
-    console.error(`\n✗ ${source.slug}`)
+    console.error(`\n✗ ${slug}`)
     for (const issue of issues) console.error(`  ${issue.path}: ${issue.message}`)
   }
+  for (const source of sources) report(source.slug, validateGallerySource(source))
+  for (const control of controls) report(`controls/${control.slug}`, validateControlSource(control, controlsBySlug))
+  for (const bundle of bundles) report(`controls/bundles/${bundle.slug}`, validateControlBundleSource(bundle, controlsBySlug))
+  for (const action of actions) report(`actions/${action.slug}`, actionIssues.get(action.slug) ?? [])
+  const total = sources.length + controls.length + bundles.length + actions.length
   if (invalid) fail(`${invalid} package${invalid === 1 ? '' : 's'} failed validation`)
   if (validateOnly) {
-    console.log(`✓ ${sources.length} package${sources.length === 1 ? '' : 's'} valid`)
+    console.log(`✓ ${total} package${total === 1 ? '' : 's'} valid${controls.length + bundles.length ? ` (${controls.length} form control${controls.length === 1 ? '' : 's'}, ${bundles.length} bundle${bundles.length === 1 ? '' : 's'})` : ''}${actions.length ? ` (${actions.length} workflow action${actions.length === 1 ? '' : 's'})` : ''}`)
     return
   }
   if (only.length && !outDir) fail('building a subset would drop the other packages from index.json; pass --validate to check one package, or --out <dir>')
@@ -92,11 +153,15 @@ function main() {
   if (!key && !check) console.warn('gallery: GALLERY_SIGNING_KEY is not set — building UNSIGNED development packages')
 
   const built: Array<{ source: GallerySource; pkg: BuiltGalleryPackage }> = sources.map((source) => ({ source, pkg: buildGalleryPackage(source, { signingKey: key }) }))
+  const builtControls = controls.map((source) => ({ source, pkg: buildControlPackage(source, { signingKey: key, all: controlsBySlug }) }))
+  const builtBundles = bundles.map((source) => ({ source, pkg: buildControlBundlePackage(source, controlsBySlug, { signingKey: key }) }))
+  const builtActions = actions.map((source) => ({ source, pkg: buildActionPackage(source, { signingKey: key }) }))
   const ids = new Set<string>()
-  for (const { source } of built) {
-    if (ids.has(source.meta.id)) fail(`${source.slug}: package id ${source.meta.id} is used by another package`)
-    ids.add(source.meta.id)
+  for (const { id, slug } of [...built.map((b) => ({ id: b.source.meta.id, slug: b.source.slug })), ...builtControls.map((b) => ({ id: b.source.meta.id, slug: b.pkg.slug })), ...builtBundles.map((b) => ({ id: b.source.meta.id, slug: b.pkg.slug })), ...builtActions.map((b) => ({ id: b.source.meta.id, slug: b.pkg.slug }))]) {
+    if (ids.has(id)) fail(`${slug}: package id ${id} is used by another package`)
+    ids.add(id)
   }
+  const fileNames = [...built, ...builtControls, ...builtBundles, ...builtActions].map((b) => b.pkg.fileName)
 
   const entries: GalleryIndexEntry[] = built.map(({ source, pkg }) => ({
     id: source.meta.id,
@@ -126,8 +191,14 @@ function main() {
     systems: source.meta.systems ?? [],
     native: isNativeContents(pkg.contents),
   }))
+  // Form controls and bundles: kind form_control / control_bundle in the same list (category form-controls).
+  for (const { source, pkg } of builtControls) entries.push(controlIndexEntry(source.meta, 'form_control', `/gallery/controls/${source.slug}`, pkg, [source, ...companionControls(source, controlsBySlug)]))
+  for (const { source, pkg } of builtBundles) entries.push(controlIndexEntry({ ...source.meta, systems: [] }, 'control_bundle', `/gallery/controls/${source.slug}`, pkg, source.meta.controls.map((slug) => controlsBySlug.get(slug)!).filter(Boolean)))
+  // Workflow actions: kind workflow_action (category workflow-actions).
+  for (const { source, pkg } of builtActions) entries.push(actionIndexEntry(source, pkg))
   const order = new Map(GALLERY_CATEGORIES.map((c, i) => [c.id as string, i]))
-  entries.sort((a, b) => (order.get(a.category)! - order.get(b.category)!) || a.title.localeCompare(b.title))
+  const kindOrder = (e: GalleryIndexEntry) => (e.kind === 'control_bundle' ? 1 : 0)
+  entries.sort((a, b) => (order.get(a.category)! - order.get(b.category)!) || kindOrder(a) - kindOrder(b) || a.title.localeCompare(b.title))
   const index: GalleryIndex = {
     format_version: 1,
     generator: 'usertasks-gallery',
@@ -143,7 +214,17 @@ function main() {
     packages: entries,
   }
   const bySlug = new Map(built.map((b) => [b.source.slug, b]))
-  const catalog: GalleryCatalog = { format_version: 1, packages: entries.map((e) => catalogEntry(bySlug.get(e.slug)!.source, bySlug.get(e.slug)!.pkg)) }
+  const controlCatalog: ControlCatalogEntry[] = [
+    ...builtControls.map(({ source, pkg }) => controlCatalogEntry(source, pkg, controlsBySlug)).sort((a, b) => a.title.localeCompare(b.title)),
+    ...builtBundles.map(({ source, pkg }) => controlBundleCatalogEntry(source, pkg, controlsBySlug)),
+  ]
+  const catalog: GalleryCatalog = {
+    format_version: 1,
+    packages: entries.filter((e) => (e.kind ?? 'process') === 'process').map((e) => catalogEntry(bySlug.get(e.slug)!.source, bySlug.get(e.slug)!.pkg)),
+    ...(controlCatalog.length ? { controls: controlCatalog } : {}),
+    ...(builtActions.length ? { actions: builtActions.map(({ source, pkg }) => actionCatalogEntry(source, pkg, actionExamples.get(source.slug) ?? [])).sort((a, b) => a.title.localeCompare(b.title)) as ActionCatalogEntry[] } : {}),
+  }
+  const allBuilt = new Map([...built, ...builtControls, ...builtBundles, ...builtActions].map((b) => [b.pkg.slug === b.source.slug ? b.source.slug : b.pkg.slug, b.pkg]))
 
   if (check) {
     const problems: string[] = []
@@ -163,7 +244,7 @@ function main() {
         if (unpacked.manifest.checksum !== entry.checksum) problems.push(`${entry.slug}: ${entry.file_name} is stale`)
         if (committed.signing.signed && !unpacked.verification.signed) problems.push(`${entry.slug}: index.json says signed but the file is not`)
       }
-      for (const slug of bySlugCommitted.keys()) if (!bySlug.has(slug)) problems.push(`${slug}: in index.json but has no source`)
+      for (const slug of bySlugCommitted.keys()) if (!allBuilt.has(slug)) problems.push(`${slug}: in index.json but has no source`)
     }
     const catalogText = existsSync(GALLERY_CATALOG_FILE) ? readFileSync(GALLERY_CATALOG_FILE, 'utf8') : ''
     if (catalogText !== stable(catalog)) problems.push('lib/gallery/catalog.json is stale')
@@ -177,19 +258,19 @@ function main() {
 
   if (outDir) {
     mkdirSync(outDir, { recursive: true })
-    for (const { pkg } of built) writeFileSync(join(outDir, pkg.fileName), pkg.bytes)
+    for (const pkg of allBuilt.values()) writeFileSync(join(outDir, pkg.fileName), pkg.bytes)
     writeFileSync(join(outDir, 'index.json'), stable(index))
     console.log(`✓ ${entries.length} package${entries.length === 1 ? '' : 's'} → ${outDir}`)
     return
   }
   mkdirSync(GALLERY_OUTPUT_DIR, { recursive: true })
-  const keep = new Set([...built.map((b) => b.pkg.fileName), 'index.json'])
+  const keep = new Set([...fileNames, 'index.json'])
   for (const name of readdirSync(GALLERY_OUTPUT_DIR)) if (!keep.has(name) && name.endsWith('.utpkg')) rmSync(join(GALLERY_OUTPUT_DIR, name))
-  for (const { pkg } of built) writeFileSync(join(GALLERY_OUTPUT_DIR, pkg.fileName), pkg.bytes)
+  for (const pkg of allBuilt.values()) writeFileSync(join(GALLERY_OUTPUT_DIR, pkg.fileName), pkg.bytes)
   writeFileSync(join(GALLERY_OUTPUT_DIR, 'index.json'), stable(index))
   writeFileSync(GALLERY_CATALOG_FILE, stable(catalog))
   for (const entry of entries) console.log(`  ${entry.signed ? 'signed  ' : 'unsigned'} ${entry.file_name.padEnd(52)} ${(entry.size_bytes / 1024).toFixed(1).padStart(6)} KB  ${entry.requirement_count} requirements`)
   console.log(`✓ ${entries.length} packages → public/gallery/ (${key ? `signed, ${key.fingerprint}` : 'UNSIGNED'})`)
 }
 
-main()
+main().catch((error) => fail(error instanceof Error ? error.message : String(error)))

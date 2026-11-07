@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "1cac94d6-9a10-5703-aaae-75936753f595",
+  "asset": {
+    "id": "1cac94d6-9a10-5703-aaae-75936753f595",
+    "name": "Thanks for your pulse answers",
+    "description": "Sent to the employee after they answer (named answers only).",
+    "subject": "Thanks for answering the {{round}} pulse survey",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Thank you for your answers</h2>\n  <p>Hi {{submitted_by_name}},</p>\n  <p>Your answers to the {{round}} pulse survey are in. Results are shared by department, never one person at a time.</p>\n  <p>Your engagement score this round: <strong>{{engagement_score}} / 100</strong>.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Reference {{response_ref}}</p>\n</div>",
+    "text_body": "Thank you for your answers\n\nHi {{submitted_by_name}},\nYour answers to the {{round}} pulse survey are in. Results are shared by department, never one person at a time.\nYour engagement score this round: {{engagement_score}} / 100.\n\nReference {{response_ref}}",
+    "is_default": false
+  }
+}

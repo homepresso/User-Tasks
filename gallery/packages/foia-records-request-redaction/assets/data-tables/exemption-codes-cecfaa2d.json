@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+  "asset": {
+    "id": "cecfaa2d-20dc-590c-899e-5e53be8bb81e",
+    "name": "Exemption codes",
+    "description": "The exemption codes reviewers can apply, per regime. A configurable list of EXAMPLES: edit it to match your statute and practice.",
+    "columns": [
+      {
+        "id": "1d3e87a2-6c99-5d9a-b630-e4156d89cc07",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "2f1d2372-1fcc-5eb2-9fea-6e25ad6b587e",
+        "required": false,
+        "key": "jurisdiction",
+        "name": "Regime",
+        "type": "text"
+      },
+      {
+        "id": "68950a92-fe5d-54a8-bffe-ebbeb6a157aa",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "627fc383-000f-56f1-8b9c-d0448524249e",
+        "required": false,
+        "key": "citation",
+        "name": "Citation (example)",
+        "type": "text"
+      },
+      {
+        "id": "556d99e7-6f5c-50d1-bc77-ce3cc49c935b",
+        "required": false,
+        "key": "applies_to",
+        "name": "Typical use",
+        "type": "text"
+      },
+      {
+        "id": "7f1c44d7-cba8-5102-b124-5d2fdc4b5878",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

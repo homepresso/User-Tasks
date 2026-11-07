@@ -1,0 +1,79 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+  "asset": {
+    "id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+    "name": "Events",
+    "description": "The events people can register for: date, venue, the overall capacity and the seats taken so far (updated by every confirmed registration).",
+    "columns": [
+      {
+        "id": "86eccec8-70ed-5043-b2ee-24399698fee5",
+        "required": true,
+        "key": "event_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "0d21e5dd-d92c-5333-8eab-db1137e6f656",
+        "required": true,
+        "key": "title",
+        "name": "Event",
+        "type": "text"
+      },
+      {
+        "id": "b092d796-f582-5444-a174-ea6dd16a998c",
+        "required": false,
+        "key": "event_date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "25162830-cb25-5aad-acf4-3062f54b125c",
+        "required": false,
+        "key": "venue",
+        "name": "Venue",
+        "type": "text"
+      },
+      {
+        "id": "5dde86f7-bc47-5b3e-b8dc-19852d909e42",
+        "required": false,
+        "key": "capacity",
+        "name": "Capacity",
+        "type": "number"
+      },
+      {
+        "id": "4b27e46f-0d8e-50d6-9c38-6e93854eb7f2",
+        "required": false,
+        "key": "seats_taken",
+        "name": "Seats taken",
+        "type": "number"
+      },
+      {
+        "id": "5b25959e-56d7-5b4e-ac14-fa4e5c519458",
+        "required": false,
+        "key": "organiser",
+        "name": "Organiser",
+        "type": "text"
+      },
+      {
+        "id": "333f0e76-c1c7-5462-b85a-22466c9bab02",
+        "required": false,
+        "key": "organiser_email",
+        "name": "Organiser email",
+        "type": "email"
+      },
+      {
+        "id": "66d20588-08e4-5410-8b33-beb8ed4b396a",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Open",
+          "Closed"
+        ]
+      }
+    ]
+  }
+}

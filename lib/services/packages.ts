@@ -31,6 +31,7 @@ import {
   type PackageVerification,
 } from '@/lib/packages/format'
 import { detectRequirements } from '@/lib/packages/requirements'
+import { networkControls } from '@/lib/forms/custom-controls/package'
 import { bumpSemver, compareSemver, isSemver, isValidRange, type BumpKind } from '@/lib/packages/semver'
 import { getSigningKey, instanceFingerprint, signerTrust, type SignerTrust } from '@/lib/packages/signing'
 import { toUrlSlug } from '@/lib/utils/slug'
@@ -56,6 +57,7 @@ export const PACKAGE_ASSET_TYPES: Record<DependencyAssetType, { section: string;
   log_destination: { section: 'log_destinations', view: 'observability.view', label: 'Log destination' },
   form: { section: 'forms', view: 'forms.view', label: 'Form' },
   form_theme: { section: 'form_themes', view: 'forms.view', label: 'Form theme' },
+  form_control: { section: 'form_controls', view: 'extensibility.view', label: 'Form control' },
 }
 
 export type DataMode = 'schema' | 'rows'
@@ -142,7 +144,7 @@ async function assertItemsExist(ctx: ServiceContext, db: AnySupabaseClient, item
     workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations',
     connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports',
     role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations',
-    form: 'forms', form_theme: 'form_themes',
+    form: 'forms', form_theme: 'form_themes', form_control: 'form_controls',
   }
   const byType = new Map<DependencyAssetType, string[]>()
   for (const item of items) byType.set(item.type, [...(byType.get(item.type) ?? []), item.id])
@@ -343,7 +345,7 @@ async function resolveContents(ctx: ServiceContext, db: AnySupabaseClient, pkg: 
 
   const excludedNames: PackageContentsPreview['excluded'] = []
   for (const item of pkg.excluded) {
-    const table = { workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations', connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports', role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations', form: 'forms', form_theme: 'form_themes' }[item.type]
+    const table = { workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations', connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports', role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations', form: 'forms', form_theme: 'form_themes', form_control: 'form_controls' }[item.type]
     const column = item.type === 'connector' ? 'display_name' : 'name'
     const { data } = await (db as any).from(table).select(`id, ${column}`).eq('tenant_id', ctx.tenantId).eq('id', item.id).maybeSingle()
     excludedNames.push({ ...item, name: data ? String(data[column] ?? '') : null })
@@ -592,6 +594,7 @@ export function summarizePackage(read: ReadPackageResult) {
     data: Object.entries(read.contents.data).map(([table_id, entry]) => ({ table_id, mode: entry.mode, rows: entry.rows?.length ?? 0 })),
     requirements: read.contents.requirements,
     dependencies: read.contents.dependencies,
+    network_controls: networkControls(read.contents.assets as Record<string, unknown>),
   }
 }
 

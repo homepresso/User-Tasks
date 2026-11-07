@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "40edb255-fb74-5a72-a469-d7d88b55391e",
+  "asset": {
+    "id": "40edb255-fb74-5a72-a469-d7d88b55391e",
+    "name": "Document submitted for review",
+    "description": "Sent to the person who submitted a document: its reference and the review route.",
+    "subject": "{{reference}}: \"{{form.title}}\" is in review",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Your document is in review</h2><p>Hi {{submitted_by_name}},</p><p><strong>{{form.title}}</strong> ({{form.doc_type}}, version {{version}}) has been submitted for review. Route: <strong>{{route_name}}</strong>, about {{review_days}} days per review.</p><p>You will hear from us if a reviewer asks for changes. When every review is done, {{form.doc_owner_name}} is asked to sign it off.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">{{reference}} · document review</p></div>",
+    "text_body": "{{form.title}} ({{form.doc_type}}, version {{version}}) is in review. Route: {{route_name}}. Reference {{reference}}.",
+    "is_default": false
+  }
+}

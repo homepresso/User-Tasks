@@ -18,11 +18,26 @@ import { PACKAGE_SECTIONS } from '@/lib/packages/build'
 import { scanAssetReferences } from '@/lib/portability/dependencies'
 import { isUuid } from '@/lib/portability/plan'
 import { scrubSecretsForExport, SECRET_PLACEHOLDER } from '@/lib/portability/scrub'
+import { canonicalizeNodeConfigShapes } from '@/lib/portability/normalize'
 import { fieldDefinitionProblems, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { normalizeFormDefinition, readNodeForm } from '@/lib/forms/definition'
 import { buttonProblems } from '@/lib/forms/buttons'
 import { FormThemeRefSchema } from '@/lib/forms/form-theme'
 import { LOOKUP_ROW_ID } from '@/lib/forms/lookup'
+import { DATA_TABLE_ROW_ID, referencedColumns } from '@/lib/forms/data-table'
+import { isMediaNodeType, mediaProviderForType } from '@/lib/media/catalog'
+import { DEFAULT_BASE_URLS } from '@/lib/media/credentials'
+import { esignProviderForConnector, isEsignNodeType } from '@/lib/esign/catalog'
+
+/** Public API hosts an e-signature integration may name (installs set the account's own). */
+const ESIGN_PROVIDER_HOSTS: Record<string, string[]> = {
+  docusign: ['demo.docusign.net', 'www.docusign.net', 'na1.docusign.net', 'na2.docusign.net', 'na3.docusign.net', 'na4.docusign.net', 'eu.docusign.net', 'ca.docusign.net', 'au.docusign.net'],
+  adobe_sign: ['api.na1.adobesign.com', 'api.na2.adobesign.com', 'api.na3.adobesign.com', 'api.eu1.adobesign.com', 'api.eu2.adobesign.com', 'api.jp1.adobesign.com', 'api.au1.adobesign.com', 'api.in1.adobesign.com'],
+  dropbox_sign: ['api.hellosign.com'],
+  pandadoc: ['api.pandadoc.com'],
+  signnow: ['api.signnow.com', 'api-eval.signnow.com'],
+  boldsign: ['api.boldsign.com', 'api-eu.boldsign.com'],
+}
 import { buildGalleryPackage, galleryRequirements, packageAssets } from './build'
 import type { GallerySource } from './source'
 import { GALLERY_CATEGORIES, GALLERY_NEEDS, GALLERY_TRIGGERS, type GalleryMeta } from './types'
@@ -47,7 +62,7 @@ const SECTION_OF_TYPE: Record<string, string> = {
   workflow: 'workflows', workflow_activity: 'workflow_activities', data_table: 'data_tables', integration: 'integrations',
   connector: 'connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports',
   role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations', reference: 'references',
-  form: 'forms', form_theme: 'form_themes',
+  form: 'forms', form_theme: 'form_themes', form_control: 'form_controls',
 }
 
 /**
@@ -80,7 +95,7 @@ export function validateMeta(meta: GalleryMeta, slug: string): GalleryIssue[] {
   need(meta.slug === slug, `slug "${meta.slug}" must match the folder name "${slug}"`)
   need(SLUG.test(String(meta.slug ?? '')), 'slug must be lowercase words separated by hyphens')
   need(typeof meta.title === 'string' && meta.title.trim().length >= 3, 'title is required')
-  need(GALLERY_CATEGORIES.some((c) => c.id === meta.category), `category must be one of ${GALLERY_CATEGORIES.map((c) => c.id).join(', ')}`)
+  need(GALLERY_CATEGORIES.some((c) => c.id === meta.category && c.id !== 'form-controls' && c.id !== 'workflow-actions'), `category must be one of ${GALLERY_CATEGORIES.filter((c) => c.id !== 'form-controls' && c.id !== 'workflow-actions').map((c) => c.id).join(', ')} (form controls live in gallery/controls, workflow actions in gallery/actions)`)
   need(typeof meta.summary === 'string' && meta.summary.length >= 40 && meta.summary.length <= 200, 'summary must be 40-200 characters')
   need(typeof meta.description === 'string' && meta.description.length >= 200, 'description must be at least 200 characters')
   need(Object.keys(GALLERY_TRIGGERS).includes(meta.trigger), 'trigger must be form, api, schedule or event')
@@ -122,7 +137,17 @@ export function formIssues(def: ReturnType<typeof normalizeFormDefinition>, tabl
       const used = [...(field.lookup.search_columns ?? []), ...(field.lookup.display_columns ?? []), ...(field.lookup.value_column ? [field.lookup.value_column] : []), ...(field.lookup.fill ?? []).map((f) => f.from), ...(field.lookup.filters ?? []).map((f) => f.column)]
       for (const column of used) if (!columns.has(column)) issues.push({ path, message: `lookup "${field.key}": column "${column}" is not in "${table.name}"` })
     }
+    if (field.type === 'data_table' && field.data_table?.source === 'table') {
+      const table = tablesById.get(String(field.data_table.table_id))
+      if (!table) { issues.push({ path, message: `data table field "${field.key}": data table ${field.data_table.table_id} is not in the package` }); continue }
+      const columns = new Set<string>([DATA_TABLE_ROW_ID, ...(table.columns ?? []).map((col: any) => String(col.key))])
+      for (const column of referencedColumns(field.data_table)) if (!columns.has(column)) issues.push({ path, message: `data table field "${field.key}": column "${column}" is not in "${table.name}"` })
+    }
     if (field.options_source && !tablesById.has(String(field.options_source.table_id))) issues.push({ path, message: `field "${field.key}": options table ${field.options_source.table_id} is not in the package` })
+    // Dynamic properties from a data table (lib/forms/dynamic-values.ts): the table ships with the package.
+    for (const [prop, binding] of Object.entries(field.dynamic ?? {})) {
+      if (binding.kind === 'table' && !tablesById.has(String(binding.table_id))) issues.push({ path, message: `field "${field.key}": the data table of its dynamic ${prop} (${binding.table_id}) is not in the package` })
+    }
   }
   for (const [id, message] of Object.entries(buttonProblems(def.buttons ?? [], { outcomes, policy: { appOrigin: null, allowedHosts: [] } }))) issues.push({ path, message: `button "${id}": ${message}` })
   return issues
@@ -142,6 +167,9 @@ function validateWorkflowAsset(wf: any, ids: Map<string, Set<string>>, refsById:
     if (FORBIDDEN_NODES.has(node.type)) add(`node "${node.label}" (${node.type}) is not allowed in gallery workflows`)
     if (!node.label?.trim()) add(`node "${node.id}" needs a label`)
     if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') add(`node "${node.id}" needs a position`)
+    // Shapes the builder and engine read (e.g. items [{ value }], uppercase, duration + unit).
+    const config = node.config ?? {}
+    if (JSON.stringify(canonicalizeNodeConfigShapes(node.type, config)) !== JSON.stringify(config)) add(`node "${node.label}" (${node.type}) uses a non-canonical config shape`)
   }
   const triggers = nodes.filter((n) => TRIGGER_NODE_TYPES.has(n.type))
   if (triggers.length !== 1) add(`a workflow needs exactly one trigger node (found ${triggers.length})`)
@@ -279,6 +307,16 @@ export function validateGallerySource(source: GallerySource, options: { communit
     }
   }
 
+  // A form or workflow that uses a custom control by tag must ship that control (form_controls), or it installs broken.
+  const controlTags = new Set<string>((assets.form_controls ?? []).map((c: any) => String(c?.tag ?? '')))
+  for (const section of PACKAGE_SECTIONS) {
+    for (const [index, asset] of (assets[section] ?? []).entries()) {
+      for (const tag of new Set(scanAssetReferences(asset).controlTags)) {
+        if (!controlTags.has(tag)) issues.push({ path: `${slug}/assets/${source.paths[section]?.[index] ?? section}`, message: `uses form control ${tag}, which is not in the package — add it to form_controls` })
+      }
+    }
+  }
+
   const refsById = new Map<string, any>((assets.references ?? []).map((r: any) => [String(r.id), r]))
   const tablesById = new Map<string, any>((assets.data_tables ?? []).map((t: any) => [String(t.id), t]))
   const decisionById = new Map<string, any>((assets.decision_tables ?? []).map((t: any) => [String(t.id), t]))
@@ -316,7 +354,9 @@ export function validateGallerySource(source: GallerySource, options: { communit
     }
     const checkSample = !options.community || Object.keys(meta.sample_input ?? {}).length > 0
     if (checkSample) for (const key of Object.keys(meta.sample_input ?? {})) if (vars.size && !vars.has(key)) issues.push({ path: `${slug}/gallery.json`, message: `sample_input.${key} is not a workflow input of the entry workflow` })
-    if (checkSample) for (const v of vars.values()) if (v.required && (meta.sample_input as any)?.[v.name] === undefined) issues.push({ path: `${slug}/gallery.json`, message: `sample_input is missing the required input "${v.name}"` })
+    // Attachments and file inputs can come from the verifier's sample files instead (verify_mocks.uploads / files).
+    const provided = (name: string) => (meta.sample_input as any)?.[name] !== undefined || Boolean(meta.verify_mocks?.uploads?.[name]?.length) || Boolean(meta.verify_mocks?.files?.[name])
+    if (checkSample) for (const v of vars.values()) if (v.required && !provided(v.name)) issues.push({ path: `${slug}/gallery.json`, message: `sample_input is missing the required input "${v.name}"` })
   }
 
   // References: an integration in the package, response models for the data picker.
@@ -332,15 +372,42 @@ export function validateGallerySource(source: GallerySource, options: { communit
     }
   }
 
-  // Integrations: placeholder hosts only; credentials are the sentinel.
+  // Integrations: placeholder hosts only (a media AI provider may name its own public API); credentials are the sentinel.
   for (const [index, integration] of (assets.integrations ?? []).entries()) {
     const path = `${slug}/assets/${source.paths.integrations?.[index] ?? 'integrations'}`
     const baseUrl = String(integration.config?.base_url ?? '')
+    const media = mediaProviderForType(integration.type)
+    const providerHost = media && DEFAULT_BASE_URLS[media.id] ? new URL(DEFAULT_BASE_URLS[media.id]).hostname : null
     try {
       const host = new URL(baseUrl).hostname
-      if (!PLACEHOLDER_HOST.test(host)) issues.push({ path, message: `base_url host "${host}" must be a placeholder (*.example.com) — installs set the real one` })
+      const esignHosts = esignProviderForConnector(integration.type) ? ESIGN_PROVIDER_HOSTS[String(integration.type)] ?? [] : []
+      if (!PLACEHOLDER_HOST.test(host) && host !== providerHost && !esignHosts.includes(host)) issues.push({ path, message: `base_url host "${host}" must be a placeholder (*.example.com)${providerHost ? ` or the provider's API (${providerHost})` : ''} — installs set the real one` })
     } catch {
       issues.push({ path, message: 'base_url must be an absolute URL' })
+    }
+  }
+
+  // Media steps name a media AI provider integration of the package.
+  const mediaIntegrations = new Set((assets.integrations ?? []).filter((i: any) => mediaProviderForType(i.type)).map((i: any) => String(i.id)))
+  for (const [index, wf] of (assets.workflows ?? []).entries()) {
+    const path = `${slug}/assets/${source.paths.workflows?.[index] ?? 'workflows'}`
+    for (const node of (wf.nodes ?? []) as any[]) {
+      if (!isMediaNodeType(String(node?.type))) continue
+      for (const key of ['integration_id', 'transcribe_integration_id']) {
+        const id = String(node.config?.[key] ?? '').trim()
+        if (id && !mediaIntegrations.has(id)) issues.push({ path, message: `"${node.label}": ${key} must be a media AI provider integration in the package (Google Gemini, OpenAI, …)` })
+      }
+    }
+  }
+
+  // E-signature steps name an e-signature integration of the package (the trigger may name none = any).
+  const esignIntegrations = new Set((assets.integrations ?? []).filter((i: any) => esignProviderForConnector(i.type)).map((i: any) => String(i.id)))
+  for (const [index, wf] of (assets.workflows ?? []).entries()) {
+    const path = `${slug}/assets/${source.paths.workflows?.[index] ?? 'workflows'}`
+    for (const node of (wf.nodes ?? []) as any[]) {
+      if (!isEsignNodeType(String(node?.type)) && node?.type !== 'esign_event') continue
+      const id = String(node.config?.integration_id ?? '').trim()
+      if (id ? !esignIntegrations.has(id) : node.type !== 'esign_event') issues.push({ path, message: `"${node.label}": integration_id must be an e-signature integration in the package (DocuSign, Adobe Acrobat Sign, Dropbox Sign, PandaDoc, SignNow or BoldSign)` })
     }
   }
 
@@ -391,7 +458,9 @@ export function validateGallerySource(source: GallerySource, options: { communit
   const requirements = galleryRequirements(assets)
   const needs = new Set([...(meta.needs ?? []), ...(meta.optional_needs ?? [])])
   if (requirements.some((r) => r.kind === 'user') && !meta.needs?.includes('assignees')) issues.push({ path: `${slug}/gallery.json`, message: 'the package asks for assignees: add "assignees" to needs' })
-  if ((assets.integrations ?? []).length && !needs.has('rest_api') && !needs.has('ai_model') && !needs.has('directory')) issues.push({ path: `${slug}/gallery.json`, message: 'the package has integrations: add "rest_api" (or ai_model / directory) to needs' })
+  const restIntegrations = (assets.integrations ?? []).filter((i: any) => !mediaProviderForType(i.type))
+  if (restIntegrations.length && !needs.has('rest_api') && !needs.has('ai_model') && !needs.has('directory')) issues.push({ path: `${slug}/gallery.json`, message: 'the package has integrations: add "rest_api" (or ai_model / directory) to needs' })
+  if (mediaIntegrations.size && !needs.has('media_ai')) issues.push({ path: `${slug}/gallery.json`, message: 'the package has a media AI provider integration: add "media_ai" to needs' })
   if ((assets.agents ?? []).length && !needs.has('ai_model')) issues.push({ path: `${slug}/gallery.json`, message: 'the package has an agent: add "ai_model" to needs' })
   const sendsEmail = (assets.workflows ?? []).some((wf: any) => (wf.nodes ?? []).some((n: any) => n.type === 'send_email'))
   if (sendsEmail && !needs.has('email')) issues.push({ path: `${slug}/gallery.json`, message: 'the package sends email: add "email" to needs or optional_needs' })

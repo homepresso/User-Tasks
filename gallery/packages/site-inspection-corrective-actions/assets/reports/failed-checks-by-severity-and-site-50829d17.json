@@ -1,0 +1,53 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "50829d17-7a35-5554-b6df-14d12faefc54",
+  "asset": {
+    "id": "50829d17-7a35-5554-b6df-14d12faefc54",
+    "name": "Failed checks by severity and site",
+    "description": "High, medium and low severity failures per site, summed over the inspection runs (workflow variables).",
+    "category": "Health and safety",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "6993d232-4c0b-59d1-b34c-4e02a56aaa7e"
+      },
+      "columns": [
+        "vars.form.site_name",
+        "SUM_vars.high_fails",
+        "SUM_vars.medium_fails",
+        "SUM_vars.low_fails"
+      ],
+      "group_by": [
+        "vars.form.site_name"
+      ],
+      "aggregations": [
+        {
+          "fn": "SUM",
+          "field": "vars.high_fails"
+        },
+        {
+          "fn": "SUM",
+          "field": "vars.medium_fails"
+        },
+        {
+          "fn": "SUM",
+          "field": "vars.low_fails"
+        }
+      ],
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "Failed checks by severity",
+        "colors": [
+          "#B91C1C",
+          "#D97706",
+          "#65A30D"
+        ],
+        "stacked": true,
+        "y_axis_label": "Failed checks"
+      }
+    }
+  }
+}

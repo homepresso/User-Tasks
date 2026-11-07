@@ -10,8 +10,8 @@
  *    without a person), so a step assigned to it still lands with someone.
  *  - Queued starts: enqueue_workflow is service-role only (20261118000000);
  *    as defence in depth a queued job carries its initiator under
- *    `trigger_data._started_by` with an HMAC (keyed with the service-role
- *    key, which only the server holds) over the tenant, workflow, user, via,
+ *    `trigger_data._started_by` with an HMAC (keyed with the internal
+ *    signing key, lib/config/signing, which only the server holds) over the tenant, workflow, user, via,
  *    time and the rest of the trigger data. The worker trusts only a
  *    signature that verifies (and is under 7 days old); anything else runs
  *    as a start with no user. Task triggers (queued by a database trigger)
@@ -19,7 +19,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { supabaseServiceRoleKey } from "@/lib/config/bootstrap"
+import { currentSigningKey, signingKeys } from "@/lib/config/signing"
 
 /** How a run was started (`{{workflow_started_via}}`). */
 export type StartedVia =
@@ -29,6 +29,7 @@ export type StartedVia =
   | "cli" // the usertasks CLI (REST with its user agent)
   | "mcp" // MCP workflows_start
   | "form" // a form button's Start workflow, or the Form submitted trigger
+  | "anonymous" // an anonymous visitor's submission of a public form link (/p/<token>): no user
   | "agent" // an agent's start_workflow_run tool
   | "task" // a task trigger (created, completed, ...)
   | "data_table" // a data-table row event
@@ -39,7 +40,7 @@ export type StartedVia =
   | "system"
 
 export const STARTED_VIA_VALUES: readonly StartedVia[] = [
-  "ui", "test", "api", "cli", "mcp", "form", "agent", "task", "data_table", "subworkflow", "schedule", "webhook", "event", "system",
+  "ui", "test", "api", "cli", "mcp", "form", "anonymous", "agent", "task", "data_table", "subworkflow", "schedule", "webhook", "event", "system",
 ]
 
 export interface RunInitiator {
@@ -49,7 +50,7 @@ export interface RunInitiator {
 }
 
 /** Run variables only the engine sets. */
-export const INITIATOR_VARIABLES = ["workflow_started_by", "workflow_started_via", "workflow_owner_id"] as const
+export const INITIATOR_VARIABLES = ["workflow_started_by", "workflow_started_via", "workflow_owner_id", "workflow_initiator_user_id"] as const
 
 export const SYSTEM_INITIATOR: RunInitiator = { userId: null, via: "system" }
 
@@ -84,6 +85,9 @@ export function initiatorVariables(initiator: RunInitiator | null | undefined, o
     workflow_started_by: cleanUserId(initiator?.userId) ?? owner,
     workflow_started_via: isStartedVia(initiator?.via) ? initiator!.via : "system",
     workflow_owner_id: owner,
+    // The person who started the run, without the owner fallback ("" when
+    // no person did) — what an agent step acts for (least privilege).
+    workflow_initiator_user_id: cleanUserId(initiator?.userId) ?? "",
   }
 }
 
@@ -100,7 +104,7 @@ export function initiatorFromRunVariables(variables: Record<string, unknown>, vi
 interface InitiatorContext {
   actorId: string | null
   credentialOwnerId?: string | null
-  source: "api" | "mcp" | "ui" | "job"
+  source: "api" | "mcp" | "ui" | "job" | "anonymous"
 }
 
 /**
@@ -109,7 +113,7 @@ interface InitiatorContext {
  * jobs). `via` overrides the channel (form buttons, the CLI).
  */
 export function initiatorFromContext(ctx: InitiatorContext, via?: StartedVia): RunInitiator {
-  const channel: StartedVia = via ?? (ctx.source === "ui" ? "ui" : ctx.source === "mcp" ? "mcp" : "api")
+  const channel: StartedVia = via ?? (ctx.source === "ui" ? "ui" : ctx.source === "mcp" ? "mcp" : ctx.source === "anonymous" ? "anonymous" : "api")
   return { userId: cleanUserId(ctx.actorId) ?? cleanUserId(ctx.credentialOwnerId), via: channel }
 }
 
@@ -150,16 +154,17 @@ function signedPayload(triggerData: Record<string, unknown>): string {
   return canonicalJson(rest)
 }
 
-function sign(key: string, target: { tenantId: string; workflowId: string; userId: string | null; via: StartedVia; at: number; payload: string }): string {
+function sign(key: Buffer, target: { tenantId: string; workflowId: string; userId: string | null; via: StartedVia; at: number; payload: string }): string {
   return createHmac("sha256", key)
     .update(["workflow_initiator", target.tenantId, target.workflowId, target.userId ?? "", target.via, String(target.at), target.payload].join("\n"))
     .digest("hex")
 }
 
 /**
- * `triggerData` with the initiator signed in under `_started_by`. Without a
- * signing key (never on a configured server) the data goes out unsigned and
- * the run starts with no user.
+ * `triggerData` with the initiator signed in under `_started_by`. Without any
+ * signing key (no WORKFLOW_SIGNING_SECRET, ENCRYPTION_KEY or service-role key:
+ * never on a configured server) the data goes out unsigned, with a warning,
+ * and the run starts with no user.
  */
 export function withQueuedInitiator(
   triggerData: Record<string, unknown>,
@@ -169,8 +174,11 @@ export function withQueuedInitiator(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...triggerData }
   delete out[QUEUED_INITIATOR_KEY]
-  const key = supabaseServiceRoleKey()
-  if (!key) return out
+  const key = currentSigningKey()?.key
+  if (!key) {
+    console.warn("[workflow-initiator] no internal signing key (set WORKFLOW_SIGNING_SECRET or ENCRYPTION_KEY): queued start goes out without its initiator")
+    return out
+  }
   const userId = cleanUserId(initiator.userId)
   const via = isStartedVia(initiator.via) ? initiator.via : "system"
   const queued: QueuedInitiator = {
@@ -198,12 +206,17 @@ export function readQueuedInitiator(
   if (typeof raw.sig !== "string" || !/^[0-9a-f]{64}$/.test(raw.sig)) return null
   if (!isStartedVia(raw.via) || typeof raw.at !== "number" || !Number.isFinite(raw.at)) return null
   if (now - raw.at > MAX_SIGNATURE_AGE_MS || raw.at - now > 5 * 60 * 1000) return null
-  const key = supabaseServiceRoleKey()
-  if (!key) return null
+  const keys = signingKeys()
+  if (keys.length === 0) return null
   const userId = cleanUserId(raw.user_id)
-  const expected = Buffer.from(sign(key, { ...target, userId, via: raw.via, at: raw.at, payload: signedPayload(triggerData!) }), "hex")
   const given = Buffer.from(raw.sig, "hex")
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null
+  const payload = signedPayload(triggerData!)
+  let ok = false
+  for (const { key } of keys) {
+    const expected = Buffer.from(sign(key, { ...target, userId, via: raw.via, at: raw.at, payload }), "hex")
+    if (expected.length === given.length && timingSafeEqual(expected, given)) ok = true
+  }
+  if (!ok) return null
   return { userId, via: raw.via }
 }
 
@@ -218,6 +231,7 @@ export function viaForTriggerType(triggerType: string | null | undefined): Start
   if (type === "schedule") return "schedule"
   if (type === "webhook_received" || type === "middleware_received") return "webhook"
   if (type === "data_table_event") return "data_table"
+  if (type === "esign_event") return "event"
   if (type === "form_submitted") return "form"
   if (type === "api" || type === "manual") return "api"
   if (type === "workflow_error" || type === "workflow_sla" || type.startsWith("retention_policy")) return "event"

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "ce3ec973-49aa-5d45-80b7-b8d607f923b0",
+  "asset": {
+    "id": "ce3ec973-49aa-5d45-80b7-b8d607f923b0",
+    "name": "Registration waitlisted",
+    "description": "Sent to the person who registered when the organiser keeps the group on the waitlist.",
+    "subject": "You are on the waitlist for {{event_row.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1B2E\">\n  <div style=\"height:4px;background:#B45309;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">You are on the waitlist</h2>\n  <p>Hi {{form.contact_name}},</p>\n  <p>{{allocation_note}} We have kept your {{attendee_count}} attendee(s) on the waitlist for <strong>{{form.first_choice}}</strong> and will email you if seats come up.</p>\n  <p>{{organiser_note}}</p>\n  <p style=\"color:#6B6680;font-size:13px;margin-top:20px\">Registration {{reg_ref}} · sent by the event registration workflow</p>\n</div>",
+    "text_body": "You are on the waitlist\n\nHi {{form.contact_name}},\n{{allocation_note}} Your {{attendee_count}} attendee(s) are on the waitlist for {{form.first_choice}}.\n{{organiser_note}}",
+    "is_default": false
+  }
+}

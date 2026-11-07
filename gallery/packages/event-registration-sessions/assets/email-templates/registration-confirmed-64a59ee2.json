@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "64a59ee2-e66a-50e0-901d-f413de82f8c2",
+  "asset": {
+    "id": "64a59ee2-e66a-50e0-901d-f413de82f8c2",
+    "name": "Registration confirmed",
+    "description": "Sent to the person who registered once the group has seats.",
+    "subject": "Registration confirmed: {{attendee_count}} for {{event_row.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1B2E\">\n  <div style=\"height:4px;background:#7C3AED;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Your registration is confirmed</h2>\n  <p>Hi {{form.contact_name}},</p>\n  <p>{{attendee_count}} attendee(s) are booked into <strong>{{assigned_session}}</strong> at {{event_row.title}} on {{event_row.event_date}}. {{allocation_note}}</p>\n  <p>{{organiser_note}}</p>\n  <p>Each attendee has their own confirmation email: {{attendee_names}}.</p>\n  <p style=\"color:#6B6680;font-size:13px;margin-top:20px\">Registration {{reg_ref}} · sent by the event registration workflow</p>\n</div>",
+    "text_body": "Your registration is confirmed\n\nHi {{form.contact_name}},\n{{attendee_count}} attendee(s) are booked into {{assigned_session}} at {{event_row.title}} on {{event_row.event_date}}. {{allocation_note}}\n{{organiser_note}}\nAttendees: {{attendee_names}}",
+    "is_default": false
+  }
+}

@@ -38,8 +38,10 @@ export interface Audience {
   visible: ReadonlySet<string>
   /** get_current_tenant_id(): object_audit_log, integration_call_logs (tenant_isolation). */
   current: string | null
-  /** users.tenant_id + current tenant: agent_runs. */
+  /** users.tenant_id + current tenant where the user has agents.view: every agent run. */
   agent: ReadonlySet<string>
+  /** users.tenant_id + current tenant: own agent runs (actor_id / initiated_by = the user). */
+  agentMember?: ReadonlySet<string>
   /** get_user_tenant_ids(): every membership (bulk notification fan-out only). */
   member: ReadonlySet<string>
 }
@@ -93,7 +95,10 @@ export function rowVisible(table: RealtimeTopic, row: ChangeRow, audience: Audie
     case 'integration_call_logs':
       return row.tenant_id !== null && row.tenant_id === audience.current
     case 'agent_runs':
-      return row.tenant_id !== null && audience.agent.has(row.tenant_id)
+      if (row.tenant_id === null) return false
+      if (audience.agent.has(row.tenant_id)) return true
+      return Boolean(audience.agentMember?.has(row.tenant_id))
+        && [...(row.cols.actor_id ?? []), ...(row.cols.initiated_by ?? [])].includes(audience.userId)
     default:
       return row.tenant_id !== null && audience.visible.has(row.tenant_id)
   }
@@ -104,7 +109,7 @@ export function bulkVisible(event: ChangeEvent, audience: Audience): boolean {
   if (event.tenants === null || event.tenants === undefined) return true
   const scope = event.table === 'notifications' || event.table === 'user_jobs' ? audience.member
     : event.table === 'object_audit_log' || event.table === 'integration_call_logs' ? new Set(audience.current ? [audience.current] : [])
-    : event.table === 'agent_runs' ? audience.agent
+    : event.table === 'agent_runs' ? (audience.agentMember ?? audience.agent)
     : audience.visible
   return event.tenants.some((t) => scope.has(t))
 }

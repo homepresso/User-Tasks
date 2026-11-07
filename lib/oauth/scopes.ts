@@ -20,7 +20,7 @@ const READ_WRITE_MAP: Record<string, { read: string[]; write: string[] }> = {
   workflows: {
     // Reusable forms are workflow building blocks.
     read: ['workflows.view', 'workflows.view_runs', 'forms.view'],
-    write: ['workflows.create', 'workflows.edit', 'workflows.activate', 'workflows.delete', 'workflows.manage_runs', 'forms.edit', 'forms.delete'],
+    write: ['workflows.create', 'workflows.edit', 'workflows.activate', 'workflows.delete', 'workflows.manage_runs', 'forms.edit', 'forms.delete', 'forms.wizard'],
   },
   data: {
     read: ['data.view'],
@@ -48,8 +48,9 @@ const READ_WRITE_MAP: Record<string, { read: string[]; write: string[] }> = {
     write: ['settings.edit', 'settings.manage_webhooks'],
   },
   team: {
-    read: ['team.view_members'],
-    write: ['team.invite', 'team.remove', 'team.change_roles'],
+    // The org structure and projects are people data, consented with the team.
+    read: ['team.view_members', 'org.view', 'projects.view'],
+    write: ['team.invite', 'team.remove', 'team.change_roles', 'org.manage', 'projects.manage'],
   },
   sync: {
     read: ['sync.view'],

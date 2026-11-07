@@ -37,7 +37,7 @@ export function useLinkedFormsQuery(nodes: unknown): LinkedForms {
       staleTime: 15_000,
       queryFn: async () => {
         const result = await serverRead('forms.get', { id })
-        return result.data as ({ id: string; name: string; version: number; fields: unknown } | null)
+        return result.data as ({ id: string; name: string; version: number; fields: unknown; layout?: unknown } | null)
       },
     })),
   })
@@ -45,7 +45,7 @@ export function useLinkedFormsQuery(nodes: unknown): LinkedForms {
   return useMemo(() => {
     const out: LinkedForms = {}
     results.forEach((r, i) => {
-      if (r.data) out[ids[i]] = { fields: r.data.fields, version: r.data.version, name: r.data.name }
+      if (r.data) out[ids[i]] = { fields: r.data.fields, layout: r.data.layout, version: r.data.version, name: r.data.name }
     })
     return out
     // eslint-disable-next-line react-hooks/exhaustive-deps

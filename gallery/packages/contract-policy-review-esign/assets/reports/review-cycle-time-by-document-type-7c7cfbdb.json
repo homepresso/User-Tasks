@@ -1,0 +1,53 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "7c7cfbdb-9586-5000-b741-d4051a691a63",
+  "asset": {
+    "id": "7c7cfbdb-9586-5000-b741-d4051a691a63",
+    "name": "Review cycle time by document type",
+    "description": "Average days from submission to sign-off and average review rounds, per document type (workflow variables of signed-off runs).",
+    "category": "Document control",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "vars.doc_status",
+          "operator": "eq",
+          "value": "Published"
+        }
+      ],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "19a97b16-c469-5a1d-8507-b252595eeee1"
+      },
+      "columns": [
+        "vars.form.doc_type",
+        "AVG_vars.cycle_days",
+        "AVG_vars.version",
+        "_count"
+      ],
+      "group_by": [
+        "vars.form.doc_type"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.cycle_days"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.version"
+        }
+      ],
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "Days to sign-off by type",
+        "colors": [
+          "#4338CA",
+          "#0F766E"
+        ],
+        "y_axis_label": "Average"
+      }
+    }
+  }
+}

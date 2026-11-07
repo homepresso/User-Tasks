@@ -1,7 +1,6 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 import { useMemo } from 'react'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { ReportChart } from '@/components/reports/lazy-charts'
@@ -56,39 +55,41 @@ export function IntegrationReportView({ integrations, references, connectors }: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Integration Health</h1>
-        </div>
-        <ReportExportButton data={integrations} columns={[{ key: 'name', label: 'Name' }, { key: 'type', label: 'Type' }, { key: 'is_active', label: 'Active' }, { key: 'last_test_status', label: 'Status' }]} filename="integration-report" />
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Integration health' }]}
+        title="Integration health"
+        description="Connection tests and activity for every integration."
+        className="mb-0"
+        actions={
+          <>
+            <ReportExportButton data={integrations} columns={[{ key: 'name', label: 'Name' }, { key: 'type', label: 'Type' }, { key: 'is_active', label: 'Active' }, { key: 'last_test_status', label: 'Status' }]} filename="integration-report" />
+          </>
+        }
+      />
 
       <ReportMetricRow metrics={[
-        { label: 'Active Integrations', value: active },
-        { label: 'Test Pass Rate', value: `${passRate}%` },
+        { label: 'Active integrations', value: active },
+        { label: 'Test pass rate', value: `${passRate}%` },
         { label: 'References', value: references.length },
         { label: 'Connectors', value: connectors.length },
       ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ReportChart type="pie" data={typeCounts} title="Integration Types" />
-        <ReportChart type="bar" data={healthData} xKey="name" yKeys={['value']} title="Health Status" />
-        {refsPerIntegration.length > 0 && <ReportChart type="bar" data={refsPerIntegration} xKey="name" yKeys={['value']} title="References per Integration" />}
+        <ReportChart type="pie" data={typeCounts} title="Integration types" />
+        <ReportChart type="bar" data={healthData} xKey="name" yKeys={['value']} title="Health status" />
+        {refsPerIntegration.length > 0 && <ReportChart type="bar" data={refsPerIntegration} xKey="name" yKeys={['value']} title="References per integration" />}
       </div>
 
       <ReportDataTable
-        title="All Integrations"
+        title="All integrations"
         columns={[
           { key: 'name', label: 'Name' },
           { key: 'type', label: 'Type' },
           { key: 'is_active', label: 'Active', type: 'boolean' },
-          { key: 'last_test_status', label: 'Test Status', render: (v: string) => (
-            <span style={{ color: v === 'success' ? 'var(--theme-success)' : v === 'error' ? 'var(--theme-danger)' : 'var(--theme-muted-text)' }}>{v ?? 'Untested'}</span>
+          { key: 'last_test_status', label: 'Test status', render: (v: string) => (
+            <span className={v === 'success' ? 'text-success' : v === 'error' ? 'text-danger' : 'text-fg-muted'}>{v ?? 'Untested'}</span>
           )},
-          { key: 'last_tested_at', label: 'Last Tested', type: 'date' },
+          { key: 'last_tested_at', label: 'Last tested', type: 'date' },
         ]}
         data={integrations}
         rowHref={(row) => row?.id ? `/integrations/${row.id}` : null}

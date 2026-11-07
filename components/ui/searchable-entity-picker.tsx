@@ -35,14 +35,13 @@ export function SearchableEntityPicker({
   if (selectedId && selected && !open) {
     return (
       <div
-        className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:opacity-80"
-        style={{ borderColor: 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' }}
+        className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:opacity-80 border-primary bg-primary-wash"
         onClick={() => setOpen(true)}
       >
-        <span className="min-w-0 flex-1" style={{ color: 'var(--theme-primary-text)' }}>
+        <span className="min-w-0 flex-1 text-primary-text">
           <span className="block truncate">{selected.name}</span>
           {selected.subtitle ? (
-            <span className="block truncate text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <span className="block truncate text-2xs text-fg-muted">
               {selected.subtitle}
             </span>
           ) : null}
@@ -53,8 +52,7 @@ export function SearchableEntityPicker({
             e.stopPropagation()
             onSelect('', '')
           }}
-          className="text-[9px] underline"
-          style={{ color: 'var(--theme-muted-text)' }}
+          className="text-2xs underline text-fg-muted"
         >
           Clear
         </button>
@@ -72,18 +70,12 @@ export function SearchableEntityPicker({
         }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-md border px-3 py-2 text-xs outline-none"
-        style={{
-          backgroundColor: 'var(--theme-card-bg)',
-          borderColor: 'var(--theme-surface-border)',
-          color: 'var(--theme-card-text)',
-        }}
+        className="w-full rounded-md border px-3 py-2 text-xs outline-none bg-panel border-border text-fg"
       />
       {open ? (
         filtered.length > 0 ? (
           <div
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border shadow-lg"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border shadow-lg bg-panel border-border"
           >
             {filtered.map((item) => (
               <button
@@ -98,12 +90,12 @@ export function SearchableEntityPicker({
                 }}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate" style={{ color: 'var(--theme-card-text)' }}>
+                  <span className="block truncate text-fg">
                     {item.name}
                     {item.archived ? ' (archived)' : ''}
                   </span>
                   {item.subtitle ? (
-                    <span className="block truncate text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="block truncate text-2xs text-fg-muted">
                       {item.subtitle}
                     </span>
                   ) : null}
@@ -113,8 +105,7 @@ export function SearchableEntityPicker({
           </div>
         ) : (
           <div
-            className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border px-3 py-2 text-xs shadow-lg"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+            className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border px-3 py-2 text-xs shadow-lg bg-panel border-border text-fg-muted"
           >
             {emptyLabel}
           </div>

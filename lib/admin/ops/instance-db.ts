@@ -7,6 +7,7 @@ import { decryptSecret, encryptSecret, isEncrypted } from '@/lib/secret-crypto'
 import { isBootstrapSetting, isCredentialKey } from '@/lib/config/instance-settings'
 import { isSecretRef } from '@/lib/config/secret-refs'
 import { validateHousekeepingSetting } from '@/lib/config/housekeeping'
+import { apiData, apiOf, isMissingObject, NeedsDirectConnectionError, type ServiceApiClient } from './service-sql'
 
 /**
  * The app database as the admin CLI sees it: a direct `pg` connection
@@ -14,6 +15,10 @@ import { validateHousekeepingSetting } from '@/lib/config/housekeeping'
  * the config the app would resolve from those rows plus this environment.
  * The CLI never goes through the app's cached service client, so every
  * command can be pointed at any database (a scratch copy, a new target).
+ *
+ * Without a direct connection (Supabase provider, no DATABASE_URL) the same
+ * functions take an ApiSqlClient (./service-sql) and go through the
+ * service-role API: instance_settings is service-role only either way.
  */
 
 export interface SqlClient {
@@ -34,13 +39,38 @@ export async function connect(url: string, application = 'usertasks-admin'): Pro
   return client
 }
 
+/** Whether a table exists, through the service-role API (the tables the engine probes for). */
+async function apiTableExists(api: ServiceApiClient, name: string): Promise<boolean> {
+  const [schema, table] = name.includes('.') ? name.split('.') : ['public', name]
+  if (schema === 'public') {
+    const { error } = await api.from(table).select('*', { head: true, count: 'planned' }).limit(1)
+    if (!error) return true
+    if (isMissingObject(error)) return false
+    throw Object.assign(new Error(error.message), { code: error.code })
+  }
+  if (name === 'app_kms.data_keys') {
+    const { error } = await api.rpc('app_kms_data_keys')
+    if (!error) return true
+    if (isMissingObject(error) || /app_kms/.test(error.message)) return false
+    throw new Error(error.message)
+  }
+  throw new NeedsDirectConnectionError(`Reading ${name}`)
+}
+
 export async function tableExists(db: SqlClient, name: string): Promise<boolean> {
+  const api = apiOf(db)
+  if (api) return apiTableExists(api, name)
   const { rows } = await db.query<{ ok: boolean }>('SELECT to_regclass($1) IS NOT NULL AS ok', [name])
   return rows[0]?.ok === true
 }
 
 export async function readSettingRows(db: SqlClient): Promise<SettingRow[]> {
   if (!(await tableExists(db, 'public.instance_settings'))) return []
+  const api = apiOf(db)
+  if (api) {
+    const data = await apiData<Array<{ key: string; value: unknown; secret: boolean }>>(api.from('instance_settings').select('key, value, secret').order('key'))
+    return (data ?? []).map((r) => ({ key: r.key, value: r.value, secret: Boolean(r.secret) }))
+  }
   const { rows } = await db.query<{ key: string; value: unknown; secret: boolean }>('SELECT key, value, secret FROM public.instance_settings ORDER BY key')
   return rows.map((r) => ({ key: r.key, value: r.value, secret: r.secret }))
 }
@@ -89,6 +119,11 @@ export function encodeSetting(key: string, value: unknown, secret: boolean): Set
 }
 
 export async function upsertSettingRow(db: SqlClient, row: SettingRow, updatedBy: string | null = null): Promise<void> {
+  const api = apiOf(db)
+  if (api) {
+    await apiData(api.from('instance_settings').upsert({ key: row.key, value: row.value, secret: row.secret, updated_at: new Date().toISOString(), updated_by: updatedBy }, { onConflict: 'key' }))
+    return
+  }
   await db.query(
     `INSERT INTO public.instance_settings (key, value, secret, updated_at, updated_by)
      VALUES ($1, $2::jsonb, $3, now(), $4)
@@ -117,7 +152,8 @@ export async function notifyConfigChanged(db: SqlClient, configs: InstanceConfig
       const signature = JSON.stringify([cache.id, cache.options])
       if (seen.has(signature)) continue
       seen.add(signature)
-      const store = resolveCacheStore(cache.id, cache.options, { sql: pgCacheSql(db) })
+      // Without a direct connection the postgres store goes through the service client (its RPCs).
+      const store = resolveCacheStore(cache.id, cache.options, apiOf(db) ? {} : { sql: pgCacheSql(db) })
       try {
         await publishInvalidation('config', store)
       } finally {
@@ -131,6 +167,11 @@ export async function notifyConfigChanged(db: SqlClient, configs: InstanceConfig
 }
 
 export async function deleteSetting(db: SqlClient, key: string): Promise<void> {
+  const api = apiOf(db)
+  if (api) {
+    await apiData(api.from('instance_settings').delete().eq('key', key))
+    return
+  }
   await db.query('DELETE FROM public.instance_settings WHERE key = $1', [key])
 }
 

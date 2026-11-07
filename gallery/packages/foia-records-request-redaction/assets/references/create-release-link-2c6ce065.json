@@ -1,0 +1,114 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "2c6ce065-c27b-5af2-abcf-3b47352c8317",
+  "asset": {
+    "id": "2c6ce065-c27b-5af2-abcf-3b47352c8317",
+    "integration_id": "8abc2e54-0b2a-51c4-8120-6a11331ddfac",
+    "name": "Create release link",
+    "description": "Uploads nothing itself: registers the release and returns a download link the requester can use (your portal fetches the redacted files from UserTasks or your store).",
+    "tags": [
+      "records"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "path_template": "/releases",
+      "body_template": "{\"reference\":\"{{reference}}\",\"requester\":\"{{requester_email}}\",\"files\":{{files}},\"expires_in_days\":{{expires_in_days}}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "type": "string",
+              "example": "REL-20261030-0042",
+              "name": "id"
+            },
+            {
+              "type": "string",
+              "example": "https://records-portal.example.com/r/REL-20261030-0042",
+              "name": "url"
+            },
+            {
+              "type": "string",
+              "example": "2026-11-29T00:00:00Z",
+              "name": "expires_at"
+            }
+          ]
+        },
+        "sample": {
+          "id": "REL-20261030-0042",
+          "url": "https://records-portal.example.com/r/REL-20261030-0042",
+          "expires_at": "2026-11-29T00:00:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-30T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1e1f355d-3924-5d40-bed1-a7dbec9751ec",
+        "name": "reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c8cad8f0-ed96-5897-b536-e8720e663793",
+        "name": "requester_email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "738fcbb5-4d90-54cd-a4d2-dfb6664f42bf",
+        "name": "files",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5817a6a5-e815-5031-a9e1-dc4c30e5ddb0",
+        "name": "expires_in_days",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "d5d8cdb4-51a6-5376-80f0-3c064153beb7",
+        "name": "release_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "1117b305-06bb-5bf3-b2a8-f5a972b26b9c",
+        "name": "release_url",
+        "path": "url",
+        "type": "string"
+      },
+      {
+        "id": "62463740-be65-560f-a887-0d23824f368b",
+        "name": "expires_at",
+        "path": "expires_at",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+  "asset": {
+    "id": "e8c860f2-dd59-5ef7-a2f5-3b411217c667",
+    "name": "Records requests rows",
+    "rows": [
+      {
+        "id": "e864ee0c-b03c-572d-8473-c212ca3ff64e",
+        "data": {
+          "reference": "PRR-20261012-7Q2C",
+          "requester_name": "Sam Rivera",
+          "requester_email": "sam.rivera@example.com",
+          "jurisdiction": "US federal FOIA",
+          "records_sought": "Body-cam video of the traffic stop on Sample Street",
+          "date_range": "2026-09-01 to 2026-09-03",
+          "delivery": "Secure download link",
+          "received_date": "2026-10-12",
+          "due_date": "2026-11-09",
+          "status": "Released",
+          "decision": "Partial release",
+          "release_url": "https://records-portal.example.com/r/REL-20261012-7Q2C",
+          "closed_at": "2026-10-29"
+        }
+      }
+    ]
+  }
+}

@@ -26,9 +26,20 @@ export function handleMath(config: Record<string, any>, ctx: ExpressionContext):
   return { expression, result, variable: varName }
 }
 
+/** Natural names for Modify String operations ("upper") → the canonical ones ("uppercase"). */
+const MODIFY_STRING_ALIASES: Record<string, string> = {
+  upper: "uppercase", upper_case: "uppercase", to_upper: "uppercase", toupper: "uppercase", touppercase: "uppercase",
+  lower: "lowercase", lower_case: "lowercase", to_lower: "lowercase", tolower: "lowercase", tolowercase: "lowercase",
+}
+
+export function canonicalModifyStringOperation(op: unknown): string {
+  const raw = String(op ?? "trim").trim()
+  return MODIFY_STRING_ALIASES[raw.toLowerCase()] ?? raw
+}
+
 export function handleModifyString(config: Record<string, any>, ctx: ExpressionContext): { input: string; operation: string; result: string; variable: string } {
   const input = String(resolveExpression(config.input, ctx) ?? "")
-  const op = config.operation ?? "trim"
+  const op = canonicalModifyStringOperation(config.operation)
   let result: string
   switch (op) {
     case "uppercase": result = input.toUpperCase(); break
@@ -72,7 +83,8 @@ export function handleFormatDate(config: Record<string, any>, ctx: ExpressionCon
   // No date at all means "now" — formatting the current time is the common intent.
   const dateStr = resolveExpression(config.date ?? config.input, ctx)
   const d = dateStr === undefined || dateStr === null || dateStr === "" ? new Date() : new Date(dateStr)
-  const fmt = config.format ?? "iso"
+  // A pattern in `format` ("YYYY-MM-DD") means a custom format.
+  const { format: fmt, custom_format: customFormat } = canonicalFormatDate(config)
   let result: string
   switch (fmt) {
     case "iso": result = d.toISOString(); break
@@ -87,13 +99,7 @@ export function handleFormatDate(config: Record<string, any>, ctx: ExpressionCon
       break
     }
     case "custom": {
-      result = (config.custom_format ?? "YYYY-MM-DD")
-        .replace("YYYY", String(d.getFullYear()))
-        .replace("MM", String(d.getMonth() + 1).padStart(2, "0"))
-        .replace("DD", String(d.getDate()).padStart(2, "0"))
-        .replace("HH", String(d.getHours()).padStart(2, "0"))
-        .replace("mm", String(d.getMinutes()).padStart(2, "0"))
-        .replace("ss", String(d.getSeconds()).padStart(2, "0"))
+      result = formatDatePattern(d, customFormat ?? "YYYY-MM-DD")
       break
     }
     default: result = d.toISOString()
@@ -103,8 +109,61 @@ export function handleFormatDate(config: Record<string, any>, ctx: ExpressionCon
   return { date: dateStr, format: fmt, result, variable: varName }
 }
 
+export const FORMAT_DATE_PRESETS = ["iso", "date", "time", "datetime", "short", "relative", "custom"] as const
+
+/**
+ * `format` / `custom_format` as the handler reads them: a value that is not
+ * a preset but looks like a pattern ("YYYY-MM-DD", "dddd, MMMM D") is a
+ * custom format.
+ */
+export function canonicalFormatDate(config: Record<string, any>): { format: string; custom_format?: string } {
+  const raw = config.format == null || config.format === "" ? "iso" : String(config.format)
+  if ((FORMAT_DATE_PRESETS as readonly string[]).includes(raw)) {
+    return raw === "custom" ? { format: "custom", custom_format: config.custom_format } : { format: raw }
+  }
+  if (/YY|MM|DD|HH|hh|mm|ss|ddd|(?<![A-Za-z])[DM](?![A-Za-z])/.test(raw)) return { format: "custom", custom_format: raw }
+  return { format: raw }
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+/**
+ * Format a date with a pattern: YYYY YY MMMM MMM MM M DD D dddd ddd HH H hh h
+ * mm ss A (AM/PM); text in [brackets] is kept as is. Single-letter tokens only count
+ * on their own (not inside a word), so "Due D" keeps the word "Due".
+ */
+export function formatDatePattern(d: Date, pattern: string): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const h12 = d.getHours() % 12 || 12
+  const tokens: Record<string, () => string> = {
+    YYYY: () => String(d.getFullYear()),
+    YY: () => String(d.getFullYear()).slice(-2),
+    MMMM: () => MONTHS[d.getMonth()],
+    MMM: () => MONTHS[d.getMonth()].slice(0, 3),
+    MM: () => pad(d.getMonth() + 1),
+    M: () => String(d.getMonth() + 1),
+    DD: () => pad(d.getDate()),
+    D: () => String(d.getDate()),
+    dddd: () => WEEKDAYS[d.getDay()],
+    ddd: () => WEEKDAYS[d.getDay()].slice(0, 3),
+    HH: () => pad(d.getHours()),
+    H: () => String(d.getHours()),
+    hh: () => pad(h12),
+    h: () => String(h12),
+    mm: () => pad(d.getMinutes()),
+    ss: () => pad(d.getSeconds()),
+    A: () => (d.getHours() < 12 ? "AM" : "PM"),
+  }
+  return pattern.replace(
+    /\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|DD|dddd|ddd|HH|hh|mm|ss|(?<![A-Za-z])(?:M|D|H|h|A)(?![A-Za-z])/g,
+    (match, literal: string | undefined) => (literal !== undefined ? literal : tokens[match]?.() ?? match),
+  )
+}
+
 export function handleDateMath(config: Record<string, any>, ctx: ExpressionContext): any {
-  const dateStr = resolveExpression(config.date, ctx)
+  // Builder UI writes `date`; hand-authored workflows often say `input`.
+  const dateStr = resolveExpression(config.date ?? config.input, ctx)
   const d = new Date(dateStr)
   const op = config.operation ?? "add"
   if (op === "add" || op === "subtract") {
@@ -356,10 +415,13 @@ export function handleJsonBuildArray(config: Record<string, any>, ctx: Expressio
   const existingVar = config.source_var ? ctx.variables[config.source_var] : null
   const base: any[] = Array.isArray(existingVar) ? [...existingVar] : []
 
-  // Add items from config
-  const items = (config.items ?? []) as { value: string }[]
+  // Add items from config: [{ value }] (the builder), or plain values ("apple", 3).
+  const items = (Array.isArray(config.items) ? config.items : []) as unknown[]
   for (const item of items) {
-    let value: any = resolveExpression(item.value, ctx)
+    const raw = item !== null && typeof item === 'object' && !Array.isArray(item) && 'value' in item
+      ? (item as { value: unknown }).value
+      : item
+    let value: any = typeof raw === 'string' ? resolveExpression(raw, ctx) : raw
     if (typeof value === 'string') {
       try { const parsed = JSON.parse(value); value = parsed } catch { /* keep as string */ }
     }
@@ -422,6 +484,23 @@ export function handleJsonGetValue(config: Record<string, any>, ctx: ExpressionC
 }
 
 // ─── Delay Helper ───
+
+const DELAY_UNITS = ["seconds", "minutes", "hours", "days"] as const
+
+/**
+ * `duration` + `unit` of a Delay node; `{ seconds: 5 }` (or minutes / hours /
+ * days) is read as that duration when `duration` is not set.
+ */
+export function canonicalDelay(config: Record<string, any>): { duration: any; unit?: string } {
+  if (config.duration !== undefined && config.duration !== null && config.duration !== "") {
+    return { duration: config.duration, unit: config.unit }
+  }
+  for (const unit of DELAY_UNITS) {
+    const v = config[unit]
+    if (v !== undefined && v !== null && v !== "") return { duration: v, unit }
+  }
+  return { duration: config.duration, unit: config.unit }
+}
 
 export function calculateDelay(duration: any, unit?: string): number {
   const d = Number(duration) || 0

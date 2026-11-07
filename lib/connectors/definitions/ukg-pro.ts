@@ -1,13 +1,23 @@
 import type { ConnectorDefinition } from '../registry'
 
+function ukgHost(value: unknown): string {
+  const host = String(value ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '')
+  return host || 'service4.ultipro.com'
+}
+
 export const ukgProConnector: ConnectorDefinition = {
   key: 'ukg_pro',
   name: 'UKG Pro',
-  description: 'HR, payroll, time management, compensation, and benefits data from UKG Pro (formerly UltiPro)',
+  description: 'HR, payroll, time management, compensation, and benefits data from UKG Pro (formerly UltiPro) REST APIs',
   category: 'productivity',
   icon: 'UserCircle',
   color: '#005151',
   docsUrl: 'https://developer.ukg.com/',
+  recommendedPermissions: {
+    title: 'UKG Pro web service account',
+    items: ['A Service Account (Web Service Account) with only the REST web services you need (Employee Person Details, Employment Details, Compensation, Pay Statements, Time Management …)', 'The Customer API Key from System Configuration → Security → Web Services'],
+    note: 'Not supported here: the SOAP BI Data Service (run BI reports through UKG report scheduling or a custom REST report instead).',
+  },
   fields: [
     {
       key: 'service_host',
@@ -43,21 +53,6 @@ export const ukgProConnector: ConnectorDefinition = {
     },
   ],
   referenceTemplates: [
-    // ─── Authentication ───
-    {
-      key: 'authenticate',
-      name: 'Get Session Token',
-      description: 'Authenticate and retrieve a session token for subsequent API calls',
-      method: 'POST',
-      pathTemplate: '/api/authentication',
-      headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: '',
-      inputs: [],
-      outputs: [
-        { name: 'Token', type: 'string' },
-        { name: 'ExpirationDate', type: 'string' },
-      ],
-    },
     // ─── Employees ───
     {
       key: 'get_employee',
@@ -221,36 +216,19 @@ export const ukgProConnector: ConnectorDefinition = {
         { name: 'totalCount', type: 'number' },
       ],
     },
-    // ─── BI Reporting ───
-    {
-      key: 'run_bi_report',
-      name: 'Run BI Report',
-      description: 'Execute a pre-configured Business Intelligence report and return results. Reports must be configured in UKG Pro first.',
-      method: 'POST',
-      pathTemplate: '/services/BIDataService',
-      headers: { 'Content-Type': 'text/xml' },
-      bodyTemplate: '<BIDataService><Report><ReportPath>{{report_path}}</ReportPath></Report></BIDataService>',
-      inputs: [
-        { name: 'report_path', type: 'string', required: true, description: 'BI report path as configured in UKG Pro (e.g. /content/folder/ReportName)' },
-      ],
-      outputs: [
-        { name: 'data', type: 'array' },
-        { name: 'columns', type: 'array' },
-      ],
-    },
     // ─── Raw Request ───
     {
       key: 'raw_request',
       name: 'Raw API Request',
-      description: 'Send a custom request to any UKG Pro API endpoint',
-      method: 'GET',
+      description: 'Send a custom request to any UKG Pro REST endpoint (path relative to the service host)',
+      method: '{{method}}',
       pathTemplate: '{{path}}',
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       bodyTemplate: '{{body}}',
       inputs: [
         { name: 'path', type: 'string', required: true, description: 'API path (e.g. /personnel/v1/employee-details)' },
-        { name: 'method', type: 'string', required: false, description: 'HTTP method (GET, POST, PUT, DELETE)', defaultValue: 'GET' },
-        { name: 'body', type: 'string', required: false, description: 'Request body (JSON string for POST/PUT)' },
+        { name: 'method', type: 'string', required: false, description: 'HTTP method (GET, POST, PUT, DELETE)', defaultValue: 'GET', location: 'body' },
+        { name: 'body', type: 'object', required: false, description: 'JSON request body for POST/PUT/PATCH' },
       ],
       outputs: [
         { name: 'status', type: 'number' },
@@ -258,18 +236,32 @@ export const ukgProConnector: ConnectorDefinition = {
       ],
     },
   ],
-  buildIntegrationConfig: (config, credentials) => ({
-    base_url: `https://${config.service_host || 'service4.ultipro.com'}`,
-    auth_type: 'basic',
-    auth_config: {
-      username: credentials.username,
-      password: credentials.password,
-      _executor: 'ukg_pro',
-      customer_api_key: config.customer_api_key,
-      service_host: config.service_host || 'service4.ultipro.com',
-    },
-    headers: {
-      'US-Customer-Api-Key': config.customer_api_key || '',
-    },
-  }),
+  buildIntegrationConfig: (config, credentials) => {
+    const host = ukgHost(config.service_host)
+    return {
+      base_url: `https://${host}`,
+      auth_type: 'basic',
+      auth_config: {
+        username: credentials.username,
+        password: credentials.password,
+        // attach-auth sends US-Customer-Api-Key from here (kept encrypted at rest).
+        _executor: 'ukg_pro',
+        customer_api_key: config.customer_api_key,
+        service_host: host,
+      },
+    }
+  },
+  // Configs written before the key moved into auth_config carried it as a
+  // plaintext static header too — drop the duplicate.
+  upgradeIntegrationConfig: (stored) => {
+    const headers = stored?.headers
+    if (!headers || typeof headers !== 'object') return stored
+    const key = Object.keys(headers).find((k) => k.toLowerCase() === 'us-customer-api-key')
+    if (!key) return stored
+    const authConfig = { ...(stored.auth_config ?? {}) }
+    if (!authConfig.customer_api_key && headers[key]) authConfig.customer_api_key = headers[key]
+    if (!authConfig._executor) authConfig._executor = 'ukg_pro'
+    const { [key]: _drop, ...rest } = headers
+    return { ...stored, auth_config: authConfig, headers: rest }
+  },
 }

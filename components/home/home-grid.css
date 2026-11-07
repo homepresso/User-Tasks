@@ -1,0 +1,31 @@
+/* ─── Home widget grid (components/home/home-grid.tsx, lib/home/layout.ts) ───
+   Owned by Home (Workstream C); imported by app/(dashboard)/home/page.tsx.
+   Columns come from the grid's own width (container queries), so the server
+   render and the first client render agree: 12 columns from 900px, 6 from
+   560px, otherwise one column in the person's order. Widgets set
+   --w-lg (desktop span), --w-md (tablet span), --h (rows of 40px) and
+   --h-px (the same height in pixels, for charts on a phone; compact
+   widgets size to their content there). An expanded compact widget gets a
+   larger --h from the dashboard (displayItems in lib/home/layout.ts). Keep the
+   thresholds in step with colsForWidth().
+   Every widget's height is fixed by the grid (rows) or by --h-px, never by
+   its content: charts measure their box, so a content-sized box would feed
+   back into itself (the "shaking chart" bug). */
+.home-grid { container: home-grid / inline-size; }
+.home-grid-inner { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.home-widget { min-width: 0; }
+.home-widget[data-group="chart"] { height: var(--h-px); }
+/* Compact widgets (My decisions, On time, My submissions) take their content's height on a phone. */
+.home-widget[data-compact] { height: auto; }
+@container home-grid (min-width: 560px) {
+  .home-grid-inner { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 40px; }
+  .home-widget { grid-column: span var(--w-md) / span var(--w-md); grid-row: span var(--h) / span var(--h); min-height: 0; }
+  .home-widget[data-group="chart"] { height: auto; }
+}
+@container home-grid (min-width: 900px) {
+  .home-grid-inner { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .home-widget { grid-column: span var(--w-lg) / span var(--w-lg); }
+}
+/* Edit mode: the content stays visible but inert (see the dashed outline and handles). */
+.home-widget-editing { opacity: 0.75; user-select: none; }
+.home-widget-editing.overflow-auto { overflow: hidden; }

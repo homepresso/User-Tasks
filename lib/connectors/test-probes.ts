@@ -1,6 +1,9 @@
-import { JWT } from 'google-auth-library'
-import { assertSafeEgressUrl } from '@/lib/egress-guard'
+import { applyAuthHeaders } from '@/lib/integrations/attach-auth'
+import { connectorFetch } from '@/lib/integrations/http'
+import { mintFromRefreshToken } from '@/lib/integrations/token-mint'
 import { decryptSensitiveFields } from '@/lib/secret-fields'
+import { SALESFORCE_DEFAULT_API_VERSION } from './definitions/salesforce'
+import { getConnectorDefinition } from './registry'
 
 interface IntegrationConfig {
   base_url: string
@@ -32,147 +35,48 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '')
 }
 
-function parseJsonObject<T = Record<string, any>>(value: string | undefined): T {
-  if (!value) throw new Error('Missing JSON credential payload')
-  const parsed = JSON.parse(value)
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Expected a JSON object for the service account credentials')
-  }
-  return parsed as T
-}
-
-function applyApiKeyToUrl(url: string, keyName: string, keyValue: string) {
-  const next = new URL(url)
-  next.searchParams.set(keyName, keyValue)
-  return next.toString()
-}
-
 function buildUrl(baseUrl: string, path: string) {
   if (!path) return baseUrl
   if (path.startsWith('http://') || path.startsWith('https://')) return path
   return `${trimTrailingSlash(baseUrl)}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-async function resolveMicrosoftAccessToken(authConfig: Record<string, any>) {
-  // Loaded on demand: @azure/identity is only needed for Microsoft probes.
-  const { ClientSecretCredential } = await import('@azure/identity')
-  const scope = authConfig.scope || 'https://graph.microsoft.com/.default'
-  const credential = new ClientSecretCredential(
-    authConfig.tenant_id,
-    authConfig.client_id,
-    authConfig.client_secret,
-  )
-  const token = await credential.getToken(scope)
-  if (!token?.token) throw new Error('Microsoft token acquisition failed')
-  return token.token
-}
-
-async function resolveGoogleAccessToken(authConfig: Record<string, any>) {
-  const serviceAccount = parseJsonObject<{
-    client_email?: string
-    private_key?: string
-  }>(authConfig.service_account_json)
-
-  if (!serviceAccount.client_email || !serviceAccount.private_key) {
-    throw new Error('Service account JSON is missing client_email or private_key')
-  }
-
-  const jwt = new JWT({
-    email: serviceAccount.client_email,
-    key: serviceAccount.private_key,
-    scopes: Array.isArray(authConfig.scopes) ? authConfig.scopes : [],
-    subject: authConfig.impersonate_email || undefined,
-  })
-
-  const token = await jwt.authorize()
-  if (!token.access_token) throw new Error('Google access token acquisition failed')
-  return token.access_token
-}
-
-async function resolveBoxAccessToken(authConfig: Record<string, any>) {
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: authConfig.client_id || '',
-    client_secret: authConfig.client_secret || '',
-    box_subject_type: 'enterprise',
-    box_subject_id: authConfig.enterprise_id || '',
-  })
-
-  const resp = await fetch('https://api.box.com/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-    signal: AbortSignal.timeout(TEST_TIMEOUT_MS),
-  })
-
-  const payload = await resp.json().catch(() => ({}))
-  if (!resp.ok || !payload?.access_token) {
-    throw new Error(payload?.error_description || payload?.error || `Box token request failed with HTTP ${resp.status}`)
-  }
-
-  return payload.access_token as string
-}
-
-async function resolveDropboxAccessToken(credentials: Record<string, any>, integrationConfig: IntegrationConfig) {
-  if (!credentials.refresh_token || !credentials.app_key || !credentials.app_secret) {
-    return integrationConfig.auth_config?.token || ''
-  }
-
-  const body = new URLSearchParams({
-    grant_type: 'refresh_token',
-    refresh_token: credentials.refresh_token,
-    client_id: credentials.app_key,
-    client_secret: credentials.app_secret,
-  })
-
-  const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-    signal: AbortSignal.timeout(TEST_TIMEOUT_MS),
-  })
-
-  const payload = await resp.json().catch(() => ({}))
-  if (!resp.ok || !payload?.access_token) {
-    throw new Error(payload?.error_description || payload?.error || `Dropbox token refresh failed with HTTP ${resp.status}`)
-  }
-
-  return payload.access_token as string
-}
-
-async function buildAuthHeaders(
+/**
+ * Probe auth = runtime auth: the same attach-auth / token-mint code the
+ * reference executor uses (static tokens, basic, api_key header/query,
+ * Google / Microsoft / Box / refresh-token mints, UKG customer key).
+ */
+async function applyProbeAuth(
   connectorKey: string,
   integrationConfig: IntegrationConfig,
   credentials: Record<string, any>,
+  headers: Record<string, string>,
+  query: Record<string, string>,
 ) {
-  const headers: Record<string, string> = {}
-  const authConfig = integrationConfig.auth_config ?? {}
-
-  if (integrationConfig.auth_type === 'bearer') {
-    let token = authConfig.token || ''
-
-    if (authConfig._executor === 'ms_client_credentials') {
-      token = await resolveMicrosoftAccessToken(authConfig)
-    } else if (authConfig._executor === 'google_service_account') {
-      token = await resolveGoogleAccessToken(authConfig)
-    } else if (authConfig._executor === 'box_ccg') {
-      token = await resolveBoxAccessToken(authConfig)
-    } else if (connectorKey === 'dropbox') {
-      token = await resolveDropboxAccessToken(credentials, integrationConfig)
-    }
-
-    if (token) headers.Authorization = `Bearer ${token}`
-  } else if (integrationConfig.auth_type === 'basic') {
-    const encoded = Buffer.from(`${authConfig.username || ''}:${authConfig.password || ''}`).toString('base64')
-    headers.Authorization = `Basic ${encoded}`
+  // Dropbox connectors stored before the refresh-token executor existed keep
+  // the app key / secret / refresh token only in the connector credentials.
+  if (connectorKey === 'dropbox' && integrationConfig.auth_config?._executor !== 'oauth_refresh'
+    && credentials.refresh_token && credentials.app_key && credentials.app_secret) {
+    const minted = await mintFromRefreshToken({
+      token_url: 'https://api.dropboxapi.com/oauth2/token',
+      refresh_token: credentials.refresh_token,
+      client_id: credentials.app_key,
+      client_secret: credentials.app_secret,
+    })
+    headers.Authorization = `Bearer ${minted.token}`
+    return
   }
-
-  return headers
+  // Authorization-code (oauth2) connectors need the token store; their
+  // probe goes through the OAuth connect flow instead.
+  if (integrationConfig.auth_type === 'oauth2') return
+  await applyAuthHeaders(integrationConfig, headers, {}, query)
 }
 
 function applyStaticHeaders(target: Record<string, string>, integrationConfig: IntegrationConfig) {
   for (const [key, value] of Object.entries(integrationConfig.headers ?? {})) {
     if (!value || key.startsWith('_')) continue
+    // A legacy CSRF "fetch" marker is not a header to send.
+    if (key.toLowerCase() === 'x-csrf-token' && String(value).toLowerCase() === 'fetch') continue
     target[key] = value
   }
 }
@@ -186,31 +90,23 @@ async function performProbe(
 ) {
   const headers: Record<string, string> = {}
   applyStaticHeaders(headers, integrationConfig)
-  Object.assign(headers, await buildAuthHeaders(connectorKey, integrationConfig, credentials))
+  const query: Record<string, string> = {}
+  await applyProbeAuth(connectorKey, integrationConfig, credentials, headers, query)
   Object.assign(headers, request.headers ?? {})
 
   let url = request.url
-  if (integrationConfig.auth_type === 'api_key') {
-    const authConfig = integrationConfig.auth_config ?? {}
-    const keyName = authConfig.key_name ?? 'X-API-Key'
-    const keyValue = authConfig.key_value ?? ''
-    const addTo = authConfig.add_to ?? 'header'
-    if (addTo === 'query') {
-      url = applyApiKeyToUrl(url, keyName, keyValue)
-    } else {
-      headers[keyName] = keyValue
-    }
+  if (Object.keys(query).length > 0) {
+    const next = new URL(url)
+    for (const [k, v] of Object.entries(query)) next.searchParams.set(k, v)
+    url = next.toString()
   }
 
-  await assertSafeEgressUrl(url)
-  const resp = await fetch(url, {
+  // Egress guard on every hop (redirects re-checked), bounded time, no retry storm.
+  return connectorFetch(url, {
     method: request.method ?? 'GET',
     headers,
     body: request.body,
-    signal: AbortSignal.timeout(TEST_TIMEOUT_MS),
-  })
-
-  return resp
+  }, { timeoutMs: TEST_TIMEOUT_MS, maxAttempts: 1 })
 }
 
 function buildStandardMessage(serviceName: string, resp: Response) {
@@ -253,7 +149,7 @@ async function probeN8n(integrationConfig: IntegrationConfig, credentials: Recor
 }
 
 async function probeSalesforce(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
-  const apiVersion = config.api_version || 'v59.0'
+  const apiVersion = config.api_version || SALESFORCE_DEFAULT_API_VERSION
   const resp = await performProbe('salesforce', integrationConfig, config, credentials, {
     url: buildUrl(integrationConfig.base_url, `/services/data/${apiVersion}/limits`),
   })
@@ -422,6 +318,161 @@ async function probeOData(connectorKey: string, integrationConfig: IntegrationCo
   return { ok: false, message: body || buildStandardMessage(serviceName, resp), statusCode: resp.status }
 }
 
+
+// ─── Credential probes (CRM / HR / payments / messaging / AI) ───
+
+async function readJson(resp: Response): Promise<any> {
+  return resp.json().catch(() => null)
+}
+
+function firstErrorMessage(payload: any): string | undefined {
+  if (!payload) return undefined
+  if (Array.isArray(payload)) return payload[0]?.message
+  return payload?.error?.message
+    || (typeof payload?.error === 'string' ? payload.error : undefined)
+    || payload?.message
+    || payload?.errors?.[0]?.message
+    || payload?.error_description
+    || payload?.errorMessages?.[0]
+}
+
+async function simpleProbe(
+  connectorKey: string,
+  serviceName: string,
+  integrationConfig: IntegrationConfig,
+  config: Record<string, any>,
+  credentials: Record<string, any>,
+  request: ProbeRequest,
+  success: (payload: any) => string,
+): Promise<ConnectorProbeResult> {
+  const resp = await performProbe(connectorKey, integrationConfig, config, credentials, request)
+  const payload = await readJson(resp)
+  if (resp.ok) return { ok: true, message: success(payload), statusCode: resp.status }
+  return { ok: false, message: firstErrorMessage(payload) || buildStandardMessage(serviceName, resp), statusCode: resp.status }
+}
+
+async function probeWorkday(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  const tenant = String(config.tenant || config.default_tenant || '').trim()
+  if (!tenant) return { ok: false, message: 'Set the Workday tenant name to test the connection.' }
+  if (integrationConfig.auth_type === 'basic') {
+    // ISU Basic auth only reaches RaaS; the REST API needs OAuth.
+    return { ok: true, message: 'Basic (ISU) credentials saved — they work for RaaS custom reports only; REST actions need OAuth 2.0.' }
+  }
+  return simpleProbe('workday', 'Workday', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, `/ccx/api/common/v1/${encodeURIComponent(tenant)}/workers?limit=1`),
+    headers: { Accept: 'application/json' },
+  }, () => `Connected to Workday tenant ${tenant} and verified REST API access`)
+}
+
+async function probeUkgPro(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  return simpleProbe('ukg_pro', 'UKG Pro', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/personnel/v1/org-levels?per_page=1'),
+    headers: { Accept: 'application/json' },
+  }, () => 'Connected to UKG Pro and verified web service access')
+}
+
+async function probeDocuSign(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  const accountId = String(config.account_id || '').trim()
+  if (!accountId) return { ok: false, message: 'Set the DocuSign Account ID to test the connection.' }
+  return simpleProbe('docusign', 'DocuSign', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, `/v2.1/accounts/${encodeURIComponent(accountId)}`),
+    headers: { Accept: 'application/json' },
+  }, (p) => `Connected to DocuSign account ${p?.accountName || accountId}`)
+}
+
+async function probeTwilio(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  const sid = String(credentials.account_sid || '').trim()
+  if (!sid) return { ok: false, message: 'Set the Twilio Account SID to test the connection.' }
+  return simpleProbe('twilio', 'Twilio', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, `/2010-04-01/Accounts/${encodeURIComponent(sid)}.json`),
+  }, (p) => `Connected to Twilio account ${p?.friendly_name || sid}${p?.status && p.status !== 'active' ? ` (status: ${p.status})` : ''}`)
+}
+
+async function probeSendGrid(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  const resp = await performProbe('sendgrid', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/v3/scopes'),
+  })
+  const payload = await readJson(resp)
+  if (!resp.ok) return { ok: false, message: firstErrorMessage(payload) || buildStandardMessage('SendGrid', resp), statusCode: resp.status }
+  const scopes: string[] = Array.isArray(payload?.scopes) ? payload.scopes : []
+  if (!scopes.includes('mail.send')) {
+    return { ok: false, message: 'Connected to SendGrid, but this API key lacks the "Mail Send" (mail.send) permission.', statusCode: resp.status }
+  }
+  return { ok: true, message: 'Connected to SendGrid and verified Mail Send permission', statusCode: resp.status }
+}
+
+async function probeStripe(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  const resp = await performProbe('stripe', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/v1/balance'),
+  })
+  const payload = await readJson(resp)
+  if (!resp.ok) return { ok: false, message: firstErrorMessage(payload) || buildStandardMessage('Stripe', resp), statusCode: resp.status }
+  const live = payload?.livemode === true
+  return { ok: true, message: `Connected to Stripe (${live ? 'live' : 'test'} mode) and read the account balance`, statusCode: resp.status }
+}
+
+async function probeMercury(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  return simpleProbe('mercury', 'Mercury', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/accounts'),
+  }, (p) => {
+    const count = Array.isArray(p?.accounts) ? p.accounts.length : 0
+    return `Connected to Mercury${count ? ` (${count} account${count === 1 ? '' : 's'} visible)` : ''}`
+  })
+}
+
+/** OpenAI-compatible providers: GET {base}{prefix}/models lists the models the key can use. */
+const MODELS_PATH: Record<string, string> = {
+  openai: '/v1/models',
+  deepseek: '/models',
+  groq: '/openai/v1/models',
+  mistral: '/v1/models',
+  together: '/v1/models',
+  ollama: '/v1/models',
+}
+
+const AI_NAMES: Record<string, string> = {
+  openai: 'OpenAI', deepseek: 'DeepSeek', groq: 'Groq', mistral: 'Mistral', together: 'Together AI', ollama: 'Ollama', claude: 'Anthropic', perplexity: 'Perplexity',
+}
+
+async function probeAiModels(connectorKey: string, integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  const name = AI_NAMES[connectorKey] ?? connectorKey
+  const path = connectorKey === 'claude' ? '/v1/models?limit=1' : MODELS_PATH[connectorKey]
+  return simpleProbe(connectorKey, name, integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, path),
+    headers: connectorKey === 'claude' ? { 'anthropic-version': '2023-06-01' } : {},
+  }, (p) => {
+    const list = Array.isArray(p?.data) ? p.data : Array.isArray(p) ? p : []
+    return `Connected to ${name}${list.length ? ' and listed available models' : ''}`
+  })
+}
+
+async function probeFirebase(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  // documents:listCollectionIds — reads only collection ids, proves the
+  // service account can reach this project's database.
+  return simpleProbe('firebase', 'Firestore', integrationConfig, config, credentials, {
+    url: `${trimTrailingSlash(integrationConfig.base_url)}:listCollectionIds`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pageSize: 1 }),
+  }, () => 'Connected to Firestore and listed collections')
+}
+
+async function probeGemini(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  return simpleProbe('google_gemini', 'Gemini', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/v1beta/models?pageSize=1'),
+  }, () => 'Connected to the Gemini API and listed models')
+}
+
+async function probePerplexity(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  // No models endpoint: the smallest possible completion validates the key.
+  return simpleProbe('perplexity', 'Perplexity', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/chat/completions'),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'sonar', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+  }, () => 'Connected to Perplexity and verified the API key')
+}
+
 async function probeGeneric(connectorKey: string, integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
   const resp = await performProbe(connectorKey, integrationConfig, config, credentials, {
     url: integrationConfig.base_url,
@@ -437,6 +488,35 @@ async function probeGeneric(connectorKey: string, integrationConfig: Integration
   return { ok: resp.ok, message, statusCode: resp.status }
 }
 
+/**
+ * E-signature connectors: the adapter's own account call (DocuSign account,
+ * Acrobat Sign users/me, Dropbox Sign account, PandaDoc member, SignNow
+ * user, BoldSign templates) through the same auth, discovery and transport
+ * as the actions.
+ */
+async function probeEsign(connectorKey: string, integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>): Promise<ConnectorProbeResult> {
+  if (integrationConfig.auth_type === 'oauth2') {
+    return { ok: false, message: 'This integration uses OAuth 2.0 Connect — run a Get Envelope Status or List Templates reference to test it.' }
+  }
+  const definition = getConnectorDefinition(connectorKey)
+  const { connectorTemplateVars } = await import('./template-vars')
+  const { contextFromIntegration } = await import('@/lib/esign/service')
+  const { EsignError } = await import('@/lib/esign/types')
+  try {
+    const loaded = await contextFromIntegration({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: connectorKey,
+      tenant_id: '',
+      config: { ...integrationConfig, template_vars: definition ? connectorTemplateVars(definition, config, credentials) : {} },
+    }, { timeoutMs: TEST_TIMEOUT_MS * 2, resolveSecrets: false })
+    const who = await loaded.adapter.whoami(loaded.ctx)
+    return { ok: true, message: `Connected to ${who}` }
+  } catch (error) {
+    if (error instanceof EsignError) return { ok: false, message: error.message, ...(error.status ? { statusCode: error.status } : {}) }
+    return { ok: false, message: (error as Error)?.message ?? 'Connection test failed' }
+  }
+}
+
 export async function runConnectorProbe(
   connectorKey: string,
   rawConfig: Record<string, any>,
@@ -447,7 +527,12 @@ export async function runConnectorProbe(
   // (encrypted-at-rest) credentials — decrypt is an idempotent no-op for plaintext.
   const config = decryptSensitiveFields(rawConfig)
   const credentials = decryptSensitiveFields(rawCredentials)
-  const integrationConfig = decryptSensitiveFields(rawIntegrationConfig)
+  // Same migrate-on-read as the reference executor (legacy stored shapes).
+  const decrypted = decryptSensitiveFields(rawIntegrationConfig)
+  const upgrade = getConnectorDefinition(connectorKey)?.upgradeIntegrationConfig
+  const integrationConfig = (upgrade ? upgrade(decrypted as any) : decrypted) as IntegrationConfig
+  const { isEsignConnector } = await import('@/lib/esign/catalog')
+  if (isEsignConnector(connectorKey)) return probeEsign(connectorKey, integrationConfig, config, credentials)
   switch (connectorKey) {
     case 'slack':
       return probeSlack(integrationConfig, credentials)
@@ -481,6 +566,39 @@ export async function runConnectorProbe(
       return probeOData(connectorKey, integrationConfig, config, credentials, 'OData service')
     case 'sap_odata':
       return probeOData(connectorKey, integrationConfig, config, credentials, 'SAP OData service')
+    case 'workday':
+      return probeWorkday(integrationConfig, config, credentials)
+    case 'ukg_pro':
+      return probeUkgPro(integrationConfig, config, credentials)
+    case 'docusign':
+      return probeDocuSign(integrationConfig, config, credentials)
+    case 'twilio':
+      return probeTwilio(integrationConfig, config, credentials)
+    case 'sendgrid':
+      return probeSendGrid(integrationConfig, config, credentials)
+    case 'stripe':
+      return probeStripe(integrationConfig, config, credentials)
+    case 'mercury':
+      return probeMercury(integrationConfig, config, credentials)
+    case 'openai':
+    case 'claude':
+    case 'deepseek':
+    case 'groq':
+    case 'mistral':
+    case 'together':
+    case 'ollama':
+      return probeAiModels(connectorKey, integrationConfig, config, credentials)
+    case 'perplexity':
+      return probePerplexity(integrationConfig, config, credentials)
+    case 'firebase':
+      return probeFirebase(integrationConfig, config, credentials)
+    case 'google_gemini':
+      return probeGemini(integrationConfig, config, credentials)
+    case 'azure_document_intelligence': {
+      // The same free resource-info call as Settings → Document OCR → Test connection (egress guarded).
+      const { testAzureOcr } = await import('@/lib/documents/ocr')
+      return testAzureOcr({ endpoint: String(config.endpoint ?? ''), key: String(credentials.api_key ?? ''), apiVersion: config.api_version ? String(config.api_version) : null }, { guarded: true })
+    }
     default:
       return probeGeneric(connectorKey, integrationConfig, config, credentials)
   }

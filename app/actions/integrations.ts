@@ -8,6 +8,7 @@ import { getCurrentTenantId } from '@/lib/integrations/auth'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
 import { fromSession } from '@/lib/services/context'
 import * as integrationsService from '@/lib/services/integrations'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 
 export async function createIntegration(formData: FormData) {
   await requirePermission('integrations.create')
@@ -91,6 +92,12 @@ export async function createIntegration(formData: FormData) {
 
   // Encryption at rest, audit and GitHub-sync capture happen in the service.
   const ctx = await fromSession()
+  // A repeated submit (double click, retry) opens the integration this user
+  // just created instead of adding a second one.
+  const recent = ctx.actorId
+    ? await findRecentDuplicate<{ id: string }>(ctx.supabase, 'integrations', { tenant_id: ctx.tenantId, created_by: ctx.actorId, name })
+    : null
+  if (recent) redirect(`/integrations/${recent.id}`)
   const data = await integrationsService.createIntegration(ctx, {
     name,
     type: type as integrationsService.CreatableIntegrationType,
@@ -119,6 +126,17 @@ export async function createImportedApiIntegration(input: {
     outputs?: Array<Record<string, unknown>>
     responseSchema?: unknown
   }>
+  /** Every parsed operation (not just the selected ones): stored so custom references can use any of them. */
+  operations?: Array<{
+    name: string
+    description?: string
+    method: string
+    pathTemplate: string
+    bodyTemplate?: string
+    headers?: Record<string, string>
+    inputs?: Array<Record<string, unknown>>
+    responseSchema?: unknown
+  }>
 }): Promise<{ integrationId: string; refCount: number }> {
   await requirePermission('integrations.create')
   if (!['none', 'api_key', 'bearer', 'basic'].includes(input.authType)) throw new Error('Unsupported authentication type')
@@ -126,7 +144,13 @@ export async function createImportedApiIntegration(input: {
   const result = await integrationsService.createIntegrationWithReferences(ctx, {
     name: input.name,
     type: 'rest_api',
-    config: { base_url: input.baseUrl, auth_type: input.authType, auth_config: input.authConfig ?? {}, headers: {} },
+    config: {
+      base_url: input.baseUrl,
+      auth_type: input.authType,
+      auth_config: input.authConfig ?? {},
+      headers: {},
+      api_operations: integrationsService.compactApiOperations(input.operations ?? input.references ?? []),
+    },
     tags: input.tags ?? [],
     references: input.references ?? [],
   })

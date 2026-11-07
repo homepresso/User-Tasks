@@ -57,6 +57,10 @@ With the default inputs (tier `silver`, 5 line items ≈ $1,638) the run should 
 
 Optional drills via workflow variables: set `approval_mode` to `manual` **and** raise the order over $2,000 (edit a qty) to pause on the **Approve Order** user task (set `approver_user_id` first); set `enable_subworkflow` to `true` (and select workflow 15 in **Call Kitchen Sink**) to run 15 as a sub-workflow; set `enable_error_drill` to `false` to skip the failing HTTP call.
 
+## Kept runnable by a test
+
+`__tests__/test-workflows-run.test.ts` runs every file here through the engine (database faked, network off). It fails when a node config isn't in the shape the builder and engine use, when a node type is unknown or skipped, when a step errors (unless it is set to continue on error), or when an output is clearly empty. Workflow 16 only gets the shape check, because it needs the entities described above. Add new examples in the canonical shapes, for example `items: [{ "value": … }]`, `operation: "uppercase"`, `duration` + `unit`, and `format: "custom"` + `custom_format`.
+
 ## How to Test
 
 1. Open any automation in the workflow builder

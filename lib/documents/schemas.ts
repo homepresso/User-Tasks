@@ -131,12 +131,19 @@ export function documentNodeRoots(type: string, config: Record<string, any>): Pi
       ]
     }
     case 'doc_redact': {
-      const v = ov('redacted')
+      const detect = config.mode === 'detect_only'
+      const v = ov(detect ? 'detected' : 'redacted')
+      const finding = obj([
+        f('type', s('Info type id: us_ssn, date_of_birth, credit_card, …')), f('label', s()), f('category', s('identity, financial, contact, health, technical, credentials, custom')),
+        f('confidence', s('low, medium or high')), f('source', s('pattern, ai, preset or term')), f('text', s('The value, masked (•) unless "Include values" is on')),
+        f('page', i()), f('slide', i()), f('sheet', s()), f('cell', s('A1 reference')), f('part', s('body, header, footer, notes, …')), f('paragraph', i()), f('line', i()), f('row', i()), f('column', i()),
+        f('start', i('Offset in the paragraph, cell or text')), f('end', i()), f('context_snippet', s('Text around it, findings replaced by [LABEL]')),
+      ])
       return [
-        { path: v, label: v, schema: obj([f('file', FILE_OBJECT_SCHEMA), f('text', s()), f('counts', obj([])), f('total', i())]) },
-        { path: `${v}_file`, label: `${v}_file`, schema: FILE_OBJECT_SCHEMA, description: 'Redacted copy' },
-        { path: `${v}_text`, label: `${v}_text`, schema: s() },
-        { path: `${v}_count`, label: `${v}_count`, schema: i('Redactions') },
+        { path: v, label: v, schema: obj([f('mode', s()), f('file', FILE_OBJECT_SCHEMA), f('text', s()), f('counts', obj([])), f('counts_by_type', obj([], 'Type → count, most first')), f('total', i()), f('findings', arr(finding)), f('findings_truncated', b())]) },
+        ...(detect ? [] : [{ path: `${v}_file`, label: `${v}_file`, schema: FILE_OBJECT_SCHEMA, description: 'Redacted copy' }, { path: `${v}_text`, label: `${v}_text`, schema: s() }]),
+        { path: `${v}_findings`, label: `${v}_findings`, schema: arr(finding), description: 'Findings — loop over them' },
+        { path: `${v}_count`, label: `${v}_count`, schema: i(detect ? 'Findings' : 'Redactions') },
       ]
     }
     case 'doc_inspect': {

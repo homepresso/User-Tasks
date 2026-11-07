@@ -1,19 +1,94 @@
 @import "tailwindcss";
+@import "./form-motion.css";
 
 /* `dark:` follows the selected theme (data-theme-mode set by the theme
    provider / bootstrap script), not the OS preference. */
 @custom-variant dark (&:where([data-theme-mode="dark"], [data-theme-mode="dark"] *));
 
 @theme inline {
-  /* Families come from the workspace theme (--theme-font-*, defaulting to the
-     next/font variables set on <html> by the root layout). */
+  /* ── Design-system foundations (docs/design/foundations.md) ──
+     Families come from the workspace theme (--theme-font-*, defaulting to the
+     next/font variables set on <html> by the root layout: Inter, JetBrains
+     Mono, Fraunces). `inline` so the utilities read the theme variables
+     directly (no cycle with the next/font --font-* variables). */
   --font-sans: var(--theme-font-sans);
   --font-mono: var(--theme-font-mono);
-  /* Tailwind's `rounded` (badges, chips) and `rounded-2xl` (dialogs, large
-     panels) follow the theme's badge / dialog radius. */
-  --radius: var(--theme-badge-radius);
-  --radius-2xl: var(--theme-dialog-radius);
+  --font-display: var(--theme-font-display);
 
+  /* Type scale (§2.2). Tailwind's text-xs (12) / text-sm (14) / text-base (16) /
+     text-lg (18) stay; these fill the gaps. 11px is the floor. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-2xs--letter-spacing: 0.01em;
+  --text-ui: 0.8125rem;
+  --text-ui--line-height: 1.25rem;
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--letter-spacing: -0.018em;
+  --text-title--font-weight: 600;
+  --text-metric: 1.75rem;
+  --text-metric--line-height: 2.125rem;
+  --text-metric--letter-spacing: -0.022em;
+  --text-metric--font-weight: 600;
+  --text-display: clamp(2.25rem, 4vw, 3.75rem);
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.02em;
+
+  /* Radius scale (§2.4), driven by the theme's shape.* values:
+     rounded / rounded-sm = badge, rounded-md = button/input, rounded-lg = card,
+     rounded-xl / rounded-2xl = dialog. */
+  --radius: var(--ds-radius-xs);
+  --radius-sm: var(--ds-radius-xs);
+  --radius-md: var(--ds-radius-sm);
+  --radius-lg: var(--ds-radius-md);
+  --radius-xl: var(--ds-radius-lg);
+  --radius-2xl: var(--ds-radius-lg);
+
+  /* Elevation (§2.6): shadow-elev-1/2/3. Cards are flat (border only). */
+  --shadow-elev-1: var(--ds-elev-1);
+  --shadow-elev-2: var(--ds-elev-2);
+  --shadow-elev-3: var(--ds-elev-3);
+
+  /* Motion (§2.9): duration-fast / ease-out-ds … */
+  --ease-ds-out: var(--ds-ease-out);
+  --ease-ds-in: var(--ds-ease-in);
+  --ease-ds-standard: var(--ds-ease-standard);
+
+  /* Semantic colours (§2.7): write text-fg-muted / bg-panel / border-border,
+     not style={{ color: 'var(--theme-…)' }}. */
+  --color-bg: var(--theme-surface);
+  --color-panel: var(--theme-card-bg);
+  --color-elevated: var(--ds-bg-elevated);
+  --color-subtle: var(--ds-bg-subtle);
+  --color-muted: var(--ds-bg-muted);
+  --color-fg: var(--theme-card-text);
+  --color-fg-muted: var(--theme-muted-text);
+  --color-fg-subtle: var(--ds-fg-subtle);
+  --color-border: var(--ds-border);
+  --color-border-subtle: var(--ds-border-subtle);
+  --color-border-strong: var(--ds-border-strong);
+  --color-primary: var(--theme-primary);
+  --color-primary-hover: var(--theme-primary-hover);
+  --color-primary-fg: var(--theme-on-primary);
+  --color-primary-text: var(--theme-primary-text);
+  --color-primary-wash: var(--theme-primary-light);
+  --color-accent: var(--theme-accent);
+  --color-accent-text: var(--theme-accent-text);
+  --color-accent-wash: var(--theme-accent-light);
+  --color-success: var(--theme-success);
+  --color-success-wash: var(--status-success-bg);
+  --color-warning: var(--theme-warning);
+  --color-warning-wash: var(--status-warning-bg);
+  --color-danger: var(--theme-danger);
+  --color-danger-fg: var(--theme-on-danger);
+  --color-danger-wash: var(--status-danger-bg);
+  --color-info: var(--status-info);
+  --color-info-wash: var(--status-info-bg);
+  --color-input: var(--theme-input-bg);
+  --color-input-border: var(--theme-input-border);
+  --color-focus: var(--theme-focus-ring);
+
+  /* Legacy brand scales (marketing / docs only). */
   --color-navy-50: #F0F2F7;
   --color-navy-100: #D6DAE5;
   --color-navy-500: #2D4470;
@@ -49,7 +124,7 @@
   --theme-sidebar-border: rgba(243,239,231,0.10);
   /* Text highlight on the sidebar (wordmark, active item); derived per theme —
      the ink-black primary would vanish on the ink sidebar. */
-  --theme-sidebar-accent: #B99767;
+  --theme-sidebar-accent: #B69260;
   /* Secondary text on the sidebar (section headings); derived, AA on the sidebar. */
   --theme-sidebar-muted: #AEAAA0;
   --theme-topbar: #FFFFFF;
@@ -127,21 +202,21 @@
   --theme-font-weight-heading: 600;
   --theme-font-base-size: 16px;
   --theme-font-size-scale: 100%;
-  --theme-heading-letter-spacing: -0.015em;
+  --theme-heading-letter-spacing: normal;
   /* Elevation system */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
   --shadow-xl: 0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
   /* Shape, layout, density */
-  --theme-border-radius: 12px;
-  --theme-card-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  --theme-button-radius: 8px;
-  --theme-input-radius: 8px;
+  --theme-border-radius: 8px;
+  --theme-card-shadow: none;
+  --theme-button-radius: 6px;
+  --theme-input-radius: 6px;
   --theme-badge-radius: 4px;
-  --theme-dialog-radius: 16px;
-  --theme-sidebar-width: 256px;
-  --theme-topbar-height: 56px;
+  --theme-dialog-radius: 12px;
+  --theme-sidebar-width: 240px;
+  --theme-topbar-height: 48px;
   --theme-density-row-height: 40px;
   --theme-density-cell-y: 8px;
   --theme-density-cell-x: 12px;
@@ -151,13 +226,248 @@
   --sidebar-glow-2: rgba(243,239,231,0.05);
   --sidebar-hover-bg: rgba(255,255,255,0.08);
   --sidebar-brand-color: #FFFFFF;
-  --theme-sidebar-image: radial-gradient(circle at 1px 1px, rgba(233,228,216,0.055) 1px, transparent 0), linear-gradient(180deg, #1B1815 0%, #161411 55%, #121110 100%);
-  --theme-sidebar-image-size: 26px 26px, auto;
+  --theme-sidebar-image: none;
+  --theme-sidebar-image-size: auto;
   --theme-sidebar-decoration-color: #FFFFFF;
   --theme-topbar-image: none;
   --theme-topbar-image-size: auto;
-  --theme-canvas-image: radial-gradient(circle at 1px 1px, rgba(27,25,22,0.045) 1px, transparent 0);
-  --theme-canvas-image-size: 28px 28px;
+  --theme-canvas-image: none;
+  --theme-canvas-image-size: auto;
+}
+
+/* ─── Design-system tokens (--ds-*) ───
+   Derived from the --theme-* variables, so every workspace theme, light and
+   dark, gets them with no schema change. See docs/design/foundations.md.
+   lib/theme/to-css.ts emits the mode-dependent ones (elevation, the elevated
+   surface) per palette and the density ones per theme; these are the
+   defaults for pages outside the dashboard.
+
+   Tokens derived from --theme-* are declared again on every element that
+   redefines the theme variables (form themes, theme previews: data-ds-scope),
+   because a custom property's var() resolves where it is declared. Keep this
+   list in step with DS_DERIVED_VARS in lib/theme/to-css.ts. */
+:root, [data-form-theme], [data-ds-scope] {
+  /* Radii (§2.4) */
+  --ds-radius-xs: var(--theme-badge-radius);
+  --ds-radius-sm: var(--theme-button-radius);
+  --ds-radius-input: var(--theme-input-radius);
+  --ds-radius-md: var(--theme-border-radius);
+  --ds-radius-lg: var(--theme-dialog-radius);
+
+  /* Hairlines (§2.5) */
+  --ds-border-subtle: color-mix(in srgb, var(--theme-surface-border) 55%, var(--theme-card-bg));
+  --ds-border: var(--theme-surface-border);
+  --ds-border-strong: color-mix(in srgb, var(--theme-card-text) 24%, var(--theme-card-bg));
+  --ds-border-focus: var(--theme-focus-ring);
+
+  /* Neutral fills (§2.7) */
+  --ds-bg-subtle: color-mix(in srgb, var(--theme-card-text) 4%, var(--theme-card-bg));
+  --ds-bg-muted: color-mix(in srgb, var(--theme-card-text) 7%, var(--theme-card-bg));
+  --ds-fg-subtle: color-mix(in srgb, var(--theme-muted-text) 80%, var(--theme-card-bg));
+}
+
+:root {
+  /* Elevation (§2.6) — light defaults; dark values below and from to-css. */
+  --ds-elev-0: none;
+  --ds-elev-1: 0 1px 2px rgb(16 16 20 / .06);
+  --ds-elev-2: 0 0 0 1px var(--ds-border), 0 4px 12px -2px rgb(16 16 20 / .08), 0 2px 4px -2px rgb(16 16 20 / .04);
+  --ds-elev-3: 0 0 0 1px var(--ds-border), 0 16px 40px -8px rgb(16 16 20 / .18), 0 6px 16px -6px rgb(16 16 20 / .08);
+  --ds-bg-elevated: var(--theme-card-bg);
+
+  /* Motion (§2.9) */
+  --ds-dur-instant: 80ms;
+  --ds-dur-fast: 120ms;
+  --ds-dur-base: 180ms;
+  --ds-dur-slow: 260ms;
+  --ds-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Density (§2.10) — comfortable; to-css emits the theme's density. */
+  --ds-control-h: 32px;
+  --ds-control-h-sm: 28px;
+  --ds-control-h-lg: 36px;
+  --ds-nav-item-h: 32px;
+  /* Phones: height of the bottom tab bar (components/layout/mobile-nav.tsx), above the safe-area inset. */
+  --ds-tabbar-h: 3.5rem;
+  /* Minimum control height (40px on touch screens). */
+  --ds-touch-min: 0px;
+  /* Text size of md controls (buttons, inputs, selects). */
+  --ds-control-text: 0.8125rem;
+}
+
+/* The form runtime (/f/, /p/, task forms, the designer preview) serves end
+   users on touch devices: 40px controls and 14px text whatever the
+   workspace density. */
+[data-form-theme] {
+  --ds-control-h: 40px;
+  --ds-control-h-sm: 32px;
+  --ds-control-h-lg: 44px;
+  --ds-control-text: 0.875rem;
+}
+
+/* Dark canvases (pages outside the dashboard that set the mode; the
+   dashboard's theme stylesheet emits the same values per palette). */
+[data-theme-mode="dark"] {
+  --ds-elev-1: 0 1px 2px rgb(0 0 0 / .4), inset 0 1px 0 rgb(255 255 255 / .04);
+  --ds-elev-2: 0 0 0 1px var(--ds-border), 0 8px 24px -4px rgb(0 0 0 / .55), inset 0 1px 0 rgb(255 255 255 / .05);
+  --ds-elev-3: 0 0 0 1px var(--ds-border), 0 24px 56px -12px rgb(0 0 0 / .7), inset 0 1px 0 rgb(255 255 255 / .06);
+  --ds-bg-elevated: color-mix(in srgb, var(--theme-card-bg) 92%, white);
+}
+
+@media (pointer: coarse) {
+  :root { --ds-touch-min: 40px; }
+  /* iOS Safari zooms the page into any text field under 16px on focus.
+     Unlayered, so it wins over the text-* utilities on inputs. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ds-dur-instant: 0ms;
+    --ds-dur-fast: 0ms;
+    --ds-dur-base: 0ms;
+    --ds-dur-slow: 0ms;
+  }
+}
+
+@layer base {
+  html {
+    /* Inter: l with a tail (Il1 disambiguation in IDs), round quotes. Ignored by other families. */
+    font-feature-settings: "cv05", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scrollbar-color: var(--ds-border-strong) transparent;
+  }
+
+  /* Date / time inputs fit their column like text inputs. iOS Safari gives
+     them an intrinsic min-width from the native control (they spilled past
+     the form card on phones) and centres the value. */
+  input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"], [type="week"]) {
+    min-width: 0;
+    max-width: 100%;
+  }
+  input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"], [type="week"])::-webkit-date-and-time-value {
+    text-align: start;
+    min-height: 1.25em;
+  }
+  @supports (-webkit-touch-callout: none) {
+    input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"], [type="week"]) {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+  }
+
+  /* One focus ring everywhere (§2.8), drawn with outline so it follows the
+     radius. In the base layer: components that draw their own ring with
+     utilities (focus-visible:ring-*) keep it until they migrate. */
+  :where(a, button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--theme-focus-ring);
+    outline-offset: 2px;
+  }
+  :where(input, select, textarea, [contenteditable="true"]):focus-visible {
+    outline: none;
+    border-color: var(--theme-focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus-ring) 22%, transparent);
+  }
+  :where(input[type="checkbox"], input[type="radio"]):focus-visible {
+    outline: 2px solid var(--theme-focus-ring);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--theme-focus-ring) 22%, transparent);
+  }
+
+  /* Lucide icons: 1.75 stroke (1.5 at 20px+ via .lucide-lg). Only icons on
+     the default stroke — an explicit strokeWidth prop still wins. */
+  svg.lucide[stroke-width="2"] { stroke-width: 1.75; }
+  svg.lucide.lucide-lg[stroke-width="2"] { stroke-width: 1.5; }
+}
+
+/* Tabular figures for numbers that stack (tables, KPIs, counters). */
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin scrollbars on scroll containers. */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+/* Skeleton with a real shimmer (§3.11). */
+.ds-skeleton {
+  background: linear-gradient(90deg, var(--ds-bg-muted) 0%, color-mix(in srgb, var(--ds-bg-muted) 40%, var(--theme-card-bg)) 50%, var(--ds-bg-muted) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--ds-radius-xs);
+}
+
+/* Floating layers (menus, popovers, tooltips) and dialogs: enter motion
+   (§2.9). Radix sets data-state and the transform-origin variables. */
+@keyframes ds-pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ds-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ds-dialog-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.97); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes ds-sheet-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ds-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.ds-pop[data-state="open"], .ds-pop[data-state="delayed-open"], .ds-pop[data-state="instant-open"] {
+  animation: ds-pop-in var(--ds-dur-base) var(--ds-ease-out);
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin, var(--radix-tooltip-content-transform-origin, var(--radix-popover-content-transform-origin, top)));
+}
+.ds-overlay[data-state="open"] { animation: ds-fade-in var(--ds-dur-base) var(--ds-ease-out); }
+.ds-dialog[data-state="open"] { animation: ds-dialog-in var(--ds-dur-slow) var(--ds-ease-out); }
+/* Phones: dialogs are bottom sheets (components/ui/dialog.tsx), so they rise instead of scaling. */
+@media (max-width: 639px) {
+  .ds-dialog[data-state="open"] { animation-name: ds-toast-in; }
+}
+.ds-sheet[data-state="open"] { animation: ds-sheet-in var(--ds-dur-slow) var(--ds-ease-out); }
+.ds-sheet-bottom[data-state="open"] { animation: ds-toast-in var(--ds-dur-slow) var(--ds-ease-out); }
+.ds-toast { animation: ds-toast-in var(--ds-dur-slow) var(--ds-ease-out); }
+
+/* Horizontal scroll with fading edges (tab overflow, wide tables). */
+.ds-scroll-fade-x {
+  mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-skeleton, .ds-pop, .ds-overlay, .ds-dialog, .ds-sheet, .ds-sheet-bottom, .ds-toast { animation: none !important; }
+}
+
+/* Form pages (components/forms/form-loading.tsx): the loading state fades in
+   after a short delay so quick loads don't flash; a form with no load
+   animation of its own fades in from it (StandaloneForm). Forms with an
+   animation (app/form-motion.css) run theirs instead. */
+@keyframes form-reveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.form-loading { animation: ds-fade-in 240ms var(--ds-ease-out) 120ms both; }
+.form-reveal { animation: form-reveal 260ms var(--ds-ease-out) both; }
+/* The sign-in page (components/forms/sign-in): its card rises in once. */
+.fsi-enter { animation: form-reveal 320ms var(--ds-ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .form-loading, .form-reveal, .fsi-enter { animation: none !important; }
 }
 
 /* Base size: a percentage of the browser default, so rem-based sizes scale
@@ -205,13 +515,13 @@ body {
 /* ─── UI Polish: Dialog classes ─── */
 
 .dialog-overlay {
-  animation: overlay-enter 200ms ease-out;
-  backdrop-filter: blur(4px);
+  animation: overlay-enter var(--ds-dur-base) var(--ds-ease-out);
+  backdrop-filter: blur(2px);
 }
 
 .dialog-content {
-  animation: dialog-enter 200ms ease-out;
-  box-shadow: var(--shadow-xl);
+  animation: dialog-enter var(--ds-dur-slow) var(--ds-ease-out);
+  box-shadow: var(--ds-elev-3);
 }
 
 /* ─── UI Polish: Global interactive transitions ─── */
@@ -220,20 +530,44 @@ button:not([disabled]),
 a,
 select,
 [role="button"] {
-  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-duration: var(--ds-dur-fast);
+  transition-timing-function: var(--ds-ease-standard);
+}
+
+/* ─── Form Submitted page (lib/forms/submitted-page.ts): only when motion is welcome ─── */
+
+@keyframes submitted-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes submitted-icon-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .submitted-page-enter { animation: submitted-enter 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .submitted-page-enter .submitted-page-icon { animation: submitted-icon-pop 420ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 }
 
 /* ─── Page transition for snappier navigation ─── */
 
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .page-transition {
   animation: page-enter 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition, .dialog-overlay, .dialog-content { animation: none; }
+  /* Decorative loops (sidebar decorations, Nebula glows). */
+  .sidebar-decorations *, html[data-theme-decoration="nebula"] main::before, html[data-theme-decoration="nebula"] main::after { animation: none !important; }
 }
 
 /* ─── Variable input (contentEditable) ─── */
@@ -467,35 +801,26 @@ html[data-theme-decoration="nebula"] main > * {
   color: var(--theme-primary-text);
 }
 
-/* ─── Component override variables ─── */
+/* ═══════════════════════════════════════════════════════════════════════
+   LEGACY COMPAT — remove when B–F land (docs/design/ui-polish-spec.md §8).
+   Bends raw Tailwind palette classes (bg-white, text-gray-*, border-gray-*,
+   teal / red / green / amber shades) on pages that predate the design
+   system back onto the theme. New code uses the semantic utilities
+   (bg-panel, text-fg-muted, border-border …) and never needs these.
+   The radius flattening (`rounded-lg` = `rounded-xl` = card radius,
+   !important) is gone: the @theme radius scale above maps rounded-* to the
+   theme's shape values. The blanket card shadow on bordered rounded boxes is
+   gone too: cards are flat (§2.6).
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* Cards use theme border-radius and shadow */
-[class*="rounded-xl"],
-[class*="rounded-lg"] {
-  border-radius: var(--theme-border-radius) !important;
+/* Hand-rolled buttons and inputs drawn with `rounded-lg` keep the theme's
+   button / input radius (pill-button themes), not the card radius. */
+:where(button, a)[class*="rounded-lg"] {
+  border-radius: var(--theme-button-radius);
 }
-
-/* Buttons */
-button[class*="rounded-lg"],
-a[class*="rounded-lg"],
-[class*="rounded-md"] {
-  border-radius: var(--theme-button-radius) !important;
+:where(input, select, textarea)[class*="rounded-lg"] {
+  border-radius: var(--theme-input-radius);
 }
-
-/* Inputs */
-input[class*="rounded-lg"],
-select[class*="rounded-lg"],
-textarea[class*="rounded-lg"] {
-  border-radius: var(--theme-input-radius) !important;
-}
-
-/* Card shadows */
-.rounded-xl[class*="border"],
-.rounded-lg[class*="border"] {
-  box-shadow: var(--theme-card-shadow);
-}
-
-/* ─── Global overrides to wire theme through ─── */
 
 /* Borders */
 [class*="border-gray-200"],
@@ -605,7 +930,7 @@ textarea {
   color: var(--theme-card-text);
 }
 
-/* Focus rings */
+/* Focus rings drawn with ring utilities take the theme's ring colour. */
 *:focus-visible {
   --tw-ring-color: var(--theme-focus-ring);
 }
@@ -619,6 +944,8 @@ textarea {
   background-color: color-mix(in srgb, var(--theme-surface) 80%, var(--theme-card-bg) 20%) !important;
 }
 
+/* ═══ end LEGACY COMPAT ═══ */
+
 /* ─── Form themes (components/forms/form-theme-scope) ─── */
 /* Placeholders and focus-ring offsets follow the form's palette, not the app's. */
 [data-form-theme] ::placeholder {
@@ -627,4 +954,10 @@ textarea {
 }
 [data-form-theme] {
   --tw-ring-offset-color: var(--theme-card-bg);
+}
+
+/* Form banners (components/forms/form-messages.tsx) stick to the top of the
+   form; a focused input scrolls clear of them instead of hiding underneath. */
+[data-form-messages] :is(input, select, textarea, button, [tabindex]) {
+  scroll-margin-top: calc(var(--form-banner-offset, 0px) + 8px);
 }

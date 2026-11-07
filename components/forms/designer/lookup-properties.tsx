@@ -1,7 +1,8 @@
 'use client'
 
+import { isWriteReference, referencePickerHint } from '@/lib/custom-references/types'
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { VariableInput } from '@/components/automations/variable-input'
@@ -10,31 +11,32 @@ import {
   LOOKUP_FILTER_OPERATORS, LOOKUP_FILTER_OPERATOR_LABELS, LOOKUP_LIMITS, LOOKUP_ROW_ID, lookupItemKey,
   type LookupConfig, type LookupFilterOperator,
 } from '@/lib/forms/lookup'
-import { referenceResponseSchema, type SchemaNode } from '@/lib/response-schema'
-import { collectArrayCandidates } from '@/lib/workflow-data-picker'
+import { referenceResponseSchema, type ResponseSchema, type SchemaNode } from '@/lib/response-schema'
+import { collectionItemFields, runtimeView, validateCollectionPath } from '@/lib/response-collections'
+import { ResponseCollectionPicker } from '@/components/integrations/response-collection-picker'
 import type { DesignerField, DesignerState } from '@/lib/forms/designer-state'
 import { DISPLAY_FIELD_TYPES } from '@/lib/task-field-schema'
+import { contextVariableOptions } from '@/lib/forms/form-params'
+import { controlVariables, ruleVariableOptions } from '@/lib/forms/rule-variables'
+import { DesignerVariableScope } from './designer-variable-scope'
+import { designerInputClass as inputClass } from './designer-controls'
+import { cn } from '@/lib/utils'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- reference rows are read as the browser sees them */
 
-const inputClass = 'h-8 w-full rounded-md border px-2 text-xs outline-none focus-visible:ring-2'
-const inputStyle: React.CSSProperties = {
-  borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-topbar)', color: 'var(--theme-topbar-text)',
-  ['--tw-ring-color' as string]: 'var(--theme-primary)',
-}
 
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
-  return <label htmlFor={htmlFor} className="mb-0.5 block text-[10px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>{children}</label>
+  return <label htmlFor={htmlFor} className="mb-0.5 block text-2xs font-medium text-fg-muted">{children}</label>
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{children}</p>
+  return <p className="mt-1 text-2xs text-fg-muted">{children}</p>
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
-      <legend className="pr-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>{title}</legend>
+    <fieldset className="space-y-2 border-t pt-3 border-border">
+      <legend className="pr-2 text-2xs font-semibold text-fg-muted">{title}</legend>
       {children}
     </fieldset>
   )
@@ -42,8 +44,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (checked: boolean) => void; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px]">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ accentColor: 'var(--theme-primary)' }} />
+    <label className="flex items-center gap-1.5 text-2xs">
+      <input className="accent-primary" type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {children}
     </label>
   )
@@ -64,8 +66,8 @@ function OrderedPicker({ label, value, options, onChange, testId }: {
       <Label>{label}</Label>
       <div className="space-y-1">
         {value.map((v, i) => (
-          <div key={v} className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px]" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <span className="flex-1 truncate">{labelOf(v)}{i === 0 && value.length > 1 ? <span style={{ color: 'var(--theme-muted-text)' }}> · primary</span> : null}</span>
+          <div key={v} className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-2xs border-border">
+            <span className="flex-1 truncate">{labelOf(v)}{i === 0 && value.length > 1 ? <span className="text-fg-muted"> · primary</span> : null}</span>
             <button type="button" className="rounded p-0.5 disabled:opacity-30" disabled={i === 0} aria-label={`Move ${labelOf(v)} up`} onClick={() => { const next = [...value]; [next[i - 1], next[i]] = [next[i], next[i - 1]]; onChange(next) }}><ArrowUp size={11} /></button>
             <button type="button" className="rounded p-0.5 disabled:opacity-30" disabled={i === value.length - 1} aria-label={`Move ${labelOf(v)} down`} onClick={() => { const next = [...value]; [next[i + 1], next[i]] = [next[i], next[i + 1]]; onChange(next) }}><ArrowDown size={11} /></button>
             <button type="button" className="rounded p-0.5" aria-label={`Remove ${labelOf(v)}`} onClick={() => onChange(value.filter((x) => x !== v))}><X size={11} /></button>
@@ -79,16 +81,11 @@ function OrderedPicker({ label, value, options, onChange, testId }: {
   )
 }
 
-/** Primitive item fields of a model (dotted paths, a few levels deep). */
-function itemFieldOptions(schema: SchemaNode | null | undefined, prefix = '', depth = 0): Array<{ value: string; label: string; hint?: string }> {
-  if (!schema || schema.type !== 'object' || depth > 3) return []
-  const out: Array<{ value: string; label: string; hint?: string }> = []
-  for (const field of schema.fields ?? []) {
-    const path = prefix ? `${prefix}.${field.name}` : field.name
-    if (field.type === 'object') out.push(...itemFieldOptions(field, path, depth + 1))
-    else if (field.type !== 'array') out.push({ value: path, label: path, hint: field.example !== undefined && field.example !== null ? String(field.example) : field.type })
-  }
-  return out
+/** Item fields of a model (dotted paths, up to 3 levels deep). */
+function itemFieldOptions(schema: SchemaNode | null | undefined): Array<{ value: string; label: string; hint?: string }> {
+  return collectionItemFields(schema)
+    .filter((f) => !f.container && f.type !== 'array' && f.type !== 'object')
+    .map((f) => ({ value: f.path, label: f.path, hint: f.example !== undefined && f.example !== null ? String(f.example) : f.type }))
 }
 
 export function LookupProperties({ state, field, onPatch }: {
@@ -103,6 +100,9 @@ export function LookupProperties({ state, field, onPatch }: {
   const placeholders = [
     { name: 'search', group: 'Lookup', label: 'The typed text' },
     ...otherFields.map((f) => ({ name: `task_data.${f.key}`, group: 'This form', label: f.label || f.key })),
+    ...contextVariableOptions(state.layout),
+    // {{control.<key>.*}}: other controls' state (a query sends it; the server keeps declared columns only).
+    ...ruleVariableOptions(controlVariables(state.fields.filter((f) => f._id !== field._id) as never)),
   ]
 
   const { data: tables = [] } = useQuery({
@@ -134,30 +134,30 @@ export function LookupProperties({ state, field, onPatch }: {
   const reference = references.find((r: any) => r.id === config.reference_id)
   const refOptions = references
     .filter((r: any) => !config.integration_id || String(r.integration?.id ?? r.integration_id) === config.integration_id)
-    .map((r: any) => ({ value: String(r.id), label: String(r.name), hint: r.integration?.name }))
+    // Lookups read: write references are refused at run time, so they are not offered.
+    .filter((r: any) => !isWriteReference(r) || r.id === config.reference_id)
+    .map((r: any) => ({ value: String(r.id), label: String(r.name), hint: referencePickerHint(r) }))
   const model = reference ? referenceResponseSchema(reference) : null
-  const candidates = model?.root
-    ? collectArrayCandidates([{ id: 'ref', label: 'Response', kind: 'step', roots: [{ path: 'response', label: 'response', schema: model.root }] }]).filter((c) => !c.path.includes('[]'))
-    : []
-  const resultsPath = config.results_path ?? ''
-  const chosen = candidates.find((c) => c.path === (resultsPath ? `response.${resultsPath}` : 'response'))
+  const resultsCheck = validateCollectionPath(runtimeView(model).root, config.results_path ?? '')
+  const chosen = resultsCheck.ok && resultsCheck.itemSchema ? resultsCheck : null
   const itemOptions = itemFieldOptions(chosen?.itemSchema ?? null)
-  const refInputs: Array<{ name: string; label?: string; required?: boolean; location?: string }> = Array.isArray(reference?.inputs) ? reference.inputs : []
+  const refInputs: Array<{ name: string; label?: string; required?: boolean; location?: string; default_value?: unknown }> = Array.isArray(reference?.inputs) ? reference.inputs : []
+  const queryClient = useQueryClient()
+  const onSchemaLoaded = (loaded: ResponseSchema) => queryClient.setQueryData(['forms-lookup-references'], (rows: any[] | undefined) =>
+    (rows ?? []).map((r) => (r.id === config.reference_id ? { ...r, request_config: { ...(r.request_config ?? {}), response_schema: loaded } } : r)))
 
   const fill = config.fill ?? []
   const fillSources = config.source === 'table' ? [{ value: LOOKUP_ROW_ID, label: 'Row id' }, ...columnOptions] : itemOptions
 
   return (
+    <DesignerVariableScope state={state} context={{ kind: 'lookup_query', exclude: field.key }}>
     <div className="space-y-3" data-testid="lookup-properties">
       <Section title="Suggestions from">
         <div className="flex gap-1" role="radiogroup" aria-label="Lookup source">
           {(['table', 'reference'] as const).map((src) => (
             <button key={src} type="button" role="radio" aria-checked={config.source === src}
               onClick={() => src !== config.source && onPatch({ source: src, multiple: config.multiple, allow_free_text: config.allow_free_text, max_results: config.max_results, min_chars: config.min_chars })}
-              className="h-7 flex-1 rounded border text-[10px] font-medium"
-              style={config.source === src
-                ? { backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }
-                : { borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+              className={cn('h-7 flex-1 rounded border text-2xs font-medium', config.source === src ? 'border-primary' : 'border-border', config.source === src ? 'bg-primary-wash' : '', config.source === src ? 'text-primary-text' : 'text-fg')}
               data-lookup-source={src}
             >
               {src === 'table' ? 'Data table' : 'API reference'}
@@ -196,7 +196,7 @@ export function LookupProperties({ state, field, onPatch }: {
                   <Label>Only rows where</Label>
                   <div className="space-y-1">
                     {(config.filters ?? []).map((f, i) => (
-                      <div key={i} className="space-y-1 rounded border p-1.5" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                      <div key={i} className="space-y-1 rounded border p-1.5 border-border">
                         <div className="grid grid-cols-[1fr_1fr_auto] gap-1">
                           <AutocompleteSelect value={f.column} options={columnOptions} onChange={(v) => set({ filters: (config.filters ?? []).map((x, j) => (j === i ? { ...x, column: v } : x)) })} />
                           <AutocompleteSelect value={f.operator} options={LOOKUP_FILTER_OPERATORS.map((op) => ({ value: op, label: LOOKUP_FILTER_OPERATOR_LABELS[op] }))}
@@ -210,7 +210,7 @@ export function LookupProperties({ state, field, onPatch }: {
                       </div>
                     ))}
                     {(config.filters ?? []).length < LOOKUP_LIMITS.maxFilters && columnOptions.length > 0 && (
-                      <button type="button" className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--theme-primary-text)' }}
+                      <button type="button" className="flex items-center gap-1 text-2xs font-medium text-primary-text"
                         onClick={() => set({ filters: [...(config.filters ?? []), { column: columnOptions[0].value, operator: 'eq', value: '' }] })}>
                         <Plus size={11} /> Add filter
                       </button>
@@ -264,7 +264,7 @@ export function LookupProperties({ state, field, onPatch }: {
                   <div className="space-y-1">
                     {refInputs.map((input) => (
                       <div key={input.name}>
-                        <p className="text-[10px] font-mono" style={{ color: 'var(--theme-card-text)' }}>{input.name}{input.required ? ' *' : ''}{input.location ? <span style={{ color: 'var(--theme-muted-text)' }}> · {input.location}</span> : null}</p>
+                        <p className="text-2xs font-mono text-fg">{input.name}{input.required ? ' *' : ''}{input.location ? <span className="text-fg-muted"> · {input.location}</span> : null}</p>
                         <VariableInput value={config.input_mappings?.[input.name] ?? ''} extraVariables={placeholders} placeholder="{{search}}, {{task_data.<field>}} or a fixed value"
                           onChange={(v) => {
                             const mappings = { ...(config.input_mappings ?? {}) }
@@ -277,30 +277,18 @@ export function LookupProperties({ state, field, onPatch }: {
                   </div>
                   <Hint>{'{{search}}'} is what the assignee types.</Hint>
                 </div>
-                <div>
-                  <Label>Results list (from the response model)</Label>
-                  {candidates.length === 0 ? (
-                    <Hint>The reference has no response model yet — test it on its integration page to capture one.</Hint>
-                  ) : (
-                    <div role="radiogroup" aria-label="Results list" className="max-h-40 space-y-1 overflow-y-auto" data-testid="lookup-results-path">
-                      {candidates.map((c) => {
-                        const path = c.path === 'response' ? '' : c.path.replace(/^response\./, '')
-                        const on = (chosen?.path ?? null) === c.path
-                        return (
-                          <button key={c.path} type="button" role="radio" aria-checked={on}
-                            onClick={() => set({ results_path: path || undefined, display_fields: undefined, value_field: undefined, fill: undefined })}
-                            className="block w-full rounded border px-2 py-1 text-left text-[11px]"
-                            style={on ? { borderColor: 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' } : { borderColor: 'var(--theme-surface-border)' }}
-                            data-results-path={path}
-                          >
-                            <span className="font-mono">{c.path.replace(/^response\.?/, '') || '(the whole response)'}</span>
-                            <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{c.hint}{c.preview ? ` · ${c.preview}` : ''}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
+                <ResponseCollectionPicker
+                  key={config.reference_id}
+                  schema={model}
+                  value={config.results_path}
+                  onChange={(path, { auto }) => set(auto ? { results_path: path || undefined } : { results_path: path || undefined, display_fields: undefined, value_field: undefined, fill: undefined })}
+                  referenceId={config.reference_id}
+                  inputs={refInputs}
+                  mappings={config.input_mappings}
+                  onSchemaLoaded={onSchemaLoaded}
+                  label="Results list"
+                  testId="lookup-results-path"
+                />
                 {chosen && (
                   <>
                     <OrderedPicker testId="lookup-display-fields" label="Show fields (first = main text)" value={config.display_fields ?? []} options={itemOptions} onChange={(v) => set({ display_fields: v.length ? v : undefined })} />
@@ -313,12 +301,12 @@ export function LookupProperties({ state, field, onPatch }: {
                 <div className="grid grid-cols-2 gap-1">
                   <div>
                     <Label htmlFor={id('debounce')}>Wait after typing (ms)</Label>
-                    <input id={id('debounce')} type="number" min={0} max={LOOKUP_LIMITS.maxDebounceMs} className={inputClass} style={inputStyle} value={config.debounce_ms ?? LOOKUP_LIMITS.defaultDebounceMs}
+                    <input id={id('debounce')} type="number" min={0} max={LOOKUP_LIMITS.maxDebounceMs} className={inputClass} value={config.debounce_ms ?? LOOKUP_LIMITS.defaultDebounceMs}
                       onChange={(e) => set({ debounce_ms: e.target.value === '' ? undefined : Number(e.target.value) }, `lkd-${field._id}`)} />
                   </div>
                   <div>
                     <Label htmlFor={id('ttl')}>Cache responses (s)</Label>
-                    <input id={id('ttl')} type="number" min={0} max={LOOKUP_LIMITS.maxCacheTtlS} className={inputClass} style={inputStyle} value={config.cache_ttl_s ?? 0}
+                    <input id={id('ttl')} type="number" min={0} max={LOOKUP_LIMITS.maxCacheTtlS} className={inputClass} value={config.cache_ttl_s ?? 0}
                       onChange={(e) => set({ cache_ttl_s: Number(e.target.value) || undefined }, `lkt-${field._id}`)} />
                   </div>
                 </div>
@@ -328,26 +316,46 @@ export function LookupProperties({ state, field, onPatch }: {
         )}
       </Section>
 
+      <Section title="Display">
+        <div>
+          <Label htmlFor={id('label-template')}>Display template (optional)</Label>
+          <input id={id('label-template')} className={inputClass} value={config.label_template ?? ''} placeholder={config.source === 'table' ? '{{name}} ({{code}})' : '{{name}} ({{id}})'}
+            onChange={(e) => set({ label_template: e.target.value || undefined }, `lklt-${field._id}`)} data-testid="lookup-label-template" />
+          <Hint>What people see in the input, in read-only views and submissions. Empty: the first shown {config.source === 'table' ? 'column' : 'field'}. The stored value stays the &quot;Store as the value&quot; {config.source === 'table' ? 'column' : 'field'}.</Hint>
+        </div>
+        <div>
+          <Label htmlFor={id('desc-template')}>Secondary text in the list (optional)</Label>
+          <input id={id('desc-template')} className={inputClass} value={config.description_template ?? ''} placeholder="{{city}}, {{country}}"
+            onChange={(e) => set({ description_template: e.target.value || undefined }, `lkdt-${field._id}`)} data-testid="lookup-description-template" />
+        </div>
+        <Toggle checked={config.search_value === true} onChange={(v) => set({ search_value: v || undefined })}>Search also matches the stored value</Toggle>
+      </Section>
+
       <Section title="Behaviour">
         <div className="grid grid-cols-2 gap-1">
           <div>
             <Label htmlFor={id('max')}>Max suggestions</Label>
-            <input id={id('max')} type="number" min={1} max={LOOKUP_LIMITS.maxResults} className={inputClass} style={inputStyle} value={config.max_results ?? LOOKUP_LIMITS.defaultMaxResults}
+            <input id={id('max')} type="number" min={1} max={LOOKUP_LIMITS.maxResults} className={inputClass} value={config.max_results ?? LOOKUP_LIMITS.defaultMaxResults}
               onChange={(e) => set({ max_results: e.target.value === '' ? undefined : Number(e.target.value) }, `lkm-${field._id}`)} />
           </div>
           <div>
             <Label htmlFor={id('min')}>Min characters</Label>
-            <input id={id('min')} type="number" min={0} max={LOOKUP_LIMITS.maxMinChars} className={inputClass} style={inputStyle} value={config.min_chars ?? LOOKUP_LIMITS.defaultMinChars}
+            <input id={id('min')} type="number" min={0} max={LOOKUP_LIMITS.maxMinChars} className={inputClass} value={config.min_chars ?? LOOKUP_LIMITS.defaultMinChars}
               onChange={(e) => set({ min_chars: e.target.value === '' ? undefined : Number(e.target.value) }, `lkc-${field._id}`)} />
           </div>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           <Toggle checked={config.multiple === true} onChange={(v) => set({ multiple: v || undefined })}>Allow several</Toggle>
           <Toggle checked={config.allow_free_text === true} onChange={(v) => set({ allow_free_text: v || undefined })}>Allow free text</Toggle>
+          <Toggle checked={config.anonymous_read === true} onChange={(v) => set({ anonymous_read: v || undefined })}>Allow anonymous read</Toggle>
         </div>
         <Hint>
+          Anonymous read: on a public form link, visitors who aren&apos;t signed in get suggestions from this lookup (off: nothing).
+          {config.anonymous_read === true && <span className="text-danger"> Anyone with the link can search this source&apos;s shown columns / fields (at most 20 results a search).</span>}
+        </Hint>
+        <Hint>
           Without free text the value must be one of the suggestions — checked again on the server when the task is completed.
-          Downstream: <code style={{ color: 'var(--theme-primary-text)' }}>{`{{task_data.${field.key}}}`}</code> and <code style={{ color: 'var(--theme-primary-text)' }}>{`{{task_data.${lookupItemKey(field.key)}}}`}</code>.
+          Downstream: <code className="text-primary-text">{`{{task_data.${field.key}}}`}</code> (the value), <code className="text-primary-text">{`{{task_data.${field.key}_label}}`}</code> (what was shown) and <code className="text-primary-text">{`{{task_data.${lookupItemKey(field.key)}}}`}</code>.
         </Hint>
       </Section>
 
@@ -356,13 +364,13 @@ export function LookupProperties({ state, field, onPatch }: {
           {fill.map((f, i) => (
             <div key={i} className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-1">
               <AutocompleteSelect value={f.from} options={fillSources} placeholder="Item field" onChange={(v) => set({ fill: fill.map((x, j) => (j === i ? { ...x, from: v } : x)) })} />
-              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>→</span>
+              <span className="text-2xs text-fg-muted">→</span>
               <AutocompleteSelect value={f.to} options={otherFields.filter((o) => o.type !== 'lookup').map((o) => ({ value: o.key, label: o.label || o.key }))} placeholder="Field" onChange={(v) => set({ fill: fill.map((x, j) => (j === i ? { ...x, to: v } : x)) })} />
               <button type="button" className="rounded p-0.5" aria-label={`Remove fill ${i + 1}`} onClick={() => set({ fill: fill.filter((_, j) => j !== i) })}><X size={11} /></button>
             </div>
           ))}
           {fillSources.length > 0 && otherFields.length > 0 && fill.length < LOOKUP_LIMITS.maxFill && (
-            <button type="button" className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--theme-primary-text)' }}
+            <button type="button" className="flex items-center gap-1 text-2xs font-medium text-primary-text"
               onClick={() => set({ fill: [...fill, { from: fillSources[0].value, to: '' }] })}>
               <Plus size={11} /> Add mapping
             </button>
@@ -371,5 +379,6 @@ export function LookupProperties({ state, field, onPatch }: {
         <Hint>When the assignee picks an item, these fields are filled from it (they can still edit them).</Hint>
       </Section>
     </div>
+    </DesignerVariableScope>
   )
 }

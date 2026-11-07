@@ -262,9 +262,14 @@ The document actions (Read, Extract, Convert, Redact and Inspect Document)
 can recognise text in scanned PDFs and images. OCR is off in every step
 until turned on there, and `DOCUMENT_OCR_PROVIDER` chooses the engine:
 `tesseract` (the default, this package), `azure_document_intelligence`
-(Azure AI Document Intelligence; needs no package) or `none`.
+(Azure AI Document Intelligence; needs no package) or `none`. Each
+workspace can instead bring its own Azure key in **Settings → Document
+OCR**; the instance engine serves workspaces that keep "Instance default"
+(`DOCUMENT_OCR_INSTANCE_DEFAULT`, true unless `DEPLOYMENT_MODE=cloud`).
 
-- **Install.** From source and on Vercel, `npm ci` installs it. The Docker
+- **Install.** From source, `npm ci` installs it. On Vercel its worker and
+  language files are not traced into the functions, so the built-in engine
+  is not offered there (workspaces use their own Azure key). The Docker
   image needs `--build-arg INCLUDE_OCR=true` (or `INCLUDE_OCR=true` in
   `.env` for Compose). Text PDFs never need it: the package is loaded only
   when a page has to be recognised.

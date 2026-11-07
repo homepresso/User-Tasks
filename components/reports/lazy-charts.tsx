@@ -12,8 +12,7 @@ import { PageSkeleton } from '@/components/ui/page-skeleton'
 function ChartSkeleton() {
   return (
     <div
-      className="w-full rounded-lg"
-      style={{ height: 220, backgroundColor: 'var(--theme-surface)', animation: 'shimmer 1.5s ease-in-out infinite' }}
+      className="w-full rounded-lg bg-bg" style={{ height: 220, animation: 'shimmer 1.5s ease-in-out infinite' }}
       aria-busy="true"
       aria-label="Loading chart"
     />
@@ -23,7 +22,8 @@ function ChartSkeleton() {
 const load = () => import('./chart-views')
 
 export const ReportChart = dynamic(() => load().then((m) => m.ReportChart), { loading: ChartSkeleton })
-export const IndividualReportView = dynamic(() => load().then((m) => m.IndividualReportView), {
+export const ReportSummaryCharts = dynamic(() => load().then((m) => m.ReportSummaryCharts), { loading: ChartSkeleton })
+export const IndividualReportView =dynamic(() => load().then((m) => m.IndividualReportView), {
   loading: () => <PageSkeleton variant="list" />,
 })
 export const ProcessesHubView = dynamic(() => load().then((m) => m.ProcessesHubView), {

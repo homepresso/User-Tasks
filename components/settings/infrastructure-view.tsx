@@ -1,19 +1,23 @@
 import Link from 'next/link'
-import { ArrowLeft, BookOpen, Info, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BookOpen, Database, Info, Lock, LockOpen, RefreshCw } from 'lucide-react'
 import type { InfrastructureView as View } from '@/lib/admin/infrastructure'
 import type { CheckStatus } from '@/lib/admin/doctor'
-import { providerFields } from '@/lib/config/provider-forms'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { HousekeepingCard } from './housekeeping-card'
+import { AiPricesCard } from './ai-prices-card'
+import type { ModelPrice } from '@/lib/agents/pricing'
 import { RollbackWindowWarning } from './provider-switch-wizard'
 import { AreaActions, SwitchLogPanel } from './switch-log-panel'
+import { AreaActionNotes, DatabaseUrlHelp, UiLockButton } from './infrastructure-actions'
 
 /**
  * Settings → Infrastructure body (server-rendered). Each area can be
  * switched to another provider (Change…) or have its provider's settings
  * edited (Settings) — the same engine as `usertasks-admin switch`, through
- * server actions that re-check instance-admin access. The switch log
- * follows running switches live and offers Cancel / Retry / Rollback.
+ * server actions that re-check instance-admin access. Both buttons are
+ * always there: a disabled one says why and what to do (the cloud lock with
+ * its Unlock control, a missing DATABASE_URL with how to add it). The switch
+ * log follows running switches live and offers Cancel / Retry / Rollback.
  */
 
 
@@ -43,7 +47,48 @@ function Pill({ children, color, bg }: { children: React.ReactNode; color: strin
   return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" style={{ color, backgroundColor: bg }}>{children}</span>
 }
 
-export function InfrastructureView({ view }: { view: View }) {
+/** How changes from this page work here: the cloud lock (Unlock / Lock), the connection they use, and what needs DATABASE_URL. */
+function SwitchingStatus({ switching }: { switching: View['switching'] }) {
+  const box = 'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs'
+  const border = { borderColor: 'var(--theme-surface-border)' }
+  const { gate, access } = switching
+  return (
+    <div className="space-y-2" aria-label="Provider changes from this page">
+      {access === 'none' && <InlineNotice tone="warning" message={gate.reason ?? 'Provider changes cannot be made from this page.'} />}
+      {access !== 'none' && gate.code === 'flag-off' && <InlineNotice tone="warning" message={gate.reason ?? 'Changes from this page are turned off.'} />}
+      {access !== 'none' && gate.code === 'unavailable' && <InlineNotice tone="warning" message={gate.reason ?? 'Changes from this page are unavailable.'} />}
+      {gate.code === 'cloud-locked' && (
+        <div className={`${box} flex-wrap`} style={{ ...border, backgroundColor: 'var(--status-warning-bg)' }} role="note" data-lock="locked">
+          <Lock size={14} className="shrink-0 mt-px" aria-hidden />
+          <span className="flex-1 min-w-[14rem]">{gate.reason}</span>
+          <UiLockButton allow />
+        </div>
+      )}
+      {gate.enabled && gate.lockable && (
+        <div className={`${box} flex-wrap`} style={border} role="note" data-lock="unlocked">
+          <LockOpen size={14} className="shrink-0 mt-px" aria-hidden />
+          <span className="flex-1 min-w-[14rem]">Unlocked: instance admins can change providers and settings from this page on this cloud deployment. Lock it again when you are done.</span>
+          <UiLockButton allow={false} variant="outline" />
+        </div>
+      )}
+      {access === 'api' && (
+        <div className={box} style={{ ...border, color: 'var(--theme-muted-text)' }} role="note" data-access="api">
+          <Database size={14} className="shrink-0 mt-px" aria-hidden />
+          <div className="space-y-1 min-w-0">
+            <p>
+              No direct database connection (DATABASE_URL): configuration changes — realtime, email, secrets, cache, scheduler (without pg_cron),
+              the KMS provider (before any data key exists), storage settings — and their rollback run through the Supabase service-role API.
+              Switching the database, auth or storage copies data and needs DATABASE_URL.
+            </p>
+            <DatabaseUrlHelp compact />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function InfrastructureView({ view, aiPrices = [] }: { view: View; aiPrices?: ModelPrice[] }) {
   const muted = { color: 'var(--theme-muted-text)' }
   const card = { backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }
   return (
@@ -57,15 +102,7 @@ export function InfrastructureView({ view }: { view: View }) {
         </p>
       </div>
 
-      {!view.switching.gate.enabled && (view.switching.hasDb
-        ? <InlineNotice tone="warning" message={view.switching.gate.reason ?? 'Changing providers from this page is turned off.'} />
-        : (
-          // No DATABASE_URL is a supported setup (Supabase provider): information, not a warning.
-          <div className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }} role="note">
-            <Info size={14} className="shrink-0 mt-px" aria-hidden />
-            <span>{view.switching.gate.reason ?? 'Changing providers from this page is turned off.'}</span>
-          </div>
-        ))}
+      <SwitchingStatus switching={view.switching} />
       {view.switching.gate.enabled && view.switching.recentSwitchArea && <RollbackWindowWarning area={view.switching.recentSwitchArea} />}
 
       <div className="flex flex-wrap items-center gap-3 text-xs" style={muted}>
@@ -88,13 +125,14 @@ export function InfrastructureView({ view }: { view: View }) {
                   <Pill key={badge} color="var(--theme-muted-text)" bg="var(--theme-surface-border)">{BADGE_LABELS[badge] ?? badge}</Pill>
                 ))}
                 <span className="ml-auto flex items-center gap-2">
-                  <AreaActions area={area.area} label={area.label} hasSettings={providerFields(area.area, area.provider).length > 0} enabled={view.switching.gate.enabled} />
+                  <AreaActions area={area.area} label={area.label} actions={area.actions} />
                   <Pill color={health.color} bg={health.bg}>{health.label}</Pill>
                 </span>
               </div>
               <p className="text-xs mt-1" style={muted}>
                 Set by {SOURCE_LABELS[area.source] ?? area.source} · <Link href={area.docs} className="underline">docs</Link>
               </p>
+              <AreaActionNotes area={area.area} actions={area.actions} />
               {area.checks.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm">
                   {area.checks.map((check, i) => (
@@ -112,6 +150,8 @@ export function InfrastructureView({ view }: { view: View }) {
       </div>
 
       <HousekeepingCard initial={view.housekeeping} error={view.housekeepingError} />
+
+      <AiPricesCard initial={aiPrices} />
 
       <SwitchLogPanel initial={view.switches} error={view.switchLogError} busy={view.switching.busy} />
     </div>

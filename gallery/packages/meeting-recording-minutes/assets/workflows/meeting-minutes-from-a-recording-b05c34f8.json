@@ -1,0 +1,826 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b05c34f8-5312-5dd5-a7f1-174400a50789",
+  "asset": {
+    "id": "b05c34f8-5312-5dd5-a7f1-174400a50789",
+    "name": "Meeting minutes from a recording",
+    "description": "A meeting recording uploaded on the form is transcribed with speakers, an AI agent drafts the minutes and action items, the organiser checks them and picks owners, each owner gets a task and the minutes are emailed with the PDF and subtitle file.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Recording uploaded",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "565c5cd0-8ff7-559a-8ab3-d11cf7cd63c6",
+          "form_name": "Meeting recording"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "minutes_ref",
+          "expression": "MIN-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "title": "Minutes: {{form.meeting_title}} ({{form.meeting_date}})"
+        }
+      },
+      {
+        "id": "transcribe",
+        "type": "media_transcribe",
+        "label": "Transcribe with speakers",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "integration_id": "49a8553d-1e24-530c-8995-c22164828ba4",
+          "provider_label": "Google Gemini",
+          "source": "{{form.recording}}",
+          "language": "{{=IF(form.language == \"Detect\", \"\", form.language)}}",
+          "diarize": true,
+          "max_speakers": 10,
+          "formats": [
+            "srt",
+            "vtt",
+            "txt"
+          ],
+          "prompt": "Team meeting recording. Attendees: {{form.attendees}}",
+          "output_var": "transcript",
+          "run_mode": "auto"
+        }
+      },
+      {
+        "id": "draft",
+        "type": "run_agent",
+        "label": "Draft minutes and actions",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "agent_id": "a43e5008-943a-562d-8f50-3c0ff1e2d1d8",
+          "agent_name": "Minutes writer",
+          "output_variable": "draft",
+          "max_iterations": 3,
+          "timeout_ms": 90000,
+          "user_message": "Meeting: {{form.meeting_title}} on {{form.meeting_date}}. Attendees: {{form.attendees}}.\n\nTranscript ({{transcript.duration}} s, speakers {{transcript.speakers}}):\n{{transcript_text}}"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to meeting minutes",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "table_id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+          "table_name": "Meeting minutes",
+          "operation": "insert",
+          "output_row_id_var": "minutes_row_id",
+          "column_values": {
+            "minutes_ref": "{{minutes_ref}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "meeting_date": "{{form.meeting_date}}",
+            "summary": "{{summary}}",
+            "decisions": "{{decisions}}",
+            "duration_min": "{{=ROUND(COALESCE(transcript.duration, 0) / 60, 1)}}",
+            "status": "Draft"
+          }
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Check the minutes and assign actions",
+        "position": {
+          "x": 600,
+          "y": 1060
+        },
+        "config": {
+          "task_title": "Check minutes: {{form.meeting_title}}",
+          "task_description": "<p>AI drafted these minutes from the recording of <strong>{{form.meeting_title}}</strong> ({{form.meeting_date}}). Check them against the <a href=\"{{transcript_txt.url}}\">transcript</a>, edit anything that is wrong and pick an owner for each action.</p><p>Suggested owners from the meeting: 1. {{action_1_owner}} · 2. {{action_2_owner}} · 3. {{action_3_owner}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Send minutes",
+            "Discard"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "summary",
+              "label": "Summary",
+              "type": "textarea",
+              "required": true,
+              "default": "{{summary}}"
+            },
+            {
+              "key": "decisions",
+              "label": "Decisions",
+              "type": "textarea",
+              "default": "{{decisions}}"
+            },
+            {
+              "key": "action_1",
+              "label": "Action 1",
+              "type": "text",
+              "default": "{{action_1}}"
+            },
+            {
+              "key": "owner_1",
+              "label": "Owner",
+              "type": "user"
+            },
+            {
+              "key": "due_1",
+              "label": "Due",
+              "type": "date",
+              "default": "{{action_1_due}}"
+            },
+            {
+              "key": "action_2",
+              "label": "Action 2",
+              "type": "text",
+              "default": "{{action_2}}"
+            },
+            {
+              "key": "owner_2",
+              "label": "Owner",
+              "type": "user"
+            },
+            {
+              "key": "due_2",
+              "label": "Due",
+              "type": "date",
+              "default": "{{action_2_due}}"
+            },
+            {
+              "key": "action_3",
+              "label": "Action 3",
+              "type": "text",
+              "default": "{{action_3}}"
+            },
+            {
+              "key": "owner_3",
+              "label": "Owner",
+              "type": "user"
+            },
+            {
+              "key": "due_3",
+              "label": "Due",
+              "type": "date",
+              "default": "{{action_3_due}}"
+            },
+            {
+              "key": "recipients",
+              "label": "Send to",
+              "type": "text",
+              "required": true,
+              "default": "{{form.share_with}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "summary",
+                    "span": 4
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "decisions",
+                    "span": 4
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "action_1",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "owner_1",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "due_1",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "action_2",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "owner_2",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "due_2",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "action_3",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "owner_3",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "due_3",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "recipients",
+                    "span": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "send",
+              "label": "Send minutes",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Send minutes"
+            },
+            {
+              "id": "discard",
+              "label": "Discard",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Discard"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Minutes: {{form.meeting_title}}",
+            "align": "left",
+            "subtitle": "{{form.meeting_date}} · drafted by AI from the recording"
+          }
+        }
+      },
+      {
+        "id": "discard",
+        "type": "update_data_table",
+        "label": "Mark discarded",
+        "position": {
+          "x": 1020,
+          "y": 1240
+        },
+        "config": {
+          "table_id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+          "table_name": "Meeting minutes",
+          "operation": "update",
+          "row_id": "{{minutes_row_id}}",
+          "column_values": {
+            "status": "Discarded"
+          }
+        }
+      },
+      {
+        "id": "discard_end",
+        "type": "end_workflow",
+        "label": "Discarded",
+        "position": {
+          "x": 1020,
+          "y": 1380
+        },
+        "config": {
+          "reason": "Minutes discarded by the organiser"
+        }
+      },
+      {
+        "id": "approved",
+        "type": "set_variable",
+        "label": "Approved minutes",
+        "position": {
+          "x": 600,
+          "y": 1240
+        },
+        "config": {
+          "name": "approved",
+          "expression": "{{task_data}}"
+        }
+      },
+      {
+        "id": "has_1",
+        "type": "condition",
+        "label": "Action 1 with an owner?",
+        "position": {
+          "x": 600,
+          "y": 1380
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Assign",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{approved.action_1}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{approved.owner_1}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "log_1",
+        "type": "update_data_table",
+        "label": "Log action 1",
+        "position": {
+          "x": 240,
+          "y": 1520
+        },
+        "config": {
+          "table_id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+          "table_name": "Action items",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{minutes_ref}}-1",
+            "minutes_ref": "{{minutes_ref}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "action": "{{approved.action_1}}",
+            "owner_name": "{{action_1_owner}}",
+            "due_date": "{{approved.due_1}}",
+            "status": "Open"
+          }
+        }
+      },
+      {
+        "id": "assign_1",
+        "type": "call_sub_workflow",
+        "label": "Task for owner 1",
+        "position": {
+          "x": 240,
+          "y": 1660
+        },
+        "config": {
+          "sub_workflow_id": "f52a7628-4102-53ea-a206-9f055bc0dfde",
+          "sub_workflow_name": "Meeting action item",
+          "input_mappings": {
+            "action": "{{approved.action_1}}",
+            "owner_id": "{{approved.owner_1}}",
+            "due_date": "{{approved.due_1}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "minutes_ref": "{{minutes_ref}}",
+            "item_key": "{{minutes_ref}}-1"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "has_2",
+        "type": "condition",
+        "label": "Action 2 with an owner?",
+        "position": {
+          "x": 600,
+          "y": 1800
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Assign",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{approved.action_2}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{approved.owner_2}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "log_2",
+        "type": "update_data_table",
+        "label": "Log action 2",
+        "position": {
+          "x": 240,
+          "y": 1940
+        },
+        "config": {
+          "table_id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+          "table_name": "Action items",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{minutes_ref}}-2",
+            "minutes_ref": "{{minutes_ref}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "action": "{{approved.action_2}}",
+            "owner_name": "{{action_2_owner}}",
+            "due_date": "{{approved.due_2}}",
+            "status": "Open"
+          }
+        }
+      },
+      {
+        "id": "assign_2",
+        "type": "call_sub_workflow",
+        "label": "Task for owner 2",
+        "position": {
+          "x": 240,
+          "y": 2080
+        },
+        "config": {
+          "sub_workflow_id": "f52a7628-4102-53ea-a206-9f055bc0dfde",
+          "sub_workflow_name": "Meeting action item",
+          "input_mappings": {
+            "action": "{{approved.action_2}}",
+            "owner_id": "{{approved.owner_2}}",
+            "due_date": "{{approved.due_2}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "minutes_ref": "{{minutes_ref}}",
+            "item_key": "{{minutes_ref}}-2"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "has_3",
+        "type": "condition",
+        "label": "Action 3 with an owner?",
+        "position": {
+          "x": 600,
+          "y": 2220
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Assign",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{approved.action_3}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{approved.owner_3}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "log_3",
+        "type": "update_data_table",
+        "label": "Log action 3",
+        "position": {
+          "x": 240,
+          "y": 2360
+        },
+        "config": {
+          "table_id": "4e3f5ec2-374a-5a00-b8ba-7546bfb83406",
+          "table_name": "Action items",
+          "operation": "insert",
+          "column_values": {
+            "item_key": "{{minutes_ref}}-3",
+            "minutes_ref": "{{minutes_ref}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "action": "{{approved.action_3}}",
+            "owner_name": "{{action_3_owner}}",
+            "due_date": "{{approved.due_3}}",
+            "status": "Open"
+          }
+        }
+      },
+      {
+        "id": "assign_3",
+        "type": "call_sub_workflow",
+        "label": "Task for owner 3",
+        "position": {
+          "x": 240,
+          "y": 2500
+        },
+        "config": {
+          "sub_workflow_id": "f52a7628-4102-53ea-a206-9f055bc0dfde",
+          "sub_workflow_name": "Meeting action item",
+          "input_mappings": {
+            "action": "{{approved.action_3}}",
+            "owner_id": "{{approved.owner_3}}",
+            "due_date": "{{approved.due_3}}",
+            "meeting_title": "{{form.meeting_title}}",
+            "minutes_ref": "{{minutes_ref}}",
+            "item_key": "{{minutes_ref}}-3"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "action_text",
+        "type": "text_template",
+        "label": "Action list",
+        "position": {
+          "x": 600,
+          "y": 2640
+        },
+        "config": {
+          "output_var": "action_lines",
+          "template": "{{=IF(IS_EMPTY(approved.action_1), \"\", CONCAT(\"1. \", approved.action_1, \" (due \", COALESCE(approved.due_1, \"-\"), \")\"))}}\n{{=IF(IS_EMPTY(approved.action_2), \"\", CONCAT(\"2. \", approved.action_2, \" (due \", COALESCE(approved.due_2, \"-\"), \")\"))}}\n{{=IF(IS_EMPTY(approved.action_3), \"\", CONCAT(\"3. \", approved.action_3, \" (due \", COALESCE(approved.due_3, \"-\"), \")\"))}}"
+        }
+      },
+      {
+        "id": "minutes_text",
+        "type": "text_template",
+        "label": "Minutes document",
+        "position": {
+          "x": 600,
+          "y": 2780
+        },
+        "config": {
+          "output_var": "minutes_doc",
+          "template": "MINUTES: {{form.meeting_title}}\nDate: {{form.meeting_date}}\nAttendees: {{form.attendees}}\nReference: {{minutes_ref}}\n\nSUMMARY\n{{approved.summary}}\n\nDECISIONS\n{{approved.decisions}}\n\nACTIONS\n{{action_lines}}\n\nDrafted from the recording by AI and checked by {{actioned_by_name}}."
+        }
+      },
+      {
+        "id": "pdf",
+        "type": "doc_convert",
+        "label": "Minutes to PDF",
+        "position": {
+          "x": 600,
+          "y": 2920
+        },
+        "config": {
+          "source": "{{minutes_doc}}",
+          "target": "pdf",
+          "title": "Minutes: {{form.meeting_title}}",
+          "output_var": "minutes_pdf",
+          "output_name": "{{minutes_ref}}-minutes"
+        }
+      },
+      {
+        "id": "send",
+        "type": "send_email",
+        "label": "Email minutes + SRT",
+        "position": {
+          "x": 600,
+          "y": 3060
+        },
+        "config": {
+          "to": "{{approved.recipients}}",
+          "email_template_id": "67020e3c-889b-5aad-9a9f-b599a2de2df0",
+          "attachments": "{{minutes_pdf}}, {{transcript_srt}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done_row",
+        "type": "update_data_table",
+        "label": "Mark sent",
+        "position": {
+          "x": 600,
+          "y": 3200
+        },
+        "config": {
+          "table_id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+          "table_name": "Meeting minutes",
+          "operation": "update",
+          "row_id": "{{minutes_row_id}}",
+          "column_values": {
+            "summary": "{{approved.summary}}",
+            "decisions": "{{approved.decisions}}",
+            "organiser": "{{actioned_by_name}}",
+            "actions": "{{=SUM(IF(IS_EMPTY(approved.owner_1), 0, 1), IF(IS_EMPTY(approved.owner_2), 0, 1), IF(IS_EMPTY(approved.owner_3), 0, 1))}}",
+            "status": "Sent"
+          }
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Minutes sent",
+        "position": {
+          "x": 600,
+          "y": 3340
+        },
+        "config": {
+          "reason": "Minutes {{minutes_ref}} sent"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-transcribe",
+        "source": "title",
+        "target": "transcribe"
+      },
+      {
+        "id": "e-transcribe-draft",
+        "source": "transcribe",
+        "target": "draft"
+      },
+      {
+        "id": "e-draft-row",
+        "source": "draft",
+        "target": "row"
+      },
+      {
+        "id": "e-row-review",
+        "source": "row",
+        "target": "review"
+      },
+      {
+        "id": "e-review-approved-send-minutes",
+        "source": "review",
+        "target": "approved",
+        "label": "Send minutes"
+      },
+      {
+        "id": "e-review-discard-discard",
+        "source": "review",
+        "target": "discard",
+        "label": "Discard"
+      },
+      {
+        "id": "e-discard-discard_end",
+        "source": "discard",
+        "target": "discard_end"
+      },
+      {
+        "id": "e-approved-has_1",
+        "source": "approved",
+        "target": "has_1"
+      },
+      {
+        "id": "e-has_1-log_1-assign",
+        "source": "has_1",
+        "target": "log_1",
+        "label": "Assign"
+      },
+      {
+        "id": "e-log_1-assign_1",
+        "source": "log_1",
+        "target": "assign_1"
+      },
+      {
+        "id": "e-assign_1-has_2",
+        "source": "assign_1",
+        "target": "has_2"
+      },
+      {
+        "id": "e-has_1-has_2-else",
+        "source": "has_1",
+        "target": "has_2",
+        "label": "Else"
+      },
+      {
+        "id": "e-has_2-log_2-assign",
+        "source": "has_2",
+        "target": "log_2",
+        "label": "Assign"
+      },
+      {
+        "id": "e-log_2-assign_2",
+        "source": "log_2",
+        "target": "assign_2"
+      },
+      {
+        "id": "e-assign_2-has_3",
+        "source": "assign_2",
+        "target": "has_3"
+      },
+      {
+        "id": "e-has_2-has_3-else",
+        "source": "has_2",
+        "target": "has_3",
+        "label": "Else"
+      },
+      {
+        "id": "e-has_3-log_3-assign",
+        "source": "has_3",
+        "target": "log_3",
+        "label": "Assign"
+      },
+      {
+        "id": "e-log_3-assign_3",
+        "source": "log_3",
+        "target": "assign_3"
+      },
+      {
+        "id": "e-assign_3-action_text",
+        "source": "assign_3",
+        "target": "action_text"
+      },
+      {
+        "id": "e-has_3-action_text-else",
+        "source": "has_3",
+        "target": "action_text",
+        "label": "Else"
+      },
+      {
+        "id": "e-action_text-minutes_text",
+        "source": "action_text",
+        "target": "minutes_text"
+      },
+      {
+        "id": "e-minutes_text-pdf",
+        "source": "minutes_text",
+        "target": "pdf"
+      },
+      {
+        "id": "e-pdf-send",
+        "source": "pdf",
+        "target": "send"
+      },
+      {
+        "id": "e-send-done_row",
+        "source": "send",
+        "target": "done_row"
+      },
+      {
+        "id": "e-done_row-end",
+        "source": "done_row",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

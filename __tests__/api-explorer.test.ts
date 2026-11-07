@@ -18,7 +18,7 @@ describe('API explorer groups from the registry', () => {
   })
 
   it('lists every bearer endpoint exactly once, under /api/v1 (SSE streams excluded)', () => {
-    const expected = API_ENDPOINTS.filter((e) => e.auth !== 'none' && !e.stream).map((e) => `${e.method} /api/v1${e.path}`).sort()
+    const expected = API_ENDPOINTS.filter((e) => e.auth !== 'none' && e.auth !== 'instance_admin' && !e.stream).map((e) => `${e.method} /api/v1${e.path}`).sort()
     expect(all.map((e) => `${e.method} ${e.path}`).sort()).toEqual(expected)
   })
 

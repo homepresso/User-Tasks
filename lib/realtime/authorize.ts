@@ -94,11 +94,18 @@ export async function loadAudience(db: SessionDb, userId: string): Promise<Audie
   if (!profile.data) throw new Error('No profile')
   const home = profile.data.tenant_id ? String(profile.data.tenant_id) : null
   const current = profile.data.current_tenant_id ? String(profile.data.current_tenant_id) : home
+  const agentTenants = [...new Set([home, current].filter((t): t is string => Boolean(t)))]
+  // agent_runs SELECT policy: every run with agents.view, else own runs only.
+  const viewAll = await Promise.all(agentTenants.map(async (t) => {
+    const res = await db.rpc('user_has_tenant_permission', { p_tenant: t, p_permission: 'agents.view' })
+    return res.error ? false : res.data === true
+  }))
   return {
     userId,
     visible: new Set(uuidList(visible.data)),
     member: new Set(uuidList(member.data)),
     current,
-    agent: new Set([home, current].filter((t): t is string => Boolean(t))),
+    agent: new Set(agentTenants.filter((_, i) => viewAll[i])),
+    agentMember: new Set(agentTenants),
   }
 }

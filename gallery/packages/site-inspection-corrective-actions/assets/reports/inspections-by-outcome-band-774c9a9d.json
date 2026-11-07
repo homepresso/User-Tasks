@@ -1,0 +1,39 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "774c9a9d-11d3-57e9-9299-c8ad2b077d64",
+  "asset": {
+    "id": "774c9a9d-11d3-57e9-9299-c8ad2b077d64",
+    "name": "Inspections by outcome band",
+    "description": "How many inspections ended in each outcome band, with the average pass rate and site condition (workflow variables).",
+    "category": "Health and safety",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "6993d232-4c0b-59d1-b34c-4e02a56aaa7e"
+      },
+      "columns": [
+        "vars.outcome_band",
+        "_count",
+        "AVG_vars.pass_rate",
+        "AVG_vars.form.site_condition"
+      ],
+      "group_by": [
+        "vars.outcome_band"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.pass_rate"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.form.site_condition"
+        }
+      ],
+      "visualization": "table"
+    }
+  }
+}

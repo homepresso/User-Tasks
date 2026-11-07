@@ -48,6 +48,10 @@ export async function startConnectorOAuth(integrationId: string): Promise<string
   const clientSecret = String(authCfg.client_secret ?? '')
   const scopes = normalizeScopes(authCfg.scopes)
   const provider = String(authCfg.provider ?? '').trim().toLowerCase()
+  // Providers that refresh at another endpoint (Adobe Acrobat Sign) or want
+  // HTTP Basic client authentication at the token endpoint (DocuSign, SignNow).
+  const refreshUrl = String(authCfg.refresh_url ?? '').trim()
+  const clientAuth = authCfg.client_auth === 'basic' ? 'basic' : undefined
 
   if (!authorizeUrl) throw new Error('OAuth authorize URL is required')
   if (!tokenUrl) throw new Error('OAuth token URL is required')
@@ -58,6 +62,7 @@ export async function startConnectorOAuth(integrationId: string): Promise<string
   // refresh, so validate both up front and re-check token_url at fetch time.
   await assertSafeEgressUrl(authorizeUrl)
   await assertSafeEgressUrl(tokenUrl)
+  if (refreshUrl) await assertSafeEgressUrl(refreshUrl)
 
   // Find or create the tenant_connectors row that will hold the tokens.
   const { data: existingConnector } = await (supabase as any)
@@ -73,6 +78,8 @@ export async function startConnectorOAuth(integrationId: string): Promise<string
     client_id: clientId,
     scopes,
     provider,
+    ...(refreshUrl ? { refresh_url: refreshUrl } : {}),
+    ...(clientAuth ? { client_auth: clientAuth } : {}),
   }
   const connectorCredentials = encryptSensitiveFields(
     clientSecret ? { client_secret: clientSecret } : {},

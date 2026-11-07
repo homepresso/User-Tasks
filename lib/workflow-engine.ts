@@ -28,6 +28,7 @@ import {
   handleCondition,
   handleSwitchCase,
   calculateDelay,
+  canonicalDelay,
   handleJsonBuildObject,
   handleJsonBuildArray,
   handleJsonAddToArray,
@@ -38,15 +39,27 @@ import {
   type TableLike as DataTableLike,
 } from "./data-table-workflow-triggers";
 import { evaluateDecisionTable } from "./decision-table-engine";
+import { ActionRunError, executeStoredAction, loadStoredAction } from "./custom-actions/execute";
+import { actionManifestOf, operationOf } from "./custom-actions/manifest";
 import { evaluateOperator, normalizeOperator } from "./conditions";
 import { normalizeTaskFieldValue, WORKFLOW_UPDATABLE_TASK_FIELDS } from "./task-fields";
 import { resolveTaskDescriptionTemplate } from "./task-description";
 import { htmlToPlainText } from "./html-sanitize";
 import { loadTaskDataObject } from "./task-data";
+
+/** `{{task.attachments}}`: the run task's Attachments tab files (service client, the run's tenant). */
+function taskAttachmentsLoader(db: unknown) {
+  return async (tenantId: string, taskId: string): Promise<unknown[]> => {
+    const { listTaskAttachmentsForWorkflow } = await import("@/lib/services/task-attachments");
+    return listTaskAttachmentsForWorkflow(db as never, tenantId, taskId);
+  };
+}
 import { defaultTaskFieldValues } from "./task-field-schema";
 import { compactLayoutForSave } from "./forms/layout";
 import { resolveOptionSources, resolveRuntimeForm } from "./services/forms";
 import { preResolveLookupConfig, preResolveLookupTemplate } from "./forms/lookup";
+import { preResolveDataTableConfig } from "./forms/data-table";
+import { resolveContextParams, substituteParams } from "./forms/form-params";
 import { loadEmailTemplate } from "./email-templates";
 import { RunNotResumableError } from "./workflow-run-errors";
 import {
@@ -58,10 +71,35 @@ import {
   type RunInitiator,
 } from "./workflow-initiator";
 import { userVariableDefaults } from "./workflow-migration";
+import {
+  PARALLEL_STATE_KEY,
+  compareWaits,
+  computeParallelGraph,
+  emptyParallelState,
+  joinBlockers,
+  joinReplayOrder,
+  joinWaitingSummary,
+  parallelBranchLabels,
+  parallelDoneEdges,
+  parallelStateIsActive,
+  readParallelState,
+  type FrameState,
+  type LivePosition,
+  type ParallelGraph,
+  type ParallelState,
+  type PathEntry,
+  type WaitState,
+  type WriteRecord,
+} from "./workflow-parallel";
 import { appUrlOrLocalhost, configuredAppUrl } from "@/lib/config/bootstrap";
 import { fetchFile, fileSource, storeWorkflowFile, type StoredWorkflowFile } from "@/lib/storage/files";
 import { dataTableIdOf } from "./workflow-table-refs";
-import { referenceInputText, substituteInputPlaceholder } from "./reference-input-utils";
+import { esignEdgeMatches } from "./esign/catalog";
+import { reportableRunVariables } from "./workflow-run-variables";
+import { decideAcceptance, type QueueTaskFacts } from "./tasks/queue-rules";
+import { decideAcceptanceForAssignees } from "./tasks/queue-rules-server";
+import { setVariableAssignments, usesSetVariableAssignments } from "./workflow-set-variable";
+import type { AadGroupPlanResult } from "./tasks/aad-group-runtime";
 
 export { RunNotResumableError };
 
@@ -98,6 +136,10 @@ const TRIGGER_TYPES = [
   "middleware_received",
   "schedule",
   "webhook_received",
+  "esign_event",
+  // Not in the node catalog: the start node API / MCP / import create for
+  // workflow trigger_type "manual" (started by hand, the API or the CLI).
+  "manual",
 ] as const;
 
 function generateEventId(): string {
@@ -138,9 +180,6 @@ function userTaskOutcomeMatches(
   return Boolean(edgeNorm && outcomeNorm && edgeNorm === outcomeNorm);
 }
 
-const AsyncFunction = Object.getPrototypeOf(async function () {})
-  .constructor as new (...args: string[]) => (...fnArgs: any[]) => Promise<any>;
-
 class PauseError extends Error {
   eventId: string;
   nodeId: string;
@@ -148,6 +187,10 @@ class PauseError extends Error {
   resumeAt?: Date;
   /** Node output recorded while the run waits (timed pauses). */
   waitOutput?: Record<string, unknown>;
+  /** Already in the run's open waits (see registerWait). */
+  waitRegistered?: boolean;
+  /** Test runs: the inline prompt event of the step (shown again when the run waits on it later). */
+  prompt?: { node_label: string; data: Record<string, unknown> };
   constructor(
     eventId: string,
     nodeId: string,
@@ -160,6 +203,10 @@ class PauseError extends Error {
     this.waitOutput = timed?.output;
   }
 }
+
+/** Retries of a wait completion that raced a running resume (15 s apart, about an hour). */
+export const DEFERRED_RETRY_SECONDS = 15;
+export const DEFERRED_RETRY_ATTEMPTS = 240;
 
 /** Run statuses a resume may claim. */
 const RESUMABLE_RUN_STATUSES = ["waiting_for_event", "paused"];
@@ -209,90 +256,6 @@ function normalizeCustomActivityResult(raw: any) {
     metadata: undefined,
     logs: [],
   };
-}
-
-/**
- * Tenant-authored custom activity code runs via `new AsyncFunction`, which is NOT
- * a real sandbox — it executes in this Node process. Two controls apply:
- *
- *  1. DISABLED BY DEFAULT. Execution only proceeds when the operator explicitly
- *     sets ENABLE_CUSTOM_ACTIVITY_CODE=true, accepting the risk. Without it, a
- *     tenant with authoring rights could otherwise read process.env (including the
- *     service-role key) and achieve full RCE. Enabling this feature safely requires
- *     a real isolate (isolated-vm / worker with a scrubbed env) — tracked as P1.
- *  2. Defense-in-depth global scrubbing: dangerous globals are shadowed with
- *     `undefined` parameters. This is best-effort only (constructor-chain escapes
- *     like `(0).constructor.constructor` are still possible), so it does NOT
- *     substitute for control (1).
- */
-async function executeCustomActivitySource(params: {
-  sourceCode: string;
-  inputs: Record<string, any>;
-  context: Record<string, any>;
-  helpers: Record<string, any>;
-  timeoutMs: number;
-}) {
-  const { sourceCode, inputs, context, helpers, timeoutMs } = params;
-
-  if (process.env.ENABLE_CUSTOM_ACTIVITY_CODE !== "true") {
-    throw new Error(
-      "Custom activity code execution is disabled. Set ENABLE_CUSTOM_ACTIVITY_CODE=true to enable it (runs unsandboxed in-process — enable only in trusted environments).",
-    );
-  }
-
-  // Shadow dangerous globals as undefined params (defense-in-depth only).
-  const scrubbedGlobals = [
-    "process",
-    "require",
-    "global",
-    "globalThis",
-    "Function",
-    "Buffer",
-  ];
-  const runner = new AsyncFunction(
-    "inputs",
-    "context",
-    "helpers",
-    "module",
-    "exports",
-    ...scrubbedGlobals,
-    `
-      "use strict";
-      ${sourceCode}
-      const __candidate =
-        typeof run === 'function' ? run :
-        typeof execute === 'function' ? execute :
-        typeof handler === 'function' ? handler :
-        typeof main === 'function' ? main :
-        (typeof module !== 'undefined' && typeof module.exports === 'function' ? module.exports : null) ||
-        (typeof module !== 'undefined' && module.exports && typeof module.exports.default === 'function' ? module.exports.default : null) ||
-        (typeof exports !== 'undefined' && typeof exports.default === 'function' ? exports.default : null)
-      if (typeof __candidate !== 'function') {
-        throw new Error("Custom activity source must export one of run, execute, handler, main, module.exports, or module.exports.default")
-      }
-      return await __candidate(inputs, context, helpers)
-    `,
-  );
-
-  const moduleRef = { exports: {} as any };
-  const scrubbedArgs = scrubbedGlobals.map(() => undefined);
-  return await Promise.race([
-    runner(
-      inputs,
-      context,
-      helpers,
-      moduleRef,
-      moduleRef.exports,
-      ...scrubbedArgs,
-    ),
-    new Promise((_, reject) => {
-      setTimeout(
-        () =>
-          reject(new Error(`Custom activity timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      );
-    }),
-  ]);
 }
 
 type WorkflowResponseBodyType = "json" | "text" | "file";
@@ -391,6 +354,8 @@ interface ExecutionContext {
     nodeVisits: number;
     edgeTraversals: number;
   };
+  /** Parallel join tracking (shared by every branch of the run). */
+  parallel?: ParallelRuntime;
 }
 
 function traceNodeVisit(
@@ -646,10 +611,16 @@ function capLogs(logs: LogEntry[], max: number) {
 /** Keep in-memory trace/logs bounded on very long runs (checked once per node). */
 function boundRunMemory(ctx: ExecutionContext) {
   const traceMax = ENGINE_LIMITS.traceMaxEntries;
+  // In place: parallel branches share these arrays through their own contexts.
   if (ctx.executionTrace.length > traceMax * 2)
-    ctx.executionTrace = capTrace(ctx.executionTrace, traceMax);
+    replaceContents(ctx.executionTrace, capTrace(ctx.executionTrace, traceMax));
   const logMax = ENGINE_LIMITS.logMaxEntries;
-  if (ctx.logs.length > logMax * 2) ctx.logs = capLogs(ctx.logs, logMax);
+  if (ctx.logs.length > logMax * 2) replaceContents(ctx.logs, capLogs(ctx.logs, logMax));
+}
+
+function replaceContents<T>(target: T[], next: T[]) {
+  target.length = 0;
+  for (const item of next) target.push(item);
 }
 
 /** Persisted (capped) copies of the run's node results and trace. */
@@ -657,6 +628,9 @@ function runStateForStorage(ctx: ExecutionContext) {
   return {
     node_results: nodeResultsForStorage(ctx.nodeResults),
     execution_trace: capTrace(ctx.executionTrace, ENGINE_LIMITS.traceMaxEntries),
+    // Reportable copy of the variables (bounded, redacted) — workflow
+    // variable columns in reports (lib/workflow-run-variables.ts).
+    variables: reportableRunVariables(ctx.variables),
   };
 }
 
@@ -690,6 +664,7 @@ async function updateWorkflowRunCompat(
 ) {
   const optionalColumns = [
     "execution_trace",
+    "variables",
     "sla_label",
     "sla_due_at",
     "sla_warning_at",
@@ -743,6 +718,56 @@ async function updateWorkflowRunCompat(
 
     throw new Error(`Failed to update workflow run ${runId}: ${error.message}`);
   }
+}
+
+/**
+ * Insert one row and return its id, leaving out `optional` columns the
+ * database does not have yet (code deployed before its migration, e.g.
+ * 20261217000000_home_dashboard's workflow_runs.started_by and
+ * tasks.workflow_run_id). Missing columns are remembered per process.
+ */
+const missingInsertColumns = new Set<string>();
+export async function insertWithOptionalColumns(
+  supabase: SupabaseClient,
+  table: string,
+  row: Record<string, unknown>,
+  optional: readonly string[],
+): Promise<{ data: { id: string } | null; error: { message: string; code?: string } | null }> {
+  let next = Object.fromEntries(Object.entries(row).filter(([key]) => !missingInsertColumns.has(`${table}.${key}`)));
+  for (;;) {
+    const { data, error } = await (supabase.from(table as any) as any).insert(next).select("id").single();
+    if (!error) return { data: data as { id: string }, error: null };
+    const missing = optional.find((column) => column in next && (
+      error.message?.includes(`column ${table}.${column} does not exist`) ||
+      error.message?.includes(`column "${column}" of relation "${table}" does not exist`) ||
+      error.message?.includes(`Could not find the '${column}' column`)));
+    if (!missing) return { data: null, error };
+    missingInsertColumns.add(`${table}.${missing}`);
+    const { [missing]: _dropped, ...rest } = next;
+    next = rest;
+  }
+}
+
+/**
+ * The run's Home columns (migration 20261217000000): the person who started
+ * it and the form submission behind it. Designer test runs and system starts
+ * have no person; the submission link is only trusted for form starts.
+ */
+export function runOriginColumns(
+  initiator: RunInitiator | null | undefined,
+  startVariables: Record<string, unknown> | null | undefined,
+  test: boolean,
+): { started_by: string | null; started_via: string | null; form_submission_id: string | null } {
+  if (test) return { started_by: null, started_via: "test", form_submission_id: null };
+  const via = initiator?.via ?? "system";
+  const userId = typeof initiator?.userId === "string" && initiator.userId.trim() ? initiator.userId.trim() : null;
+  const submission = typeof startVariables?.form_submission_id === "string" ? startVariables.form_submission_id.trim() : "";
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return {
+    started_by: userId && uuid.test(userId) ? userId : null,
+    started_via: via,
+    form_submission_id: (via === "form" || via === "anonymous") && uuid.test(submission) ? submission : null,
+  };
 }
 
 /**
@@ -968,24 +993,22 @@ export async function executeWorkflow(
   // {{task.*}}. Superset of the raw row, so existing references are unchanged.
   const taskPromise = taskId
     ? // Only a task of the workflow's tenant (service-role client).
-      loadTaskDataObject(supabase, taskId, { includeTimeline: true, tenantId: workflow.tenant_id }).then(
+      loadTaskDataObject(supabase, taskId, { includeTimeline: true, tenantId: workflow.tenant_id, attachments: taskAttachmentsLoader(supabase) }).then(
         (t) => t ?? undefined,
       )
     : Promise.resolve(undefined);
 
   const traceId = ensureTraceId(inboundTraceId);
-  const runPromise = supabase
-    .from("workflow_runs")
-    .insert({
-      workflow_id: workflowId,
-      tenant_id: workflow.tenant_id,
-      task_id: taskId ?? null,
-      status: "running",
-      version_id: versionId ?? null,
-      trace_id: traceId,
-    } as any)
-    .select("id")
-    .single()
+  const runPromise = insertWithOptionalColumns(supabase, "workflow_runs", {
+    workflow_id: workflowId,
+    tenant_id: workflow.tenant_id,
+    task_id: taskId ?? null,
+    status: "running",
+    version_id: versionId ?? null,
+    trace_id: traceId,
+    // Home: who started it (auto-follow) and the submission behind it.
+    ...runOriginColumns(options?.initiator, startVariables, test),
+  }, ["started_by", "started_via", "form_submission_id"])
     .then(({ data }) => data?.id as string | undefined);
 
   // Load user-defined variable defaults from the published version (or draft if testing)
@@ -996,6 +1019,10 @@ export async function executeWorkflow(
   ) as Record<string, any>;
 
   const [task, runId] = await Promise.all([taskPromise, runPromise]);
+  // Run stats count every real run when it starts — waiting, failed and
+  // still-running runs included (they used to count only on success, so the
+  // count looked stuck while runs waited on tasks). Test runs never count.
+  if (runId && !test) await recordWorkflowRun(supabase, workflowId, workflow.run_count);
   // Files uploaded with a start form now belong to this run.
   if (runId && startVariables && !test) {
     const { bindStartRunFiles } = await import("@/lib/services/form-files");
@@ -1080,6 +1107,10 @@ export async function executeWorkflow(
     for (const startNode of startNodes) {
       await executeNode(startNode, nodes, edges, ctx);
     }
+    if (ctx.parallel) await drainRootDone(ctx.parallel);
+    // Waits left open inside Parallel branches pause the run.
+    const parallelPause = nextParallelPause(ctx.parallel);
+    if (parallelPause) throw parallelPause;
 
     const doneLog = {
       level: "info",
@@ -1109,6 +1140,8 @@ export async function executeWorkflow(
   } catch (error: unknown) {
     // Handle pause for server events / user tasks / timed delays
     if (error instanceof PauseError) {
+      registerWait(parallelRuntime(ctx, nodes, edges), error, []);
+      reemitWaitPrompt(ctx, error);
       const scheduleError = await persistPause(
         supabase,
         ctx,
@@ -1241,6 +1274,8 @@ async function finishRun(
   runId: string | undefined,
   opts: { countRun?: boolean; runCount?: number | null; error?: string },
 ) {
+  // Joins that never ran (the run failed or ended first) are not steps of the run.
+  clearJoinPlaceholders(ctx);
   await Promise.all([
     runId
       ? updateWorkflowRunCompat(supabase, runId, {
@@ -1250,7 +1285,7 @@ async function finishRun(
           ...(opts.error === undefined ? {} : { error: opts.error }),
         })
       : null,
-    opts.countRun ? recordWorkflowRun(supabase, workflowId, opts.runCount) : null,
+    // run_count/last_run_at are recorded when the run starts (executeWorkflow).
     flushLogs(supabase, ctx, workflowId, runId),
   ]);
 }
@@ -1279,23 +1314,38 @@ async function persistPause(
       duration_ms: 0,
     };
   }
+  // Timed waits to schedule: this one and any other open wait of a Parallel
+  // branch (each resumes from its own delay_resume job; one the run is not
+  // waiting on when it fires is kept for later — see recordDeferredWaitCompletion).
+  const timed: Array<{ eventId: string; resumeAt: Date }> = [];
+  const waits = ctx.parallel?.state.waits ?? [];
+  const activeWait = waits.find((w) => w.event_id === error.eventId);
+  if (error.resumeAt && !activeWait?.scheduled)
+    timed.push({ eventId: error.eventId, resumeAt: error.resumeAt });
+  for (const w of waits) {
+    if (w.resume_at && !w.scheduled && w.event_id !== error.eventId)
+      timed.push({ eventId: w.event_id, resumeAt: new Date(w.resume_at) });
+    if (w.resume_at) w.scheduled = true;
+  }
+  markJoinPlaceholders(ctx);
   if (runId) {
     await updateWorkflowRunCompat(supabase, runId, {
       status: "waiting_for_event",
       event_id: error.eventId,
       paused_at: new Date().toISOString(),
       paused_node_id: error.nodeId,
-      pause_variables: ctx.variables,
+      pause_variables: pauseVariablesOf(ctx),
       ...runStateForStorage(ctx),
     });
   }
 
-  if (error.resumeAt && runId) {
+  for (const job of timed) {
+    if (!runId) break;
     // enqueue_workflow schedules in whole seconds; round up so the run never
     // resumes early.
     const delaySeconds = Math.min(
       2_147_483_647,
-      Math.max(1, Math.ceil((error.resumeAt.getTime() - Date.now()) / 1000)),
+      Math.max(1, Math.ceil((job.resumeAt.getTime() - Date.now()) / 1000)),
     );
     const { error: enqueueError } = await supabase.rpc("enqueue_workflow", {
       p_workflow_id: workflowId,
@@ -1304,7 +1354,7 @@ async function persistPause(
       p_trigger_type: "delay_resume",
       p_trigger_data: {
         _resume_run_id: runId,
-        _resume_event_id: error.eventId,
+        _resume_event_id: job.eventId,
       },
       p_priority: 0,
       p_delay_seconds: delaySeconds,
@@ -1359,7 +1409,7 @@ export async function resumeTimedPause(
   eventId: string,
   /** The queue job's own workflow/tenant: the run must belong to both. */
   job: { workflowId: string; tenantId: string },
-  options?: { supabase?: SupabaseClient },
+  options?: { supabase?: SupabaseClient; attempt?: number },
 ): Promise<{
   status: string;
   node_results: Record<string, unknown>;
@@ -1379,7 +1429,33 @@ export async function resumeTimedPause(
         .eq("tenant_id", job.tenantId)
         .maybeSingle()
     : { data: null };
-  if (!run || run.status !== "waiting_for_event" || run.event_id !== eventId) {
+  if (run && run.event_id !== eventId && (run.status === "waiting_for_event" || run.status === "running")) {
+    // Another wait of a Parallel node is the one the run waits on: keep this
+    // one's completion for when the run gets to it.
+    const outcome = await recordDeferredWaitCompletion(
+      supabase,
+      { runId, eventId, workflowId: job.workflowId, tenantId: job.tenantId },
+      {},
+    );
+    if (outcome === "stored") {
+      return { status: "skipped", node_results: {}, reason: "Kept for when the run reaches this wait (another Parallel branch is waiting)" };
+    }
+    if (outcome === "busy" && (options?.attempt ?? 0) < DEFERRED_RETRY_ATTEMPTS) {
+      await supabase.rpc("enqueue_workflow", {
+        p_workflow_id: job.workflowId,
+        p_tenant_id: job.tenantId,
+        p_task_id: null,
+        p_trigger_type: "delay_resume",
+        p_trigger_data: { _resume_run_id: runId, _resume_event_id: eventId, _resume_attempt: (options?.attempt ?? 0) + 1 },
+        p_priority: 0,
+        p_delay_seconds: DEFERRED_RETRY_SECONDS,
+      });
+      return { status: "skipped", node_results: {}, reason: `Run is busy; retrying in ${DEFERRED_RETRY_SECONDS} s` };
+    }
+    if (outcome !== "active") {
+      return { status: "skipped", node_results: {}, reason: `Run is ${run.status}, no longer waiting on this pause` };
+    }
+  } else if (!run || run.status !== "waiting_for_event" || run.event_id !== eventId) {
     return {
       status: "skipped",
       node_results: {},
@@ -1744,7 +1820,7 @@ export async function resumeWorkflow(
     run.task_id
       ? // Enriched, so {{task.data.*}}/{{task.responses}} reflect what was
         // collected while the run was paused.
-        loadTaskDataObject(supabase, run.task_id, { includeTimeline: true, tenantId: run.tenant_id })
+        loadTaskDataObject(supabase, run.task_id, { includeTimeline: true, tenantId: run.tenant_id, attachments: taskAttachmentsLoader(supabase) })
       : Promise.resolve(null),
     supabase
       .from("workflow_runs")
@@ -1781,10 +1857,8 @@ export async function resumeWorkflow(
   const edges: WorkflowEdge[] = (version ?? workflow).edges as any;
 
   const pausedNodeId = (run as any).paused_node_id as string;
-  const savedVariables = ((run as any).pause_variables ?? {}) as Record<
-    string,
-    any
-  >;
+  const { [PARALLEL_STATE_KEY]: savedParallel, ...savedVariables } = (run.pause_variables ??
+    {}) as Record<string, any>;
 
   // Restore execution context
   const ctx: ExecutionContext = {
@@ -1829,6 +1903,10 @@ export async function resumeWorkflow(
   }
 
   if (task) ctx.task = task;
+  // Parallel joins in progress (frames, open waits) when the run paused.
+  ctx.parallel = newParallelRuntime(ctx, readParallelState(savedParallel));
+  parallelRuntime(ctx, nodes, edges);
+  clearJoinPlaceholders(ctx);
 
   pushResumeLog(
     options?.migrated
@@ -1851,6 +1929,15 @@ export async function resumeWorkflow(
       delete ctx.variables._goto_node_id;
       const gotoNode = getNodeById(ctx, nodes, gotoNodeId);
       if (!gotoNode) throw new Error(`Go To node ${gotoNodeId} not found`);
+      // Moving the run abandons Parallel branches still in progress.
+      if (ctx.parallel.state.frames.length > 0 || ctx.parallel.state.waits.length > 1) {
+        ctx.logs.push({
+          level: "warn",
+          message: `Go To abandons ${ctx.parallel.state.waits.length} open wait(s) of Parallel branches`,
+        });
+      }
+      ctx.parallel = newParallelRuntime(ctx);
+      parallelRuntime(ctx, nodes, edges);
       ctx.logs.push({
         level: "info",
         message: `Redirected to: ${gotoNode.label}`,
@@ -1870,12 +1957,199 @@ export async function resumeWorkflow(
         throw new Error(
           `Paused node ${pausedNodeId} not found in workflow — it may have been deleted`,
         );
+      const rt = parallelRuntime(ctx, nodes, edges);
+      const filteredReturn = Object.fromEntries(
+        Object.entries(returnVariables).filter(
+          ([key]) => !(INITIATOR_VARIABLES as readonly string[]).includes(key),
+        ),
+      );
+      // The wait being resumed: one of the run's open waits, or (runs paused
+      // before join tracking, or outside any Parallel) the paused node itself.
+      const wait: WaitState = rt.state.waits.find(
+        (w) => w.event_id === run.event_id && w.node_id === pausedNodeId,
+      ) ?? {
+        event_id: String(run.event_id ?? ""),
+        node_id: pausedNodeId,
+        path: [],
+        paused_at: run.paused_at ?? new Date().toISOString(),
+      };
+      await continueWait(rt, wait, filteredReturn, nodes, edges, pushResumeLog);
+      // Waits of other branches that completed while the run waited on this one.
+      for (;;) {
+        const next = [...rt.state.waits]
+          .sort(compareWaits)
+          .find((w) => rt.state.completed[w.event_id]);
+        if (!next) break;
+        const vars = rt.state.completed[next.event_id];
+        delete rt.state.completed[next.event_id];
+        pushResumeLog({
+          level: "info",
+          message: `Continuing a Parallel branch whose wait completed earlier (${next.event_id})`,
+          node_id: next.node_id,
+        });
+        await continueWait(rt, next, vars, nodes, edges, pushResumeLog);
+      }
+      // Other Parallel branches still wait: pause on the next one.
+      const parallelPause = nextParallelPause(rt);
+      if (parallelPause) throw parallelPause;
+    }
 
+    pushResumeLog({
+      level: "info",
+      message: `Workflow completed after resume — ${Object.keys(ctx.nodeResults).length} nodes total`,
+      metadata: {
+        total_nodes_executed: Object.keys(ctx.nodeResults).length,
+        total_node_visits: ctx.metrics?.nodeVisits ?? 0,
+        total_edge_traversals: ctx.metrics?.edgeTraversals ?? 0,
+        total_runtime_ms: Date.now() - (ctx.metrics?.startedAt ?? Date.now()),
+      },
+    });
+    // Mark completed
+    await finishRun(supabase, ctx, workflow.id, runId, {
+      countRun: !ctx.isTest,
+      runCount: workflow.run_count,
+    });
+
+    return { status: "completed", node_results: ctx.nodeResults };
+  } catch (error: unknown) {
+    // Could pause again (nested server events)
+    if (error instanceof PauseError) {
+      registerWait(parallelRuntime(ctx, nodes, edges), error, []);
+      reemitWaitPrompt(ctx, error);
+      const pausedNode = nodes.find(
+        (candidate: WorkflowNode) => candidate.id === error.nodeId,
+      );
+      if (pausedNode) {
+        traceNodeVisit(ctx, pausedNode, "wait");
+      }
+      // Timed pauses record their wait output; event pauses keep the node's
+      // existing result (unchanged behaviour).
+      const scheduleError = await persistPause(
+        supabase,
+        ctx,
+        workflow.id,
+        runId,
+        error,
+        { recordWaitingNode: !!error.resumeAt, pausedAgain: true },
+      );
+      await flushLogs(supabase, ctx, workflow.id, runId);
+      if (scheduleError) {
+        return { status: "failed", node_results: ctx.nodeResults, error: scheduleError };
+      }
+      return {
+        status: "waiting_for_event",
+        node_results: ctx.nodeResults,
+        event_id: error.eventId,
+      } as any;
+    }
+
+    const errMsg = toErrorMessage(error);
+
+    // Handle end_workflow
+    if (errMsg.startsWith(END_MARKER)) {
+      await finishRun(supabase, ctx, workflow.id, runId, {});
+      return { status: "completed", node_results: ctx.nodeResults };
+    }
+
+    // Failure
+    pushResumeLog({
+      level: "error",
+      message: `Workflow failed after resume: ${errMsg}`,
+    });
+    await finishRun(supabase, ctx, workflow.id, runId, { error: errMsg });
+
+    // Fire workflow_error triggers
+    fireWorkflowErrorTriggers(
+      supabase,
+      workflow.id,
+      workflow.name,
+      run.tenant_id,
+      runId,
+      errMsg,
+      ctx.variables["last_error_node"] as string,
+    );
+
+    return { status: "failed", node_results: ctx.nodeResults, error: errMsg };
+  }
+}
+
+/**
+ * Continue a run from a node it waited on: the outgoing edges (a user task's
+ * by its outcome), on the Parallel path the wait was on.
+ */
+async function followPausedNode(
+  pausedNode: WorkflowNode,
+  ctx: ExecutionContext,
+  scope: BranchScope | undefined,
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  pausedAtIso: string | null | undefined,
+  pushResumeLog: (entry: LogEntry) => void,
+) {
+  const pausedNodeId = pausedNode.id;
+  const run = { paused_at: pausedAtIso };
       // Follow outgoing edges — for user_task nodes, route by outcome label
       const outEdges = getOutgoingEdges(ctx, edges, pausedNodeId);
       const outcome = ctx.variables.outcome as string | undefined;
       const pausedNodeType = pausedNode.type;
       traceNodeVisit(ctx, pausedNode, "resume");
+
+      // A Run Agent step that waited (approval / queued mode): the agent
+      // finished — record its output, or fail the step with its error.
+      if (pausedNodeType === "run_agent") {
+        const agentError = ctx.variables._agent_node_error;
+        const agentOutput = ctx.variables._agent_node_output;
+        delete ctx.variables._agent_node_error;
+        delete ctx.variables._agent_node_output;
+        if (agentError) {
+          ctx.nodeResults[pausedNodeId] = { status: "error", error: String(agentError), duration_ms: 0 };
+          throw new Error(String(agentError));
+        }
+        const pausedAtMs = run.paused_at ? new Date(run.paused_at).getTime() : NaN;
+        ctx.nodeResults[pausedNodeId] = {
+          status: "success",
+          output: agentOutput && typeof agentOutput === "object" ? agentOutput : {},
+          duration_ms: Number.isFinite(pausedAtMs) ? Math.max(0, Date.now() - pausedAtMs) : 0,
+        };
+      }
+
+      // A media step that ran in the background: record its output, or fail
+      // the step with the job's error.
+      if (pausedNodeType.startsWith("media_")) {
+        const mediaError = ctx.variables._media_node_error;
+        const mediaOutput = ctx.variables._media_node_output;
+        delete ctx.variables._media_node_error;
+        delete ctx.variables._media_node_output;
+        const pausedAtMs = run.paused_at ? new Date(run.paused_at).getTime() : NaN;
+        const waited = Number.isFinite(pausedAtMs) ? Math.max(0, Date.now() - pausedAtMs) : 0;
+        if (mediaError) {
+          ctx.nodeResults[pausedNodeId] = { status: "error", error: String(mediaError), duration_ms: waited };
+          throw new Error(String(mediaError));
+        }
+        ctx.nodeResults[pausedNodeId] = {
+          status: "success",
+          output: mediaOutput && typeof mediaOutput === "object" ? mediaOutput : {},
+          duration_ms: waited,
+        };
+      }
+
+      // A Wait for signature step: the envelope is final (or the wait timed out).
+      if (pausedNodeType === "esign_wait") {
+        const esignError = ctx.variables._esign_node_error;
+        const esignOutput = ctx.variables._esign_node_output;
+        delete ctx.variables._esign_node_error;
+        delete ctx.variables._esign_node_output;
+        const pausedAtMs = run.paused_at ? new Date(run.paused_at).getTime() : NaN;
+        const waited = Number.isFinite(pausedAtMs) ? Math.max(0, Date.now() - pausedAtMs) : 0;
+        if (esignError) {
+          ctx.nodeResults[pausedNodeId] = { status: "error", error: String(esignError), duration_ms: waited };
+          throw new Error(String(esignError));
+        }
+        const output = esignOutput && typeof esignOutput === "object" ? (esignOutput as Record<string, unknown>) : {};
+        const { applyWaitOutput } = await import("./esign/handlers");
+        applyWaitOutput(pausedNode.config ?? {}, ctx.variables, output);
+        ctx.nodeResults[pausedNodeId] = { status: "success", output, duration_ms: waited };
+      }
 
       // A timed pause (delay / pause_until) is complete once resumed.
       if (pausedNodeType === "delay" || pausedNodeType === "pause_until") {
@@ -1897,7 +2171,9 @@ export async function resumeWorkflow(
               (edge) =>
                 !edge.label || userTaskOutcomeMatches(edge.label, outcome),
             )
-          : outEdges;
+          : pausedNodeType === "esign_wait"
+            ? outEdges.filter((edge) => esignEdgeMatches(edge.label, ctx.variables.esign_outcome))
+            : outEdges;
 
       if (
         pausedNodeType === "user_task" &&
@@ -1967,86 +2243,50 @@ export async function resumeWorkflow(
         const nextNode = getNodeById(ctx, nodes, edge.target);
         if (nextNode) {
           traceEdgeTraversal(ctx, edge, pausedNode, nextNode, "resume");
-          await executeNode(nextNode, nodes, edges, ctx);
+          await executeNode(nextNode, nodes, edges, ctx, scope);
         }
       }
-    }
+}
 
-    pushResumeLog({
-      level: "info",
-      message: `Workflow completed after resume — ${Object.keys(ctx.nodeResults).length} nodes total`,
-      metadata: {
-        total_nodes_executed: Object.keys(ctx.nodeResults).length,
-        total_node_visits: ctx.metrics?.nodeVisits ?? 0,
-        total_edge_traversals: ctx.metrics?.edgeTraversals ?? 0,
-        total_runtime_ms: Date.now() - (ctx.metrics?.startedAt ?? Date.now()),
-      },
-    });
-    // Mark completed
-    await finishRun(supabase, ctx, workflow.id, runId, {
-      countRun: !ctx.isTest,
-      runCount: workflow.run_count,
-    });
-
-    return { status: "completed", node_results: ctx.nodeResults };
-  } catch (error: unknown) {
-    // Could pause again (nested server events)
-    if (error instanceof PauseError) {
-      const pausedNode = nodes.find(
-        (candidate: WorkflowNode) => candidate.id === error.nodeId,
-      );
-      if (pausedNode) {
-        traceNodeVisit(ctx, pausedNode, "wait");
-      }
-      // Timed pauses record their wait output; event pauses keep the node's
-      // existing result (unchanged behaviour).
-      const scheduleError = await persistPause(
-        supabase,
-        ctx,
-        workflow.id,
-        runId,
-        error,
-        { recordWaitingNode: !!error.resumeAt, pausedAgain: true },
-      );
-      await flushLogs(supabase, ctx, workflow.id, runId);
-      if (scheduleError) {
-        return { status: "failed", node_results: ctx.nodeResults, error: scheduleError };
-      }
-      return {
-        status: "waiting_for_event",
-        node_results: ctx.nodeResults,
-        event_id: error.eventId,
-      } as any;
-    }
-
-    const errMsg = toErrorMessage(error);
-
-    // Handle end_workflow
-    if (errMsg.startsWith(END_MARKER)) {
-      await finishRun(supabase, ctx, workflow.id, runId, {});
-      return { status: "completed", node_results: ctx.nodeResults };
-    }
-
-    // Failure
-    pushResumeLog({
-      level: "error",
-      message: `Workflow failed after resume: ${errMsg}`,
-    });
-    await finishRun(supabase, ctx, workflow.id, runId, { error: errMsg });
-
-    // Fire workflow_error triggers
-    fireWorkflowErrorTriggers(
-      supabase,
-      workflow.id,
-      workflow.name,
-      run.tenant_id,
-      runId,
-      errMsg,
-      ctx.variables["last_error_node"] as string,
+/**
+ * Resume one open wait: on its Parallel path (with `returnVariables` set
+ * there), then run whatever that unblocks (joins, the next sequential branch)
+ * until nothing more can run.
+ */
+async function continueWait(
+  rt: ParallelRuntime,
+  wait: WaitState,
+  returnVariables: Record<string, unknown>,
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  pushResumeLog: (entry: LogEntry) => void,
+) {
+  rt.state.waits = rt.state.waits.filter((w) => w !== wait);
+  const node = getNodeById(rt.root, nodes, wait.node_id);
+  if (!node)
+    throw new Error(
+      `Paused node ${wait.node_id} not found in workflow — it may have been deleted`,
     );
-
-    return { status: "failed", node_results: ctx.nodeResults, error: errMsg };
+  const prior = rt.root.nodeResults[node.id];
+  if ((prior?.output as Record<string, unknown> | undefined)?._parallel_wait) {
+    const { _parallel_wait: _flag, ...output } = prior.output as Record<string, unknown>;
+    rt.root.nodeResults[node.id] = { ...prior, output };
   }
+  const last = wait.path[wait.path.length - 1];
+  const frame = last && rt.state.frames.find((f) => f.id === last.frame);
+  if (!frame) {
+    // Outside any Parallel: as before, errors and pauses propagate.
+    Object.assign(rt.root.variables, returnVariables);
+    await followPausedNode(node, rt.root, undefined, nodes, edges, wait.paused_at, pushResumeLog);
+    return;
+  }
+  startPath(rt, frame, last.token, last.record, frameParent(rt, frame), async (ctx, scope) => {
+    Object.assign(ctx.variables, returnVariables);
+    await followPausedNode(node, ctx, scope, nodes, edges, wait.paused_at, pushResumeLog);
+  });
+  await parallelSettled(rt);
+  throwParallelFailure(rt);
+  await drainRootDone(rt);
 }
 
 function passesTriggerFilters(
@@ -2058,6 +2298,18 @@ function passesTriggerFilters(
 
   // Only apply filters to task trigger nodes
   if (!(TRIGGER_TYPES as readonly string[]).includes(node.type)) {
+    return true;
+  }
+
+  if (node.type === "manual") return true;
+
+  if (node.type === "esign_event") {
+    // The trigger dispatcher (lib/esign/triggers) already matched the queued
+    // event; a manual / test start without event variables passes.
+    const wantedIntegration = typeof config.integration_id === "string" ? config.integration_id.trim() : "";
+    const wantedEvents = Array.isArray(config.events) ? config.events.filter(Boolean) : [];
+    if (wantedIntegration && ctx.variables.esign_integration_id && ctx.variables.esign_integration_id !== wantedIntegration) return false;
+    if (wantedEvents.length && ctx.variables.esign_event && !wantedEvents.includes(ctx.variables.esign_event)) return false;
     return true;
   }
 
@@ -2420,12 +2672,750 @@ function timedPause(
   });
 }
 
+// ─── Parallel joins ───
+// Semantics in lib/workflow-parallel.ts. Every branch of a Parallel node runs
+// as a "path" with its own context (variables write through to the run's and
+// are recorded per path); a step two or more branches can reach is a join:
+// a path arriving there stops while another branch could still get there,
+// and the join runs once, on a new path carrying the merged branches, when
+// none can. Waits inside a path end it for now (the run state keeps them);
+// the run pauses when nothing else can run.
+
+interface BranchScope {
+  frame: FrameState;
+  entry: PathEntry;
+  parent?: BranchScope;
+}
+
+interface RunningPath {
+  path: PathEntry[];
+}
+
+interface ParallelRuntime {
+  state: ParallelState;
+  root: ExecutionContext;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  graphs: Map<string, ParallelGraph>;
+  reachable: Map<string, Set<string>>;
+  running: Set<RunningPath>;
+  /** Errors / end signals of paths, with the frame and branches they came from. */
+  failures: Array<{ frame: string; token: number[]; error: unknown }>;
+  failedFrames: Set<string>;
+  /** Context / scope a frame's Parallel node ran in (materialized after a resume). */
+  parents: Map<string, { ctx: ExecutionContext; scope?: BranchScope }>;
+  waiters: Array<{ frame?: string; resolve: () => void }>;
+  /** Root-level frames that finished after a resume and whose Done edges still have to run. */
+  rootDone: FrameState[];
+  /** Frames whose Parallel node is still awaiting its branches in this process (it runs Done itself). */
+  attached: Set<string>;
+  pumping: boolean;
+  repump: boolean;
+}
+
+function newParallelRuntime(
+  root: ExecutionContext,
+  state: ParallelState = emptyParallelState(),
+): ParallelRuntime {
+  return {
+    state,
+    root,
+    nodes: [],
+    edges: [],
+    graphs: new Map(),
+    reachable: new Map(),
+    running: new Set(),
+    failures: [],
+    failedFrames: new Set(),
+    parents: new Map(),
+    waiters: [],
+    rootDone: [],
+    attached: new Set(),
+    pumping: false,
+    repump: false,
+  };
+}
+
+function parallelRuntime(
+  ctx: ExecutionContext,
+  allNodes?: WorkflowNode[],
+  allEdges?: WorkflowEdge[],
+): ParallelRuntime {
+  ctx.parallel ??= newParallelRuntime(ctx);
+  const rt = ctx.parallel;
+  if (allNodes && rt.nodes.length === 0) rt.nodes = allNodes;
+  if (allEdges && rt.edges.length === 0) rt.edges = allEdges;
+  // Lazily-built shared caches must exist before contexts are forked.
+  getRunCache(ctx);
+  ctx.metrics ??= { startedAt: Date.now(), nodeVisits: 0, edgeTraversals: 0 };
+  if (!ctx.nodeMap) ctx.nodeMap = buildNodeMap(rt.nodes);
+  if (!ctx.edgesBySource) ctx.edgesBySource = buildEdgesBySource(rt.edges);
+  return rt;
+}
+
+const pathOf = (scope?: BranchScope): PathEntry[] => {
+  const out: PathEntry[] = [];
+  for (let s = scope; s; s = s.parent) out.unshift(s.entry);
+  return out;
+};
+
+const tokenUnion = (...tokens: number[][]) =>
+  [...new Set(tokens.flat())].sort((a, b) => a - b);
+
+function frameGraph(rt: ParallelRuntime, frame: FrameState): ParallelGraph {
+  const key = `${frame.node_id}|${frame.branches.map((b) => b.target).join(",")}`;
+  let graph = rt.graphs.get(key);
+  if (!graph) {
+    graph = computeParallelGraph(
+      frame.node_id,
+      frame.branches.map((b) => b.target),
+      (id) => getOutgoingEdges(rt.root, rt.edges, id),
+    );
+    rt.graphs.set(key, graph);
+  }
+  return graph;
+}
+
+/** `to` can be reached from `from` along one or more edges. */
+function canReach(rt: ParallelRuntime, from: string, to: string): boolean {
+  let seen = rt.reachable.get(from);
+  if (!seen) {
+    seen = new Set();
+    const stack = getOutgoingEdges(rt.root, rt.edges, from).map((e) => e.target);
+    while (stack.length > 0) {
+      const id = stack.pop()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      for (const e of getOutgoingEdges(rt.root, rt.edges, id)) stack.push(e.target);
+    }
+    rt.reachable.set(from, seen);
+  }
+  return seen.has(to);
+}
+
+/** Everything of the run still live inside `frame` (see joinBlockers). */
+function livePositions(
+  rt: ParallelRuntime,
+  frame: FrameState,
+  exceptArrivalsAt?: string,
+): LivePosition[] {
+  const at = (path: PathEntry[]) => path.find((p) => p.frame === frame.id);
+  const out: LivePosition[] = [];
+  for (const p of rt.running) {
+    const e = at(p.path);
+    if (e) out.push({ token: e.token, node: null });
+  }
+  for (const w of rt.state.waits) {
+    const e = at(w.path);
+    if (e) out.push({ token: e.token, node: w.node_id });
+  }
+  for (const f of rt.state.frames) {
+    if (f === frame) {
+      for (const a of f.arrivals)
+        if (a.node_id !== exceptArrivalsAt)
+          out.push({ token: a.token, node: a.node_id });
+      f.branches.forEach((b, i) => {
+        if (!b.started) out.push({ token: [i], node: b.target, start: true });
+      });
+      continue;
+    }
+    const e = at(f.parent_path);
+    if (!e) continue;
+    // Its Done edges still run on this path, from the Parallel node.
+    if (f.done_edges?.length)
+      for (const edge of getOutgoingEdges(rt.root, rt.edges, f.node_id))
+        if (f.done_edges.includes(edge.id)) out.push({ token: e.token, node: edge.target, start: true });
+    for (const a of f.arrivals) out.push({ token: e.token, node: a.node_id });
+    for (const b of f.branches)
+      if (!b.started) out.push({ token: e.token, node: b.target, start: true });
+  }
+  return out;
+}
+
+function blockersAt(
+  rt: ParallelRuntime,
+  frame: FrameState,
+  nodeId: string,
+  token: number[],
+): number[] {
+  return joinBlockers(
+    frameGraph(rt, frame),
+    nodeId,
+    token,
+    livePositions(rt, frame, nodeId),
+    (from, to) => canReach(rt, from, to),
+  );
+}
+
+/** A path context: variables write through to the parent's and are recorded. */
+function forkPathContext(
+  parent: ExecutionContext,
+  record: WriteRecord,
+): ExecutionContext {
+  const variables = new Proxy(parent.variables, {
+    set(target, key, value) {
+      if (typeof key === "string") {
+        record.writes[key] = value;
+        const i = record.deleted.indexOf(key);
+        if (i >= 0) record.deleted.splice(i, 1);
+      }
+      target[key as string] = value;
+      return true;
+    },
+    deleteProperty(target, key) {
+      if (typeof key === "string") {
+        delete record.writes[key];
+        if (!record.deleted.includes(key)) record.deleted.push(key);
+      }
+      return delete target[key as string];
+    },
+  });
+  return { ...parent, variables, _liveCache: undefined };
+}
+
+/** Context and scope of a path (rebuilt from the persisted state after a resume). */
+function materializePath(
+  rt: ParallelRuntime,
+  path: PathEntry[],
+): { ctx: ExecutionContext; scope?: BranchScope } {
+  let ctx = rt.root;
+  let scope: BranchScope | undefined;
+  for (const entry of path) {
+    const frame = rt.state.frames.find((f) => f.id === entry.frame);
+    if (!frame) break;
+    const record = (frame.records[entry.record] ??= {
+      token: entry.token,
+      writes: {},
+      deleted: [],
+    });
+    ctx = forkPathContext(ctx, record);
+    scope = { frame, entry, parent: scope };
+  }
+  return { ctx, scope };
+}
+
+function frameParent(rt: ParallelRuntime, frame: FrameState) {
+  let parent = rt.parents.get(frame.id);
+  if (!parent) {
+    parent = materializePath(rt, frame.parent_path);
+    rt.parents.set(frame.id, parent);
+  }
+  return parent;
+}
+
+function registerWait(
+  rt: ParallelRuntime,
+  error: PauseError,
+  path: PathEntry[],
+) {
+  if (error.waitRegistered) return;
+  error.waitRegistered = true;
+  rt.state.waits.push({
+    event_id: error.eventId,
+    node_id: error.nodeId,
+    path,
+    paused_at: new Date().toISOString(),
+    ...(error.resumeAt
+      ? { resume_at: error.resumeAt.toISOString(), output: error.waitOutput }
+      : {}),
+    ...(error.prompt ? { prompt: error.prompt } : {}),
+  });
+  if (path.length > 0) {
+    rt.root.nodeResults[error.nodeId] = {
+      status: "waiting",
+      output: { ...(error.waitOutput ?? { event_id: error.eventId }), _parallel_wait: true },
+      duration_ms: 0,
+    };
+  }
+}
+
+function startPath(
+  rt: ParallelRuntime,
+  frame: FrameState,
+  token: number[],
+  record: number,
+  parent: { ctx: ExecutionContext; scope?: BranchScope },
+  start: (ctx: ExecutionContext, scope: BranchScope) => Promise<void>,
+) {
+  const entry: PathEntry = { frame: frame.id, token, record };
+  const scope: BranchScope = { frame, entry, parent: parent.scope };
+  const pathCtx = forkPathContext(
+    parent.ctx,
+    (frame.records[record] ??= { token, writes: {}, deleted: [] }),
+  );
+  const live: RunningPath = { path: [...pathOf(parent.scope), entry] };
+  rt.running.add(live);
+  void (async () => {
+    try {
+      await start(pathCtx, scope);
+    } catch (error) {
+      if (error instanceof PauseError) registerWait(rt, error, live.path);
+      else {
+        rt.failedFrames.add(frame.id);
+        rt.failures.push({ frame: frame.id, token, error });
+      }
+    } finally {
+      if (pathCtx.task !== parent.ctx.task) parent.ctx.task = pathCtx.task;
+      rt.running.delete(live);
+      pumpParallel(rt);
+    }
+  })();
+}
+
+function startBranch(rt: ParallelRuntime, frame: FrameState, index: number) {
+  const branch = frame.branches[index];
+  branch.started = true;
+  const parent = frameParent(rt, frame);
+  const node = getNodeById(rt.root, rt.nodes, branch.target);
+  if (!node) return;
+  const parallelNode = getNodeById(rt.root, rt.nodes, frame.node_id);
+  const edge = getOutgoingEdges(rt.root, rt.edges, frame.node_id).find(
+    (e) => e.id === branch.edge_id,
+  );
+  startPath(rt, frame, [index], index, parent, async (ctx, scope) => {
+    if (edge)
+      traceEdgeTraversal(
+        ctx,
+        edge,
+        parallelNode,
+        node,
+        frame.mode === "parallel" ? "parallel" : "parallel_sequential",
+      );
+    await executeNode(node, rt.nodes, rt.edges, ctx, scope);
+  });
+}
+
+/** Run a join: apply the merged branches' variables in branch order, then continue on one path. */
+function fireJoin(rt: ParallelRuntime, frame: FrameState, nodeId: string) {
+  const group = frame.arrivals.filter((a) => a.node_id === nodeId);
+  frame.arrivals = frame.arrivals.filter((a) => a.node_id !== nodeId);
+  const token = tokenUnion(...group.map((a) => a.token));
+  const parent = frameParent(rt, frame);
+  for (const index of joinReplayOrder(frame.records, token)) {
+    const record = frame.records[index];
+    for (const key of record.deleted) delete parent.ctx.variables[key];
+    for (const [key, value] of Object.entries(record.writes))
+      parent.ctx.variables[key] = value;
+  }
+  frame.records.push({ token, writes: {}, deleted: [] });
+  const node = getNodeById(rt.root, rt.nodes, nodeId);
+  if (!node) return;
+  startPath(rt, frame, token, frame.records.length - 1, parent, (ctx, scope) =>
+    executeNode(node, rt.nodes, rt.edges, ctx, scope, scope),
+  );
+}
+
+/** A path at `node` that has to wait for other branches records its arrival and stops. */
+function arriveAtJoin(
+  node: WorkflowNode,
+  ctx: ExecutionContext,
+  scope: BranchScope | undefined,
+  passed: BranchScope | undefined,
+): boolean {
+  const rt = ctx.parallel;
+  if (!rt) return false;
+  for (let s = scope; s; s = s.parent) {
+    if (s === passed) continue;
+    if (!frameGraph(rt, s.frame).stop.has(node.id)) continue;
+    // A branch failed: the run fails once the others finish; joins don't run.
+    if (rt.failedFrames.has(s.frame.id)) return true;
+    const pending = s.frame.arrivals.filter((a) => a.node_id === node.id);
+    const token = tokenUnion(s.entry.token, ...pending.map((a) => a.token));
+    const blockers = blockersAt(rt, s.frame, node.id, token);
+    if (pending.length === 0 && blockers.length === 0) continue; // nothing left to wait for
+    s.frame.arrivals.push({
+      node_id: node.id,
+      token: s.entry.token,
+      record: s.entry.record,
+    });
+    if (blockers.length > 0) {
+      const parallelNode = getNodeById(rt.root, rt.nodes, s.frame.node_id);
+      ctx.logs.push({
+        node_id: node.id,
+        node_type: node.type,
+        node_label: node.label,
+        level: "info",
+        message: `${node.label}: waiting for ${blockers.length === 1 ? "branch" : "branches"} ${blockers
+          .map((b) => `"${s!.frame.branches[b]?.label ?? b + 1}"`)
+          .join(", ")} of ${parallelNode?.label ?? "Parallel"}`,
+      });
+    }
+    pumpParallel(rt);
+    return true;
+  }
+  return false;
+}
+
+const runningIn = (rt: ParallelRuntime, frameId: string) =>
+  [...rt.running].some((p) => p.path.some((e) => e.frame === frameId));
+
+function frameQuiet(rt: ParallelRuntime, frame: FrameState): boolean {
+  return (
+    frame.branches.every((b) => b.started) &&
+    !runningIn(rt, frame.id) &&
+    !rt.state.waits.some((w) => w.path.some((e) => e.frame === frame.id)) &&
+    !rt.state.frames.some(
+      (f) => f !== frame && f.parent_path.some((e) => e.frame === frame.id),
+    )
+  );
+}
+
+/** Start whatever can run now: the next sequential branch, joins nothing can still reach. */
+function pumpParallel(rt: ParallelRuntime) {
+  if (rt.pumping) {
+    rt.repump = true;
+    return;
+  }
+  rt.pumping = true;
+  try {
+    do {
+      rt.repump = false;
+      for (const frame of [...rt.state.frames]) {
+        if (rt.failedFrames.has(frame.id)) continue;
+        if (frame.mode === "sequential") {
+          const next = frame.branches.findIndex((b) => !b.started);
+          const busy = (b: number) =>
+            [...rt.running].some((p) =>
+              p.path.some((e) => e.frame === frame.id && e.token.includes(b)),
+            ) ||
+            rt.state.waits.some((w) =>
+              w.path.some((e) => e.frame === frame.id && e.token.includes(b)),
+            );
+          if (next >= 0 && !Array.from({ length: next }, (_, b) => b).some(busy)) {
+            startBranch(rt, frame, next);
+            rt.repump = true;
+          }
+        }
+        for (const nodeId of [...new Set(frame.arrivals.map((a) => a.node_id))]) {
+          const token = tokenUnion(
+            ...frame.arrivals.filter((a) => a.node_id === nodeId).map((a) => a.token),
+          );
+          if (blockersAt(rt, frame, nodeId, token).length === 0) {
+            fireJoin(rt, frame, nodeId);
+            rt.repump = true;
+          }
+        }
+        // Joins waiting on each other (a cycle): nothing else can arrive, run the first.
+        if (!rt.repump && frame.arrivals.length > 0 && frameQuiet(rt, frame)) {
+          fireJoin(rt, frame, frame.arrivals[0].node_id);
+          rt.repump = true;
+        }
+        if (frame.arrivals.length === 0 && frameQuiet(rt, frame)) {
+          rt.state.frames = rt.state.frames.filter((f) => f !== frame);
+          if (frame.done_edges?.length && !rt.attached.has(frame.id))
+            startDeferredDone(rt, frame);
+          rt.parents.delete(frame.id);
+          rt.repump = true;
+        }
+      }
+    } while (rt.repump);
+  } finally {
+    rt.pumping = false;
+  }
+  const waiting = rt.waiters;
+  rt.waiters = [];
+  for (const w of waiting) {
+    const done = w.frame ? !runningIn(rt, w.frame) : rt.running.size === 0;
+    if (done) w.resolve();
+    else rt.waiters.push(w);
+  }
+}
+
+/** Resolves once no path of `frameId` (or, without one, of the run) is running. */
+function parallelSettled(rt: ParallelRuntime, frameId?: string): Promise<void> {
+  const done = frameId ? !runningIn(rt, frameId) : rt.running.size === 0;
+  if (done) return Promise.resolve();
+  return new Promise((resolve) => rt.waiters.push({ frame: frameId, resolve }));
+}
+
+/** Rethrow the failure of a frame (or of any frame): errors before end signals, earlier branches first. */
+function throwParallelFailure(rt: ParallelRuntime, frameId?: string) {
+  const failures = rt.failures.filter((f) => !frameId || f.frame === frameId);
+  if (failures.length === 0) return;
+  const isEnd = (e: unknown) =>
+    e instanceof EndWorkflowSignal || toErrorMessage(e).startsWith(END_MARKER);
+  failures.sort(
+    (a, b) =>
+      Number(isEnd(a.error)) - Number(isEnd(b.error)) ||
+      Math.min(...a.token) - Math.min(...b.token),
+  );
+  rt.failures = rt.failures.filter((f) => !failures.includes(f));
+  throw failures[0].error;
+}
+
+async function runParallelNode(
+  node: WorkflowNode,
+  output: { mode?: string; branches?: string[] } | undefined,
+  outEdges: WorkflowEdge[],
+  allNodes: WorkflowNode[],
+  allEdges: WorkflowEdge[],
+  ctx: ExecutionContext,
+  scope: BranchScope | undefined,
+) {
+  const rt = parallelRuntime(ctx, allNodes, allEdges);
+  const labels: string[] = output?.branches ?? [];
+  const branchEdges = labels
+    .map((label) =>
+      outEdges.find(
+        (e) => (e.label ?? "").toLowerCase().trim() === label.toLowerCase().trim(),
+      ),
+    )
+    .filter(Boolean) as WorkflowEdge[];
+  const doneEdges = parallelDoneEdges(outEdges, labels);
+  if (branchEdges.length === 0) {
+    await runParallelDone(node, doneEdges, ctx, scope);
+    return;
+  }
+  const frame: FrameState = {
+    id: `${node.id}#${++rt.state.seq}`,
+    node_id: node.id,
+    // As before: anything but "parallel" (the default) runs one branch at a time.
+    mode: (output?.mode ?? "parallel") === "parallel" ? "parallel" : "sequential",
+    parent_path: pathOf(scope),
+    branches: branchEdges.map((e) => ({
+      label: e.label ?? "",
+      target: e.target,
+      edge_id: e.id,
+      started: false,
+    })),
+    records: branchEdges.map((_, i) => ({ token: [i], writes: {}, deleted: [] })),
+    arrivals: [],
+    ...(doneEdges.length > 0 ? { done_edges: doneEdges.map((e) => e.id) } : {}),
+  };
+  rt.state.frames.push(frame);
+  rt.parents.set(frame.id, { ctx, scope });
+  rt.attached.add(frame.id);
+  try {
+    if (frame.mode === "parallel")
+      frame.branches.forEach((_, i) => startBranch(rt, frame, i));
+    pumpParallel(rt);
+    await parallelSettled(rt, frame.id);
+    throwParallelFailure(rt, frame.id);
+  } finally {
+    rt.attached.delete(frame.id);
+  }
+  // A branch still waits (user task, long delay): the frame keeps its
+  // done_edges and they run when it finishes after the resume (startDeferredDone).
+  if (doneEdges.length === 0 || rt.state.frames.includes(frame)) return;
+  applyFrameWrites(frame, ctx);
+  await runParallelDone(node, doneEdges, ctx, scope);
+}
+
+/** Apply every branch's variables in branch order (a later branch wins), as a join of all branches would. */
+function applyFrameWrites(frame: FrameState, ctx: ExecutionContext) {
+  const all = frame.branches.map((_, i) => i);
+  for (const index of joinReplayOrder(frame.records, all)) {
+    const record = frame.records[index];
+    for (const key of record.deleted) delete ctx.variables[key];
+    for (const [key, value] of Object.entries(record.writes)) ctx.variables[key] = value;
+  }
+}
+
+/** Follow a Parallel node's Done edges (after all its branches finished). */
+async function runParallelDone(
+  node: WorkflowNode | null | undefined,
+  doneEdges: WorkflowEdge[],
+  ctx: ExecutionContext,
+  scope: BranchScope | undefined,
+) {
+  const rt = ctx.parallel;
+  const nodes = rt?.nodes ?? [];
+  const edges = rt?.edges ?? [];
+  for (const edge of doneEdges) {
+    const next = getNodeById(ctx, nodes, edge.target);
+    if (!next) continue;
+    ctx.executedNodes.delete(next.id);
+    traceEdgeTraversal(ctx, edge, node, next, "parallel_done");
+    await executeNode(next, nodes, edges, ctx, scope);
+  }
+}
+
+/**
+ * A frame whose Parallel node returned while a branch waited has now
+ * finished (after a resume): run its Done edges on the path the Parallel
+ * node ran on — a new path of the enclosing frame, or (outside any
+ * Parallel) at the root, where continueWait runs them (drainRootDone).
+ */
+function startDeferredDone(rt: ParallelRuntime, frame: FrameState) {
+  const ids = frame.done_edges ?? [];
+  frame.done_edges = undefined;
+  const out = getOutgoingEdges(rt.root, rt.edges, frame.node_id);
+  const doneEdges = ids
+    .map((id) => out.find((e) => e.id === id))
+    .filter(Boolean) as WorkflowEdge[];
+  if (doneEdges.length === 0) return;
+  const node = getNodeById(rt.root, rt.nodes, frame.node_id);
+  const last = frame.parent_path[frame.parent_path.length - 1];
+  const outer = last && rt.state.frames.find((f) => f.id === last.frame);
+  if (!outer) {
+    frame.done_edges = ids;
+    rt.rootDone.push(frame);
+    return;
+  }
+  const parent = frameParent(rt, frame);
+  applyFrameWrites(frame, parent.ctx);
+  startPath(rt, outer, last.token, last.record, frameParent(rt, outer), (ctx, scope) =>
+    runParallelDone(node, doneEdges, ctx, scope),
+  );
+}
+
+/** Done edges of root-level frames that finished after a resume (errors and pauses propagate as usual). */
+async function drainRootDone(rt: ParallelRuntime) {
+  while (rt.rootDone.length > 0) {
+    const frame = rt.rootDone.shift()!;
+    const ids = frame.done_edges ?? [];
+    frame.done_edges = undefined;
+    const out = getOutgoingEdges(rt.root, rt.edges, frame.node_id);
+    const doneEdges = ids
+      .map((id) => out.find((e) => e.id === id))
+      .filter(Boolean) as WorkflowEdge[];
+    applyFrameWrites(frame, rt.root);
+    await runParallelDone(getNodeById(rt.root, rt.nodes, frame.node_id), doneEdges, rt.root, undefined);
+  }
+}
+
+function withTestPrompt(
+  error: PauseError,
+  node: WorkflowNode,
+  data: Record<string, unknown>,
+): PauseError {
+  error.prompt = { node_label: node.label, data };
+  return error;
+}
+
+/**
+ * Test runs with several open waits: show the prompt of the one the run now
+ * waits on again (the test runner offers the latest prompt).
+ */
+function reemitWaitPrompt(ctx: ExecutionContext, error: PauseError) {
+  const rt = ctx.parallel;
+  if (!ctx.onEvent || !rt || rt.state.waits.length < 2) return;
+  const prompt = error.prompt ?? rt.state.waits.find((w) => w.event_id === error.eventId)?.prompt;
+  if (!prompt) return;
+  ctx.onEvent({
+    type: "node_complete",
+    node_id: error.nodeId,
+    node_label: prompt.node_label,
+    data: prompt.data,
+  });
+}
+
+/** PauseError for the run's next open wait (the first by branch order, see compareWaits), if any. */
+function nextParallelPause(rt: ParallelRuntime | undefined): PauseError | null {
+  const w = rt ? [...rt.state.waits].sort(compareWaits)[0] : undefined;
+  if (!w) return null;
+  const error = new PauseError(
+    w.event_id,
+    w.node_id,
+    w.resume_at
+      ? { resumeAt: new Date(w.resume_at), output: w.output ?? {} }
+      : undefined,
+  );
+  error.waitRegistered = true;
+  if (w.prompt) error.prompt = w.prompt;
+  return error;
+}
+
+/** Placeholder results of joins still waiting (status waiting + _join_waiting summary). */
+function markJoinPlaceholders(ctx: ExecutionContext) {
+  const rt = ctx.parallel;
+  if (!rt) return;
+  for (const frame of rt.state.frames) {
+    for (const nodeId of new Set(frame.arrivals.map((a) => a.node_id))) {
+      const token = tokenUnion(
+        ...frame.arrivals.filter((a) => a.node_id === nodeId).map((a) => a.token),
+      );
+      ctx.nodeResults[nodeId] = {
+        status: "waiting",
+        output: {
+          _join_waiting: joinWaitingSummary(
+            frame,
+            nodeId,
+            token,
+            blockersAt(rt, frame, nodeId, token),
+          ),
+        },
+        duration_ms: 0,
+      };
+    }
+  }
+}
+
+function clearJoinPlaceholders(ctx: ExecutionContext) {
+  for (const [id, result] of Object.entries(ctx.nodeResults)) {
+    if ((result?.output as Record<string, unknown> | undefined)?._join_waiting) {
+      delete ctx.nodeResults[id];
+      ctx.executedNodes.delete(id);
+    }
+  }
+}
+
+/** pause_variables: the run's variables plus, when needed, the parallel state. */
+function pauseVariablesOf(ctx: ExecutionContext): Record<string, unknown> {
+  const rt = ctx.parallel;
+  const { [PARALLEL_STATE_KEY]: _drop, ...variables } = ctx.variables;
+  if (!rt || !parallelStateIsActive(rt.state)) return variables;
+  rt.state.wait_events = rt.state.waits.map((w) => w.event_id);
+  rt.state.rev += 1;
+  return { ...variables, [PARALLEL_STATE_KEY]: rt.state };
+}
+
+/**
+ * Store the completion of a wait the run is not waiting on right now (a
+ * second user task / delay of a Parallel node): applied when the run gets to
+ * that wait. `active`: the run is waiting on it (resume it normally); `busy`:
+ * the run is running or the write raced a resume (try again later); `gone`:
+ * no such open wait.
+ */
+export async function recordDeferredWaitCompletion(
+  supabase: SupabaseClient,
+  target: { runId: string; eventId: string; workflowId: string; tenantId: string },
+  variables: Record<string, unknown>,
+): Promise<"stored" | "active" | "busy" | "gone"> {
+  const { data: run } = (await supabase
+    .from("workflow_runs")
+    .select("id, status, event_id, pause_variables")
+    .eq("id", target.runId)
+    .eq("workflow_id", target.workflowId)
+    .eq("tenant_id", target.tenantId)
+    .maybeSingle()) as {
+    data: { id: string; status: string; event_id: string | null; pause_variables: Record<string, unknown> | null } | null;
+  };
+  if (!run) return "gone";
+  const resumable = RESUMABLE_RUN_STATUSES.includes(run.status);
+  if (resumable && run.event_id === target.eventId) return "active";
+  if (run.status === "running") return "busy";
+  if (!resumable) return "gone";
+  const pauseVariables = run.pause_variables ?? {};
+  const state = readParallelState(pauseVariables[PARALLEL_STATE_KEY]);
+  if (!state.waits.some((w) => w.event_id === target.eventId)) return "gone";
+  if (state.completed[target.eventId]) return "stored";
+  const rev = state.rev;
+  state.completed[target.eventId] = variables;
+  state.rev += 1;
+  const { data: updated } = (await supabase
+    .from("workflow_runs")
+    .update({ pause_variables: { ...pauseVariables, [PARALLEL_STATE_KEY]: state } as never })
+    .eq("id", run.id)
+    .eq("status", run.status)
+    .eq("event_id", String(run.event_id))
+    .eq(`pause_variables->${PARALLEL_STATE_KEY}->>rev`, String(rev))
+    .select("id")) as { data: unknown[] | null };
+  return updated && updated.length > 0 ? "stored" : "busy";
+}
+
 async function executeNode(
   node: WorkflowNode,
   allNodes: WorkflowNode[],
   allEdges: WorkflowEdge[],
   ctx: ExecutionContext,
+  /** The Parallel branch path this step runs on (none outside a Parallel). */
+  scope?: BranchScope,
+  /** A join being run: skip the join check of this level for this step. */
+  passed?: BranchScope,
 ): Promise<void> {
+  // A join of a Parallel node: wait here while another branch can still arrive.
+  if (scope && arriveAtJoin(node, ctx, scope, passed)) return;
   // Skip if already executed (prevents duplicate execution when multiple paths converge)
   if (ctx.executedNodes.has(node.id)) return;
   ctx.executedNodes.add(node.id);
@@ -2482,7 +3472,7 @@ async function executeNode(
       const nextNode = getNodeById(ctx, allNodes, edge.target);
       if (nextNode) {
         traceEdgeTraversal(ctx, edge, node, nextNode, "async");
-        await executeNode(nextNode, allNodes, allEdges, ctx);
+        await executeNode(nextNode, allNodes, allEdges, ctx, scope);
       }
     }
     return;
@@ -2555,7 +3545,7 @@ async function executeNode(
         toClear.add(node.id); // allow this goto node to re-execute in loops
         for (const id of toClear) ctx.executedNodes.delete(id);
         traceNodeVisit(ctx, targetNode, "resume");
-        await executeNode(targetNode, allNodes, allEdges, ctx);
+        await executeNode(targetNode, allNodes, allEdges, ctx, scope);
       }
       return; // Don't follow normal edges
     }
@@ -2563,47 +3553,10 @@ async function executeNode(
     // Determine next nodes
     const outEdges = getOutgoingEdges(ctx, allEdges, node.id);
 
-    // For parallel nodes, run branches concurrently or sequentially
+    // Parallel / Sequential: run the branches; their joins run once each
+    // (see runParallelNode).
     if (node.type === "parallel") {
-      const mode = output?.mode ?? "parallel";
-      const branchLabels: string[] = output?.branches ?? [];
-      const branchEdges = branchLabels
-        .map((label) =>
-          outEdges.find(
-            (e) =>
-              (e.label ?? "").toLowerCase().trim() ===
-              label.toLowerCase().trim(),
-          ),
-        )
-        .filter(Boolean) as WorkflowEdge[];
-
-      if (mode === "parallel") {
-        // Run all branches concurrently
-        await Promise.all(
-          branchEdges.map(async (edge) => {
-            const nextNode = getNodeById(ctx, allNodes, edge.target);
-            if (nextNode) {
-              traceEdgeTraversal(ctx, edge, node, nextNode, "parallel");
-              await executeNode(nextNode, allNodes, allEdges, ctx);
-            }
-          }),
-        );
-      } else {
-        // Run branches sequentially in order
-        for (const edge of branchEdges) {
-          const nextNode = getNodeById(ctx, allNodes, edge.target);
-          if (nextNode) {
-            traceEdgeTraversal(
-              ctx,
-              edge,
-              node,
-              nextNode,
-              "parallel_sequential",
-            );
-            await executeNode(nextNode, allNodes, allEdges, ctx);
-          }
-        }
-      }
+      await runParallelNode(node, output, outEdges, allNodes, allEdges, ctx, scope);
       return;
     }
 
@@ -2658,7 +3611,7 @@ async function executeNode(
             const nextNode = getNodeById(ctx, allNodes, edge.target);
             if (nextNode) {
               traceEdgeTraversal(ctx, edge, node, nextNode, "loop_each");
-              await executeNode(nextNode, allNodes, allEdges, ctx);
+              await executeNode(nextNode, allNodes, allEdges, ctx, scope);
             }
           }
         }
@@ -2672,7 +3625,7 @@ async function executeNode(
         if (nextNode) {
           ctx.executedNodes.delete(nextNode.id);
           traceEdgeTraversal(ctx, edge, node, nextNode, "loop_done");
-          await executeNode(nextNode, allNodes, allEdges, ctx);
+          await executeNode(nextNode, allNodes, allEdges, ctx, scope);
         }
       }
     } else {
@@ -2709,6 +3662,9 @@ async function executeNode(
             continue;
         }
 
+        // Wait for signature (already final): edges labelled with an outcome follow that outcome.
+        if (node.type === "esign_wait" && !esignEdgeMatches(edge.label, output?.outcome)) continue;
+
         // For switch/case nodes, route to the matching case edge
         if (node.type === "switch_case") {
           const matchedCase = output?.matched_case;
@@ -2720,7 +3676,7 @@ async function executeNode(
         const nextNode = getNodeById(ctx, allNodes, edge.target);
         if (nextNode) {
           traceEdgeTraversal(ctx, edge, node, nextNode, "default");
-          await executeNode(nextNode, allNodes, allEdges, ctx);
+          await executeNode(nextNode, allNodes, allEdges, ctx, scope);
         }
       }
     }
@@ -2834,7 +3790,7 @@ async function executeNode(
         const nextNode = getNodeById(ctx, allNodes, edge.target);
         if (nextNode) {
           traceEdgeTraversal(ctx, edge, node, nextNode, "continue_on_error");
-          await executeNode(nextNode, allNodes, allEdges, ctx);
+          await executeNode(nextNode, allNodes, allEdges, ctx, scope);
         }
       }
       return;
@@ -3020,19 +3976,19 @@ async function runNodeAction(
     case "middleware_received":
     case "schedule":
     case "webhook_received":
+    case "esign_event":
+    case "manual":
       return { triggered: true, task_id: taskId };
 
     // ─── Parallel / Sequential branching ───
     case "parallel": {
       const mode = config.mode ?? "parallel";
-      const branches = (config.branches ?? []) as {
-        label: string;
-        order: number;
-      }[];
+      // {label, order} objects (the designer) or plain labels.
+      const branches = parallelBranchLabels(config.branches);
       return {
         mode,
         branch_count: branches.length,
-        branches: branches.map((b) => b.label),
+        branches,
       };
     }
 
@@ -3626,179 +4582,129 @@ async function runNodeAction(
     }
 
     case "custom_activity": {
+      // Custom workflow action (Extensibility): the code is always read from
+      // the workspace library (never from the workflow definition) and runs
+      // in the QuickJS sandbox — lib/custom-actions/execute.ts.
       const activityId = String(config.custom_activity_id ?? "").trim();
       const activityKey = String(config.custom_activity_key ?? "").trim();
       const activityName = String(
-        config.activity_name ?? node.label ?? activityKey ?? "Custom Activity",
+        config.activity_name ?? node.label ?? activityKey ?? "Custom action",
       ).trim();
-      if (!activityId)
-        return { skipped: true, reason: "No custom activity selected" };
-      let latestActivity: Record<string, any> | null = null;
-      if (
-        !String(config.source_code ?? "").trim() ||
-        !config.manifest ||
-        typeof config.manifest !== "object"
-      ) {
-        const { data } = await (supabase as any)
-          .from("custom_workflow_activities")
-          .select("id, name, key, source_code, manifest")
-          .eq("tenant_id", tenantId)
-          .eq("id", activityId)
-          .maybeSingle();
-        latestActivity = data ?? null;
-      }
-
-      const sourceCode = String(
-        config.source_code ?? latestActivity?.source_code ?? "",
-      ).trim();
-      if (!sourceCode)
-        throw new Error("Custom activity source code is missing");
-
-      const manifest =
-        config.manifest && typeof config.manifest === "object"
-          ? config.manifest
-          : latestActivity?.manifest &&
-              typeof latestActivity.manifest === "object"
-            ? latestActivity.manifest
-            : { inputs: [], outputs: [] };
-      const inputDefs = Array.isArray(manifest.inputs) ? manifest.inputs : [];
-      const outputDefs = Array.isArray(manifest.outputs)
-        ? manifest.outputs
-        : [];
-      const inputMappings = (config.input_mappings ?? {}) as Record<
-        string,
-        string
-      >;
-      const resolvedInputs: Record<string, any> = {};
-
-      for (const input of inputDefs) {
-        const inputName = String(input?.name ?? input?.key ?? "").trim();
-        if (!inputName) continue;
-        const mappedExpression = inputMappings[inputName];
-        resolvedInputs[inputName] = mappedExpression?.trim()
-          ? resolveExpression(mappedExpression, ctx)
-          : (input?.defaultValue ?? input?.default ?? null);
-      }
-
-      const timeoutMs = Math.max(
-        500,
-        Math.min(
-          Number(resolveExpression(config.timeout_ms ?? 10_000, ctx) ?? 10_000),
-          120_000,
-        ),
-      );
-      const helperLogs: Array<{
-        level: string;
-        message: string;
-        metadata?: Record<string, any>;
-      }> = [];
-      const activityContext = {
-        tenantId,
-        runId: ctx.runId ?? null,
-        taskId: taskId ?? null,
-        task: ctx.task ?? null,
-        variables: ctx.variables,
-        node: {
-          id: node.id,
-          label: node.label,
-          type: node.type,
-          activityId,
-          activityKey,
-          activityName,
-        },
-      };
-      const helpers = {
-        resolveExpression: (expression: any) =>
-          resolveExpression(expression, ctx),
-        getVariable: (name: string) => ctx.variables[name],
-        setVariable: (name: string, value: any) => {
-          ctx.variables[name] = value;
-          return value;
-        },
-        log: (
-          message: string,
-          metadata?: Record<string, any>,
-          level: "info" | "warn" | "error" = "info",
-        ) => {
-          helperLogs.push({ level, message: String(message), metadata });
-        },
-        uuid: () => crypto.randomUUID(),
-        now: () => new Date().toISOString(),
-      };
-
-      const rawResult = await executeCustomActivitySource({
-        sourceCode,
-        inputs: resolvedInputs,
-        context: activityContext,
-        helpers,
-        timeoutMs,
+      if (!activityId && !activityKey)
+        return { skipped: true, reason: "No custom action selected" };
+      const stored = await loadStoredAction(supabase, tenantId, {
+        id: activityId,
+        key: activityKey,
+        version: config.custom_activity_version ?? null,
       });
-      const normalized = normalizeCustomActivityResult(rawResult);
-      const declaredOutputNames = outputDefs
-        .map((output: any) => String(output?.name ?? output?.key ?? "").trim())
-        .filter(Boolean);
-      const resolvedOutputs: Record<string, any> = {};
-      const actualOutputs =
-        normalized.outputs && typeof normalized.outputs === "object"
-          ? normalized.outputs
-          : {};
-
-      for (const outputName of declaredOutputNames) {
-        if (Object.prototype.hasOwnProperty.call(actualOutputs, outputName)) {
-          resolvedOutputs[outputName] = actualOutputs[outputName];
-        }
-      }
-      if (declaredOutputNames.length === 0) {
-        Object.assign(resolvedOutputs, actualOutputs);
-      } else {
-        for (const [name, value] of Object.entries(actualOutputs)) {
-          if (!Object.prototype.hasOwnProperty.call(resolvedOutputs, name)) {
-            resolvedOutputs[name] = value;
-            helperLogs.push({
-              level: "warn",
-              message: `Activity returned undeclared output "${name}". It was still captured to avoid silent data loss.`,
-            });
-          }
-        }
-        const missingDeclared = declaredOutputNames.filter(
-          (name: string) =>
-            !Object.prototype.hasOwnProperty.call(actualOutputs, name),
+      if (!stored)
+        throw new Error(
+          `Custom action "${activityName}" is not installed in this workspace (Extensibility → Workflow actions)`,
         );
-        if (missingDeclared.length > 0) {
-          helperLogs.push({
-            level: "warn",
-            message: `Activity did not return declared outputs: ${missingDeclared.join(", ")}`,
-          });
+      const actionManifest = actionManifestOf(stored);
+      const actionOperation = operationOf(actionManifest, config.operation);
+      const inputMappings = (config.input_mappings ?? {}) as Record<string, unknown>;
+      const rawInputs: Record<string, any> = {};
+      for (const input of actionOperation?.inputs ?? []) {
+        const mapped = inputMappings[input.name];
+        if (typeof mapped === "string" ? mapped.trim() : mapped !== undefined && mapped !== null) {
+          rawInputs[input.name] = typeof mapped === "string" ? resolveExpression(mapped, ctx) : mapped;
+        } else if (stored.runtime !== "module") {
+          rawInputs[input.name] = input.default ?? null;
         }
       }
-
+      // Retries: retryable failures (time limit, a host call that failed,
+      // ctx.fail(…, { retryable: true })) are tried again with backoff.
+      const retryable = Math.max(0, Math.min(5, Number(config.retry_attempts ?? 2) || 0));
+      let attempt = 0;
+      let actionResult: Awaited<ReturnType<typeof executeStoredAction>> | null = null;
+      for (;;) {
+        attempt += 1;
+        try {
+          actionResult = await executeStoredAction({
+            db: supabase,
+            tenantId,
+            action: stored,
+            operation: config.operation ?? null,
+            inputs: rawInputs,
+            actorId: (ctx.variables?.started_by_user_id as string | undefined) ?? null,
+            run: { id: ctx.runId ?? null, workflow_id: ctx.workflowId ?? null, step_id: node.id, test: Boolean(ctx.isTest) },
+            timeoutMs: config.timeout_ms != null && config.timeout_ms !== "" ? Number(resolveExpression(config.timeout_ms, ctx)) : null,
+            legacy: stored.runtime === "module" ? undefined : {
+              context: {
+                tenantId,
+                runId: ctx.runId ?? null,
+                taskId: taskId ?? null,
+                task: ctx.task ?? null,
+                variables: ctx.variables,
+                node: { id: node.id, label: node.label, type: node.type, activityId: stored.id, activityKey: stored.key, activityName },
+              },
+              variables: ctx.variables,
+              resolveExpression: (expression: string) => resolveExpression(expression, ctx),
+            },
+          });
+          break;
+        } catch (error) {
+          const runError = error instanceof ActionRunError ? error : null;
+          for (const entry of runError?.logs ?? []) {
+            ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: entry.level, message: `[${activityName}] ${entry.message}`, metadata: entry.metadata });
+          }
+          if (runError?.retryable && attempt <= retryable) {
+            ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "warn", message: `[${activityName}] attempt ${attempt} failed (${runError.code}): ${runError.message} — retrying` });
+            await new Promise((resolve) => setTimeout(resolve, Math.min(4000, 250 * 2 ** (attempt - 1))));
+            continue;
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error(`${activityName}: ${message}${runError ? ` [${runError.code}]` : ""}`);
+        }
+      }
+      const result = actionResult!;
+      let resolvedOutputs: Record<string, any> = result.outputs;
+      let summaryText: unknown = null;
+      let metadataValue: unknown = null;
+      if (result.legacy) {
+        const normalized = normalizeCustomActivityResult(result.legacy.raw);
+        resolvedOutputs = normalized.outputs ?? {};
+        summaryText = normalized.summary ?? null;
+        metadataValue = normalized.metadata ?? null;
+        for (const [name, value] of Object.entries(result.legacy.variables)) ctx.variables[name] = value;
+        for (const entry of normalized.logs) {
+          if (entry?.message) ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: entry.level ?? "info", message: `[${activityName}] ${entry.message}`, metadata: entry.metadata });
+        }
+        const declared = (result.operation.outputs ?? []).map((o) => o.name);
+        const missing = declared.filter((name) => !Object.prototype.hasOwnProperty.call(resolvedOutputs, name));
+        if (declared.length && missing.length) result.warnings.push(`did not return declared outputs: ${missing.join(", ")}`);
+      }
       for (const [name, value] of Object.entries(resolvedOutputs)) {
         setVar(name, value);
       }
       ctx.variables[`${_prefix}_outputs`] = resolvedOutputs;
-      ctx.variables[`${_prefix}_meta`] = normalized.metadata ?? null;
-
-      for (const entry of [...helperLogs, ...normalized.logs]) {
-        if (!entry?.message) continue;
-        ctx.logs.push({
-          node_id: node.id,
-          node_type: node.type,
-          node_label: node.label,
-          level: entry.level ?? "info",
-          message: `[${activityName}] ${entry.message}`,
-          metadata: entry.metadata,
-        });
+      ctx.variables[`${_prefix}_meta`] = metadataValue;
+      for (const entry of result.logs) {
+        ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: entry.level, message: `[${activityName}] ${entry.message}`, metadata: entry.metadata });
       }
+      for (const warning of result.warnings) {
+        ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "warn", message: `[${activityName}] ${warning}` });
+      }
+      ctx.logs.push({
+        node_id: node.id, node_type: node.type, node_label: node.label, level: "info",
+        message: `[${activityName}] ran ${result.action.key}@${result.action.version} ${result.operation.id} in ${result.stats.duration_ms} ms (${result.stats.host_calls} host call${result.stats.host_calls === 1 ? "" : "s"}${attempt > 1 ? `, attempt ${attempt}` : ""})`,
+        metadata: { action: result.action.key, version: result.action.version, sha256: result.action.sha256, operation: result.operation.id, duration_ms: result.stats.duration_ms, host_calls: result.stats.host_calls, memory_bytes: result.stats.memory_bytes, attempts: attempt },
+      });
 
       return {
-        activity_id: activityId,
-        activity_key: activityKey || null,
+        activity_id: result.action.id,
+        activity_key: result.action.key,
         activity_name: activityName,
-        input_count: Object.keys(resolvedInputs).length,
+        action_version: result.action.version,
+        operation: result.operation.id,
+        input_count: Object.keys(rawInputs).length,
         output_count: Object.keys(resolvedOutputs).length,
         outputs: resolvedOutputs,
-        summary: normalized.summary ?? null,
-        metadata: normalized.metadata ?? null,
+        summary: summaryText,
+        metadata: metadataValue,
+        stats: { ...result.stats, attempts: attempt },
+        ...(result.warnings.length ? { warnings: result.warnings } : {}),
       };
     }
 
@@ -3829,7 +4735,15 @@ async function runNodeAction(
                 resolveExpression(`{{${path}}}`, ctx),
               ),
             }
-          : field,
+          : field.type === "data_table" && field.data_table
+            ? {
+                ...field,
+                // Base filter / API inputs: workflow {{variables}} now; {{form.x}}, {{user.*}}, dates, paging at query time.
+                data_table: preResolveDataTableConfig(field.data_table, (path) =>
+                  resolveExpression(`{{${path}}}`, ctx),
+                ),
+              }
+            : field,
       );
       const taskFormLayout = runtimeForm.layout
         ? compactLayoutForSave(
@@ -3837,8 +4751,12 @@ async function runNodeAction(
             taskFields.map((f) => f.key),
           )
         : null;
+      // Form parameters (lib/forms/form-params.ts): the step's mapping, resolved now and stored on the task.
+      const taskFormParams = resolveContextParams(runtimeForm.layout, config.form_params, (template) =>
+        resolveExpression(template, ctx),
+      );
       const taskFieldValues = defaultTaskFieldValues(taskFields, (value) =>
-        resolveExpression(value, ctx),
+        resolveExpression(substituteParams(value, taskFormParams), ctx),
       );
 
       // In test mode: don't create a real task, emit event for inline action in test runner
@@ -3849,26 +4767,28 @@ async function runNodeAction(
         setVar("task_id", `test_${eventId}`);
         setVar("event_id", eventId);
         // Emit a special test_user_task event so the test runner can show inline action UI
+        const prompt = {
+          status: "test_user_task",
+          event_id: eventId,
+          task_title: taskTitle,
+          task_description: taskDescription,
+          outcomes: outcomes.length > 0 ? outcomes : ["completed"],
+          priority,
+          fields: taskFields,
+          values: taskFieldValues,
+          form_layout: taskFormLayout,
+          form_params: taskFormParams,
+          form_theme: runtimeForm.theme_overrides,
+          form_buttons: runtimeForm.buttons ?? null,
+          form_header: runtimeForm.header?.enabled ? runtimeForm.header : null,
+        };
         ctx.onEvent?.({
           type: "node_complete",
           node_id: node.id,
           node_label: node.label,
-          data: {
-            status: "test_user_task",
-            event_id: eventId,
-            task_title: taskTitle,
-            task_description: taskDescription,
-            outcomes: outcomes.length > 0 ? outcomes : ["completed"],
-            priority,
-            fields: taskFields,
-            values: taskFieldValues,
-            form_layout: taskFormLayout,
-            form_theme: runtimeForm.theme_overrides,
-            form_buttons: runtimeForm.buttons ?? null,
-            form_header: runtimeForm.header?.enabled ? runtimeForm.header : null,
-          },
+          data: prompt,
         });
-        throw new PauseError(eventId, node.id);
+        throw withTestPrompt(new PauseError(eventId, node.id), node, prompt);
       }
       const assignmentType = config.assignment_type ?? "individual";
 
@@ -3878,7 +4798,29 @@ async function runNodeAction(
         const resolved = resolveExpression(config.assignee_variable, ctx);
         if (resolved) assigneeId = resolved;
       }
-      const teamId = config.team_id || null;
+      let teamId = config.team_id || null;
+
+      // AAD (Entra ID) group: members resolved through Microsoft Graph and
+      // mapped to workspace members (lib/tasks/aad-group-runtime.ts). Claim:
+      // candidates who can claim one unassigned task; everyone: a
+      // collaborative task. Nobody resolved → created unassigned (logged).
+      let aadGroup: AadGroupPlanResult | null = null;
+      let groupMode: "claim" | "everyone" | null = null;
+      let groupUserIds: string[] = [];
+      if (assignmentType === "aad_group") {
+        const { planAadGroupAssignment } = await import("./tasks/aad-group-runtime");
+        aadGroup = await planAadGroupAssignment(supabase as any, tenantId, config);
+        for (const line of aadGroup.logs) {
+          ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: line.level, message: line.message, metadata: { aad_group: aadGroup.metadata } });
+        }
+        assigneeId = null;
+        teamId = null;
+        const plan = aadGroup.plan;
+        if (plan.kind === "single") assigneeId = plan.userId;
+        else if (plan.kind === "team") teamId = plan.teamId;
+        else if (plan.kind === "everyone") { groupMode = "everyone"; groupUserIds = plan.userIds; assigneeId = plan.userIds[0]; }
+        else if (plan.kind === "claim") { groupMode = "claim"; groupUserIds = plan.userIds; }
+      }
 
       // Calculate due date
       let dueDate: string | null = null;
@@ -3904,43 +4846,53 @@ async function runNodeAction(
       // Generate event_id for workflow pause/resume
       const eventId = generateEventId();
 
-      // Check tenant's queue bypass priority setting
-      const PRIORITY_LEVELS: Record<string, number> = {
-        critical: 4,
-        high: 3,
-        medium: 2,
-        low: 1,
-        none: 0,
+      // Queued (pending) or added straight to the assignee's tasks: the node's
+      // queue_behaviour override, else the assignee's queue rules (a team task
+      // with no assignee uses the default rules) — lib/tasks/queue-rules.ts.
+      // What the rules can look at: no person assigned it (a workflow did).
+      const queueFacts: QueueTaskFacts = {
+        priority,
+        source: "workflow",
+        workflow_id: ctx.workflowId ?? null,
+        assigned_by_user_id: null,
+        origins: [
+          "workflow",
+          ...(runtimeForm.form_id ? ["form"] : []),
+          ...(assignmentType === "team" ? ["team"] : assignmentType === "aad_group" ? ["aad_group"] : []),
+        ],
+        form_id: runtimeForm.form_id ?? null,
+        assignment: assignmentType === "team" || assignmentType === "aad_group" ? assignmentType : "individual",
+        assigned_team_id: teamId ?? null,
+        due_date: dueDate,
+        title: String(taskTitle),
+        description: String(taskDescription),
+        has_attachments: false,
+        is_subtask: false,
+        tags: [],
       };
-      let bypassThreshold = 3; // default: high and above
-      if (assigneeId) {
-        const { data: assigneeProfile } = await supabase
-          .from("users")
-          .select("preferences")
-          .eq("id", assigneeId)
-          .single();
-        const bypassPref =
-          (assigneeProfile?.preferences as any)?.queue_bypass_priority ??
-          "high";
-        bypassThreshold = PRIORITY_LEVELS[bypassPref] ?? 3;
-      }
-      const taskPriorityLevel = PRIORITY_LEVELS[priority] ?? 2;
-      const assignmentStatus =
-        taskPriorityLevel >= bypassThreshold ? "accepted" : "pending";
+      const assignmentStatus = assigneeId
+        ? (await decideAcceptanceForAssignees(supabase, { tenantId, assigneeIds: [assigneeId], facts: queueFacts, override: config.queue_behaviour })).get(assigneeId) ?? "pending"
+        : decideAcceptance({ preferences: null, facts: queueFacts, override: config.queue_behaviour });
 
       // Create the task
-      const { data: newTask, error: taskError } = await supabase
-        .from("tasks")
-        .insert({
+      const { data: newTask, error: taskError } = await insertWithOptionalColumns(supabase, "tasks", {
           tenant_id: tenantId,
+          // The run this task belongs to (Home: stages, people involved).
+          workflow_run_id: ctx.runId ?? null,
           title: String(taskTitle),
           description: String(taskDescription),
           priority,
           allow_reassign: config.allow_redirect === true,
-          assignee_id: assignmentType === "individual" ? assigneeId : null,
-          assigned_team_id: assignmentType === "team" ? teamId : null,
+          assignee_id: assignmentType === "individual" || assignmentType === "aad_group" ? assigneeId : null,
+          assigned_team_id: assignmentType === "team" || assignmentType === "aad_group" ? teamId : null,
           assignment_type: assignmentType,
-          assignment_mode: assignmentType === "team" ? "team" : "single",
+          // AAD claim tasks are an unclaimed pool like team tasks; everyone → collaborative.
+          assignment_mode:
+            assignmentType === "team" || groupMode === "claim" || (assignmentType === "aad_group" && teamId)
+              ? "team"
+              : groupMode === "everyone"
+                ? "collaborative"
+                : "single",
           acceptance_status: assignmentStatus,
           is_workflow_task: true,
           event_id: eventId,
@@ -3960,7 +4912,9 @@ async function runNodeAction(
           workflow_id: ctx.workflowId ?? null,
           workflow_step_id: node.id,
           metadata: {
-            completion_rule: config.completion_rule ?? "first_response",
+            // A claimed task has one assignee: the first response completes it.
+            completion_rule: groupMode === "claim" ? "first_response" : config.completion_rule ?? "first_response",
+            ...(aadGroup ? { aad_group: aadGroup.metadata } : {}),
             min_responses: config.min_responses,
             custom_rule_expression: config.custom_rule_expression,
             custom_rule_outcome: config.custom_rule_outcome,
@@ -3968,6 +4922,7 @@ async function runNodeAction(
             template_values: taskFieldValues,
             // Grid layout and resolved mini theme (absent → classic form).
             ...(taskFormLayout ? { form_layout: taskFormLayout } : {}),
+            ...(Object.keys(taskFormParams).length ? { form_params: taskFormParams } : {}),
             ...(runtimeForm.theme_overrides
               ? { form_theme: runtimeForm.theme_overrides }
               : {}),
@@ -4023,13 +4978,40 @@ async function runNodeAction(
             },
           },
           status: "todo",
-        } as any)
-        .select("id")
-        .single();
+        }, ["workflow_run_id"]);
 
       if (taskError)
         throw new Error(`Create user task failed: ${taskError.message}`);
       const taskId2 = newTask?.id;
+
+      // AAD group members: claim candidates (pending until someone claims) or
+      // collaborators, each queued or added by their own queue rules.
+      if (groupUserIds.length && taskId2) {
+        const memberDecisions = groupMode === "everyone"
+          ? await decideAcceptanceForAssignees(supabase, {
+              tenantId,
+              assigneeIds: groupUserIds,
+              facts: { ...queueFacts, assignment: "collaborative" },
+              override: config.queue_behaviour,
+            })
+          : new Map<string, "pending" | "accepted">();
+        const now = new Date().toISOString();
+        const rows = groupUserIds.map((userId, index) => {
+          const accepted = groupMode === "everyone" && memberDecisions.get(userId) === "accepted";
+          return {
+            tenant_id: tenantId,
+            task_id: taskId2,
+            user_id: userId,
+            role: groupMode === "claim" ? "candidate" : index === 0 ? "lead" : "collaborator",
+            acceptance_status: accepted ? "accepted" : "pending",
+            accepted_at: accepted ? now : null,
+          };
+        });
+        const { error: assigneesError } = await (supabase as any).from("task_assignees").insert(rows);
+        if (assigneesError) {
+          ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "warn", message: `AAD group assignment: could not add the group's members to the task (${assigneesError.message})` });
+        }
+      }
 
       // Create reminders
       const reminders = (config.reminders ?? []) as {
@@ -4065,8 +5047,9 @@ async function runNodeAction(
       setVar("user_task_description", htmlToPlainText(taskDescription));
       setVar("user_task_description_html", String(taskDescription ?? ""));
 
-      // Create notification for assignee
-      if (assigneeId) {
+      // Create notification for the assignee (AAD group: every member)
+      const notifyUserIds = groupUserIds.length ? groupUserIds : assigneeId ? [assigneeId] : [];
+      if (notifyUserIds.length) {
         if (!ctx.variables.app_url)
           ctx.variables.app_url = configuredAppUrl() ?? "";
         const notificationTemplate = config.notification_template_id
@@ -4080,7 +5063,9 @@ async function runNodeAction(
           ? String(
               resolveExpression(notificationTemplate.subject, ctx) ?? "",
             ).trim()
-          : `New task: ${taskTitle}`;
+          : groupMode === "claim"
+            ? `Task available to claim: ${taskTitle}`
+            : `New task: ${taskTitle}`;
         const notificationBody = notificationTemplate
           ? String(
               resolveExpression(notificationTemplate.text_body, ctx) ?? "",
@@ -4088,8 +5073,8 @@ async function runNodeAction(
           : taskDescription
             ? htmlToPlainText(taskDescription).slice(0, 200)
             : "You have been assigned a new task.";
-        await supabase.from("notifications").insert({
-          user_id: assigneeId,
+        const notificationRows = notifyUserIds.map((userId) => ({
+          user_id: userId,
           tenant_id: tenantId,
           type: "task_assigned",
           title: notificationTitle || `New task: ${taskTitle}`,
@@ -4097,7 +5082,10 @@ async function runNodeAction(
             notificationBody || "You have been assigned a new task."
           ).slice(0, 2000),
           task_id: taskId2,
-        });
+        }));
+        await supabase.from("notifications").insert(
+          notificationRows.length === 1 ? notificationRows[0] : notificationRows,
+        );
       }
 
       // Store task info in variables
@@ -4161,6 +5149,8 @@ async function runNodeAction(
           supabase: ctx.supabase,
           referenceId: refId,
           inputValues: resolvedInputs,
+          // Live Reference = fresh data on demand: a write reference is refused.
+          readOnly: true,
           timeout: 30_000,
           caller: {
             traceId: ctx.traceId ?? ctx.runId ?? "",
@@ -4256,7 +5246,11 @@ async function runNodeAction(
             event_name: eventName,
           },
         });
-        throw new PauseError(eventId, node.id);
+        throw withTestPrompt(new PauseError(eventId, node.id), node, {
+          status: "test_server_event",
+          event_id: eventId,
+          event_name: eventName,
+        });
       }
 
       // Build outbound payload: variable list (default) or a custom JSON
@@ -4440,7 +5434,8 @@ async function runNodeAction(
     // Up to 30 s waits inline; longer delays pause the run and a queued
     // resume job continues it after the delay (see timedPause).
     case "delay": {
-      const ms = calculateDelay(config.duration, config.unit);
+      const delay = canonicalDelay(config);
+      const ms = calculateDelay(delay.duration, delay.unit);
       if (ms > ENGINE_LIMITS.inlineDelayMaxMs) {
         const resumeAt = new Date(Date.now() + ms);
         timedPause(node, ctx, resumeAt, {
@@ -4564,7 +5559,7 @@ async function runNodeAction(
         .eq("tenant_id", tenantId);
       if (error) throw new Error(`Update task failed: ${error.message}`);
       // Refresh the in-memory task so downstream {{task.*}} sees this write.
-      ctx.task = (await loadTaskDataObject(supabase, taskId, { tenantId })) ?? ctx.task;
+      ctx.task = (await loadTaskDataObject(supabase, taskId, { tenantId, attachments: taskAttachmentsLoader(supabase) })) ?? ctx.task;
       return { updated: config.field, value };
     }
 
@@ -5071,11 +6066,12 @@ async function runNodeAction(
       const refId = config.reference_id;
       if (!refId) return { skipped: true, reason: "No reference" };
 
-      // Cached per run, credentials already decrypted at the read boundary.
+      // Cached per run. Execution itself goes through the shared reference
+      // executor (lib/reference-executor) — the same runtime as tests, agents
+      // and MCP: escaped templates, minted auth, egress guard, retries,
+      // database / S3 / Azure Blob / SFTP executors, binary downloads as files.
       const ref = await loadReference(ctx, refId);
-      const integration = ref.integration as any;
-      const reqConfig = ref.request_config as any;
-      const inputs = ref.inputs as any[];
+      const inputs = (ref.inputs as any[]) ?? [];
 
       // Resolve input values — check config.input_mappings first (from wizard), fall back to ref defaults
       const inputMappings = config.input_mappings as
@@ -5085,19 +6081,7 @@ async function runNodeAction(
       const inputLocationOverrides = config._ref_inputs_override as
         | any[]
         | undefined;
-      let path = reqConfig.path_template ?? "";
-      // Use custom body if provided (JSON mode), otherwise use template
-      // Custom JSON body: object / array variables are inserted as JSON.
-      let body = config._custom_body
-        ? resolveExpr(config._custom_body, {
-            variables: ctx.variables,
-            task: ctx.task,
-            json: true,
-          })
-        : (reqConfig.body_template ?? "");
-      if (typeof body !== "string") body = JSON.stringify(body);
-      const queryParams: Record<string, string> = {};
-      const inputHeaders: Record<string, string> = {};
+      const inputValues: Record<string, any> = {};
       for (const input of inputs) {
         let value: any;
         if (inputMappings?.[input.name]) {
@@ -5107,37 +6091,23 @@ async function runNodeAction(
         } else {
           value = resolveExpression(input.name, ctx) ?? input.default_value;
         }
+        inputValues[input.name] = value;
+      }
+      const inputLocations: Record<string, string> = {};
+      for (const override of inputLocationOverrides ?? []) {
+        if (override?.location) inputLocations[String(override.id ?? override.name)] = String(override.location);
+      }
 
-        // File reference → its URL; other objects / arrays → JSON (not
-        // "[object Object]"); a JSON body template gets the real value.
-        const strValue = referenceInputText(value);
-
-        // Check for location override from workflow config
-        const location =
-          inputLocationOverrides?.find(
-            (o: any) => (o.id ?? o.name) === (input.id ?? input.name),
-          )?.location ??
-          input.location ??
-          "query";
-        switch (location) {
-          case "path":
-            path = path.replace(`{{${input.name}}}`, strValue);
-            break;
-          case "header":
-            if (value != null && value !== "")
-              inputHeaders[input.name] = strValue;
-            break;
-          case "body":
-            break;
-          case "query":
-          default:
-            if (value != null && value !== "")
-              queryParams[input.name] = strValue;
-            break;
-        }
-        // Also replace {{name}} in path/body regardless of location (backward compat)
-        path = path.replace(`{{${input.name}}}`, strValue);
-        body = substituteInputPlaceholder(body, input.name, value, "json");
+      // Use custom body if provided (JSON mode), otherwise use template
+      // Custom JSON body: object / array variables are inserted as JSON.
+      let body: string | undefined;
+      if (config._custom_body) {
+        const custom = resolveExpr(config._custom_body, {
+          variables: ctx.variables,
+          task: ctx.task,
+          json: true,
+        });
+        body = typeof custom === "string" ? custom : JSON.stringify(custom);
       }
 
       // In form mode, build body JSON from body-location inputs
@@ -5189,306 +6159,50 @@ async function runNodeAction(
         }
       }
 
-      const integrationConfig = integration.config as any;
-      const method = reqConfig.method ?? "GET";
-      // pg/mssql drivers load only for database references, not on every
-      // engine cold start.
-      const dbConnector =
-        method === "QUERY" || method === "EXEC" || method === "INSERT"
-          ? await import("./db-connector")
-          : null;
-      const dbConfig = dbConnector?.parseDbConfig(integrationConfig) ?? null;
-
-      let responseData: any;
-      let respStatus = 200;
-
-      if (dbConnector && dbConfig) {
-        const { executeQuery, executeStoredProcedure } = dbConnector;
-        // ─── Database integration: execute query via db-connector ───
-        const query = path; // path_template holds the SQL query for DB refs
-        // Resolve @param placeholders from input values
-        const resolvedParams: Record<string, any> = {};
-        for (const input of inputs) {
-          let value: any;
-          if (inputMappings?.[input.name]) {
-            value = resolveExpression(inputMappings[input.name], ctx);
-          } else if (input.source === "static") {
-            value = input.default_value;
-          } else {
-            value = resolveExpression(input.name, ctx) ?? input.default_value;
-          }
-          // Coerce numeric types to actual numbers (MSSQL requires integers for OFFSET/FETCH)
-          if (input.type === "number" || input.type === "integer") {
-            value = value != null && value !== "" ? Number(value) : 0;
-            if (isNaN(value)) value = 0;
-          }
-          // Provide sensible defaults for common pagination params
-          if (value === undefined || value === null || value === "") {
-            if (input.name === "offset") value = 0;
-            else if (input.name === "limit") value = 50;
-          }
-          resolvedParams[input.name] = value;
-        }
-
-        try {
-          if (method === "EXEC") {
-            const result = await executeStoredProcedure(
-              dbConfig,
-              query,
-              resolvedParams,
-            );
-            responseData = result.rows;
-          } else {
-            // QUERY or INSERT — replace @param placeholders with actual values
-            let resolvedQuery = query;
-            let pgParamValues: any[] | undefined;
-            if (dbConfig.type === "mssql") {
-              // For MSSQL, we pass the query with @param intact and use request.input()
-              // But executeQuery doesn't support named params, so we need to inline safely
-              // Use parameterized approach: replace @name with positional for pg, or inline for mssql
-              for (const [key, val] of Object.entries(resolvedParams)) {
-                let escaped: string;
-                if (val === null || val === undefined) {
-                  escaped = "NULL";
-                } else if (typeof val === "number" && isFinite(val)) {
-                  escaped = Number.isInteger(val) ? String(val) : String(val);
-                } else {
-                  const str = String(val);
-                  // If it looks like a pure integer, output unquoted (MSSQL OFFSET/FETCH need bare ints)
-                  if (/^-?\d+$/.test(str)) {
-                    escaped = str;
-                  } else {
-                    escaped = `'${str.replace(/'/g, "''")}'`;
-                  }
-                }
-                resolvedQuery = resolvedQuery.replace(
-                  new RegExp(`@${key}\\b`, "g"),
-                  escaped,
-                );
-              }
-            } else {
-              // PostgreSQL: convert @param to $N positional params
-              pgParamValues = [];
-              let paramIndex = 0;
-              resolvedQuery = resolvedQuery.replace(
-                /@(\w+)/g,
-                (_: string, name: string) => {
-                  paramIndex++;
-                  pgParamValues!.push(resolvedParams[name] ?? null);
-                  return `$${paramIndex}`;
-                },
-              );
-            }
-            const result = await executeQuery(
-              dbConfig,
-              resolvedQuery,
-              pgParamValues,
-            );
-            responseData = result.rows;
-          }
-        } catch (e: unknown) {
-          throw new Error(`Database query failed: ${toErrorMessage(e)}`);
-        }
-      } else if (integrationConfig.auth_config?._executor === "aws_s3") {
-        // ─── AWS S3 integration: use dedicated SigV4 executor ───
-        const { executeS3Reference } = await import("@/lib/aws-s3-executor");
-        const result = await executeS3Reference(
-          integrationConfig,
-          method,
-          path,
-          body || undefined,
-          queryParams,
-          inputHeaders,
-          TIMEOUTS.STANDARD,
-        );
-        respStatus = result.status;
-        responseData = result.data;
-      } else if (integrationConfig.auth_config?._executor === "azure_blob") {
-        // ─── Azure Blob Storage: route through reference-executor which handles SAS auth ───
-        const { executeReference } = await import("@/lib/reference-executor");
-        const result = await executeReference({
-          supabase,
-          referenceId: refId,
-          inputValues: Object.fromEntries(
-            inputs.map((inp: any) => {
-              const val = inputMappings?.[inp.name]
-                ? resolveExpression(inputMappings[inp.name], ctx)
-                : (inp.default_value ?? "");
-              // File ref objects → extract URL so the Azure handler can download binary
-              if (
-                val != null &&
-                typeof val === "object" &&
-                (val._file || val.url)
-              ) {
-                return [
-                  inp.name,
-                  val.url ?? val.file_url ?? JSON.stringify(val),
-                ];
-              }
-              return [inp.name, String(val ?? "")];
-            }),
-          ),
-          timeout: TIMEOUTS.STANDARD,
+      const { executeReference } = await import("@/lib/reference-executor");
+      const result = await executeReference({
+        supabase,
+        referenceId: refId,
+        inputValues,
+        timeout: TIMEOUTS.STANDARD,
+        expectedTenantId: tenantId,
+        inputLocations,
+        bodyTemplate: body,
+        dbResultShape: "rows",
+        caller: {
+          traceId: ctx.traceId ?? ctx.runId ?? "",
+          callerType: "workflow_node",
+          callerId: ctx.runId ?? null,
+          callerNodeId: node.id,
+        },
+      });
+      const respStatus = result.status;
+      let responseData: any = result.data;
+      if (
+        responseData &&
+        typeof responseData === "object" &&
+        !Array.isArray(responseData) &&
+        typeof responseData._raw === "string" &&
+        Object.keys(responseData).length === 1
+      ) {
+        // Text responses: `_text` is the name earlier workflows read.
+        responseData = { _raw: responseData._raw, _text: responseData._raw };
+      }
+      if (responseData && typeof responseData === "object" && responseData._file) {
+        setVar("api_file", responseData);
+        setVar("api_file_url", responseData.url);
+        setVar("api_file_name", responseData.name);
+        setVar("api_file_size", responseData.size);
+      }
+      if (result.error_message) {
+        ctx.logs.push({
+          level: "warn",
+          message: `Reference call returned ${respStatus}: ${result.error_message}`,
+          node_id: node.id,
+          node_type: node.type,
+          node_label: node.label,
+          duration_ms: 0,
         });
-        respStatus = result.status;
-        responseData = result.data;
-      } else {
-        // ─── HTTP API integration: use fetch ───
-        const baseUrl = integrationConfig.base_url;
-        if (!baseUrl)
-          throw new Error(
-            `Integration "${integration.name}" has no base_url configured`,
-          );
-        // Append query params to URL
-        const queryString = Object.entries(queryParams)
-          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-          .join("&");
-        const url =
-          baseUrl +
-          path +
-          (queryString ? (path.includes("?") ? "&" : "?") + queryString : "");
-
-        // Build headers with auth + input headers
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          ...inputHeaders,
-        };
-        const authCfg = integrationConfig.auth_config;
-        if (integrationConfig.auth_type === "bearer" && authCfg?.token) {
-          headers["Authorization"] = `Bearer ${authCfg.token}`;
-        } else if (
-          integrationConfig.auth_type === "api_key" &&
-          authCfg?.key_value
-        ) {
-          headers[authCfg.key_name || "X-API-Key"] = authCfg.key_value;
-        } else if (
-          integrationConfig.auth_type === "basic" &&
-          authCfg?.username
-        ) {
-          headers["Authorization"] =
-            `Basic ${Buffer.from(`${authCfg.username}:${authCfg.password ?? ""}`).toString("base64")}`;
-        }
-
-        // Resolve file content for upload operations — download URLs or decode base64 to binary
-        let fetchBody: string | Buffer | undefined =
-          method !== "GET" && body ? body : undefined;
-        if (fetchBody && (method === "PUT" || method === "POST")) {
-          const bodyStr = String(fetchBody);
-          if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://") || bodyStr.startsWith("/attachments/") || bodyStr.startsWith("storage://form-files/")) {
-            try {
-              const fileResp = await fetchFile(bodyStr, {
-                signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-              }, { tenantId });
-              if (fileResp.ok) {
-                fetchBody = Buffer.from(await fileResp.arrayBuffer());
-                const fileContentType = fileResp.headers.get("content-type");
-                if (fileContentType)
-                  headers["Content-Type"] = fileContentType
-                    .split(";")[0]
-                    .trim();
-              }
-            } catch {
-              /* not a downloadable URL — send as-is */
-            }
-          } else if (
-            /^[A-Za-z0-9+/]+=*$/.test(
-              bodyStr.slice(0, 200).replace(/\s/g, ""),
-            ) &&
-            bodyStr.length > 100
-          ) {
-            // Looks like base64 — decode to binary
-            const buf = Buffer.from(bodyStr, "base64");
-            if (buf.byteLength > 0 && buf.byteLength < bodyStr.length) {
-              fetchBody = buf;
-            }
-          }
-        }
-
-        let resp: Response;
-        try {
-          resp = await fetch(url, {
-            method,
-            headers,
-            body: fetchBody
-              ? Buffer.isBuffer(fetchBody)
-                ? new Uint8Array(fetchBody)
-                : fetchBody
-              : undefined,
-            signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-          });
-        } catch (e: unknown) {
-          throw new Error(`API call to ${url} failed: ${toErrorMessage(e)}`);
-        }
-
-        respStatus = resp.status;
-        const contentType = resp.headers.get("content-type") ?? "";
-        const isJson =
-          contentType.includes("application/json") ||
-          contentType.includes("text/");
-        const isBinary =
-          !isJson &&
-          (contentType.includes("application/octet-stream") ||
-            contentType.includes("application/pdf") ||
-            contentType.includes("application/vnd.") ||
-            contentType.includes("image/") ||
-            contentType.includes("audio/") ||
-            contentType.includes("video/") ||
-            contentType.includes("application/zip") ||
-            (contentType.startsWith("application/") &&
-              !contentType.includes("json")));
-
-        if (isBinary) {
-          // File stream response — store in Supabase Storage
-          const buffer = Buffer.from(await resp.arrayBuffer());
-          const disposition = resp.headers.get("content-disposition");
-          let fileName = "download";
-          if (disposition) {
-            const match = disposition.match(
-              /filename[*]?=(?:UTF-8''|"?)([^";]+)/i,
-            );
-            if (match) fileName = decodeURIComponent(match[1]);
-          }
-          if (fileName === "download") {
-            // Try to guess from URL
-            const urlFileName = new URL(url).pathname.split("/").pop();
-            if (urlFileName && urlFileName.includes("."))
-              fileName = urlFileName;
-          }
-          const ext = fileName.includes(".")
-            ? (fileName.split(".").pop() ?? "bin")
-            : "bin";
-          let stored: StoredWorkflowFile;
-          try {
-            stored = await storeWorkflowFile(supabase, tenantId, buffer, ext, contentType);
-          } catch (e) {
-            throw new Error(`File storage failed: ${toErrorMessage(e)}`);
-          }
-
-          // Store as file reference object
-          responseData = {
-            _file: true,
-            name: fileName,
-            url: stored.url,
-            path: stored.path,
-            size: buffer.byteLength,
-            content_type: contentType,
-            ...(stored.ref ? { ref: stored.ref } : {}),
-          };
-          setVar("api_file", responseData);
-          setVar("api_file_url", stored.url);
-          setVar("api_file_name", fileName);
-          setVar("api_file_size", buffer.byteLength);
-        } else {
-          responseData = await resp.json().catch(async () => {
-            // Fallback: try text if JSON parse fails
-            return {
-              _text: await resp
-                .clone()
-                .text()
-                .catch(() => null),
-            };
-          });
-        }
       }
 
       // Store response with both prefixed and generic names
@@ -5513,7 +6227,10 @@ async function runNodeAction(
 
             // Extract value from response using the output's JSON path
             let value: any = responseData;
-            if (out.path) {
+            if (out.path && responseData && typeof responseData === "object" && !Array.isArray(responseData) && Object.prototype.hasOwnProperty.call(responseData, out.path)) {
+              // A key that itself contains dots (OData '@odata.nextLink').
+              value = responseData[out.path];
+            } else if (out.path) {
               for (const key of out.path.split(".")) {
                 if (value === undefined || value === null) break;
                 const arrMatch = key.match(/^(\w+)\[(\d+)\]$/);
@@ -5565,6 +6282,38 @@ async function runNodeAction(
         data: responseData,
         mapped_variables: mappedVars,
       };
+    }
+
+    // ─── Add Task Attachment ───
+    case "add_task_attachment": {
+      // Attach a file the run produced or downloaded (a file object, storage
+      // reference, URL, base64 / data URL) to a task's Attachments tab.
+      // Task: config.task_id, else the run's task, else the latest User Task's.
+      const configuredTask = config.task_id ? String(resolveExpression(config.task_id, ctx) ?? "").trim() : "";
+      const targetTaskId = configuredTask || taskId || String(ctx.variables.user_task_id ?? "").trim();
+      if (!targetTaskId) {
+        throw new Error("Add task attachment: no task. Set Task to a task id or {{variable}} (e.g. {{user_task_id}}), or run this in a task-triggered workflow.");
+      }
+      const { resolveFileInput } = await import("./files/resolve-input");
+      const { addTaskAttachmentFromWorkflow, maxAttachmentBytes } = await import("@/lib/services/task-attachments");
+      const file = await resolveFileInput(resolveExpression(config.file, ctx), {
+        tenantId: String(tenantId),
+        label: "Add task attachment: file",
+        maxBytes: maxAttachmentBytes(),
+      });
+      const fileName = String(resolveExpression(config.file_name, ctx) ?? "").trim() || file.name;
+      const attachment = await addTaskAttachmentFromWorkflow(supabase as never, {
+        tenantId: String(tenantId),
+        taskId: targetTaskId,
+        runId: ctx.runId ?? null,
+        fileName,
+        bytes: file.bytes,
+        name: String(resolveExpression(config.name, ctx) ?? ""),
+        type: String(resolveExpression(config.type, ctx) ?? ""),
+        description: String(resolveExpression(config.description, ctx) ?? ""),
+      });
+      setVar("attachment", attachment);
+      return { attachment_id: attachment.id, task_id: targetTaskId, name: attachment.name, size: attachment.size };
     }
 
     // ─── Create Subtask ───
@@ -5952,9 +6701,30 @@ async function runNodeAction(
     }
 
     case "set_variable": {
-      const value = resolveExpression(config.expression, ctx);
-      ctx.variables[config.name] = value;
-      return { variable: config.name, value };
+      // Legacy single { name, expression }: unchanged.
+      if (!usesSetVariableAssignments(config)) {
+        const value = resolveExpression(config.expression, ctx);
+        ctx.variables[config.name] = value;
+        return { variable: config.name, value };
+      }
+      // { assignments: [...] }: in order, each visible to the next. A failing
+      // row fails the node with an error naming the variable; rows before it
+      // stay set (as separate Set Variable nodes would).
+      const assigned: { name: string; value: unknown }[] = [];
+      for (const [index, assignment] of setVariableAssignments(config).entries()) {
+        if (!assignment.name) throw new Error(`Set Variable: row ${index + 1} has no variable name`);
+        let value: unknown;
+        try {
+          value = resolveExpression(assignment.expression, ctx);
+        } catch (err) {
+          throw new Error(`Set Variable "${assignment.name}": ${err instanceof Error ? err.message : String(err)}`);
+        }
+        ctx.variables[assignment.name] = value;
+        assigned.push({ name: assignment.name, value });
+      }
+      return assigned.length === 1
+        ? { variable: assigned[0].name, value: assigned[0].value, assignments: assigned }
+        : { assignments: assigned, variables: Object.fromEntries(assigned.map((a) => [a.name, a.value])) };
     }
 
     // ─── Run Agent ───
@@ -5972,252 +6742,137 @@ async function runNodeAction(
         return { skipped: true, warning, reason: "No agent selected" };
       }
 
-      const { data: agent, error: agentErr } = await (supabase as any)
-        .from("agents")
-        .select("*, integration:integrations(*)")
-        .eq("id", agentId)
-        .eq("tenant_id", tenantId)
-        .single();
-      if (agentErr || !agent)
-        throw new Error(agentErr?.message ?? "Agent not found");
-      if ((agent as any).is_active === false)
-        throw new Error("Agent is inactive");
+      const { loadAgentForRun } = await import("./agents/prepare");
+      const { runAgent, agentWorkflowVariables, agentNodeOutput } = await import("./agents/run");
+      const { AGENT_WAIT_EVENT_PREFIX, newEventId } = await import("./agents/approval");
+      const { agentOutputPrefix } = await import("./agent-knowledge");
 
-      const integration = (agent as any).integration;
-      if (!integration?.config)
-        throw new Error("Agent has no integration configured");
+      // The agent of this tenant, active, with its own tenant's AI provider —
+      // at the version the published workflow pinned (lib/agents/pins.ts);
+      // drafts / Save & Test carry no pin and run the latest version.
+      const pinnedVersion = Number(config.agent_version) >= 1 ? Math.floor(Number(config.agent_version)) : null;
+      const loaded = await loadAgentForRun(supabase, tenantId, agentId, { version: pinnedVersion });
+      const agentRow = loaded.agent;
+      if (!pinnedVersion && ctx.isTest) {
+        ctx.onEvent?.({
+          type: "log",
+          node_id: node.id,
+          data: { level: "info", message: `Test run: "${agentRow.name}" runs its latest version (v${agentRow.version ?? 1}). Published runs use the version pinned when the workflow is published.` },
+        });
+      }
+      const initiatedBy = typeof ctx.variables.workflow_initiator_user_id === "string" && ctx.variables.workflow_initiator_user_id.trim()
+        ? ctx.variables.workflow_initiator_user_id.trim()
+        : null;
 
-      // Credential fields are encrypted at rest — decrypt at the read boundary
-      const intConfig = decryptSensitiveFields(integration.config) as any;
-      const apiKey =
-        intConfig.auth_config?.key_value ?? intConfig.auth_config?.token ?? "";
-      const baseUrl = intConfig.base_url ?? "https://api.openai.com/v1";
-      if (!apiKey) throw new Error("No API key in integration");
-
-      const { executeAgent, BUILTIN_TOOL_DEFS } =
-        await import("./agent-executor");
-      const {
-        buildAgentAccessPrompt,
-        getAgentBuiltinToolNames,
-        normalizeAgentOutputConfig,
-        agentOutputPrefix,
-      } = await import("./agent-knowledge");
       const userMessage = String(
         resolveExpression(config.user_message ?? config.message, ctx) ?? "",
       );
       if (!userMessage.trim())
         throw new Error("Run Agent requires a prompt / message");
-      const a = agent as any;
-      const normalizedOutputConfig = normalizeAgentOutputConfig(
-        a.output_config,
-      );
-      const builtinToolNames = getAgentBuiltinToolNames(
-        normalizedOutputConfig,
-        {
-          includeSharedContext: config.share_context !== false,
-        },
-      );
 
-      const agentConfig = {
-        baseUrl,
-        apiKey,
-        model: a.model ?? "gpt-4o",
-        systemPrompt: (() => {
-          const parts: string[] = [];
-          if (a.role) parts.push(`You are ${a.role}.`);
-          if (a.task) parts.push(`\nYour task: ${a.task}`);
-          if (a.boundaries) parts.push(`\nBoundaries:\n${a.boundaries}`);
-          const ov = normalizedOutputConfig.variables;
-          if (ov.length > 0) {
-            parts.push(`\nOutputs:`);
-            for (const v of ov)
-              parts.push(`- ${v.name} (${v.type}): ${v.description}`);
-          }
-          const accessPrompt = buildAgentAccessPrompt(normalizedOutputConfig);
-          if (accessPrompt) parts.push(accessPrompt);
-          if (a.system_prompt) parts.push(`\n${a.system_prompt}`);
-          const raw = parts.join("\n") || "You are a helpful assistant.";
-          return String(resolveExpression(raw, ctx) ?? raw);
-        })(),
-        temperature: Number(a.temperature) || 0.7,
-        maxTokens: Number(a.max_tokens) || 4096,
-        maxIterations: Number(config.max_iterations ?? a.max_iterations) || 10,
-        tools: [
-          ...(a.tools ?? []),
-          ...BUILTIN_TOOL_DEFS.filter((bt: any) =>
-            builtinToolNames.includes(bt.name),
-          ),
-        ],
+      // Who the agent acts for (task / workflow tools): least privilege — see agentActingUserId.
+      const { agentActingUserId } = await import("./agents/identity");
+      const actingUserId = agentActingUserId(ctx.variables, config);
+      const shareContext = config.share_context !== false;
+      const agentContext = shareContext
+        ? (ctx.variables.agent_context ?? { messages: [], facts: {} })
+        : undefined;
+      const link = {
+        run_id: String(ctx.runId ?? ""),
+        workflow_id: ctx.workflowId ?? null,
+        event_id: newEventId(AGENT_WAIT_EVENT_PREFIX),
+        node_id: node.id,
+        node_label: node.label,
+        output_variable: String(config.output_variable || "agent_response"),
+        output_prefix: String(config._output_prefix || agentOutputPrefix(agentRow.name)),
+        share_context: shareContext,
+        agent_context: agentContext ?? null,
+        user_message: userMessage,
       };
+
+      const filesSpec = typeof config.files === "string" ? config.files.trim() : "";
+      const { fileValues } = await import("@/lib/workflow-files");
+      const fileList = filesSpec ? fileValues(resolveExpression(filesSpec, ctx)) : [];
+
+      // Queued mode: the agent runs on the agent queue; this run waits on
+      // its event and resumes with the agent's variables.
+      if (config.execution_mode === "queued" && ctx.runId) {
+        const { error: queueError } = await (supabase as any).from("agent_queue").insert({
+          agent_id: agentId,
+          tenant_id: tenantId,
+          input_message: userMessage,
+          status: "pending",
+          kind: "run",
+          created_by: actingUserId,
+          options: {
+            workflow: link,
+            acting_user_id: actingUserId,
+            ...(pinnedVersion ? { agent_version: pinnedVersion } : {}),
+            ...(initiatedBy ? { initiated_by: initiatedBy } : {}),
+            trace_id: ctx.traceId ?? ctx.runId ?? null,
+            ...(fileList.length ? { files: fileList } : {}),
+            ...(config.max_iterations !== undefined ? { max_iterations: config.max_iterations } : {}),
+            ...(config.timeout_ms !== undefined ? { timeout_ms: config.timeout_ms } : {}),
+          },
+        });
+        if (queueError) throw new Error(`Could not queue the agent: ${queueError.message}`);
+        const { kickAgentQueueProcessor } = await import("@/lib/process-queue");
+        kickAgentQueueProcessor(1);
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `Agent "${agentRow.name}" queued — the run continues when it finishes` } });
+        throw new PauseError(link.event_id, node.id);
+      }
 
       // Files (Run Agent → Files): read for this run's tenant, shaped for the
       // model's API (images / PDFs / extracted text); names only in logs.
-      let agentAttachments: { parts: import("./agent-files").AgentContentPart[]; files: Array<{ id?: string; name: string; mime_type: string; bytes: Uint8Array }> } | undefined;
-      let agentFileSummary: Array<{ name: string; size: number; mime_type: string; sent_as: string }> = [];
-      const filesSpec = typeof config.files === "string" ? config.files.trim() : "";
-      if (filesSpec) {
-        const { loadStepFiles, fileValues } = await import("@/lib/workflow-files");
-        const { buildAgentFileParts, AGENT_FILE_LIMITS } = await import("./agent-files");
-        const values = fileValues(resolveExpression(filesSpec, ctx));
-        const loaded = await loadStepFiles(values, { tenantId, maxFiles: AGENT_FILE_LIMITS.maxFiles, maxTotalBytes: AGENT_FILE_LIMITS.maxTotalBytes });
-        const shaped = await buildAgentFileParts(loaded, baseUrl);
-        const ids = values.map((v: any) => (v && typeof v === "object" && typeof v.id === "string" ? v.id.toLowerCase() : undefined));
-        agentAttachments = { parts: shaped.parts, files: loaded.map((f, i) => ({ id: ids[i], name: f.name, mime_type: f.mime_type, bytes: f.bytes })) };
-        agentFileSummary = shaped.summary;
-        if (!agentConfig.tools.some((t: any) => t.name === "read_attached_file")) {
-          const readTool = BUILTIN_TOOL_DEFS.find((t: any) => t.name === "read_attached_file");
-          if (readTool) agentConfig.tools.push(readTool);
-        }
-        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `Files for the agent: ${shaped.summary.map((f) => `${f.name} (${f.sent_as})`).join(", ")}` } });
+      let agentAttachments: Awaited<ReturnType<typeof import("./agents/files").loadRunAgentFilesWithSummary>> | undefined;
+      if (fileList.length) {
+        const { loadRunAgentFilesWithSummary } = await import("./agents/files");
+        agentAttachments = await loadRunAgentFilesWithSummary(fileList, tenantId, loaded);
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `Files for the agent: ${agentAttachments.summary.map((f) => `${f.name} (${f.sent_as})`).join(", ")}` } });
       }
 
-      const sharedContext =
-        config.share_context !== false
-          ? (ctx.variables.agent_context ?? { messages: [], facts: {} })
-          : undefined;
-      const appBaseUrl =
-        appUrlOrLocalhost();
+      // Save & Test streams the agent's reply into the run view (coalesced
+      // text deltas); production runs only need the final result.
+      const streamReply = Boolean(ctx.isTest && ctx.onEvent);
+      const { coalescedAgentEvents } = await import("./agents/stream");
+      const relay = coalescedAgentEvents<any>((event) => {
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: event });
+      });
+      const outcome = await runAgent({
+        stream: streamReply,
+        db: supabase,
+        tenantId,
+        loaded,
+        message: userMessage,
+        actingUserId,
+        callerType: "workflow_node",
+        callerId: ctx.runId ?? null,
+        initiatedBy,
+        traceId: ctx.traceId ?? ctx.runId ?? null,
+        workflow: ctx.runId ? link : null,
+        includeSharedContext: shareContext || Boolean(agentAttachments),
+        sharedContext: agentContext,
+        attachments: agentAttachments?.attachments,
+        overrides: { maxIterations: config.max_iterations, maxDurationMs: config.timeout_ms },
+        onEvent: (event) => relay.onEvent(event),
+      }).finally(() => relay.close());
+      const result = outcome.result;
 
-      const agentStartedAt = Date.now();
-      try {
-        const result = await executeAgent(agentConfig, userMessage, {
-          onEvent: (event) => {
-            ctx.onEvent?.({ type: "log", node_id: node.id, data: event });
-          },
-          sharedContext,
-          appBaseUrl,
-          _tenantId: tenantId,
-          _agentId: agentId,
-          // The workflow's owner, as before workflow_started_by named the initiator.
-          _actingUserId: String(workflowOwnerId(ctx) ?? "").trim() || null,
-          _agentOutputConfig: normalizedOutputConfig,
-          outputVariables: normalizedOutputConfig.variables,
-          maxDurationMs:
-            Number(config.timeout_ms) > 0 ? Number(config.timeout_ms) : 300_000,
-          ...(agentAttachments ? { attachments: agentAttachments } : {}),
-        });
-
-        // Surface real failures as node failures (continue-on-error / fail run).
-        if (result.status === "failed") {
-          throw new Error(result.error ?? "Agent execution failed");
-        }
-
-        if (config.share_context !== false) {
-          ctx.variables.agent_context = sharedContext ?? {
-            messages: [],
-            facts: {},
-          };
-          if (ctx.variables.agent_context.messages) {
-            ctx.variables.agent_context.messages.push(
-              {
-                role: "user",
-                content: userMessage,
-                agent: node.label,
-                timestamp: new Date().toISOString(),
-              },
-              {
-                role: "assistant",
-                content: result.response,
-                agent: node.label,
-                timestamp: new Date().toISOString(),
-              },
-            );
-          }
-        }
-
-        const outputVar = config.output_variable ?? "agent_response";
-        ctx.variables[outputVar] = result.response;
-        ctx.variables[`${outputVar}_iterations`] = result.iterations;
-        ctx.variables[`${outputVar}_tool_calls`] = result.toolCalls.length;
-        ctx.variables[`${outputVar}_usage`] = result.usage;
-        ctx.variables[`${outputVar}_status`] = result.status;
-        ctx.variables[`${outputVar}_duration_ms`] = result.duration_ms;
-        if (result.outputs)
-          ctx.variables[`${outputVar}_outputs`] = result.outputs;
-
-        // Map declared structured outputs into workflow variables — both bare
-        // ({{summary}}) and prefixed ({{agentname_summary}}), matching exactly what
-        // the canvas advertises (node-config-panel uses agentOutputPrefix too).
-        if (result.outputs && normalizedOutputConfig.variables.length > 0) {
-          const prefix = config._output_prefix || agentOutputPrefix(a.name);
-          for (const v of normalizedOutputConfig.variables) {
-            const key = String(v?.name ?? "").trim();
-            if (!key) continue;
-            const value = result.outputs[key];
-            ctx.variables[key] = value;
-            ctx.variables[`${prefix}_${key}`] = value;
-          }
-        }
-
-        // Record the agent run so the observability layer can stitch it into
-        // the workflow run's trace. Fire-and-forget — never blocks or throws.
-        try {
-          await (ctx.supabase as any).from("agent_runs").insert({
-            agent_id: (agent as any).id,
-            tenant_id: (agent as any).tenant_id,
-            actor_id: String(workflowOwnerId(ctx) ?? "").trim() || null,
-            input_message: userMessage,
-            output_response: result.response,
-            outputs: result.outputs ?? null,
-            iterations: result.iterations,
-            tool_calls: result.toolCalls,
-            usage: result.usage,
-            duration_ms: result.duration_ms,
-            status: result.status,
-            model: agentConfig.model,
-            total_tokens: (result.usage as any)?.total_tokens ?? null,
-            input_tokens: (result.usage as any)?.prompt_tokens ?? null,
-            output_tokens: (result.usage as any)?.completion_tokens ?? null,
-            caller_type: "workflow_node",
-            caller_id: ctx.runId ?? null,
-            trace_id: ctx.traceId ?? ctx.runId ?? null,
-            started_at: new Date(agentStartedAt).toISOString(),
-            completed_at: new Date().toISOString(),
-          });
-        } catch (saveErr: any) {
-          console.warn(
-            "[workflow-engine] agent_runs insert failed:",
-            saveErr?.message,
-          );
-        }
-
-        return {
-          response: result.response.slice(0, 500),
-          iterations: result.iterations,
-          tool_calls: result.toolCalls.length,
-          tokens: result.usage.total_tokens,
-          duration_ms: result.duration_ms,
-          ...(result.outputs ? { outputs: result.outputs } : {}),
-          ...(result.parse_warning
-            ? { parse_warning: result.parse_warning }
-            : {}),
-          ...(agentFileSummary.length ? { files: agentFileSummary } : {}),
-        };
-      } catch (err: any) {
-        // Record the failed run so operators can see it
-        try {
-          await (ctx.supabase as any).from("agent_runs").insert({
-            agent_id: (agent as any).id,
-            tenant_id: (agent as any).tenant_id,
-            input_message: userMessage,
-            output_response: null,
-            iterations: 0,
-            tool_calls: [],
-            duration_ms: Date.now() - agentStartedAt,
-            status: "failed",
-            model: agentConfig.model,
-            caller_type: "workflow_node",
-            caller_id: ctx.runId ?? null,
-            trace_id: ctx.traceId ?? ctx.runId ?? null,
-            error: String(err?.message ?? err),
-            started_at: new Date(agentStartedAt).toISOString(),
-            completed_at: new Date().toISOString(),
-          });
-        } catch {
-          /* swallow */
-        }
-        throw new Error(`Agent execution failed: ${err.message}`);
+      if (result.status === "awaiting_approval") {
+        if (!ctx.runId) throw new Error("This agent needs a tool call approved, which needs a saved workflow run");
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `Agent "${agentRow.name}" is waiting for approval of ${result.pending?.tool ?? "a tool call"} (task ${outcome.approval?.taskId ?? "?"})` } });
+        throw new PauseError(link.event_id, node.id);
       }
+      // Surface real failures as node failures (continue-on-error / fail run).
+      if (result.status === "failed") {
+        throw new Error(`Agent execution failed: ${result.error ?? "unknown error"}`);
+      }
+
+      Object.assign(ctx.variables, agentWorkflowVariables(result, link, outcome.outputConfig, agentRow.name));
+      return {
+        ...agentNodeOutput(result, outcome.runId),
+        ...(agentAttachments?.summary.length ? { files: agentAttachments.summary } : {}),
+      };
     }
 
     // ─── HTTP Request ───
@@ -6309,12 +6964,14 @@ async function runNodeAction(
 
       let resp: Response;
       try {
-        resp = await fetch(baseUrl, {
+        // Egress-guarded on every redirect hop (no private / metadata targets
+        // unless ALLOW_PRIVATE_EGRESS); no automatic retries for this node.
+        const { connectorFetch } = await import("@/lib/integrations/http");
+        resp = await connectorFetch(baseUrl, {
           method,
           headers,
           body: body as BodyInit | undefined,
-          signal: AbortSignal.timeout(sentFiles.length ? TIMEOUTS.LARGE_FILE : TIMEOUTS.DEFAULT),
-        });
+        }, { timeoutMs: sentFiles.length ? TIMEOUTS.LARGE_FILE : TIMEOUTS.DEFAULT, retry: "never" });
       } catch (e: unknown) {
         throw new Error(
           `HTTP Request to ${baseUrl} failed: ${toErrorMessage(e)}`,
@@ -6911,6 +7568,85 @@ async function runNodeAction(
       });
     }
 
+    // ─── Media (transcribe / analyze / redact / generate / speech / FFmpeg utilities) ───
+    case "media_transcribe":
+    case "media_analyze_image":
+    case "media_analyze_video":
+    case "media_redact_image":
+    case "media_redact_video":
+    case "media_generate_image":
+    case "media_tts":
+    case "media_tools": {
+      const media = await import("./media/handlers");
+      const resolveMedia = (e: unknown) => resolveExpression(e, ctx);
+      const mediaInfo = (message: string) => {
+        ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "info", message });
+      };
+      const result = await media.runMediaNode({
+        type: node.type,
+        config,
+        resolve: resolveMedia,
+        supabase,
+        tenantId,
+        variables: ctx.variables,
+        setVar,
+        warn: docLog,
+        info: mediaInfo,
+        // Long media moves to a background job — a saved run outside loops only.
+        canBackground: Boolean(ctx.runId) && !ctx.isTest && !ctx.loopDepth,
+      });
+      if (result instanceof media.MediaBackground || result instanceof media.MediaContinue) {
+        if (!ctx.runId) throw new Error("This media step needs a saved workflow run to continue in the background");
+        const { enqueueMediaJob } = await import("./media/jobs");
+        const eventId = await enqueueMediaJob({
+          supabase,
+          tenantId,
+          runId: ctx.runId,
+          workflowId: ctx.workflowId ?? null,
+          nodeId: node.id,
+          nodeType: node.type,
+          nodeLabel: node.label,
+          outputPrefix: _prefix,
+          config: await media.snapshotMediaConfig({ config, resolve: resolveMedia, supabase, tenantId }),
+          state: result.state,
+          traceId: ctx.traceId ?? ctx.runId ?? null,
+        });
+        const reason = result instanceof media.MediaBackground ? result.reason : "the provider is still working";
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `${node.label} continues in the background (${reason}) — the run resumes when it finishes` } });
+        mediaInfo(`Continues in the background: ${reason}`);
+        throw new PauseError(eventId, node.id);
+      }
+      return result;
+    }
+
+    // ─── E-signature (send / envelope actions / wait for signature) ───
+    case "esign_send":
+    case "esign_envelope":
+    case "esign_wait": {
+      const esign = await import("./esign/handlers");
+      const result = await esign.runEsignNode({
+        type: node.type,
+        config,
+        resolve: (e: unknown) => resolveExpression(e, ctx),
+        supabase,
+        tenantId,
+        variables: ctx.variables,
+        runId: ctx.runId ?? null,
+        workflowId: ctx.workflowId ?? null,
+        nodeId: node.id,
+        nodeLabel: node.label,
+        isTest: Boolean(ctx.isTest),
+        info: (message: string) => {
+          ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "info", message });
+        },
+      });
+      if (result instanceof esign.EsignPause) {
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `${node.label}: ${result.reason} — the run resumes when the envelope is final` } });
+        throw new PauseError(result.eventId, node.id);
+      }
+      return result;
+    }
+
     default:
       return { skipped: true, reason: `Unknown node type: ${node.type}` };
   }
@@ -6964,27 +7700,23 @@ function summarizeOutput(nodeType: string, output: any): any {
           : [],
       };
     case "custom_activity": {
-      const alreadySummarized =
-        Array.isArray(output.outputs) &&
-        (output.count != null || output.activity != null);
-      if (alreadySummarized) {
-        return {
-          activity: output.activity ?? output.activity_name ?? null,
-          outputs: output.outputs,
-          count: output.count ?? output.output_count ?? output.outputs.length,
-        };
-      }
+      // Step detail (Save & Test, run viewer): the typed values, long lists trimmed.
+      const trim = (value: any): any => {
+        if (Array.isArray(value)) return value.length > 5 ? [...value.slice(0, 5).map(trim), `… ${value.length - 5} more`] : value.map(trim);
+        if (typeof value === "string" && value.length > 500) return `${value.slice(0, 500)}…`;
+        return value;
+      };
+      const values = output.outputs && typeof output.outputs === "object" && !Array.isArray(output.outputs)
+        ? Object.fromEntries(Object.entries(output.outputs).map(([k, v]) => [k, trim(v)]))
+        : output.outputs;
       return {
         activity: output.activity_name ?? output.activity ?? null,
-        outputs: Array.isArray(output.outputs)
-          ? output.outputs
-          : Object.keys(output.outputs ?? {}),
-        count:
-          output.output_count ??
-          output.count ??
-          (output.outputs && typeof output.outputs === "object"
-            ? Object.keys(output.outputs).length
-            : 0),
+        ...(output.activity_key ? { action: `${output.activity_key}${output.action_version ? `@${output.action_version}` : ""}` } : {}),
+        ...(output.operation ? { operation: output.operation } : {}),
+        outputs: values,
+        count: output.output_count ?? output.count ?? (values && typeof values === "object" ? Object.keys(values).length : 0),
+        ...(output.stats ? { duration_ms: output.stats.duration_ms, host_calls: output.stats.host_calls, attempts: output.stats.attempts } : {}),
+        ...(Array.isArray(output.warnings) && output.warnings.length ? { warnings: output.warnings } : {}),
       };
     }
     case "live_reference":
@@ -7017,11 +7749,16 @@ function summarizeOutput(nodeType: string, output: any): any {
       return { result: output.result, variable: output.variable };
     case "set_title":
       return { title: output.title };
-    case "set_variable":
+    case "set_variable": {
+      const shown = (value: unknown) => (value !== null && typeof value === "object" ? "[object]" : value);
+      if (Array.isArray(output.assignments) && output.assignments.length > 1) {
+        return { assignments: output.assignments.map((a: any) => ({ name: a.name, value: shown(a.value) })) };
+      }
       return {
-        name: output.name,
+        name: output.variable ?? output.name,
         value: typeof output.value === "object" ? "[object]" : output.value,
       };
+    }
     case "modify_string":
       return { result: output.result, variable: output.variable };
     case "text_template":
@@ -7054,6 +7791,8 @@ function summarizeOutput(nodeType: string, output: any): any {
       return { variable: output.variable, type: output.type };
     case "create_subtask":
       return { subtask_id: output.subtask_id };
+    case "add_task_attachment":
+      return { attachment_id: output.attachment_id, task_id: output.task_id, size: output.size };
     case "update_data_table":
       return output.operation === "list"
         ? { operation: output.operation, row_count: output.row_count }
@@ -7158,6 +7897,18 @@ function summarizeOutput(nodeType: string, output: any): any {
       const { text_preview: _preview, ...rest } = output;
       return rest;
     }
+    case "media_transcribe":
+    case "media_analyze_image":
+    case "media_analyze_video":
+    case "media_redact_image":
+    case "media_redact_video":
+    case "media_generate_image":
+    case "media_tts":
+    case "media_tools": {
+      // Already compact (counts, names, cost); the persisted log drops text previews.
+      const { text_preview: _p, description_preview: _d, summary_preview: _s, ...rest } = output;
+      return rest;
+    }
     default:
       return { ok: true };
   }
@@ -7172,6 +7923,8 @@ const RESERVED_RUN_VARIABLES = new Set([
   "workflow_started_at", "workflow_started_by", "workflow_started_via", "workflow_owner_id", "trigger_type", "run_id",
   "outcome", "outcome_notes", "last_error", "last_error_node", "last_error_node_id",
   "last_error_node_type", "has_error", "live", "item", "index",
+  // Submission metadata (lib/forms/submission-meta.ts), server-set.
+  "submission",
 ]);
 
 function evaluateRule(

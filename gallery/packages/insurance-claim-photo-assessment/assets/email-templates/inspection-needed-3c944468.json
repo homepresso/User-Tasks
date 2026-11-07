@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "3c944468-1b21-5597-82ff-7b608ef3a043",
+  "asset": {
+    "id": "3c944468-1b21-5597-82ff-7b608ef3a043",
+    "name": "Inspection needed",
+    "description": "Sent when the adjuster asks for an inspection.",
+    "subject": "Claim {{claim_ref}}: we need to inspect the vehicle",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Inspection needed</h2><p>Hi {{form.claimant_name}},</p><p>Before we can decide, an assessor needs to see the vehicle. We will call you to arrange a time.</p><p>{{task_data.note}}</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Claim {{claim_ref}} · policy {{form.policy_number}}</p></div>",
+    "text_body": "Claim {{claim_ref}}: inspection needed. {{task_data.note}}",
+    "is_default": false
+  }
+}

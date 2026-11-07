@@ -150,15 +150,19 @@ function pinTimestamps(files: Array<{ path: string; content: string }>, stamp: s
 }
 
 export function buildGalleryPackage(source: GallerySource, options: { signingKey?: GallerySigningKey | null } = {}): BuiltGalleryPackage {
-  const contents = galleryContents(source)
+  return packGalleryContents(source.slug, galleryFileName(source.meta.slug, source.meta.version), galleryContents(source), options)
+}
+
+/** Lay out, check for secrets, pin timestamps and pack (signed with the gallery key when given) — every gallery entry kind. */
+export function packGalleryContents(slug: string, fileName: string, contents: PackageContents, options: { signingKey?: GallerySigningKey | null } = {}): BuiltGalleryPackage {
   const laidOut = toPackageFiles(contents)
   const files = pinTimestamps(laidOut.files, contents.header.created_at)
   const leaks = findSecretLeaks(files)
-  if (leaks.length) throw new Error(`${source.slug}: refusing to build, credential material in ${leaks.slice(0, 5).join(', ')}`)
+  if (leaks.length) throw new Error(`${slug}: refusing to build, credential material in ${leaks.slice(0, 5).join(', ')}`)
   const packed = packPackage({ header: laidOut.header, files, signingKeyPem: options.signingKey?.privateKeyPem ?? null })
   return {
-    slug: source.slug,
-    fileName: galleryFileName(source.meta.slug, source.meta.version),
+    slug,
+    fileName,
     bytes: packed.bytes,
     sha256: createHash('sha256').update(packed.bytes).digest('hex'),
     manifest: packed.manifest,

@@ -1,0 +1,110 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4d7801eb-bacd-58d2-8389-ee728efc9abe",
+  "asset": {
+    "id": "4d7801eb-bacd-58d2-8389-ee728efc9abe",
+    "name": "Call QA archive",
+    "description": "Scored calls: QA result, redacted recording and transcript (card numbers and IDs bleeped / masked), supervisor review. The unredacted recording is not stored here.",
+    "columns": [
+      {
+        "id": "0e862d09-b180-5493-83d4-29ff2fea3251",
+        "required": true,
+        "key": "call_id",
+        "name": "Call",
+        "type": "text"
+      },
+      {
+        "id": "ece976be-d229-5baf-8870-7922d1c402da",
+        "required": false,
+        "key": "agent_name",
+        "name": "Agent",
+        "type": "text"
+      },
+      {
+        "id": "a40f5dec-c5c0-5edf-b157-8424674210a8",
+        "required": false,
+        "key": "queue",
+        "name": "Queue",
+        "type": "text"
+      },
+      {
+        "id": "a464e0d0-a715-5400-897a-de6fba587a16",
+        "required": false,
+        "key": "call_date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "41e0b901-190f-519f-b40d-22384f7856a8",
+        "required": false,
+        "key": "qa_score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "id": "67ad3180-95b8-5f06-b966-bcdd989b56f3",
+        "required": false,
+        "key": "sentiment",
+        "name": "Sentiment",
+        "type": "text"
+      },
+      {
+        "id": "457fc6fc-d05f-5af3-8613-abcc2ef8120e",
+        "required": false,
+        "key": "resolved",
+        "name": "Resolved",
+        "type": "boolean"
+      },
+      {
+        "id": "1fa6b64e-a4a4-5792-a9ac-ca464b897bc3",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      },
+      {
+        "id": "7630a8d7-148f-5c3c-b81c-ef9cde3f230c",
+        "required": false,
+        "key": "pii_bleeps",
+        "name": "PII bleeped",
+        "type": "number"
+      },
+      {
+        "id": "dc9d5cfc-2f58-59b1-b076-969c55b9ed33",
+        "required": false,
+        "key": "redacted_recording",
+        "name": "Redacted recording",
+        "type": "text"
+      },
+      {
+        "id": "fecc637d-0449-50a4-919a-bb70578f504f",
+        "required": false,
+        "key": "redacted_transcript",
+        "name": "Redacted transcript",
+        "type": "text"
+      },
+      {
+        "id": "efa9fcbc-833d-5e9c-a70b-1fe31e006bbb",
+        "required": false,
+        "key": "review",
+        "name": "Review",
+        "type": "text"
+      },
+      {
+        "id": "1ce1a776-2efa-5d6d-a727-0ff138f45e9a",
+        "required": false,
+        "key": "reviewed_by",
+        "name": "Reviewed by",
+        "type": "text"
+      },
+      {
+        "id": "33dbabc7-dfe9-5b04-96c6-c19e215cf955",
+        "required": false,
+        "key": "coaching",
+        "name": "Coaching",
+        "type": "text"
+      }
+    ]
+  }
+}

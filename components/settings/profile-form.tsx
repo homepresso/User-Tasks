@@ -1,8 +1,11 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { SettingsSaveBar, SettingsSection, SettingsSections } from "./settings-section"
 import { useRouter } from "next/navigation"
 import { updateUserProfile } from "@/app/actions/profile"
 
@@ -57,31 +60,35 @@ function formatTimezoneLabel(timezone: string) {
 }
 
 export function ProfileForm({ profile }: ProfileFormProps) {
-  const [displayName, setDisplayName] = useState(profile.display_name)
-  const [timezone, setTimezone] = useState(profile.timezone ?? "America/Denver")
-  const [description, setDescription] = useState(profile.description ?? "")
-  const [skillsText, setSkillsText] = useState((profile.skills ?? []).join(", "))
+  const initial = useMemo(() => ({
+    displayName: profile.display_name,
+    timezone: profile.timezone ?? "America/Denver",
+    description: profile.description ?? "",
+    skillsText: (profile.skills ?? []).join(", "),
+  }), [profile])
+  const [saved, setSaved] = useState(initial)
+  const [draft, setDraft] = useState(initial)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const timezoneOptions = useMemo(() => getTimezoneOptions(), [])
+  const dirty = (Object.keys(draft) as Array<keyof typeof draft>).some((k) => draft[k] !== saved[k])
+  const update = (patch: Partial<typeof draft>) => { setDraft((d) => ({ ...d, ...patch })); setError(null) }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setSaved(false)
     setError(null)
 
-    const skills = skillsText
+    const skills = draft.skillsText
       .split(",")
       .map((skill) => skill.trim())
       .filter(Boolean)
 
     const { error: saveError } = await updateUserProfile({
-      display_name: displayName,
-      timezone,
-      description: description.trim() || null,
+      display_name: draft.displayName,
+      timezone: draft.timezone,
+      description: draft.description.trim() || null,
       skills,
     })
 
@@ -92,87 +99,58 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       return
     }
 
-    setSaved(true)
+    setSaved(draft)
     router.refresh()
-    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Display name
-        </label>
-        <Input
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          required
-        />
-      </div>
+    <form onSubmit={handleSave}>
+      <SettingsSections>
+        <SettingsSection title="Name and email" description="Your name appears on tasks, comments and the audit log.">
+          <div className="space-y-4">
+            <Field label="Display name">
+              <Input value={draft.displayName} onChange={(e) => update({ displayName: e.target.value })} required />
+            </Field>
+            <Field label="Email" description="Your sign-in address. Ask an administrator to change it.">
+              <Input value={profile.email} disabled />
+            </Field>
+          </div>
+        </SettingsSection>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Email
-        </label>
-        <Input value={profile.email} disabled className="opacity-60" />
-      </div>
+        <SettingsSection title="About you" description="Helps people and assignment rules find the right person.">
+          <div className="space-y-4">
+            <Field label="Description" optional>
+              <Textarea
+                value={draft.description}
+                onChange={(e) => update({ description: e.target.value })}
+                rows={4}
+                placeholder="Tell people a little about yourself, your role, or how you work best."
+              />
+            </Field>
+            <Field label="Skills" optional description="Separate skills with commas.">
+              <Input
+                value={draft.skillsText}
+                onChange={(e) => update({ skillsText: e.target.value })}
+                placeholder="e.g. Workflow design, SQL, Customer support, Python"
+              />
+            </Field>
+          </div>
+        </SettingsSection>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Description
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={4}
-          placeholder="Tell people a little about yourself, your role, or how you work best."
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-        />
-      </div>
+        <SettingsSection title="Timezone" description="Due dates, SLAs and your working hours use this timezone.">
+          <Field label="Timezone">
+            <Select value={draft.timezone} onChange={(e) => update({ timezone: e.target.value })}>
+              {timezoneOptions.map((tz) => (
+                <option key={tz} value={tz}>
+                  {formatTimezoneLabel(tz)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </SettingsSection>
+      </SettingsSections>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Skills
-        </label>
-        <Input
-          value={skillsText}
-          onChange={(e) => setSkillsText(e.target.value)}
-          placeholder="e.g. Workflow design, SQL, Customer support, Python"
-        />
-        <p className="mt-1 text-xs" style={{ color: "var(--theme-muted-text)" }}>
-          Separate skills with commas.
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Timezone
-        </label>
-        <select
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-            dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-        >
-          {timezoneOptions.map((tz) => (
-            <option key={tz} value={tz}>
-              {formatTimezoneLabel(tz)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-        {saved && (
-          <span className="text-sm text-green-600">Saved!</span>
-        )}
-        {error && (
-          <span className="text-sm text-red-600">{error}</span>
-        )}
-      </div>
+      <SettingsSaveBar dirty={dirty} saving={saving} error={error} onDiscard={() => { setDraft(saved); setError(null) }} />
     </form>
   )
 }

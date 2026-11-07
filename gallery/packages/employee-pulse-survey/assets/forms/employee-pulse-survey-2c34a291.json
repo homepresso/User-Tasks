@@ -1,0 +1,601 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "2c34a291-69d5-5afc-8877-9972dc60ca63",
+  "asset": {
+    "id": "2c34a291-69d5-5afc-8877-9972dc60ca63",
+    "name": "Employee pulse survey",
+    "description": "The monthly pulse survey page: four short Likert sections (wellbeing, manager & team, growth, workload), an eNPS slider, a mood rating, the department, an anonymous option and one thing to change. Each answer starts the Pulse response workflow.",
+    "tags": [
+      "survey",
+      "engagement",
+      "pulse"
+    ],
+    "fields": [
+      {
+        "key": "wellbeing",
+        "type": "custom",
+        "label": "Wellbeing: how much do you agree?",
+        "custom": {
+          "tag": "ut-likert",
+          "version": "1.1.0",
+          "name": "Likert scale",
+          "value_type": "json",
+          "icon": "list-checks",
+          "value_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "props": {
+            "statements": [
+              "I feel energised by my work most days",
+              "I can switch off from work when I need to",
+              "I feel supported when things get stressful",
+              "I feel valued for the work I do"
+            ],
+            "scale": "agree5",
+            "show_na": true,
+            "all_required": true
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 246,
+            "min_height": 80,
+            "max_height": 2000,
+            "full_width": true
+          },
+          "output": {
+            "type": "object",
+            "description": "One number per statement (0 = N/A), keyed by the statement"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "manager_team",
+        "type": "custom",
+        "label": "Manager & team: how much do you agree?",
+        "custom": {
+          "tag": "ut-likert",
+          "version": "1.1.0",
+          "name": "Likert scale",
+          "value_type": "json",
+          "icon": "list-checks",
+          "value_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "props": {
+            "statements": [
+              "My manager gives me useful, regular feedback",
+              "I trust the people I work with",
+              "I feel safe to speak up and disagree"
+            ],
+            "scale": "agree5",
+            "show_na": true,
+            "all_required": true
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 246,
+            "min_height": 80,
+            "max_height": 2000,
+            "full_width": true
+          },
+          "output": {
+            "type": "object",
+            "description": "One number per statement (0 = N/A), keyed by the statement"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "growth",
+        "type": "custom",
+        "label": "Growth: how much do you agree?",
+        "custom": {
+          "tag": "ut-likert",
+          "version": "1.1.0",
+          "name": "Likert scale",
+          "value_type": "json",
+          "icon": "list-checks",
+          "value_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "props": {
+            "statements": [
+              "I am learning and developing in my role",
+              "I can see a future for myself here",
+              "I have the tools and training I need"
+            ],
+            "scale": "agree5",
+            "show_na": true,
+            "all_required": true
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 246,
+            "min_height": 80,
+            "max_height": 2000,
+            "full_width": true
+          },
+          "output": {
+            "type": "object",
+            "description": "One number per statement (0 = N/A), keyed by the statement"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "workload",
+        "type": "custom",
+        "label": "Workload: how much do you agree?",
+        "custom": {
+          "tag": "ut-likert",
+          "version": "1.1.0",
+          "name": "Likert scale",
+          "value_type": "json",
+          "icon": "list-checks",
+          "value_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "props": {
+            "statements": [
+              "My workload is manageable",
+              "I have enough time to do good-quality work",
+              "Our priorities are clear"
+            ],
+            "scale": "agree5",
+            "show_na": true,
+            "all_required": true
+          },
+          "display": {
+            "format": "json"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Each statement is a radio group with one Tab stop: Tab / Shift+Tab move between statements, the arrow keys choose within a statement (Home / End jump to the ends), Space or Enter chooses the focused point, Delete clears the statement's answer.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 246,
+            "min_height": 80,
+            "max_height": 2000,
+            "full_width": true
+          },
+          "output": {
+            "type": "object",
+            "description": "One number per statement (0 = N/A), keyed by the statement"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "enps",
+        "type": "custom",
+        "label": "How likely are you to recommend working here to a friend?",
+        "custom": {
+          "tag": "ut-slider",
+          "version": "1.1.0",
+          "name": "Slider",
+          "value_type": "number",
+          "icon": "sliders",
+          "value_schema": {
+            "type": "number"
+          },
+          "props": {
+            "min": 0,
+            "max": 10,
+            "step": 1,
+            "show_value": true,
+            "marks": [
+              "0 Not at all likely",
+              "5",
+              "10 Extremely likely"
+            ],
+            "show_input": false
+          },
+          "display": {
+            "template": "{{value}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "slider",
+            "keyboard": "Tab to the slider; Left / Right (or Up / Down) move one step, Page Up / Page Down move further, Home / End jump to the minimum / maximum. Enter or Space accepts the starting position while the field is still empty. With the number box, Tab again to type an exact value.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 87,
+            "min_height": 48,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The value chosen"
+          }
+        },
+        "required": true,
+        "help_text": "0 = not at all likely, 10 = extremely likely."
+      },
+      {
+        "key": "mood",
+        "type": "custom",
+        "label": "Overall, how are you feeling about work this month?",
+        "custom": {
+          "tag": "ut-rating",
+          "version": "1.1.0",
+          "name": "Rating",
+          "value_type": "number",
+          "icon": "star",
+          "value_schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "props": {
+            "max": 5,
+            "symbol": "heart",
+            "size": "large",
+            "labels": [
+              "Really low",
+              "Low",
+              "OK",
+              "Good",
+              "Great"
+            ],
+            "allow_clear": false
+          },
+          "display": {
+            "template": "{{value}} of {{props.max}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "radiogroup",
+            "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 52,
+            "min_height": 36,
+            "max_height": 120
+          },
+          "output": {
+            "type": "number",
+            "description": "The rating (1 to the maximum)"
+          }
+        },
+        "required": true
+      },
+      {
+        "key": "department",
+        "label": "Your department",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Operations",
+          "Sales",
+          "Engineering",
+          "Customer support",
+          "Finance",
+          "People & culture"
+        ]
+      },
+      {
+        "key": "anonymous",
+        "label": "Answer anonymously",
+        "type": "boolean",
+        "help_text": "Your name is not stored with your answers and nobody is asked to follow up with you. Results are only shown by department."
+      },
+      {
+        "key": "manager",
+        "label": "Your manager",
+        "type": "user",
+        "visible_when": {
+          "field": "anonymous",
+          "operator": "not_equals",
+          "value": "true"
+        },
+        "help_text": "Optional. If your answers show you are struggling, your manager gets a private follow-up task."
+      },
+      {
+        "key": "change",
+        "type": "custom",
+        "label": "One thing we should change",
+        "custom": {
+          "tag": "ut-rich-text",
+          "version": "1.1.0",
+          "name": "Rich text",
+          "value_type": "json",
+          "icon": "type",
+          "value_schema": {
+            "type": "object",
+            "properties": {
+              "html": {
+                "type": "string",
+                "maxLength": 100000
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 100000
+              }
+            },
+            "required": [
+              "html",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "props": {
+            "placeholder": "If you could change one thing about working here, what would it be?",
+            "max_length": 2000,
+            "toolbar": "basic",
+            "min_height": 140
+          },
+          "display": {
+            "template": "{{value.text}}",
+            "format": "text"
+          },
+          "accessibility": {
+            "role": "textbox",
+            "keyboard": "Tab to the formatting toolbar (Left / Right / Home / End move between buttons, Enter or Space applies one), Tab again to the text. In the text: Ctrl/Cmd+B, I, U for bold, italic, underline; Ctrl/Cmd+K adds a link (Enter applies, Escape cancels); Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z redoes.",
+            "labelled_by_host": true
+          },
+          "size": {
+            "default_height": 216,
+            "min_height": 120,
+            "max_height": 900,
+            "full_width": true
+          },
+          "output": {
+            "type": "string",
+            "primary": "html",
+            "html": true,
+            "extras": {
+              "text": "text"
+            },
+            "choices": [
+              {
+                "value": "html",
+                "label": "HTML (formatted, sanitised)",
+                "primary": "html",
+                "html": true
+              },
+              {
+                "value": "text",
+                "label": "Plain text",
+                "primary": "text"
+              }
+            ],
+            "description": "The text as sanitised HTML (or plain text, as the form chooses); <key>_text is always the plain text"
+          }
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "page_1",
+          "title": "Wellbeing",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "wellbeing",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "heart",
+          "description": "How you are doing."
+        },
+        {
+          "id": "page_2",
+          "title": "Manager & team",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "manager_team",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "users"
+        },
+        {
+          "id": "page_3",
+          "title": "Growth",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "growth",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "star"
+        },
+        {
+          "id": "page_4",
+          "title": "Workload",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "workload",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "clock"
+        },
+        {
+          "id": "page_5",
+          "title": "Overall",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "enps",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "mood",
+                  "span": 1
+                },
+                {
+                  "field_key": "department",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "change",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "message-square"
+        },
+        {
+          "id": "page_6",
+          "title": "About you",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "anonymous",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "manager",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "user",
+          "description": "Choose whether your name is kept with your answers."
+        }
+      ],
+      "page_settings": {
+        "indicator": "progress",
+        "review": true,
+        "review_title": "Check your answers",
+        "next_label": "Next",
+        "resume": true
+      }
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#BE185D",
+            "background": "#FFFFFF",
+            "text": "#1F1320",
+            "page": "#FCE7F3",
+            "page_to": "#FFF7FB"
+          }
+        },
+        "radius": 16,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send my answers",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thank you",
+            "screen_button": "submit_another",
+            "text": "Your answers have been recorded. See you at the next pulse.",
+            "screen_button_label": "Answer again"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Monthly pulse survey",
+      "align": "left",
+      "subtitle": "Six short steps, about three minutes. Results are shared by department; you can answer anonymously."
+    }
+  }
+}

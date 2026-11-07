@@ -379,17 +379,36 @@ and the **Housekeeping** card ([Infrastructure: Housekeeping](infrastructure.md#
 
 Changing a provider there is the same as `usertasks-admin switch`: the page
 calls the same engine, with the same pre-flight checks, backups, switch log
-and rollback. It needs `DATABASE_URL` (a direct connection, like the CLI).
+and rollback. Every area card always shows **Change…** and **Settings**; when
+one can't be used on this deployment it is disabled and the card says why
+and what to do (the cloud lock with an **Unlock…** control, a missing
+`DATABASE_URL` with how to add it, a provider without settings).
 
-`DATABASE_URL` is optional for the health checks: with the Supabase
-database provider and no `DATABASE_URL` (Vercel, or any host that only has
-the Supabase URL and keys) every database-backed check runs through the
-Supabase API with the service-role key, marked with an info tooltip, and
-the page says that provider changes run with `usertasks-admin switch`
-instead. The same page on Docker, Kubernetes or a VM uses `DATABASE_URL`
-when it is set (and falls back to the Supabase API, with a warning, when
-the connection fails). With the `postgres` provider a missing `DATABASE_URL`
-is a failure.
+`DATABASE_URL` is optional. With the Supabase database provider and no
+`DATABASE_URL` (Vercel, or any host that only has the Supabase URL and keys)
+every database-backed health check runs through the Supabase API with the
+service-role key (marked with an info tooltip), and so do the changes that
+only change configuration:
+
+| Without `DATABASE_URL` (service-role API) | Needs `DATABASE_URL` |
+|---|---|
+| realtime, email, secrets and cache switches; the scheduler between `worker` and `external` while no pg_cron job is scheduled; the KMS provider while there is no data key yet (create the first one later with `usertasks-admin kms rotate`); **Settings** edits of every area except the database and auth; Test connection; rollback of those; the switch log; Unlock / Lock | switching the database, auth (copies accounts) or storage (copies files); installing or removing the pg_cron jobs; re-wrapping existing data keys; retrying a background switch |
+
+The engine keeps switches one at a time without a session lock through a
+short lease (`app_switch.lease`, migration `20261123000000`), which
+also excludes `usertasks-admin` runs that hold the session lock and the
+other way round. For the changes on the right, add `DATABASE_URL` (Supabase →
+Project Settings → Database → Connection string, **Session pooler**) to the
+app environment and redeploy, or run `usertasks-admin switch` where it is
+set. The same page on Docker, Kubernetes or a VM uses `DATABASE_URL` when it
+is set (and reads through the Supabase API, with a warning and changes
+turned off, when the connection fails). With the `postgres` provider a
+missing `DATABASE_URL` is a failure.
+
+`usertasks-admin switch`, `rollback`, `history`, `instance-admins` and
+`ui-switching` work the same way with only the Supabase environment
+(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) for the configuration-only
+changes.
 
 ### Change a provider
 
@@ -486,7 +505,7 @@ decision outside the app).
 | Setting | Default | Effect |
 |---------|---------|--------|
 | `INFRA_UI_SWITCHING` | on | `false` keeps the page read-only (changes only with the CLI) |
-| `instance.allow_ui_switching` | `false` | **Cloud edition only** (`DEPLOYMENT_MODE=cloud`): changes from the page are locked until this is true, so a hosted production instance is never switched from a browser by accident. `usertasks-admin ui-switching on` / `off` / `status` |
+| `instance.allow_ui_switching` | `false` | **Cloud edition only** (`DEPLOYMENT_MODE=cloud`): changes from the page are locked until this is true, so a hosted production instance is never switched from a browser by accident. An instance admin unlocks it on the page (**Unlock…**, type `unlock`) and locks it again there (**Lock again…**), or with `usertasks-admin ui-switching on` / `off` / `status`. Each change is a switch-log entry (area `instance`) with who made it, and can be rolled back from there |
 
 ### Security
 

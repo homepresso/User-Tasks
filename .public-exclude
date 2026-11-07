@@ -37,3 +37,6 @@ scripts/screenshots/.out
 deploy/compose/.state
 **/*.pem
 !deploy/aws/rds-global-bundle.pem
+# Seeds for the maintainer's own test accounts (personal email aliases)
+scripts/seed/approval-use-case.ts
+scripts/seed/local-fixture.ts

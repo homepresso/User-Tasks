@@ -34,6 +34,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return err('No waiting workflow found for this event_id. It may have already been completed or cancelled.', 404)
   }
 
+  // An agent step's event resumes when the agent finishes.
+  const { isAgentManagedEvent, AGENT_EVENT_MESSAGE } = await import('@/lib/agents/approval')
+  if (isAgentManagedEvent(eventId)) return err(AGENT_EVENT_MESSAGE, 409)
+  const { isMediaManagedEvent, MEDIA_EVENT_MESSAGE } = await import('@/lib/media/jobs')
+  if (isMediaManagedEvent(eventId)) return err(MEDIA_EVENT_MESSAGE, 409)
+  const { isEsignManagedEvent, ESIGN_EVENT_MESSAGE } = await import('@/lib/esign/waits')
+  if (isEsignManagedEvent(eventId)) return err(ESIGN_EVENT_MESSAGE, 409)
+
   // A user task's event completes through the task (assignee rule).
   const userTaskId = await findOpenWorkflowTaskForEvent(supabase, tenantId, eventId)
   if (userTaskId) return err(USER_TASK_EVENT_MESSAGE, 409)

@@ -104,14 +104,14 @@ export function UserRoleAssignments({ users, roles }: Props) {
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--theme-card-text)' }}>User Assignments</h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+          <h2 className="text-lg font-semibold text-fg">User Assignments</h2>
+          <p className="text-xs mt-0.5 text-fg-muted">
             {users.length} user{users.length !== 1 ? 's' : ''} in this tenant
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -126,50 +126,49 @@ export function UserRoleAssignments({ users, roles }: Props) {
       </div>
 
       <div
-        className="rounded-xl border overflow-hidden"
-        style={{ borderColor: 'var(--theme-surface-border)' }}
+        className="rounded-xl border overflow-hidden border-border"
       >
         <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: 'var(--theme-muted-text)' }}>User</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: 'var(--theme-muted-text)' }}>Assigned Roles</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold w-24" style={{ color: 'var(--theme-muted-text)' }}>Actions</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-fg-muted">User</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-fg-muted">Assigned Roles</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold w-24 text-fg-muted">Actions</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-12 text-center text-sm" style={{ color: 'var(--theme-muted-text)', backgroundColor: 'var(--theme-card-bg)' }}>
+                <td colSpan={3} className="px-4 py-12 text-center text-sm text-fg-muted bg-panel">
                   {search ? 'No users match your search.' : 'No users yet.'}
                 </td>
               </tr>
             ) : (
               pageRows.map(user => (
-                <tr key={user.id} className="border-t" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                <tr key={user.id} className="border-t border-border bg-panel">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-sm" style={{ color: 'var(--theme-card-text)' }}>{user.display_name}</div>
-                    <div className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{user.email}</div>
+                    <div className="font-medium text-sm text-fg">{user.display_name}</div>
+                    <div className="text-2xs text-fg-muted">{user.email}</div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       {user.assignments.length === 0 && (
-                        <span className="text-xs italic" style={{ color: 'var(--theme-muted-text)' }}>No roles assigned</span>
+                        <span className="text-xs italic text-fg-muted">No roles assigned</span>
                       )}
                       {user.assignments.map((a: any) => (
                         <span
                           key={a.id}
                           className={cn(
-                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
-                            a.role?.is_system ? 'bg-[color:var(--theme-primary-light)] text-[color:var(--theme-card-text)]' : 'bg-purple-50 text-purple-700',
+                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium',
+                            a.role?.is_system ? 'bg-[color:var(--theme-primary-light)] text-[color:var(--theme-card-text)]' : 'bg-primary-wash text-primary-text',
                           )}
                         >
                           <Shield size={9} />
                           {a.role?.name ?? 'Unknown'}
                           <button
                             onClick={() => setRemoveTarget({ userId: user.id, roleId: a.role_id, roleName: a.role?.name ?? 'Role' })}
-                            className="ml-0.5 hover:text-red-500"
+                            className="ml-0.5 hover:text-danger"
                             title="Remove role"
                             disabled={loading}
                           >
@@ -182,8 +181,7 @@ export function UserRoleAssignments({ users, roles }: Props) {
                           <select
                             value={selectedRole}
                             onChange={e => setSelectedRole(e.target.value)}
-                            className="rounded border px-1.5 py-0.5 text-[10px]"
-                            style={{ borderColor: 'var(--theme-surface-border)' }}
+                            className="rounded border px-1.5 py-0.5 text-2xs border-border"
                             autoFocus
                           >
                             <option value="">Select role...</option>
@@ -191,8 +189,8 @@ export function UserRoleAssignments({ users, roles }: Props) {
                               .filter(r => !user.assignments.some((a: any) => a.role_id === r.id))
                               .map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
                           </select>
-                          <Button size="sm" className="h-5 text-[10px] px-2" onClick={handleAssign} disabled={!selectedRole || loading}>Add</Button>
-                          <button onClick={() => { setAssigningUser(null); setSelectedRole('') }} className="text-gray-400 hover:text-gray-600"><X size={11} /></button>
+                          <Button size="sm" className="h-5 text-2xs px-2" onClick={handleAssign} disabled={!selectedRole || loading}>Add</Button>
+                          <button onClick={() => { setAssigningUser(null); setSelectedRole('') }} className="text-fg-muted hover:text-fg-muted"><X size={11} /></button>
                         </div>
                       ) : null}
                     </div>
@@ -219,8 +217,7 @@ export function UserRoleAssignments({ users, roles }: Props) {
             when there's more than one page. */}
         {filtered.length > 0 && (
           <div
-            className="flex items-center justify-between px-4 py-2 border-t text-[11px]"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+            className="flex items-center justify-between px-4 py-2 border-t text-2xs border-border text-fg-muted"
           >
             <div className="flex items-center gap-2">
               <span>
@@ -232,12 +229,7 @@ export function UserRoleAssignments({ users, roles }: Props) {
                 <select
                   value={pageSize}
                   onChange={e => setPageSize(Number(e.target.value))}
-                  className="rounded border px-1.5 py-0.5 text-[11px]"
-                  style={{
-                    borderColor: 'var(--theme-surface-border)',
-                    backgroundColor: 'var(--theme-card-bg)',
-                    color: 'var(--theme-card-text)',
-                  }}
+                  className="rounded border px-1.5 py-0.5 text-2xs border-border bg-panel text-fg"
                 >
                   {[25, 50, 100, 250].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>

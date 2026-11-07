@@ -1,0 +1,1705 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "6993d232-4c0b-59d1-b34c-4e02a56aaa7e",
+  "asset": {
+    "id": "6993d232-4c0b-59d1-b34c-4e02a56aaa7e",
+    "name": "Site inspection",
+    "description": "An inspector submits the checklist: failures are counted, a decision table sets the outcome band and close-out SLA, the inspection is saved and reported, every failed item becomes a corrective action with a signed-off fix and photo evidence, and the safety manager reviews the result.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Inspection submitted",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "d255e70b-9ea0-5d64-a2a6-c429ba3f40a5",
+          "form_name": "Site safety inspection"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Inspection reference",
+        "position": {
+          "x": 600,
+          "y": 180
+        },
+        "config": {
+          "name": "inspection_ref",
+          "expression": "INS-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "site",
+        "type": "update_data_table",
+        "label": "Read the site",
+        "position": {
+          "x": 600,
+          "y": 300
+        },
+        "config": {
+          "table_id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+          "table_name": "Sites",
+          "operation": "get",
+          "match_column": "site_code",
+          "match_value": "{{form.site}}",
+          "output_row_var": "site_row"
+        }
+      },
+      {
+        "id": "fails",
+        "type": "set_variable",
+        "label": "Failed items",
+        "position": {
+          "x": 600,
+          "y": 420
+        },
+        "config": {
+          "name": "fails",
+          "expression": "{{=FILTER_WHERE(form.checklist, \"status\", \"Fail\")}}"
+        }
+      },
+      {
+        "id": "fail_count",
+        "type": "set_variable",
+        "label": "Count failures",
+        "position": {
+          "x": 600,
+          "y": 540
+        },
+        "config": {
+          "name": "fail_count",
+          "expression": "{{=COUNT(fails)}}"
+        }
+      },
+      {
+        "id": "high",
+        "type": "set_variable",
+        "label": "High severity",
+        "position": {
+          "x": 600,
+          "y": 660
+        },
+        "config": {
+          "name": "high_fails",
+          "expression": "{{=COUNT(FILTER_WHERE(fails, \"severity\", \"High\"))}}"
+        }
+      },
+      {
+        "id": "medium",
+        "type": "set_variable",
+        "label": "Medium severity",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "name": "medium_fails",
+          "expression": "{{=COUNT(FILTER_WHERE(fails, \"severity\", \"Medium\"))}}"
+        }
+      },
+      {
+        "id": "low",
+        "type": "set_variable",
+        "label": "Low severity",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "name": "low_fails",
+          "expression": "{{=fail_count - high_fails - medium_fails}}"
+        }
+      },
+      {
+        "id": "checked",
+        "type": "set_variable",
+        "label": "Items checked",
+        "position": {
+          "x": 600,
+          "y": 1020
+        },
+        "config": {
+          "name": "items_checked",
+          "expression": "{{=COUNT(form.checklist)}}"
+        }
+      },
+      {
+        "id": "na",
+        "type": "set_variable",
+        "label": "Not applicable",
+        "position": {
+          "x": 600,
+          "y": 1140
+        },
+        "config": {
+          "name": "na_count",
+          "expression": "{{=COUNT(FILTER_WHERE(form.checklist, \"status\", \"N/A\"))}}"
+        }
+      },
+      {
+        "id": "passed",
+        "type": "set_variable",
+        "label": "Passed",
+        "position": {
+          "x": 600,
+          "y": 1260
+        },
+        "config": {
+          "name": "pass_count",
+          "expression": "{{=COUNT(FILTER_WHERE(form.checklist, \"status\", \"Pass\"))}}"
+        }
+      },
+      {
+        "id": "rate",
+        "type": "set_variable",
+        "label": "Pass rate",
+        "position": {
+          "x": 600,
+          "y": 1380
+        },
+        "config": {
+          "name": "pass_rate",
+          "expression": "{{=ROUND(pass_count * 100 / MAX(1, items_checked - na_count), 0)}}"
+        }
+      },
+      {
+        "id": "worst",
+        "type": "set_variable",
+        "label": "Worst severity",
+        "position": {
+          "x": 600,
+          "y": 1500
+        },
+        "config": {
+          "name": "max_severity",
+          "expression": "{{=IF(high_fails > 0, 3, IF(medium_fails > 0, 2, IF(fail_count > 0, 1, 0)))}}"
+        }
+      },
+      {
+        "id": "list",
+        "type": "set_variable",
+        "label": "Failed items list",
+        "position": {
+          "x": 600,
+          "y": 1620
+        },
+        "config": {
+          "name": "fail_list",
+          "expression": "{{=JOIN(\"; \", PLUCK(fails, \"item\"))}}"
+        }
+      },
+      {
+        "id": "band",
+        "type": "decision_table",
+        "label": "Outcome band",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "decision_table_id": "a32fdd76-fc20-5317-a4dc-00c6e8260950",
+          "decision_table_name": "Inspection outcome band",
+          "input_mappings": {
+            "fail_count": "{{fail_count}}",
+            "high_fails": "{{high_fails}}",
+            "max_severity": "{{max_severity}}",
+            "condition": "{{form.site_condition}}"
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 1860
+        },
+        "config": {
+          "title": "Inspection {{site_row.name}} {{form.inspection_date}}: {{outcome_band}} ({{fail_count}} failed)"
+        }
+      },
+      {
+        "id": "save",
+        "type": "update_data_table",
+        "label": "Save the inspection",
+        "position": {
+          "x": 600,
+          "y": 1980
+        },
+        "config": {
+          "table_id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+          "table_name": "Inspections",
+          "operation": "insert",
+          "column_values": {
+            "inspection_ref": "{{inspection_ref}}",
+            "inspected_on": "{{form.inspection_date}}",
+            "site_code": "{{form.site}}",
+            "site_name": "{{site_row.name}}",
+            "inspection_type": "{{form.inspection_type}}",
+            "inspector": "{{submitted_by_name}}",
+            "items_checked": "{{items_checked}}",
+            "fail_count": "{{fail_count}}",
+            "high_fails": "{{high_fails}}",
+            "pass_rate": "{{pass_rate}}",
+            "site_condition": "{{form.site_condition}}",
+            "outcome_band": "{{outcome_band}}",
+            "sla_days": "{{sla_days}}",
+            "photos": "{{=COUNT(form.photos)}}",
+            "observations": "{{form.observations_text}}",
+            "status": "{{=IF(fail_count > 0, \"Actions open\", \"Compliant\")}}"
+          }
+        }
+      },
+      {
+        "id": "site_upd",
+        "type": "update_data_table",
+        "label": "Update the site",
+        "position": {
+          "x": 600,
+          "y": 2100
+        },
+        "config": {
+          "table_id": "61e0ee2e-2884-53bb-8a02-221ea58ac3a0",
+          "table_name": "Sites",
+          "operation": "update",
+          "match_column": "site_code",
+          "match_value": "{{form.site}}",
+          "column_values": {
+            "last_inspected": "{{form.inspection_date}}",
+            "last_outcome": "{{outcome_band}}"
+          }
+        }
+      },
+      {
+        "id": "report",
+        "type": "send_email",
+        "label": "Email the report to the site manager",
+        "position": {
+          "x": 600,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{site_row.site_manager_email}}",
+          "email_template_id": "992651b6-118f-5a89-81fa-1b751f3fa7f8",
+          "attachments": "{{form.photos}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "stop",
+        "type": "condition",
+        "label": "Stop work?",
+        "position": {
+          "x": 600,
+          "y": 2340
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Stop work",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{stop_work}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "stop_mail",
+        "type": "send_email",
+        "label": "Stop-work alert",
+        "position": {
+          "x": 920,
+          "y": 2460
+        },
+        "config": {
+          "to": "{{site_row.site_manager_email}}, {{submitted_by_email}}",
+          "email_template_id": "37f511bf-369b-515f-a6f4-d698b7754e3b"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "any",
+        "type": "condition",
+        "label": "Any failures?",
+        "position": {
+          "x": 600,
+          "y": 2580
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Failures",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{fail_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "compliant",
+        "type": "end_workflow",
+        "label": "Compliant",
+        "position": {
+          "x": 1020,
+          "y": 2700
+        },
+        "config": {
+          "reason": "{{inspection_ref}}: every check passed at {{site_row.name}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Close-out SLA",
+        "position": {
+          "x": 600,
+          "y": 2700
+        },
+        "config": {
+          "sla_label": "Corrective actions ({{outcome_band}}, {{sla_days}} days)",
+          "mode": "relative",
+          "amount": "{{sla_days}}",
+          "unit": "days",
+          "warning_amount": 12,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each failed item",
+        "position": {
+          "x": 600,
+          "y": 2820
+        },
+        "config": {
+          "items": "{{fails}}",
+          "item_var": "f",
+          "index_var": "fi"
+        }
+      },
+      {
+        "id": "f_due",
+        "type": "decision_table",
+        "label": "Days to fix",
+        "position": {
+          "x": 240,
+          "y": 2940
+        },
+        "config": {
+          "decision_table_id": "b828b4e2-dbea-51bc-a2e4-0941908ef1b5",
+          "decision_table_name": "Corrective action due date",
+          "input_mappings": {
+            "severity": "{{f.severity}}"
+          }
+        }
+      },
+      {
+        "id": "f_row",
+        "type": "update_data_table",
+        "label": "Log the corrective action",
+        "position": {
+          "x": 240,
+          "y": 3060
+        },
+        "config": {
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "table_name": "Corrective actions",
+          "operation": "insert",
+          "column_values": {
+            "action_ref": "{{inspection_ref}}-A{{=fi + 1}}",
+            "inspection_ref": "{{inspection_ref}}",
+            "site_code": "{{form.site}}",
+            "site_name": "{{site_row.name}}",
+            "item": "{{f.item}}",
+            "area": "{{f.area}}",
+            "severity": "{{=COALESCE(f.severity, \"Low\")}}",
+            "found": "{{f.notes}}",
+            "due_date": "{{=FORMAT_DATE(ADD_DAYS(NOW(), action_days), \"YYYY-MM-DD\")}}",
+            "sla_days": "{{action_days}}",
+            "status": "Open",
+            "evidence_files": "0",
+            "summary": "{{site_row.name}}: {{f.item}} ({{=COALESCE(f.severity, \"Low\")}}, due {{=FORMAT_DATE(ADD_DAYS(NOW(), action_days), \"YYYY-MM-DD\")}})"
+          }
+        }
+      },
+      {
+        "id": "start",
+        "type": "set_variable",
+        "label": "First action",
+        "position": {
+          "x": 600,
+          "y": 2940
+        },
+        "config": {
+          "name": "action_index",
+          "expression": "{{=1}}"
+        }
+      },
+      {
+        "id": "closed0",
+        "type": "set_variable",
+        "label": "None closed yet",
+        "position": {
+          "x": 600,
+          "y": 3060
+        },
+        "config": {
+          "name": "closed_count",
+          "expression": "{{=0}}"
+        }
+      },
+      {
+        "id": "pick",
+        "type": "set_variable",
+        "label": "Next failed item",
+        "position": {
+          "x": 600,
+          "y": 3180
+        },
+        "config": {
+          "name": "action",
+          "expression": "{{=INDEX(fails, action_index)}}"
+        }
+      },
+      {
+        "id": "pick_ref",
+        "type": "set_variable",
+        "label": "Action reference",
+        "position": {
+          "x": 600,
+          "y": 3300
+        },
+        "config": {
+          "name": "action_ref",
+          "expression": "{{inspection_ref}}-A{{action_index}}"
+        }
+      },
+      {
+        "id": "due",
+        "type": "decision_table",
+        "label": "Days to fix this one",
+        "position": {
+          "x": 600,
+          "y": 3420
+        },
+        "config": {
+          "decision_table_id": "b828b4e2-dbea-51bc-a2e4-0941908ef1b5",
+          "decision_table_name": "Corrective action due date",
+          "input_mappings": {
+            "severity": "{{action.severity}}"
+          }
+        }
+      },
+      {
+        "id": "due_date",
+        "type": "set_variable",
+        "label": "Fix by",
+        "position": {
+          "x": 600,
+          "y": 3540
+        },
+        "config": {
+          "name": "action_due",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(NOW(), action_days), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "fix",
+        "type": "user_task",
+        "label": "Corrective action",
+        "position": {
+          "x": 600,
+          "y": 3660
+        },
+        "config": {
+          "task_title": "Corrective action {{action_index}}/{{fail_count}}: {{action.item}} ({{site_row.name}})",
+          "task_description": "<p>The inspection of <strong>{{site_row.name}}</strong> on {{form.inspection_date}} failed <strong>{{action.item}}</strong> ({{action.area}}, {{action.severity}} severity).</p><p>Found: {{action.notes}}</p><p>Agree the fix with {{site_row.site_manager}}, make sure it is done by <strong>{{action_due}}</strong>, then record what was done with a photo of the result and sign it off. Choose <em>Cannot fix</em> if it needs a decision from the safety manager.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Fixed",
+            "Cannot fix"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), action_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "ca_site",
+              "label": "Site",
+              "type": "text",
+              "read_only": true,
+              "default": "{{site_row.name}}"
+            },
+            {
+              "key": "ca_item",
+              "label": "Checklist item",
+              "type": "text",
+              "read_only": true,
+              "default": "{{action.item}}"
+            },
+            {
+              "key": "ca_area",
+              "label": "Area",
+              "type": "text",
+              "read_only": true,
+              "default": "{{action.area}}"
+            },
+            {
+              "key": "ca_severity",
+              "label": "Severity",
+              "type": "text",
+              "read_only": true,
+              "default": "{{action.severity}}"
+            },
+            {
+              "key": "ca_found",
+              "label": "What the inspector found",
+              "type": "textarea",
+              "read_only": true,
+              "default": "{{action.notes}}"
+            },
+            {
+              "key": "ca_due",
+              "label": "Fix by",
+              "type": "text",
+              "read_only": true,
+              "default": "{{action_due}}"
+            },
+            {
+              "key": "ca_card",
+              "type": "custom",
+              "label": "The failed check",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "warning",
+                  "card_title": "Corrective action {{field6}}",
+                  "body": "",
+                  "layout": "key-value",
+                  "labels": [
+                    "Site",
+                    "Item",
+                    "Area",
+                    "Severity",
+                    "Fix by",
+                    "Action"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "ca_site",
+                  "field2": "ca_item",
+                  "field3": "ca_area",
+                  "field4": "ca_severity",
+                  "field5": "ca_due",
+                  "field6": "ca_ref"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "ca_ref",
+              "label": "Action",
+              "type": "text",
+              "read_only": true,
+              "default": "{{action_ref}}"
+            },
+            {
+              "key": "ca_closed",
+              "label": "Closed so far",
+              "type": "number",
+              "read_only": true,
+              "default": "{{closed_count}}"
+            },
+            {
+              "key": "ca_total",
+              "label": "Actions from this inspection",
+              "type": "number",
+              "read_only": true,
+              "default": "{{fail_count}}"
+            },
+            {
+              "key": "ca_progress",
+              "type": "custom",
+              "label": "Actions closed for this inspection",
+              "custom": {
+                "tag": "ut-progress",
+                "version": "1.1.0",
+                "name": "Progress",
+                "value_type": "number",
+                "icon": "gauge",
+                "props": {
+                  "appearance": "bar",
+                  "total_value": 100,
+                  "unit": "actions",
+                  "show_percentage": true,
+                  "label_template": "{{current}} of {{total}} actions closed",
+                  "good_above": 99
+                },
+                "context_map": {
+                  "current": "ca_closed",
+                  "total": "ca_total"
+                },
+                "display": {
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "progressbar",
+                  "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 60,
+                  "min_height": 32,
+                  "max_height": 600
+                },
+                "output": {
+                  "type": "number",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "fix_description",
+              "label": "What was done to fix it",
+              "type": "textarea",
+              "required": true,
+              "help_text": "Emailed to the site manager."
+            },
+            {
+              "key": "root_cause",
+              "label": "Root cause",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Housekeeping",
+                "Missing equipment",
+                "Maintenance overdue",
+                "Training",
+                "Procedure not followed",
+                "Other"
+              ]
+            },
+            {
+              "key": "fixed_on",
+              "label": "Fixed on",
+              "type": "date",
+              "required": true,
+              "default": "{{=TODAY()}}"
+            },
+            {
+              "key": "evidence",
+              "label": "Photo evidence",
+              "type": "attachments",
+              "required": true,
+              "attachments": {
+                "max_files": 5,
+                "max_file_mb": 20,
+                "types": [
+                  "images"
+                ]
+              },
+              "help_text": "A photo of the fixed hazard."
+            },
+            {
+              "key": "signoff",
+              "type": "custom",
+              "label": "Sign-off",
+              "custom": {
+                "tag": "ut-signature",
+                "version": "1.1.0",
+                "name": "Signature",
+                "value_type": "files",
+                "icon": "signature",
+                "value_schema": {
+                  "type": "array",
+                  "maxItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "size": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 100
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  }
+                },
+                "props": {
+                  "background": "white",
+                  "height": 150,
+                  "allow_typed": true,
+                  "prompt": "Signed off by the person who checked the fix"
+                },
+                "display": {
+                  "format": "list"
+                },
+                "accessibility": {
+                  "role": "group",
+                  "keyboard": "Tab to the drawing area and the buttons. Keyboard users choose \"Type your name instead\", type their name and press Enter (or \"Use this signature\"). Undo removes the last stroke, Clear empties the pad, \"Sign again\" replaces a saved signature.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 222,
+                  "min_height": 140,
+                  "max_height": 640,
+                  "full_width": true
+                },
+                "capabilities": [
+                  "files"
+                ],
+                "output": {
+                  "type": "array",
+                  "description": "The signature image as an uploaded file (a list of one, like Attachments)"
+                }
+              },
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "ca_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "ca_progress",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "ca_found",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "fix_description",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "root_cause",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "fixed_on",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "evidence",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "signoff",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "fixed",
+              "label": "Fixed and signed off",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Fixed"
+            },
+            {
+              "id": "cannot",
+              "label": "Cannot fix",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Cannot fix"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Corrective action",
+            "align": "left",
+            "subtitle": "{{action_ref}} · {{site_row.name}} · fix by {{action_due}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#CA8A04",
+                  "background": "#FFFFFF",
+                  "text": "#1C1917",
+                  "page": "#FEF9E7",
+                  "page_to": "#FFFDF5"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "closed_row",
+        "type": "update_data_table",
+        "label": "Record the fix",
+        "position": {
+          "x": 360,
+          "y": 3800
+        },
+        "config": {
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "table_name": "Corrective actions",
+          "operation": "update",
+          "match_column": "action_ref",
+          "match_value": "{{action_ref}}",
+          "column_values": {
+            "status": "Closed",
+            "fix": "{{task_data.fix_description}}",
+            "closed_on": "{{task_data.fixed_on}}",
+            "signed_off_by": "{{actioned_by_name}}",
+            "evidence_files": "{{=COUNT(task_data.evidence)}}"
+          }
+        }
+      },
+      {
+        "id": "closed_n",
+        "type": "set_variable",
+        "label": "Count closed",
+        "position": {
+          "x": 360,
+          "y": 3920
+        },
+        "config": {
+          "name": "closed_count",
+          "expression": "{{=closed_count + 1}}"
+        }
+      },
+      {
+        "id": "closed_mail",
+        "type": "send_email",
+        "label": "Tell the site manager",
+        "position": {
+          "x": 360,
+          "y": 4040
+        },
+        "config": {
+          "to": "{{site_row.site_manager_email}}",
+          "email_template_id": "3a752ff2-898c-5efe-aae1-90437c133482",
+          "attachments": "{{task_data.evidence}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "esc_row",
+        "type": "update_data_table",
+        "label": "Mark escalated",
+        "position": {
+          "x": 840,
+          "y": 3800
+        },
+        "config": {
+          "table_id": "4a1679c4-4eb9-5a7c-8b33-a3509afb9bd9",
+          "table_name": "Corrective actions",
+          "operation": "update",
+          "match_column": "action_ref",
+          "match_value": "{{action_ref}}",
+          "column_values": {
+            "status": "Escalated",
+            "fix": "{{task_data.fix_description}}"
+          }
+        }
+      },
+      {
+        "id": "next",
+        "type": "set_variable",
+        "label": "Move to the next item",
+        "position": {
+          "x": 600,
+          "y": 4160
+        },
+        "config": {
+          "name": "action_index",
+          "expression": "{{=action_index + 1}}"
+        }
+      },
+      {
+        "id": "more",
+        "type": "condition",
+        "label": "More failed items?",
+        "position": {
+          "x": 600,
+          "y": 4280
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "More",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{=action_index <= fail_count}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "again",
+        "type": "goto_activity",
+        "label": "Next corrective action",
+        "position": {
+          "x": 960,
+          "y": 4400
+        },
+        "config": {
+          "target_node_id": "pick",
+          "target_node_label": "Next failed item"
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Safety manager review",
+        "position": {
+          "x": 600,
+          "y": 4400
+        },
+        "config": {
+          "task_title": "Review inspection {{inspection_ref}}: {{site_row.name}} ({{outcome_band}})",
+          "task_description": "<p>{{submitted_by_name}} inspected <strong>{{site_row.name}}</strong> on {{form.inspection_date}}: <strong>{{outcome_band}}</strong>, pass rate {{pass_rate}}%.</p><p>{{closed_count}} of {{fail_count}} corrective actions were fixed and signed off; the rest were escalated to you. Check the Corrective actions table, then close the inspection or ask for a re-inspection.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Close inspection",
+            "Re-inspect"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), 3)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "rv_site",
+              "label": "Site",
+              "type": "text",
+              "read_only": true,
+              "default": "{{site_row.name}}"
+            },
+            {
+              "key": "rv_band",
+              "label": "Outcome",
+              "type": "text",
+              "read_only": true,
+              "default": "{{outcome_band}}"
+            },
+            {
+              "key": "rv_rate",
+              "label": "Pass rate",
+              "type": "text",
+              "read_only": true,
+              "default": "{{pass_rate}}% ({{fail_count}} failed of {{items_checked}})"
+            },
+            {
+              "key": "rv_condition",
+              "label": "Site condition",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.site_condition}} of 5"
+            },
+            {
+              "key": "rv_inspector",
+              "label": "Inspector",
+              "type": "text",
+              "read_only": true,
+              "default": "{{submitted_by_name}} on {{form.inspection_date}}"
+            },
+            {
+              "key": "rv_escalated",
+              "label": "Escalated actions",
+              "type": "number",
+              "read_only": true,
+              "default": "{{=fail_count - closed_count}}"
+            },
+            {
+              "key": "rv_card",
+              "type": "custom",
+              "label": "Inspection summary",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "info",
+                  "card_title": "Inspection {{field1}}",
+                  "body": "",
+                  "layout": "key-value",
+                  "labels": [
+                    "Site",
+                    "Outcome",
+                    "Pass rate",
+                    "Site condition",
+                    "Inspector",
+                    "Not fixed (escalated)"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "rv_site",
+                  "field2": "rv_band",
+                  "field3": "rv_rate",
+                  "field4": "rv_condition",
+                  "field5": "rv_inspector",
+                  "field6": "rv_escalated"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "rv_closed",
+              "label": "Actions closed",
+              "type": "number",
+              "read_only": true,
+              "default": "{{closed_count}}"
+            },
+            {
+              "key": "rv_total",
+              "label": "Actions raised",
+              "type": "number",
+              "read_only": true,
+              "default": "{{fail_count}}"
+            },
+            {
+              "key": "rv_progress",
+              "type": "custom",
+              "label": "Corrective actions closed",
+              "custom": {
+                "tag": "ut-progress",
+                "version": "1.1.0",
+                "name": "Progress",
+                "value_type": "number",
+                "icon": "gauge",
+                "props": {
+                  "appearance": "ring",
+                  "total_value": 100,
+                  "unit": "actions",
+                  "show_percentage": true,
+                  "label_template": "{{current}} of {{total}} closed",
+                  "warn_below": 100,
+                  "good_above": 99
+                },
+                "context_map": {
+                  "current": "rv_closed",
+                  "total": "rv_total"
+                },
+                "display": {
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "progressbar",
+                  "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 60,
+                  "min_height": 32,
+                  "max_height": 600
+                },
+                "output": {
+                  "type": "number",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "rv_confidence",
+              "type": "custom",
+              "label": "Confidence in the site's controls",
+              "custom": {
+                "tag": "ut-rating",
+                "version": "1.1.0",
+                "name": "Rating",
+                "value_type": "number",
+                "icon": "star",
+                "value_schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "props": {
+                  "max": 5,
+                  "symbol": "circle",
+                  "size": "medium",
+                  "labels": [
+                    "None",
+                    "Low",
+                    "Some",
+                    "Good",
+                    "Full"
+                  ],
+                  "allow_clear": true
+                },
+                "display": {
+                  "template": "{{value}} of {{props.max}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "radiogroup",
+                  "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 52,
+                  "min_height": 36,
+                  "max_height": 120
+                },
+                "output": {
+                  "type": "number",
+                  "description": "The rating (1 to the maximum)"
+                }
+              },
+              "required": true
+            },
+            {
+              "key": "review_notes",
+              "label": "Notes for the health and safety committee",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "rv_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "rv_progress",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "rv_confidence",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "review_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "close",
+              "label": "Close the inspection",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Close inspection"
+            },
+            {
+              "id": "reinspect",
+              "label": "Re-inspect",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Re-inspect"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Inspection review",
+            "align": "left",
+            "subtitle": "{{inspection_ref}} · {{site_row.name}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#CA8A04",
+                  "background": "#FFFFFF",
+                  "text": "#1C1917",
+                  "page": "#FEF9E7",
+                  "page_to": "#FFFDF5"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "close_row",
+        "type": "update_data_table",
+        "label": "Close the inspection",
+        "position": {
+          "x": 360,
+          "y": 4540
+        },
+        "config": {
+          "table_id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+          "table_name": "Inspections",
+          "operation": "update",
+          "match_column": "inspection_ref",
+          "match_value": "{{inspection_ref}}",
+          "column_values": {
+            "status": "Closed"
+          }
+        }
+      },
+      {
+        "id": "closed_end",
+        "type": "end_workflow",
+        "label": "Inspection closed",
+        "position": {
+          "x": 360,
+          "y": 4660
+        },
+        "config": {
+          "reason": "{{inspection_ref}} closed: {{closed_count}} of {{fail_count}} actions fixed"
+        }
+      },
+      {
+        "id": "re_row",
+        "type": "update_data_table",
+        "label": "Flag for re-inspection",
+        "position": {
+          "x": 840,
+          "y": 4540
+        },
+        "config": {
+          "table_id": "b981300f-2e9b-5bb0-8cdf-69920addfc8a",
+          "table_name": "Inspections",
+          "operation": "update",
+          "match_column": "inspection_ref",
+          "match_value": "{{inspection_ref}}",
+          "column_values": {
+            "status": "Re-inspect"
+          }
+        }
+      },
+      {
+        "id": "re_end",
+        "type": "end_workflow",
+        "label": "Re-inspection needed",
+        "position": {
+          "x": 840,
+          "y": 4660
+        },
+        "config": {
+          "reason": "{{inspection_ref}}: re-inspection requested"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-site",
+        "source": "ref",
+        "target": "site"
+      },
+      {
+        "id": "e-site-fails",
+        "source": "site",
+        "target": "fails"
+      },
+      {
+        "id": "e-fails-fail_count",
+        "source": "fails",
+        "target": "fail_count"
+      },
+      {
+        "id": "e-fail_count-high",
+        "source": "fail_count",
+        "target": "high"
+      },
+      {
+        "id": "e-high-medium",
+        "source": "high",
+        "target": "medium"
+      },
+      {
+        "id": "e-medium-low",
+        "source": "medium",
+        "target": "low"
+      },
+      {
+        "id": "e-low-checked",
+        "source": "low",
+        "target": "checked"
+      },
+      {
+        "id": "e-checked-na",
+        "source": "checked",
+        "target": "na"
+      },
+      {
+        "id": "e-na-passed",
+        "source": "na",
+        "target": "passed"
+      },
+      {
+        "id": "e-passed-rate",
+        "source": "passed",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-worst",
+        "source": "rate",
+        "target": "worst"
+      },
+      {
+        "id": "e-worst-list",
+        "source": "worst",
+        "target": "list"
+      },
+      {
+        "id": "e-list-band",
+        "source": "list",
+        "target": "band"
+      },
+      {
+        "id": "e-band-title",
+        "source": "band",
+        "target": "title"
+      },
+      {
+        "id": "e-title-save",
+        "source": "title",
+        "target": "save"
+      },
+      {
+        "id": "e-save-site_upd",
+        "source": "save",
+        "target": "site_upd"
+      },
+      {
+        "id": "e-site_upd-report",
+        "source": "site_upd",
+        "target": "report"
+      },
+      {
+        "id": "e-report-stop",
+        "source": "report",
+        "target": "stop"
+      },
+      {
+        "id": "e-stop-stop_mail-stop-work",
+        "source": "stop",
+        "target": "stop_mail",
+        "label": "Stop work"
+      },
+      {
+        "id": "e-stop-any-else",
+        "source": "stop",
+        "target": "any",
+        "label": "Else"
+      },
+      {
+        "id": "e-stop_mail-any",
+        "source": "stop_mail",
+        "target": "any"
+      },
+      {
+        "id": "e-any-sla-failures",
+        "source": "any",
+        "target": "sla",
+        "label": "Failures"
+      },
+      {
+        "id": "e-any-compliant-else",
+        "source": "any",
+        "target": "compliant",
+        "label": "Else"
+      },
+      {
+        "id": "e-sla-each",
+        "source": "sla",
+        "target": "each"
+      },
+      {
+        "id": "e-each-f_due-each-item",
+        "source": "each",
+        "target": "f_due",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-f_due-f_row",
+        "source": "f_due",
+        "target": "f_row"
+      },
+      {
+        "id": "e-each-start-done",
+        "source": "each",
+        "target": "start",
+        "label": "Done"
+      },
+      {
+        "id": "e-start-closed0",
+        "source": "start",
+        "target": "closed0"
+      },
+      {
+        "id": "e-closed0-pick",
+        "source": "closed0",
+        "target": "pick"
+      },
+      {
+        "id": "e-pick-pick_ref",
+        "source": "pick",
+        "target": "pick_ref"
+      },
+      {
+        "id": "e-pick_ref-due",
+        "source": "pick_ref",
+        "target": "due"
+      },
+      {
+        "id": "e-due-due_date",
+        "source": "due",
+        "target": "due_date"
+      },
+      {
+        "id": "e-due_date-fix",
+        "source": "due_date",
+        "target": "fix"
+      },
+      {
+        "id": "e-fix-closed_row-fixed",
+        "source": "fix",
+        "target": "closed_row",
+        "label": "Fixed"
+      },
+      {
+        "id": "e-closed_row-closed_n",
+        "source": "closed_row",
+        "target": "closed_n"
+      },
+      {
+        "id": "e-closed_n-closed_mail",
+        "source": "closed_n",
+        "target": "closed_mail"
+      },
+      {
+        "id": "e-closed_mail-next",
+        "source": "closed_mail",
+        "target": "next"
+      },
+      {
+        "id": "e-fix-esc_row-cannot-fix",
+        "source": "fix",
+        "target": "esc_row",
+        "label": "Cannot fix"
+      },
+      {
+        "id": "e-esc_row-next",
+        "source": "esc_row",
+        "target": "next"
+      },
+      {
+        "id": "e-next-more",
+        "source": "next",
+        "target": "more"
+      },
+      {
+        "id": "e-more-again-more",
+        "source": "more",
+        "target": "again",
+        "label": "More"
+      },
+      {
+        "id": "e-more-review-else",
+        "source": "more",
+        "target": "review",
+        "label": "Else"
+      },
+      {
+        "id": "e-review-close_row-close-inspection",
+        "source": "review",
+        "target": "close_row",
+        "label": "Close inspection"
+      },
+      {
+        "id": "e-close_row-closed_end",
+        "source": "close_row",
+        "target": "closed_end"
+      },
+      {
+        "id": "e-review-re_row-re-inspect",
+        "source": "review",
+        "target": "re_row",
+        "label": "Re-inspect"
+      },
+      {
+        "id": "e-re_row-re_end",
+        "source": "re_row",
+        "target": "re_end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

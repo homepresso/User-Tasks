@@ -40,15 +40,12 @@ export function TaskTreeNode({
   return (
     <>
       <div
-        className="flex items-center gap-2.5 px-4 py-2.5 border-b transition-colors"
-        style={{
-          paddingLeft: `${16 + depth * 24}px`,
-          borderColor: 'var(--theme-surface-border)',
-        }}
+        className="flex items-center gap-2.5 border-b border-border-subtle px-4 py-2.5 transition-colors hover:bg-subtle"
+        style={{ paddingLeft: `${16 + depth * 24}px` }}
       >
         {/* Expand/collapse */}
         {hasChildren ? (
-          <button onClick={() => setExpanded(!expanded)} className="w-4 h-4 shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
+          <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-label={expanded ? "Collapse subtasks" : "Expand subtasks"} className="size-4 shrink-0 text-fg-muted">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         ) : <span className="w-4 shrink-0" />}
@@ -66,29 +63,29 @@ export function TaskTreeNode({
             'w-5 h-5 rounded-full border-[1.5px] shrink-0',
             'flex items-center justify-center transition-all',
             'hover:scale-110 active:scale-95',
-            isDone && 'bg-[color:var(--theme-primary)] border-[color:var(--theme-primary)]',
-            !isDone && 'border-gray-300 hover:border-[color:var(--theme-accent)]',
+            isDone && 'border-primary bg-primary',
+            !isDone && 'border-border hover:border-border-strong',
             isToggling && 'opacity-50',
           )}
         >
           {isToggling ? (
-            <Loader2 size={10} className="animate-spin text-[color:var(--theme-card-text)]" />
+            <Loader2 size={10} className="animate-spin text-fg" />
           ) : isDone ? (
-            <Check size={10} className="text-white" />
+            <Check size={10} className="text-primary-fg" />
           ) : null}
         </button>
 
         {/* Title */}
         <span className={cn(
-          'text-[13px] font-medium flex-1 min-w-0 truncate',
-          isDone && 'line-through',
-        )} style={{ color: isDone ? 'var(--theme-muted-text)' : 'var(--theme-card-text)' }}>
+          'text-ui font-medium flex-1 min-w-0 truncate',
+          isDone ? 'text-fg-muted line-through' : 'text-fg',
+        )}>
           {task.title}
         </span>
 
         {/* Effort */}
         {task.estimated_effort_assigner != null && task.estimated_effort_assigner > 0 && (
-          <span className="text-xs font-mono shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
+          <span className="text-xs font-mono shrink-0 text-fg-muted">
             {(task.estimated_effort_assigner / 60).toFixed(1)}h
           </span>
         )}

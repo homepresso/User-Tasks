@@ -14,6 +14,8 @@
  * `usertasks config apply gallery/packages/<slug>/assets` works too.
  */
 
+import type { MediaMockOptions } from './media-mock'
+
 export const GALLERY_CATEGORIES = [
   { id: 'hr-people', title: 'HR & People', summary: 'Onboarding, leave, reviews and the people processes every company runs.' },
   { id: 'finance', title: 'Finance', summary: 'Expenses, invoices, purchasing, vendors and the month-end close.' },
@@ -21,8 +23,18 @@ export const GALLERY_CATEGORIES = [
   { id: 'customer-sales', title: 'Customer & Sales', summary: 'Leads, quotes, customer onboarding and complaints with SLAs.' },
   { id: 'operations-compliance', title: 'Operations & Compliance', summary: 'Contracts, attestations, audits, supplier risk and privacy requests.' },
   { id: 'workplace', title: 'Workplace & Facilities', summary: 'Visitors, rooms, vehicles, equipment, events and the everyday office processes.' },
+  { id: 'surveys-assessments', title: 'Surveys & Assessments', summary: 'Customer and employee surveys, questionnaires, quizzes and inspections built on ratings, Likert scales, sliders, signatures and charts.' },
+  { id: 'media-evidence', title: 'Media & Evidence', summary: 'Recordings, photos and video: transcripts, redaction, records requests, claims, identity checks and moderation.' },
   { id: 'headless-integration', title: 'Headless & Integration', summary: 'API-first orchestration, sync, reconciliation, documents, AI and ETL with no UI at all.' },
+  { id: 'form-controls', title: 'Form controls', summary: 'Web components for your forms: charts, saved reports, address search, maps, signatures, ratings, rich text, tables, surveys and PDF viewing.' },
+  { id: 'workflow-actions', title: 'Workflow actions', summary: 'Custom workflow steps that run sandboxed: math and statistics, text, business calendars, data transforms, validation and formatting, crypto and IDs.' },
 ] as const
+
+/** The category of form control packages (gallery/controls); workflow packages use the others. */
+export const FORM_CONTROLS_CATEGORY = 'form-controls' as const
+
+/** The category of custom workflow action packages (gallery/actions). */
+export const WORKFLOW_ACTIONS_CATEGORY = 'workflow-actions' as const
 
 /** Where a gallery package comes from: built from gallery/packages (official) or shared by the community and approved by a moderator. */
 export type GalleryOrigin = 'official' | 'community'
@@ -76,6 +88,7 @@ export const GALLERY_NEEDS = {
   webhook: { label: 'Inbound webhook', description: 'An inbound webhook created for the workflow, so other systems can start it.' },
   documents: { label: 'Document templates', description: 'Word / Excel / PowerPoint template files reachable by URL or in storage.' },
   directory: { label: 'Directory / HR system', description: 'An HR system or directory API that lists people and their status.' },
+  media_ai: { label: 'Media AI provider', description: 'An API key for a media AI provider (Google Gemini by default; OpenAI, Azure AI, AWS and others can be swapped in) that transcribes, analyses and finds what to redact.' },
 } as const
 
 export type GalleryNeed = keyof typeof GALLERY_NEEDS
@@ -143,19 +156,173 @@ export interface GalleryMeta {
     agent_outputs?: Record<string, unknown>
     /** The form button verification presses (default: the first submitting button). */
     button?: string
-    /** Workflow input → file name (.docx / .xlsx / .pptx): the verifier serves a generated template and passes its URL as that input. */
+    /**
+     * Workflow input → file name: the verifier passes the file's URL as that input. A .docx / .xlsx / .pptx
+     * name is a generated template; any other name is a synthetic sample from gallery/samples/.
+     */
     files?: Record<string, string>
+    /** Entry form attachments: field key → sample file names (gallery/samples/) uploaded before the form is submitted. */
+    uploads?: Record<string, string[]>
+    /** The mock media AI provider's canned content for this package (lib/gallery/media-mock.ts). */
+    media?: MediaMockOptions
+    /**
+     * User Tasks the verifier completes in order after the run starts (as the install-time assignee), each
+     * with an outcome, values ("$owner" = the verifying user) and sample files for attachments fields.
+     * `expect` then applies to where the run is after the last one.
+     */
+    tasks?: Array<{ outcome: string; values?: Record<string, unknown>; uploads?: Record<string, string[]>; button?: string }>
+    /** Run variables that must hold a value when the run reaches `expect` (redacted files, transcripts, …). */
+    expect_outputs?: string[]
   }
+}
+
+/**
+ * What a gallery entry installs: a workflow package (process, the default),
+ * one official form control (gallery/controls/<slug>), or a bundle of them.
+ */
+export type GalleryKind = 'process' | 'form_control' | 'control_bundle' | 'workflow_action'
+
+/** Input controls change the form's values; display controls show data (charts, reports, cards). */
+export type GalleryControlKind = 'input' | 'display'
+
+/** Canned host answers for a control's live preview on the website (and its contract tests). */
+export interface GalleryControlFixtures {
+  lookup?: { items: Array<{ value: string; label: string; description?: string; fields?: Record<string, unknown> }>; truncated?: boolean }
+  report?: { report: { id: string; name: string; description: string | null; visualization: string | null }; columns: Array<{ key: string; label: string; type: string }>; rows: Array<Record<string, unknown>>; total: number; truncated: boolean }
+  /** A file the preview serves to `file` requests (bytes as base64). */
+  file?: { id: string; name: string; type: string; size?: number; __bytes: string }
+  upload?: { id: string; name: string; size: number; type: string }
+}
+
+/** gallery/controls/<slug>/gallery.json — an official form control's listing. */
+export interface ControlGalleryMeta {
+  /** Package uuid (never change it). */
+  id: string
+  /** The form_control asset id inside the package (never change it). */
+  asset_id: string
+  /** = the folder name; the page is /gallery/controls/<slug>. */
+  slug: string
+  title: string
+  kind: GalleryControlKind
+  /** One sentence for cards and meta descriptions (40-200 characters). */
+  summary: string
+  /** Paragraphs separated by blank lines (200+ characters). */
+  description: string
+  icon?: string
+  tags: string[]
+  /** = manifest.json version. */
+  version: string
+  changelog: GalleryChangelogEntry[]
+  /** Example uses (cards and the detail page). */
+  uses: string[]
+  /** What to do after installing (ordered). */
+  setup: string[]
+  /** Third-party services it talks to (Google Maps Platform, OpenStreetMap…). */
+  systems?: string[]
+  /** The website's live preview. */
+  preview: {
+    props?: Record<string, unknown>
+    value?: unknown
+    label?: string
+    height?: number
+    /** Values of the declared context entries. */
+    context?: Record<string, unknown>
+    fixtures?: GalleryControlFixtures
+    note?: string
+  }
+}
+
+/** gallery/controls/bundles/<slug>/gallery.json — several official controls in one package. */
+export interface ControlBundleMeta {
+  id: string
+  slug: string
+  title: string
+  summary: string
+  description: string
+  icon?: string
+  tags: string[]
+  version: string
+  changelog: GalleryChangelogEntry[]
+  /** Control folder slugs, in order. */
+  controls: string[]
+}
+
+/** One worked example on an action's gallery page (its outputs are computed by the build, in the sandbox). */
+export interface ActionGalleryExample {
+  /** Operation id. */
+  operation: string
+  title: string
+  inputs: Record<string, unknown>
+  note?: string
+}
+
+/** gallery/actions/<slug>/gallery.json — an official custom workflow action's listing. */
+export interface ActionGalleryMeta {
+  /** Package uuid (never change it). */
+  id: string
+  /** The workflow_activity asset id inside the package (never change it). */
+  asset_id: string
+  /** = the folder name; the page is /gallery/actions/<slug>. */
+  slug: string
+  title: string
+  /** One sentence for cards and meta descriptions (40-200 characters). */
+  summary: string
+  /** Paragraphs separated by blank lines (200+ characters). */
+  description: string
+  icon?: string
+  tags: string[]
+  /** = manifest.json version. */
+  version: string
+  changelog: GalleryChangelogEntry[]
+  /** Example uses (cards and the detail page). */
+  uses: string[]
+  /** What to do after installing (ordered). */
+  setup: string[]
+  /** 2-6 worked examples (the build runs them and shows the outputs). */
+  examples: ActionGalleryExample[]
+}
+
+/** What index.json says about a workflow action entry. */
+export interface GalleryActionSummary {
+  key: string
+  operations: Array<{ id: string; label: string }>
+  /** Declared capabilities (http, data, files, secrets); [] = pure computation. */
+  capabilities: string[]
+  hosts: string[]
+  secrets: string[]
+  module_bytes: number
+  sha256: string
+}
+
+/** What index.json says about a form control entry (the install wizard and the picker show it). */
+export interface GalleryControlSummary {
+  /** Custom element tags in the package. */
+  tags: string[]
+  kind?: GalleryControlKind
+  value_types: string[]
+  capabilities: string[]
+  /** Network hosts the controls declare (an admin approves them after install). */
+  hosts: string[]
+  /** Bundled libraries: "chart.js 4.5.1 (MIT)". */
+  libraries: string[]
+  module_bytes: number
 }
 
 /** One entry of public/gallery/index.json. */
 export interface GalleryIndexEntry {
+  /** Absent = 'process' (workflow package). */
+  kind?: GalleryKind
+  /** Form control entries. */
+  control?: GalleryControlSummary
+  /** Workflow action entries. */
+  action?: GalleryActionSummary
   id: string
   slug: string
   title: string
   category: GalleryCategoryId
   summary: string
-  trigger: GalleryTrigger
+  /** How a workflow package starts (absent for form controls). */
+  trigger?: GalleryTrigger
   version: string
   released: string
   tags: string[]

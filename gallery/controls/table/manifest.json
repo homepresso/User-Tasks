@@ -1,0 +1,58 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-table",
+  "name": "Table",
+  "description": "An editable table (line items, attendees, measurements) with typed columns: text, number, currency, date, choice and tick box. Per-cell validation, totals, and spreadsheet-style keyboard editing.",
+  "icon": "table",
+  "version": "1.2.0",
+  "entry": "ut-table.js",
+  "value": {
+    "type": "array",
+    "schema": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "type": "object" }
+    }
+  },
+  "props": [
+    {
+      "name": "columns",
+      "label": "Columns",
+      "type": "json",
+      "description": "A list of columns: { \"key\", \"label\", \"type\": text | number | currency | date | select | checkbox, \"required\", \"options\" (select), \"min\" / \"max\" (number, currency), \"width\" (px) }.",
+      "default": [
+        { "key": "item", "label": "Item", "type": "text", "required": true, "width": 220 },
+        { "key": "quantity", "label": "Quantity", "type": "number", "min": 1, "width": 110 },
+        { "key": "unit_price", "label": "Unit price", "type": "currency", "min": 0, "width": 130 }
+      ]
+    },
+    { "name": "min_rows", "label": "Minimum rows", "type": "number", "default": 0, "min": 0, "max": 200 },
+    { "name": "max_rows", "label": "Maximum rows", "type": "number", "default": 50, "min": 1, "max": 200 },
+    { "name": "allow_add", "label": "Allow adding rows", "type": "boolean", "default": true },
+    { "name": "allow_delete", "label": "Allow deleting rows", "type": "boolean", "default": true },
+    { "name": "show_totals", "label": "Show totals", "type": "boolean", "default": false, "description": "A footer row summing the number and currency columns." },
+    { "name": "currency", "label": "Currency", "type": "string", "default": "USD", "description": "ISO 4217 code for currency columns (USD, EUR, NZD, …)." },
+    { "name": "default_rows", "bindable": true, "label": "Starting rows", "type": "json", "description": "Rows shown before the person edits (a list of objects keyed by column key). Not stored until the table is edited." }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 240, "min_height": 120, "max_height": 1200, "full_width": true },
+  "capabilities": [],
+  "context": [],
+  "display": { "format": "json" },
+  "output": { "type": "array", "description": "The rows entered" },
+  "accessibility": {
+    "role": "grid",
+    "keyboard": "Tab into the table (one stop). Arrow keys move between cells, Home / End to the row's ends (Ctrl+Home / End to the table's), Enter, F2 or typing edits a cell; Enter saves and moves down, Shift+Enter up, Escape cancels; Tab / Shift+Tab move cell by cell and leave the table at its ends. Delete clears a cell, Space or Enter toggles a tick box, Ctrl+Enter adds a row; each row's Delete row button is the last cell of the row.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/table",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

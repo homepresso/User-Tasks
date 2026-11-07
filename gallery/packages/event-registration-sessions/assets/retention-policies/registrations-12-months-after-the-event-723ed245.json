@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "723ed245-4591-5d8d-999c-9f42ac1c22ee",
+  "asset": {
+    "id": "723ed245-4591-5d8d-999c-9f42ac1c22ee",
+    "name": "Registrations: 12 months after the event",
+    "description": "Attendee details are personal information: purge registration and attendee rows 12 months after they were created. Apply it to the Registrations and Attendees tables after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 12,
+    "duration_unit": "months",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

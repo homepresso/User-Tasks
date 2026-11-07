@@ -5,8 +5,9 @@ import { ShieldAlert, UserCheck, Lock } from 'lucide-react'
 
 /**
  * Acting on a workflow task you are not assigned to (lib/task-authz.ts):
- * a manager — anyone in the assignee's manager chain — or a break-glass
- * tasks.complete_any holder acts ON BEHALF of the assignee, with a note.
+ * a manager — anyone in the assignee's manager chain —, a manager of the
+ * workflow (explicit Edit grant on it) or a break-glass tasks.complete_any
+ * holder acts ON BEHALF of the assignee, with a note.
  * Everyone else sees the task read-only. The server re-checks every action.
  */
 
@@ -42,32 +43,33 @@ export function OnBehalfProvider({ mode, workflowTask, children, note }: { mode:
 }
 
 /** The banner above a task the user is not assigned to. */
-export function OnBehalfBanner({ mode, assigneeName, note, onNoteChange }: { mode: TaskActMode; assigneeName: string | null; note: string; onNoteChange: (note: string) => void }) {
+export function OnBehalfBanner({ mode, basis = null, assigneeName, note, onNoteChange }: { mode: TaskActMode; basis?: 'manager' | 'workflow_manager' | 'break_glass' | null; assigneeName: string | null; note: string; onNoteChange: (note: string) => void }) {
   const [touched, setTouched] = useState(false)
   if (mode === 'assignee') return null
   const who = assigneeName || 'the assignee'
   if (mode === 'none') {
     return (
-      <div data-on-behalf="none" className="mb-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm"
-        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}>
-        <Lock size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--theme-muted-text)' }} />
+      <div data-on-behalf="none" className="mb-4 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm border-border bg-subtle text-fg">
+        <Lock size={16} className="mt-0.5 shrink-0 text-fg-muted" />
         <p>Only {who} can action this workflow task. You can view it, but its outcome buttons and form are read-only for you.</p>
       </div>
     )
   }
   const breakGlass = mode === 'break_glass'
-  const color = breakGlass ? 'var(--status-blocked)' : 'var(--status-info)'
   return (
-    <div data-on-behalf={mode} className="mb-4 rounded-xl border px-4 py-3 text-sm"
-      style={{ borderColor: color, backgroundColor: `color-mix(in srgb, ${color} 6%, var(--theme-card-bg))`, color: 'var(--theme-card-text)' }}>
+    <div data-on-behalf={mode} data-on-behalf-basis={basis ?? undefined} className={`mb-4 rounded-lg border px-4 py-3 text-sm text-fg ${breakGlass
+      ? 'bg-danger-wash border-[color-mix(in_srgb,var(--theme-danger)_30%,var(--ds-border))]'
+      : 'bg-info-wash border-[color-mix(in_srgb,var(--status-info)_30%,var(--ds-border))]'}`}>
       <div className="flex items-start gap-2">
-        {breakGlass ? <ShieldAlert size={16} className="mt-0.5 shrink-0" style={{ color }} /> : <UserCheck size={16} className="mt-0.5 shrink-0" style={{ color }} />}
+        {breakGlass ? <ShieldAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden /> : <UserCheck size={16} className="mt-0.5 shrink-0 text-info" aria-hidden />}
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{breakGlass ? `Break-glass: acting on behalf of ${who}` : `Acting on behalf of ${who}`}</p>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="mt-0.5 text-xs text-fg-muted">
             {breakGlass
               ? 'You are not in their manager chain. Your tasks.complete_any permission allows this; it is recorded as break-glass in the task history and audit log.'
-              : `This task is assigned to ${who}, who reports to you. Anything you submit is recorded as done by you on their behalf, and ${who} is notified.`}
+              : basis === 'workflow_manager'
+                ? `This task is assigned to ${who}. You manage this workflow, so you can act for them: anything you submit is recorded as done by you on their behalf (as a manager of the workflow), and ${who} is notified.`
+                : `This task is assigned to ${who}, who reports to you. Anything you submit is recorded as done by you on their behalf, and ${who} is notified.`}
           </p>
           <label className="mt-2 block text-xs font-medium" htmlFor="on-behalf-note">Reason (required)</label>
           <textarea
@@ -78,10 +80,9 @@ export function OnBehalfBanner({ mode, assigneeName, note, onNoteChange }: { mod
             rows={2}
             maxLength={2000}
             placeholder={`Why are you acting for ${who}?`}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            className="mt-1 w-full rounded-md border border-input-border bg-input px-3 py-2 text-sm text-fg"
           />
-          {touched && !note.trim() && <p className="mt-1 text-[11px]" style={{ color: 'var(--status-blocked)' }}>Add a reason before acting on their behalf.</p>}
+          {touched && !note.trim() && <p className="mt-1 text-xs text-danger">Add a reason before acting on their behalf.</p>}
         </div>
       </div>
     </div>

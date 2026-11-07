@@ -1,0 +1,734 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "ee5b8d4c-face-546e-b519-c2665f251d31",
+  "asset": {
+    "id": "ee5b8d4c-face-546e-b519-c2665f251d31",
+    "name": "Vendor application",
+    "description": "The stepped application procurement fills in to onboard a vendor: Company details → Banking → Spend & compliance → Review & submit, with a progress bar, in-form Next / Back / Submit buttons (Application mode), a country autocomplete that stores the ISO code and shows the name, and rules that ask for a justification on large spend and details of any conflict of interest. Submitting starts the Vendor onboarding workflow.",
+    "tags": [
+      "vendors",
+      "onboarding",
+      "application"
+    ],
+    "fields": [
+      {
+        "key": "h_company",
+        "label": "Who is the vendor?",
+        "type": "heading"
+      },
+      {
+        "key": "legal_name",
+        "label": "Legal name",
+        "type": "text",
+        "required": true,
+        "placeholder": "As on the company register",
+        "help_text": "The registered name, not a trading name"
+      },
+      {
+        "key": "registration_number",
+        "label": "Registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "country",
+        "label": "Country of registration",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Start typing the country or its code; the country risk fills in.",
+        "lookup": {
+          "source": "table",
+          "table_id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+          "search_columns": [
+            "country_name",
+            "country"
+          ],
+          "display_columns": [
+            "country_name",
+            "country",
+            "risk_rating"
+          ],
+          "value_column": "country",
+          "label_template": "{{country_name}} ({{country}})",
+          "description_template": "Country risk: {{risk_rating}}",
+          "search_value": true,
+          "fill": [
+            {
+              "from": "risk_rating",
+              "to": "country_risk"
+            }
+          ],
+          "sort": {
+            "column": "country_name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "country_risk",
+        "label": "Country risk",
+        "type": "text",
+        "read_only": true,
+        "help_text": "From the Country risk table"
+      },
+      {
+        "key": "website",
+        "label": "Website",
+        "type": "url",
+        "placeholder": "https://"
+      },
+      {
+        "key": "h_bank",
+        "label": "Bank account and contact",
+        "type": "heading"
+      },
+      {
+        "key": "iban",
+        "label": "Bank account (IBAN or local account)",
+        "type": "text",
+        "required": true,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9 -]{5,40}$",
+        "pattern_message": "Letters, digits, spaces and dashes only",
+        "help_text": "From the vendor's bank letter"
+      },
+      {
+        "key": "contact_email",
+        "label": "Vendor accounts contact",
+        "type": "email",
+        "required": true,
+        "help_text": "Receives the welcome email"
+      },
+      {
+        "key": "contact_phone",
+        "label": "Vendor phone (independent source)",
+        "type": "phone",
+        "required": true,
+        "help_text": "From the company register or website, not from the bank letter: finance calls it to confirm the account"
+      },
+      {
+        "key": "h_spend",
+        "label": "What we will buy",
+        "type": "heading"
+      },
+      {
+        "key": "spend_category",
+        "label": "Spend category",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Logistics",
+          "IT hardware",
+          "Software",
+          "Professional services",
+          "Facilities",
+          "Marketing",
+          "Raw materials"
+        ]
+      },
+      {
+        "key": "expected_annual_spend",
+        "label": "Expected spend in the first 12 months",
+        "type": "currency",
+        "required": true,
+        "currency": "NZD",
+        "min": 0
+      },
+      {
+        "key": "spend_justification",
+        "label": "Why this vendor? (spend of NZD 100,000 or more)",
+        "type": "textarea",
+        "help_text": "Quotes compared, why this supplier, any sole-source reason"
+      },
+      {
+        "key": "conflict_of_interest",
+        "label": "Someone in our company has a personal or financial interest in this vendor",
+        "type": "boolean"
+      },
+      {
+        "key": "conflict_details",
+        "label": "Describe the interest",
+        "type": "textarea",
+        "visible_when": {
+          "field": "conflict_of_interest",
+          "operator": "equals",
+          "value": "true"
+        }
+      },
+      {
+        "key": "h_review",
+        "label": "Check and send",
+        "type": "heading"
+      },
+      {
+        "key": "requester_email",
+        "label": "Your email",
+        "type": "email",
+        "required": true,
+        "help_text": "You get the outcome",
+        "autocomplete": "email"
+      },
+      {
+        "key": "declaration",
+        "label": "The details come from the vendor’s own documents, and I understand the bank account is verified by a call-back before the vendor is created",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "company_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "bank_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "bank_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "spend_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "spend_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "review_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "review_submit",
+        "label": "Submit application",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "submit",
+              "button": "submit"
+            }
+          ],
+          "icon": "send",
+          "align": "right",
+          "icon_after": true
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "company",
+          "title": "Company details",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "h_company",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "legal_name",
+                  "span": 2
+                },
+                {
+                  "field_key": "registration_number",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "country",
+                  "span": 2
+                },
+                {
+                  "field_key": "country_risk",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "website",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "company_next",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "building",
+          "description": "The legal entity you want to buy from."
+        },
+        {
+          "id": "banking",
+          "title": "Banking",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "h_bank",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "iban",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "contact_email",
+                  "span": 2
+                },
+                {
+                  "field_key": "contact_phone",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "bank_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "bank_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "credit-card",
+          "description": "Where we pay, and who confirms it."
+        },
+        {
+          "id": "compliance",
+          "title": "Spend & compliance",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "h_spend",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "spend_category",
+                  "span": 2
+                },
+                {
+                  "field_key": "expected_annual_spend",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "spend_justification",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "conflict_of_interest",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "conflict_details",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "spend_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "spend_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "shield",
+          "description": "What you will buy and any conflict of interest."
+        },
+        {
+          "id": "review",
+          "title": "Review & submit",
+          "rows": [
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "h_review",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "requester_email",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "declaration",
+                  "span": 3
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "review_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "review_submit",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "check-circle",
+          "description": "Confirm and send the application."
+        }
+      ],
+      "page_settings": {
+        "indicator": "progress",
+        "next_label": "Next",
+        "back_label": "Back",
+        "resume": true
+      },
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_spend_hide",
+          "name": "Justification only for NZD 100,000 or more",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "field:spend_justification"
+              ]
+            }
+          ],
+          "if": {
+            "match": "any",
+            "conditions": [
+              {
+                "column": "expected_annual_spend",
+                "operator": "lt",
+                "value": "100000"
+              },
+              {
+                "column": "expected_annual_spend",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_spend_required",
+          "name": "Large spend needs a justification",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "spend_justification",
+              "text": "Explain why this vendor: spend of NZD 100,000 or more needs a justification."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "expected_annual_spend",
+                "operator": "gte",
+                "value": "100000"
+              },
+              {
+                "column": "spend_justification",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_conflict_required",
+          "name": "A declared interest needs details",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "conflict_details",
+              "text": "Describe the interest so compliance can assess it."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "conflict_of_interest",
+                "operator": "eq",
+                "value": "true"
+              },
+              {
+                "column": "conflict_details",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_contact_not_requester",
+          "name": "The vendor contact is not you",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "contact_email",
+              "text": "Use the vendor's own accounts contact, not your email."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "contact_email",
+                "operator": "is_set"
+              },
+              {
+                "column": "contact_email",
+                "operator": "eq",
+                "value": "{{requester_email}}"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_country_note",
+          "name": "Tell people when compliance review is likely",
+          "event": "item_select",
+          "then": [
+            {
+              "type": "message",
+              "text": "Vendors registered in medium or high risk countries go to a compliance review before the bank check."
+            }
+          ],
+          "target": "country",
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "event.item.fields.risk_rating",
+                "operator": "neq",
+                "value": "low"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit application",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "start_workflow",
+            "workflow_id": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
+            "workflow_name": "Vendor onboarding",
+            "inputs": {
+              "legal_name": "{{legal_name}}",
+              "registration_number": "{{registration_number}}",
+              "country": "{{country}}",
+              "website": "{{website}}",
+              "iban": "{{iban}}",
+              "contact_email": "{{contact_email}}",
+              "contact_phone": "{{contact_phone}}",
+              "spend_category": "{{spend_category}}",
+              "expected_annual_spend": "{{expected_annual_spend}}",
+              "requester_email": "{{requester_email}}",
+              "spend_justification": "{{spend_justification}}",
+              "conflict_of_interest": "{{conflict_of_interest}}",
+              "conflict_details": "{{conflict_details}}",
+              "declaration": "{{declaration}}"
+            }
+          },
+          {
+            "type": "success_screen",
+            "title": "Application sent",
+            "screen_button": "submit_another",
+            "screen_button_label": "Onboard another vendor",
+            "text": "{{legal_name}} is being screened (reference {{run_reference}}). Compliance and finance pick it up from here; the outcome goes to {{requester_email}}."
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#15803D",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#ECF6EF",
+            "page_to": "#F7FBF8"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "Vendor application",
+          "subtitle": "Four short steps. Bank details are always verified by a call-back before the vendor is created."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Vendor application",
+      "align": "left",
+      "subtitle": "Four short steps. Bank details are always verified by a call-back before the vendor is created."
+    }
+  }
+}

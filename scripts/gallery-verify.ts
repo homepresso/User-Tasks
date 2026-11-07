@@ -11,6 +11,9 @@
  *   4. starts the entry workflow with gallery.json sample_input and checks the
  *      run reaches what gallery.json `expect`s: waiting on a User Task
  *      (assigned to the owner) or completed
+ *   (form control packages: checks every control landed in the library —
+ *   enabled, the module byte-identical, signed when the package is — and runs
+ *   a sample form's lookup through the mock; lib/gallery/verify-core.ts)
  *
  *   npm run gallery:build && npm run gallery:verify [-- <slug> …] [--keep] [--json <file>]
  *   npm run gallery:verify -- --dir <dir> <slug>   # packages built with gallery:build -- --out <dir>
@@ -81,6 +84,9 @@ async function main() {
     const unpacked = unpackPackage(bytes)
     if (!unpacked.verification.valid) throw new Error(`${entry.slug}: ${unpacked.verification.errors.join('; ')}`)
     const { contents } = fromPackageFiles(unpacked.manifest, unpacked.files)
+    // Form controls (gallery/controls) have no workflow: verifyControlPackage checks the library instead.
+    if (entry.kind === 'workflow_action') return { slug: entry.slug, trigger: 'action', fileName: entry.file_name, bytes, contents, meta: {} as any, kind: entry.kind }
+    if (entry.kind === 'form_control' || entry.kind === 'control_bundle') return { slug: entry.slug, trigger: 'control', fileName: entry.file_name, bytes, contents, meta: {} as any, kind: entry.kind }
     return { slug: entry.slug, trigger: entry.trigger, fileName: entry.file_name, bytes, contents, meta: readGallerySource(entry.slug).meta }
   })
 

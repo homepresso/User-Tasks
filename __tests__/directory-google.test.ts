@@ -32,10 +32,12 @@ describe('Google Workspace directory client', () => {
     })
     const client = createGoogleDirectoryClient({ settings: SETTINGS, serviceAccountJson: '', getAccessToken: async () => 'tok', fetchImpl: fetchImpl as unknown as typeof fetch })
     const users = await client.listUsers()
+    // No organizations in the record: every org attribute is null (the directory has none).
+    const noProfile = { job_title: null, department: null, cost_center: null, company: null, location: null, employee_id: null }
     expect(users).toEqual([
-      { externalId: '1', displayName: 'Ada Lovelace', email: 'ada@example.com', active: true },
-      { externalId: '2', displayName: 'Bob Smith', email: 'bob@example.com', active: false },
-      { externalId: '3', displayName: 'cy@example.com', email: 'cy@example.com', active: false },
+      { externalId: '1', displayName: 'Ada Lovelace', email: 'ada@example.com', active: true, profile: noProfile },
+      { externalId: '2', displayName: 'Bob Smith', email: 'bob@example.com', active: false, profile: noProfile },
+      { externalId: '3', displayName: 'cy@example.com', email: 'cy@example.com', active: false, profile: noProfile },
     ])
     const first = new URL(urls[0])
     expect(first.pathname).toBe('/admin/directory/v1/users')

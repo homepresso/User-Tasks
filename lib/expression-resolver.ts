@@ -305,6 +305,26 @@ export function normalizeIndexPath(path: string): string {
   return path.replace(/\[(\d+)\]/g, ".$1").replace(/^\./, "")
 }
 
+/**
+ * Walk `parts[from..]` from `value` (`parent` holds it under `parts[from - 1]`).
+ * Custom form controls with a declared output store the main output under
+ * `<key>` and the whole value under `<key>_raw`: a path written for the
+ * value (`{{form.desc.html}}`, from before outputs) that runs into the
+ * primitive continues in `<key>_raw`, so existing workflows keep reading it.
+ */
+function walkPath(value: any, parts: string[], from: number, parent: any): any {
+  for (let i = from; i < parts.length; i++) {
+    const next = value?.[parts[i]]
+    if (next === undefined && value !== null && value !== undefined && typeof value !== "object" && parent && typeof parent === "object" && i > 0) {
+      const raw = parent[`${parts[i - 1]}_raw`]
+      if (raw && typeof raw === "object") { parent = raw; value = raw[parts[i]]; continue }
+    }
+    parent = value
+    value = next
+  }
+  return value
+}
+
 function resolveVariable(path: string, ctx: ExpressionContext): any {
   // Flat dotted keys first (e.g. a variable literally named 'user.email') —
   // mirrors the form-rules resolver so mappings created there read back here.
@@ -319,23 +339,11 @@ function resolveVariable(path: string, ctx: ExpressionContext): any {
     const match = lowerCaseKeys(ctx.variables).get(rootKey.toLowerCase())
     if (match) rootKey = match
   }
-  if (ctx.variables[rootKey] !== undefined) {
-    let value = ctx.variables[rootKey]
-    for (let i = 1; i < parts.length; i++) value = value?.[parts[i]]
-    return value
-  }
+  if (ctx.variables[rootKey] !== undefined) return walkPath(ctx.variables[rootKey], [rootKey, ...parts.slice(1)], 1, ctx.variables)
   // Then check task data
-  if (parts[0] === "task" && ctx.task) {
-    let value: any = ctx.task
-    for (let i = 1; i < parts.length; i++) value = value?.[parts[i]]
-    return value
-  }
+  if (parts[0] === "task" && ctx.task) return walkPath(ctx.task, parts, 1, null)
   // Direct task field reference
-  if (ctx.task?.[parts[0]] !== undefined) {
-    let value = ctx.task[parts[0]]
-    for (let i = 1; i < parts.length; i++) value = value?.[parts[i]]
-    return value
-  }
+  if (ctx.task?.[parts[0]] !== undefined) return walkPath(ctx.task[parts[0]], parts, 1, ctx.task)
 
   return undefined
 }

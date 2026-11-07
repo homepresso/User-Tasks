@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "40c978be-15e4-5012-8577-e0acad6f19d7",
+  "asset": {
+    "id": "40c978be-15e4-5012-8577-e0acad6f19d7",
+    "name": "Records request acknowledgement",
+    "description": "Sent when a request arrives: reference and response deadline.",
+    "subject": "We received your records request {{reference}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\"><h2 style=\"margin:0 0 12px\">Request received</h2><p>Dear {{form.requester_name}},</p><p>We received your request for: <em>{{form.records_sought}}</em> ({{date_range}}).</p><p>Your reference is <strong>{{reference}}</strong>. Under {{legal_basis}} we aim to respond by <strong>{{due_date}}</strong> ({{deadline_days}} {{day_type}}). If we need more time we will tell you before then.</p><p>Released records may have parts withheld or redacted (for example faces, licence plates or personal details of other people). Each redaction is reviewed by a person before release.</p><p style=\"color:#6E6759;font-size:12px;margin-top:24px\">Reference {{reference}} · sent by the public records workflow</p></div>",
+    "text_body": "Request received: {{reference}}\nWe aim to respond by {{due_date}} ({{deadline_days}} {{day_type}}).",
+    "is_default": false
+  }
+}

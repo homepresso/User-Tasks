@@ -20,7 +20,7 @@ import { isPlainObject } from '@/lib/utils/guards'
 
 export type PlanAction = 'create' | 'update' | 'unchanged' | 'error'
 /** `workspace_theme` is the singleton theme section (planned by lib/services/config). */
-export type PlanAssetType = keyof AssetIdMaps | 'object' | 'workspace_theme'
+export type PlanAssetType = keyof AssetIdMaps | 'object' | 'workspace_theme' | 'document_ocr'
 export type MatchKind = 'id' | 'mapping' | 'name' | 'slug' | 'package'
 
 export interface FieldDiff {
@@ -68,6 +68,8 @@ export const PLAN_SECTIONS: ReadonlyArray<{ section: string; type: keyof AssetId
   { section: 'agents', type: 'agent' },
   // Forms reference saved themes (theme_id) and workflows reference forms
   // (form_id), so themes, then forms, then workflows.
+  // Custom form controls (web components) are referenced by tag from form fields.
+  { section: 'form_controls', type: 'form_control' },
   { section: 'form_themes', type: 'form_theme' },
   { section: 'forms', type: 'form' },
   { section: 'workflows', type: 'workflow' },
@@ -203,6 +205,13 @@ function normalizeLikeImport(section: string, asset: Record<string, any>, localR
   if (section === 'workflows') return stripWorkflowFormPins(normalizeScaffoldWorkflow(asset))
   if (section === 'forms') return normalizeFormAssetLikeImport(asset)
   if (section === 'reports' && isPlainObject(asset.config)) return { ...asset, config: normalizeScaffoldReportConfig(asset.config) }
+  if (section === 'agents') {
+    // Versions are per workspace (never imported); a file without data_access
+    // keeps the agent's current grants (or the legacy "all tables" meaning).
+    const config = isPlainObject(asset.output_config) ? asset.output_config : { variables: [] }
+    const dataAccess = config.data_access ?? localRow.output_config?.data_access ?? { mode: 'all', table_ids: [], grants: [], legacy: true }
+    return { ...asset, version: localRow.version, output_config: { ...config, data_access: dataAccess } }
+  }
   return asset
 }
 

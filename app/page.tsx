@@ -3,11 +3,12 @@ import { getSessionUserFast } from "@/lib/supabase/server"
 import { LandingPage } from "@/components/marketing/landing-page"
 import { isCloud, publicBaseUrl } from "@/lib/deployment"
 import { repositoryUrl } from "@/lib/site-links"
+import { enforceHostWorkspace } from "@/lib/workspace-host"
 
 export const metadata = {
   title: "UserTasks: Open-Source Headless Workflow Engine",
   description:
-    "UserTasks is an open-source headless workflow engine: visual designer, human tasks, grid forms, document actions, integrations, decision tables and optional AI agents, driven from a REST API, an MCP server and a CLI — with log export to Splunk, Datadog, OpenTelemetry and webhooks.",
+    "UserTasks is an open-source headless workflow engine: a visual designer for complex workflows, human tasks, grid forms, document actions, integrations with any system, decision tables and AI agents on any model, driven from a REST API, an MCP server and a CLI — with log export to Splunk, Datadog, OpenTelemetry and webhooks.",
   keywords: [
     "headless workflow engine",
     "open source workflow engine",
@@ -33,8 +34,10 @@ export const metadata = {
 }
 
 export default async function Home() {
+  // A workspace address (acme.usertasks.com) opens the app, never the landing page.
+  if ((await enforceHostWorkspace()).kind === "member") redirect("/home")
   if (await getSessionUserFast()) {
-    redirect("/tasks")
+    redirect("/home")
   }
   if (!isCloud()) {
     redirect("/login")
@@ -58,7 +61,7 @@ export default async function Home() {
         applicationSubCategory: "Headless workflow engine",
         operatingSystem: "Web browser; managed cloud, private, or on-premises deployment",
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Open source (Apache-2.0)" },
-        featureList: ["Workflow engine", "Visual workflow designer", "REST, OData, database, webhook, and OAuth integrations", "Task list with SLAs, escalation, and audit trails", "Grid form designer with lookups, file uploads, form pages and QR codes", "Document actions: read, compare, convert, extract and redact Word, Excel, PowerPoint and PDF files", "Decision tables", "Optional AI agents", "Reports with a reporting API and MCP server", "Command-line interface with config as code", "Log export to Splunk, Datadog, OpenTelemetry and webhooks", "Cloud and on-premises deployment"],
+        featureList: ["Workflow engine", "Visual designer for complex workflows: branches, parallel paths, loops, sub-workflows, SLAs, timers, events and error paths", "Save & Test with real forms; versions and live instance migration", "REST, OData, database, webhook, and OAuth integrations", "One task list with queued tasks, personal queue rules, attachments, SLAs, escalation and audit trails", "Grid form designer with lookups, file uploads, rules, form pages, QR codes and website embedding", "Document actions: read, compare, convert, extract and redact Word, Excel, PowerPoint and PDF files", "Decision tables", "AI agents on Claude, OpenAI, Gemini, Mistral, local and other OpenAI-compatible models, with tools, files and human review", "Ready-made connectors for databases, storage, email, messaging, CRM, ERP and HR systems", "Reports with a reporting API and MCP server", "Command-line interface with config as code", "Log export to Splunk, Datadog, OpenTelemetry and webhooks", "Cloud and on-premises deployment"],
         publisher: { "@id": `${baseUrl}/#organization` },
         ...(repoUrl ? { sameAs: [repoUrl] } : {}),
       },

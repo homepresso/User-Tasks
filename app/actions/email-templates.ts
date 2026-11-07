@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { fromSession } from '@/lib/services/context'
 import * as templates from '@/lib/services/email-templates'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 
 // Thin wrappers over lib/services/email-templates (sanitisation, single
 // default, workflows.* permission checks and audit live there).
@@ -28,7 +29,10 @@ export async function saveEmailTemplate(input: {
     text_body: input.textBody ?? '',
   }
   if (input.id) await templates.updateEmailTemplate(ctx, input.id, fields)
-  else await templates.createEmailTemplate(ctx, fields)
+  else if (!(ctx.actorId && await findRecentDuplicate(ctx.supabase, 'email_templates', { tenant_id: ctx.tenantId, created_by: ctx.actorId, name: input.name.trim() }))) {
+    // A repeated submit (double click, retry) must not add a second template.
+    await templates.createEmailTemplate(ctx, fields)
+  }
   revalidatePath('/automations/email-templates')
 }
 

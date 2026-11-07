@@ -14,8 +14,14 @@ describe('brand assets', () => {
     expect(existsSync(join(root, 'public/favicon.ico'))).toBe(true)
   })
 
-  it('uses the pixel-grid mark for the SVG favicon', () => {
-    expect(readFileSync(join(root, 'app/icon.svg'), 'utf8')).toBe(readFileSync(join(root, 'public/brand/mark-16.svg'), 'utf8'))
+  it('uses the pixel-grid mark for the SVG favicon, inverted on dark browser chrome', () => {
+    const icon = readFileSync(join(root, 'app/icon.svg'), 'utf8')
+    const mark = readFileSync(join(root, 'public/brand/mark-16.svg'), 'utf8')
+    // Same shapes as the generated mark; the ink / cream fills become classes the media query swaps.
+    const shapes = (svg: string) => svg.replace(/<style>.*<\/style>/, '').replace(/ (fill="#(17150F|FAF8F3)"|class="[tg]")/g, '')
+    expect(shapes(icon)).toBe(shapes(mark))
+    expect(icon).toContain('@media (prefers-color-scheme:dark)')
+    expect(existsSync(join(root, 'app/icon1.png'))).toBe(true)
   })
 
   it('draws the user → task mark: user dot, elbow connector, task block', () => {

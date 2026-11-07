@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useRef, useId, useEffect, useSyncExternalStore, useContext } from "react"
+import { useState, useRef, useId, useEffect, useSyncExternalStore, useContext, useMemo } from "react"
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import type { WorkflowNode, WorkflowEdge, NodeType } from "@/lib/workflow-schema"
-import { createDefaultNode, NODE_CATALOG } from "@/lib/workflow-schema"
+import { createDefaultNode, NODE_CATALOG, nodeColorCategory, nodeColorTextVar, nodeColorVar } from "@/lib/workflow-schema"
+import { actionManifestOf, withActionOutputs } from "@/lib/custom-actions/manifest"
 import { NodePalette } from "./node-palette"
 import { CanvasNode } from "./canvas-node"
 import { EdgeRenderer } from "./edge-renderer"
@@ -26,8 +28,24 @@ import {
   canRedo, canUndo, commit, createHistory, describeChange, historyShortcut, redo as redoHistory, redoLabel,
   sameSnapshot, shortcutHints, undo as undoHistory, undoLabel, type DesignerSnapshot, type HistoryState,
 } from "@/lib/workflow-history"
-import { Button } from "@/components/ui/button"
-import { Save, Trash2, TestTube, Zap, CheckCircle, Plus, RefreshCw, Clock, GitBranch, GitMerge, Repeat, RotateCw, Timer, Edit as EditIcon, Database, Globe, ListPlus, ThumbsUp, ThumbsDown, Variable, Send, FileText, Mail, Bell, Sparkles, Calculator, CaseSensitive, Type, Calendar, CalendarPlus, Regex, Hash, ListTree, Filter, ArrowUpDown, Fingerprint, Merge, CircleStop, Inbox, FileUp, FileDown, Download, Upload, MessageSquareDashed, Radio, Loader2, History, CornerDownRight, GitFork, Users, FolderOpen, LayoutGrid, Shield, Scale, Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore, Undo2, Redo2, PanelLeftOpen } from "lucide-react"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { StatusPill, Tag } from "@/components/ui/badge"
+import { Tooltip, TooltipProvider } from "@/components/ui/tooltip"
+import { Tabs, TabPanel } from "@/components/ui/tabs"
+import { InlineNotice } from "@/components/ui/inline-notice"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogBody, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { Field } from "@/components/ui/field"
+import { Textarea } from "@/components/ui/textarea"
+import { overlayClass } from "@/components/ui/dialog"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { plural } from "@/lib/format/plural"
+import { formatTime } from "@/lib/format/date"
+import Link from "next/link"
+import { Save, Trash2, TestTube, Zap, CheckCircle, Plus, RefreshCw, Clock, GitBranch, GitMerge, Repeat, RotateCw, Timer, Edit as EditIcon, Database, Globe, ListPlus, ThumbsUp, ThumbsDown, Variable, Send, FileText, Mail, Bell, Sparkles, Calculator, CaseSensitive, Type, Calendar, CalendarPlus, Regex, Hash, ListTree, Filter, ArrowUpDown, Fingerprint, Merge, CircleStop, Inbox, FileUp, FileDown, Download, Upload, MessageSquareDashed, Radio, Loader2, History, CornerDownRight, GitFork, Users, FolderOpen, LayoutGrid, Shield, Scale, Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore, Undo2, Redo2, PanelLeftOpen, ArrowLeft, ChevronDown, MoreHorizontal, AlertTriangle } from "lucide-react"
 import { ObjectPermissions } from '@/components/governance/object-permissions'
 import { cn } from "@/lib/utils"
 import { CanvasZoomControls } from "./canvas-zoom-controls"
@@ -54,6 +72,8 @@ const paletteIconMap: Record<string, any> = {
   Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
 }
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { useDirectoryCapabilities } from "./aad-group-assignment"
 import dynamic from "next/dynamic"
 
 // Heavy panels load in their own chunks: the node config panel (~6k lines,
@@ -63,8 +83,8 @@ const NodeConfigPanel = dynamic(() => import("./node-config-panel").then((m) => 
 })
 const TestRunner = dynamic(() => import("./test-runner").then((m) => m.TestRunner), {
   loading: () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
-      <div className="w-[480px] max-w-[90vw] rounded-xl border p-4" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+    <div className={`${overlayClass} flex items-center justify-center`}>
+      <div className="w-[480px] max-w-[90vw] rounded-xl bg-elevated p-4 shadow-elev-3">
         <PanelSkeleton rows={4} />
       </div>
     </div>
@@ -76,8 +96,8 @@ function PanelSkeleton({ rows }: { rows: number }) {
     <div className="space-y-3 py-2" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="space-y-1.5">
-          <div className="h-2.5 w-1/3 rounded" style={{ backgroundColor: "var(--theme-surface-border)", animation: "shimmer 1.5s ease-in-out infinite" }} />
-          <div className="h-7 w-full rounded" style={{ backgroundColor: "var(--theme-surface)", animation: "shimmer 1.5s ease-in-out infinite" }} />
+          <Skeleton className="h-2.5 w-1/3" />
+          <Skeleton className="h-8 w-full" />
         </div>
       ))}
     </div>
@@ -122,6 +142,13 @@ interface WorkflowBuilderProps {
   customActivities?: any[]
   publishedVersionNumber?: number | null
   hasUnpublishedChanges?: boolean
+  /** Toolbar identity: the workflow's name and where Back goes. */
+  workflowName?: string
+  backHref?: string
+  /** Extra items at the top of the toolbar's ⋯ menu (Run, Form link, View runs, Export…). */
+  menuItems?: React.ReactNode
+  /** A banner under the toolbar (e.g. live instances on older versions). */
+  notice?: React.ReactNode
 }
 
 // Draggable section header wrapper — participates in the same DnD context as canvas nodes
@@ -152,6 +179,7 @@ export function WorkflowBuilder({
   workflowId, tenantId, initialNodes, initialEdges, triggerType, isActive, runs, initialUserVariables, initialSwimlanes,
   customActivities = [],
   publishedVersionNumber, hasUnpublishedChanges: initialHasUnpublished,
+  workflowName, backHref, menuItems, notice,
 }: WorkflowBuilderProps) {
   // Legacy table keys (tableId, data_table_id, …) are migrated to table_id on open.
   const [nodes, setNodes] = useState<WorkflowNode[]>(() => normalizeDataTableNodes(initialNodes))
@@ -180,7 +208,9 @@ export function WorkflowBuilder({
   /** Label for the next recorded change (e.g. "tidy layout") instead of the diff-derived one. */
   const pendingChangeLabelRef = useRef<string | null>(null)
   const isMac = useSyncExternalStore(subscribeNever, () => /Mac|iPhone|iPad/.test(navigator.platform), () => false)
-  const hints = shortcutHints(isMac)
+  const hints = { ...shortcutHints(isMac), save: isMac ? "⌘S" : "Ctrl+S", test: isMac ? "⌘↵" : "Ctrl+Enter" }
+  /** Inspector tab: the selected step's (or the workflow's) settings, its data, or the variables reference. */
+  const [inspectorTab, setInspectorTab] = useState<"configure" | "data" | "variables">("configure")
 
   useEffect(() => {
     if (suppressHistoryRef.current) return
@@ -223,7 +253,6 @@ export function WorkflowBuilder({
   const [showTestRunner, setShowTestRunner] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [draggingFromPalette, setDraggingFromPalette] = useState<string | null>(null)
-  const [showVariables, setShowVariables] = useState(false)
   // Docked Data sidebar next to the config panel (remembered; ⌥D toggles).
   const [dataSidebarOpen, setDataSidebarOpen] = useDataSidebarState()
   useEffect(() => {
@@ -241,6 +270,8 @@ export function WorkflowBuilder({
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [publishNotes, setPublishNotes] = useState('')
   const [publishing, setPublishing] = useState(false)
+  // Synchronous guard: a double click must not publish two versions.
+  const publishGuard = useSubmitGuard()
   // Installed from a package whose setup is incomplete: activation is blocked.
   const [packageBlock, setPackageBlock] = useState<string | null>(null)
   useEffect(() => {
@@ -257,7 +288,12 @@ export function WorkflowBuilder({
   const designerRef = useRef<HTMLDivElement>(null)
   // Node sidebar collapsed to a rail (per browser, localStorage).
   const [paletteRail, setPaletteRail] = useState(false)
-  useEffect(() => { if (loadFlag(safeLocalStorage(), PALETTE_RAIL_STORAGE_KEY)) setPaletteRail(true) }, [])
+  useEffect(() => {
+    const storage = safeLocalStorage()
+    const stored = storage?.getItem(PALETTE_RAIL_STORAGE_KEY)
+    // No choice yet: below 1600px the palette starts as a rail so the canvas keeps ≥60% of the width.
+    if (stored == null ? window.innerWidth < 1600 : loadFlag(storage, PALETTE_RAIL_STORAGE_KEY)) setPaletteRail(true)
+  }, [])
   function setPaletteRailPersisted(rail: boolean) {
     setPaletteRail(rail)
     saveFlag(safeLocalStorage(), PALETTE_RAIL_STORAGE_KEY, rail)
@@ -276,6 +312,7 @@ export function WorkflowBuilder({
   const zoom = canvasView.zoom
   const dndId = useId()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   // Listen for toggle-collapse events from canvas nodes (double-click)
   useEffect(() => {
@@ -385,6 +422,22 @@ export function WorkflowBuilder({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedNodeId, selectedNodeIds, selectedEdgeId, clipboard, nodes, edges, connecting, showTestRunner, showPublishDialog, showPermissions, showVersionHistory]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ⌘S saves the draft, ⌘↵ saves and opens the test runner (also while typing in an input).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
+      if (showTestRunner || showPublishDialog || showPermissions || showVersionHistory) return
+      const key = e.key.toLowerCase()
+      if (key !== "s" && key !== "enter") return
+      e.preventDefault()
+      if (saving) return
+      if (key === "s") void handleSave()
+      else void handleTest()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  })
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -392,6 +445,8 @@ export function WorkflowBuilder({
   )
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
+  // A newly selected step's settings start at the top of the inspector.
+  useEffect(() => { document.getElementById("inspector-panel-configure")?.scrollTo({ top: 0 }) }, [selectedNodeId])
 
   const TRIGGER_TYPES = NODE_CATALOG.filter(n => n.category === 'trigger').map(n => n.type)
 
@@ -454,6 +509,9 @@ export function WorkflowBuilder({
     }
   }
 
+  // Custom action steps with their function's typed outputs (data picker, Variables panel).
+  const dataNodes = useMemo(() => withActionOutputs(nodes, customActivities), [nodes, customActivities])
+
   function addCustomActivity(activityId: string, x?: number, y?: number) {
     const activity = customActivities.find((item: any) => item.id === activityId)
     if (!activity) return
@@ -463,6 +521,8 @@ export function WorkflowBuilder({
       : TRIGGER_ZONE_HEIGHT + 60)
     const node = createDefaultNode('custom_activity', x ?? 200, nextY)
     node.label = activity.name
+    const actionManifest = actionManifestOf(activity)
+    const firstOperation = actionManifest.operations[0]
     node.config = {
       ...node.config,
       custom_activity_id: activity.id,
@@ -471,11 +531,12 @@ export function WorkflowBuilder({
       activity_description: activity.description ?? '',
       activity_icon_name: activity.icon_name ?? 'Puzzle',
       activity_color: activity.color ?? '#0EA5E9',
-      source_code: activity.source_code ?? '',
-      manifest: activity.manifest ?? { inputs: [], outputs: [] },
-      demo_inputs: activity.demo_inputs ?? {},
+      operation: firstOperation?.id ?? null,
+      operation_label: firstOperation?.label ?? null,
+      _action_outputs: firstOperation?.outputs ?? [],
+      manifest: { outputs: firstOperation?.outputs ?? [] },
       input_mappings: {},
-      _output_prefix: activity.key || activity.name?.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30),
+      _output_prefix: String(activity.key || activity.name || 'custom_action').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30),
     }
     setNodes((prev) => [...prev, node])
     setSelectedNodeId(node.id)
@@ -681,34 +742,40 @@ export function WorkflowBuilder({
   }
 
   async function handlePublish() {
-    if (!validation.valid) {
-      alert(`Cannot publish: ${validation.totalErrors} configuration issue${validation.totalErrors !== 1 ? 's' : ''} found.`)
-      return
-    }
-    setPublishing(true)
-    // Save draft first
-    await saveWorkflow(workflowId, { nodes, edges, user_variables: userVariables, swimlanes, trigger_type: effectiveTriggerType })
-    const result = await publishWorkflow(workflowId, publishNotes || undefined)
-    if ('error' in result) {
-      setPublishing(false)
+    await publishGuard.run(async () => {
+      if (!validation.valid) {
+        alert(`Cannot publish: ${validation.totalErrors} configuration issue${validation.totalErrors !== 1 ? 's' : ''} found.`)
+        return
+      }
+      setPublishing(true)
+      // Save draft first
+      await saveWorkflow(workflowId, { nodes, edges, user_variables: userVariables, swimlanes, trigger_type: effectiveTriggerType })
+      const result = await publishWorkflow(workflowId, publishNotes || undefined)
+      if ('error' in result) {
+        setPublishing(false)
+        setShowPublishDialog(false)
+        setPackageBlock(result.error)
+        return
+      }
+      setCurrentVersion(result.version_number)
+      // Run Agent steps are now pinned to their agents' current versions.
+      void queryClient.invalidateQueries({ queryKey: ['workflow-agent-pins', workflowId] })
+      setHasUnpublished(false)
       setShowPublishDialog(false)
-      setPackageBlock(result.error)
-      return
-    }
-    setCurrentVersion(result.version_number)
-    setHasUnpublished(false)
-    setShowPublishDialog(false)
-    setPublishNotes('')
-    setPublishing(false)
+      setPublishNotes('')
+      setPublishing(false)
+    })
   }
 
 
 
 
-  const validation = validateWorkflow(nodes, effectiveTriggerType)
+  // AAD group assignment is checked against the workspace (undefined while loading: not checked).
+  const directoryCapabilities = useDirectoryCapabilities()
+  const validation = validateWorkflow(nodes, effectiveTriggerType, { entraGroups: directoryCapabilities?.entraGroups })
 
   async function handleDelete() {
-    if (!confirm("Delete this automation?")) return
+    if (!confirm("Delete this workflow?")) return
     await deleteWorkflow(workflowId)
   }
 
@@ -885,7 +952,7 @@ export function WorkflowBuilder({
   const minimapItems: MinimapItem[] = visibleBoxes().map(({ node: n, ...box }) => ({
     ...box,
     id: n.id,
-    color: (n.config?.node_color as string | undefined) ?? NODE_CATALOG.find(c => c.type === n.type)?.color ?? "#6B7280",
+    color: (n.config?.node_color as string | undefined) ?? nodeColorVar(nodeColorCategory(n.type)),
     selected: n.id === selectedNodeId || selectedNodeIds.has(n.id),
   }))
 
@@ -894,7 +961,7 @@ export function WorkflowBuilder({
     <LinkedFormsProvider value={linkedForms}>
     <WorkflowLookupsProvider>
     <CanvasZoomContext.Provider value={zoom}>
-    <div ref={designerRef} className="contents">
+    <div ref={designerRef} className="flex h-full min-h-0 flex-col">
     <DndContext
       id={dndId}
       sensors={sensors}
@@ -902,223 +969,114 @@ export function WorkflowBuilder({
       onDragEnd={handleDragEnd}
     >
       {packageBlock && (
-        <div
-          className="mb-3 px-3 py-2 rounded-xl border text-xs flex flex-wrap items-center gap-2"
-          role="status"
-          data-testid="package-setup-banner"
-          style={{ backgroundColor: "var(--status-warning-bg)", color: "var(--theme-warning)", borderColor: "color-mix(in srgb, var(--theme-warning) 35%, transparent)" }}
-        >
-          <span><span className="font-semibold">Needs configuration:</span>{packageBlock.replace(/^Needs configuration:/, '')}</span>
-          <a href="/settings/packages" className="underline underline-offset-2 font-medium">Complete setup</a>
+        <div className="mb-2" data-testid="package-setup-banner">
+          <InlineNotice
+            tone="warning"
+            title="Needs configuration"
+            message={packageBlock.replace(/^Needs configuration:\s*/, '')}
+            actions={<Button asChild variant="secondary" size="sm"><a href="/settings/packages">Complete setup</a></Button>}
+          />
         </div>
       )}
-      {/* Toolbar */}
+      {/* Toolbar — one 48px row: identity | history + layout | save, test, publish, ⋯ */}
+      <TooltipProvider>
       <div
-        className="flex flex-wrap justify-between items-center gap-2 gap-y-2 mb-3 px-3 py-2 rounded-xl border min-w-0"
-        style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+        role="toolbar"
+        aria-label="Workflow designer"
+        data-designer-toolbar=""
+        className="mb-2 flex h-12 min-w-0 shrink-0 items-center gap-2 rounded-lg border border-border bg-panel px-2"
       >
-        <div className="flex items-center gap-3">
-          {/* Status badge */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
-            style={{
-              backgroundColor: isActive ? "var(--theme-primary-light)" : "var(--theme-surface)",
-              color: isActive ? "var(--theme-success)" : "var(--theme-muted-text)",
-              border: `1px solid ${isActive ? "var(--theme-surface-border)" : "var(--theme-surface-border)"}`,
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: isActive ? "var(--theme-success)" : "var(--theme-muted-text)" }}
-            />
-            {isActive ? "Active" : "Inactive"}
-          </div>
-
-          <div className="w-px h-5" style={{ backgroundColor: "var(--theme-surface-border)" }} />
-
-          <div
-            className="text-xs flex items-center gap-2"
-            style={{ color: "var(--theme-muted-text)" }}
-          >
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: "var(--theme-surface)" }}>
-              {nodes.length} nodes
-            </span>
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: "var(--theme-surface)" }}>
-              {edges.length} edges
-            </span>
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: "var(--theme-surface)" }}>
-              {runs.length} runs
-            </span>
-          </div>
-
-          {/* Validation indicator */}
-          {!validation.valid && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold cursor-default"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)', border: '1px solid color-mix(in srgb, var(--theme-warning) 20%, transparent)' }}
-              title={validation.nodeErrors.map(e => `${e.nodeLabel}: ${e.errors.join(', ')}`).join('\n')}
-            >
-              <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: 'var(--theme-warning)', color: 'var(--theme-card-bg)' }}>
-                {validation.totalErrors}
-              </span>
-              {validation.totalErrors === 1 ? '1 issue' : `${validation.totalErrors} issues`} to configure
-            </div>
+        <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
+          {backHref && (
+            <Tooltip content="Back to workflows">
+              <Link href={backHref} aria-label="Back to workflows" className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
+                <ArrowLeft className="size-4" aria-hidden="true" />
+              </Link>
+            </Tooltip>
           )}
-          {validation.valid && nodes.length > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-success) 10%, transparent)', color: 'var(--theme-success)' }}>
-              <CheckCircle size={12} />
-              Ready to deploy
-            </div>
-          )}
-
-          {connecting && (
-            <div className="flex items-center gap-2 text-xs animate-pulse">
-              <span
-                className="px-2 py-1 rounded-full font-medium"
-                style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}
-              >
-                Click a target node to connect
-              </span>
-              <button
-                onClick={cancelConnect}
-                className="text-xs underline"
-                style={{ color: "var(--theme-muted-text)" }}
-              >
-                Cancel
-              </button>
-            </div>
+          {workflowName && <h1 className="min-w-0 truncate text-base font-semibold text-fg" title={workflowName}>{workflowName}</h1>}
+          <StatusPill status={isActive ? "active" : "inactive"} />
+          {currentVersion && <Tag mono className="shrink-0">v{currentVersion} published</Tag>}
+          {(isDirty || (hasUnpublished && currentVersion)) && (
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-fg-muted" data-unpublished-indicator="">
+              <span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />
+              {isDirty ? "Unsaved changes" : "Unpublished changes"}
+            </span>
           )}
         </div>
 
-        <div className="flex gap-1.5 items-center">
-          {/* Last saved indicator */}
-          {lastSaved && (
-            <span className="text-[10px] mr-2" style={{ color: "var(--theme-muted-text)" }}>
-              Saved {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        <div className="flex shrink-0 items-center gap-0.5">
+          <IconButton size="sm" icon={<Undo2 />} onClick={handleUndo} disabled={!historyView.undo}
+            label={historyView.undo ? `Undo ${historyView.undo}` : "Undo"} kbd={hints.undo} />
+          <IconButton size="sm" icon={<Redo2 />} onClick={handleRedo} disabled={!historyView.redo}
+            label={historyView.redo ? `Redo ${historyView.redo}` : "Redo"} kbd={hints.redo} />
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" leadingIcon={tidying ? <Loader2 className="animate-spin" /> : <LayoutGrid />} trailingIcon={<ChevronDown />}>Layout</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              <DropdownMenuItem icon={<LayoutGrid />} disabled={nodes.length < 2 || tidying} onSelect={() => { void handleAutoLayout() }}>
+                Tidy layout
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Canvas JSON (steps and connections)</DropdownMenuLabel>
+              <DropdownMenuItem icon={<Download />} onSelect={handleExport}>Download canvas</DropdownMenuItem>
+              <DropdownMenuItem icon={<Upload />} onSelect={() => importRef.current?.click()}>Load canvas…</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+        </div>
+
+        <div className="flex flex-[1_0_auto] items-center justify-end gap-1.5">
+          <Tooltip content="Save the draft" kbd={hints.save}>
+            <Button variant="secondary" size="sm" leadingIcon={<Save />} loading={saving} onClick={() => { void handleSave() }}>Save</Button>
+          </Tooltip>
+          <Tooltip content="Save, then run test cases" kbd={hints.test}>
+            <Button variant="secondary" size="sm" leadingIcon={<TestTube />} onClick={() => { void handleTest() }} disabled={saving}>Save &amp; test</Button>
+          </Tooltip>
+          <Tooltip content={isDirty ? "Save your changes before publishing" : `Publish the draft as version ${(currentVersion ?? 0) + 1}`}>
+            <span className="inline-flex">
+              <Button size="sm" leadingIcon={<Upload />} onClick={() => setShowPublishDialog(true)} disabled={isDirty}>
+                Publish{currentVersion ? ` v${currentVersion + 1}` : ""}
+              </Button>
             </span>
-          )}
-
-          {/* Button group: Test + Save */}
-          <div
-            className="flex rounded-lg overflow-hidden border"
-            style={{ borderColor: "var(--theme-surface-border)" }}
-          >
-            <Button size="sm" variant="ghost" onClick={handleTest} disabled={saving} className="rounded-none border-r" style={{ borderColor: "var(--theme-surface-border)" }}>
-              <TestTube size={14} className="mr-1" /> {saving ? "Saving..." : "Save & Test"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleSave} disabled={saving} className="rounded-none border-r" style={{ borderColor: "var(--theme-surface-border)" }}>
-              <Save size={14} className="mr-1" /> {saving ? "..." : "Save"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowPermissions(true)} className="rounded-none">
-              <Shield size={14} className="mr-1" /> Permissions
-            </Button>
-          </div>
-
-          {/* Button group: Undo + Redo */}
-          <div
-            className="flex rounded-lg overflow-hidden border"
-            style={{ borderColor: "var(--theme-surface-border)" }}
-          >
-            <Button size="sm" variant="ghost" onClick={handleUndo} disabled={!historyView.undo} aria-label="Undo"
-              className="rounded-none border-r px-2.5" style={{ borderColor: "var(--theme-surface-border)" }}
-              title={historyView.undo ? `Undo ${historyView.undo} (${hints.undo})` : `Nothing to undo (${hints.undo})`}>
-              <Undo2 size={14} />
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleRedo} disabled={!historyView.redo} aria-label="Redo"
-              className="rounded-none px-2.5"
-              title={historyView.redo ? `Redo ${historyView.redo} (${hints.redo})` : `Nothing to redo (${hints.redo})`}>
-              <Redo2 size={14} />
-            </Button>
-          </div>
-
-          {/* Button group: Layout + canvas JSON export / import + History */}
-          <div
-            className="flex rounded-lg overflow-hidden border"
-            style={{ borderColor: "var(--theme-surface-border)" }}
-          >
-            <Button size="sm" variant="ghost" onClick={handleAutoLayout} disabled={nodes.length < 2 || tidying} className="rounded-none border-r" style={{ borderColor: "var(--theme-surface-border)" }} title="Tidy: arrange the steps as a top-down flowchart (branches side by side, loops and error paths to the right)">
-              {tidying ? <Loader2 size={14} className="mr-1 animate-spin" /> : <LayoutGrid size={14} className="mr-1" />} Tidy
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleExport} className="rounded-none border-r" style={{ borderColor: "var(--theme-surface-border)" }} title="Download the canvas (steps and connections) as JSON. To move the whole workflow to another workspace, use Export in the header.">
-              <Download size={14} className="mr-1" /> Canvas
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => importRef.current?.click()} className="rounded-none border-r" style={{ borderColor: "var(--theme-surface-border)" }} title="Replace the canvas with a canvas JSON file">
-              <Upload size={14} className="mr-1" /> Load canvas
-            </Button>
-            <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-            <Button size="sm" variant="ghost" onClick={() => setShowVersionHistory(true)} className="rounded-none">
-              <History size={14} className="mr-1" /> History
-            </Button>
-          </div>
-
-          {/* Unpublished changes indicator */}
-          {hasUnpublished && currentVersion && (
-            <span className="text-[10px] px-2 py-1 rounded-full font-medium"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)', border: '1px solid color-mix(in srgb, var(--theme-warning) 20%, transparent)' }}>
-              Unpublished changes
-            </span>
-          )}
-
-          {/* Version badge */}
-          {currentVersion && (
-            <span className="text-[10px] px-2 py-1 rounded-full font-medium"
-              style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
-              v{currentVersion}
-            </span>
-          )}
-
-          {/* Button group: Publish + Delete */}
-          <div
-            className="flex rounded-lg overflow-hidden border"
-            style={{ borderColor: "var(--theme-surface-border)" }}
-          >
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowPublishDialog(true)}
-              disabled={isDirty}
-              className="rounded-none border-r"
-              style={{ borderColor: "var(--theme-surface-border)" }}
-              title={isDirty ? "Save your changes before publishing" : undefined}
-            >
-              <Upload size={14} className="mr-1" /> Publish{currentVersion ? ` v${currentVersion + 1}` : ''}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleDelete} className="rounded-none hover:text-red-500">
-              <Trash2 size={14} />
-            </Button>
-          </div>
-          {isDirty && (
-            <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
-              Save first to publish
-            </span>
-          )}
+          </Tooltip>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <IconButton size="sm" label="More workflow actions" icon={<MoreHorizontal />} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {menuItems}
+              {menuItems && <DropdownMenuSeparator />}
+              <DropdownMenuItem icon={<Shield />} onSelect={() => setShowPermissions(true)}>Permissions</DropdownMenuItem>
+              <DropdownMenuItem icon={<History />} onSelect={() => setShowVersionHistory(true)}>Version history</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem danger icon={<Trash2 />} onSelect={() => { void handleDelete() }}>Delete workflow</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+      </TooltipProvider>
 
-      {/* Three-panel layout */}
-      <div className="relative flex gap-3 h-[calc(100%-3rem)]">
-        {/* Left: Palette (collapsible to a narrow rail) */}
+      {notice}
+
+      {/* Panels: palette | canvas | (docked data) | inspector */}
+      <div className="relative flex min-h-0 flex-1 gap-2">
+        {/* Left: Palette (collapsible to a 48px rail) */}
         {paletteRail ? (
           <div
-            className="w-10 shrink-0 rounded-xl border flex flex-col items-center py-2 gap-2"
-            style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+            className="flex w-12 shrink-0 flex-col items-center gap-2 rounded-lg border border-border bg-panel py-2"
             data-palette-rail=""
           >
-            <button type="button" onClick={() => setPaletteRailPersisted(false)}
-              className="p-1.5 rounded-md transition-colors hover:bg-[var(--theme-surface)] focus-visible:outline-none focus-visible:ring-2"
-              style={{ color: "var(--theme-muted-text)", ["--tw-ring-color" as string]: "var(--theme-focus-ring)" } as React.CSSProperties}
-              title="Expand the node sidebar" aria-label="Expand the node sidebar" aria-expanded={false}>
-              <PanelLeftOpen size={15} aria-hidden="true" />
-            </button>
-            <span className="text-[10px] font-semibold uppercase tracking-wider [writing-mode:vertical-rl] rotate-180 select-none" style={{ color: "var(--theme-muted-text)" }}>
+            <IconButton size="sm" label="Expand the node sidebar" icon={<PanelLeftOpen />} tooltipSide="right"
+              aria-expanded={false} onClick={() => setPaletteRailPersisted(false)} />
+            <span className="select-none text-2xs font-medium text-fg-muted [writing-mode:vertical-rl] rotate-180">
               Nodes
             </span>
           </div>
         ) : (
-        <div
-          className="w-52 shrink-0 overflow-y-auto rounded-xl border p-3 space-y-3"
-          style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
-        >
+        <div className="w-60 shrink-0 space-y-3 overflow-y-auto rounded-lg border border-border bg-panel p-3">
         <NodePalette onAddNode={addNode} onAddCustomActivity={addCustomActivity} tenantId={tenantId} disabledNodeTypes={disabledNodeTypes} customActivities={customActivities}
           onCollapseSidebar={() => setPaletteRailPersisted(true)} />
 
@@ -1127,10 +1085,14 @@ export function WorkflowBuilder({
         </div>
         )}
 
-        {/* Center: Canvas — wrapped in an outer relative container so overlays
-            (toggles, minimap, zoom, floating variable/expression panels) stay
-            pinned to the viewport while the canvas content scrolls underneath. */}
-        <div className="flex-1 relative min-w-0">
+        {/* Center: Canvas, its overlays and the status bar in one frame. */}
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-bg transition-[border-color] duration-[var(--ds-dur-fast)]",
+            draggingFromPalette ? "border-primary" : "border-border",
+          )}
+        >
+        <div className="relative min-h-0 flex-1">
         <div
           ref={canvasRef}
           tabIndex={0}
@@ -1138,17 +1100,11 @@ export function WorkflowBuilder({
           aria-label="Workflow canvas. Ctrl or Command plus wheel to zoom, space and drag to pan."
           data-workflow-canvas=""
           className={cn(
-            "absolute inset-0 overflow-auto rounded-xl border transition-[background-color,border-color] focus-visible:outline-none focus-visible:ring-2",
-            draggingFromPalette && "ring-2 ring-dashed",
+            "absolute inset-0 overflow-auto transition-[background-color]",
+            draggingFromPalette ? "bg-primary-wash" : "bg-bg",
             canvasView.cursorClass,
           )}
-          style={{
-            backgroundColor: draggingFromPalette ? "var(--theme-primary-light)" : "var(--theme-surface)",
-            borderColor: draggingFromPalette ? "var(--theme-primary)" : "var(--theme-surface-border)",
-            touchAction: "pan-x pan-y",
-            // @ts-ignore
-            "--tw-ring-color": draggingFromPalette ? "var(--theme-primary)" : "var(--theme-focus-ring)",
-          }}
+          style={{ touchAction: "pan-x pan-y" }}
           {...canvasView.canvasHandlers}
           onClick={(e) => {
             // Don't cancel connect if the click originated from a branch port or node
@@ -1158,14 +1114,11 @@ export function WorkflowBuilder({
             else { setSelectedNodeId(null); setSelectedNodeIds(new Set()); setSelectedEdgeId(null) }
           }}
         >
-          {/* Grid background — rendered on parent via style below */}
-
           {/* Drop zone hint when dragging from palette */}
           {draggingFromPalette && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-              <div className="px-4 py-2 rounded-full text-sm font-medium animate-pulse"
-                style={{ backgroundColor: "var(--theme-primary)", color: 'var(--theme-on-primary)', opacity: 0.7 }}>
-                Drop here to add node
+            <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+              <div className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-fg shadow-elev-2">
+                Drop here to add the step
               </div>
             </div>
           )}
@@ -1181,7 +1134,8 @@ export function WorkflowBuilder({
               minHeight: `${Math.max(8000, ...nodes.map(n => n.type === 'section_group' ? n.position.y + (n.config?.height ?? 300) + 2000 : n.position.y + 2000), ...swimlanes.map(l => l.y + l.height + 2000))}px`,
               transform: canvasView.transform,
               transformOrigin: "0 0",
-              backgroundImage: "radial-gradient(circle, var(--theme-surface-border) 1px, transparent 1px)",
+              // Dot grid on the snap grid, in the subtle border colour.
+              backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--ds-border) 80%, transparent) 1px, transparent 1px)",
               backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
             }}
           >
@@ -1299,43 +1253,28 @@ export function WorkflowBuilder({
         {/* ─── Overlays — siblings of the scroll container so they stay
                pinned to the viewport while the canvas content scrolls. ─── */}
 
-          {/* Minimap */}
+          {/* Minimap — bottom right, collapsible */}
           <CanvasMinimap items={minimapItems} scrollRef={canvasRef} getView={canvasView.getView} onNavigate={canvasView.centreAt} />
 
-          {/* Top-right toggle buttons */}
-          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowExpressions(!showExpressions); if (!showExpressions) setShowVariables(false) }}
-              className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-lg transition-all hover:opacity-90"
-              style={{
-                backgroundColor: showExpressions ? "var(--theme-accent)" : "var(--theme-card-bg)",
-                color: showExpressions ? 'var(--theme-on-accent)' : "var(--theme-accent-text)",
-                border: `1px solid ${showExpressions ? "var(--theme-accent)" : "var(--theme-surface-border)"}`,
-              }}
+          {/* Expressions reference (floating) */}
+          <div className="absolute right-3 top-3 z-20">
+            <Button
+              variant="secondary"
+              size="sm"
+              leadingIcon={<Sparkles />}
+              aria-pressed={showExpressions}
+              className={cn("bg-elevated shadow-elev-2", showExpressions && "border-primary bg-primary-wash text-primary-text")}
+              onClick={(e) => { e.stopPropagation(); setShowExpressions(!showExpressions) }}
             >
-              <Sparkles size={12} />
               Expressions
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowVariables(!showVariables); if (!showVariables) setShowExpressions(false) }}
-              className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-lg transition-all hover:opacity-90"
-              style={{
-                backgroundColor: showVariables ? "var(--theme-primary)" : "var(--theme-card-bg)",
-                color: showVariables ? 'var(--theme-on-primary)' : "var(--theme-primary-text)",
-                border: `1px solid ${showVariables ? "var(--theme-primary)" : "var(--theme-surface-border)"}`,
-              }}
-            >
-              <Variable size={12} />
-              Variables
-            </button>
+            </Button>
           </div>
-
-          {/* Floating panels */}
-          <VariablesPanel open={showVariables} onClose={() => setShowVariables(false)} nodes={nodes} edges={edges} selectedNodeId={selectedNodeId} onInsertLoopBefore={insertLoopBeforeNode} userVariables={userVariables} triggerType={effectiveTriggerType} />
           <ExpressionsPanel open={showExpressions} onClose={() => setShowExpressions(false)} />
 
-          {/* Zoom controls — bottom right */}
+          {/* Zoom controls — bottom left, vertical */}
           <CanvasZoomControls
+            orientation="vertical"
+            className="absolute bottom-3 left-3 z-20"
             zoom={zoom}
             isMac={isMac}
             onZoomIn={canvasView.zoomIn}
@@ -1347,10 +1286,44 @@ export function WorkflowBuilder({
           />
         </div>
 
-        {/* Docked Data sidebar: drag fields / outputs onto the config inputs */}
+        {/* Status bar: counts, readiness, connect hint, last saved */}
+        <div className="flex h-7 shrink-0 items-center gap-2 border-t border-border-subtle bg-panel px-3 text-xs text-fg-muted num" data-designer-status="">
+          <span>{plural(nodes.length, "node")}</span>
+          <span aria-hidden="true">·</span>
+          <span>{plural(edges.length, "edge")}</span>
+          <span aria-hidden="true">·</span>
+          <span>{plural(runs.length, "run")}</span>
+          {nodes.length > 0 && <span className="mx-1 h-3 w-px bg-border" aria-hidden="true" />}
+          {!validation.valid && (
+            <Tooltip content={validation.nodeErrors.map(e => `${e.nodeLabel}: ${e.errors.join(', ')}`).join('\n')}>
+              <span tabIndex={0} className="inline-flex items-center gap-1 text-warning">
+                <AlertTriangle size={12} aria-hidden="true" />
+                {plural(validation.totalErrors, "issue")} to configure
+              </span>
+            </Tooltip>
+          )}
+          {validation.valid && nodes.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-success">
+              <CheckCircle size={12} aria-hidden="true" />
+              Ready to deploy
+            </span>
+          )}
+          {connecting && (
+            <span className="inline-flex items-center gap-2 text-primary-text">
+              <span className="font-medium">Click a target step to connect</span>
+              <Button variant="link" size="sm" className="h-auto text-xs" onClick={cancelConnect}>Cancel</Button>
+            </span>
+          )}
+          <span className="ml-auto">
+            {lastSaved ? <>Saved {formatTime(lastSaved)}</> : null}
+          </span>
+        </div>
+        </div>
+
+        {/* Docked Data column (drag fields onto the inspector's inputs) */}
         {dataSidebarOpen && (
           <DataSidebar
-            nodes={nodes}
+            nodes={dataNodes}
             edges={edges}
             selectedNodeId={selectedNodeId}
             workflowVariables={userVariables}
@@ -1359,16 +1332,38 @@ export function WorkflowBuilder({
           />
         )}
 
-        {/* Right: Config panel */}
+        {/* Right: Inspector — Configure · Data · Variables */}
         <div
-          className="w-72 shrink-0 overflow-y-auto rounded-xl border p-3 space-y-4 max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-30 max-lg:shadow-xl"
-          style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+          className="flex w-[360px] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-panel max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-30 max-lg:shadow-elev-3"
           data-no-dnd="true"
+          data-inspector=""
           onPointerDown={(e) => e.stopPropagation()}
           onDragOverCapture={markNativeDropTarget}
           onDragLeaveCapture={clearNativeDropTarget}
           onDropCapture={clearNativeDropTarget}
         >
+          <div className="shrink-0 px-3">
+            <Tabs
+              aria-label="Inspector"
+              idBase="inspector"
+              value={inspectorTab}
+              onValueChange={setInspectorTab}
+              items={[
+                { value: "configure", label: "Configure" },
+                { value: "data", label: "Data" },
+                { value: "variables", label: "Variables" },
+              ]}
+            />
+          </div>
+
+          <TabPanel idBase="inspector" value="configure" hidden={inspectorTab !== "configure"} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
+          {!selectedNode && (
+            <div>
+              <h2 className="text-ui font-semibold text-fg">Workflow settings</h2>
+              <p className="text-xs text-fg-muted">Select a step on the canvas to configure it.</p>
+            </div>
+          )}
+
           {/* Show webhook config ONLY when webhook node is selected or no node selected */}
           {((effectiveTriggerType === "webhook_received" || effectiveTriggerType === "middleware_received") ||
               nodes.some(n => n.type === "webhook_received" || n.type === "middleware_received")) &&
@@ -1379,7 +1374,7 @@ export function WorkflowBuilder({
                 workflowVariables={userVariables}
                 mode={effectiveTriggerType === 'middleware_received' ? 'middleware' : 'webhook'}
               />
-              <div className="my-2" style={{ borderTop: "1px solid var(--theme-surface-border)" }} />
+              <div className="border-t border-border-subtle" />
             </>
           )}
 
@@ -1390,7 +1385,7 @@ export function WorkflowBuilder({
               {(() => {
                 const triggerNode = nodes.find((n) => TRIGGER_TYPES.includes(n.type)) ?? null
                 return (
-                  <div className="px-1 pb-1">
+                  <div>
                     <StartFormButton
                       variables={userVariables as unknown as StartFormVariable[]}
                       onVariablesChange={(next) => setUserVariables(next as UserVariable[])}
@@ -1401,13 +1396,33 @@ export function WorkflowBuilder({
                   </div>
                 )
               })()}
-              <div className="my-2" style={{ borderTop: "1px solid var(--theme-surface-border)" }} />
+              <div className="border-t border-border-subtle" />
               <SwimlaneManager swimlanes={swimlanes} onChange={setSwimlanes} />
-              <div className="my-2" style={{ borderTop: "1px solid var(--theme-surface-border)" }} />
+              <div className="border-t border-border-subtle" />
             </>
           )}
 
-          <NodeConfigPanel workflowId={workflowId} node={selectedNode} onUpdateNode={updateNode} allNodes={nodes} allEdges={edges} onInsertLoopBefore={insertLoopBeforeNode} workflowVariables={userVariables} triggerType={effectiveTriggerType} customActivities={customActivities} dataSidebarOpen={dataSidebarOpen} onToggleDataSidebar={() => setDataSidebarOpen((open) => !open)} />
+          <NodeConfigPanel workflowId={workflowId} node={selectedNode} onUpdateNode={updateNode} allNodes={dataNodes} allEdges={edges} onInsertLoopBefore={insertLoopBeforeNode} workflowVariables={userVariables} triggerType={effectiveTriggerType} customActivities={customActivities} dataSidebarOpen={dataSidebarOpen} onToggleDataSidebar={() => setDataSidebarOpen((open) => !open)} />
+          </TabPanel>
+
+          <TabPanel idBase="inspector" value="data" hidden={inspectorTab !== "data"} className="flex min-h-0 flex-1 flex-col p-3">
+            {inspectorTab === "data" && (
+              <DataSidebar
+                embedded
+                nodes={dataNodes}
+                edges={edges}
+                selectedNodeId={selectedNodeId}
+                workflowVariables={userVariables}
+                onInsertLoopBefore={insertLoopBeforeNode}
+                onClose={() => setInspectorTab("configure")}
+                onDock={dataSidebarOpen ? undefined : () => { setDataSidebarOpen(true); setInspectorTab("configure") }}
+              />
+            )}
+          </TabPanel>
+
+          <TabPanel idBase="inspector" value="variables" hidden={inspectorTab !== "variables"} className="flex min-h-0 flex-1 flex-col p-3">
+            <VariablesPanel embedded open={inspectorTab === "variables"} onClose={() => setInspectorTab("configure")} nodes={dataNodes} edges={edges} selectedNodeId={selectedNodeId} onInsertLoopBefore={insertLoopBeforeNode} userVariables={userVariables} triggerType={effectiveTriggerType} />
+          </TabPanel>
         </div>
       </div>
       {/* Drag overlay - ghost preview when dragging from palette */}
@@ -1419,18 +1434,19 @@ export function WorkflowBuilder({
           const catalog = NODE_CATALOG.find((n) => n.type === draggingFromPalette)
           if (!catalog) return null
           const Icon = paletteIconMap[catalog.icon] ?? Plus
+          const category = nodeColorCategory(catalog.type)
+          const accent = nodeColorVar(category)
           return (
-            <div className="w-56 rounded-2xl shadow-2xl opacity-90 pointer-events-none"
-              style={{ border: `2px solid ${catalog.color}` }}>
-              <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-t-2xl text-white text-xs font-medium"
-                style={{ background: `linear-gradient(135deg, ${catalog.color}, ${catalog.color}DD)` }}>
-                <Icon size={14} />
-                <span>{catalog.label}</span>
+            <div className="pointer-events-none w-56 rounded-lg border border-border bg-elevated opacity-95 shadow-elev-3">
+              <div className="flex items-center gap-2 rounded-t-lg border-b border-border-subtle px-3 py-2 text-xs font-semibold text-fg"
+                style={{ backgroundColor: `color-mix(in srgb, ${accent} 16%, var(--theme-card-bg))` }}>
+                <span className="inline-flex size-5 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `color-mix(in srgb, ${accent} 30%, var(--theme-card-bg))`, color: nodeColorTextVar(category) }}>
+                  <Icon size={14} />
+                </span>
+                <span className="truncate">{catalog.label}</span>
               </div>
-              <div className="px-3 py-2.5 text-[10px] rounded-b-2xl"
-                style={{ backgroundColor: "var(--theme-card-bg)" }}>
-                <p style={{ color: "var(--theme-muted-text)" }}>{catalog.description}</p>
-              </div>
+              <p className="px-3 py-2 text-2xs text-fg-muted">{catalog.description}</p>
             </div>
           )
         })()}
@@ -1460,55 +1476,41 @@ export function WorkflowBuilder({
       )}
 
       {/* Publish Dialog */}
-      {showPublishDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-            <div className="px-5 py-3" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-              <h3 className="text-sm font-semibold">Publish Workflow</h3>
-              <p className="text-[10px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-                Creates version {(currentVersion ?? 0) + 1}. In-flight processes will continue on their started version.
-              </p>
-            </div>
-            <div className="p-5 space-y-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">Publish Notes (optional)</label>
-                <textarea
-                  value={publishNotes}
-                  onChange={e => setPublishNotes(e.target.value)}
-                  placeholder="What changed in this version?"
-                  rows={3}
-                  className="w-full rounded-lg border px-3 py-2 text-xs resize-none"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
-                />
-              </div>
-              {!validation.valid && (
-                <div className="rounded-lg p-2.5 text-xs" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 10%, transparent)', color: 'var(--theme-warning)' }}>
-                  {validation.totalErrors} issue{validation.totalErrors !== 1 ? 's' : ''} must be resolved before publishing.
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 px-5 py-3" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
-              <Button size="sm" variant="ghost" onClick={() => { setShowPublishDialog(false); setPublishNotes('') }}>Cancel</Button>
-              <Button size="sm" onClick={handlePublish} disabled={publishing || !validation.valid}>
-                {publishing ? <><Loader2 size={14} className="mr-1 animate-spin" /> Publishing...</> : <><Upload size={14} className="mr-1" /> Publish</>}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showPublishDialog} onOpenChange={(open) => { if (!open && !publishing) { setShowPublishDialog(false); setPublishNotes('') } }}>
+        <DialogContent size="sm" title={`Publish version ${(currentVersion ?? 0) + 1}`}
+          description="In-flight processes continue on the version they started on.">
+          <DialogBody className="space-y-3">
+            <Field label="Publish notes" optional>
+              <Textarea
+                value={publishNotes}
+                onChange={e => setPublishNotes(e.target.value)}
+                placeholder="What changed in this version?"
+                rows={3}
+              />
+            </Field>
+            {!validation.valid && (
+              <InlineNotice tone="warning" message={`${plural(validation.totalErrors, 'issue')} must be resolved before publishing.`} />
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setShowPublishDialog(false); setPublishNotes('') }} disabled={publishing}>Cancel</Button>
+            <Button onClick={handlePublish} loading={publishing} leadingIcon={<Upload />} disabled={!validation.valid}>
+              {publishing ? 'Publishing…' : 'Publish'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Permissions dialog */}
-      {showPermissions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden p-6"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+      <Dialog open={showPermissions} onOpenChange={setShowPermissions}>
+        <DialogContent size="lg" title="Permissions">
+          <DialogBody>
             <ObjectPermissions objectType="workflow" objectId={workflowId} showExecute={true} />
-            <div className="flex justify-end mt-4">
-              <Button variant="outline" size="sm" onClick={() => setShowPermissions(false)}>Close</Button>
-            </div>
-          </div>
-        </div>
-      )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowPermissions(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DndContext>
     </div>
     </CanvasZoomContext.Provider>

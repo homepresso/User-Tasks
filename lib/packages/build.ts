@@ -46,7 +46,7 @@ export interface PackageContents {
 /** Manifest sections a package may carry (the workspace theme never travels in a package). */
 export const PACKAGE_SECTIONS = [
   'email_templates', 'connectors', 'data_tables', 'integrations', 'references', 'objects', 'decision_tables',
-  'retention_policies', 'roles', 'mcp_servers', 'workflow_activities', 'reports', 'agents', 'form_themes', 'forms', 'workflows',
+  'retention_policies', 'roles', 'mcp_servers', 'workflow_activities', 'reports', 'agents', 'form_controls', 'form_themes', 'forms', 'workflows',
   'log_destinations',
 ] as const
 

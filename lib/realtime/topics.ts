@@ -60,7 +60,8 @@ export const NOTIFY_COLUMNS: Record<RealtimeTopic, readonly string[]> = {
   workflow_logs: [],
   object_audit_log: [],
   integration_call_logs: [],
-  agent_runs: [],
+  // Since 20261124000000: own runs reach their actor / initiator without agents.view.
+  agent_runs: ['actor_id', 'initiated_by'],
 }
 
 export interface RealtimeFilter {

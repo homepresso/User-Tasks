@@ -240,6 +240,7 @@ describe('MCP retention contracts', () => {
       data_tables: 1,
       data_rows: 0,
       roles: 0,
+      forms: 0,
     })
     expect(assetsPayload.assets.data_tables).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'table-1', name: 'Contracts' })]),
@@ -250,6 +251,46 @@ describe('MCP retention contracts', () => {
     })
     expect(deleteWhileAssigned?.isError).toBe(true)
     expect(deleteWhileAssigned.content[0].text).toContain('Remove this policy from all assigned assets before deleting it')
+  })
+
+  it('assigns a forms-scoped policy to a form (it governs the submissions) and lists the form as an asset', async () => {
+    const supabase = createRetentionSupabaseMock({
+      forms: [{ id: 'form-1', tenant_id: 'test-tenant', name: 'Expense claim' }],
+    })
+    const server = createMcpServer({
+      tenantId: 'test-tenant',
+      supabase,
+      actingUserId: 'test-user',
+      keyType: 'tenant',
+      scopes: { workflow_ids: [], table_ids: [] },
+    })
+    const policy = parseToolResponse(await server.callTool('retention_policies_create', {
+      name: 'Claims 90 days', policy_mode: 'purge_on', duration_value: 90, duration_unit: 'days', applies_to: ['forms'],
+    })).retention_policy
+    expect(policy.applies_to).toEqual(['forms'])
+
+    const assigned = await server.callTool('retention_policies_assign', { target_type: 'form', target_id: 'form-1', retention_policy_id: policy.id })
+    expect(assigned?.isError).not.toBe(true)
+    expect(parseToolResponse(assigned)).toMatchObject({ updated: true, assigned: true, target_type: 'form', target_id: 'form-1', retention_policy_id: policy.id })
+    expect((supabase as any).__records.forms[0]).toMatchObject({ retention_policy_id: policy.id })
+    expect((supabase as any).__records.forms[0].retention_applied_at).toEqual(expect.any(String))
+
+    const assets = parseToolResponse(await server.callTool('retention_policies_list_assets', { retention_policy_id: policy.id }))
+    expect(assets.usage).toMatchObject({ forms: 1 })
+    expect(assets.assets.forms).toEqual([expect.objectContaining({ id: 'form-1', name: 'Expense claim' })])
+
+    // A policy without the forms scope cannot be put on a form.
+    const tablesOnly = parseToolResponse(await server.callTool('retention_policies_create', {
+      name: 'Tables only', policy_mode: 'review', duration_value: 1, duration_unit: 'years', applies_to: ['data_tables'],
+    })).retention_policy
+    const refused = await server.callTool('retention_policies_assign', { target_type: 'form', target_id: 'form-1', retention_policy_id: tablesOnly.id })
+    expect(refused?.isError).toBe(true)
+    expect(refused.content[0].text).toContain('cannot be applied to this target type')
+
+    // Clearing it.
+    const cleared = parseToolResponse(await server.callTool('retention_policies_assign', { target_type: 'form', target_id: 'form-1' }))
+    expect(cleared).toMatchObject({ assigned: false, retention_policy_id: null })
+    expect((supabase as any).__records.forms[0].retention_applied_at).toBeNull()
   })
 
   it('rejects assigning a policy to a scope it does not cover', async () => {

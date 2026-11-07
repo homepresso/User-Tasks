@@ -232,6 +232,17 @@ export const CLI_HANDWRITTEN_COMMANDS: CliCommandGroup[] = [
         ],
         example: 'usertasks files upload ./taxi.pdf --field receipts --task <task-id>',
       },
+      {
+        command: 'tasks attach',
+        args: '<taskId> <path>',
+        description: 'Attach a file to a task\'s Attachments tab with a name, type and description, and print the attachment. Large files go straight to storage when the server can sign uploads. List, download and delete with `tasks attachments`, `tasks attachment-download` and `tasks attachment-delete`.',
+        options: [
+          { flags: '--name <name>', description: 'Display name (default: the file name)' },
+          { flags: '--type <type>', description: 'Type, e.g. Contract, Invoice, Receipt, Evidence, Image, Other' },
+          { flags: '--description <text>', description: 'Description' },
+        ],
+        example: 'usertasks tasks attach <task-id> ./contract.pdf --type Contract --name "Signed contract"',
+      },
     ],
   },
   {

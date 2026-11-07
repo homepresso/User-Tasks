@@ -144,10 +144,10 @@ export function WizardStep2Browse({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold">Select Objects</h3>
-            <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs text-fg-muted">
               Choose tables, views, and procedures to create references from.
               {selectedItems.length > 0 && (
-                <span className="font-medium" style={{ color: 'var(--theme-primary-text)' }}>
+                <span className="font-medium text-primary-text">
                   {' '}{selectedItems.length} selected
                 </span>
               )}
@@ -158,7 +158,7 @@ export function WizardStep2Browse({
         {/* Filters */}
         <div className="flex gap-2 mb-3">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--theme-muted-text)' }} />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -169,7 +169,7 @@ export function WizardStep2Browse({
           <div className="flex gap-1">
             <button
               onClick={() => setFilter('all')}
-              className="px-2 py-1 rounded text-[10px] font-medium transition-colors"
+              className="px-2 py-1 rounded text-2xs font-medium transition-colors"
               style={{
                 backgroundColor: filter === 'all' ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
                 color: filter === 'all' ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
@@ -179,7 +179,7 @@ export function WizardStep2Browse({
               <button
                 key={t}
                 onClick={() => setFilter(t)}
-                className="px-2 py-1 rounded text-[10px] font-medium transition-colors"
+                className="px-2 py-1 rounded text-2xs font-medium transition-colors"
                 style={{
                   backgroundColor: filter === t ? 'var(--theme-primary-light)' : 'var(--theme-surface)',
                   color: filter === t ? 'var(--theme-primary-text)' : 'var(--theme-muted-text)',
@@ -193,11 +193,11 @@ export function WizardStep2Browse({
         {loading ? (
           <div className="space-y-2 py-4">
             {[1,2,3,4,5].map(i => (
-              <div key={i} className="animate-pulse h-10 rounded" style={{ backgroundColor: 'var(--theme-surface)' }} />
+              <div key={i} className="animate-pulse h-10 rounded bg-bg" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-sm py-8 text-center" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-sm py-8 text-center text-fg-muted">
             {items.length === 0 ? 'No objects found. Check your connection.' : 'No matches.'}
           </p>
         ) : (
@@ -221,14 +221,14 @@ export function WizardStep2Browse({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">
                       {item.schema !== 'dbo' && item.schema !== 'public' && (
-                        <span style={{ color: 'var(--theme-muted-text)' }}>{item.schema}.</span>
+                        <span className="text-fg-muted">{item.schema}.</span>
                       )}
                       {item.name}
                     </p>
-                    <p className="text-[10px] capitalize" style={{ color: 'var(--theme-muted-text)' }}>{item.type}</p>
+                    <p className="text-2xs capitalize text-fg-muted">{item.type}</p>
                   </div>
                   {selected && (
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--theme-primary)' }}>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center bg-primary">
                       <Check size={12} className="text-white" />
                     </span>
                   )}

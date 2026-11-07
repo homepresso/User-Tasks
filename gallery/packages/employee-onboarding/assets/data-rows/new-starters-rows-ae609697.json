@@ -1,0 +1,137 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+  "asset": {
+    "id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+    "name": "New starters rows",
+    "rows": [
+      {
+        "id": "92eac39a-c4c1-53d3-952c-634f5a013b05",
+        "data": {
+          "starter_ref": "NS-20260914-8QF2",
+          "submitted_on": "2026-09-14",
+          "new_hire_name": "Aroha Ngata",
+          "job_title": "Account Executive",
+          "department": "sales",
+          "employment_type": "permanent",
+          "location": "office",
+          "start_date": "2026-10-05",
+          "contract_end_date": null,
+          "manager_name": "Sam Patel",
+          "manager_email": "sam.patel@example.com",
+          "employee_id": "E-2041",
+          "track": "standard-office",
+          "it_ready_by": "2026-09-28",
+          "status": "Onboarded",
+          "notes": "Day-30 check-in done: settling in well."
+        }
+      },
+      {
+        "id": "6cfe58a1-77ae-5bfd-bb41-28c443c215d7",
+        "data": {
+          "starter_ref": "NS-20260930-2LM7",
+          "submitted_on": "2026-09-30",
+          "new_hire_name": "Ben Carter",
+          "job_title": "Data Analyst",
+          "department": "finance",
+          "employment_type": "fixed-term",
+          "location": "remote",
+          "start_date": "2026-10-26",
+          "contract_end_date": "2027-04-23",
+          "manager_name": "Lena Fischer",
+          "manager_email": "lena.fischer@example.com",
+          "employee_id": "E-2049",
+          "track": "remote",
+          "it_ready_by": "2026-10-15",
+          "status": "Ready for day one",
+          "notes": "Six-month cover for parental leave."
+        }
+      },
+      {
+        "id": "1672afa5-40e2-5ff3-a516-85ee0c3cf7a8",
+        "data": {
+          "starter_ref": "NS-20261008-5RT4",
+          "submitted_on": "2026-10-08",
+          "new_hire_name": "Chloe Martin",
+          "job_title": "Senior Product Designer",
+          "department": "marketing",
+          "employment_type": "permanent",
+          "location": "office",
+          "start_date": "2026-11-09",
+          "contract_end_date": null,
+          "manager_name": "Priya Shah",
+          "manager_email": "priya.shah@example.com",
+          "employee_id": "E-2053",
+          "track": "standard-office",
+          "it_ready_by": "2026-11-02",
+          "status": "Preparing",
+          "notes": ""
+        }
+      },
+      {
+        "id": "789be91e-d2f9-5fba-9b24-a0f64f9c8a1f",
+        "data": {
+          "starter_ref": "NS-20261015-1XB9",
+          "submitted_on": "2026-10-15",
+          "new_hire_name": "Diego Alvarez",
+          "job_title": "Platform Engineer",
+          "department": "engineering",
+          "employment_type": "contractor",
+          "location": "remote",
+          "start_date": "2026-11-02",
+          "contract_end_date": "2027-01-29",
+          "manager_name": "Priya Shah",
+          "manager_email": "priya.shah@example.com",
+          "employee_id": "C-0311",
+          "track": "contractor",
+          "it_ready_by": "2026-10-28",
+          "status": "Preparing",
+          "notes": "Through Kiwi Tech Contracting."
+        }
+      },
+      {
+        "id": "25fbfadf-7db2-5c84-be21-79e558e42c4c",
+        "data": {
+          "starter_ref": "NS-20261020-6HK3",
+          "submitted_on": "2026-10-20",
+          "new_hire_name": "Grace Liu",
+          "job_title": "People Partner",
+          "department": "people",
+          "employment_type": "permanent",
+          "location": "office",
+          "start_date": "2026-11-23",
+          "contract_end_date": null,
+          "manager_name": "Tom Reid",
+          "manager_email": "tom.reid@example.com",
+          "employee_id": "E-2058",
+          "track": "standard-office",
+          "it_ready_by": "2026-11-16",
+          "status": "Preparing",
+          "notes": ""
+        }
+      },
+      {
+        "id": "d1f19823-cb63-550d-a1cc-290d23cd3117",
+        "data": {
+          "starter_ref": "NS-20261022-9PD5",
+          "submitted_on": "2026-10-22",
+          "new_hire_name": "Hemi Walker",
+          "job_title": "Warehouse Supervisor",
+          "department": "operations",
+          "employment_type": "permanent",
+          "location": "office",
+          "start_date": "2026-11-16",
+          "contract_end_date": null,
+          "manager_name": "Sam Patel",
+          "manager_email": "sam.patel@example.com",
+          "employee_id": "E-2060",
+          "track": "standard-office",
+          "it_ready_by": "2026-11-09",
+          "status": "Withdrawn",
+          "notes": "Accepted a counter-offer."
+        }
+      }
+    ]
+  }
+}

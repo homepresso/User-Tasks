@@ -1,0 +1,226 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "0435769c-affc-4a7a-8f53-b3582f97f742",
+  "asset": {
+    "id": "0435769c-affc-4a7a-8f53-b3582f97f742",
+    "name": "Loan repayment schedule (sample)",
+    "description": "Sample for the Math & statistics action: computes a monthly loan repayment schedule (payment, interest, payoff date) from an API call or its start form, then rounds the total cost. Runs with no input using the defaults.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started (API or form)",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "loan_amount",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "annual_rate",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "term_months",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "first_payment",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#2563EB",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#F4F6FB"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Loan repayment schedule",
+                  "subtitle": "Amount, rate and term: the schedule is computed by the Math & statistics action."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "schedule",
+        "type": "custom_activity",
+        "label": "Loan schedule",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "custom_activity_id": "09d2f355-7360-41cd-b831-4bfcea57fa7f",
+          "custom_activity_key": "ut_math",
+          "activity_name": "Math & statistics",
+          "operation": "loan_schedule",
+          "input_mappings": {
+            "principal": "{{loan_amount}}",
+            "annual_rate": "{{annual_rate}}",
+            "term_months": "{{term_months}}",
+            "start_date": "{{first_payment}}"
+          },
+          "_output_prefix": "loan"
+        }
+      },
+      {
+        "id": "cost",
+        "type": "custom_activity",
+        "label": "Cost of credit (%)",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "custom_activity_id": "09d2f355-7360-41cd-b831-4bfcea57fa7f",
+          "custom_activity_key": "ut_math",
+          "activity_name": "Math & statistics",
+          "operation": "evaluate",
+          "input_mappings": {
+            "expression": "total_interest / principal * 100",
+            "variables": "{\"total_interest\": {{loan_total_interest}}, \"principal\": {{loan_amount}}}",
+            "decimals": "1"
+          },
+          "_output_prefix": "cost"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Summary",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "name": "summary",
+          "expression": "{{loan_number_of_payments}} payments of {{loan_payment}} from {{first_payment}} to {{loan_payoff_date}}; total interest {{loan_total_interest}} ({{cost_result}}% of the amount), total paid {{loan_total_paid}}."
+        }
+      },
+      {
+        "id": "log",
+        "type": "log",
+        "label": "Log the schedule",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "message": "{{summary}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "reason": "{{summary}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-schedule",
+        "source": "trigger",
+        "target": "schedule"
+      },
+      {
+        "id": "e-schedule-cost",
+        "source": "schedule",
+        "target": "cost"
+      },
+      {
+        "id": "e-cost-summary",
+        "source": "cost",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-log",
+        "source": "summary",
+        "target": "log"
+      },
+      {
+        "id": "e-log-done",
+        "source": "log",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-loan_amount",
+        "name": "loan_amount",
+        "type": "number",
+        "label": "Loan amount",
+        "description": "The amount borrowed",
+        "defaultValue": "25000",
+        "required": true
+      },
+      {
+        "id": "v-annual_rate",
+        "name": "annual_rate",
+        "type": "number",
+        "label": "Annual rate (%)",
+        "description": "Nominal annual interest rate in percent",
+        "defaultValue": "7.9",
+        "required": true
+      },
+      {
+        "id": "v-term_months",
+        "name": "term_months",
+        "type": "number",
+        "label": "Term (months)",
+        "description": "Number of monthly payments",
+        "defaultValue": "60",
+        "required": true
+      },
+      {
+        "id": "v-first_payment",
+        "name": "first_payment",
+        "type": "string",
+        "format": "date",
+        "label": "First payment date",
+        "description": "Date of the first payment (YYYY-MM-DD)",
+        "defaultValue": "2026-12-01"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

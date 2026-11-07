@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "407825ca-2345-549b-b2b2-d066f7e96334",
+  "asset": {
+    "id": "407825ca-2345-549b-b2b2-d066f7e96334",
+    "name": "Open detractor follow-ups",
+    "description": "Follow-up calls for low scores that are not closed yet, with their due dates (the Survey response workflow's tasks).",
+    "category": "Customer satisfaction",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "a6531735-7719-5383-bd5f-ca58cc2ef247"
+      },
+      "columns": [
+        "title",
+        "priority",
+        "due_date",
+        "status",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 100,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

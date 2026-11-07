@@ -1,0 +1,88 @@
+{
+  "id": "fc12c18e-5d97-502d-a3d9-b885c8db567d",
+  "slug": "contract-approval-esign",
+  "title": "Contract approval and e-signature",
+  "category": "operations-compliance",
+  "summary": "Approve a contract internally, send it for signature through DocuSign, wait for the signer and record the signed PDF, with a follow-up task when it is declined or expires.",
+  "description": "Contract approval and e-signature takes a contract from \"ready\" to \"signed\" without anyone opening DocuSign. Your CRM, contract tool or a back-office app posts the contract title, counterparty, value, the signer's name and email and the URL of the contract PDF.\n\nAn approver gets a User Task with the title, counterparty and value and a link to the PDF, and approves or rejects it. A rejection is logged and the run ends. An approved contract is sent through the DocuSign connector as an envelope: the signature field is placed on the /sn1/ anchor in the PDF, DocuSign reminds the signer every two days and the envelope expires after 14 days.\n\nThe Wait for signature step then pauses the run until DocuSign reports the outcome, through the Connect webhook as soon as it happens or by polling every five minutes without one. When the envelope is completed the signed PDF and the certificate of completion are stored as workflow files, the contract is added to the Signed contracts table with its envelope id, signed PDF and signing time, and the contract owner can be emailed a link. A declined, voided or expired envelope, or one still unsigned after 21 days, goes to a Follow up task for the contract owner.",
+  "trigger": "api",
+  "entry_workflow": "29ec94af-0175-5c38-8a5e-06e351b3d7d5",
+  "start": "Headless: your application posts the contract details and the PDF URL to the start API or an inbound webhook.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "e-signature",
+    "docusign",
+    "contracts",
+    "approval",
+    "legal"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-12-06",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "DocuSign account: create a free developer account at developers.docusign.com (or use your production account) and, under Apps and Keys, add an app to get an integration key.",
+    "Connection: paste an access token on install, or open Connectors → DocuSign and switch the connection to JWT Grant (integration key, user id and RSA private key) or OAuth so tokens renew. For production set the base URL to your account's host (for example https://www.docusign.net/restapi or your region's).",
+    "Assignees: pick who approves contracts and who follows up on contracts that were not signed.",
+    "Webhook (recommended): in DocuSign Connect add a configuration that posts envelope events to https://<your UserTasks host>/api/webhooks/esign/docusign/<DocuSign integration id> with HMAC enabled, then paste the HMAC key as the Webhook secret in Connectors → DocuSign. Without it the Wait for signature step polls every 5 minutes. See /docs/integrations/e-signature.",
+    "Contract PDFs: put the anchor text /sn1/ where the signature goes (white text keeps it invisible), and pass the PDF's URL as contract_pdf.",
+    "Email (optional): configure EMAIL_PROVIDER and pass notify_email so the contract owner gets a link to the signed PDF."
+  ],
+  "steps": [
+    {
+      "title": "Contract received",
+      "body": "The calling app posts the title, counterparty, value, signer and the URL of the contract PDF."
+    },
+    {
+      "title": "Approve",
+      "body": "The approver sees the title, counterparty and value with a link to the PDF and approves or rejects it; rejections are logged and the run ends."
+    },
+    {
+      "title": "Send for signature",
+      "body": "An approved contract goes to the signer as a DocuSign envelope, with the signature on the /sn1/ anchor, reminders every 2 days and a 14-day expiry."
+    },
+    {
+      "title": "Wait for signature",
+      "body": "The run pauses until DocuSign reports the envelope completed, declined, voided or expired (Connect webhook or polling), for up to 21 days."
+    },
+    {
+      "title": "Record",
+      "body": "The signed PDF and certificate are stored, the contract is added to Signed contracts and the owner can be emailed a link."
+    },
+    {
+      "title": "Follow up",
+      "body": "A declined, voided, expired or timed-out envelope becomes a Follow up task for the contract owner."
+    }
+  ],
+  "sample_input": {
+    "contract_title": "Master services agreement 2027",
+    "counterparty": "Fourth Coffee Limited",
+    "contract_value": 120000,
+    "signer_name": "Robin Diaz",
+    "signer_email": "robin.diaz@fourthcoffee.example.com",
+    "notify_email": "legal@example.com"
+  },
+  "verify_mocks": {
+    "files": {
+      "contract_pdf": "policy-draft.pdf"
+    }
+  },
+  "expect": "waiting",
+  "icon": "file-signature",
+  "systems": [
+    "DocuSign"
+  ]
+}

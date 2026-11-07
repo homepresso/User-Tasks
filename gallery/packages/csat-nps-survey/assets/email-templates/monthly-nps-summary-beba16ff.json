@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "beba16ff-cfe8-520a-85b1-7d785f6252c7",
+  "asset": {
+    "id": "beba16ff-cfe8-520a-85b1-7d785f6252c7",
+    "name": "Monthly NPS summary",
+    "description": "The summary someone asks for from the Survey results page.",
+    "subject": "NPS for {{form.summary_month}}: {{nps_score}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Customer satisfaction, {{form.summary_month}}</h2>\n  <p style=\"font-size:32px;margin:8px 0\"><strong>NPS {{nps_score}}</strong></p>\n  <p>{{response_count}} responses: {{promoters}} promoters, {{passives}} passives, {{detractors}} detractors. Average rating {{avg_rating}} of 5.</p>\n  <p>Open detractor follow-ups: {{open_follow_ups}}.</p>\n  <p style=\"color:#6E6759;font-size:13px\">NPS = % promoters (9-10) minus % detractors (0-6).</p>\n</div>",
+    "text_body": "Customer satisfaction, {{form.summary_month}}\nNPS {{nps_score}}\n{{response_count}} responses: {{promoters}} promoters, {{passives}} passives, {{detractors}} detractors. Average rating {{avg_rating}} of 5.\nOpen detractor follow-ups: {{open_follow_ups}}.",
+    "is_default": false
+  }
+}

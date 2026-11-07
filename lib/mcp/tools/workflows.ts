@@ -1,8 +1,10 @@
 import type { McpToolServer } from '../server'
+import { loadRunTasksForRun } from '@/lib/services/run-tasks'
 import { z } from 'zod'
 import { fromMcpContext, type ServiceContext } from '@/lib/services/context'
 import * as workflowService from '@/lib/services/workflows'
 import { actOnWorkflowRun, listLiveInstances, migrateInstances } from '@/lib/services/workflow-runs'
+import { applyScope, resolveRunScope, runInScope, runScopeFilter } from '@/lib/services/run-visibility'
 import type { McpContext } from '../server'
 import { mcpOk, mcpErr } from '../server'
 import { messageOf } from './_util'
@@ -30,6 +32,7 @@ const TRIGGER_TYPES = new Set([
   'middleware_received',
   'schedule',
   'webhook_received',
+  'esign_event',
   'manual',
 ])
 
@@ -49,6 +52,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   middleware_received: 'Middleware',
   schedule: 'Schedule',
   webhook_received: 'Webhook',
+  esign_event: 'E-signature Event',
   manual: 'Manual Trigger',
 }
 
@@ -425,7 +429,12 @@ export function registerWorkflowTools(server: McpToolServer, ctx: McpContext) {
     const nodes = parsedNodes ?? existing?.nodes ?? []
     const edges = parsedEdges ?? existing?.edges ?? []
 
-    const validation = validateWorkflow(nodes as any[], triggerType)
+    // AAD group assignment needs the workspace's Entra ID connection.
+    const usesAadGroup = Array.isArray(nodes) && nodes.some((node: any) => node?.type === 'user_task' && node?.config?.assignment_type === 'aad_group')
+    const entraGroups = usesAadGroup
+      ? (await (await import('@/lib/directory-sync/entra-groups')).entraGroupCapabilities(supabase as any, tenantId).catch(() => null))?.entraGroups
+      : undefined
+    const validation = validateWorkflow(nodes as any[], triggerType, { entraGroups })
     const middlewareViolation = hasMiddlewareViolations(triggerType, nodes)
     const triggerNode = findTriggerNode(nodes, triggerType)
     const triggerChecks: string[] = []
@@ -575,6 +584,7 @@ TRIGGER TYPES:
 - middleware_received
 - schedule
 - webhook_received
+- esign_event
 - manual
 
 TRIGGER CONFIG EXAMPLES:
@@ -585,6 +595,7 @@ TRIGGER CONFIG EXAMPLES:
 - webhook_received: {"path":"optional-custom-path","method":"POST","require_api_key":false}
 - middleware_received: {"path":"optional-custom-path","method":"POST","require_api_key":false,"input_schema":[{"name":"customerId","type":"string","required":true}]}
 - schedule: {"cron":"0 9 * * 1","timezone":"UTC"}
+- esign_event: {"integration_id":"<e-sign integration id, empty = any>","events":["envelope_completed","recipient_signed","envelope_declined","envelope_voided","envelope_expired","envelope_sent","recipient_viewed"]}
 - workflow_error: {"workflow_id":"optional-specific-workflow-id"}
 - form_submitted: {"form_id":"form-id","button_ids":["optional-button-or-outcome"]} (forms_list for ids)
 - task events: {"filter_priority":"high"}
@@ -604,11 +615,12 @@ MIDDLEWARE NOTES: middleware_received behaves like a webhook trigger with a sync
 USER VARIABLES: Define workflow-scoped variables via user_variables. Set them with set_variable nodes and reference them as {{variable_name}}.
 
 NODE TYPES AND CONFIGS:
-- set_variable: { name: "var_name" (REQUIRED), expression: "{{some.value}}" (REQUIRED) }
+- set_variable: { assignments: [{ name: "var_name" (REQUIRED, unique in the node), expression: "{{some.value}}" (REQUIRED) }, { name: "other", expression: "{{=var_name * 2}}" }] } sets several variables in one node, in order (a later row can use an earlier one; a failing row fails the node naming the variable). The single form { name, expression } is still accepted.
 - set_sla: { sla_label: "First response", mode: "relative"|"exact", amount: 4, unit: "hours"|"days"|"weeks"|"minutes", due_at: "{{some_date}}" (used when mode is exact), warning_mode: "relative"|"exact", warning_amount: 1, warning_unit: "hours"|"days"|"weeks"|"minutes", warning_at: "{{warning_date}}" (used when warning_mode is exact) }
 - condition: { branches: [{ label: "Approved", logic: "and"|"or" (lowercase), rules: [{ field: "{{var}}", operator: "equals"|"not_equals"|"contains"|"not_contains"|"gt"|"lt"|"gte"|"lte"|"starts_with"|"ends_with"|"in"|"matches"|"is_empty"|"is_not_empty"|"is_true"|"is_false" (lowercase; is_true/is_false treat true/"true"/1/"yes" as true and false/"false"/0/""/missing as false), value: "approved" }] }], has_else: true }. IMPORTANT: every branch.label must appear as the label on an outgoing edge from the condition node so the engine can route to it — edge label matching is case-insensitive. If has_else is true an edge labelled "Else" routes the no-match path. Empty branches (no rules with a non-empty field) are skipped.
 - update_data_table: { table_id, operation: "insert"|"update"|"get"|"list"|"delete", row_id: "{{row_id}}", column_values: { col: "{{expr}}" }, apply_retention_policy: true|false, retention_policy_id: "policy-id or {{variable}}" (only used when apply_retention_policy is true on insert/update), filters: [{ column: "status", operator: "equals"|"not_equals"|"contains"|"starts_with"|"ends_with"|"gt"|"lt"|"gte"|"lte"|"ilike"|"is_null"|"not_null", value: "approved" }], sort_column: "created_at", sort_direction: "asc"|"desc", limit: 100, offset: 0, output_row_id_var: "row_id", output_row_var: "row", output_rows_var: "rows", output_count_var: "count" }
-- user_task: { task_title: "Approve {{name}}" (REQUIRED), task_description: "...", assignee_id: "user-id" (REQUIRED for individual), task_priority: "medium", outcomes: ["approved","rejected"], assignment_type: "individual"|"team", team_id: "team-id" (REQUIRED if team), due_date_mode: "relative", due_offset_amount: 3, due_offset_unit: "days", fields: [{ key: "amount", label: "Amount", type: "number", required: true }, { key: "category", label: "Category", type: "choice", options: ["A","B"] }] }. FIELDS: when the assignee must capture data beyond an outcome, list it in fields (type text|number|date|boolean|choice; choice needs options; keys must be unique; optional default may use {{variables}}). Values are stored on the task as task.data.<key> and are available after the node as {{task_data.<key>}}. Complete via tasks_complete_workflow with values: { <key>: value }. Tasks that only need an outcome button can omit fields.
+- user_task: { task_title: "Approve {{name}}" (REQUIRED), task_description: "...", assignee_id: "user-id" (REQUIRED for individual), task_priority: "medium", outcomes: ["approved","rejected"], assignment_type: "individual"|"team"|"aad_group", team_id: "team-id" (REQUIRED if team), aad_group_id: "<Entra group object id>" (REQUIRED if aad_group; only when Entra ID directory sync is connected — find ids with directory_entra_groups_search), aad_group_name, aad_group_mode: "claim"|"everyone" (claim: anyone in the group can claim one task; everyone: collaborative task for every member, completion_rule applies), aad_include_nested: true|false (default true), due_date_mode: "relative", due_offset_amount: 3, due_offset_unit: "days", queue_behaviour: "rules"|"queue"|"add" (optional; default "rules" follows the assignee's queue rules, "queue" always waits for them to accept, "add" always goes straight to their tasks), fields: [{ key: "amount", label: "Amount", type: "number", required: true }, { key: "category", label: "Category", type: "choice", options: ["A","B"] }] }. FIELDS: when the assignee must capture data beyond an outcome, list it in fields (type text|number|date|boolean|choice; choice needs options; keys must be unique; optional default may use {{variables}}). Values are stored on the task as task.data.<key> and are available after the node as {{task_data.<key>}}. Complete via tasks_complete_workflow with values: { <key>: value }. Tasks that only need an outcome button can omit fields.
+- add_task_attachment: { file: "{{doc_file}}" (REQUIRED: file object, storage:// ref, URL or base64), name: "...", type: "Contract", description: "...", task_id: "{{user_task_id}}" (default: the run's task) } → {{attachment}}
 - create_subtask: { title: "..." (REQUIRED), description: "...", assignee_id: "user-id", priority: "medium" }
 - update_task: { field: "status" (REQUIRED), value: "in_progress" (REQUIRED) }
 - http_request: { url: "https://..." (REQUIRED), method: "GET"|"POST"|"PUT"|"DELETE" (REQUIRED), headers: {}, body: "{{json}}", content_type: "json"|"form", auth_type: "none"|"bearer"|"basic"|"api_key", auth_token: "...", output_var: "response" }
@@ -628,7 +640,7 @@ NODE TYPES AND CONFIGS:
 - collection_sort: { collection: "{{list}}" (REQUIRED), field: "created_at", direction: "asc"|"desc", output_var: "sorted" }
 - log: { message: "Processing: {{name}}" (REQUIRED), level: "info"|"warn"|"error" }
 - switch_case: { field: "{{status}}", cases: [{ value: "approved", label: "Approved" }] }
-- parallel: { mode: "all"|"any", branches: [{ label: "Branch 1" }, { label: "Branch 2" }] }
+- parallel: { mode: "parallel"|"sequential", branches: [{ label: "Branch 1" }, { label: "Branch 2" }] } (edges labelled with branch names; a step the branches meet at runs once, after all of them; an edge labelled "Done" runs once after every branch has finished)
 - end_workflow: {} for normal flows, or middleware response config such as { status_code: 200, headers: [{ key: "content-type", value: "application/json" }], body_mode: "json"|"text"|"file", json_body: { ok: true, order_id: "{{row_id}}" }, text_body: "done", file_url: "{{file.url}}", file_name: "report.pdf", file_content_type: "application/pdf" }
 - pause_until: { date: "{{resume_date}}" }
 - call_sub_workflow: { sub_workflow_id: "wf-id" (REQUIRED), input_mappings: { key: "{{value}}" }, output_var: "sub_result" }
@@ -648,11 +660,22 @@ NODE TYPES AND CONFIGS:
 - doc_convert: { source: "{{file}}" (REQUIRED), target: "pdf"|"docx"|"html"|"markdown"|"text"|"csv"|"xlsx"|"json", engine: "auto"|"builtin"|"external", output_name: "Report", output_var: "converted_file" }
 - doc_pdf: { operation: "merge"|"split"|"extract_pages"|"page_count"|"watermark"|"rotate"|"fill_form"|"read_form", source: "{{pdf}}", sources: "{{form.attachments}}" (merge), pages: "1-3", ranges: "1-2; 3-5", text: "CONFIDENTIAL", fields: [{ name: "Name", value: "{{name}}" }], flatten: true, output_var: "pdf_file" }
 - doc_extract: { source: "{{file}}" (REQUIRED), patterns: [{ name: "invoice_number", pattern: "Invoice\\s*#?\\s*(\\w+)" }], finders: ["emails","urls","phones","dates","amounts","percentages"], to_table: true, table_id: "table-id", column_mapping: [{ column: "sku", field: "SKU" }], output_var: "extracted" }
-- doc_redact: { source: "{{file}}" (REQUIRED), presets: ["email","phone","credit_card","iban","ssn","ip_address","url","date"], terms: "Project Falcon", replacement: "block"|"label"|"text", output: "same"|"pdf"|"html"|"text", output_var: "redacted" }
-- doc_inspect: { source: "{{file}}" (REQUIRED), operation: "all"|"detect"|"checksum"|"stats"|"search", query: "termination", whole_word: true, output_var: "inspection" }`, {
+- doc_redact: { source: "{{file}}" (REQUIRED), mode: "redact"|"detect_only", info_types: ["us_ssn","date_of_birth","credit_card","nz_ird","uk_nhs"] (or "*", "@high", "category:financial"), regions: ["US","NZ"], min_confidence: "low"|"medium"|"high", presets: ["email","phone","credit_card","iban","ssn","ip_address","url","date"], terms: "Project Falcon", replacement: "block"|"label"|"partial"|"hash"|"text", styles: { "credit_card": "partial" }, output: "same"|"pdf"|"html"|"text", output_var: "redacted" } → {{redacted.findings}}, {{redacted.counts_by_type}}, {{redacted_file}}
+- doc_inspect: { source: "{{file}}" (REQUIRED), operation: "all"|"detect"|"checksum"|"stats"|"search", query: "termination", whole_word: true, output_var: "inspection" }
+- esign_send: { integration_id: "<e-sign integration id>" (REQUIRED: DocuSign, Adobe Acrobat Sign, Dropbox Sign, PandaDoc, SignNow or BoldSign), source: "documents"|"template", documents: "{{form.contract}}" (file object / list / storage:// ref / URL), template_id (template source), recipients: [{ name: "{{form.name}}", email: "{{form.email}}", role: "Signer", routing_order: 1, kind: "signer"|"cc", anchor: "/sn1/" }], recipients_expr: "{{signers}}", subject (REQUIRED), message, reminder_days, expires_in_days, embedded: false, prefill: [{ key, value }], client_reference (idempotency key), advanced: JSON object text, output_var: "envelope" } → {{envelope.envelope_id}}, {{envelope.status}}, {{envelope.recipients}}
+- esign_wait: { integration_id (REQUIRED), envelope_id: "{{envelope.envelope_id}}" (REQUIRED), timeout_days: 30, download: true, document: "combined"|"certificate"|"both", file_name, output_var: "signature" } — pauses until completed / declined / voided / expired / timeout; label edges with those outcomes to branch → {{signature.outcome}}, {{signature.signed_document}}, {{signature.recipients}}, {{esign_outcome}}
+- esign_envelope: { integration_id (REQUIRED), action: "status"|"download"|"cancel"|"signing_url"|"list_templates", envelope_id, document, file_name, reason, recipient_email, return_url, search, output_var: "esign_result" }
+- media_transcribe: { integration_id: "<media-capable integration id>" (REQUIRED, not an expression), source: "{{form.recording}}" (REQUIRED: audio/video file object / list / storage:// ref / URL / base64), language: "" (detect), diarize: true, max_speakers: 4, word_timestamps: false, prompt: "vocabulary hint", formats: ["srt","vtt","txt","json"], run_mode: "auto"|"inline"|"background", output_var: "transcript" } → {{transcript_text}}, {{transcript_segments}}, {{transcript_srt}}, {{transcript_files}}
+- media_analyze_image: { integration_id (REQUIRED), source: "{{form.photo}}" (REQUIRED), features: ["description","labels","objects","text","faces","safety"], prompt: "Is there visible damage?", fields: [{ name: "damaged", type: "boolean", description: "..." }], max_results: 20, output_var: "image_analysis" } → {{image_analysis_description}}, {{image_analysis_text}}, {{image_analysis.faces}}, {{image_analysis_answer}}
+- media_analyze_video: { integration_id (REQUIRED), source: "{{form.video}}" (REQUIRED), features: ["summary","scenes","labels","text"], prompt, fields, max_frames: 12 (1-60), keyframes: true, run_mode, output_var: "video_analysis" } → {{video_analysis_summary}}, {{video_analysis_scenes}}, {{video_analysis_keyframes}}
+- media_redact_image: { integration_id (REQUIRED unless targets is only ["custom"]), source (REQUIRED), mode: "redact"|"detect_only", targets: ["faces","text_pii","plates","custom"], info_types: ["@high"], regions: ["US"], min_confidence: "low"|"medium"|"high", terms: "Project Falcon", patterns: [{ pattern: "ACC-\\d{6}" }], boxes: "{{image_analysis.faces}}" (custom), style: "blur"|"pixelate"|"box", color: "#000000", padding: 10, output_format: "same"|"png"|"jpeg", output_var: "redacted_image" } → {{redacted_image_file}}, {{redacted_image_findings}}, {{redacted_image_count}}
+- media_redact_video: { same keys as media_redact_image (boxes may carry start/end seconds) plus sample_interval: 1 (>= 0.2), audio: "none"|"bleep"|"mute", audio_info_types: ["@high"], audio_terms: "{{customer.name}}", transcribe_integration_id, transcript: "{{transcript}}", output_format: "mp4"|"webm"|"mov", run_mode, output_var: "redacted_video" } (needs FFmpeg; audio-only files: targets: [], audio: "bleep", transcribe_integration_id) → {{redacted_video_file}}, {{redacted_video_findings}}
+- media_generate_image: { integration_id (REQUIRED), operation: "generate"|"edit", prompt (REQUIRED), source + mask (edit), size: "auto"|"1024x1024"|"16:9", quality, count: 1 (1-4), format: "png"|"jpeg"|"webp", negative_prompt, output_var: "generated_image" } → {{generated_image_file}}, {{generated_image_files}}
+- media_tts: { integration_id (REQUIRED), text (REQUIRED), voice, format: "mp3"|"wav"|"opus"|"aac"|"flac", speed: 1, language, instructions, output_var: "speech" } → {{speech_file}}
+- media_tools: { operation: "info"|"extract_audio"|"frames"|"thumbnail"|"trim"|"convert"|"compress"|"burn_subtitles", source (REQUIRED), start/end (trim, seconds or hh:mm:ss), format, interval/count (frames), at (thumbnail), quality (compress), max_width/max_height, subtitles: "{{transcript_srt}}" (burn_subtitles), output_var } (no AI provider; needs FFmpeg) → {{media_info.duration}}, {{frames}}, {{media_file}}`, {
     name: z.string().describe('Workflow name'),
     description: z.string().optional().describe('Workflow description'),
-    trigger_type: z.string().optional().describe('Trigger type. Supported: task_created, task_received, task_submitted, task_updated, task_completed, task_rejected, workflow_error, workflow_sla, retention_policy_review, retention_policy_executed, data_table_event, form_submitted, middleware_received, schedule, webhook_received, manual. Default: task_created'),
+    trigger_type: z.string().optional().describe('Trigger type. Supported: task_created, task_received, task_submitted, task_updated, task_completed, task_rejected, workflow_error, workflow_sla, retention_policy_review, retention_policy_executed, data_table_event, form_submitted, middleware_received, schedule, webhook_received, esign_event, manual. Default: task_created'),
     trigger_config: z.string().optional().describe('JSON string of trigger config. See tool description for examples.'),
     nodes: z.string().optional().describe('JSON string array of workflow nodes. Each node: {"id":"unique_id","type":"node_type","label":"Human Label","position":{"x":300,"y":100},"config":{...}}. See tool description for node configs.'),
     edges: z.string().optional().describe('JSON string array of edges. Each edge: {"id":"edge-1","source":"node_a","target":"node_b","label":"optional_branch_label"}. Trigger nodes should connect to the first action node. user_task outcome edges should match outcome labels.'),
@@ -904,9 +927,12 @@ NODE TYPES AND CONFIGS:
     version_id: z.string().optional().describe('Filter by workflow version ID'),
     limit: z.number().optional().describe('Max results (default 20)'),
   }, async (args) => {
-    let query = (supabase as any).from('workflow_runs')
+    // Scoped like every run list (lib/services/run-visibility).
+    let scope
+    try { scope = await resolveRunScope(fromMcpContext(ctx)) } catch (error) { return mcpErr((error as Error).message) }
+    let query = applyScope((supabase as any).from('workflow_runs')
       .select('id, workflow_id, version_id, migrated_from_run_id, migrated_to_run_id, status, started_at, completed_at, error, title, sla_label, sla_due_at, sla_warning_at, sla_status, sla_warning_triggered_at, sla_breached_triggered_at')
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', tenantId), runScopeFilter(scope))
       .order('started_at', { ascending: false })
       .limit(Math.min(args.limit ?? 20, 200))
     if (args.workflow_id) {
@@ -930,15 +956,22 @@ NODE TYPES AND CONFIGS:
       .select('*').eq('id', args.run_id).eq('tenant_id', tenantId).single()
     if (error) return mcpErr('Run not found')
     if (!canAccessWorkflow({ ...ctx, success: true } as any, run.workflow_id)) return mcpErr('This API key is not allowed to access that workflow')
+    let tasks: unknown[] = []
+    try {
+      const runCtx = fromMcpContext(ctx)
+      if (!runInScope(await resolveRunScope(runCtx), run)) return mcpErr('Run not found')
+      // Its User Tasks with this caller's per-task access (same as GET /workflows/runs/{id}).
+      tasks = await loadRunTasksForRun(runCtx, run)
+    } catch (scopeError) { return mcpErr((scopeError as Error).message) }
 
     let logs = null
     if (args.include_logs) {
       const { data } = await (supabase as any).from('workflow_logs')
         .select('id, level, message, node_type, node_label, duration_ms, created_at')
-        .eq('run_id', args.run_id).order('created_at').limit(100)
+        .eq('run_id', args.run_id).eq('tenant_id', tenantId).order('created_at').limit(100)
       logs = data
     }
-    return mcpOk({ ...run, logs })
+    return mcpOk({ ...run, logs, tasks })
   })
 
   server.tool('workflows_run_action', 'Perform an action on a workflow run: pause, resume, or cancel (same rules as POST /workflows/runs/{id}/action). Pause keeps the wait state; resume restores a paused wait, or continues the run now with `variables` as return variables (use goto_node_id to continue at a specific node of the run\'s version); cancel ends the run and closes its open user task(s).', {

@@ -124,6 +124,12 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
         state.filters.push((row) => String(row[field] ?? '').toLowerCase().includes(needle))
         return api
       },
+      /** Case-insensitive match against any of the patterns (no wildcards: escaped values compare equal). */
+      ilikeAnyOf(field: string, patterns: string[]) {
+        const values = patterns.map((p) => p.replace(/\\(.)/g, '$1').toLowerCase())
+        state.filters.push((row) => values.includes(String(row[field] ?? '').toLowerCase()))
+        return api
+      },
       or() { return api },
       order(field: string, opts?: { ascending?: boolean }) { state.order.push({ field, ascending: opts?.ascending ?? true }); return api },
       limit(n: number) { state.limit = n; return api },

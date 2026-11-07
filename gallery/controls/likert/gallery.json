@@ -1,0 +1,36 @@
+{
+  "id": "4ac13acf-6449-42ba-ba20-fee9c9ab79d9",
+  "asset_id": "1f259d11-d211-40f3-b8d6-c6a2840f67a2",
+  "slug": "likert",
+  "title": "Likert scale",
+  "kind": "input",
+  "summary": "Survey matrix that rates several statements on one agree, satisfaction, frequency or custom scale, with optional N/A. Cards on phones.",
+  "description": "Ask several questions on the same scale in one tidy field: a customer satisfaction survey at the end of a support request, an employee pulse check, a training evaluation or a supplier review. Each statement is a row; choose a five or seven point agree scale, satisfaction, frequency or your own labels, and add an N/A column when a statement may not apply.\n\nOn a wide form it is a matrix with the scale across the top; on a phone each statement becomes a card with the labels spelled out. Every statement is its own radio group with one Tab stop, so keyboard users Tab from statement to statement and choose with the arrow keys, and screen readers announce the statement and each label. The answers are stored as one object keyed by the statement (\"the_staff_were_helpful\": 4), ready for reports and workflow conditions. Turn on Every statement must be answered to block submission until all rows are done.",
+  "icon": "list-checks",
+  "tags": ["survey", "likert", "feedback", "satisfaction", "questionnaire"],
+  "version": "1.2.0",
+  "changelog": [{ "version": "1.2.0", "date": "2026-11-04", "notes": "Dynamic properties: statements can be bound to an expression, a data table or an API reference in the form designer (the host resolves them; no network capability needed)." }, { "version": "1.1.0", "date": "2026-11-04", "notes": "Declares its workflow output: an object of numbers, one per statement (unchanged)." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Customer satisfaction survey when a support request closes",
+    "Employee pulse or engagement check",
+    "Training course or event evaluation",
+    "Supplier performance review"
+  ],
+  "setup": [
+    "Install the package: Likert scale appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Likert scale onto a form, type the statements (one per line) and choose the scale.",
+    "Optionally offer N/A and require every statement. Keep statement wording stable once responses come in: the answer keys are made from the text."
+  ],
+  "preview": {
+    "props": {
+      "statements": ["The request was handled quickly", "The staff were helpful and courteous", "I would recommend us to a colleague"],
+      "scale": "agree5",
+      "show_na": true
+    },
+    "value": { "the_request_was_handled_quickly": 4, "the_staff_were_helpful_and_courteous": 5 },
+    "label": "How did we do?",
+    "height": 260,
+    "context": {},
+    "fixtures": {}
+  }
+}

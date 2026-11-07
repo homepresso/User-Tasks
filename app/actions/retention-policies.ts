@@ -5,8 +5,12 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/permissions-server'
 import { enqueueDeletionJob, kickDeletionProcessor } from '@/lib/deletion-queue'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
+import { getRetentionPolicyUsageSummary, RETENTION_APPLIES_TO, type RetentionAssignmentTarget } from '@/lib/retention-policy-api'
+import { fromSession } from '@/lib/services/context'
+import { assignRetentionPolicy as assignRetentionPolicyService } from '@/lib/services/retention'
 
-type RetentionTargetType = 'data_table' | 'data_row' | 'role'
+type RetentionTargetType = RetentionAssignmentTarget
 type RetentionPolicyMode = 'review' | 'review_on_exact_date' | 'purge_on' | 'purge_on_exact_date' | 'keep_forever'
 type RetentionDurationUnit = 'days' | 'months' | 'years'
 
@@ -21,10 +25,10 @@ async function getAuthContext() {
 }
 
 function normalizeAppliesTo(input: unknown) {
-  const allowed = new Set(['data_tables', 'data_rows', 'roles'])
-  if (!Array.isArray(input)) return ['data_tables', 'data_rows', 'roles']
+  const allowed = new Set<string>(RETENTION_APPLIES_TO)
+  if (!Array.isArray(input)) return [...RETENTION_APPLIES_TO]
   const next = input.filter((value): value is string => typeof value === 'string' && allowed.has(value))
-  return next.length > 0 ? next : ['data_tables', 'data_rows', 'roles']
+  return next.length > 0 ? next : [...RETENTION_APPLIES_TO]
 }
 
 function normalizeRetentionFields(input: {
@@ -84,6 +88,12 @@ export async function createRetentionPolicy(input: {
   if (!name) throw new Error('Policy name is required')
 
   const retentionFields = normalizeRetentionFields(input)
+
+  // A repeated submit (double click, retry) must not add a second policy.
+  if (await findRecentDuplicate(supabase, 'retention_policies', { tenant_id: tenantId, created_by: userId, name })) {
+    revalidatePath('/settings/governance')
+    return
+  }
 
   const { data: created, error } = await (supabase as any).from('retention_policies').insert({
     tenant_id: tenantId,
@@ -146,14 +156,9 @@ export async function deleteRetentionPolicy(policyId: string) {
   await requirePermission('team.change_roles')
   const { supabase, tenantId, userId } = await getAuthContext()
 
-  const [{ count: tableCount }, { count: rowCount }, { count: roleCount }] = await Promise.all([
-    (supabase as any).from('custom_tables').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', policyId),
-    (supabase as any).from('custom_table_rows').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', policyId),
-    (supabase as any).from('roles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('retention_policy_id', policyId),
-  ])
-
-  if ((tableCount ?? 0) > 0 || (rowCount ?? 0) > 0 || (roleCount ?? 0) > 0) {
-    throw new Error('Remove this policy from tables, rows, and roles before deleting it')
+  const usage = await getRetentionPolicyUsageSummary(supabase as any, tenantId, policyId)
+  if (Object.values(usage).some((count) => count > 0)) {
+    throw new Error('Remove this policy from tables, rows, roles and forms before deleting it')
   }
 
   const { data: policy, error } = await (supabase as any)
@@ -185,21 +190,22 @@ export async function bulkDeleteRetentionPolicies(policyIds: string[]) {
   const uniqueIds = Array.from(new Set(policyIds.map((id) => id.trim()).filter(Boolean)))
   if (uniqueIds.length === 0) return { queued: 0 }
 
-  const [{ data: policies }, { data: tableCounts }, { data: rowCounts }, { data: roleCounts }] = await Promise.all([
+  const [{ data: policies }, { data: tableCounts }, { data: rowCounts }, { data: roleCounts }, { data: formCounts }] = await Promise.all([
     (supabase as any).from('retention_policies').select('id, name').eq('tenant_id', tenantId).in('id', uniqueIds),
     (supabase as any).from('custom_tables').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', uniqueIds),
     (supabase as any).from('custom_table_rows').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', uniqueIds),
     (supabase as any).from('roles').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', uniqueIds),
+    (supabase as any).from('forms').select('retention_policy_id').eq('tenant_id', tenantId).in('retention_policy_id', uniqueIds),
   ])
 
   const blocked = new Set<string>()
-  for (const row of [...(tableCounts ?? []), ...(rowCounts ?? []), ...(roleCounts ?? [])]) {
+  for (const row of [...(tableCounts ?? []), ...(rowCounts ?? []), ...(roleCounts ?? []), ...(formCounts ?? [])]) {
     if (row?.retention_policy_id) blocked.add(String(row.retention_policy_id))
   }
 
   const deletablePolicies = (policies ?? []).filter((policy: any) => !blocked.has(policy.id))
   if (deletablePolicies.length === 0 && blocked.size > 0) {
-    throw new Error('Remove selected policies from tables, rows, and roles before deleting them')
+    throw new Error('Remove selected policies from tables, rows, roles and forms before deleting them')
   }
 
   for (const policy of deletablePolicies) {
@@ -218,63 +224,27 @@ export async function bulkDeleteRetentionPolicies(policyIds: string[]) {
   return { queued: deletablePolicies.length, blocked: Array.from(blocked) }
 }
 
+/**
+ * Assign (or clear) a retention policy on a data table, row, role or form
+ * (lib/services/retention: scope checks, purge-on-role refusal, audit).
+ */
 export async function assignRetentionPolicy(params: {
   targetType: RetentionTargetType
   targetId: string
   retentionPolicyId?: string | null
 }) {
   await requirePermission('team.change_roles')
-  const { supabase, tenantId } = await getAuthContext()
-
-  const targetMap: Record<RetentionTargetType, { table: string; path: string }> = {
-    data_table: { table: 'custom_tables', path: `/data/${params.targetId}` },
-    data_row: { table: 'custom_table_rows', path: '/data' },
-    role: { table: 'roles', path: '/settings/governance?tab=roles' },
+  const ctx = await fromSession()
+  try {
+    await assignRetentionPolicyService(ctx, params)
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Unable to save retention policy')
   }
-  const target = targetMap[params.targetType]
-  if (!target) throw new Error('Unsupported target type')
-
-  let policyRecord: any = null
-  if (params.retentionPolicyId) {
-    const { data: policy, error: policyError } = await (supabase as any)
-      .from('retention_policies')
-      .select('id, applies_to, policy_mode')
-      .eq('id', params.retentionPolicyId)
-      .eq('tenant_id', tenantId)
-      .single()
-    if (policyError || !policy) throw new Error(policyError?.message ?? 'Retention policy not found')
-    policyRecord = policy
-
-    const expectedScope =
-      params.targetType === 'data_row'
-        ? 'data_rows'
-        : params.targetType === 'role'
-          ? 'roles'
-          : 'data_tables'
-    if (Array.isArray(policy.applies_to) && !policy.applies_to.includes(expectedScope)) {
-      throw new Error('That retention policy cannot be applied to this object type')
-    }
-    if (params.targetType === 'role' && ['purge_on', 'purge_on_exact_date'].includes(String(policy.policy_mode ?? ''))) {
-      throw new Error('Roles support review-style retention policies only. Purge policies cannot be applied to roles.')
-    }
+  const paths: Record<RetentionTargetType, string> = {
+    data_table: `/data/${params.targetId}`, data_row: '/data', role: '/settings/governance?tab=roles', form: '/automations/forms',
   }
-
-  const updatePayload: Record<string, any> = {
-    retention_policy_id: params.retentionPolicyId || null,
-  }
-  if (params.targetType !== 'data_row') {
-    updatePayload.retention_applied_at = params.retentionPolicyId ? new Date().toISOString() : null
-  }
-
-  const { error } = await (supabase as any)
-    .from(target.table)
-    .update(updatePayload)
-    .eq('id', params.targetId)
-    .eq('tenant_id', tenantId)
-  if (error) throw new Error(error.message)
-
   revalidatePath('/settings/governance')
   revalidatePath('/data')
   revalidatePath('/settings')
-  revalidatePath(target.path)
+  revalidatePath(paths[params.targetType])
 }

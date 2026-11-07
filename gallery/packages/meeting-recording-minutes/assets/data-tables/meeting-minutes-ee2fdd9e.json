@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+  "asset": {
+    "id": "ee2fdd9e-01a3-53d1-a8d7-6d2ae7fbf636",
+    "name": "Meeting minutes",
+    "description": "Every processed recording: meeting, organiser, summary, decisions and whether the minutes were sent.",
+    "columns": [
+      {
+        "id": "5ddcb4b2-fe96-5f7a-860b-b35aa4e0eb59",
+        "required": true,
+        "key": "minutes_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "daa2559b-b7a5-506a-8266-a0b18f879784",
+        "required": true,
+        "key": "meeting_title",
+        "name": "Meeting",
+        "type": "text"
+      },
+      {
+        "id": "f219409c-d0a5-5fac-9a51-3cdf7193b277",
+        "required": false,
+        "key": "meeting_date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "c2d4780d-f1c2-5ea2-acb9-f4686fdce5e7",
+        "required": false,
+        "key": "organiser",
+        "name": "Organiser",
+        "type": "text"
+      },
+      {
+        "id": "186a3b79-03e9-5455-82ec-4bfd358769ba",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      },
+      {
+        "id": "20507eb5-b804-5945-8bfc-a03ab6b4d60c",
+        "required": false,
+        "key": "decisions",
+        "name": "Decisions",
+        "type": "text"
+      },
+      {
+        "id": "1bbf1d6c-8995-5885-ac76-7749ba76366f",
+        "required": false,
+        "key": "actions",
+        "name": "Actions",
+        "type": "number"
+      },
+      {
+        "id": "7153c391-30e4-59f3-8a1d-2fd9163493c8",
+        "required": false,
+        "key": "duration_min",
+        "name": "Length (min)",
+        "type": "number"
+      },
+      {
+        "id": "3f0dd83a-f7d2-5c29-af81-1aaa24704a1f",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      }
+    ]
+  }
+}

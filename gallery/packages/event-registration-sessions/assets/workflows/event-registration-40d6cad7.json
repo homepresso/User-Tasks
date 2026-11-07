@@ -1,0 +1,1178 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "40d6cad7-b2d0-5b01-bbdf-ad094df25cea",
+  "asset": {
+    "id": "40d6cad7-b2d0-5b01-bbdf-ad094df25cea",
+    "name": "Event registration",
+    "description": "A group registers: attendees are counted, the seats left at the event and in the first and second choice sessions are checked by a decision table, the group is confirmed (seats taken, every attendee recorded and emailed) or waitlisted, and the organiser offers waitlisted groups an alternative session.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Registration received",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "b4fcf7b1-50c9-592e-8c78-9c33b0ccea5a",
+          "form_name": "Event registration with sessions"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Registration reference",
+        "position": {
+          "x": 600,
+          "y": 180
+        },
+        "config": {
+          "name": "reg_ref",
+          "expression": "REG-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "count",
+        "type": "set_variable",
+        "label": "Count attendees",
+        "position": {
+          "x": 600,
+          "y": 300
+        },
+        "config": {
+          "name": "attendee_count",
+          "expression": "{{=COUNT(form.attendees)}}"
+        }
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Attendee names",
+        "position": {
+          "x": 600,
+          "y": 420
+        },
+        "config": {
+          "name": "attendee_names",
+          "expression": "{{=JOIN(\", \", PLUCK(form.attendees, \"name\"))}}"
+        }
+      },
+      {
+        "id": "note0",
+        "type": "set_variable",
+        "label": "No organiser note yet",
+        "position": {
+          "x": 600,
+          "y": 540
+        },
+        "config": {
+          "name": "organiser_note",
+          "expression": ""
+        }
+      },
+      {
+        "id": "event",
+        "type": "update_data_table",
+        "label": "Read the event",
+        "position": {
+          "x": 600,
+          "y": 660
+        },
+        "config": {
+          "table_id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+          "table_name": "Events",
+          "operation": "get",
+          "match_column": "event_code",
+          "match_value": "{{form.event}}",
+          "output_row_var": "event_row"
+        }
+      },
+      {
+        "id": "etitle",
+        "type": "set_variable",
+        "label": "Event title",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "name": "event_title",
+          "expression": "{{event_row.title}}"
+        }
+      },
+      {
+        "id": "s1",
+        "type": "update_data_table",
+        "label": "Read the first choice",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "table_id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+          "table_name": "Sessions",
+          "operation": "get",
+          "match_column": "session_label",
+          "match_value": "{{form.first_choice}}",
+          "output_row_var": "s1"
+        }
+      },
+      {
+        "id": "s2",
+        "type": "update_data_table",
+        "label": "Read the second choice",
+        "position": {
+          "x": 600,
+          "y": 1020
+        },
+        "config": {
+          "table_id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+          "table_name": "Sessions",
+          "operation": "get",
+          "match_column": "session_label",
+          "match_value": "{{form.second_choice}}",
+          "output_row_var": "s2"
+        }
+      },
+      {
+        "id": "sp_e",
+        "type": "set_variable",
+        "label": "Spare seats at the event",
+        "position": {
+          "x": 600,
+          "y": 1140
+        },
+        "config": {
+          "name": "spare_event",
+          "expression": "{{=event_row.capacity - event_row.seats_taken - attendee_count}}"
+        }
+      },
+      {
+        "id": "sp_1",
+        "type": "set_variable",
+        "label": "Spare seats, first choice",
+        "position": {
+          "x": 600,
+          "y": 1260
+        },
+        "config": {
+          "name": "spare_first",
+          "expression": "{{=IF(s1.event_code == form.event, s1.capacity - s1.seats_taken - attendee_count, -1)}}"
+        }
+      },
+      {
+        "id": "sp_2",
+        "type": "set_variable",
+        "label": "Spare seats, second choice",
+        "position": {
+          "x": 600,
+          "y": 1380
+        },
+        "config": {
+          "name": "spare_second",
+          "expression": "{{=IF(s2.event_code == form.event, s2.capacity - s2.seats_taken - attendee_count, -1)}}"
+        }
+      },
+      {
+        "id": "diet_vegetarian",
+        "type": "set_variable",
+        "label": "Vegetarian meals",
+        "position": {
+          "x": 600,
+          "y": 1500
+        },
+        "config": {
+          "name": "diet_vegetarian",
+          "expression": "{{=COUNT(FILTER_WHERE(form.attendees, \"dietary\", \"Vegetarian\"))}}"
+        }
+      },
+      {
+        "id": "diet_vegan",
+        "type": "set_variable",
+        "label": "Vegan meals",
+        "position": {
+          "x": 600,
+          "y": 1620
+        },
+        "config": {
+          "name": "diet_vegan",
+          "expression": "{{=COUNT(FILTER_WHERE(form.attendees, \"dietary\", \"Vegan\"))}}"
+        }
+      },
+      {
+        "id": "diet_gluten_free",
+        "type": "set_variable",
+        "label": "Gluten free meals",
+        "position": {
+          "x": 600,
+          "y": 1740
+        },
+        "config": {
+          "name": "diet_gluten_free",
+          "expression": "{{=COUNT(FILTER_WHERE(form.attendees, \"dietary\", \"Gluten free\"))}}"
+        }
+      },
+      {
+        "id": "diet_halal",
+        "type": "set_variable",
+        "label": "Halal meals",
+        "position": {
+          "x": 600,
+          "y": 1860
+        },
+        "config": {
+          "name": "diet_halal",
+          "expression": "{{=COUNT(FILTER_WHERE(form.attendees, \"dietary\", \"Halal\"))}}"
+        }
+      },
+      {
+        "id": "diet_other",
+        "type": "set_variable",
+        "label": "Other meals",
+        "position": {
+          "x": 600,
+          "y": 1980
+        },
+        "config": {
+          "name": "diet_other",
+          "expression": "{{=COUNT(FILTER_WHERE(form.attendees, \"dietary\", \"Other\"))}}"
+        }
+      },
+      {
+        "id": "alloc",
+        "type": "decision_table",
+        "label": "Seat allocation",
+        "position": {
+          "x": 600,
+          "y": 2100
+        },
+        "config": {
+          "decision_table_id": "7d4447ec-e178-56ad-b3d4-02ffcc22330c",
+          "decision_table_name": "Seat allocation",
+          "input_mappings": {
+            "spare_event": "{{spare_event}}",
+            "spare_first": "{{spare_first}}",
+            "spare_second": "{{spare_second}}"
+          }
+        }
+      },
+      {
+        "id": "assigned",
+        "type": "set_variable",
+        "label": "Session given",
+        "position": {
+          "x": 600,
+          "y": 2220
+        },
+        "config": {
+          "name": "assigned_session",
+          "expression": "{{=IF(seat_choice == \"first\", form.first_choice, IF(seat_choice == \"second\", form.second_choice, \"\"))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 2340
+        },
+        "config": {
+          "title": "{{form.contact_name}} ({{attendee_count}} {{=IF(attendee_count == 1, \"attendee\", \"attendees\")}}) → {{event_row.title}}: {{reg_status}}"
+        }
+      },
+      {
+        "id": "save",
+        "type": "update_data_table",
+        "label": "Save the registration",
+        "position": {
+          "x": 600,
+          "y": 2460
+        },
+        "config": {
+          "table_id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+          "table_name": "Registrations",
+          "operation": "insert",
+          "column_values": {
+            "reg_ref": "{{reg_ref}}",
+            "event_code": "{{form.event}}",
+            "event_title": "{{event_row.title}}",
+            "contact_name": "{{form.contact_name}}",
+            "contact_email": "{{form.contact_email}}",
+            "attendees": "{{attendee_count}}",
+            "first_choice": "{{form.first_choice}}",
+            "second_choice": "{{form.second_choice}}",
+            "assigned_session": "{{assigned_session}}",
+            "status": "{{reg_status}}",
+            "sessions_planned": "{{form.sessions_planned}}",
+            "networking_interest": "{{form.networking}}",
+            "questions": "{{form.questions_text}}",
+            "registered_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "seated",
+        "type": "condition",
+        "label": "Seats?",
+        "position": {
+          "x": 600,
+          "y": 2580
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Confirmed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{reg_status}}",
+                  "operator": "equals",
+                  "value": "Confirmed"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Organiser SLA",
+        "position": {
+          "x": 1020,
+          "y": 2700
+        },
+        "config": {
+          "sla_label": "Waitlisted registration: offer an alternative",
+          "mode": "relative",
+          "amount": 2,
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "offer",
+        "type": "user_task",
+        "label": "Offer an alternative session",
+        "position": {
+          "x": 1020,
+          "y": 2820
+        },
+        "config": {
+          "task_title": "Waitlisted: {{form.contact_name}} ({{attendee_count}}) for {{event_row.title}}",
+          "task_description": "<p><strong>{{form.contact_name}}</strong> registered {{attendee_count}} attendee(s) for <strong>{{event_row.title}}</strong>. {{allocation_note}}</p><p>First choice: {{form.first_choice}}. Second choice: {{form.second_choice}}.</p><p>Offer a session with enough seats for the whole group, or keep them on the waitlist. Your message is emailed to them either way.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Offer alternative",
+            "Keep on waitlist"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), 2)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "o_contact",
+              "label": "Registered by",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.contact_name}} <{{form.contact_email}}>"
+            },
+            {
+              "key": "o_count",
+              "label": "Attendees",
+              "type": "number",
+              "read_only": true,
+              "default": "{{attendee_count}}"
+            },
+            {
+              "key": "o_first",
+              "label": "First choice",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.first_choice}} ({{=s1.capacity - s1.seats_taken}} seats left)"
+            },
+            {
+              "key": "o_second",
+              "label": "Second choice",
+              "type": "text",
+              "read_only": true,
+              "default": "{{form.second_choice}} ({{=s2.capacity - s2.seats_taken}} seats left)"
+            },
+            {
+              "key": "o_event",
+              "label": "Event seats",
+              "type": "text",
+              "read_only": true,
+              "default": "{{event_row.seats_taken}} of {{event_row.capacity}} taken"
+            },
+            {
+              "key": "o_names",
+              "label": "Who",
+              "type": "text",
+              "read_only": true,
+              "default": "{{attendee_names}}"
+            },
+            {
+              "key": "o_card",
+              "type": "custom",
+              "label": "Waitlisted registration",
+              "custom": {
+                "tag": "ut-info-card",
+                "version": "1.1.0",
+                "name": "Info card",
+                "value_type": "string",
+                "icon": "info",
+                "props": {
+                  "variant": "warning",
+                  "card_title": "{{field2}} attendee(s) could not be seated",
+                  "body": "",
+                  "layout": "key-value",
+                  "labels": [
+                    "Registered by",
+                    "Attendees",
+                    "First choice",
+                    "Second choice",
+                    "Event seats",
+                    "Who"
+                  ],
+                  "format": "auto",
+                  "show_icon": true
+                },
+                "context_map": {
+                  "field1": "o_contact",
+                  "field2": "o_count",
+                  "field3": "o_first",
+                  "field4": "o_second",
+                  "field5": "o_event",
+                  "field6": "o_names"
+                },
+                "display": {
+                  "template": "{{props.card_title}}",
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "note",
+                  "keyboard": "Display only: nothing to operate. A note (warning and error cards are a polite status region) named by its title, with the variant read first (\"Warning: …\"); the icon is decorative.",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 72,
+                  "min_height": 32,
+                  "max_height": 800,
+                  "full_width": true
+                },
+                "output": {
+                  "type": "string",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "o_s1_taken",
+              "label": "First choice seats taken",
+              "type": "number",
+              "read_only": true,
+              "default": "{{s1.seats_taken}}"
+            },
+            {
+              "key": "o_s1_cap",
+              "label": "First choice capacity",
+              "type": "number",
+              "read_only": true,
+              "default": "{{s1.capacity}}"
+            },
+            {
+              "key": "o_fill",
+              "type": "custom",
+              "label": "First choice session",
+              "custom": {
+                "tag": "ut-progress",
+                "version": "1.1.0",
+                "name": "Progress",
+                "value_type": "number",
+                "icon": "gauge",
+                "props": {
+                  "appearance": "bar",
+                  "total_value": 100,
+                  "unit": "seats",
+                  "show_percentage": true,
+                  "label_template": "{{current}} of {{total}} seats taken"
+                },
+                "context_map": {
+                  "current": "o_s1_taken",
+                  "total": "o_s1_cap"
+                },
+                "display": {
+                  "format": "text"
+                },
+                "accessibility": {
+                  "role": "progressbar",
+                  "keyboard": "Display only: nothing to operate. Bar and ring are a progressbar with the label and percentage as aria-valuetext; Steps is an ordered list with the current step marked aria-current=\"step\" (\"Step 2 of 5: Review\").",
+                  "labelled_by_host": true
+                },
+                "size": {
+                  "default_height": 60,
+                  "min_height": 32,
+                  "max_height": 600
+                },
+                "output": {
+                  "type": "number",
+                  "description": "Display only: stays empty"
+                }
+              }
+            },
+            {
+              "key": "alt_session",
+              "label": "Offer this session instead",
+              "type": "lookup",
+              "help_text": "Sessions of the same event, with their seats taken and capacity: pick one with room for the whole group.",
+              "lookup": {
+                "source": "table",
+                "table_id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+                "search_columns": [
+                  "title",
+                  "session_label"
+                ],
+                "display_columns": [
+                  "session_label",
+                  "starts",
+                  "seats_taken",
+                  "capacity"
+                ],
+                "value_column": "session_label",
+                "filters": [
+                  {
+                    "column": "event_code",
+                    "operator": "eq",
+                    "value": "{{event_row.event_code}}"
+                  }
+                ],
+                "sort": {
+                  "column": "starts",
+                  "direction": "asc"
+                },
+                "min_chars": 0
+              }
+            },
+            {
+              "key": "organiser_message",
+              "label": "Message to the registrant",
+              "type": "textarea",
+              "required": true,
+              "help_text": "Included in the email to the person who registered."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "o_card",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "o_fill",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "alt_session",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "organiser_message",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "offer",
+              "label": "Offer this session",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Offer alternative"
+            },
+            {
+              "id": "keep",
+              "label": "Keep on the waitlist",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Keep on waitlist"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Waitlisted registration",
+            "align": "left",
+            "subtitle": "{{reg_ref}} · {{event_row.title}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#7C3AED",
+                  "background": "#FFFFFF",
+                  "text": "#1E1B2E",
+                  "page": "#F3EEFF",
+                  "page_to": "#FBF9FF"
+                }
+              },
+              "radius": 16,
+              "density": "comfortable",
+              "button_placement": "right",
+              "font": {
+                "source": "google",
+                "family": "Inter"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "alt",
+        "type": "set_variable",
+        "label": "Alternative session",
+        "position": {
+          "x": 840,
+          "y": 2960
+        },
+        "config": {
+          "name": "assigned_session",
+          "expression": "{{task_data.alt_session}}"
+        }
+      },
+      {
+        "id": "alt_status",
+        "type": "set_variable",
+        "label": "Confirmed (alternative)",
+        "position": {
+          "x": 840,
+          "y": 3080
+        },
+        "config": {
+          "name": "reg_status",
+          "expression": "Confirmed (alternative)"
+        }
+      },
+      {
+        "id": "alt_note",
+        "type": "set_variable",
+        "label": "Organiser note",
+        "position": {
+          "x": 840,
+          "y": 3200
+        },
+        "config": {
+          "name": "organiser_note",
+          "expression": "{{task_data.organiser_message}}"
+        }
+      },
+      {
+        "id": "alt_why",
+        "type": "set_variable",
+        "label": "Allocation note",
+        "position": {
+          "x": 840,
+          "y": 3320
+        },
+        "config": {
+          "name": "allocation_note",
+          "expression": "Your chosen sessions were full, so the organiser has booked you into this one instead."
+        }
+      },
+      {
+        "id": "keep_note",
+        "type": "set_variable",
+        "label": "Organiser note (waitlist)",
+        "position": {
+          "x": 1240,
+          "y": 2960
+        },
+        "config": {
+          "name": "organiser_note",
+          "expression": "{{task_data.organiser_message}}"
+        }
+      },
+      {
+        "id": "wl_each",
+        "type": "loop",
+        "label": "Each waitlisted attendee",
+        "position": {
+          "x": 1240,
+          "y": 3080
+        },
+        "config": {
+          "items": "{{form.attendees}}",
+          "item_var": "attendee",
+          "index_var": "ai"
+        }
+      },
+      {
+        "id": "wl_row",
+        "type": "update_data_table",
+        "label": "Record waitlisted attendee",
+        "position": {
+          "x": 1500,
+          "y": 3200
+        },
+        "config": {
+          "table_id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+          "table_name": "Attendees",
+          "operation": "insert",
+          "column_values": {
+            "attendee_ref": "{{reg_ref}}-{{=ai + 1}}",
+            "reg_ref": "{{reg_ref}}",
+            "event_code": "{{form.event}}",
+            "session": "",
+            "name": "{{attendee.name}}",
+            "email": "{{attendee.email}}",
+            "dietary": "{{=COALESCE(attendee.dietary, \"None\")}}",
+            "accessibility": "{{attendee.accessibility}}",
+            "status": "Waitlisted",
+            "summary": "{{attendee.name}} <{{attendee.email}}> · waitlist · {{=COALESCE(attendee.dietary, \"None\")}}"
+          }
+        }
+      },
+      {
+        "id": "wl_mail",
+        "type": "send_email",
+        "label": "Email: still waitlisted",
+        "position": {
+          "x": 1240,
+          "y": 3320
+        },
+        "config": {
+          "to": "{{form.contact_email}}",
+          "email_template_id": "ce3ec973-49aa-5d45-80b7-b8d607f923b0"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "wl_end",
+        "type": "end_workflow",
+        "label": "Kept on the waitlist",
+        "position": {
+          "x": 1240,
+          "y": 3440
+        },
+        "config": {
+          "reason": "{{reg_ref}}: {{attendee_count}} waitlisted for {{form.first_choice}}"
+        }
+      },
+      {
+        "id": "seat",
+        "type": "update_data_table",
+        "label": "Read the session given",
+        "position": {
+          "x": 600,
+          "y": 3500
+        },
+        "config": {
+          "table_id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+          "table_name": "Sessions",
+          "operation": "get",
+          "match_column": "session_label",
+          "match_value": "{{assigned_session}}",
+          "output_row_var": "seat_row"
+        }
+      },
+      {
+        "id": "take",
+        "type": "update_data_table",
+        "label": "Take the session seats",
+        "position": {
+          "x": 600,
+          "y": 3620
+        },
+        "config": {
+          "table_id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+          "table_name": "Sessions",
+          "operation": "update",
+          "match_column": "session_label",
+          "match_value": "{{assigned_session}}",
+          "column_values": {
+            "seats_taken": "{{=seat_row.seats_taken + attendee_count}}"
+          }
+        }
+      },
+      {
+        "id": "take_e",
+        "type": "update_data_table",
+        "label": "Take the event seats",
+        "position": {
+          "x": 600,
+          "y": 3740
+        },
+        "config": {
+          "table_id": "9981e824-0cd7-5fd4-834a-a20a2b81b2cf",
+          "table_name": "Events",
+          "operation": "update",
+          "match_column": "event_code",
+          "match_value": "{{form.event}}",
+          "column_values": {
+            "seats_taken": "{{=event_row.seats_taken + attendee_count}}"
+          }
+        }
+      },
+      {
+        "id": "confirm",
+        "type": "update_data_table",
+        "label": "Confirm the registration",
+        "position": {
+          "x": 600,
+          "y": 3860
+        },
+        "config": {
+          "table_id": "2b5d4efd-9b40-50af-9600-d119ca371ccb",
+          "table_name": "Registrations",
+          "operation": "update",
+          "match_column": "reg_ref",
+          "match_value": "{{reg_ref}}",
+          "column_values": {
+            "status": "{{reg_status}}",
+            "assigned_session": "{{assigned_session}}"
+          }
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each attendee",
+        "position": {
+          "x": 600,
+          "y": 3980
+        },
+        "config": {
+          "items": "{{form.attendees}}",
+          "item_var": "attendee",
+          "index_var": "ai"
+        }
+      },
+      {
+        "id": "a_row",
+        "type": "update_data_table",
+        "label": "Record the attendee",
+        "position": {
+          "x": 280,
+          "y": 4100
+        },
+        "config": {
+          "table_id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+          "table_name": "Attendees",
+          "operation": "insert",
+          "column_values": {
+            "attendee_ref": "{{reg_ref}}-{{=ai + 1}}",
+            "reg_ref": "{{reg_ref}}",
+            "event_code": "{{form.event}}",
+            "session": "{{assigned_session}}",
+            "name": "{{attendee.name}}",
+            "email": "{{attendee.email}}",
+            "dietary": "{{=COALESCE(attendee.dietary, \"None\")}}",
+            "accessibility": "{{attendee.accessibility}}",
+            "status": "Confirmed",
+            "summary": "{{attendee.name}} <{{attendee.email}}> · {{assigned_session}} · {{=COALESCE(attendee.dietary, \"None\")}}{{=IF(IS_EMPTY(attendee.accessibility), \"\", CONCAT(\" · \", attendee.accessibility))}}"
+          }
+        }
+      },
+      {
+        "id": "a_mail",
+        "type": "send_email",
+        "label": "Email the attendee",
+        "position": {
+          "x": 280,
+          "y": 4220
+        },
+        "config": {
+          "to": "{{attendee.email}}",
+          "email_template_id": "da99a753-62cb-56fa-837c-2bbc0618ab2a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "sum_mail",
+        "type": "send_email",
+        "label": "Email the booking summary",
+        "position": {
+          "x": 600,
+          "y": 4220
+        },
+        "config": {
+          "to": "{{form.contact_email}}",
+          "email_template_id": "64a59ee2-e66a-50e0-901d-f413de82f8c2"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Registered",
+        "position": {
+          "x": 600,
+          "y": 4340
+        },
+        "config": {
+          "reason": "{{reg_ref}}: {{attendee_count}} booked into {{assigned_session}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-count",
+        "source": "ref",
+        "target": "count"
+      },
+      {
+        "id": "e-count-names",
+        "source": "count",
+        "target": "names"
+      },
+      {
+        "id": "e-names-note0",
+        "source": "names",
+        "target": "note0"
+      },
+      {
+        "id": "e-note0-event",
+        "source": "note0",
+        "target": "event"
+      },
+      {
+        "id": "e-event-etitle",
+        "source": "event",
+        "target": "etitle"
+      },
+      {
+        "id": "e-etitle-s1",
+        "source": "etitle",
+        "target": "s1"
+      },
+      {
+        "id": "e-s1-s2",
+        "source": "s1",
+        "target": "s2"
+      },
+      {
+        "id": "e-s2-sp_e",
+        "source": "s2",
+        "target": "sp_e"
+      },
+      {
+        "id": "e-sp_e-sp_1",
+        "source": "sp_e",
+        "target": "sp_1"
+      },
+      {
+        "id": "e-sp_1-sp_2",
+        "source": "sp_1",
+        "target": "sp_2"
+      },
+      {
+        "id": "e-sp_2-diet_vegetarian",
+        "source": "sp_2",
+        "target": "diet_vegetarian"
+      },
+      {
+        "id": "e-diet_vegetarian-diet_vegan",
+        "source": "diet_vegetarian",
+        "target": "diet_vegan"
+      },
+      {
+        "id": "e-diet_vegan-diet_gluten_free",
+        "source": "diet_vegan",
+        "target": "diet_gluten_free"
+      },
+      {
+        "id": "e-diet_gluten_free-diet_halal",
+        "source": "diet_gluten_free",
+        "target": "diet_halal"
+      },
+      {
+        "id": "e-diet_halal-diet_other",
+        "source": "diet_halal",
+        "target": "diet_other"
+      },
+      {
+        "id": "e-diet_other-alloc",
+        "source": "diet_other",
+        "target": "alloc"
+      },
+      {
+        "id": "e-alloc-assigned",
+        "source": "alloc",
+        "target": "assigned"
+      },
+      {
+        "id": "e-assigned-title",
+        "source": "assigned",
+        "target": "title"
+      },
+      {
+        "id": "e-title-save",
+        "source": "title",
+        "target": "save"
+      },
+      {
+        "id": "e-save-seated",
+        "source": "save",
+        "target": "seated"
+      },
+      {
+        "id": "e-seated-seat-confirmed",
+        "source": "seated",
+        "target": "seat",
+        "label": "Confirmed"
+      },
+      {
+        "id": "e-seated-sla-else",
+        "source": "seated",
+        "target": "sla",
+        "label": "Else"
+      },
+      {
+        "id": "e-sla-offer",
+        "source": "sla",
+        "target": "offer"
+      },
+      {
+        "id": "e-offer-alt-offer-alternative",
+        "source": "offer",
+        "target": "alt",
+        "label": "Offer alternative"
+      },
+      {
+        "id": "e-alt-alt_status",
+        "source": "alt",
+        "target": "alt_status"
+      },
+      {
+        "id": "e-alt_status-alt_note",
+        "source": "alt_status",
+        "target": "alt_note"
+      },
+      {
+        "id": "e-alt_note-alt_why",
+        "source": "alt_note",
+        "target": "alt_why"
+      },
+      {
+        "id": "e-alt_why-seat",
+        "source": "alt_why",
+        "target": "seat"
+      },
+      {
+        "id": "e-offer-keep_note-keep-on-waitlist",
+        "source": "offer",
+        "target": "keep_note",
+        "label": "Keep on waitlist"
+      },
+      {
+        "id": "e-keep_note-wl_each",
+        "source": "keep_note",
+        "target": "wl_each"
+      },
+      {
+        "id": "e-wl_each-wl_row-each-item",
+        "source": "wl_each",
+        "target": "wl_row",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-wl_each-wl_mail-done",
+        "source": "wl_each",
+        "target": "wl_mail",
+        "label": "Done"
+      },
+      {
+        "id": "e-wl_mail-wl_end",
+        "source": "wl_mail",
+        "target": "wl_end"
+      },
+      {
+        "id": "e-seat-take",
+        "source": "seat",
+        "target": "take"
+      },
+      {
+        "id": "e-take-take_e",
+        "source": "take",
+        "target": "take_e"
+      },
+      {
+        "id": "e-take_e-confirm",
+        "source": "take_e",
+        "target": "confirm"
+      },
+      {
+        "id": "e-confirm-each",
+        "source": "confirm",
+        "target": "each"
+      },
+      {
+        "id": "e-each-a_row-each-item",
+        "source": "each",
+        "target": "a_row",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-a_row-a_mail",
+        "source": "a_row",
+        "target": "a_mail"
+      },
+      {
+        "id": "e-each-sum_mail-done",
+        "source": "each",
+        "target": "sum_mail",
+        "label": "Done"
+      },
+      {
+        "id": "e-sum_mail-done",
+        "source": "sum_mail",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

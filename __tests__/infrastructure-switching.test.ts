@@ -22,6 +22,7 @@ import {
   retrySwitchAs,
   rollbackSwitchAs,
   saveProviderSettingsAs,
+  setUiSwitchingAs,
   switchingGate,
   switchRecordAs,
   type InfrastructureSwitchDeps,
@@ -89,7 +90,7 @@ describe('Settings → Infrastructure provider changes', () => {
   let deps: InfrastructureSwitchDeps
   let limited: Set<string>
   let kicks: number
-  let gate: { enabled: boolean; reason: string | null }
+  let gate: { enabled: boolean; reason: string | null; code?: 'flag-off' | 'cloud-locked' | 'unavailable' | null; lockable?: boolean }
 
   beforeAll(() => {
     for (const key of keys) saved[key] = process.env[key]
@@ -179,6 +180,31 @@ describe('Settings → Infrastructure provider changes', () => {
     expect(fake.writes).toEqual([])
     const wizard = await actions.loadWizard(ADMIN)
     expect(wizard).toMatchObject({ ok: true, wizard: { gate: { enabled: false } } })
+  })
+
+  it('unlock (cloud lock): instance admins only, typed confirmation, the environment flag wins, recorded in the switch log', async () => {
+    gate = switchingGate({ flag: undefined, deploymentMode: 'cloud', allowSetting: undefined })
+    for (const user of [TENANT_OWNER, UNVERIFIED_ADMIN, null]) {
+      expect(await setUiSwitchingAs(user, { allow: true, confirm: 'unlock' }, deps)).toEqual({ ok: false, error: 'Only instance administrators can change infrastructure.' })
+    }
+    expect(fake.calls()).toBe(0)
+    expect(await setUiSwitchingAs(ADMIN, { allow: true, confirm: 'please' }, deps)).toMatchObject({ ok: false, error: 'Type unlock to confirm.' })
+    limited.add('unlock')
+    expect(await setUiSwitchingAs(ADMIN, { allow: true, confirm: 'unlock' }, deps)).toMatchObject({ ok: false, error: expect.stringMatching(/Too many requests/) })
+    limited.clear()
+    gate = switchingGate({ flag: 'false', deploymentMode: 'cloud', allowSetting: undefined })
+    expect(await setUiSwitchingAs(ADMIN, { allow: true, confirm: 'unlock' }, deps)).toMatchObject({ ok: false, error: expect.stringMatching(/INFRA_UI_SWITCHING=false/) })
+    gate = switchingGate({ flag: undefined, deploymentMode: 'self_hosted', allowSetting: undefined })
+    expect(await setUiSwitchingAs(ADMIN, { allow: true, confirm: 'unlock' }, deps)).toMatchObject({ ok: false, error: expect.stringMatching(/Only the cloud edition/) })
+    expect(fake.writes).toEqual([])
+    gate = switchingGate({ flag: undefined, deploymentMode: 'cloud', allowSetting: undefined })
+    const res = await setUiSwitchingAs(ADMIN, { allow: true, confirm: 'unlock' }, deps)
+    expect(res).toMatchObject({ ok: true, allowed: true, changed: true, record: { area: 'instance', kind: 'settings', actor: 'ops@example.com (Settings → Infrastructure)' } })
+    // The audit row is written before the setting.
+    const insert = fake.writes.findIndex((w) => w.startsWith('INSERT INTO public.instance_provider_switches'))
+    const upsert = fake.writes.findIndex((w) => w.startsWith('INSERT INTO public.instance_settings'))
+    expect(insert).toBeGreaterThanOrEqual(0)
+    expect(upsert).toBeGreaterThan(insert)
   })
 
   it('switchingGate: on by default, INFRA_UI_SWITCHING=false turns it off, cloud needs instance.allow_ui_switching', () => {

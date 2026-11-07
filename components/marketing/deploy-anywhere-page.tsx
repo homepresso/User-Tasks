@@ -15,11 +15,11 @@ import { AREAS, AREA_LABEL, DEPLOY_ANYWHERE, getTopology } from "@/lib/topologie
 const SITE_URL = "https://usertasks.com"
 
 const THEME = {
-  "--theme-card-bg": "#FFFFFF",
-  "--theme-card-text": "#1B1916",
-  "--theme-surface": "#F5F2EA",
-  "--theme-surface-border": "#E6E1D5",
-  "--theme-muted-text": "#6E6759",
+  "--theme-card-bg": "var(--mkt-white)",
+  "--theme-card-text": "var(--mkt-ink)",
+  "--theme-surface": "var(--mkt-canvas)",
+  "--theme-surface-border": "var(--mkt-line)",
+  "--theme-muted-text": "var(--mkt-muted)",
 } as CSSProperties
 
 const NAV = [
@@ -68,17 +68,17 @@ function Diagram({ id }: { id: string }) {
 
 function TopologySection({ id, index, title, when, points, diagram, docs, children }: { id: string; index: number; title: string; when: string; points: string[]; diagram?: string; docs: Array<{ href: string; label: string }>; children?: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-8 border-t border-[#1B1916]/[0.07]">
+    <section id={id} className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-end">
           <div>
-            <p className="text-xs font-bold text-[#8A6D45]">0{index}</p>
-            <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
-            <p className="mt-4 text-lg leading-8 text-[#4A463E]">{when}</p>
+            <p className="text-xs font-bold text-(color:--mkt-bronze)">0{index}</p>
+            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
+            <p className="mt-4 mkt-body text-(color:--mkt-text)">{when}</p>
           </div>
-          <ul className="space-y-2 text-sm text-[#4A463E]">
+          <ul className="space-y-2 text-sm text-(color:--mkt-text)">
             {points.map((point) => (
-              <li key={point} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-[#4F7A5B]" aria-hidden="true" />{point}</li>
+              <li key={point} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{point}</li>
             ))}
           </ul>
         </div>
@@ -86,7 +86,7 @@ function TopologySection({ id, index, title, when, points, diagram, docs, childr
         {children}
         {docs.length > 0 && <p className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
           {docs.map((doc) => (
-            <Link key={doc.href} href={doc.href} className="inline-flex items-center gap-1 font-semibold text-[#8A6D45] hover:underline">{doc.label} <ArrowRight size={14} aria-hidden="true" /></Link>
+            <Link key={doc.href} href={doc.href} className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">{doc.label} <ArrowRight size={14} aria-hidden="true" /></Link>
           ))}
         </p>}
       </div>
@@ -99,18 +99,18 @@ function CloudCard({ id, href }: { id: string; href: string }) {
   if (!topology) return null
   const items = topology.zones.flatMap((zone) => zone.items)
   return (
-    <article className="flex flex-col rounded-2xl border border-[#1B1916]/[0.08] bg-[#FFFFFF]/70 p-5">
-      <h3 className="font-[family-name:var(--font-display)] text-xl font-bold">{topology.name.replace("Single cloud: ", "")}</h3>
-      <p className="mt-1 text-sm leading-6 text-[#6E6759]">{topology.hosting}</p>
-      <dl className="mt-4 flex-1 divide-y divide-[#1B1916]/[0.06] text-sm">
+    <article className="flex flex-col rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-5">
+      <h3 className="font-display text-xl font-bold">{topology.name.replace("Single cloud: ", "")}</h3>
+      <p className="mt-1 text-sm leading-6 text-(color:--mkt-muted)">{topology.hosting}</p>
+      <dl className="mt-4 flex-1 divide-y divide-(color:--mkt-ink)/[0.06] text-sm">
         {[...topology.builtIn, ...items].map((item) => (
           <div key={item.area} className="flex justify-between gap-4 py-1.5">
-            <dt className="shrink-0 text-[#6E6759]">{AREA_LABEL[item.area]}</dt>
-            <dd className="text-right font-medium text-[#1B1916]">{item.service}</dd>
+            <dt className="shrink-0 text-(color:--mkt-muted)">{AREA_LABEL[item.area]}</dt>
+            <dd className="text-right font-medium text-(color:--mkt-ink)">{item.service}</dd>
           </div>
         ))}
       </dl>
-      <Link href={href} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] hover:underline">The {topology.name.replace("Single cloud: ", "")} guide <ArrowRight size={14} aria-hidden="true" /></Link>
+      <Link href={href} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">The {topology.name.replace("Single cloud: ", "")} guide <ArrowRight size={14} aria-hidden="true" /></Link>
     </article>
   )
 }
@@ -150,8 +150,8 @@ export function DeployAnywherePage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#FAF8F3] text-[#1B1916]" style={THEME}>
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[#FAF8F3]" aria-hidden="true" />
+    <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <MarketingHeader />
 
@@ -159,21 +159,21 @@ export function DeployAnywherePage() {
         {/* Hero */}
         <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
           <div className="mx-auto max-w-6xl px-4 pb-14 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-[#857D6D]"><Link href="/" className="hover:text-[#8A6D45]">UserTasks</Link><span className="px-2">/</span>{DEPLOY_ANYWHERE.eyebrow}</nav>
-            <p className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#8A6D45]/30 bg-[#B08A54]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#8A6D45]">
+            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span>{DEPLOY_ANYWHERE.eyebrow}</nav>
+            <p className="mt-8 inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-gold)/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">
               <CloudCog size={13} aria-hidden="true" /> {DEPLOY_ANYWHERE.eyebrow}
             </p>
-            <h1 className="mt-6 max-w-4xl font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
+            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">
               Start on Supabase. Move each piece when you&rsquo;re ready.
             </h1>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-[#4A463E]">
-              UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-[#1B1916]">AWS</strong>, <strong className="text-[#1B1916]">Azure</strong>, <strong className="text-[#1B1916]">Google Cloud</strong> or <strong className="text-[#1B1916]">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.
+            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
+              UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-(color:--mkt-ink)">AWS</strong>, <strong className="text-(color:--mkt-ink)">Azure</strong>, <strong className="text-(color:--mkt-ink)">Google Cloud</strong> or <strong className="text-(color:--mkt-ink)">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/docs/topologies" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#17150F] px-6 py-3 font-semibold text-[#FAF8F3] shadow-lg shadow-[#17150F]/20 hover:bg-[#2E2A24]">
+              <Link href="/docs/topologies" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
                 Choose your topology <ArrowRight size={16} aria-hidden="true" />
               </Link>
-              <Link href="/docs/quickstart/self-host" className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#1B1916]/15 px-6 py-3 font-medium text-[#33302A] hover:border-[#1B1916]/30">
+              <Link href="/docs/quickstart/self-host" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
                 Self-host quickstart
               </Link>
             </div>
@@ -181,8 +181,8 @@ export function DeployAnywherePage() {
               <ol className="flex flex-wrap gap-2">
                 {NAV.map((item, index) => (
                   <li key={item.id}>
-                    <a href={`#${item.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#1B1916]/10 bg-[#FFFFFF]/70 px-3.5 py-1.5 text-sm font-medium text-[#33302A] hover:border-[#8A6D45]/40">
-                      <span className="text-xs font-bold text-[#8A6D45]">0{index + 1}</span>{item.label}
+                    <a href={`#${item.id}`} className="inline-flex items-center gap-2 rounded-full border border-(color:--mkt-ink)/10 bg-(color:--mkt-white)/70 px-3.5 py-1.5 text-sm font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-bronze)/40">
+                      <span className="text-xs font-bold text-(color:--mkt-bronze)">0{index + 1}</span>{item.label}
                     </a>
                   </li>
                 ))}
@@ -192,7 +192,7 @@ export function DeployAnywherePage() {
         </section>
 
         {/* The path */}
-        <section className="border-t border-[#1B1916]/[0.07] bg-[#FFFFFF]/50">
+        <section className="border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <SectionHeading eyebrow="The path every install takes" title="Zero configuration on day one. Your infrastructure on day ninety.">
               You never have to pick your final topology up front. Each area moves on its own, with the app running in between, so you can check every step before you take the next.
@@ -200,19 +200,19 @@ export function DeployAnywherePage() {
             <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
               <ol className="space-y-4">
                 {STEPS.map((step, index) => (
-                  <li key={step.title} className="flex gap-4 rounded-2xl border border-[#1B1916]/[0.08] bg-[#FAF8F3] p-5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#17150F] text-sm font-bold text-[#FAF8F3]">{index + 1}</span>
+                  <li key={step.title} className="flex gap-4 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) p-5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(color:--mkt-primary) text-sm font-bold text-(color:--mkt-paper)">{index + 1}</span>
                     <div>
                       <h3 className="font-semibold">{step.title}</h3>
-                      <p className="mt-1 text-sm leading-6 text-[#4A463E]">{step.body}</p>
+                      <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">{step.body}</p>
                     </div>
                   </li>
                 ))}
               </ol>
               <div>
                 <Snippet code={SWITCH_SNIPPET} />
-                <p className="mt-3 text-sm leading-6 text-[#6E6759]">
-                  The same command for every area. <Link href="/docs/self-hosting/switching-providers" className="font-semibold text-[#8A6D45] hover:underline">How a switch runs</Link>
+                <p className="mt-3 text-sm leading-6 text-(color:--mkt-muted)">
+                  The same command for every area. <Link href="/docs/self-hosting/switching-providers" className="font-semibold text-(color:--mkt-bronze) hover:underline">How a switch runs</Link>
                 </p>
               </div>
             </div>
@@ -265,7 +265,7 @@ export function DeployAnywherePage() {
         />
 
         {/* Area grid */}
-        <section id="areas" className="scroll-mt-8 border-t border-[#1B1916]/[0.07] bg-[#FFFFFF]/50">
+        <section id="areas" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <SectionHeading eyebrow="Eleven areas, one choice each" title="Pick the service for each area.">
               Each area is independent within a few rules — the database moves last, SSE realtime works with any database, files stored outside Supabase Storage become <code className="font-mono text-base">storage://</code> references. Provider names are shown as text; every option below exists today.
@@ -274,22 +274,22 @@ export function DeployAnywherePage() {
               {AREAS.map((area) => {
                 const has = (key: (typeof BADGES)[number]["key"]) => area.options.some((option) => option[key])
                 return (
-                  <Link key={area.id} href={area.docs} className="group flex flex-col rounded-2xl border border-[#1B1916]/[0.08] bg-[#FAF8F3] p-5 transition hover:border-[#8A6D45]/40 hover:shadow-md">
+                  <Link key={area.id} href={area.docs} className="group flex flex-col rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) p-5 transition hover:border-(color:--mkt-bronze)/40 hover:shadow-md">
                     <div className="flex items-baseline justify-between gap-3">
                       <h3 className="text-lg font-semibold">{area.label}</h3>
                       {area.variable
-                        ? <code className="truncate font-mono text-[11px] text-[#857D6D]">{area.variable}</code>
-                        : <span className="text-[11px] text-[#857D6D]">per workspace</span>}
+                        ? <code className="truncate font-mono text-2xs text-(color:--mkt-subtle)">{area.variable}</code>
+                        : <span className="text-2xs text-(color:--mkt-subtle)">per workspace</span>}
                     </div>
-                    <p className="mt-1 text-sm leading-6 text-[#4A463E]">{area.summary}</p>
+                    <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">{area.summary}</p>
                     <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={`${area.label} options`}>
                       {area.options.map((option) => (
-                        <li key={option.name} className="rounded-md border border-[#1B1916]/[0.08] bg-[#FFFFFF] px-2 py-0.5 text-xs text-[#33302A]">{option.name}</li>
+                        <li key={option.name} className="rounded-md border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) px-2 py-0.5 text-xs text-(color:--mkt-ink-soft)">{option.name}</li>
                       ))}
                     </ul>
-                    <ul className="mt-4 flex flex-wrap gap-1.5 border-t border-[#1B1916]/[0.06] pt-3" aria-label="Runs on">
+                    <ul className="mt-4 flex flex-wrap gap-1.5 border-t border-(color:--mkt-ink)/[0.06] pt-3" aria-label="Runs on">
                       {BADGES.map((badge) => (
-                        <li key={badge.key} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${has(badge.key) ? "border-[#4F7A5B]/30 bg-[#4F7A5B]/[0.08] text-[#35553F]" : "border-[#1B1916]/[0.08] text-[#857D6D]"}`}>
+                        <li key={badge.key} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-semibold ${has(badge.key) ? "border-(color:--mkt-green)/30 bg-(color:--mkt-green)/[0.08] text-[#35553F]" : "border-(color:--mkt-ink)/[0.08] text-(color:--mkt-subtle)"}`}>
                           {has(badge.key) && <Check size={11} aria-hidden="true" />}{badge.label}{!has(badge.key) && <span className="sr-only"> (not available)</span>}
                         </li>
                       ))}
@@ -302,33 +302,33 @@ export function DeployAnywherePage() {
         </section>
 
         {/* Safety */}
-        <section className="border-t border-[#1B1916]/[0.07]">
+        <section className="border-t border-(color:--mkt-ink)/[0.07]">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <SectionHeading eyebrow="usertasks-admin switch" title="Every switch is checked, backed up and reversible." />
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {SAFETY.map(({ icon: Icon, title, body }) => (
-                <article key={title} className="rounded-2xl border border-[#1B1916]/[0.08] bg-[#FFFFFF]/60 p-5">
-                  <Icon size={20} className="text-[#8A6D45]" aria-hidden="true" />
+                <article key={title} className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/60 p-5">
+                  <Icon size={20} className="text-(color:--mkt-bronze)" aria-hidden="true" />
                   <h3 className="mt-3 font-semibold">{title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-[#4A463E]">{body}</p>
+                  <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">{body}</p>
                 </article>
               ))}
             </div>
-            <p className="mt-6 flex items-start gap-2 text-sm leading-6 text-[#4A463E]">
-              <ShieldCheck size={16} className="mt-1 shrink-0 text-[#4F7A5B]" aria-hidden="true" />
+            <p className="mt-6 flex items-start gap-2 text-sm leading-6 text-(color:--mkt-text)">
+              <ShieldCheck size={16} className="mt-1 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />
               Release gates run the standalone, on-premises, Azure and Google Cloud profiles end to end, and a full move of a seeded Supabase install onto plain PostgreSQL — sign-in with migrated passwords, files, jobs, log export and the row-level security snapshot included.
             </p>
           </div>
         </section>
 
         {/* Fast execution */}
-        <section className="border-y border-[#1B1916]/[0.07] bg-[#17150F] text-[#EDE8DC]">
+        <section className="border-y border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-primary) text-(color:--mkt-code-text)">
           <div className="mx-auto grid max-w-6xl gap-6 px-4 py-14 sm:px-6 lg:grid-cols-[auto_1fr] lg:items-center">
-            <Zap size={36} className="text-[#E2C9A0]" aria-hidden="true" />
+            <Zap size={36} className="text-(color:--mkt-gold-light)" aria-hidden="true" />
             <div>
-              <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight sm:text-3xl" style={{ color: "#FAF8F3" }}>The same fast execution engine, wherever it runs.</h2>
-              <p className="mt-3 max-w-3xl leading-7 text-[#D8D1C2]">
-                Topology changes the services around the engine, not the engine. Workflows, tasks, the API, the MCP server and the CLI behave identically on every one of them — keep the app next to its database and you keep the speed. <Link href="/docs/performance" className="font-semibold text-[#E2C9A0] hover:underline">How we measure it</Link>
+              <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl" style={{ color: "var(--mkt-paper)" }}>The same fast execution engine, wherever it runs.</h2>
+              <p className="mt-3 max-w-3xl leading-7 text-(color:--mkt-line-strong)">
+                Topology changes the services around the engine, not the engine. Workflows, tasks, the API, the MCP server and the CLI behave identically on every one of them — keep the app next to its database and you keep the speed. <Link href="/docs/performance" className="font-semibold text-(color:--mkt-gold-light) hover:underline">How we measure it</Link>
               </p>
             </div>
           </div>
@@ -336,12 +336,12 @@ export function DeployAnywherePage() {
 
         {/* FAQ */}
         <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 className="text-center font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight">Questions</h2>
+          <h2 className="text-center font-display text-3xl font-bold tracking-tight">Questions</h2>
           <div className="mt-8 space-y-3">
             {FAQS.map((faq) => (
-              <details key={faq.question} className="group rounded-xl border border-[#1B1916]/[0.08] bg-[#F1EDE3] p-5">
+              <details key={faq.question} className="group rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5">
                 <summary className="cursor-pointer list-none font-semibold">{faq.question}</summary>
-                <p className="mt-3 text-sm leading-7 text-[#6E6759]">{faq.answer}</p>
+                <p className="mt-3 text-sm leading-7 text-(color:--mkt-muted)">{faq.answer}</p>
               </details>
             ))}
           </div>
@@ -349,12 +349,12 @@ export function DeployAnywherePage() {
 
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-          <div className="rounded-3xl border border-[#1B1916]/10 bg-gradient-to-br from-[#17150F]/[0.06] via-transparent to-[#B08A54]/[0.12] p-8 text-center sm:p-14">
-            <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight sm:text-4xl">Find your topology in five questions.</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-[#4A463E]">The decision guide maps your constraints — residency, one cloud, no internet, existing vendors — to a topology, with the switch sequence to get there from Supabase.</p>
+          <div className="rounded-3xl border border-(color:--mkt-ink)/10 bg-gradient-to-br from-(color:--mkt-primary)/[0.06] via-transparent to-(color:--mkt-gold)/[0.12] p-8 text-center sm:p-14">
+            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Find your topology in five questions.</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-(color:--mkt-text)">The decision guide maps your constraints — residency, one cloud, no internet, existing vendors — to a topology, with the switch sequence to get there from Supabase.</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link href="/docs/topologies" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#17150F] px-6 py-3 font-semibold text-[#FAF8F3] hover:bg-[#2E2A24]">Choose your topology <ArrowRight size={16} aria-hidden="true" /></Link>
-              <Link href="/docs/services" className="inline-flex items-center justify-center rounded-lg border border-[#1B1916]/15 px-6 py-3 font-medium text-[#33302A] hover:border-[#1B1916]/30">Choosing each service</Link>
+              <Link href="/docs/topologies" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover)">Choose your topology <ArrowRight size={16} aria-hidden="true" /></Link>
+              <Link href="/docs/services" className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">Choosing each service</Link>
             </div>
           </div>
         </section>

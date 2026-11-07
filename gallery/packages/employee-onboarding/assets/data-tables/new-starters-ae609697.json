@@ -1,0 +1,147 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+  "asset": {
+    "id": "ae609697-fed9-540c-ac7b-349238d8f6c8",
+    "name": "New starters",
+    "description": "Every new hire with their start date, manager, onboarding track and status. The Employee onboarding workflow adds a row per hire and keeps the status up to date; the New starters page lists them.",
+    "columns": [
+      {
+        "id": "94a6e654-5368-5e44-84bf-5b0cc385e1d5",
+        "required": true,
+        "key": "starter_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "4c52af0d-af8a-5470-9c00-2c7b3b34ddbf",
+        "required": false,
+        "key": "submitted_on",
+        "name": "Submitted",
+        "type": "date"
+      },
+      {
+        "id": "087afeaf-9365-53e8-9c5d-9165123cd0da",
+        "required": false,
+        "key": "new_hire_name",
+        "name": "New hire",
+        "type": "text"
+      },
+      {
+        "id": "6d1055c8-78e8-581e-a69b-b775c6a6e237",
+        "required": false,
+        "key": "job_title",
+        "name": "Job title",
+        "type": "text"
+      },
+      {
+        "id": "14824ab3-5df1-5734-9170-e978ea4c5503",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "engineering",
+          "sales",
+          "marketing",
+          "finance",
+          "operations",
+          "people"
+        ]
+      },
+      {
+        "id": "3c6df294-7593-54e1-b89d-a77dcc8cfa53",
+        "required": false,
+        "key": "employment_type",
+        "name": "Employment type",
+        "type": "select",
+        "options": [
+          "permanent",
+          "fixed-term",
+          "contractor"
+        ]
+      },
+      {
+        "id": "c658a42b-1126-5a38-8c01-345858ce7657",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "select",
+        "options": [
+          "office",
+          "remote"
+        ]
+      },
+      {
+        "id": "3aab915c-e36d-5df2-bcbe-c680429fc132",
+        "required": false,
+        "key": "start_date",
+        "name": "Start date",
+        "type": "date"
+      },
+      {
+        "id": "2193e61b-0635-5702-b842-b402f10060b1",
+        "required": false,
+        "key": "contract_end_date",
+        "name": "Contract end",
+        "type": "date"
+      },
+      {
+        "id": "c6d3b085-f4e9-5fcd-b364-8d9cc600f81c",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "4c03bd4c-4ccc-5ad5-8231-cfdcf0d6a525",
+        "required": false,
+        "key": "manager_email",
+        "name": "Manager email",
+        "type": "email"
+      },
+      {
+        "id": "22b7513b-f061-5dc8-94c6-ebe3348426c9",
+        "required": false,
+        "key": "employee_id",
+        "name": "Employee id",
+        "type": "text"
+      },
+      {
+        "id": "986af472-65a3-5015-916d-c70648a5604c",
+        "required": false,
+        "key": "track",
+        "name": "Track",
+        "type": "text"
+      },
+      {
+        "id": "d278e7c6-cf95-5f2a-898a-8e82bdcc5466",
+        "required": false,
+        "key": "it_ready_by",
+        "name": "IT ready by",
+        "type": "date"
+      },
+      {
+        "id": "0365b1ac-785d-5f7d-b607-37ae5c479878",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Preparing",
+          "Ready for day one",
+          "Onboarded",
+          "Withdrawn"
+        ]
+      },
+      {
+        "id": "3428ec1b-5bb0-5c6d-888b-e33af021ae01",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

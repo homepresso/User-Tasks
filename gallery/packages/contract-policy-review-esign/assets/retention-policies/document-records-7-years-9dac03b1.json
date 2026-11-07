@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+  "asset": {
+    "id": "9dac03b1-b425-51be-81c8-551930c4fe5b",
+    "name": "Document records: 7 years",
+    "description": "Review audit rows and document register rows are kept for 7 years after they are written, then reviewed before anything is deleted. The workflow applies it to every Audit log row and to the register row it signs off; change the period to your records schedule.",
+    "policy_mode": "review",
+    "duration_value": 7,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

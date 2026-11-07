@@ -4,36 +4,42 @@ import { useId, useState } from "react"
 import { ChevronDown } from "lucide-react"
 import { isValidColor, parseColor } from "@/lib/theme/colors"
 import type { ContrastCheck } from "@/lib/theme/contrast"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input, controlClass } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { Tooltip } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 /*
  * Small form controls for the theme designer. Every control has a visible
  * label tied to its input; colours, contrast and validity are also given as
- * text, never by colour alone.
+ * text, never by colour alone. The designer pane is dense, so labels sit in
+ * a 144px column beside the control (the Field anatomy, side by side).
  */
 
-const muted = { color: "var(--theme-muted-text)" }
-const fieldBorder = { borderColor: "var(--theme-input-border, var(--theme-surface-border))", backgroundColor: "var(--theme-input-bg, var(--theme-card-bg))", color: "var(--theme-card-text)" }
+const LABEL = "w-36 shrink-0 text-ui text-fg"
 
 /** Collapsible designer section (a disclosure button + region). */
 export function DesignerSection({ title, description, defaultOpen = false, children }: { title: string; description?: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
   const id = useId()
   return (
-    <section className="border-b last:border-b-0" style={{ borderColor: "var(--theme-surface-border)" }}>
+    <section className="border-b border-border-subtle last:border-b-0">
       <h2 className="m-0">
         <button
           type="button"
           aria-expanded={open}
           aria-controls={`${id}-panel`}
           onClick={() => setOpen((v) => !v)}
-          className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset"
-          style={{ ["--tw-ring-color" as string]: "var(--theme-focus-ring, var(--theme-primary))" }}
+          className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle"
         >
           <span className="flex-1">
-            {title}
-            {description && <span className="block text-xs font-normal" style={muted}>{description}</span>}
+            <span className="block text-sm font-semibold text-fg">{title}</span>
+            {description && <span className="block text-xs font-normal text-fg-muted">{description}</span>}
           </span>
-          <ChevronDown size={16} aria-hidden className={open ? "rotate-180 transition-transform" : "transition-transform"} />
+          <ChevronDown aria-hidden className={cn("size-4 text-fg-muted transition-transform duration-[var(--ds-dur-fast)]", open && "rotate-180")} />
         </button>
       </h2>
       <div id={`${id}-panel`} role="region" aria-label={title} hidden={!open} className="space-y-4 px-4 pb-4">
@@ -45,8 +51,8 @@ export function DesignerSection({ title, description, defaultOpen = false, child
 
 export function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="space-y-2">
-      <legend className="mb-1 text-xs font-semibold" style={muted}>{title}</legend>
+    <fieldset className="min-w-0 space-y-2">
+      <legend className="mb-1.5 text-xs font-medium text-fg-muted">{title}</legend>
       {children}
     </fieldset>
   )
@@ -70,16 +76,15 @@ function fromPicker(hex: string, previous: string): string {
 
 export function ContrastBadge({ check }: { check: ContrastCheck }) {
   if (check.ratio === null) return null
-  const tone = check.ok ? "--theme-success" : check.level === "block" ? "--theme-danger" : "--theme-warning"
+  const tone = check.ok ? "success" : check.level === "block" ? "danger" : "warning"
   const word = check.ok ? (check.required >= 4.5 ? "AA" : "OK") : check.level === "block" ? "Too low" : "Low"
+  const detail = `${check.pair.replace("/", " on ")}: ${check.ratio}:1 (needs ${check.required}:1${check.level === "block" ? ", required to save" : ""})`
   return (
-    <span
-      className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums"
-      style={{ color: `var(${tone})`, backgroundColor: `color-mix(in srgb, var(${tone}) 12%, transparent)` }}
-      title={`${check.pair.replace("/", " on ")}: ${check.ratio}:1 (needs ${check.required}:1${check.level === "block" ? ", required to save" : ""})`}
-    >
-      {check.ratio}:1 {word}
-    </span>
+    <Tooltip content={detail}>
+      <Badge tone={tone} className="num shrink-0" tabIndex={0} aria-label={detail}>
+        {check.ratio}:1 {word}
+      </Badge>
+    </Tooltip>
   )
 }
 
@@ -117,13 +122,13 @@ export function ColorField({ label, value, onChange, optional, placeholder, chec
         aria-label={`${label} colour picker`}
         value={toHex(value ?? placeholder ?? "#000000")}
         onChange={(e) => commit(fromPicker(e.target.value, value ?? ""))}
-        className="h-8 w-8 shrink-0 cursor-pointer rounded border p-0.5"
-        style={fieldBorder}
+        className={cn(controlClass, "h-[var(--ds-control-h-sm)] w-[var(--ds-control-h-sm)] shrink-0 cursor-pointer p-0.5")}
       />
-      <label htmlFor={id} className="min-w-0 flex-1 truncate text-xs">{label}{optional && <span style={muted}> (optional)</span>}</label>
+      <label htmlFor={id} className="min-w-0 flex-1 truncate text-ui text-fg">{label}{optional && <span className="text-fg-muted"> (optional)</span>}</label>
       {checks.map((check) => <ContrastBadge key={check.pair} check={check} />)}
-      <input
+      <Input
         id={id}
+        size="sm"
         type="text"
         spellCheck={false}
         value={text}
@@ -131,8 +136,7 @@ export function ColorField({ label, value, onChange, optional, placeholder, chec
         aria-invalid={invalid || undefined}
         aria-describedby={invalid ? `${id}-err` : undefined}
         onChange={(e) => commit(e.target.value)}
-        className="h-8 w-36 shrink-0 rounded-lg border px-2 font-mono text-xs"
-        style={{ ...fieldBorder, ...(invalid ? { borderColor: "var(--theme-danger)" } : {}) }}
+        className="w-36 shrink-0 font-mono text-xs"
       />
       {invalid && <span id={`${id}-err`} className="sr-only">Not a valid colour</span>}
     </div>
@@ -153,7 +157,7 @@ export function RangeField({ label, value, min, max, step = 1, unit = "px", onCh
   const shown = format ? format(value) : `${value}${unit}`
   return (
     <div className="flex items-center gap-3">
-      <label htmlFor={id} className="w-36 shrink-0 text-xs">{label}</label>
+      <label htmlFor={id} className={LABEL}>{label}</label>
       <input
         id={id}
         type="range"
@@ -163,10 +167,9 @@ export function RangeField({ label, value, min, max, step = 1, unit = "px", onCh
         value={value}
         aria-valuetext={shown}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1"
-        style={{ accentColor: "var(--theme-primary)" }}
+        className="flex-1 accent-[var(--theme-primary)]"
       />
-      <output htmlFor={id} className="w-14 shrink-0 text-right text-xs tabular-nums" style={muted}>{shown}</output>
+      <output htmlFor={id} className="num w-14 shrink-0 text-right text-xs text-fg-muted">{shown}</output>
     </div>
   )
 }
@@ -181,9 +184,10 @@ export function SelectField<T extends string | number>({ label, value, options, 
   const id = useId()
   return (
     <div className="flex items-center gap-3">
-      <label htmlFor={id} className="w-36 shrink-0 text-xs">{label}</label>
-      <select
+      <label htmlFor={id} className={LABEL}>{label}</label>
+      <Select
         id={id}
+        size="sm"
         value={String(value)}
         aria-describedby={hint ? `${id}-hint` : undefined}
         onChange={(e) => {
@@ -191,11 +195,10 @@ export function SelectField<T extends string | number>({ label, value, options, 
           const match = options.find((o) => String(o.value) === raw)
           if (match) onChange(match.value)
         }}
-        className="h-8 min-w-0 flex-1 rounded-lg border px-2 text-xs"
-        style={fieldBorder}
+        wrapperClassName="min-w-0 flex-1"
       >
         {options.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
-      </select>
+      </Select>
       {hint && <span id={`${id}-hint`} className="sr-only">{hint}</span>}
     </div>
   )
@@ -218,75 +221,52 @@ export function TextField({ label, value, onChange, maxLength, placeholder, vali
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-3">
-        <label htmlFor={id} className="w-36 shrink-0 text-xs">{label}</label>
-        <input
-          id={id}
-          type="text"
-          value={text}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-err` : undefined}
-          onChange={(e) => {
-            setText(e.target.value)
-            if (!validate || !validate(e.target.value)) onChange(e.target.value)
-          }}
-          className="h-8 min-w-0 flex-1 rounded-lg border px-2 text-xs"
-          style={{ ...fieldBorder, ...(error ? { borderColor: "var(--theme-danger)" } : {}) }}
-        />
+        <label htmlFor={id} className={LABEL}>{label}</label>
+        <div className="min-w-0 flex-1">
+          <Input
+            id={id}
+            size="sm"
+            type="text"
+            value={text}
+            maxLength={maxLength}
+            placeholder={placeholder}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-err` : undefined}
+            onChange={(e) => {
+              setText(e.target.value)
+              if (!validate || !validate(e.target.value)) onChange(e.target.value)
+            }}
+          />
+        </div>
       </div>
-      {error && <p id={`${id}-err`} className="pl-[9.75rem] text-[11px]" style={{ color: "var(--theme-danger)" }}>{error}</p>}
+      {error && <p id={`${id}-err`} className="pl-[9.75rem] text-xs text-danger">{error}</p>}
     </div>
   )
 }
 
 export function ToggleField({ label, checked, onChange, description }: { label: string; checked: boolean; onChange: (value: boolean) => void; description?: string }) {
-  const id = useId()
-  return (
-    <div className="flex items-start gap-2">
-      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4" style={{ accentColor: "var(--theme-primary)" }} />
-      <label htmlFor={id} className="text-xs">
-        {label}
-        {description && <span className="block" style={muted}>{description}</span>}
-      </label>
-    </div>
-  )
+  return <Checkbox checked={checked} onChange={(e) => onChange(e.target.checked)} label={label} description={description} className="flex" />
 }
 
-/** Segmented single choice (radio group). */
+/** Segmented single choice (the SegmentedControl primitive, a radio group). */
 export function SegmentedField<T extends string>({ label, value, options, onChange }: {
   label: string
   value: T
   options: ReadonlyArray<{ value: T; label: string }>
   onChange: (value: T) => void
 }) {
-  const name = useId()
   return (
-    <fieldset className="flex items-center gap-3">
-      <legend className="float-left w-36 shrink-0 text-xs">{label}</legend>
-      <div className="flex flex-1 flex-wrap gap-1 rounded-lg border p-0.5" style={{ borderColor: "var(--theme-surface-border)" }}>
-        {options.map((o) => {
-          const active = o.value === value
-          return (
-            <label
-              key={o.value}
-              className="flex-1 cursor-pointer px-2 py-1 text-center text-xs font-medium has-[:focus-visible]:ring-2"
-              style={{
-                // Options, not form labels: keep them out of the theme's uppercase-labels rule.
-                textTransform: "none",
-                letterSpacing: "normal",
-                borderRadius: "calc(var(--theme-input-radius) - 2px)",
-                backgroundColor: active ? "var(--theme-primary-light)" : "transparent",
-                color: active ? "var(--theme-primary-text)" : "var(--theme-card-text)",
-                ["--tw-ring-color" as string]: "var(--theme-focus-ring, var(--theme-primary))",
-              }}
-            >
-              <input type="radio" name={name} value={o.value} checked={active} onChange={() => onChange(o.value)} className="sr-only" />
-              {o.label}
-            </label>
-          )
-        })}
-      </div>
-    </fieldset>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <span className={LABEL} aria-hidden>{label}</span>
+      {/* Phones: the control goes under its label (three labels don't fit beside it). */}
+      <SegmentedControl<T>
+        aria-label={label}
+        value={value}
+        onValueChange={onChange}
+        size="sm"
+        className="min-w-0 flex-1 max-sm:basis-full [&>*]:flex-1"
+        options={options.map((o) => ({ value: o.value, text: o.label }))}
+      />
+    </div>
   )
 }

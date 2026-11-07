@@ -15,6 +15,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
 import { documentNodeRoots } from '@/lib/documents/schemas'
+import { mediaNodeRoots } from '@/lib/media/schemas'
 import {
   inferSchema,
   isResponseSchema,
@@ -25,9 +26,19 @@ import {
   splitPath,
   type SchemaNode,
 } from './response-schema'
-import { lookupItemFields, lookupItemKey } from './forms/lookup'
+import { lookupItemFields, lookupItemKey, lookupLabelKey } from './forms/lookup'
+import { runAgentOutputPrefix } from './agent-knowledge'
 import { attachmentsCountKey } from './forms/attachments'
+import { customValueSchemaType } from './forms/custom-controls/field'
+import { activeOutput, keepsRaw, outputExtraKeys } from './forms/custom-controls/output'
+import type { ControlValueSchema } from './forms/custom-controls/contract'
+import { actionFieldSchema } from './custom-actions/manifest'
+import { ACTION_FIELD_TYPES, type ActionField } from './custom-actions/contract'
+import { projectedKeys } from './forms/data-table'
+import { includedContextSchema } from './forms/form-params'
+import { SUBMISSION_META_FIELDS, SUBMISSION_META_KEY } from './forms/submission-meta'
 import { fieldValueSchemaType, normalizeTaskFields, TASK_FIELD_TYPE_LABELS, valueFields, type TaskFieldDef } from './task-field-schema'
+import { setVariableAssignments } from './workflow-set-variable'
 
 export interface PickerNodeLike {
   id: string
@@ -55,6 +66,8 @@ export interface PickerWorkflowVariable {
 /** A reusable form as the picker needs it (fields of its latest version). */
 export interface LinkedFormLike {
   fields: unknown
+  /** The form's layout (parameters / variables "Include in submission"). */
+  layout?: unknown
   version?: number
   name?: string
 }
@@ -165,6 +178,20 @@ function str(type: SchemaNode['type'], description?: string): SchemaNode {
   return description ? { type, description } : { type }
 }
 
+/** {{submission.*}}: the submission metadata (lib/forms/submission-meta.ts), typed. */
+export const SUBMISSION_META_SCHEMA: SchemaNode = {
+  type: 'object',
+  description: 'Who submitted the form, when and from where (set by the server)',
+  fields: SUBMISSION_META_FIELDS.map((f) => ({
+    name: f.name, type: f.type, description: f.description,
+    ...(f.fields ? { fields: f.fields.map((c) => ({ name: c.name, type: c.type, description: c.description })) } : {}),
+  })),
+}
+
+function submissionRoot(description: string): DataRoot {
+  return { path: SUBMISSION_META_KEY, label: 'Submission details', hint: SUBMISSION_META_KEY, schema: SUBMISSION_META_SCHEMA, description }
+}
+
 const TASK_FORM_TRIGGERS = new Set(['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected'])
 
 /**
@@ -188,6 +215,31 @@ export const ATTACHMENT_FILE_SCHEMA: SchemaNode = {
   ],
 }
 
+/**
+ * One file on a task's Attachments tab (lib/task-attachments.ts): the items
+ * of a User Task's `attachments` output and of `{{task.attachments}}`. File
+ * steps (Read File, document actions, Send Email attachments) accept it.
+ */
+export const TASK_ATTACHMENT_SCHEMA: SchemaNode = {
+  type: 'object',
+  description: 'A task attachment',
+  fields: [
+    { name: 'name', type: 'string', description: 'Name given to the attachment', example: 'Signed contract' },
+    { name: 'type', type: 'string', description: 'Type (Contract, Invoice, Receipt, Evidence, Image, Other or the workspace\'s own)', example: 'Contract' },
+    { name: 'description', type: 'string', description: 'Description' },
+    { name: 'file_name', type: 'string', description: 'Original file name', example: 'contract.pdf' },
+    { name: 'mime', type: 'string', description: 'Verified MIME type', example: 'application/pdf' },
+    { name: 'size', type: 'integer', description: 'Size in bytes', example: 48213 },
+    { name: 'url', type: 'string', description: 'Download link (signed-in people who can see the task)' },
+    { name: 'storage_ref', type: 'string', description: 'Storage reference the workflow reads the file with' },
+    { name: 'id', type: 'string', description: 'Attachment id' },
+    { name: 'uploaded_by', type: 'string', description: 'User id of the uploader (empty when a workflow step attached it)' },
+    { name: 'created_at', type: 'string', description: 'When it was attached (ISO 8601)' },
+  ],
+}
+
+const TASK_ATTACHMENTS_LIST: SchemaNode = { type: 'array', items: TASK_ATTACHMENT_SCHEMA, description: 'Files on the task\'s Attachments tab (loop over them, or pass one to a file step)' }
+
 /** The value model of a form field (numbers, booleans, ISO date strings, multi-select arrays, file lists). */
 export function fieldSchema(field: TaskFieldDef): SchemaNode {
   if (field.type === 'attachments') return { type: 'array', items: ATTACHMENT_FILE_SCHEMA, description: 'Uploaded files (loop over them, or attach them all)' }
@@ -197,10 +249,88 @@ export function fieldSchema(field: TaskFieldDef): SchemaNode {
       ? { type: 'array', items: { type: 'string' }, description: `Selected values (from a ${what})` }
       : { type: 'string', description: `Selected value (from a ${what})` }
   }
+  if (field.type === 'data_table') return dataTableValueSchema(field)
+  if (field.type === 'custom') {
+    if (field.custom?.value_type === 'files') return { type: 'array', items: ATTACHMENT_FILE_SCHEMA, description: `Uploaded files (${field.custom.name ?? 'custom control'})` }
+    const output = field.custom ? activeOutput(field.custom) : null
+    if (output && field.custom?.output) {
+      // The declared output (lib/forms/custom-controls/output.ts): a primitive the workflow can use directly.
+      const what = output.html ? 'HTML (sanitised)' : output.type === 'date' ? 'date (YYYY-MM-DD)' : output.type === 'string' ? 'text' : output.type
+      const description = field.custom.output.description ?? `${field.custom.name ?? 'Custom control'}: ${what}`
+      if (output.type === 'array') return { type: 'array', items: { type: 'any' }, description }
+      if (output.type === 'object') return { ...valueSchemaNode(field.custom.value_schema), description }
+      return { type: output.type === 'date' ? 'string' : output.type, nullable: true, description }
+    }
+    const kind = customValueSchemaType(field.custom)
+    const description = `${field.custom?.name ?? 'Custom control'} value${field.custom?.value_type === 'date' ? ' (YYYY-MM-DD)' : ''}`
+    return kind === 'array' ? { type: 'array', items: { type: 'any' }, description } : { type: kind, description }
+  }
   const type = fieldValueSchemaType(field.type)
   const description = field.type === 'date' ? 'Date (YYYY-MM-DD)' : field.type === 'datetime' ? 'Date and time (ISO 8601)' : field.type === 'user' ? 'User id' : field.type === 'currency' ? `Amount${field.currency ? ` (${field.currency})` : ''}` : undefined
   const base: SchemaNode = type === 'array' ? { type: 'array', items: { type: 'string' } } : { type }
   return description ? { ...base, description } : base
+}
+
+/** A control's value schema (the JSON Schema subset) as a picker model: objects keep their properties. */
+function valueSchemaNode(schema: ControlValueSchema | undefined, depth = 0): SchemaNode {
+  const type = Array.isArray(schema?.type) ? schema?.type.find((t) => t !== 'null') : schema?.type
+  if (type === 'object' || (!type && schema?.properties)) {
+    const fields = depth > 3 ? [] : Object.entries(schema?.properties ?? {}).map(([name, sub]) => ({ name, ...valueSchemaNode(sub, depth + 1) }))
+    return fields.length ? { type: 'object', fields } : { type: 'object' }
+  }
+  if (type === 'array') return { type: 'array', items: depth > 3 ? { type: 'any' } : valueSchemaNode(schema?.items, depth + 1) }
+  if (type === 'integer') return { type: 'integer' }
+  if (type === 'number' || type === 'string' || type === 'boolean') return { type }
+  return { type: 'any' }
+}
+
+/** Path of a dot path inside a value schema (an extra's model). */
+function valueSchemaAt(schema: ControlValueSchema | undefined, path: string): SchemaNode {
+  let cursor = schema
+  for (const part of path.split('.').filter(Boolean)) {
+    if (/^\d+$/.test(part)) cursor = cursor?.items
+    else cursor = cursor?.properties?.[part]
+  }
+  return valueSchemaNode(cursor)
+}
+
+const DT_TYPE: Record<string, SchemaNode['type']> = { text: 'string', number: 'number', date: 'string', datetime: 'string', choice: 'string', boolean: 'boolean' }
+
+/**
+ * A Data table field's value (lib/forms/data-table.ts): select mode → the
+ * selected rows; edit mode → the change set { added, updated, deleted };
+ * read-only tables hold nothing.
+ */
+export function dataTableValueSchema(field: TaskFieldDef): SchemaNode {
+  const config = field.data_table
+  const row: SchemaNode = {
+    type: 'object',
+    fields: (config ? projectedKeys(config) : []).map((key) => {
+      const col = config?.columns.find((c) => c.key === key)
+      return { name: key, type: col ? DT_TYPE[col.type] ?? 'any' : 'string', ...(col?.label && col.label !== key ? { description: col.label } : {}) }
+    }),
+  }
+  if (config?.mode === 'select') return { type: 'array', items: row, description: config.multiple ? 'The selected rows' : 'The selected row (a list of one)' }
+  if (config?.mode === 'edit') {
+    return {
+      type: 'object',
+      description: 'The changes made in the table',
+      fields: [
+        { name: 'added', type: 'array', items: row, description: 'New rows' },
+        {
+          name: 'updated', type: 'array', description: 'Changed rows',
+          items: { type: 'object', fields: [
+            { name: 'key', type: 'string', description: 'The row key' },
+            { name: 'before', ...row, description: 'The row before (re-read on the server)' },
+            { name: 'after', ...row, description: 'The changed cells' },
+            { name: 'changed_fields', type: 'array', items: { type: 'string' } },
+          ] },
+        },
+        { name: 'deleted', type: 'array', description: 'Deleted rows', items: { type: 'object', fields: [{ name: 'key', type: 'string' }, { name: 'before', ...row }] } },
+      ],
+    }
+  }
+  return { type: 'any', nullable: true, description: 'A read-only table holds no value' }
 }
 
 /** The model of a lookup's `<key>_item`: the selected item's display / value / fill fields (an array when multiple). */
@@ -227,16 +357,47 @@ export function lookupItemSchema(field: TaskFieldDef): SchemaNode | null {
 
 interface FormFieldEntry { key: string; label: string; schema: SchemaNode; typeLabel: string; example?: string }
 
-/** Data picker fields of a form: each value field, plus `<key>_item` for lookups. */
+/** Data picker fields of a form: each value field, plus `<key>_item` and `<key>_label` for lookups. */
 function formFieldEntries(fields: TaskFieldDef[]): FormFieldEntry[] {
   const out: FormFieldEntry[] = []
   for (const field of valueFields(fields)) {
     out.push({ key: field.key, label: field.label || field.key, schema: fieldSchema(field), typeLabel: TASK_FIELD_TYPE_LABELS[field.type], ...(field.default !== undefined ? { example: field.default } : {}) })
     const item = lookupItemSchema(field)
     if (item) out.push({ key: lookupItemKey(field.key), label: `${field.label || field.key} (selected item)`, schema: item, typeLabel: 'Lookup item' })
+    if (item) {
+      out.push({
+        key: lookupLabelKey(field.key), label: `${field.label || field.key} (display label)`, typeLabel: 'Lookup label',
+        schema: field.lookup?.multiple
+          ? { type: 'array', items: { type: 'string' }, description: 'What the person saw for each selected value' }
+          : { type: 'string', nullable: true, description: 'What the person saw for the selected value (the field itself is the stored value)' },
+      })
+    }
     if (field.type === 'attachments') out.push({ key: attachmentsCountKey(field.key), label: `${field.label || field.key} (number of files)`, schema: { type: 'integer', description: 'Number of files' }, typeLabel: 'Number' })
+    if (field.type === 'custom' && field.custom?.output) {
+      // A control's other outputs: the whole value (`<key>_raw`) and its extras (`<key>_<suffix>`).
+      for (const { suffix, path } of outputExtraKeys(field.custom)) {
+        out.push({ key: `${field.key}_${suffix}`, label: `${field.label || field.key} (${suffix.replace(/_/g, ' ')})`, typeLabel: 'Control output', schema: { ...valueSchemaAt(field.custom.value_schema, path), nullable: true } })
+      }
+      if (keepsRaw(field.custom)) {
+        out.push({ key: `${field.key}_raw`, label: `${field.label || field.key} (full value)`, typeLabel: 'Control value', schema: { ...valueSchemaNode(field.custom.value_schema), nullable: true, description: 'Everything the control stores (the shape before outputs: e.g. .html, .text)' } })
+      }
+    }
   }
   return out
+}
+
+/**
+ * Parameters / variables marked "Include in submission" (lib/forms/form-params.ts)
+ * travel beside the fields under their own names: typed picker entries.
+ */
+function withContextEntries(entries: FormFieldEntry[], node: PickerNodeLike, linkedForms?: Record<string, LinkedFormLike> | null): FormFieldEntry[] {
+  const formId = typeof node.config?.form_id === 'string' ? node.config.form_id : ''
+  const layout = (formId ? linkedForms?.[formId]?.layout : undefined) ?? node.config?.form_layout
+  const extra = includedContextSchema(layout, entries.map((e) => e.key))
+  return [...entries, ...extra.map((c) => ({
+    key: c.key, label: `${c.label} (${c.kind === 'param' ? 'form parameter' : 'form variable'})`, typeLabel: c.kind === 'param' ? 'Parameter' : 'Variable',
+    schema: c.type === 'array' ? { type: 'array' as const, items: { type: 'string' as const } } : { type: c.type, nullable: true },
+  }))]
 }
 
 function columnsSchema(columns: { key: string; label?: string; type?: string }[], shape: 'rows' | 'row'): SchemaNode {
@@ -388,29 +549,54 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
       return [{ path: c.output_row_id_var || 'row_id', label: c.output_row_id_var || 'row_id', schema: { type: 'string' }, description: `Row ID from ${op}` }]
     }
     case 'set_variable': {
-      if (!c.name) return []
-      return [{ path: c.name, label: c.name, schema: schemaForExpression(c.expression, known) ?? { type: 'any' }, description: 'Set Variable' }]
+      // Every assignment, in order; a later one is typed against the earlier ones.
+      const roots: DataRoot[] = []
+      for (const a of setVariableAssignments(c)) {
+        if (!a.name) continue
+        const root: DataRoot = { path: a.name, label: a.name, schema: schemaForExpression(a.expression, [...roots, ...known]) ?? { type: 'any' }, description: 'Set Variable' }
+        const existing = roots.findIndex((r) => r.path === a.name)
+        if (existing >= 0) roots[existing] = root
+        else roots.push(root)
+      }
+      return roots
     }
     case 'run_agent': {
       const outVar = c.output_variable || 'agent_response'
+      // Prefixed outputs use the agent's name (as the engine does), not the node label.
+      const agentPrefix = runAgentOutputPrefix(c)
       const roots: DataRoot[] = [
         { path: outVar, label: outVar, schema: { type: 'string' }, description: 'Agent response text' },
         { path: `${outVar}_status`, label: `${outVar}_status`, schema: { type: 'string' }, description: 'Execution status' },
+        { path: `${outVar}_outputs`, label: `${outVar}_outputs`, schema: { type: 'object' }, description: 'All declared outputs' },
+        { path: `${outVar}_usage`, label: `${outVar}_usage`, schema: { type: 'object' }, description: 'Token usage' },
+        { path: `${outVar}_iterations`, label: `${outVar}_iterations`, schema: { type: 'number' }, description: 'Model calls' },
+        { path: `${outVar}_tool_calls`, label: `${outVar}_tool_calls`, schema: { type: 'number' }, description: 'Tool calls made' },
+        { path: `${outVar}_duration_ms`, label: `${outVar}_duration_ms`, schema: { type: 'number' }, description: 'Run duration' },
+        { path: `${outVar}_files`, label: `${outVar}_files`, schema: { type: 'array' }, description: 'Files produced by tools' },
       ]
       for (const output of (Array.isArray(c._agent_outputs) ? c._agent_outputs : []) as { name?: string; type?: string; description?: string }[]) {
         const key = String(output?.name ?? '').trim()
         if (!key) continue
-        roots.push({ path: `${prefix}_${key}`, label: key, schema: str(typeFromDeclared(output.type), output.description), description: output.description || 'Agent output' })
+        roots.push({ path: `${agentPrefix}_${key}`, label: key, schema: str(typeFromDeclared(output.type), output.description), description: output.description || 'Agent output' })
+        roots.push({ path: key, label: key, schema: str(typeFromDeclared(output.type), output.description), description: `${output.description || 'Agent output'} (also {{${agentPrefix}_${key}}})` })
       }
       return roots
     }
     case 'custom_activity': {
-      const outputs = Array.isArray(c.manifest?.outputs) ? c.manifest.outputs : []
+      // Typed outputs of the chosen function (snapshot kept fresh by the panel); legacy steps: manifest.outputs.
+      const outputs = Array.isArray(c._action_outputs) ? c._action_outputs : Array.isArray(c.manifest?.outputs) ? c.manifest.outputs : []
+      const prefix = String(c._output_prefix ?? '').trim()
       return outputs.flatMap((output: any) => {
         const key = String(output?.name ?? output?.key ?? '').trim()
         if (!key) return []
         const declared = output?.schema && typeof output.schema === 'object' ? normalizeResponseSchema(isResponseSchema(output.schema) ? output.schema : { root: output.schema })?.root : null
-        return [{ path: key, label: output?.label ?? key, schema: declared ?? str(typeFromDeclared(output?.type)), description: output?.description || 'Custom step output' }]
+        const typed = (ACTION_FIELD_TYPES as readonly string[]).includes(String(output?.type)) ? actionFieldSchema(output as ActionField) : null
+        const schema = declared ?? typed ?? str(typeFromDeclared(output?.type))
+        const label = output?.label ?? key
+        const description = output?.description || 'Custom action output'
+        return prefix
+          ? [{ path: `${prefix}_${key}`, label, schema, description, hint: `${prefix}_${key}` }]
+          : [{ path: key, label, schema, description }]
       })
     }
     case 'read_csv': case 'read_excel': {
@@ -447,7 +633,14 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
       return [
         { path: `${prefix}_task_id`, label: 'task_id', schema: { type: 'string' }, description: 'Created task ID' },
         { path: 'outcome', label: 'outcome', schema: { type: 'string' }, description: 'Outcome chosen on completion' },
+        { path: 'completed_by_name', label: 'completed_by_name', schema: { type: 'string' }, description: 'Who completed the task (name)' },
+        { path: 'completed_by_email', label: 'completed_by_email', schema: { type: 'string' }, description: 'Who completed the task (email)' },
+        { path: 'completed_by', label: 'completed_by', schema: { type: 'string' }, description: 'Who completed the task (user id)' },
+        { path: 'completed_at', label: 'completed_at', schema: { type: 'string' }, description: 'When the task was completed (ISO 8601)' },
+        { path: 'attachments', label: 'attachments', schema: TASK_ATTACHMENTS_LIST, description: 'Files attached on the task before it completed' },
       ]
+    case 'add_task_attachment':
+      return [{ path: `${prefix}_attachment`, label: 'attachment', schema: TASK_ATTACHMENT_SCHEMA, description: 'The attachment the step added' }]
     case 'decision_table': {
       const roots: DataRoot[] = [
         { path: `${prefix}_matched`, label: 'matched', schema: { type: 'boolean' } },
@@ -462,6 +655,10 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
       ]
     case 'doc_read': case 'doc_compare': case 'doc_convert': case 'doc_pdf': case 'doc_extract': case 'doc_redact': case 'doc_inspect':
       return documentNodeRoots(node.type, c)
+    case 'esign_send': case 'esign_envelope': case 'esign_wait':
+      return esignNodeRoots(node.type, c)
+    case 'media_transcribe': case 'media_analyze_image': case 'media_analyze_video': case 'media_redact_image': case 'media_redact_video': case 'media_generate_image': case 'media_tts': case 'media_tools':
+      return mediaNodeRoots(node.type, c)
     default:
       return []
   }
@@ -470,7 +667,7 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
 const TRIGGER_TYPES = new Set([
   'task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected',
   'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted',
-  'middleware_received', 'schedule', 'webhook_received',
+  'middleware_received', 'schedule', 'webhook_received', 'esign_event',
 ])
 
 /** Topological-ish order: by graph distance from triggers, then canvas position. */
@@ -518,7 +715,10 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
       const label = typeof variable.label === 'string' && variable.label.trim() ? variable.label.trim() : humanizeName(variable.name)
       return { path: variable.name, label, hint: variable.name, schema: workflowVariableSchema(variable), description: variable.description || 'Workflow input' }
     })
-  known.push(...workflowRoots)
+  // A designed start form's runs carry {{submission.*}} too (no stored row: id / reference empty).
+  const startForm = nodes.some((n) => n.config?.start_form && typeof n.config.start_form === 'object') && !nodes.some((n) => n.type === 'form_submitted')
+  const startRoots = startForm ? [...workflowRoots, submissionRoot('Who started the run from the start form and when (submitted_by, submitted_at, form, source)')] : workflowRoots
+  known.push(...startRoots)
 
   for (const node of ordered) {
     if (node.id === currentNodeId) continue
@@ -535,18 +735,20 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
     if (node.type === 'loop') continue // its item only exists inside its body (added below)
     if (node.type === 'form_submitted') {
       // The submitted form's fields (cached on the trigger), typed: {{form.<key>}}.
-      const entries = formFieldEntries(nodeFormFields(node, linkedForms))
+      const entries = withContextEntries(formFieldEntries(nodeFormFields(node, linkedForms)), node, linkedForms)
       const formName = String(node.config?.form_name ?? 'form')
       const roots: DataRoot[] = [
         ...entries.map((entry) => fieldRoot('form', entry)),
+        submissionRoot('Submission id and reference, submitted at / by (id, name, email), form (id, name, version), source, URL parameters'),
         { path: 'submitted_by_name', label: 'Submitted by (name)', hint: 'submitted_by_name', schema: str('string', 'Submitter name') },
         { path: 'submitted_by_email', label: 'Submitted by (email)', hint: 'submitted_by_email', schema: str('string', 'Submitter email') },
         { path: 'submitted_by', label: 'Submitted by (user id)', hint: 'submitted_by', schema: str('string', 'User id of the submitter') },
+        { path: 'submitted_by_manager_id', label: "Submitter's manager (user id)", hint: 'submitted_by_manager_id', schema: str('string', "User id of the submitter's manager (reporting lines); empty without one") },
         { path: 'submitted_at', label: 'Submitted at', hint: 'submitted_at', schema: str('string', 'ISO 8601') },
         { path: 'form_button', label: 'Button pressed', hint: 'form_button', schema: str('string', 'Button pressed (id)') },
         { path: 'form_outcome', label: 'Outcome', hint: 'form_outcome', schema: str('string', 'Outcome of an outcome button / task') },
         { path: 'form_submission_id', label: 'Submission id', hint: 'form_submission_id', schema: str('string', 'Submission id') },
-        { path: 'form_source', label: 'Source', hint: 'form_source', schema: str('string', 'standalone, api or task') },
+        { path: 'form_source', label: 'Source (stored)', hint: 'form_source', schema: str('string', 'standalone, api or task (submission.source tells the page from the Run dialog)') },
         { path: 'form_id', label: 'Form id', hint: 'form_id', schema: str('string') },
         { path: 'form_name', label: 'Form name', hint: 'form_name', schema: str('string') },
         { path: 'form_version', label: 'Form version', hint: 'form_version', schema: str('number') },
@@ -566,26 +768,26 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
       // A task trigger's form declares the fields the triggering task
       // carries: {{task.data.<key>}}.
       const entries = formFieldEntries(nodeFormFields(node, linkedForms))
-      if (entries.length) {
-        const roots: DataRoot[] = [
-          ...entries.map((entry) => fieldRoot('task.data', entry)),
-          {
-            path: 'task.data',
-            label: 'All values (object)',
-            hint: 'task.data',
-            schema: { type: 'object', fields: entries.map((entry) => ({ ...entry.schema, name: entry.key, description: `${entry.label} (${entry.typeLabel})` })) },
-            description: 'Form fields of the task that started the run',
-          },
-        ]
-        known.push(...roots)
-        triggerFormGroups.push({ id: `trigger:${node.id}`, label: `${node.label || 'Task trigger'} › Task form`, kind: 'form', nodeId: node.id, nodeType: node.type, roots })
-      }
+      const attachmentsRoot: DataRoot = { path: 'task.attachments', label: 'Attachments', hint: 'task.attachments', schema: TASK_ATTACHMENTS_LIST, description: 'Files on the triggering task\'s Attachments tab' }
+      const roots: DataRoot[] = entries.length ? [
+        ...entries.map((entry) => fieldRoot('task.data', entry)),
+        {
+          path: 'task.data',
+          label: 'All values (object)',
+          hint: 'task.data',
+          schema: { type: 'object', fields: entries.map((entry) => ({ ...entry.schema, name: entry.key, description: `${entry.label} (${entry.typeLabel})` })) },
+          description: 'Form fields of the task that started the run',
+        },
+        attachmentsRoot,
+      ] : [attachmentsRoot]
+      known.push(...roots)
+      triggerFormGroups.push({ id: `trigger:${node.id}`, label: `${node.label || 'Task trigger'} › ${entries.length ? 'Task form' : 'Task'}`, kind: 'form', nodeId: node.id, nodeType: node.type, roots })
       continue
     }
     if (node.type === 'user_task') {
       // The task's form (its own fields, or the linked reusable form):
       // {{task_data.<key>}} once the task completes.
-      const entries = formFieldEntries(nodeFormFields(node, linkedForms))
+      const entries = withContextEntries(formFieldEntries(nodeFormFields(node, linkedForms)), node, linkedForms)
       if (entries.length) {
         const roots = entries.map((entry) => fieldRoot('task_data', entry, node.label))
         known.push(...roots)
@@ -618,7 +820,7 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
   }
 
   const groups: DataGroup[] = [...loopGroups, ...triggerFormGroups]
-  if (workflowRoots.length) groups.push({ id: 'workflow-variables', label: 'Start form › Workflow inputs', kind: 'workflow', roots: workflowRoots })
+  if (startRoots.length) groups.push({ id: 'workflow-variables', label: 'Start form › Workflow inputs', kind: 'workflow', roots: startRoots })
   groups.push(...taskFormGroups, ...stepGroups, ...triggerGroups)
   return groups
 }
@@ -1031,4 +1233,41 @@ export function insertLoopBefore<N extends PickerNodeLike & { position: { x: num
   }
   nextEdges.push({ id: newId(), source: loop.id, target: targetId, label: 'Each Item' } as E)
   return { nodes: [...movedNodes, loop], edges: nextEdges, loop }
+}
+
+/* ── E-signature steps (lib/esign) ─────────────────────────────────── */
+
+const ESIGN_RECIPIENT: SchemaNode = { type: 'array', items: { type: 'object', fields: [
+  { name: 'name', type: 'string' }, { name: 'email', type: 'string' }, { name: 'role', type: 'string' }, { name: 'status', type: 'string' },
+  { name: 'routing_order', type: 'integer' }, { name: 'signed_at', type: 'string' }, { name: 'declined_reason', type: 'string' },
+] } }
+const ESIGN_FILE: SchemaNode = { type: 'object', fields: [{ name: 'name', type: 'string' }, { name: 'url', type: 'string' }, { name: 'size', type: 'integer' }, { name: 'mime_type', type: 'string' }] }
+const ESIGN_ENVELOPE_FIELDS = [
+  { name: 'envelope_id', type: 'string' as const }, { name: 'status', type: 'string' as const }, { name: 'provider', type: 'string' as const },
+  { name: 'completed', type: 'boolean' as const }, { name: 'signed_count', type: 'integer' as const }, { name: 'signer_count', type: 'integer' as const },
+  { name: 'recipients', ...ESIGN_RECIPIENT }, { name: 'completed_at', type: 'string' as const }, { name: 'client_reference', type: 'string' as const },
+]
+
+function esignNodeRoots(type: string, c: Record<string, any>): DataRoot[] {
+  const ov = String(c.output_var ?? '').trim() || (type === 'esign_send' ? 'envelope' : type === 'esign_wait' ? 'signature' : 'esign_result')
+  if (type === 'esign_send') {
+    return [
+      { path: ov, label: ov, schema: { type: 'object', fields: ESIGN_ENVELOPE_FIELDS }, description: 'The envelope that was sent' },
+      { path: `${ov}_id`, label: `${ov}_id`, schema: { type: 'string' }, description: 'Envelope ID' },
+    ]
+  }
+  if (type === 'esign_wait') {
+    return [
+      { path: ov, label: ov, schema: { type: 'object', fields: [...ESIGN_ENVELOPE_FIELDS, { name: 'outcome', type: 'string' }, { name: 'signed_document', ...ESIGN_FILE }, { name: 'certificate', ...ESIGN_FILE }] }, description: 'Outcome, recipients and the signed PDF' },
+      { path: 'esign_outcome', label: 'esign_outcome', schema: { type: 'string' }, description: 'completed, declined, voided, expired or timeout' },
+    ]
+  }
+  const action = String(c.action ?? 'status')
+  const schema: SchemaNode = action === 'download'
+    ? { type: 'object', fields: [{ name: 'file', ...ESIGN_FILE }, { name: 'certificate', ...ESIGN_FILE }, { name: 'files', type: 'array' }] }
+    : action === 'signing_url' ? { type: 'object', fields: [{ name: 'url', type: 'string' }, { name: 'expires_at', type: 'string' }] }
+      : action === 'list_templates' ? { type: 'object', fields: [{ name: 'templates', type: 'array' }, { name: 'next_cursor', type: 'string' }] }
+        : action === 'cancel' ? { type: 'object', fields: [{ name: 'envelope_id', type: 'string' }, { name: 'cancelled', type: 'boolean' }] }
+          : { type: 'object', fields: ESIGN_ENVELOPE_FIELDS }
+  return [{ path: ov, label: ov, schema }]
 }

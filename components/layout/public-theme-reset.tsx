@@ -8,13 +8,16 @@ import { useEffect } from "react"
  * colour variables and `data-theme-mode="dark"`, which turns on every `dark:`
  * class) — on the light auth layout that drew light text on light panels.
  * This clears them; full page loads are handled by the root bootstrap script.
+ * `headings`: Inter by default; the auth pages pass "display" (Fraunces headlines,
+ * a public brand moment), as the bootstrap script sets on a full load.
  */
-export function PublicThemeReset() {
+export function PublicThemeReset({ headings = "sans" }: { headings?: "display" | "sans" } = {}) {
   useEffect(() => {
     const root = document.documentElement
     for (const name of Array.from(root.style)) if (name.startsWith("--")) root.style.removeProperty(name)
     root.setAttribute("data-theme", "basecamp")
     root.setAttribute("data-theme-mode", "light")
-  }, [])
+    root.setAttribute("data-theme-headings", headings)
+  }, [headings])
   return null
 }

@@ -1,0 +1,129 @@
+{
+  "id": "814e0fa2-9be0-52df-b536-c555f31d7447",
+  "slug": "contract-review-approval",
+  "title": "Contract review & approval",
+  "category": "operations-compliance",
+  "summary": "Contract owners submit a draft on a stepped form; legal checks it against a clause playbook, redlines revisions, the right people approve it and a register tracks renewals.",
+  "description": "Contract review & approval takes a contract from draft to an approved entry in your contract register, with no e-signature or integration needed. The contract owner fills in the Contract review request, four numbered steps: the contract and counterparty, the term and value (the notice period appears only for contracts that renew automatically, and a board approval reference only for NZD 1,000,000 or more), the draft itself, and who approves the spend. The form is in Application mode with its own Next, Back and Send for review buttons, and its rules check that the contract ends after it starts, that an auto-renewing contract has a notice period and that large contracts carry the board reference.\n\nSubmitting adds the contract to the Contract register with its renewal decision date (the end date less the notice period) and gives legal a tabbed review task: the contract on one tab, and on the other a Clause checklist, a Data table of the Clause playbook (our position, the fallback we accept, must-have clauses and the risk) where legal ticks every clause the draft departs from, then sets the overall risk. Ticking a must-have clause shows a note.\n\nLegal approves, rejects or asks for changes. Changes go back to the owner with legal's notes and the list of deviations; when the owner uploads the revised contract, a Compare Documents step diffs it against the previous version, makes a PDF redline and tells legal how similar it is before the review starts again. The Contract approval route decision table then decides who else approves, from legal's risk rating, the value and the number of deviations: finance (the person the owner named, or your default), the general counsel, or both.\n\nThe Contract register page lists every contract in Data tables: Renewals due shows active contracts whose renewal decision falls in the next 90 days, soonest first, and All contracts has value, end date, check marks and risk and status badges, filters and sorting, with an editable status. A click on any row opens the contract's details.",
+  "trigger": "form",
+  "entry_workflow": "f477b9c6-0758-5abd-bc77-8eaddc10769e",
+  "entry_form": "e5cab48e-47e3-5c67-b334-96212ed1e816",
+  "start": "Starts from a form page: share the Contract review request page (/f/<id>) with contract owners; each submission starts the workflow through its Form submitted trigger.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "legal",
+    "contracts",
+    "clause playbook",
+    "redline",
+    "approvals",
+    "renewals",
+    "no integrations",
+    "steps & progress",
+    "application mode",
+    "data table",
+    "form rules"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Share Forms → Contract review request (/f/<id>) with contract owners, and Forms → Contract register with legal and finance (they need View data, and Manage rows to change a status).",
+    "Edit the Clause playbook to your standard positions, fallbacks and must-have clauses.",
+    "Tasks go to the person who installed the package; point Legal review and General counsel approval at your legal team. Finance approval goes to the approver named on the form, or the installer.",
+    "Edit the Contract approval route thresholds for finance and general counsel approval.",
+    "Email: configure EMAIL_PROVIDER so owners hear about approvals, rejections and requested changes (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Request a review",
+      "body": "The owner completes four numbered steps and attaches the draft; rules check the dates, the notice period and the board reference."
+    },
+    {
+      "title": "Register it",
+      "body": "The contract is added to the Contract register with its renewal decision date."
+    },
+    {
+      "title": "Legal review",
+      "body": "A tabbed task: the contract, and a Clause checklist Data table of the playbook where legal ticks the deviations and sets the risk."
+    },
+    {
+      "title": "Changes and redline",
+      "body": "Requested changes go to the owner; their revision is compared with the previous version (similarity and a PDF redline) and goes back to legal."
+    },
+    {
+      "title": "Approval chain",
+      "body": "The approval route decides whether finance and the general counsel approve, from the risk, value and deviations."
+    },
+    {
+      "title": "Approved and tracked",
+      "body": "The register row is approved and the owner is emailed; the Contract register page shows renewals due in 90 days."
+    }
+  ],
+  "sample_input": {
+    "title": "Cleaning and facilities services",
+    "counterparty": "CleanCo Services Ltd",
+    "contract_type": "Services agreement",
+    "business_unit": "Operations",
+    "value": 210000,
+    "start_date": "2027-02-01",
+    "end_date": "2029-01-31",
+    "auto_renew": true,
+    "notice_days": 90,
+    "version_label": "Their draft v1",
+    "paper": "Their template",
+    "known_deviations": "They want termination for convenience on 30 days notice.",
+    "confirm": true
+  },
+  "expect": "completed",
+  "icon": "file-signature",
+  "verify_mocks": {
+    "uploads": {
+      "contract_document": [
+        "policy-draft.pdf"
+      ]
+    },
+    "tasks": [
+      {
+        "outcome": "Request changes",
+        "button": "changes",
+        "values": {
+          "risk_level": "Medium",
+          "redline_notes": "Termination for convenience must be mutual and on 90 days notice."
+        }
+      },
+      {
+        "outcome": "Upload revision",
+        "button": "upload",
+        "uploads": {
+          "revised_document": [
+            "witness-statement.docx"
+          ]
+        },
+        "values": {
+          "revision_summary": "CleanCo accepted mutual termination on 90 days notice."
+        }
+      },
+      {
+        "outcome": "Approve",
+        "button": "approve",
+        "values": {
+          "risk_level": "Low"
+        }
+      }
+    ],
+    "expect_outputs": [
+      "comparison",
+      "renewal_date"
+    ]
+  }
+}

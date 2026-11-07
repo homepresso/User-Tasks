@@ -178,29 +178,55 @@ describe('workflow activity services: behaviour', () => {
   })
 })
 
-describe('custom activity code gate', () => {
-  it('saving reports whether execution is enabled and never runs the code', async () => {
+describe('custom action execution (sandboxed)', () => {
+  const engineCtx = (supabase: ReturnType<typeof createMemorySupabase>) => ({
+    supabase, tenantId: 'tenant-a', variables: {} as Record<string, unknown>, liveBindings: {}, nodeResults: {} as Record<string, unknown>,
+    executedNodes: new Set<string>(), executionTrace: [], logs: [] as Array<{ message: string }>, onEvent: () => {},
+  })
+
+  it('saving never runs the code; execution is on unless the operator switches it off', async () => {
     const supabase = seed()
     const created = await activities.createWorkflowActivity(context(supabase), {
       name: 'Side effect', source_code: 'globalThis.__ranActivity = true\nasync function run() { return {} }', manifest: MANIFEST,
     })
-    expect(created.code_execution_enabled).toBe(false)
+    expect(created.code_execution_enabled).toBe(true)
     expect((globalThis as Record<string, unknown>).__ranActivity).toBeUndefined()
-    vi.stubEnv('ENABLE_CUSTOM_ACTIVITY_CODE', 'true')
-    expect((await activities.getWorkflowActivity(context(supabase), created.id)).code_execution_enabled).toBe(true)
+    vi.stubEnv('CUSTOM_ACTIONS_DISABLED', 'true')
+    expect((await activities.getWorkflowActivity(context(supabase), created.id)).code_execution_enabled).toBe(false)
   })
 
-  it('the engine refuses to execute activity code unless ENABLE_CUSTOM_ACTIVITY_CODE=true', async () => {
-    vi.stubEnv('ENABLE_CUSTOM_ACTIVITY_CODE', '')
+  it('the engine runs legacy activity code from the library in the sandbox — never the code in the node config', async () => {
+    const supabase = seed()
     const node = {
       id: 'n1', type: 'custom_activity', label: 'Scorer', position: { x: 0, y: 0 },
-      config: { custom_activity_id: 'act-a', source_code: SOURCE, manifest: MANIFEST },
+      config: { custom_activity_id: 'act-a', source_code: 'async function run() { return { outputs: { score: -1 } } }', manifest: MANIFEST, input_mappings: { amount: '21' }, _output_prefix: 'scorer' },
     }
-    const ctx = {
-      supabase: seed(), tenantId: 'tenant-a', variables: {}, liveBindings: {}, nodeResults: {} as Record<string, unknown>,
-      executedNodes: new Set<string>(), executionTrace: [], logs: [], onEvent: () => {},
-    }
-    await expect(__testing.executeNode(node as never, [node as never], [], ctx as never)).rejects.toThrow('Custom activity code execution is disabled')
+    const ctx = engineCtx(supabase)
+    await __testing.executeNode(node as never, [node as never], [], ctx as never)
+    const out = (ctx.nodeResults.n1 as { output: Record<string, unknown> }).output
+    expect(out).toMatchObject({ activity_key: 'scorer', outputs: { score: 42 } })
+    expect(ctx.variables.scorer_score).toBe(42)
+  })
+
+  it('a disabled action (kill switch) or CUSTOM_ACTIONS_DISABLED fails the step', async () => {
+    const supabase = seed()
+    supabase.tables.custom_workflow_activities[0].enabled = false
+    const node = { id: 'n1', type: 'custom_activity', label: 'Scorer', position: { x: 0, y: 0 }, config: { custom_activity_id: 'act-a', input_mappings: { amount: '1' } } }
+    await expect(__testing.executeNode(node as never, [node as never], [], engineCtx(supabase) as never)).rejects.toThrow(/disabled/)
+    supabase.tables.custom_workflow_activities[0].enabled = true
+    vi.stubEnv('CUSTOM_ACTIONS_DISABLED', 'true')
+    await expect(__testing.executeNode(node as never, [node as never], [], engineCtx(supabase) as never)).rejects.toThrow(/switched off/)
+  })
+
+  it('legacy code cannot reach process or the host', async () => {
+    const supabase = seed()
+    supabase.tables.custom_workflow_activities[0].source_code = 'async function run() { return { outputs: { score: typeof process + typeof require + (() => { try { return typeof (0).constructor.constructor("return process")() } catch (e) { return "x" } })() } } }'
+    const node = { id: 'n1', type: 'custom_activity', label: 'Scorer', position: { x: 0, y: 0 }, config: { custom_activity_id: 'act-a', input_mappings: { amount: '1' } } }
+    const ctx = engineCtx(supabase)
+    await __testing.executeNode(node as never, [node as never], [], ctx as never)
+    const out = (ctx.nodeResults.n1 as { output: { outputs: Record<string, unknown> } }).output
+    // The guest's own Function has no `process` either (ReferenceError → 'x').
+    expect(out.outputs.score).toMatch(/^undefinedundefined(undefined|x)$/)
   })
 })
 
@@ -223,5 +249,72 @@ describe('MCP workflow activity tools (service-backed)', () => {
     const result = await writer.callTool('workflow_activities_delete', { workflow_activity_id: 'act-a' })
     expect(JSON.parse(result.content[0].text)).toEqual({ deleted: true, workflow_activity_id: 'act-a' })
     expect(vi.mocked(writeAudit).mock.calls.filter(([entry]) => entry.objectId === 'act-a')).toHaveLength(1)
+  })
+})
+
+describe('packaged workflow actions (manifest v1)', () => {
+  const V1 = (version = '1.0.0', extra: Record<string, unknown> = {}) => ({
+    manifest_version: 1, key: 'acme_math', name: 'Acme math', version,
+    operations: [{ id: 'add', sample: { a: 1, b: 2 }, inputs: [{ name: 'a', type: 'number', required: true }, { name: 'b', type: 'number', required: true }], outputs: [{ name: 'sum', type: 'number' }] }],
+    ...extra,
+  })
+  const MOD = 'export default { operations: { add: (i, ctx) => ({ sum: i.a + i.b }) } }'
+
+  it('upload creates the action, identical re-upload is unchanged, changed bytes for the same version are refused, a new version replaces', async () => {
+    const supabase = seed()
+    const ctx = context(supabase)
+    const first = await activities.uploadWorkflowAction(ctx, { module: MOD, manifest: V1() })
+    expect(first).toMatchObject({ outcome: 'created', version: '1.0.0', workflow_activity: { key: 'acme_math', runtime: 'module', enabled: true } })
+    expect(supabase.tables.custom_workflow_activity_versions).toHaveLength(1)
+    expect((await activities.uploadWorkflowAction(ctx, { module: MOD, manifest: V1() })).outcome).toBe('unchanged')
+    await expect(activities.uploadWorkflowAction(ctx, { module: `${MOD}\n// v2`, manifest: V1() })).rejects.toMatchObject({ status: 409 })
+    const second = await activities.uploadWorkflowAction(ctx, { module: `${MOD}\n// v2`, manifest: V1('1.1.0') })
+    expect(second).toMatchObject({ outcome: 'version', workflow_activity: { version: '1.1.0' } })
+    expect(supabase.tables.custom_workflow_activity_versions.map((v) => v.version).sort()).toEqual(['1.0.0', '1.1.0'])
+  })
+
+  it('upload refuses a module missing a declared operation', async () => {
+    await expect(activities.uploadWorkflowAction(context(seed()), { module: 'export default { operations: { other: () => ({}) } } // add', manifest: V1() }))
+      .rejects.toMatchObject({ status: 400, message: expect.stringContaining('operation "add" has no function') })
+  })
+
+  it('test runs the sample in the sandbox; kill switch and grants are checked', async () => {
+    const supabase = seed()
+    const ctx = context(supabase)
+    const { workflow_activity: action } = await activities.uploadWorkflowAction(ctx, { module: MOD, manifest: V1('1.0.0', { capabilities: { http: { hosts: ['api.example.com'] }, data: { read: true } } }) })
+    const result = await activities.testWorkflowActivity(ctx, action.id, {})
+    expect(result).toMatchObject({ ok: true, operation: 'add', outputs: { sum: 3 } })
+    await expect(activities.updateWorkflowActivity(ctx, action.id, { approved_hosts: ['evil.example.net'] })).rejects.toMatchObject({ status: 400 })
+    const approved = await activities.updateWorkflowActivity(ctx, action.id, { approved_hosts: ['api.example.com'] })
+    expect(approved.approved_hosts).toEqual(['api.example.com'])
+    await expect(activities.updateWorkflowActivity(ctx, action.id, { data_grants: [{ table_id: 'nope', access: 'write' }] })).rejects.toMatchObject({ status: 400 })
+    const disabled = await activities.updateWorkflowActivity(ctx, action.id, { enabled: false })
+    expect(disabled.enabled).toBe(false)
+    const node = { id: 'n1', type: 'custom_activity', label: 'Add', position: { x: 0, y: 0 }, config: { custom_activity_id: action.id, operation: 'add', input_mappings: { a: '1', b: '2' } } }
+    const engineCtx = { supabase, tenantId: 'tenant-a', variables: {}, liveBindings: {}, nodeResults: {} as Record<string, unknown>, executedNodes: new Set<string>(), executionTrace: [], logs: [], onEvent: () => {} }
+    await expect(__testing.executeNode(node as never, [node as never], [], engineCtx as never)).rejects.toThrow(/disabled/)
+  })
+
+  it('secrets: only declared names, encrypted, never returned', async () => {
+    const supabase = seed()
+    const ctx = context(supabase)
+    const { workflow_activity: action } = await activities.uploadWorkflowAction(ctx, { module: MOD, manifest: V1('1.0.0', { capabilities: { credentials: [{ name: 'api_key' }] } }) })
+    await expect(activities.setWorkflowActivitySecrets(ctx, action.id, { other: 'x' })).rejects.toMatchObject({ status: 400 })
+    const { installEncryptionKey } = await import('@/lib/secret-crypto')
+    installEncryptionKey('a'.repeat(64))
+    const saved = await activities.setWorkflowActivitySecrets(ctx, action.id, { api_key: 'plain-value' })
+    expect(saved.secrets).toEqual([{ name: 'api_key', label: 'Api key', set: true }])
+    const stored = supabase.tables.custom_workflow_activity_secrets[0]
+    expect(String(stored.value)).toMatch(/^enc:v/)
+    expect(JSON.stringify(await activities.getWorkflowActivity(ctx, action.id))).not.toContain('plain-value')
+  })
+
+  it('delete is refused while a workflow uses the action', async () => {
+    const supabase = seed()
+    supabase.tables.workflows = [{ id: 'wf-1', tenant_id: 'tenant-a', name: 'Quotes', nodes: [{ id: 'n', type: 'custom_activity', label: 'Score', config: { custom_activity_id: 'act-a' } }] }]
+    const usages = await activities.getWorkflowActivityUsages(context(supabase), 'act-a')
+    expect(usages).toEqual([expect.objectContaining({ kind: 'workflow', id: 'wf-1', where: 'draft', node_label: 'Score' })])
+    await expect(activities.deleteWorkflowActivity(context(supabase), 'act-a')).rejects.toMatchObject({ status: 409 })
+    expect(enqueueDeletionJob).not.toHaveBeenCalled()
   })
 })

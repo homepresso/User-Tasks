@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { ReportChart } from '@/components/reports/lazy-charts'
 import { ReportDataTable } from '@/components/reports/report-data-table'
@@ -70,44 +69,44 @@ export function RetentionReportView({ policies, reviews, executions, tables, row
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-[var(--theme-surface)] transition-colors" style={{ color: 'var(--theme-muted-text)' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-2xl font-semibold" style={{ color: 'var(--theme-card-text)' }}>Retention Policies</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <ReportDateFilter days={days} onDaysChange={setDays} />
-          <ReportExportButton data={recentRows} columns={[
+      <PageHeader
+        breadcrumbs={[{ label: 'Reports', href: '/reports' }, { label: 'Retention policies' }]}
+        title="Retention policies"
+        description="What each retention policy keeps, and what it removed."
+        className="mb-0"
+        actions={
+          <>
+            <ReportDateFilter days={days} onDaysChange={setDays} />
+            <ReportExportButton data={recentRows} columns={[
             { key: 'policy_name', label: 'Policy' },
             { key: 'action_type', label: 'Action' },
-            { key: 'target_type', label: 'Target Type' },
+            { key: 'target_type', label: 'Target type' },
             { key: 'asset_name', label: 'Asset' },
             { key: 'result_status', label: 'Result' },
             { key: 'executed_at', label: 'Executed' },
-          ]} filename="retention-report" />
-        </div>
-      </div>
+            ]} filename="retention-report" />
+          </>
+        }
+      />
 
       <ReportMetricRow metrics={[
         { label: 'Policies', value: policies.length },
-        { label: 'Governed Assets', value: governedAssets },
-        { label: 'Overdue Reviews', value: overdueReviews },
-        { label: 'Successful Executions', value: successfulExecutions },
+        { label: 'Governed assets', value: governedAssets },
+        { label: 'Overdue reviews', value: overdueReviews },
+        { label: 'Successful executions', value: successfulExecutions },
       ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ReportChart type="bar" data={coverageByPolicy} xKey="name" yKeys={['value']} title="Assets by Retention Policy" />
-        <ReportChart type="pie" data={reviewStatusData} title="Retention Review Status" />
+        <ReportChart type="bar" data={coverageByPolicy} xKey="name" yKeys={['value']} title="Assets by retention policy" />
+        <ReportChart type="pie" data={reviewStatusData} title="Retention review status" />
       </div>
 
       <ReportDataTable
-        title="Recent Retention Executions"
+        title="Recent retention executions"
         columns={[
           { key: 'policy_name', label: 'Policy' },
           { key: 'action_type', label: 'Action' },
-          { key: 'target_type', label: 'Target Type' },
+          { key: 'target_type', label: 'Target type' },
           { key: 'asset_name', label: 'Asset' },
           { key: 'result_status', label: 'Result' },
           { key: 'executed_at', label: 'Executed', type: 'date' },

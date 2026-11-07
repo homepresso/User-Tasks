@@ -42,6 +42,33 @@ export interface DirectoryUser {
    * user pass (lib/directory-sync/managers.ts).
    */
   manager?: DirectoryManagerRef | null
+  /**
+   * Org attributes as the directory names them (lib/directory-sync/profiles.ts).
+   * Absent: the provider said nothing (nothing changes). A field that is
+   * null: the directory has no value (clears a value the directory set).
+   * job_title / department / location / employee_id / cost_center go to the
+   * member's attributes; company / division / department build org units.
+   */
+  profile?: DirectoryProfile
+  /** Google Workspace orgUnitPath ("/Engineering/Web"); builds the org unit tree for Google. */
+  orgUnitPath?: string | null
+}
+
+export interface DirectoryProfile {
+  job_title?: string | null
+  department?: string | null
+  division?: string | null
+  company?: string | null
+  location?: string | null
+  employee_id?: string | null
+  cost_center?: string | null
+}
+
+/** Trimmed string or null (directory values are free-form). */
+export function profileValue(value: unknown): string | null {
+  if (value === undefined || value === null) return null
+  const text = String(value).replace(/\s+/g, ' ').trim()
+  return text ? text.slice(0, 200) : null
 }
 
 export interface DirectoryManagerRef {

@@ -39,34 +39,34 @@ export default async function DocPage({ params }: Props) {
 
   return (
     <div className="flex gap-10">
-      <article className="min-w-0 max-w-3xl flex-1 pb-24 pt-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6D45]">{section?.title}</p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[#1B1916] sm:text-4xl">{page.title}</h1>
-        <p className="mt-3 text-lg leading-8 text-[#6E6759]">{page.description}</p>
+      <article className="min-w-0 max-w-[720px] flex-1 pb-24 pt-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(color:--mkt-bronze)">{section?.title}</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-(color:--mkt-ink) sm:text-4xl">{page.title}</h1>
+        <p className="mt-3 mkt-body text-(color:--mkt-muted)">{page.description}</p>
         <DocBlocks blocks={blocks} />
-        <nav aria-label="Previous and next" className="mt-16 grid gap-3 border-t border-[#1B1916]/[0.08] pt-6 sm:grid-cols-2">
+        <nav aria-label="Previous and next" className="mt-16 grid gap-3 border-t border-(color:--mkt-ink)/[0.08] pt-6 sm:grid-cols-2">
           {prev ? (
-            <Link href={docHref(prev.slug)} className="group rounded-xl border border-[#1B1916]/[0.09] p-4 hover:border-[#8A6D45]/40">
-              <span className="flex items-center gap-1 text-xs text-[#6E6759]"><ArrowLeft size={12} aria-hidden="true" /> Previous</span>
-              <span className="mt-1 block font-semibold text-[#1B1916] group-hover:text-[#8A6D45]">{prev.title}</span>
+            <Link href={docHref(prev.slug)} className="group rounded-xl border border-(color:--mkt-ink)/[0.09] p-4 hover:border-(color:--mkt-bronze)/40">
+              <span className="flex items-center gap-1 text-xs text-(color:--mkt-muted)"><ArrowLeft size={12} aria-hidden="true" /> Previous</span>
+              <span className="mt-1 block font-semibold text-(color:--mkt-ink) group-hover:text-(color:--mkt-bronze)">{prev.title}</span>
             </Link>
           ) : <span />}
           {next && (
-            <Link href={docHref(next.slug)} className="group rounded-xl border border-[#1B1916]/[0.09] p-4 text-right hover:border-[#8A6D45]/40">
-              <span className="flex items-center justify-end gap-1 text-xs text-[#6E6759]">Next <ArrowRight size={12} aria-hidden="true" /></span>
-              <span className="mt-1 block font-semibold text-[#1B1916] group-hover:text-[#8A6D45]">{next.title}</span>
+            <Link href={docHref(next.slug)} className="group rounded-xl border border-(color:--mkt-ink)/[0.09] p-4 text-right hover:border-(color:--mkt-bronze)/40">
+              <span className="flex items-center justify-end gap-1 text-xs text-(color:--mkt-muted)">Next <ArrowRight size={12} aria-hidden="true" /></span>
+              <span className="mt-1 block font-semibold text-(color:--mkt-ink) group-hover:text-(color:--mkt-bronze)">{next.title}</span>
             </Link>
           )}
         </nav>
       </article>
       {toc.length > 1 && (
-        <aside className="hidden w-56 shrink-0 xl:block">
+        <aside className="hidden w-[200px] shrink-0 xl:block">
           <div className="sticky top-[73px] max-h-[calc(100vh-73px)] overflow-y-auto py-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8A6D45]">On this page</p>
-            <ul className="mt-3 space-y-1.5 border-l border-[#1B1916]/[0.08] text-[13px]">
+            <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-(color:--mkt-bronze)">On this page</p>
+            <ul className="mt-3 space-y-1.5 border-l border-(color:--mkt-ink)/[0.08] text-ui">
               {toc.map((entry) => (
                 <li key={entry.id}>
-                  <a href={`#${entry.id}`} className={`block leading-5 text-[#5C564C] hover:text-[#1B1916] ${entry.level === 3 ? 'pl-6' : 'pl-3'}`}>{entry.text}</a>
+                  <a href={`#${entry.id}`} className={`block leading-5 text-(color:--mkt-muted-strong) hover:text-(color:--mkt-ink) ${entry.level === 3 ? 'pl-6' : 'pl-3'}`}>{entry.text}</a>
                 </li>
               ))}
             </ul>

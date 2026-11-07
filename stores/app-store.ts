@@ -3,6 +3,21 @@ import { persist } from 'zustand/middleware'
 
 type TaskDraftValues = Record<string, unknown>
 
+/** My tasks' default status filter: queued tasks and open work. */
+export const DEFAULT_TASK_STATUS_FILTER = ['queued', 'todo', 'in_progress', 'blocked'] as const
+
+/**
+ * A stored task filter from before queued tasks joined My tasks: a status
+ * filter that shows open work (to do) gains "queued". Empty (= all) and
+ * other filters are kept as they are.
+ */
+export function withQueuedStatus(filters: unknown): unknown {
+  if (!filters || typeof filters !== 'object') return filters
+  const f = filters as { status?: unknown }
+  if (!Array.isArray(f.status) || !f.status.includes('todo') || f.status.includes('queued')) return filters
+  return { ...f, status: ['queued', ...f.status] }
+}
+
 interface AppState {
   currentTenantId: string | null
   setCurrentTenant: (id: string | null) => void
@@ -34,7 +49,7 @@ export const useAppStore = create<AppState>()(persist(
     toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
     setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
     taskFilters: {
-      status: ['todo', 'in_progress', 'blocked'],
+      status: [...DEFAULT_TASK_STATUS_FILTER],
       priority: [],
       sortBy: 'due_date',
     },
@@ -72,13 +87,16 @@ export const useAppStore = create<AppState>()(persist(
   }),
   {
     name: 'usertasks-app-state',
-    version: 3,
+    version: 4,
     // v3: the theme is the workspace's (server-rendered) — the personal
     // themeId and per-browser customThemes are dropped from storage.
-    migrate: (persisted: any) => {
+    // v4: My tasks includes queued tasks (display status "queued"); a saved
+    // status filter showing open work gains "queued" so they stay visible.
+    migrate: (persisted: any, version: number) => {
       if (persisted && typeof persisted === 'object') {
         delete persisted.themeId
         delete persisted.customThemes
+        if (version < 4) persisted.taskFilters = withQueuedStatus(persisted.taskFilters)
       }
       return persisted
     },

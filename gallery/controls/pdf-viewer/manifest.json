@@ -1,0 +1,53 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-pdf-viewer",
+  "name": "PDF viewer",
+  "description": "Shows a PDF inside the form (a contract, a quote, a policy) from an Attachments field or an upload: page by page, with zoom, rotation and the page text for screen readers.",
+  "icon": "file-text",
+  "version": "1.1.0",
+  "entry": "ut-pdf-viewer.js",
+  "value": {
+    "type": "files",
+    "schema": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "size": { "type": "number" },
+          "type": { "type": "string" }
+        },
+        "required": ["id", "name"]
+      }
+    }
+  },
+  "props": [
+    { "name": "allow_upload", "label": "Allow uploading a PDF", "type": "boolean", "default": false, "description": "Shows a Choose a PDF button; the uploaded PDF becomes this field's value and is shown instead of the mapped document." }
+  ],
+  "events": [],
+  "validation": { "reports_validity": true },
+  "size": { "default_height": 560, "min_height": 200, "max_height": 1000, "full_width": true },
+  "capabilities": ["files"],
+  "context": [
+    { "name": "document", "label": "Document", "description": "An Attachments field of the form: the first PDF in it is shown." }
+  ],
+  "display": { "format": "list" },
+  "output": { "type": "array", "description": "The PDF as an uploaded file (a list of one)" },
+  "accessibility": {
+    "role": "region",
+    "keyboard": "Tab to the toolbar buttons (previous / next page, zoom out / in, fit to width, rotate) and to the page. On the page: Page Down / Page Up turn pages (after scrolling to the end of a zoomed page), Home / End go to the first / last page, + / - zoom, 0 fits the width. Each page is an image named \"Page 2 of 7, file name\", followed by the page's text for screen readers.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/pdf-viewer",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3",
+    "pdfjs-dist": "5.4.624"
+  }
+}

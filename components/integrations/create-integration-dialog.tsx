@@ -1,15 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import * as Dialog from "@radix-ui/react-dialog"
+import { Dialog, DialogBody, DialogClose, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { createIntegration } from "@/app/actions/integrations"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, X, Globe, Zap, Network, Check, ArrowRightLeft, Upload, Image } from "lucide-react"
+import { Select } from "@/components/ui/select"
+import { Field } from "@/components/ui/field"
+import { Plus, X, Globe, Zap, Network, ArrowRightLeft, Upload, Image } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { uploadIntegrationIcon } from "@/app/actions/uploads"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { resolveStorageUrl } from "@/lib/storage/refs"
+import { useSubmitGuard } from "@/hooks/use-submit-guard"
+import { SubmitButton } from "@/components/ui/submit-button"
 
 const INTEGRATION_TYPES = [
   { value: "rest_api", label: "REST API", icon: Globe, description: "Connect to any REST endpoint" },
@@ -34,7 +38,9 @@ export function CreateIntegrationDialog() {
   const [iconUrl, setIconUrl] = useState<string | null>(null)
   const [iconUploading, setIconUploading] = useState(false)
   const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; message: string } | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  // React 19 renders state set inside a form action only when it ends, so the
+  // guard (synchronous) and SubmitButton (useFormStatus) stop a second submit.
+  const { pending: submitting, run } = useSubmitGuard()
 
   async function handleIconUpload(file: File) {
     if (!file.type.includes('svg') && !file.type.includes('png') && !file.type.includes('jpeg') && !file.type.includes('image')) return
@@ -53,6 +59,10 @@ export function CreateIntegrationDialog() {
   }
 
   async function handleSubmit(formData: FormData) {
+    await run(() => submitIntegration(formData))
+  }
+
+  async function submitIntegration(formData: FormData) {
     formData.set("type", type)
     if (tags.length > 0) formData.set("tags", JSON.stringify(tags))
     if (iconUrl) formData.set("icon_url", iconUrl)
@@ -66,7 +76,6 @@ export function CreateIntegrationDialog() {
     }
 
     setNotice(null)
-    setSubmitting(true)
     try {
       // A successful create() ends in redirect(), which throws internally and
       // is handled by Next — only reset on real failures.
@@ -78,79 +87,57 @@ export function CreateIntegrationDialog() {
     } catch (e: any) {
       if (e && typeof e === 'object' && String(e.digest ?? '').startsWith('NEXT_REDIRECT')) throw e
       setNotice({ tone: 'error', message: e?.message ?? 'Could not create the integration. Please try again.' })
-    } finally {
-      setSubmitting(false)
     }
   }
 
   const selectedDbType = DB_TYPES.find((d) => d.value === dbType)
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
-        <Button size="sm">
-          <Plus size={16} className="mr-1" /> New Integration
-        </Button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[min(32rem,92vw)] rounded-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto"
-          style={{ backgroundColor: "var(--theme-card-bg)" }}
-        >
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button leadingIcon={<Plus />}>New integration</Button>
+      </DialogTrigger>
+      <DialogContent size="md" title="New integration" description="Connect an external API, OData service or webhook. References are added after it is created.">
+          <form id="create-integration-form" action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="space-y-4">
           {notice && (
-            <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} className="mb-4" />
+            <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />
           )}
-
-          <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-lg font-semibold">
-              New Integration
-            </Dialog.Title>
-            <Dialog.Close>
-              <X size={18} />
-            </Dialog.Close>
-          </div>
-
-          <form id="create-integration-form" action={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
+            <Field label="Name">
               <Input
-                name="name"
-                required
-                placeholder="e.g. Production Database"
-              />
-            </div>
+                  name="name"
+                  required
+                  placeholder="e.g. Production Database"
+                />
+            </Field>
 
             {/* Custom Icon */}
             <div>
-              <label className="block text-sm font-medium mb-1">Icon (optional)</label>
+              <label className="mb-1.5 block text-ui font-medium text-fg">Icon (optional)</label>
               <div className="flex items-center gap-3">
                 {iconUrl ? (
-                  <div className="relative w-10 h-10 rounded-lg border flex items-center justify-center overflow-hidden"
-                    style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+                  <div className="relative w-10 h-10 rounded-lg border flex items-center justify-center overflow-hidden border-border bg-bg">
                     <img src={resolveStorageUrl(iconUrl)} alt="Custom icon" className="w-7 h-7 object-contain" />
                     <button type="button" onClick={() => setIconUrl(null)}
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[color:var(--theme-on-danger)]"
-                      style={{ backgroundColor: 'var(--theme-danger)', fontSize: 8 }}>
+                      aria-label="Remove icon"
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center bg-danger text-danger-fg">
                       <X size={8} />
                     </button>
                   </div>
                 ) : (
-                  <div className="w-10 h-10 rounded-lg border flex items-center justify-center"
-                    style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
-                    <Image size={16} style={{ color: 'var(--theme-muted-text)' }} />
+                  <div className="w-10 h-10 rounded-lg border flex items-center justify-center border-border bg-bg">
+                    <Image size={16} className="text-fg-muted" />
                   </div>
                 )}
                 <div>
-                  <label className="cursor-pointer inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg border hover:opacity-70 transition-opacity"
-                    style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+                  <label className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "cursor-pointer")}>
                     <Upload size={12} />
                     {iconUploading ? 'Uploading...' : iconUrl ? 'Change' : 'Upload SVG or PNG'}
                     <input type="file" accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg" className="hidden"
                       onChange={e => { const f = e.target.files?.[0]; if (f) handleIconUpload(f); e.target.value = '' }}
                       disabled={iconUploading} />
                   </label>
-                  <p className="text-[9px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-2xs mt-0.5 text-fg-muted">
                     SVG recommended. Max 512KB.
                   </p>
                 </div>
@@ -159,7 +146,7 @@ export function CreateIntegrationDialog() {
 
             {/* Type selector */}
             <div>
-              <label className="block text-sm font-medium mb-2">Type</label>
+              <label className="mb-1.5 block text-ui font-medium text-fg">Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {INTEGRATION_TYPES.map((t) => {
                   const Icon = t.icon
@@ -168,35 +155,20 @@ export function CreateIntegrationDialog() {
                       key={t.value}
                       type="button"
                       onClick={() => setType(t.value)}
+                      aria-pressed={type === t.value}
                       className={cn(
-                        "flex items-start gap-2 rounded-lg border-2 p-3 text-left transition-all"
+                        "flex items-start gap-2 rounded-lg border p-3 text-left transition-colors duration-[var(--ds-dur-fast)]",
+                        type === t.value ? "border-primary bg-primary-wash outline outline-1 outline-primary" : "border-border hover:border-border-strong hover:bg-subtle",
                       )}
-                      style={{
-                        borderColor:
-                          type === t.value
-                            ? "var(--theme-primary)"
-                            : "var(--theme-surface-border)",
-                        backgroundColor:
-                          type === t.value
-                            ? "var(--theme-primary-light)"
-                            : "transparent",
-                      }}
                     >
                       <Icon
                         size={16}
-                        className="mt-0.5 shrink-0"
-                        style={{
-                          color:
-                            type === t.value
-                              ? "var(--theme-primary-text)"
-                              : "var(--theme-muted-text)",
-                        }}
+                        className={cn("mt-0.5 shrink-0", type === t.value ? "text-primary-text" : "text-fg-muted")}
                       />
                       <div>
-                        <p className="text-sm font-medium">{t.label}</p>
+                        <p className="text-ui font-medium">{t.label}</p>
                         <p
-                          className="text-[10px]"
-                          style={{ color: "var(--theme-muted-text)" }}
+                          className="text-2xs text-fg-muted"
                         >
                           {t.description}
                         </p>
@@ -210,78 +182,59 @@ export function CreateIntegrationDialog() {
             {/* API-specific fields */}
             {(type === "rest_api" || type === "webhook" || type === "odata") && (
               <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Base URL
-                  </label>
-                  <Input
-                    name="base_url"
-                    required
-                    placeholder={
-                      type === "odata"
-                        ? "https://services.example.com/odata/v4"
-                        : type === "webhook"
-                        ? "https://hooks.example.com/events"
-                        : "https://api.example.com"
-                    }
-                  />
-                  <p className="mt-1 text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
-                    {type === "webhook"
+                <Field label="Base URL" description={<>{type === "webhook"
                       ? "This sends outbound requests. Incoming workflow webhooks are configured in workflow triggers."
                       : type === "odata"
                       ? "Use the service root URL; references append entity paths and OData query options."
-                      : "Use the shared API root; references append their own paths."}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Authentication
-                  </label>
-                  <select
-                    name="auth_type"
-                    value={authType}
-                    onChange={(event) => setAuthType(event.target.value)}
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
-                    style={{
-                      backgroundColor: "var(--theme-card-bg)",
-                      borderColor: "var(--theme-surface-border)",
-                    }}
-                  >
-                    <option value="none">None</option>
-                    <option value="api_key">API Key</option>
-                    <option value="bearer">Bearer Token</option>
-                    <option value="basic">Basic Auth (user:pass)</option>
-                    <option value="oauth2">OAuth 2.0 (configure after creation)</option>
-                  </select>
-                </div>
+                      : "Use the shared API root; references append their own paths."}</>}>
+                  <Input
+                      name="base_url"
+                      required
+                      placeholder={
+                        type === "odata"
+                          ? "https://services.example.com/odata/v4"
+                          : type === "webhook"
+                          ? "https://hooks.example.com/events"
+                          : "https://api.example.com"
+                      }
+                    />
+                </Field>
+                <Field label="Authentication">
+                  <Select
+                      name="auth_type"
+                      value={authType}
+                      onChange={(event) => setAuthType(event.target.value)}
+                    >
+                      <option value="none">None</option>
+                      <option value="api_key">API Key</option>
+                      <option value="bearer">Bearer Token</option>
+                      <option value="basic">Basic Auth (user:pass)</option>
+                      <option value="oauth2">OAuth 2.0 (configure after creation)</option>
+                    </Select>
+                </Field>
                 {authType === "bearer" && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Bearer token</label>
+                  <Field label="Bearer token">
                     <Input name="auth_value" type="password" required placeholder="Access token" autoComplete="off" />
-                  </div>
+                  </Field>
                 )}
                 {authType === "api_key" && (
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Header name</label>
+                    <Field label="Header name">
                       <Input name="api_key_name" required defaultValue="X-API-Key" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">API key</label>
+                    </Field>
+                    <Field label="API key">
                       <Input name="auth_value" type="password" required autoComplete="off" />
-                    </div>
+                    </Field>
                   </div>
                 )}
                 {authType === "basic" && (
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Username</label>
+                    <Field label="Username">
                       <Input name="basic_username" required autoComplete="username" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Password</label>
+                    </Field>
+                    <Field label="Password">
                       <Input name="basic_password" type="password" autoComplete="new-password" />
-                    </div>
+                    </Field>
                   </div>
                 )}
                 {authType === "oauth2" && (
@@ -294,7 +247,7 @@ export function CreateIntegrationDialog() {
             {type === "database" && (
               <>
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="mb-1.5 block text-ui font-medium text-fg">
                     Database Engine
                   </label>
                   <div className="flex gap-2">
@@ -303,17 +256,11 @@ export function CreateIntegrationDialog() {
                         key={d.value}
                         type="button"
                         onClick={() => setDbType(d.value)}
-                        className="flex-1 flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all"
-                        style={{
-                          borderColor:
-                            dbType === d.value
-                              ? "var(--theme-primary)"
-                              : "var(--theme-surface-border)",
-                          backgroundColor:
-                            dbType === d.value
-                              ? "var(--theme-primary-light)"
-                              : "transparent",
-                        }}
+                        aria-pressed={dbType === d.value}
+                        className={cn(
+                          "flex-1 flex items-center gap-2 rounded-lg border px-3 py-2.5 text-ui font-medium transition-colors",
+                          dbType === d.value ? "border-primary bg-primary-wash outline outline-1 outline-primary" : "border-border hover:bg-subtle",
+                        )}
                       >
                         <span className="text-lg">{d.icon}</span>
                         {d.label}
@@ -323,77 +270,61 @@ export function CreateIntegrationDialog() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-1">
-                      Host / Server
-                    </label>
+                  <Field label="Host / Server" className="col-span-2">
                     <Input
-                      name="db_host"
+                        name="db_host"
+                        required
+                        placeholder={
+                          dbType === "mssql"
+                            ? "server.database.windows.net"
+                            : "db.example.com"
+                        }
+                      />
+                  </Field>
+                  <Field label="Port">
+                    <Input
+                        name="db_port"
+                        defaultValue={selectedDbType?.port}
+                        placeholder={selectedDbType?.port}
+                      />
+                  </Field>
+                </div>
+
+                <Field label="Database Name">
+                  <Input
+                      name="db_database"
                       required
                       placeholder={
-                        dbType === "mssql"
-                          ? "server.database.windows.net"
-                          : "db.example.com"
+                        dbType === "mssql" ? "master" : "my_database"
                       }
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Port
-                    </label>
-                    <Input
-                      name="db_port"
-                      defaultValue={selectedDbType?.port}
-                      placeholder={selectedDbType?.port}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Database Name
-                  </label>
-                  <Input
-                    name="db_database"
-                    required
-                    placeholder={
-                      dbType === "mssql" ? "master" : "my_database"
-                    }
-                  />
-                </div>
+                </Field>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Username
-                    </label>
+                  <Field label="Username">
                     <Input
-                      name="db_username"
-                      required
-                      placeholder={dbType === "mssql" ? "sa" : "postgres"}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Password
-                    </label>
+                        name="db_username"
+                        required
+                        placeholder={dbType === "mssql" ? "sa" : "postgres"}
+                      />
+                  </Field>
+                  <Field label="Password">
                     <Input
-                      name="db_password"
-                      type="password"
-                      placeholder="••••••••"
-                    />
-                  </div>
+                        name="db_password"
+                        type="password"
+                        placeholder="••••••••"
+                      />
+                  </Field>
                 </div>
               </>
             )}
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium mb-1">Tags</label>
+              <label className="mb-1.5 block text-ui font-medium text-fg">Tags</label>
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {tags.map(tag => (
-                  <span key={tag} className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                  <span key={tag} className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded-full bg-primary-wash text-primary-text">
                     {tag}
                     <button type="button" onClick={() => setTags(t => t.filter(x => x !== tag))} className="hover:opacity-70">
                       <X size={10} />
@@ -408,19 +339,15 @@ export function CreateIntegrationDialog() {
 
             {/* Live test result */}
             {testResult && (
-              <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${testResult.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
-                {testResult.success ? <Check size={14} className="shrink-0 mt-0.5" /> : <X size={14} className="shrink-0 mt-0.5" />}
-                <div>
-                  <p className="text-xs font-medium">{testResult.success ? "Connected!" : "Connection Failed"}</p>
-                  <p className="text-[10px] mt-0.5">{testResult.message}</p>
-                </div>
-              </div>
+              <InlineNotice tone={testResult.success ? "success" : "danger"} title={testResult.success ? "Connected" : "Connection failed"} message={testResult.message} />
             )}
 
-            <div className="flex justify-end gap-2">
+          </DialogBody>
+            <DialogFooter>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
+                className="mr-auto"
                 disabled={testing || authType === "oauth2"}
                 onClick={async () => {
                   setTesting(true)
@@ -468,17 +395,16 @@ export function CreateIntegrationDialog() {
                   setTesting(false)
                 }}
               >
-                <Zap size={14} className="mr-1" />
-                {testing ? "Testing..." : "Test Connection"}
+                <Zap size={14} />
+                {testing ? "Testing…" : "Test connection"}
               </Button>
-              <Dialog.Close asChild>
-                <Button type="button" variant="ghost" disabled={submitting}>Cancel</Button>
-              </Dialog.Close>
-              <Button type="submit" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button>
-            </div>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary" disabled={submitting}>Cancel</Button>
+              </DialogClose>
+              <SubmitButton pending={submitting} pendingLabel="Creating…">Create integration</SubmitButton>
+            </DialogFooter>
           </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </DialogContent>
+    </Dialog>
   )
 }

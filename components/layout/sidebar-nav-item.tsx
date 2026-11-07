@@ -2,9 +2,13 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import * as Tooltip from "@radix-ui/react-tooltip"
-import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Tooltip } from "@/components/ui/tooltip"
+import { formatNavBadge, navBadgeLabel } from "@/lib/nav-badges"
+
+/** `neutral` for plain counts; `accent` where the count asks for action (your own open tasks). */
+export type NavBadgeTone = "neutral" | "accent"
 
 interface SidebarNavItemProps {
   href: string
@@ -14,26 +18,15 @@ interface SidebarNavItemProps {
   tooltip?: string
   collapsed?: boolean
   /**
-   * Optional unread/pending count rendered as a pill beside the label
-   * (or as a tiny dot when the sidebar is collapsed). Falsy values
-   * render nothing. Numbers > 99 display as "99+".
+   * Optional pending count beside the label (a 6px dot when the sidebar is
+   * collapsed). Falsy values render nothing. Numbers > 99 display as "99+".
    */
   badgeCount?: number
+  badgeTone?: NavBadgeTone
 }
 
-export function SidebarNavItem({
-  href,
-  label,
-  icon: Icon,
-  enabled = true,
-  tooltip,
-  collapsed = false,
-  badgeCount,
-}: SidebarNavItemProps) {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const currentSearch = searchParams.toString()
-
+/** Whether a nav href is the current page. Query-scoped hrefs match their query; parents don't light up on sibling sections. */
+export function isNavItemActive(href: string, pathname: string, searchParams: URLSearchParams): boolean {
   const target = href.startsWith("/") ? new URL(href, "http://localhost") : null
   const targetPathname = target?.pathname ?? href
   const targetSearch = target?.searchParams ?? null
@@ -45,86 +38,114 @@ export function SidebarNavItem({
   const isParentRouteActive = pathname === targetPathname || (
     pathname.startsWith(targetPathname + "/") &&
     // Don't match parent routes when on a sibling sub-route
-    !(targetPathname === "/tasks" && ["/tasks/queue", "/tasks/assigned", "/tasks/team"].some(s => pathname.startsWith(s))) &&
+    !(targetPathname === "/tasks" && ["/tasks/assigned", "/tasks/team"].some(s => pathname.startsWith(s))) &&
     !(targetPathname === "/automations" && ["/automations/queue", "/automations/rules", "/automations/schedules", "/automations/email-templates", "/automations/forms"].some(s => pathname.startsWith(s))) &&
     !(targetPathname === "/settings" && ["/settings/mcp"].some(s => pathname.startsWith(s))) &&
     !(targetPathname === "/settings" && pathname === "/settings/governance" && searchParams.get("tab") === "retention")
   )
 
-  const isActive = isQueryScopedRoute
-    ? pathname === targetPathname && hasQueryMatch
-    : isParentRouteActive
+  return isQueryScopedRoute ? pathname === targetPathname && hasQueryMatch : isParentRouteActive
+}
 
-  const showBadge = typeof badgeCount === 'number' && badgeCount > 0
-  const badgeLabel = showBadge ? (badgeCount! > 99 ? '99+' : String(badgeCount)) : ''
+/** Focus rings drawn in the sidebar's text colour: the app's ring colour can vanish on a dark sidebar. */
+export const sidebarFocus = "[&_:focus-visible]:outline-[color:var(--theme-sidebar-text)]"
 
-  const content = (
-    <span
-      className={cn(
-        "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-        isActive
-          ? "themed-sidebar-active"
-          : "hover:bg-[var(--sidebar-hover-bg)] hover:backdrop-blur-sm",
-        !enabled && "pointer-events-none opacity-50"
-      )}
-    >
-      <span className="relative shrink-0">
-        <Icon className="h-4 w-4" />
-        {/* When collapsed, the label pill is hidden — show a small dot
-            in the top-right of the icon so the user still sees unread
-            state at a glance. */}
-        {showBadge && collapsed && (
-          <span
-            className="absolute -right-1 -top-1 h-2 w-2 rounded-full ring-2"
-            style={{
-              backgroundColor: 'var(--theme-danger)',
-              // @ts-expect-error — CSS ring-color via var
-              '--tw-ring-color': 'var(--theme-sidebar)',
-            }}
-          />
-        )}
-      </span>
-      {isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full" style={{ backgroundColor: 'var(--theme-sidebar-accent, var(--theme-primary))' }} />
-      )}
-      {!collapsed && <span>{label}</span>}
-      {!collapsed && showBadge && (
-        <span
-          className="ml-auto inline-flex items-center justify-center rounded-full text-[10px] font-bold min-w-[18px] h-[18px] px-1.5"
-          style={{
-            backgroundColor: 'var(--theme-danger)',
-            color: 'var(--theme-on-danger)',
-          }}
-        >
-          {badgeLabel}
-        </span>
-      )}
-    </span>
-  )
+/** Sidebar text colours: the sidebar has its own palette (--theme-sidebar-*). */
+export const sidebarText = "text-[color:var(--theme-sidebar-text)]"
+export const sidebarMuted = "text-[color:var(--theme-sidebar-muted)]"
+export const sidebarItemClass = cn(
+  "group/nav relative flex h-[max(var(--ds-nav-item-h),var(--ds-touch-min))] w-full items-center gap-2 rounded-md px-2 text-ui font-medium",
+  "transition-colors duration-[var(--ds-dur-fast)] hover:bg-[var(--sidebar-hover-bg)]",
+  sidebarText,
+)
 
-  if (!enabled && tooltip) {
+export function NavCount({ count, tone = "neutral", collapsed = false }: { count?: number; tone?: NavBadgeTone; collapsed?: boolean }) {
+  const text = formatNavBadge(count)
+  if (!text) return null
+  if (collapsed) {
     return (
-      <Tooltip.Provider delayDuration={300}>
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <div>{content}</div>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              side="right"
-              className="rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white dark:bg-gray-100 dark:text-gray-900"
-              sideOffset={8}
-            >
-              {tooltip}
-              <Tooltip.Arrow className="fill-gray-900 dark:fill-gray-100" />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      </Tooltip.Provider>
+      <span
+        aria-hidden
+        data-nav-badge-dot
+        data-tone={tone}
+        className={cn(
+          "absolute -right-0.5 -top-0.5 size-1.5 rounded-full ring-2 ring-[color:var(--theme-sidebar)]",
+          tone === "accent" ? "bg-[color:var(--theme-sidebar-accent,var(--theme-primary))]" : "bg-[color:var(--theme-sidebar-muted)]",
+        )}
+      />
     )
   }
+  return (
+    <span
+      aria-hidden
+      data-nav-badge={text}
+      data-tone={tone}
+      className={cn(
+        "num ml-auto inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-2xs font-semibold",
+        sidebarText,
+        tone === "accent"
+          ? "bg-[color-mix(in_srgb,var(--theme-sidebar-accent,var(--theme-primary))_24%,transparent)]"
+          : "bg-[color-mix(in_srgb,var(--theme-sidebar-text)_12%,transparent)]",
+      )}
+    >
+      {text}
+    </span>
+  )
+}
 
-  if (!enabled) return content
+export function SidebarNavItem({
+  href,
+  label,
+  icon: Icon,
+  enabled = true,
+  tooltip,
+  collapsed = false,
+  badgeCount,
+  badgeTone = "neutral",
+}: SidebarNavItemProps) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const isActive = isNavItemActive(href, pathname, searchParams)
+  const showBadge = formatNavBadge(badgeCount) !== null
+  const accessibleName = navBadgeLabel(label, badgeCount)
 
-  return <Link href={href} prefetch={true}>{content}</Link>
+  const content = (
+    <>
+      {isActive && (
+        <span aria-hidden className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[color:var(--theme-sidebar-accent,var(--theme-primary))]" />
+      )}
+      <span className="relative inline-flex shrink-0">
+        <Icon className={cn("size-4", isActive ? "text-[color:var(--theme-sidebar-accent,var(--theme-primary))]" : sidebarMuted)} aria-hidden />
+        {collapsed && <NavCount count={badgeCount} tone={badgeTone} collapsed />}
+      </span>
+      {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
+      {!collapsed && <NavCount count={badgeCount} tone={badgeTone} />}
+    </>
+  )
+
+  const className = cn(
+    sidebarItemClass,
+    collapsed && "justify-center px-0",
+    isActive && "bg-[var(--theme-sidebar-active)] text-[color:var(--theme-sidebar-accent,var(--theme-primary))] hover:bg-[var(--theme-sidebar-active)]",
+    !enabled && "pointer-events-none opacity-50",
+  )
+
+  if (!enabled) {
+    const disabled = <span className={className} aria-disabled="true">{content}</span>
+    return tooltip ? <Tooltip content={tooltip} side="right"><span className="block">{disabled}</span></Tooltip> : disabled
+  }
+
+  const link = (
+    <Link
+      href={href}
+      prefetch={true}
+      className={className}
+      aria-current={isActive ? "page" : undefined}
+      aria-label={showBadge || collapsed ? accessibleName : undefined}
+      data-nav-href={href}
+    >
+      {content}
+    </Link>
+  )
+  return collapsed ? <Tooltip content={accessibleName} side="right">{link}</Tooltip> : link
 }

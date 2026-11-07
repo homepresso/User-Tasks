@@ -8,11 +8,14 @@ export type SeoPage = {
   sections: Array<{ title: string; body: string; points: string[] }>
   steps: Array<{ title: string; body: string }>
   faqs: Array<{ question: string; answer: string }>
+  /** Product page this solution page leads to (shown in the hero and before the FAQ). */
+  related?: { href: string; label: string; body: string }
 }
 
 export const SEO_PAGES: SeoPage[] = [
   {
     slug: 'workflow-automation',
+    related: { href: '/workflows', label: 'See how complex workflows are built', body: 'Branches, parallel paths, loops, sub-workflows, decision tables, people, SLAs and error paths on one canvas — with Save & Test, versions and live migration.' },
     eyebrow: 'Workflow automation platform',
     title: 'Workflow automation for people, systems, data, and AI',
     description: 'Build governed workflow automation with visual orchestration, human tasks, integrations, decision tables, document generation, an API, MCP server and CLI, log export, and optional AI agents.',
@@ -20,7 +23,7 @@ export const SEO_PAGES: SeoPage[] = [
     outcomes: ['Visual, event-driven workflow design', 'Human approvals, queues, SLAs, and escalation', 'REST, OData, database, webhook, and OAuth integrations', 'API, MCP and CLI for every operation, with log export to Splunk, Datadog, and OpenTelemetry', 'Cloud, private, or on-premises deployment path'],
     sections: [
       { title: 'Automate the entire operational process', body: 'A production workflow usually includes more than automated API calls. UserTasks keeps business rules, user tasks, generated documents, notifications, integrations, and system updates inside one traceable process.', points: ['Start from schedules, webhooks, data changes, task events, or API calls', 'Branch, loop, retry, pause, run parallel paths, or call reusable sub-workflows', 'Preserve variables, node outputs, errors, and execution history for every run', 'Create, update, publish, and monitor workflows from the usertasks CLI or CI pipelines'] },
-      { title: 'Keep human work inside the automation', body: 'Route work to a person or team when judgment is required. Assignment, queue acceptance, due dates, outcomes, reminders, redirection, and escalation remain connected to the workflow that created the task.', points: ['Capture typed task fields and return them to the workflow', 'Use defined outcomes to control downstream workflow branches', 'Track workload and progress through task queues, the task tracker, and reports'] },
+      { title: 'Keep human work inside the automation', body: 'Route work to a person or team when judgment is required. Assignment, queue acceptance, due dates, outcomes, reminders, redirection, and escalation remain connected to the workflow that created the task.', points: ['Capture typed task fields and return them to the workflow', 'Use defined outcomes to control downstream workflow branches', 'Track workload and progress through My tasks (queued tasks included), the task tracker, and reports'] },
       { title: 'Connect systems without hiding governance', body: 'Reusable integration references turn external operations into governed building blocks. Credentials and OAuth tokens stay centralized while workflows and agents reuse the same operation definitions.', points: ['Generic REST and OData services plus database and service connectors', 'API key, bearer, basic, and OAuth 2.0 authentication', 'Redacted call logs, duration, status, caller context, and response diagnostics'] },
     ],
     steps: [
@@ -38,6 +41,7 @@ export const SEO_PAGES: SeoPage[] = [
   },
   {
     slug: 'bpm-workflow-automation',
+    related: { href: '/workflows', label: 'Explore the workflow designer', body: 'From process model to running workflow: control flow, business rules, human tasks, SLAs, testing with real forms and versioned change.' },
     eyebrow: 'Business process management',
     title: 'BPM workflow automation that turns process models into real work',
     description: 'Use UserTasks as a BPM and workflow automation platform for processes, business rules, human tasks, SLAs, integrations, and operational reporting with an API and MCP server.',

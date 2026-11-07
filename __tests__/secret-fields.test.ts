@@ -29,7 +29,7 @@ describe('isSensitiveKey', () => {
       'secret_key', 'app_secret', 'entra_client_secret', 'token', 'access_token',
       'api_token', 'auth_token', 'bot_token', 'sas_token', 'refresh_token',
       'api_key', 'key_value', 'private_key', 'account_key', 'service_account',
-      'service_account_json',
+      'service_account_json', 'webhook_url', 'connection_string', 'key_passphrase',
     ]) {
       expect(isSensitiveKey(key), key).toBe(true)
     }
@@ -39,7 +39,7 @@ describe('isSensitiveKey', () => {
     const { isSensitiveKey } = await loadWithKey(undefined)
     for (const key of [
       'base_url', 'auth_type', 'key_name', 'username', 'email', 'host', 'port',
-      'database', 'client_id', 'headers', 'webhook_url', 'impersonate_email',
+      'database', 'client_id', 'headers', 'impersonate_email',
       'account_sid', 'access_key_id', 'api_key_header', 'app_key', 'region',
       'bucket', '_executor', 'scopes', 'add_to', 'tags',
     ]) {

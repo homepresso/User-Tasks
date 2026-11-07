@@ -208,6 +208,14 @@ describe('validateNode', () => {
       expect(errors).toEqual([])
     })
 
+    it('accepts the queue_behaviour override values and rejects others', () => {
+      for (const queue_behaviour of ['rules', 'queue', 'add', undefined, '']) {
+        expect(validateNode(makeNode('user_task', { task_title: 'Do this', assignee_id: 'user-1', queue_behaviour }))).toEqual([])
+      }
+      expect(validateNode(makeNode('user_task', { task_title: 'Do this', assignee_id: 'user-1', queue_behaviour: 'sometimes' })))
+        .toContain('Queue behaviour must be rules, queue or add')
+    })
+
     it('passes with scaffold aliases for title and assignee', () => {
       const errors = validateNode(makeNode('user_task', {
         title: 'Do this',

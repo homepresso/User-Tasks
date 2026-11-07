@@ -1,0 +1,170 @@
+{
+  "title": "Contract and policy review with internal e-sign",
+  "category": "operations-compliance",
+  "summary": "Submit a policy, contract or procedure as a PDF; reviewers read it in a PDF viewer and redline it, legal checks it when needed, and the owner e-signs. Every step is audit-logged.",
+  "description": "Contract and policy review with internal e-sign takes a policy, contract or procedure from draft to published version using only UserTasks features and the official form controls. The submission page has three steps and a review step: the title, the document type (looked up in the Document types table, which shows its review route on an Info card), the effective date, the PDF itself (an Attachments field limited to PDF, previewed in a PDF viewer), the owner, reviewers and a Rich text summary of the changes.\n\nThe Document review and sign-off workflow gives the document a reference number, takes its review route from a decision table (one or two reviewers, legal review or not, days per review) and adds it to the Documents register. Each reviewer gets a task that shows the uploaded PDF in the PDF viewer, an Info card with the reference, type, version and owner, and a Rich text box for redline comments, with Approve or Request changes. Requested changes go back to the submitter with an SLA to upload a revised PDF, which then starts again at the first reviewer as the next version. Contracts and major policy changes also get a legal review.\n\nFinally the document owner signs it off: they read the final PDF, confirm \"I approve this version for publication\" and sign with the Signature control. The workflow records the signer, time, file name and SHA-256 checksum, generates a sign-off certificate PDF (also merged with the document into a signed pack) and emails it. Every step writes a row to the Audit log data table with the 7-year retention policy applied, and the register row gets the same policy.\n\nThe Document register page is the dashboard: Chart controls of documents by status and by type from the register, the review cycle time and open review tasks as Saved reports, and a button that emails the published documents due for review in the next 30 days.",
+  "trigger": "form",
+  "entry_workflow": "19a97b16-c469-5a1d-8507-b252595eeee1",
+  "entry_form": "ba6108cc-686d-5bfe-8bb1-9a3e05ef8135",
+  "start": "Starts from a form page: share the Document review request page (/f/<id>) with the people who own policies, contracts and procedures, or submit it through the forms API.",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "document control",
+    "policy",
+    "contract",
+    "review",
+    "e-signature",
+    "audit trail",
+    "form controls",
+    "no integrations"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "Uses the 1.1.0 form controls: no visible loading, and the change summary reaches the workflow as text (<key> is HTML, <key>_text plain text)."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it, open Forms → Document review request (share its /f/ link) and Forms → Document register.",
+    "The PDF viewer, Signature, Rich text, Info card, Chart and Saved report controls install with the package (Extensibility → Form controls).",
+    "Reviewers and the document owner are Person fields on the submission page; legal review and a missing second reviewer go to the person who installed the package. Change the Legal review step's assignee in the designer to your legal team.",
+    "Edit the Review route decision table and the Document types table to match your governance (reviewers, legal review, sign-off role, review cycle). Delete the sample rows in Documents register and Audit log when you go live.",
+    "The \"Document records: 7 years\" retention policy is applied to every Audit log row and to signed-off register rows by the workflow; change its period to your records schedule. Set EMAIL_PROVIDER so the confirmation, change request and certificate emails are delivered (the console provider logs them).",
+    "Reviewers open the PDF through the submission: give reviewers who are not the submitter a role that can see form submissions (forms.edit) or tasks (tasks.view_all)."
+  ],
+  "steps": [
+    {
+      "title": "Submit",
+      "body": "The owner of a document fills in three steps: title and type (its review route shows on an Info card), the PDF with a live preview, then the owner, reviewers and a rich-text summary of changes."
+    },
+    {
+      "title": "Route and register",
+      "body": "A reference number, the review route from a decision table, a Documents register row and the first Audit log row."
+    },
+    {
+      "title": "Review",
+      "body": "Each reviewer reads the PDF in the PDF viewer, writes redline comments in Rich text and approves or requests changes; a second reviewer and legal review follow when the route says so."
+    },
+    {
+      "title": "Revise",
+      "body": "Requested changes go back to the submitter with an SLA to upload a revised PDF; the new version starts again at the first reviewer."
+    },
+    {
+      "title": "E-sign",
+      "body": "The document owner confirms \"I approve this version for publication\" and signs with the Signature control; signer, time, file name and SHA-256 go into the Audit log."
+    },
+    {
+      "title": "Certificate and register",
+      "body": "A sign-off certificate PDF is generated, merged with the document and emailed; the register shows the document as Published with its next review date, and both records get the 7-year retention policy."
+    },
+    {
+      "title": "Track",
+      "body": "The Document register page charts documents by status and type, shows the review cycle time and open review tasks, and emails the reviews due in the next 30 days."
+    }
+  ],
+  "sample_input": {
+    "title": "Information security policy",
+    "doc_type": "Policy",
+    "change_size": "Major change",
+    "route_summary": "Policy: 1 reviewer for a minor change, 2 reviewers and legal review for a major one; signed off by the document owner; reviewed every 12 months.",
+    "doc_owner": "$owner",
+    "doc_owner_name": "Avery Example",
+    "doc_owner_email": "avery.example@example.com",
+    "reviewer": "$owner",
+    "effective_date": "2026-12-01",
+    "version_label": "2026.2",
+    "change_summary": {
+      "html": "<p>Adds a section on personal devices and shortens the password rotation rule to match current guidance.</p>",
+      "text": "Adds a section on personal devices and shortens the password rotation rule to match current guidance."
+    }
+  },
+  "expect": "completed",
+  "icon": "file-signature",
+  "verify_mocks": {
+    "uploads": {
+      "document": [
+        "policy-draft.pdf"
+      ]
+    },
+    "tasks": [
+      {
+        "outcome": "Request changes",
+        "button": "changes",
+        "values": {
+          "redline": {
+            "html": "<p>Section 4 should also cover personal devices.</p>",
+            "text": "Section 4 should also cover personal devices."
+          }
+        }
+      },
+      {
+        "outcome": "Upload revision",
+        "button": "upload",
+        "values": {
+          "response": {
+            "html": "<p>Added section 4.3 on personal devices.</p>",
+            "text": "Added section 4.3 on personal devices."
+          }
+        },
+        "uploads": {
+          "revised_document": [
+            "policy-draft.pdf"
+          ]
+        }
+      },
+      {
+        "outcome": "Approve",
+        "button": "approve",
+        "values": {
+          "redline": {
+            "html": "<p>Section 4 now reads well.</p>",
+            "text": "Section 4 now reads well."
+          }
+        }
+      },
+      {
+        "outcome": "Approve",
+        "button": "approve",
+        "values": {
+          "redline": {
+            "html": "<p>No further comments.</p>",
+            "text": "No further comments."
+          }
+        }
+      },
+      {
+        "outcome": "Approve",
+        "button": "approve",
+        "values": {
+          "legal_risk": "Low"
+        }
+      },
+      {
+        "outcome": "Sign off",
+        "button": "sign",
+        "values": {
+          "approve_statement": true
+        },
+        "uploads": {
+          "signature": [
+            "signature.png"
+          ]
+        }
+      }
+    ]
+  },
+  "id": "6031bf30-ede3-5150-b36e-1be5a969a688",
+  "slug": "contract-policy-review-esign"
+}

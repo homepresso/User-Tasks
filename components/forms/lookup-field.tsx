@@ -7,6 +7,9 @@ import {
   type LookupItem,
 } from '@/lib/forms/lookup'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
+import { FloatingLayer } from '@/components/ui/floating-layer'
+import { useFormRules } from './form-rules-runtime'
+import { cn } from '@/lib/utils'
 
 /**
  * Where a form's lookups get their suggestions: a real task (the server
@@ -14,7 +17,26 @@ import type { TaskFieldDef } from '@/lib/task-field-schema'
  * config is sent; needs edit rights). No source → the control explains
  * that suggestions appear on the task.
  */
-export type FormLookupSource = { kind: 'task'; taskId: string } | { kind: 'form'; formId: string } | { kind: 'preview' }
+/** `anonymous`: a public form link (/p/<token>): requests go to /api/public/forms/<token>/… with the visit's upload key. */
+export interface AnonymousFormSource { token: string; uploadKey: string }
+
+export type FormLookupSource = { kind: 'task'; taskId: string } | { kind: 'form'; formId: string; anonymous?: AnonymousFormSource } | { kind: 'preview' }
+
+/** The endpoint a form's server call goes to: the session one, or a public link's (anonymous visitors). */
+export function formApiUrl(source: { kind: string; anonymous?: AnonymousFormSource } | null | undefined, path: string): string {
+  if (source?.kind === 'form' && source.anonymous) return `/api/public/forms/${encodeURIComponent(source.anonymous.token)}/${path}`
+  return `/api/internal/forms/${path}`
+}
+
+/** Extra headers of a form's server call (an anonymous visit's upload key). */
+export function formApiHeaders(source: { kind: string; anonymous?: AnonymousFormSource } | null | undefined): Record<string, string> {
+  return source?.kind === 'form' && source.anonymous ? { 'x-upload-key': source.anonymous.uploadKey } : {}
+}
+
+/** True on a public form link (anonymous visitor). */
+export function isAnonymousSource(source: { kind: string; anonymous?: AnonymousFormSource } | null | undefined): boolean {
+  return source?.kind === 'form' && Boolean(source.anonymous)
+}
 
 const LookupSourceContext = createContext<FormLookupSource | null>(null)
 
@@ -29,13 +51,14 @@ export function useFormLookupSource(): FormLookupSource | null {
 
 interface LookupResponse { items: LookupItem[]; truncated?: boolean; too_short?: boolean; error?: string }
 
-async function fetchSuggestions(source: FormLookupSource, field: TaskFieldDef, query: string, values: Record<string, unknown>, signal: AbortSignal): Promise<LookupResponse> {
+async function fetchSuggestions(source: FormLookupSource, field: TaskFieldDef, query: string, values: Record<string, unknown>, signal: AbortSignal, resolve?: string[]): Promise<LookupResponse> {
+  const extra = resolve ? { resolve } : {}
   const body = source.kind === 'task'
-    ? { task_id: source.taskId, field_key: field.key, query, values }
+    ? { task_id: source.taskId, field_key: field.key, query, values, ...extra }
     : source.kind === 'form'
-      ? { form_id: source.formId, field_key: field.key, query, values }
-      : { field, query, values }
-  const res = await fetch('/api/internal/forms/lookup', {
+      ? { form_id: source.formId, field_key: field.key, query, values, ...extra }
+      : { field, query, values, ...extra }
+  const res = await fetch(formApiUrl(source, 'lookup'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
@@ -50,12 +73,27 @@ async function fetchSuggestions(source: FormLookupSource, field: TaskFieldDef, q
   return { items: Array.isArray(json?.items) ? json!.items : [], truncated: json?.truncated, too_short: json?.too_short }
 }
 
-/** Formatted read-only value of a lookup (labels from the stored `<key>_item`). */
-export function lookupDisplayValue(field: TaskFieldDef, value: unknown, item: unknown): string {
+/** The stored `<key>_label` for one value (a string for single lookups, a list aligned with the values for multiple). */
+function storedLabelFor(stored: unknown, values: string[], v: string): string | null {
+  if (typeof stored === 'string') return values.length === 1 && stored.trim() ? stored : null
+  if (Array.isArray(stored)) {
+    const i = values.indexOf(v)
+    const label = i >= 0 ? stored[i] : undefined
+    return typeof label === 'string' && label.trim() ? label : null
+  }
+  return null
+}
+
+/** Formatted read-only value of a lookup: labels from the stored `<key>_item`, else the stored `<key>_label`, else the value. */
+export function lookupDisplayValue(field: TaskFieldDef, value: unknown, item: unknown, label?: unknown): string {
   const values = lookupValues(value, field.lookup?.multiple)
   if (!values.length) return '—'
   const byValue = storedItemsByValue(field.lookup, item)
-  return values.map((v) => storedItemLabel(field.lookup, byValue.get(v), v)).join(', ')
+  return values.map((v) => {
+    const entry = byValue.get(v)
+    if (entry) return storedItemLabel(field.lookup, entry, v)
+    return storedLabelFor(label, values, v) ?? v
+  }).join(', ')
 }
 
 const inputBase = 'h-10 w-full min-w-[6rem] flex-1 bg-transparent text-sm outline-none disabled:opacity-60'
@@ -70,11 +108,18 @@ const inputBase = 'h-10 w-full min-w-[6rem] flex-1 bg-transparent text-sm outlin
  * `<key>_item` locally (labels, test runs) — on a real task the server
  * recomputes it on save.
  */
-export function LookupField({ field, value, item, values, onChange, onItem, onFill, id, describedBy, invalid, disabled, placeholder }: {
+export function LookupField({ field, value, item, label, values, onChange, onItem, onLabel, onFill, onSelectItem, onFocusChange, id, describedBy, invalid, disabled, placeholder }: {
   field: TaskFieldDef
   value: unknown
   /** Stored `<key>_item` (labels for the current selection). */
   item: unknown
+  /** Stored `<key>_label` (the display label kept beside the value). */
+  label?: unknown
+  /** Keep `<key>_label` in step with the selection (the server recomputes it on save). */
+  onLabel?: (label: string | string[] | null) => void
+  /** A suggestion was chosen (form rules' "Autocomplete: item selected"). */
+  onSelectItem?: (item: LookupItem) => void
+  onFocusChange?: (focused: boolean) => void
   values: Record<string, unknown>
   onChange: (value: unknown) => void
   onItem: (item: unknown) => void
@@ -86,13 +131,20 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
   placeholder?: string
 }) {
   const source = useContext(LookupSourceContext)
+  const rules = useFormRules()
   const config = field.lookup
   const multiple = Boolean(config?.multiple)
   const freeText = Boolean(config?.allow_free_text)
   const selected = lookupValues(value, multiple)
   const storedByValue = useMemo(() => storedItemsByValue(config, item), [config, item])
   const [known, setKnown] = useState<Map<string, LookupItem>>(() => new Map())
-  const labelOf = (v: string) => known.get(v)?.label ?? storedItemLabel(config, storedByValue.get(v), v)
+  const labelOf = (v: string) => {
+    const hit = known.get(v)
+    if (hit) return hit.label
+    const entry = storedByValue.get(v)
+    if (entry) return storedItemLabel(config, entry, v)
+    return storedLabelFor(label, selected, v) ?? v
+  }
 
   const singleLabel = !multiple && selected[0] ? labelOf(selected[0]) : ''
   const [text, setText] = useState('')
@@ -109,11 +161,36 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
   const valuesRef = useRef(values)
   useEffect(() => { valuesRef.current = values })
 
 
   useEffect(() => () => { abortRef.current?.abort(); if (timerRef.current) clearTimeout(timerRef.current) }, [])
+
+  // A value the form opened with (default, task data, draft) and no label for it yet: ask the server for its
+  // item — from the field's own source, under the same rules as a search — so the input shows the label, not the id.
+  const unresolved = selected.filter((v) => !known.has(v) && !storedByValue.has(v) && !storedLabelFor(label, selected, v))
+  const unresolvedKey = unresolved.join('\u0000')
+  const triedRef = useRef<Set<string>>(new Set())
+  const mounted = useRef(true)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+  // Stable keys: the renderer may hand over new field objects on every render.
+  const sourceKey = source ? (source.kind === 'task' ? `task:${source.taskId}` : source.kind === 'form' ? `form:${source.formId}` : 'preview') : ''
+  const configKey = config ? JSON.stringify(config) : ''
+  useEffect(() => {
+    if (!config || !source || !unresolvedKey) return
+    const wanted = unresolvedKey.split('\u0000').filter((v) => !triedRef.current.has(v))
+    if (!wanted.length) return
+    for (const v of wanted) triedRef.current.add(v)
+    fetchSuggestions(source, field, '', valuesRef.current, new AbortController().signal, wanted)
+      .then((result) => {
+        if (!mounted.current || !result.items.length) return
+        setKnown((prev) => { const next = new Map(prev); for (const it of result.items) next.set(it.value, it); return next })
+      })
+      .catch(() => { /* the value shows as is */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the unresolved values, the source and the config
+  }, [unresolvedKey, sourceKey, configKey])
 
   function search(query: string) {
     if (!config || !source) return
@@ -152,16 +229,6 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
     if (multiple) setText('')
   }
 
-  const closeRef = useRef(close)
-  useEffect(() => { closeRef.current = close })
-  useEffect(() => {
-    if (!open) return
-    const onDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) closeRef.current()
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
 
   function remember(it: LookupItem) {
     setKnown((prev) => (prev.has(it.value) ? prev : new Map(prev).set(it.value, it)))
@@ -177,28 +244,33 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
       const next = selected.includes(it.value) ? selected : [...selected, it.value]
       onChange(next)
       onItem(itemsFor(next, it))
+      onLabel?.(next.map((v) => (v === it.value ? it.label : labelOf(v))))
       setText('')
       search('')
       inputRef.current?.focus()
     } else {
       onChange(it.value)
       onItem(it.fields)
+      onLabel?.(it.label)
       setText('')
       setTyping(false)
       setOpen(false)
     }
     if (config?.fill?.length) onFill(lookupFillValues(config, it))
+    onSelectItem?.(it)
+    rules?.dispatch({ type: 'item_select', target: field.key, context: { field: field.key, value: it.value, item: { value: it.value, label: it.label, fields: it.fields } } })
   }
 
   function chooseFreeText() {
     const typed = text.trim()
     if (!typed) return
     if (multiple) {
-      if (!selected.includes(typed)) { onChange([...selected, typed]); onItem(itemsFor([...selected, typed])) }
+      if (!selected.includes(typed)) { onChange([...selected, typed]); onItem(itemsFor([...selected, typed])); onLabel?.([...selected.map(labelOf), typed]) }
       setText('')
     } else {
       onChange(typed)
       onItem(null)
+      onLabel?.(typed)
       setTyping(false)
       setOpen(false)
     }
@@ -208,11 +280,13 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
     const next = selected.filter((x) => x !== v)
     onChange(next)
     onItem(itemsFor(next))
+    onLabel?.(next.map(labelOf))
   }
 
   function clearSingle() {
     onChange(null)
     onItem(null)
+    onLabel?.(null)
     setText('')
     if (config?.fill?.length) onFill(lookupFillValues(config, null))
     inputRef.current?.focus()
@@ -224,7 +298,7 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
     setOpen(true)
     if (!multiple) {
       if (freeText) onChange(next.trim() ? next : null)
-      else if (selected.length) { onChange(null); onItem(null) }
+      else if (selected.length) { onChange(null); onItem(null); onLabel?.(null) }
     }
     search(next)
   }
@@ -263,19 +337,14 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
   return (
     <div ref={rootRef} className="relative" data-lookup-field={field.key}>
       <div
-        className="flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border px-2 focus-within:ring-2"
-        style={{
-          borderColor: invalid ? 'var(--status-blocked)' : 'var(--theme-surface-border)',
-          backgroundColor: 'var(--theme-topbar)',
-          color: 'var(--theme-topbar-text)',
-          ['--tw-ring-color' as string]: 'var(--theme-primary)',
-        }}
+        ref={boxRef}
+        className={cn('flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border px-2 focus-within:ring-2 bg-input text-fg', invalid ? 'border-(--status-blocked)' : 'border-border')}
         onClick={() => inputRef.current?.focus()}
       >
-        <Search size={14} aria-hidden style={{ color: 'var(--theme-muted-text)' }} className="shrink-0" />
+        <Search size={14} aria-hidden className="shrink-0 text-fg-muted" />
         {multiple && selected.map((v) => (
-          <span key={v} className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-card-text)' }} data-lookup-chip={v}>
+          <span key={v} className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-primary-wash text-fg"
+            data-lookup-chip={v}>
             <span className="truncate">{labelOf(v)}</span>
             {!disabled && (
               <button type="button" onClick={(e) => { e.stopPropagation(); remove(v) }} aria-label={`Remove ${labelOf(v)}`} className="rounded-full p-0.5 hover:opacity-80">
@@ -298,27 +367,29 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
           aria-required={field.required || undefined}
           autoComplete="off"
           disabled={disabled}
-          className={inputBase}
-          style={{ color: 'var(--theme-topbar-text)' }}
+          className={cn(inputBase, 'text-fg')}
           value={typing || multiple ? text : singleLabel}
           placeholder={multiple && selected.length ? '' : placeholder || (noSource ? 'Suggestions appear on the task' : 'Start typing to search…')}
           onChange={(e) => onInput(e.target.value)}
-          onFocus={() => { if (!open && !disabled && source && (multiple || !selected.length || typing)) { setOpen(true); search(typing || multiple ? text : '') } }}
+          onBlur={() => onFocusChange?.(false)}
+          onFocus={() => { onFocusChange?.(true); if (!open && !disabled && source && (multiple || !selected.length || typing)) { setOpen(true); search(typing || multiple ? text : '') } }}
           onKeyDown={onKeyDown}
         />
-        {state === 'loading' && <Loader2 size={14} className="shrink-0 animate-spin" aria-hidden style={{ color: 'var(--theme-muted-text)' }} />}
+        {state === 'loading' && <Loader2 size={14} className="shrink-0 animate-spin text-fg-muted" aria-hidden />}
         {!multiple && selected.length > 0 && !disabled && !field.required && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); clearSingle() }} aria-label={`Clear ${field.label}`} className="shrink-0 rounded p-0.5 hover:opacity-80" style={{ color: 'var(--theme-muted-text)' }}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); clearSingle() }} aria-label={`Clear ${field.label}`} className="shrink-0 rounded p-0.5 hover:opacity-80 text-fg-muted">
             <X size={14} aria-hidden />
           </button>
         )}
       </div>
       <p id={statusId} className="sr-only" aria-live="polite">{open ? status : ''}</p>
-      {open && !noSource && (
-        <div
-          className="absolute left-0 right-0 z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border py-1 shadow-lg"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
-        >
+      <FloatingLayer
+        anchorRef={boxRef}
+        open={open && !noSource}
+        onDismiss={close}
+        className="overflow-y-auto rounded-lg border py-1 shadow-lg bg-panel border-border text-fg"
+        data-testid="lookup-suggestions"
+      >
           <ul id={listId} role="listbox" aria-label={`${field.label} suggestions`} aria-multiselectable={multiple || undefined}>
             {items.map((it, i) => {
               const isSelected = selected.includes(it.value)
@@ -331,23 +402,21 @@ export function LookupField({ field, value, item, values, onChange, onItem, onFi
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => choose(it)}
-                  className="cursor-pointer px-3 py-2 text-sm"
-                  style={i === active ? { backgroundColor: 'var(--theme-primary-light)' } : undefined}
+                  className={cn('cursor-pointer px-3 py-2 text-sm', i === active ? 'bg-primary-wash' : '')}
                   data-lookup-option={it.value}
                 >
                   <span className="block truncate font-medium">{it.label}{isSelected && <span className="sr-only"> (selected)</span>}</span>
-                  {it.description && <span className="block truncate text-xs" style={{ color: 'var(--theme-muted-text)' }}>{it.description}</span>}
+                  {it.description && <span className="block truncate text-xs text-fg-muted">{it.description}</span>}
                 </li>
               )
             })}
           </ul>
           {(state !== 'done' || !items.length || truncated) && (
-            <p className="px-3 py-2 text-xs" style={{ color: state === 'error' ? 'var(--status-blocked)' : 'var(--theme-muted-text)' }} role={state === 'error' ? 'alert' : undefined}>
+            <p className={cn('px-3 py-2 text-xs', state === 'error' ? 'text-(--status-blocked)' : 'text-fg-muted')} role={state === 'error' ? 'alert' : undefined}>
               {state === 'done' && truncated && items.length ? 'Showing the first matches — type more to narrow down' : status}
             </p>
           )}
-        </div>
-      )}
+      </FloatingLayer>
     </div>
   )
 }

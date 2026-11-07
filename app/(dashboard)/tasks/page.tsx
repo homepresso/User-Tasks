@@ -4,16 +4,26 @@ import { useState, useEffect, useId, useRef, useCallback } from "react"
 import { useTasks } from "@/hooks/use-tasks"
 import { useAppStore } from "@/stores/app-store"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { OrgBadge } from "@/components/ui/org-badge"
+import { IconButton } from "@/components/ui/icon-button"
+import { SearchInput } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { PageHeader } from "@/components/ui/page-header"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { Table, THead, TBody, TH, TR, TD, TableEmpty, TableSkeleton } from "@/components/ui/table"
+import { PriorityBadge } from "@/components/ui/priority-badge"
+import { ProgressBar } from "@/components/ui/progress-bar"
+import { Tooltip } from "@/components/ui/tooltip"
+import { InlineNotice } from "@/components/ui/inline-notice"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Card } from "@/components/ui/card"
 import {
-  Plus, Search, X, Pencil, Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  ExternalLink, CheckCircle, CornerDownRight, ArrowUpRight,
-  Send, User, Calendar as CalendarIcon, GripVertical, List, CalendarDays,
+  Plus, Clock, ChevronLeft, ChevronRight, ChevronDown,
+  ExternalLink,
+  Calendar as CalendarIcon, GripVertical, List, CalendarDays, CheckSquare, ArrowUpDown,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { formatRelativeDate } from "@/lib/utils"
+import { formatAbsolute, formatDay } from "@/lib/format/date"
 import { Pagination } from "@/components/ui/list-controls"
 import {
   DndContext,
@@ -34,30 +44,35 @@ import { CSS } from "@dnd-kit/utilities"
 import { reorderTasks, updateTaskField } from "@/app/actions/tasks"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
-import { serverRead } from "@/lib/server-read"
-import {
-  WeekNav,
-  TimesheetTableHeader,
-  getWeekRange,
-  formatDateShort,
-  getTaskCode,
-  getEffortBadge,
-  EffortBadge,
-  getWeekDays,
-} from "@/components/tasks/timesheet-helpers"
-import { SubtaskList } from "@/components/tasks/subtask-list"
-import { usePermissions } from "@/lib/permissions-context"
+import { getWeekRange, getTaskCode } from "@/components/tasks/timesheet-helpers"
+import { FilterMenu } from "@/components/tasks/filter-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { StatusFilterControls } from "@/components/tasks/status-filter-controls"
+import { SortableTH } from "@/components/tasks/sortable-header"
+import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
+import { useListSort } from "@/hooks/use-list-sort"
+import { explicitStatusList, explicitStatusView } from "@/lib/tasks/status-filter"
+import type { TaskSortKey } from "@/lib/tasks/list-sort"
 import { PageSkeleton } from "@/components/ui/page-skeleton"
-import { TaskListRowSummary } from "@/components/tasks/task-list-row-summary"
-import { TaskProgressStrip } from "@/components/tasks/task-progress-strip"
 import { taskDescriptionExcerpt } from "@/components/tasks/task-description"
+import { QueuedTaskActions, TaskStatusPill, TeamTaskBadge } from "@/components/tasks/queued-task-actions"
+import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
+import { QueueRulesButton } from "@/components/tasks/queue-rules-dialog"
+import { QUEUED_STATUS, type QueueAction } from "@/lib/tasks/unified-list"
+import { DEFAULT_TASK_STATUS_FILTER } from "@/stores/app-store"
 
+/** The Status menu: Queued and the open statuses ("Show completed" brings the closed ones back). */
 const STATUS_OPTIONS = [
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
+  { value: QUEUED_STATUS, label: "Queued" },
+  { value: "todo", label: "To do" },
+  { value: "in_progress", label: "In progress" },
   { value: "blocked", label: "Blocked" },
-  { value: "completed", label: "Completed" },
 ]
+const OPEN_VALUES = STATUS_OPTIONS.map((o) => o.value)
+const SORT_KEYS: readonly TaskSortKey[] = ["title", "status", "priority", "due", "progress", "updated", "created"]
 
 const PRIORITY_OPTIONS = [
   { value: "critical", label: "Critical" },
@@ -66,42 +81,79 @@ const PRIORITY_OPTIONS = [
   { value: "low", label: "Low" },
 ]
 
-const SORT_OPTIONS = [
-  { value: "sequence", label: "Manual order" },
-  { value: "due_date", label: "Due date" },
-  { value: "priority", label: "Priority" },
-  { value: "created_at", label: "Created" },
-  { value: "updated_at", label: "Updated" },
-]
+/** The store's default status filter (queued + open work); anything else counts as a filter for the empty state. */
+const DEFAULT_STATUS: string[] = [...DEFAULT_TASK_STATUS_FILTER]
+const STATUS_VALUES = new Set(STATUS_OPTIONS.map((o) => o.value))
+
+/** Refresh: the task list (and quick actions, under "tasks") and the expanded rows' subtasks. */
+const TASK_LIST_REFRESH_KEYS = [["tasks"], ["subtasks"]] as const
+
+/** Columns of the list table (handle, task, status, priority, due, progress, notes, Process view / open / actions). */
+const COLUMNS = 8
 
 export default function TasksPage() {
   const { taskFilters, setTaskFilters, layoutPreference, setLayoutPreference } = useAppStore()
-  const { userId: currentUserId } = usePermissions()
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [activeId, setActiveId] = useState<string | null>(null)
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
-  const weekOffset = 0
-  const viewMode: "day" | "week" = "day"
-  const effortMode = true
+  // The last quick action's message (the row may leave the list after it).
+  const [quickNotice, setQuickNotice] = useState<string | null>(null)
   const layout = (layoutPreference.tasks === "calendar" ? "calendar" : "list") as "calendar" | "list"
   const setLayout = (v: "calendar" | "list") => setLayoutPreference("tasks", v)
   const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1) })
   const dndId = useId()
+  const searchReady = useRef(false)
+  // Column sort on the fetched list (before paging); none = the list's own order (manual order when dragged).
+  const { sort, toggle: toggleSort, setSort, sorted } = useListSort("my-tasks", SORT_KEYS)
+  const statusView = explicitStatusView(taskFilters.status, OPEN_VALUES)
+  // Phones get a card list (no drag handles, no table) instead of the table.
+  const mobile = useIsMobile()
+
+  // ?q= seeds the search (links, back navigation); ?status= (e.g. queued, from
+  // the retired /tasks/queue) seeds the status filter and is then dropped from
+  // the URL. Read once from the URL, no Suspense bailout.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get("q") ?? ""
+    if (q) { setSearch(q); setDebouncedSearch(q) }
+    const status = (params.get("status") ?? "").split(",").filter((s) => STATUS_VALUES.has(s))
+    if (status.length) {
+      setTaskFilters({ status })
+      params.delete("status")
+      const qs = params.toString()
+      router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`, { scroll: false })
+    }
+    searchReady.current = true
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once, after hydration
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(timer)
   }, [search])
 
+  // Mirror the (debounced) query to ?q= so the URL can be shared and survives back navigation.
+  useEffect(() => {
+    if (!searchReady.current) return
+    const params = new URLSearchParams(window.location.search)
+    if ((params.get("q") ?? "") === debouncedSearch) return
+    if (debouncedSearch) params.set("q", debouncedSearch)
+    else params.delete("q")
+    const qs = params.toString()
+    router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`, { scroll: false })
+  }, [debouncedSearch, router])
+
   const { data: tasks, isLoading, error } = useTasks({
     status: taskFilters.status,
     priority: taskFilters.priority,
     sortBy: taskFilters.sortBy,
     search: debouncedSearch || undefined,
-    assigneeId: currentUserId,
+    // The unified list: my tasks plus the ones queued for me (status Queued).
+    mine: true,
   })
 
   useEffect(() => { setLocalOrder(null) }, [tasks])
@@ -117,7 +169,7 @@ export default function TasksPage() {
 
   const orderedTasks = (() => {
     if (!tasks) return []
-    if (!localOrder) return tasks
+    if (!localOrder) return sorted(tasks)
     const taskMap = new Map(tasks.map((t: any) => [t.id, t]))
     return localOrder.map(id => taskMap.get(id)).filter(Boolean) as any[]
   })()
@@ -144,149 +196,84 @@ export default function TasksPage() {
     newOrder.splice(newIndex, 0, active.id as string)
     setLocalOrder(newOrder)
 
+    // Dragging sets a manual order: the column sort steps aside.
+    if (sort) setSort(null)
     if (taskFilters.sortBy !== "sequence") {
       setTaskFilters({ sortBy: "sequence" })
     }
     reorderTasks(newOrder)
   }
 
-  function toggleStatus(status: string) {
-    const current = taskFilters.status
-    const next = current.includes(status) ? current.filter((s) => s !== status) : [...current, status]
-    setTaskFilters({ status: next })
+  const filtered = Boolean(debouncedSearch) || taskFilters.priority.length > 0
+    || taskFilters.status.length !== DEFAULT_STATUS.length || taskFilters.status.some((s) => !DEFAULT_STATUS.includes(s))
+  function clearFilters() {
+    setSearch("")
+    setDebouncedSearch("")
+    setTaskFilters({ status: DEFAULT_STATUS, priority: [] })
   }
 
-  function togglePriority(priority: string) {
-    const current = taskFilters.priority
-    const next = current.includes(priority) ? current.filter((p) => p !== priority) : [...current, priority]
-    setTaskFilters({ priority: next })
-  }
-
-  // Week calculation
-  const today = new Date()
-  const refDate = new Date(today)
-  refDate.setDate(refDate.getDate() + weekOffset * 7)
-  const { start, end } = getWeekRange(refDate)
-  const weekDays = getWeekDays(start)
-
-  const gridCols = "minmax(280px, 2fr) 120px minmax(180px, 1fr) 36px"
+  // This week (Monday → Sunday); the list is not scoped to it, it is context for the reader.
+  const { start, end } = getWeekRange(new Date())
+  const activeTask = activeId ? orderedTasks.find((t: any) => t.id === activeId) : null
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold" style={{ color: "var(--theme-card-text)" }}>
-          My Tasks
-          {layout === "list" && (
-            <span className="text-base font-normal ml-2" style={{ color: "var(--theme-muted-text)" }}>
-              {formatDateShort(start)} – {formatDateShort(end)} {end.getFullYear()}
-            </span>
-          )}
-        </h1>
-        <div className="flex items-center gap-2">
-          {/* Layout toggle */}
-          <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--theme-surface-border)" }}>
-            <button
-              onClick={() => setLayout("list")}
-              className="px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-medium transition-colors hover:bg-[var(--theme-row-highlight)]"
-              style={layout === "list" ? { backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" } : { color: "var(--theme-muted-text)" }}
-              title="List view"
-            >
-              <List size={14} /> List
-            </button>
-            <button
-              onClick={() => setLayout("calendar")}
-              className="px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-medium transition-colors hover:bg-[var(--theme-row-highlight)]"
-              style={layout === "calendar" ? { backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" } : { color: "var(--theme-muted-text)" }}
-              title="Calendar view"
-            >
-              <CalendarDays size={14} /> Calendar
-            </button>
-          </div>
-
-          <Link href="/tasks/new">
-            <Button size="sm">
-              <Plus size={16} className="mr-1" />
-              Create Task
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks..."
-              className="pl-9"
+      <PageHeader
+        className="mb-2"
+        inlineActions
+        title="My tasks"
+        description={(
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <CalendarIcon className="size-3.5 shrink-0" aria-hidden="true" />
+            This week · <span className="num">{formatDay(start)} – {formatDay(end)}</span>
+          </span>
+        )}
+        actions={(
+          <>
+            <SegmentedControl
+              aria-label="View"
+              size="sm"
+              value={layout}
+              onValueChange={setLayout}
+              options={[
+                // Icons only on phones (the text stays the accessible name).
+                { value: "list", text: <span className="max-sm:sr-only">List</span>, icon: <List /> },
+                { value: "calendar", text: <span className="max-sm:sr-only">Calendar</span>, icon: <CalendarDays /> },
+              ]}
             />
-          </div>
-          <select
-            value={taskFilters.sortBy}
-            onChange={(e) => setTaskFilters({ sortBy: e.target.value })}
-            className="rounded-lg border px-3 py-2 text-sm"
-            style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)" }}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+            <Button asChild leadingIcon={<Plus />} className="max-sm:px-2.5">
+              <Link href="/tasks/new"><span className="max-sm:hidden">Create task</span><span className="sm:hidden">New</span></Link>
+            </Button>
+          </>
+        )}
+      />
+
+      {/* Toolbar. Phones: search with the rules + refresh buttons beside it,
+          then the filters as one horizontally scrolling row. */}
+      <div className="flex flex-wrap items-center gap-2" data-tasks-toolbar>
+        <SearchInput
+          value={search}
+          onValueChange={setSearch}
+          placeholder="Search tasks…"
+          aria-label="Search tasks"
+          wrapperClassName="order-1 min-w-0 flex-1 sm:max-w-sm"
+        />
+        <div className="order-3 -mx-4 flex basis-full items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:order-2 sm:mx-0 sm:basis-auto sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0" data-tasks-filters>
+          <FilterMenu label="Priority" options={PRIORITY_OPTIONS} selected={taskFilters.priority} onChange={(priority) => setTaskFilters({ priority })} />
+          <StatusFilterControls options={STATUS_OPTIONS} selected={statusView.selected}
+            onSelectedChange={(selected) => setTaskFilters({ status: explicitStatusList(selected, statusView.showCompleted, OPEN_VALUES) })}
+            showCompleted={statusView.showCompleted}
+            onShowCompletedChange={(on) => setTaskFilters({ status: explicitStatusList(statusView.selected, on, OPEN_VALUES) })} />
+          {mobile && <MobileSortMenu sort={sort} onSort={setSort} />}
+          {filtered && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-medium self-center mr-1" style={{ color: "var(--theme-muted-text)" }}>Status:</span>
-          {STATUS_OPTIONS.map((opt) => {
-            const active = taskFilters.status.includes(opt.value)
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggleStatus(opt.value)}
-                className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
-                style={active
-                  ? { backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }
-                  : { backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
-
-          <span className="text-xs font-medium self-center ml-3 mr-1" style={{ color: "var(--theme-muted-text)" }}>Priority:</span>
-          {PRIORITY_OPTIONS.map((opt) => {
-            const active = taskFilters.priority.includes(opt.value)
-            return (
-              <button
-                key={opt.value}
-                onClick={() => togglePriority(opt.value)}
-                className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
-                style={active
-                  ? { backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }
-                  : { backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
-
-          {taskFilters.priority.length > 0 && (
-            <button
-              onClick={() => setTaskFilters({ priority: [] })}
-              className="rounded-full px-2 py-1 text-xs font-medium flex items-center gap-1 ml-1 hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: "var(--status-danger-bg)", color: "var(--theme-danger)" }}
-            >
-              <X size={10} /> Clear
-            </button>
-          )}
+        <div className="order-2 flex shrink-0 items-center gap-1 sm:order-3 sm:gap-2">
+          <QueueRulesButton />
+          <ListRefreshButton queryKeys={TASK_LIST_REFRESH_KEYS} className="max-sm:[&>[role=status]]:hidden" />
         </div>
-
-        <p className="text-xs text-gray-400 flex items-center gap-1">
-          <GripVertical size={12} /> Drag tasks to reorder priority
-        </p>
       </div>
+
+      {quickNotice && layout === "list" && <InlineNotice tone="success" onDismiss={() => setQuickNotice(null)}>{quickNotice}</InlineNotice>}
 
       {/* Calendar view */}
       {layout === "calendar" && (
@@ -302,74 +289,79 @@ export default function TasksPage() {
       {/* List view */}
       {layout === "list" && (
         <>
-          <div
-            className="rounded-xl overflow-hidden max-lg:overflow-x-auto border"
-            style={{ borderColor: "var(--theme-surface-border)" }}
-          >
-            {/* Inner min-width keeps the timesheet grid usable on phones —
-                the wrapper above scrolls horizontally below md. */}
-            <div className="max-lg:min-w-[640px]">
-            <TimesheetTableHeader
-              dateLabel={formatDateShort(today)}
-              viewMode={viewMode}
-              weekDays={undefined}
-            />
-
-            {error ? (
-              <div className="px-4 py-8 text-center text-sm text-red-500">
-                Error loading tasks: {error.message}
-              </div>
-            ) : isLoading ? null : !orderedTasks?.length ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
-                No tasks found.{" "}
-                <Link href="/tasks/new" className="text-[color:var(--theme-card-text)] hover:text-[color:var(--theme-card-text)]">Create one</Link>
-              </div>
+          {error ? (
+            <EmptyState variant="error" title="Couldn’t load your tasks" description={error.message} />
+          ) : mobile ? (
+            !orderedTasks.length ? (
+              filtered ? (
+                <EmptyState variant="no-results" title={debouncedSearch ? `No tasks match “${debouncedSearch}”` : "No tasks match these filters"}
+                  description="Try another search, or clear the filters." action={{ label: "Clear filters", onClick: clearFilters }} />
+              ) : (
+                <EmptyState icon={CheckSquare} title="You’re all caught up"
+                  description="Nothing is assigned to you right now." action={{ label: "Create task", href: "/tasks/new" }} />
+              )
             ) : (
-              <DndContext
-                id={dndId}
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={orderedTasks.map((t: any) => t.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {orderedTasks.slice((page - 1) * pageSize, page * pageSize).map((task: any) => (
-                    <SortableTimesheetRow
-                      key={task.id}
-                      task={task}
-                      gridCols={gridCols}
-                      viewMode={viewMode}
-                      weekDays={weekDays}
-                      effortMode={effortMode}
-                    />
-                  ))}
-                </SortableContext>
-                <DragOverlay>
-                  {activeId && orderedTasks.find((t: any) => t.id === activeId) && (
-                    <div
-                      className="shadow-lg rounded-lg border opacity-90 grid items-center"
-                      style={{
-                        gridTemplateColumns: gridCols,
-                        backgroundColor: "var(--theme-card-bg)",
-                        borderColor: "var(--theme-primary)",
-                      }}
+              <ul className="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border bg-panel" data-tasks-cards>
+                {orderedTasks.slice((page - 1) * pageSize, page * pageSize).map((task: any) => (
+                  <TaskCard key={task.id} task={task} onNotice={setQuickNotice} />
+                ))}
+              </ul>
+            )
+          ) : (
+            <DndContext
+              id={dndId}
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <Table containerClassName="max-lg:[&>table]:min-w-[760px]" data-tasks-table>
+                <THead>
+                  <tr>
+                    <TH className="w-8"><span className="sr-only">Reorder</span></TH>
+                    <SortableTH sortKey="title" sort={sort} onSort={toggleSort}>Task</SortableTH>
+                    <SortableTH sortKey="status" sort={sort} onSort={toggleSort} className="w-32">Status</SortableTH>
+                    <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} className="w-28">Priority</SortableTH>
+                    <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric className="w-24">Due</SortableTH>
+                    <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28">Progress</SortableTH>
+                    <TH className="w-[24%]">Notes</TH>
+                    <TH className="w-40"><span className="sr-only">Actions</span></TH>
+                  </tr>
+                </THead>
+                <TBody>
+                  {isLoading ? (
+                    <TableSkeleton columns={COLUMNS} />
+                  ) : !orderedTasks?.length ? (
+                    filtered ? (
+                      <TableEmpty colSpan={COLUMNS} variant="no-results" title={debouncedSearch ? `No tasks match “${debouncedSearch}”` : "No tasks match these filters"}
+                        description="Try another search, or clear the filters." action={{ label: "Clear filters", onClick: clearFilters }} />
+                    ) : (
+                      <TableEmpty colSpan={COLUMNS} icon={CheckSquare} title="You’re all caught up"
+                        description="Nothing is assigned to you right now." action={{ label: "Create task", href: "/tasks/new" }} />
+                    )
+                  ) : (
+                    <SortableContext
+                      items={orderedTasks.map((t: any) => t.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <TimesheetRowContent
-                        task={orderedTasks.find((t: any) => t.id === activeId)}
-                        viewMode={viewMode}
-                        weekDays={weekDays}
-                        effortMode={effortMode}
-                      />
-                    </div>
+                      {orderedTasks.slice((page - 1) * pageSize, page * pageSize).map((task: any) => (
+                        <SortableTaskRow key={task.id} task={task} onNotice={setQuickNotice} />
+                      ))}
+                    </SortableContext>
                   )}
-                </DragOverlay>
-              </DndContext>
-            )}
-            </div>
-          </div>
+                </TBody>
+              </Table>
+              <DragOverlay>
+                {activeTask && (
+                  <Card padding="sm" className="flex items-center gap-2 border-border-strong shadow-elev-2">
+                    <GripVertical className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />
+                    <span className="shrink-0 font-mono text-xs text-fg-muted">{getTaskCode(activeTask)}</span>
+                    <span className="truncate text-ui font-medium text-fg">{activeTask.title}</span>
+                  </Card>
+                )}
+              </DragOverlay>
+            </DndContext>
+          )}
 
           <Pagination
             page={page}
@@ -384,36 +376,27 @@ export default function TasksPage() {
   )
 }
 
-/* ─── Sortable Timesheet Row ─── */
+function isTaskDone(task: any) {
+  return task.status === "completed" || task.status === "cancelled"
+}
 
-function SortableTimesheetRow({
-  task,
-  gridCols,
-  viewMode,
-  weekDays,
-  effortMode,
-}: {
-  task: any
-  gridCols: string
-  viewMode: "day" | "week"
-  weekDays: { label: string; date: Date }[]
-  effortMode: boolean
-}) {
+function taskProgress(task: any) {
+  const hasChildren = (task.child_count ?? 0) > 0
+  return hasChildren
+    ? Math.round(((task.completed_child_count ?? 0) / Math.max(task.child_count ?? 1, 1)) * 100)
+    : Math.round(Number(task.progress_pct ?? (isTaskDone(task) ? 100 : 0)) || 0)
+}
+
+/* ─── Sortable task row (+ its expanded panel) ─── */
+
+function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: string) => void }) {
   const [expanded, setExpanded] = useState(false)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [actionFailure, setActionFailure] = useState<string | null>(null)
-  const [redirectMode, setRedirectMode] = useState<"redirect" | "escalate" | null>(null)
-  const [redirectTargetMode, setRedirectTargetMode] = useState<"user" | "email">("user")
-  const [users, setUsers] = useState<{ id: string; display_name: string; email: string }[] | null>(null)
-  const [selectedUserId, setSelectedUserId] = useState("")
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
-  const [targetEmail, setTargetEmail] = useState("")
-  const [targetEmailsText, setTargetEmailsText] = useState("")
-  const [comment, setComment] = useState("")
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const queryClient = useQueryClient()
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const mobile = useIsMobile()
   const router = useRouter()
+  const panelId = useId()
+  const actionsId = useId()
+  const toggleRef = useRef<HTMLButtonElement>(null)
 
   const {
     attributes,
@@ -426,459 +409,227 @@ function SortableTimesheetRow({
   } = useSortable({ id: task.id })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   }
 
-  const isDone = task.status === "completed" || task.status === "cancelled"
-  const isDarkRow = task.is_workflow_task || task.priority === "critical"
-  const outcomes = (task.available_outcomes as string[]) ?? ["completed"]
-  const taskActions = (task.metadata?.task_actions ?? {}) as Record<string, any>
-  const canRedirect = task.allow_reassign === true
-  const canInviteOnRedirect = canRedirect && taskActions.allow_invite_on_redirect === true
-  const canEscalate = task.allow_escalate !== false
-  const redirectAssignmentMode = taskActions.redirect_assignment_mode === 'many' ? 'many' : 'single'
-  const redirectRecipientLimitMode = taskActions.redirect_recipient_limit_mode === 'capped' ? 'capped' : 'unlimited'
-  const redirectRecipientLimit = redirectRecipientLimitMode === 'capped' ? Math.max(1, Number(taskActions.redirect_recipient_limit ?? 1)) : null
+  const isDone = isTaskDone(task)
+  const progress = taskProgress(task)
+  const hasChildren = (task.child_count ?? 0) > 0
+  const queueAction = (task.queue_action ?? null) as QueueAction | null
+  const toggle = () => setExpanded((v) => !v)
 
-  async function loadUsers() {
-    if (users) return
-    const { data } = await serverRead("tasks.redirectUsers")
-    setUsers((data ?? []) as any)
-  }
-
-  async function handleComplete(outcome: string) {
-    setActionLoading(outcome)
-    try {
-      if (task.is_workflow_task && task.event_id) {
-        const { completeWorkflowTask } = await import("@/app/actions/task-queue")
-        // completeWorkflowTask resumes the workflow itself — the extra
-        // unauthenticated /api/events/complete call it used to make here was
-        // rejected by the endpoint anyway.
-        const result = await completeWorkflowTask(task.id, outcome)
-        if (result.status === "completed" && (result as any).workflowResumed === false) {
-          setActionFailure(`Task completed, but the workflow could not resume: ${(result as any).workflowError ?? "unknown error"}`)
-        }
-      } else {
-        const { completeTaskWithOutcome } = await import("@/app/actions/tasks")
-        const result = await completeTaskWithOutcome(task.id, outcome)
-        if (!result.ok) throw new Error(result.error)
-      }
-      queryClient.invalidateQueries({ queryKey: ["tasks"] })
-    } catch (err: any) {
-      setActionFailure(err?.message ?? "Failed to complete task")
-    }
-    setActionLoading(null)
-  }
-
-  async function handleRedirectOrEscalate() {
-    if (!redirectMode) return
-    setActionLoading(redirectMode)
-    setActionError(null)
-    setActionMessage(null)
-    try {
-      const { rerouteTask } = await import("@/app/actions/task-queue")
-      const result = await rerouteTask(task.id, redirectMode, {
-        targetUserId: redirectMode === "redirect" && redirectAssignmentMode === "many" ? undefined : (redirectTargetMode === "user" ? selectedUserId || undefined : undefined),
-        targetUserIds: redirectMode === "redirect" && redirectAssignmentMode === "many" && redirectTargetMode === "user" ? selectedUserIds : undefined,
-        targetEmail: redirectMode === "redirect" && redirectAssignmentMode === "single" && redirectTargetMode === "email" ? targetEmail || undefined : undefined,
-        targetEmails: redirectMode === "redirect" && redirectAssignmentMode === "many" && redirectTargetMode === "email"
-          ? targetEmailsText.split('\n').map(v => v.trim()).filter(Boolean)
-          : undefined,
-        inviteIfNeeded: redirectMode === "redirect" && redirectTargetMode === "email",
-        comment,
-      })
-      queryClient.invalidateQueries({ queryKey: ["tasks"] })
-      queryClient.invalidateQueries({ queryKey: ["task-queue"] })
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      router.refresh()
-      if (result.invited) {
-        setActionMessage(result.message ?? `Invitation sent to ${result.targetEmail}.`)
-      } else {
-        setActionMessage(redirectMode === "escalate" ? "Task escalated." : "Task redirected.")
-        setRedirectMode(null)
-      }
-      setSelectedUserId("")
-      setSelectedUserIds([])
-      setTargetEmail("")
-      setTargetEmailsText("")
-      setComment("")
-    } catch (err: any) {
-      setActionError(err?.message ?? `Unable to ${redirectMode} task`)
-    }
-    setActionLoading(null)
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "border-b transition-colors",
-        isDragging && "opacity-30",
-      )}
-      {...({ style: { ...style, borderColor: "var(--theme-surface-border)" } } as any)}
-    >
-      {/* Main row */}
-      <div
-        className="grid items-center cursor-pointer transition-colors group"
-        style={{
-          gridTemplateColumns: gridCols,
-          backgroundColor: isDarkRow ? "var(--theme-row-highlight-strong)" : "var(--theme-card-bg)",
-        }}
-        onClick={() => setExpanded(!expanded)}
-        onDoubleClick={() => router.push(`/tasks/${task.id}`)}
-      >
-        <div className="flex items-center gap-2 px-3 py-3">
-          <button
-            ref={setActivatorNodeRef}
-            {...attributes}
-            {...listeners}
-            className={cn(
-              "shrink-0 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none"
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical size={14} />
-          </button>
-          <TimesheetTaskCell task={task} />
-        </div>
-        <TimesheetBadgeCells task={task} viewMode={viewMode} weekDays={weekDays} effortMode={effortMode} />
-        <TimesheetNotesCell task={task} isDarkRow={isDarkRow} />
-        <Link href={`/tasks/${task.id}`} onClick={e => e.stopPropagation()}
-          className="shrink-0 pr-3 py-3 hover:opacity-70 transition-opacity" style={{ color: 'var(--theme-primary-text)' }} title="Open task">
-          <ExternalLink size={13} />
-        </Link>
-      </div>
-
-      {/* Expand chevron indicator */}
-      {expanded && (
-        <div
-          className="px-4 pb-4 pt-2 space-y-3"
-          style={{ backgroundColor: "var(--theme-surface)" }}
-        >
-          {/* Meta details */}
-          <div className="flex flex-wrap gap-4 text-xs" style={{ color: "var(--theme-muted-text)" }}>
-            {task.assigner && (
-              <span className="flex items-center gap-1"><User size={11} /> From {task.assigner.display_name}</span>
-            )}
-            {task.due_date && (
-              <span className={cn("flex items-center gap-1", task.due_date && new Date(task.due_date) < new Date() && task.status !== "completed" && "text-red-600")}>
-                <CalendarIcon size={11} /> Due {formatRelativeDate(task.due_date)}
-              </span>
-            )}
-            {task.created_at && (
-              <span className="flex items-center gap-1">
-                <Clock size={11} /> {new Date(task.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-              </span>
-            )}
-            <span className="capitalize">{task.status.replace(/_/g, " ")}</span>
-            <Link href={`/tasks/${task.id}`} className="ml-auto flex items-center gap-1 hover:underline" style={{ color: "var(--theme-primary-text)" }}>
-              <ExternalLink size={11} /> Open
-            </Link>
-          </div>
-
-          {task.description && (
-            <p className="text-xs line-clamp-3" style={{ color: "var(--theme-card-text)" }}>{taskDescriptionExcerpt(task.description)}</p>
-          )}
-
-          {/* Subtasks */}
-          {(task.child_count ?? 0) > 0 && (
-            <SubtaskList parentTaskId={task.id} tenantId={task.tenant?.id} />
-          )}
-
-          {/* Quick actions */}
-          {actionFailure && (
-            <p className="text-[10px] text-red-600">{actionFailure}</p>
-          )}
-          {!isDone && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {outcomes.length <= 3 ? (
-                outcomes.map(o => (
-                  <Button key={o} size="sm" variant={outcomes.length === 1 ? "default" : "outline"} disabled={!!actionLoading} onClick={() => handleComplete(o)}>
-                    {actionLoading === o ? "..." : <><CheckCircle size={12} className="mr-1" />{o.charAt(0).toUpperCase() + o.slice(1)}</>}
-                  </Button>
-                ))
-              ) : (
-                <Button size="sm" onClick={() => handleComplete(outcomes[0])} disabled={!!actionLoading}>
-                  <Send size={12} className="mr-1" /> Action
-                </Button>
-              )}
-              {canRedirect && (
-                <Button size="sm" variant="outline" onClick={() => {
-                    setRedirectMode("redirect")
-                    setRedirectTargetMode("user")
-                    setActionError(null)
-                    setActionMessage(null)
-                    setSelectedUserIds([])
-                    setTargetEmailsText("")
-                    loadUsers()
-                  }} disabled={!!actionLoading}>
-                  <CornerDownRight size={12} className="mr-1" /> Redirect
-                </Button>
-              )}
-              {canEscalate && (
-                <Button size="sm" variant="outline" onClick={() => {
-                  setRedirectMode("escalate")
-                  setRedirectTargetMode("user")
-                  setActionError(null)
-                  setActionMessage(null)
-                  loadUsers()
-                }} disabled={!!actionLoading}>
-                  <ArrowUpRight size={12} className="mr-1" /> Escalate
-                </Button>
-              )}
-            </div>
-          )}
-
-          {actionMessage && (
-            <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}>
-              {actionMessage}
-            </div>
-          )}
-
-          {/* Redirect/Escalate form */}
-          {redirectMode && (
-            <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "var(--theme-card-bg)", border: "1px solid var(--theme-surface-border)" }}>
-              <label className="text-xs font-medium block">{redirectMode === "escalate" ? "Escalate to" : "Redirect to"}</label>
-              {redirectMode === "redirect" && canInviteOnRedirect && (
-                <div className="inline-flex rounded-lg border overflow-hidden" style={{ borderColor: "var(--theme-surface-border)" }}>
-                  <button
-                    type="button"
-                    onClick={() => setRedirectTargetMode("user")}
-                    className="px-3 py-1.5 text-[11px] font-medium"
-                    style={redirectTargetMode === "user" ? { backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" } : { backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}
-                  >
-                    Existing user
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRedirectTargetMode("email")}
-                    className="px-3 py-1.5 text-[11px] font-medium"
-                    style={redirectTargetMode === "email" ? { backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" } : { backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}
-                  >
-                    Invite by email
-                  </button>
-                </div>
-              )}
-              {redirectMode === "redirect" && redirectAssignmentMode === "many" && redirectTargetMode === "user" ? (
-                <select
-                  multiple
-                  value={selectedUserIds}
-                  onChange={e => setSelectedUserIds(Array.from(e.target.selectedOptions).map(option => option.value))}
-                  className="w-full rounded-lg border px-2 py-1.5 text-xs min-h-28"
-                  style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
-                >
-                  {(users ?? []).map(u => <option key={u.id} value={u.id}>{u.display_name} ({u.email})</option>)}
-                </select>
-              ) : redirectTargetMode === "user" || redirectMode === "escalate" ? (
-                <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)}
-                  className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                  style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}>
-                  <option value="">Select a user...</option>
-                  {(users ?? []).map(u => <option key={u.id} value={u.id}>{u.display_name} ({u.email})</option>)}
-                </select>
-              ) : (
-                redirectAssignmentMode === "many" ? (
-                  <textarea
-                    value={targetEmailsText}
-                    onChange={e => setTargetEmailsText(e.target.value)}
-                    rows={4}
-                    placeholder={"name1@company.com\nname2@company.com"}
-                    className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                    style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
-                  />
-                ) : (
-                  <Input
-                    type="email"
-                    value={targetEmail}
-                    onChange={e => setTargetEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="text-xs"
-                  />
-                )
-              )}
-              <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2} placeholder="Reason (optional)..."
-                className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }} />
-              {redirectMode === "redirect" && redirectTargetMode === "email" && canInviteOnRedirect && (
-                <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
-                  If this email is not already in the organisation, we will send an invitation and keep the task with you until they join.
-                </p>
-              )}
-              {redirectMode === "redirect" && redirectAssignmentMode === "many" && redirectRecipientLimitMode === "capped" && redirectRecipientLimit !== null && (
-                <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
-                  You can redirect this task to up to {redirectRecipientLimit} people.
-                </p>
-              )}
-              {actionError && (
-                <p className="text-[10px] text-red-600">{actionError}</p>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleRedirectOrEscalate}
-                  disabled={redirectMode === "escalate"
-                    ? (!selectedUserId || !!actionLoading)
-                    : (redirectTargetMode === "user"
-                      ? (redirectAssignmentMode === "many" ? selectedUserIds.length === 0 : !selectedUserId)
-                      : (redirectAssignmentMode === "many" ? !targetEmailsText.trim() : !targetEmail.trim())) || !!actionLoading}
-                >
-                  {actionLoading ? "..." : redirectMode === "escalate" ? "Escalate" : redirectTargetMode === "email" ? (redirectAssignmentMode === "many" ? "Redirect / invite many" : "Invite and keep task") : (redirectAssignmentMode === "many" ? "Redirect to many" : "Redirect")}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => {
-                  setRedirectMode(null)
-                  setSelectedUserId("")
-                  setSelectedUserIds([])
-                  setTargetEmail("")
-                  setTargetEmailsText("")
-                  setComment("")
-                  setActionError(null)
-                }}>Cancel</Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ─── Row content sub-components ─── */
-
-function TimesheetRowContent({
-  task,
-  viewMode,
-  weekDays,
-  effortMode,
-}: {
-  task: any
-  viewMode: "day" | "week"
-  weekDays: { label: string; date: Date }[]
-  effortMode: boolean
-}) {
-  const isDarkRow = task.is_workflow_task || task.priority === "critical"
   return (
     <>
-      <div className="flex items-center gap-2 px-3 py-3">
-        <TimesheetTaskCell task={task} />
-      </div>
-      <TimesheetBadgeCells task={task} viewMode={viewMode} weekDays={weekDays} effortMode={effortMode} />
-      <TimesheetNotesCell task={task} isDarkRow={isDarkRow} />
+      <TR
+        ref={setNodeRef}
+        style={style}
+        className={cn("cursor-pointer", isDragging && "relative z-10 opacity-40", expanded && "border-b-0 bg-subtle")}
+        onClick={toggle}
+        onDoubleClick={() => router.push(`/tasks/${task.id}`)}
+        data-task-row={task.id}
+      >
+        <TD className="w-8 pr-0">
+          <Tooltip content="Drag to reorder priority">
+            <button
+              type="button"
+              ref={setActivatorNodeRef}
+              {...attributes}
+              {...listeners}
+              aria-label={`Reorder ${task.title}`}
+              className="inline-flex size-6 cursor-grab touch-none items-center justify-center rounded-sm text-fg-subtle opacity-60 transition-opacity hover:text-fg-muted group-hover/row:opacity-100 active:cursor-grabbing"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="size-3.5" aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </TD>
+        <TD className="max-w-0 py-1.5">
+          <button
+            ref={toggleRef}
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={expanded ? panelId : undefined}
+            onClick={(e) => { e.stopPropagation(); toggle() }}
+            className="flex w-full min-w-0 flex-col items-start text-left"
+            data-task-toggle
+          >
+            <span className="flex w-full min-w-0 items-center gap-2">
+              <ChevronDown className={cn("size-3.5 shrink-0 text-fg-subtle transition-transform duration-[var(--ds-dur-fast)]", !expanded && "-rotate-90")} aria-hidden="true" />
+              <span className="shrink-0 font-mono text-xs text-fg-muted">{getTaskCode(task)}</span>
+              <span className={cn("truncate font-medium text-fg", isDone && "text-fg-muted line-through")}>{task.title}</span>
+            </span>
+            {(task.tenant || task.assignee || hasChildren) && (
+              <span className="flex w-full min-w-0 items-center gap-1.5 pl-[22px] text-xs text-fg-muted">
+                <span className="truncate">
+                  {[task.tenant?.name, task.assignee?.display_name].filter(Boolean).join(" · ")}
+                  {hasChildren && <>{task.tenant || task.assignee ? " · " : ""}<span className="num">{task.completed_child_count ?? 0}/{task.child_count ?? 0}</span> subtasks</>}
+                </span>
+              </span>
+            )}
+          </button>
+        </TD>
+        <TD><TaskStatusPill status={task.display_status ?? task.status} /></TD>
+        <TD><PriorityBadge priority={task.priority} /></TD>
+        <TD numeric><DueCell task={task} /></TD>
+        {queueAction ? (
+          // Queued: respond inline (progress and notes start once it's yours).
+          <TD colSpan={2} onClick={(e) => e.stopPropagation()}>
+            <span className="flex flex-wrap items-center gap-2">
+              <QueuedTaskActions task={task} action={queueAction} />
+              {queueAction === "claim" && <TeamTaskBadge />}
+            </span>
+          </TD>
+        ) : (
+          <>
+            <TD>
+              <span className="flex items-center gap-2">
+                <ProgressBar value={progress} className="w-12 shrink-0" label={`${progress}% complete`} />
+                <span className="num text-xs text-fg-muted">{progress}%</span>
+              </span>
+            </TD>
+            <TD className="max-w-0" onClick={(e) => e.stopPropagation()}>
+              <NotesCell task={task} />
+            </TD>
+          </>
+        )}
+        <TD className="px-1" onClick={(e) => e.stopPropagation()}>
+          <span className="flex items-center justify-end gap-0.5">
+            {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            <Tooltip content="Open task">
+              <Link href={`/tasks/${task.id}`} aria-label={`Open ${task.title}`}
+                className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-muted hover:text-fg">
+                <ExternalLink className="size-3.5" aria-hidden="true" />
+              </Link>
+            </Tooltip>
+            <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
+          </span>
+        </TD>
+      </TR>
+      {expanded && (
+        <tr className="border-b border-border-subtle bg-subtle" data-task-panel>
+          <td colSpan={COLUMNS} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
+            <TaskDetailPanel id={panelId} taskId={task.id} title={task.title} onClose={() => { setExpanded(false); toggleRef.current?.focus() }} className="pl-[30px]" />
+          </td>
+        </tr>
+      )}
+      {mobile ? (
+        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile
+          taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
+      ) : actionsOpen && (
+        <tr className="border-b border-border-subtle" data-task-actions-row>
+          <td colSpan={COLUMNS} className="p-0">
+            <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false}
+              taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
+          </td>
+        </tr>
+      )}
     </>
   )
 }
 
-function TimesheetTaskCell({ task }: { task: any }) {
-  const isDone = task.status === "completed" || task.status === "cancelled"
+/* ─── Phone card (the table row's content, stacked) ─── */
+
+function TaskCard({ task, onNotice }: { task: any; onNotice: (message: string) => void }) {
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const actionsId = useId()
+  const isDone = isTaskDone(task)
+  const progress = taskProgress(task)
   const hasChildren = (task.child_count ?? 0) > 0
-  const progressPct = hasChildren
-    ? Math.round(((task.completed_child_count ?? 0) / Math.max(task.child_count ?? 1, 1)) * 100)
-    : (task.progress_pct ?? (isDone ? 100 : 0))
+  const queueAction = (task.queue_action ?? null) as QueueAction | null
+  const meta = [task.tenant?.name, task.assignee?.display_name].filter(Boolean).join(" · ")
 
   return (
-    <div className="flex items-center gap-3 min-w-0">
-      {/* Icon */}
-      <div className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-gray-400">
-        {task.is_workflow_task ? <Pencil size={14} /> : <Clock size={14} />}
-      </div>
-
-      {/* Task info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className={cn(
-            "font-bold text-sm",
-            "text-gray-900 dark:text-white",
-            isDone && "line-through opacity-60",
-          )}>
-            {getTaskCode(task)}
+    <>
+      <MobileTaskCard
+        href={`/tasks/${task.id}`}
+        title={task.title}
+        done={isDone}
+        code={getTaskCode(task)}
+        meta={(meta || hasChildren) ? (
+          <>
+            {meta}
+            {hasChildren && <>{meta ? " · " : ""}<span className="num">{task.completed_child_count ?? 0}/{task.child_count ?? 0}</span> subtasks</>}
+          </>
+        ) : undefined}
+        actions={(
+          <>
+            {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
+          </>
+        )}
+        status={<TaskStatusPill status={task.display_status ?? task.status} />}
+        priority={<PriorityBadge priority={task.priority} />}
+        progress={!queueAction && progress > 0 ? (
+          <span className="flex items-center gap-1.5">
+            <ProgressBar value={progress} className="w-10 shrink-0" label={`${progress}% complete`} />
+            <span className="num text-fg-muted">{progress}%</span>
           </span>
-          <span className={cn(
-            "text-sm truncate",
-            "text-gray-700 dark:text-gray-300",
-            isDone && "line-through opacity-60",
-          )}>
-            · {task.title}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          {task.tenant && (
-            <span className="text-xs text-gray-500">
-              {task.tenant.name}
-            </span>
-          )}
-          {task.tenant && task.assignee && (
-            <span className="text-xs text-gray-400">·</span>
-          )}
-          {task.assignee && (
-            <span className="text-xs text-gray-500">
-              {task.assignee.display_name}
-            </span>
-          )}
-        </div>
-        <div className="mt-1">
-          <TaskProgressStrip
-            value={progressPct}
-            label={hasChildren ? `${task.completed_child_count ?? 0}/${task.child_count ?? 0} subtasks` : null}
-            className="max-w-[220px]"
-          />
-        </div>
-      </div>
-    </div>
+        ) : undefined}
+        due={<DueCell task={task} />}
+        footer={queueAction ? (
+          <>
+            <QueuedTaskActions task={task} action={queueAction} />
+            {queueAction === "claim" && <TeamTaskBadge />}
+          </>
+        ) : undefined}
+        data-task-card={task.id}
+      />
+      <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile
+        taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
+    </>
   )
 }
 
-function TimesheetBadgeCells({
-  task,
-  viewMode,
-  weekDays,
-  effortMode,
-}: {
-  task: any
-  viewMode: "day" | "week"
-  weekDays: { label: string; date: Date }[]
-  effortMode: boolean
-}) {
-  const badge = getEffortBadge(task.status, task.priority)
-  const dueDate = task.due_date ? new Date(task.due_date) : null
-  const isOverdue = dueDate && dueDate < new Date() && task.status !== "completed"
+const MOBILE_SORTS: ReadonlyArray<{ value: string; label: string; sort: { key: TaskSortKey; dir: "asc" | "desc" } | null }> = [
+  { value: "", label: "Default order", sort: null },
+  { value: "due", label: "Due date", sort: { key: "due", dir: "asc" } },
+  { value: "priority", label: "Priority", sort: { key: "priority", dir: "desc" } },
+  { value: "status", label: "Status", sort: { key: "status", dir: "asc" } },
+  { value: "title", label: "Title", sort: { key: "title", dir: "asc" } },
+  { value: "updated", label: "Recently updated", sort: { key: "updated", dir: "desc" } },
+]
 
-  if (viewMode === "week") {
-    return (
-      <>
-        {weekDays.map((d, i) => {
-          const isMatch = dueDate
-            ? dueDate.getDate() === d.date.getDate() && dueDate.getMonth() === d.date.getMonth()
-            : false
-          return (
-            <div key={i} className="flex items-center justify-center px-1 py-3">
-              {isMatch ? <EffortBadge config={badge} /> : null}
-            </div>
-          )
-        })}
-      </>
-    )
-  }
-
-  // Day view — show due date
+/** Phones have no column headers: the sort is a menu in the filter row. */
+function MobileSortMenu({ sort, onSort }: { sort: { key: TaskSortKey; dir: "asc" | "desc" } | null; onSort: (next: { key: TaskSortKey; dir: "asc" | "desc" } | null) => void }) {
+  const current = MOBILE_SORTS.find((o) => o.sort?.key === sort?.key) ?? MOBILE_SORTS[0]
   return (
-    <div className="flex items-center justify-center px-2 py-3">
-      {dueDate ? (
-        <span className={cn("text-[10px] font-medium whitespace-nowrap", isOverdue ? "text-red-500 font-semibold" : "text-gray-600")}>
-          {dueDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-        </span>
-      ) : (
-        <span className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>—</span>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="secondary" size="sm" leadingIcon={<ArrowUpDown />} trailingIcon={<ChevronDown />} data-mobile-sort>
+          {current.sort ? current.label : "Sort"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuRadioGroup value={current.value} onValueChange={(v) => onSort(MOBILE_SORTS.find((o) => o.value === v)?.sort ?? null)}>
+          {MOBILE_SORTS.map((o) => <DropdownMenuRadioItem key={o.value} value={o.value}>{o.label}</DropdownMenuRadioItem>)}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
-function TimesheetNotesCell({ task, isDarkRow }: { task: any; isDarkRow: boolean }) {
+function DueCell({ task }: { task: any }) {
+  if (!task.due_date) return <span className="text-fg-subtle">—</span>
+  const due = new Date(task.due_date)
+  const overdue = due < new Date() && task.status !== "completed"
+  return (
+    <Tooltip content={formatAbsolute(due)}>
+      <span className={cn("inline-flex items-center justify-end gap-1 whitespace-nowrap", overdue ? "text-danger" : "text-fg")} data-overdue={overdue || undefined}>
+        {overdue && <Clock className="size-3.5" aria-hidden="true" />}
+        <time dateTime={task.due_date}>{formatDay(due)}</time>
+        {overdue && <span className="sr-only">(overdue)</span>}
+      </span>
+    </Tooltip>
+  )
+}
+
+/* ─── Notes (description) cell: click to edit inline ─── */
+
+function NotesCell({ task }: { task: any }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(task.description ?? "")
   const queryClient = useQueryClient()
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const save = useCallback(async () => {
     setEditing(false)
@@ -894,46 +645,60 @@ function TimesheetNotesCell({ task, isDarkRow }: { task: any; isDarkRow: boolean
 
   if (editing) {
     return (
-      <div className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={save}
-          onKeyDown={(e) => { if (e.key === "Escape") { setValue(task.description ?? ""); setEditing(false) } }}
-          rows={2}
-          autoFocus
-          className="w-full text-xs rounded border px-2 py-1.5 resize-none focus:outline-none focus:ring-1"
-          style={{
-            backgroundColor: "var(--theme-card-bg)",
-            borderColor: "var(--theme-primary)",
-            color: "var(--theme-card-text)",
-            boxShadow: "0 0 0 1px var(--theme-primary)",
-          }}
-        />
-      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => { if (e.key === "Escape") { setValue(task.description ?? ""); setEditing(false) } }}
+        rows={2}
+        autoFocus
+        aria-label={`Notes for ${task.title}`}
+        className="my-1 min-h-0 resize-none text-xs"
+      />
     )
   }
 
+  const excerpt = value ? taskDescriptionExcerpt(value) : ""
   return (
-    <div
-      className="px-3 py-3 text-xs truncate cursor-text min-h-[48px] flex items-center"
-      style={{ backgroundColor: isDarkRow ? "var(--theme-row-highlight-strong)" : "var(--theme-row-highlight)" }}
-      onClick={(e) => {
-        e.stopPropagation()
-        setEditing(true)
-      }}
-    >
-      {value ? (
-        <span className="truncate text-gray-700">
-          {taskDescriptionExcerpt(value)}
-        </span>
-      ) : (
-        <span className="text-gray-400">
-          Add note...
-        </span>
-      )}
-    </div>
+    <Tooltip content={excerpt || null}>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        aria-label={excerpt ? `Edit notes: ${excerpt}` : `Add notes to ${task.title}`}
+        className="block w-full cursor-text truncate rounded-sm text-left text-xs decoration-dotted underline-offset-2 hover:underline"
+      >
+        {excerpt ? <span className="text-fg-muted">{excerpt}</span> : <span className="text-fg-subtle">Add note…</span>}
+      </button>
+    </Tooltip>
+  )
+}
+
+/* ─── Month agenda (phones) ─── */
+
+function MonthAgenda({ tasks, year, month, today }: { tasks: any[]; year: number; month: number; today: Date }) {
+  const due = tasks
+    .filter((t) => { if (!t.due_date) return false; const d = new Date(t.due_date); return d.getFullYear() === year && d.getMonth() === month })
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+  if (!due.length) return <p className="text-sm text-fg-muted sm:hidden">Nothing due this month.</p>
+  return (
+    <ul className="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border bg-panel sm:hidden" data-month-agenda>
+      {due.map((task) => {
+        const d = new Date(task.due_date)
+        const overdue = d < today && !isTaskDone(task)
+        return (
+          <li key={task.id}>
+            <Link href={`/tasks/${task.id}`} className="flex min-h-12 items-center gap-3 px-3 py-2 hover:bg-subtle">
+              <span className={cn("num w-12 shrink-0 text-xs font-medium", overdue ? "text-danger" : "text-fg-muted")}>{formatDay(d)}</span>
+              <span className="min-w-0 flex-1">
+                <span className={cn("block truncate text-sm text-fg", isTaskDone(task) && "text-fg-muted line-through")}>{task.title}</span>
+                <span className="block font-mono text-xs text-fg-muted">{getTaskCode(task)}</span>
+              </span>
+              <PriorityBadge priority={task.priority} />
+            </Link>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -1005,7 +770,7 @@ function MonthCalendar({
     a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
 
   if (error) {
-    return <div className="px-4 py-8 text-center text-sm text-red-500">Error loading tasks: {error.message}</div>
+    return <EmptyState variant="error" title="Couldn’t load your tasks" description={error.message} />
   }
   if (isLoading) return null
 
@@ -1013,188 +778,132 @@ function MonthCalendar({
     <div className="space-y-3">
       {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--theme-row-highlight)] transition-colors" style={{ color: "var(--theme-muted-text)" }}>
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-sm font-semibold min-w-[180px] text-center" style={{ color: "var(--theme-card-text)" }}>
+        <div className="flex items-center gap-1">
+          <IconButton label="Previous month" icon={<ChevronLeft />} size="sm" onClick={prevMonth} />
+          <span className="min-w-[160px] text-center text-sm font-semibold text-fg">
             {MONTH_NAMES[m]} {year}
           </span>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--theme-row-highlight)] transition-colors" style={{ color: "var(--theme-muted-text)" }}>
-            <ChevronRight size={18} />
-          </button>
+          <IconButton label="Next month" icon={<ChevronRight />} size="sm" onClick={nextMonth} />
         </div>
-        <button onClick={goToday} className="px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--theme-row-highlight)] transition-colors" style={{ color: "var(--theme-muted-text)" }}>
-          Today
-        </button>
+        <Button variant="ghost" size="sm" onClick={goToday}>Today</Button>
       </div>
 
       {/* Calendar grid */}
-      <div className="rounded-xl overflow-hidden max-lg:overflow-x-auto border" style={{ borderColor: "var(--theme-surface-border)" }}>
-        {/* Inner min-width keeps calendar cells legible on phones —
-            the wrapper above scrolls horizontally below md. */}
-        <div className="max-lg:min-w-[640px]">
-        {/* Day headers */}
-        <div className="grid grid-cols-7 text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: "var(--theme-row-highlight-strong)", color: "var(--theme-muted-text)" }}>
-          {DAY_LABELS.map(d => (
-            <div key={d} className="px-2 py-2.5 text-center">{d}</div>
-          ))}
-        </div>
+      <div className="overflow-hidden rounded-lg border border-border bg-panel max-lg:overflow-x-auto max-sm:overflow-x-hidden">
+        {/* Inner min-width keeps calendar cells legible on tablets — the
+            wrapper above scrolls horizontally below lg. Phones get a compact
+            month (counts only) and the month's agenda under it. */}
+        <div className="sm:max-lg:min-w-[640px]">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 border-b border-border-subtle bg-subtle text-xs font-medium text-fg-muted">
+            {DAY_LABELS.map(d => (
+              <div key={d} className="px-2 py-2 text-center max-sm:px-0">{d}</div>
+            ))}
+          </div>
 
-        {/* Date cells */}
-        <div className="grid grid-cols-7">
-          {cells.map((cell, i) => {
-            const key = `${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`
-            const dayTasks = tasksByDate.get(key) ?? []
-            const isToday = isSameDay(cell.date, today)
-            const isPast = cell.date < today && !isToday
+          {/* Date cells */}
+          <div className="grid grid-cols-7">
+            {cells.map((cell, i) => {
+              const key = `${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`
+              const dayTasks = tasksByDate.get(key) ?? []
+              const isToday = isSameDay(cell.date, today)
+              const isPast = cell.date < today && !isToday
 
-            return (
-              <div
-                key={i}
-                className={cn(
-                  "min-h-[100px] border-b border-r p-1.5 transition-colors",
-                  !cell.inMonth && "opacity-40",
-                  isToday && "ring-2 ring-inset",
-                )}
-                style={{
-                  borderColor: "var(--theme-surface-border)",
-                  backgroundColor: isToday ? "var(--theme-primary-light)" : "var(--theme-card-bg)",
-                  ...(isToday ? { ringColor: "var(--theme-primary)" } as any : {}),
-                }}
-              >
-                {/* Date number */}
-                <div className="flex items-center justify-between mb-1">
-                  <span
-                    className="text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full"
-                    style={isToday
-                      ? { backgroundColor: "var(--theme-primary)", color: "var(--theme-on-primary)" }
-                      : { color: cell.inMonth ? "var(--theme-card-text)" : "var(--theme-muted-text)" }}
-                  >
-                    {cell.date.getDate()}
-                  </span>
-                  {dayTasks.length > 0 && (
-                    <span className="text-[9px] font-medium rounded-full px-1.5 py-0.5" style={{ color: "var(--theme-muted-text)", backgroundColor: "var(--theme-surface)" }}>
-                      {dayTasks.length}
-                    </span>
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "min-h-[100px] border-b border-r border-border-subtle p-1.5 max-sm:min-h-12 max-sm:p-1 [&:nth-child(7n)]:border-r-0",
+                    isToday ? "bg-primary-wash" : "bg-panel",
+                    !cell.inMonth && "bg-subtle",
                   )}
-                </div>
-
-                {/* Task pills */}
-                <div className="space-y-0.5">
-                  {dayTasks.slice(0, 3).map(task => {
-                    const isDone = task.status === "completed" || task.status === "cancelled"
-                    const isOverdue = isPast && !isDone
-                    const isCritical = task.priority === "critical" || task.priority === "high"
-                    return (
-                      <button
-                        key={task.id}
-                        onClick={() => router.push(`/tasks/${task.id}`)}
-                        className={cn(
-                          "w-full text-left rounded px-1.5 py-0.5 text-[10px] leading-tight truncate transition-colors hover:opacity-80",
-                          isDone && "line-through opacity-50",
-                        )}
-                        style={{
-                          backgroundColor: isOverdue
-                            ? "var(--status-danger-bg)"
-                            : isCritical
-                            ? "var(--status-warning-bg)"
-                            : task.is_workflow_task
-                            ? "var(--status-info-bg)"
-                            : "var(--theme-surface)",
-                          color: isOverdue
-                            ? "var(--theme-danger)"
-                            : isCritical
-                            ? "var(--theme-warning)"
-                            : "var(--theme-card-text)",
-                          borderLeft: `2px solid ${
-                            isOverdue ? "var(--theme-danger)" : isCritical ? "var(--status-progress)" : task.is_workflow_task ? "var(--status-info)" : "var(--theme-primary)"
-                          }`,
-                        }}
-                        title={`${getTaskCode(task)} · ${task.title}`}
-                      >
-                        <span className="font-semibold">{getTaskCode(task)}</span>{" "}
-                        {task.title}
-                      </button>
-                    )
-                  })}
-                  {dayTasks.length > 3 && (
-                    <span className="text-[9px] px-1.5" style={{ color: "var(--theme-muted-text)" }}>
-                      +{dayTasks.length - 3} more
+                  aria-current={isToday ? "date" : undefined}
+                >
+                  {/* Date number */}
+                  <div className="mb-1 flex items-center justify-between max-sm:flex-col max-sm:gap-0.5">
+                    <span
+                      className={cn(
+                        "num flex size-6 items-center justify-center rounded-full text-xs font-medium",
+                        isToday ? "bg-primary text-primary-fg" : cell.inMonth ? "text-fg" : "text-fg-subtle",
+                      )}
+                    >
+                      {cell.date.getDate()}
                     </span>
-                  )}
+                    {dayTasks.length > 0 && (
+                      <span className="num rounded-full bg-muted px-1.5 text-2xs font-medium text-fg-muted">
+                        {dayTasks.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Task chips */}
+                  <div className="space-y-0.5 max-sm:hidden">
+                    {dayTasks.slice(0, 3).map(task => {
+                      const isDone = isTaskDone(task)
+                      const isOverdue = isPast && !isDone
+                      const isUrgent = task.priority === "critical" || task.priority === "high"
+                      return (
+                        <Tooltip key={task.id} content={`${getTaskCode(task)} · ${task.title}`}>
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/tasks/${task.id}`)}
+                            className={cn(
+                              "block w-full truncate rounded-sm border-l-2 px-1.5 py-0.5 text-left text-2xs leading-tight transition-colors hover:brightness-95",
+                              isOverdue ? "border-danger bg-danger-wash text-danger"
+                                : isUrgent ? "border-warning bg-warning-wash text-warning"
+                                : task.is_workflow_task ? "border-info bg-info-wash text-info"
+                                : "border-primary bg-muted text-fg",
+                              isDone && "line-through opacity-60",
+                            )}
+                          >
+                            <span className="font-mono font-medium">{getTaskCode(task)}</span>{" "}
+                            {task.title}
+                          </button>
+                        </Tooltip>
+                      )
+                    })}
+                    {dayTasks.length > 3 && (
+                      <span className="px-1.5 text-2xs text-fg-muted">
+                        +{dayTasks.length - 3} more
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
+      {/* Phones: this month's tasks as a list (the grid above shows counts only). */}
+      <MonthAgenda tasks={tasks} year={year} month={m} today={today} />
+
       {/* Unscheduled tasks */}
       {unscheduled.length > 0 && (
-        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-card-bg)" }}>
-          <h3 className="text-xs font-semibold" style={{ color: "var(--theme-muted-text)" }}>
-            No due date ({unscheduled.length})
+        <Card padding="sm" className="space-y-2">
+          <h3 className="text-xs font-medium text-fg-muted">
+            No due date <span className="num">({unscheduled.length})</span>
           </h3>
           <div className="flex flex-wrap gap-1.5">
             {unscheduled.slice(0, 12).map(task => (
-              <button
-                key={task.id}
-                onClick={() => router.push(`/tasks/${task.id}`)}
-                className="rounded px-2 py-1 text-[10px] truncate max-w-[200px] hover:opacity-80 transition-colors"
-                style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-card-text)" }}
-                title={task.title}
-              >
-                <span className="font-semibold">{getTaskCode(task)}</span> {task.title}
-              </button>
+              <Tooltip key={task.id} content={task.title}>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/tasks/${task.id}`)}
+                  className="max-w-[200px] truncate rounded-sm bg-muted px-2 py-1 text-2xs text-fg transition-colors hover:bg-subtle"
+                >
+                  <span className="font-mono font-medium">{getTaskCode(task)}</span> {task.title}
+                </button>
+              </Tooltip>
             ))}
             {unscheduled.length > 12 && (
-              <span className="text-[10px] self-center px-1" style={{ color: "var(--theme-muted-text)" }}>
+              <span className="self-center px-1 text-2xs text-fg-muted">
                 +{unscheduled.length - 12} more
               </span>
             )}
           </div>
-        </div>
+        </Card>
       )}
     </div>
-  )
-}
-
-/* ─── All Tasks Row (flat list mode) ─── */
-
-function AllTasksRow({
-  task,
-  isDarkRow,
-  expanded,
-  onToggle,
-  onOpen,
-  dragRef,
-  dragAttributes,
-  dragListeners,
-}: {
-  task: any
-  isDarkRow: boolean
-  expanded: boolean
-  onToggle: () => void
-  onOpen: () => void
-  dragRef: (node: HTMLElement | null) => void
-  dragAttributes: any
-  dragListeners: any
-}) {
-  const isDone = task.status === "completed" || task.status === "cancelled"
-
-  return (
-    <TaskListRowSummary
-      task={task}
-      expanded={expanded}
-      onToggle={onToggle}
-      onOpen={onOpen}
-      dragHandle={{
-        ref: dragRef,
-        attributes: dragAttributes,
-        listeners: dragListeners,
-      }}
-    />
   )
 }

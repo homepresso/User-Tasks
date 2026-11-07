@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "f803a9ae-50c9-4304-b027-5606783139ad",
+  "asset": {
+    "id": "f803a9ae-50c9-4304-b027-5606783139ad",
+    "name": "Signed approval link (sample)",
+    "description": "Sample for the Crypto & IDs action: signs an expiring HS256 token for an external approver, verifies it as the response handler would, and makes a reference ID. Needs the token_secret secret set in Extensibility → Workflow actions. Starts from the API or its start form and runs with no input using the defaults.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started (API or form)",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "request_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "approver_email",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "valid_minutes",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#475569",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#F4F6FB"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Signed approval link",
+                  "subtitle": "Issue and check a signed token for an approver outside UserTasks."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ref",
+        "type": "custom_activity",
+        "label": "Reference ID",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "custom_activity_id": "2093e544-d6e9-47c0-8f28-24a9a2129c0d",
+          "custom_activity_key": "ut_crypto",
+          "activity_name": "Crypto & IDs",
+          "operation": "ulid",
+          "input_mappings": {
+            "count": "1"
+          },
+          "_output_prefix": "ref"
+        }
+      },
+      {
+        "id": "sign",
+        "type": "custom_activity",
+        "label": "Sign approval token",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "custom_activity_id": "2093e544-d6e9-47c0-8f28-24a9a2129c0d",
+          "custom_activity_key": "ut_crypto",
+          "activity_name": "Crypto & IDs",
+          "operation": "sign_token",
+          "input_mappings": {
+            "claims": "{\"request_id\": \"{{request_id}}\", \"ref\": \"{{ref_ulid}}\", \"action\": \"approve\"}",
+            "subject": "{{approver_email}}",
+            "issuer": "usertasks",
+            "audience": "approvals",
+            "expires_minutes": "{{valid_minutes}}"
+          },
+          "_output_prefix": "link"
+        }
+      },
+      {
+        "id": "verify",
+        "type": "custom_activity",
+        "label": "Verify the token",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "custom_activity_id": "2093e544-d6e9-47c0-8f28-24a9a2129c0d",
+          "custom_activity_key": "ut_crypto",
+          "activity_name": "Crypto & IDs",
+          "operation": "verify_token",
+          "input_mappings": {
+            "jwt": "{{link_jwt}}",
+            "issuer": "usertasks",
+            "audience": "approvals"
+          },
+          "_output_prefix": "check"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Summary",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "name": "summary",
+          "expression": "Approval link for {{approver_email}} (ref {{ref_ulid}}) expires {{link_expires_at}}; verified: {{check_valid}} {{check_reason}}. Link: https://example.com/approve?token={{link_jwt}}"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "reason": "{{summary}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-sign",
+        "source": "ref",
+        "target": "sign"
+      },
+      {
+        "id": "e-sign-verify",
+        "source": "sign",
+        "target": "verify"
+      },
+      {
+        "id": "e-verify-summary",
+        "source": "verify",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-request_id",
+        "name": "request_id",
+        "type": "string",
+        "label": "Request",
+        "description": "The request the approver acts on",
+        "defaultValue": "REQ-1042",
+        "required": true
+      },
+      {
+        "id": "v-approver_email",
+        "name": "approver_email",
+        "type": "string",
+        "format": "email",
+        "label": "Approver email",
+        "description": "Who the link is for",
+        "defaultValue": "approver@example.com",
+        "required": true
+      },
+      {
+        "id": "v-valid_minutes",
+        "name": "valid_minutes",
+        "type": "number",
+        "label": "Link valid for (minutes)",
+        "description": "Lifetime of the link",
+        "defaultValue": "1440"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

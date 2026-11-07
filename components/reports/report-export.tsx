@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { Download, FileSpreadsheet, FileText, Printer, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import { useJobs } from '@/components/jobs/jobs-provider'
+import { getReportValue } from '@/lib/report-sources'
 
 interface ExportProps {
   data: any[]
@@ -12,7 +15,7 @@ interface ExportProps {
 }
 
 function getValue(row: any, key: string) {
-  return key.split('.').reduce((o, k) => o?.[k], row)
+  return getReportValue(row, key)
 }
 
 function exportCSV(data: any[], columns: { key: string; label: string }[], filename: string) {
@@ -50,18 +53,14 @@ function exportPDF() {
 
 export function ReportExportButton({ data, columns, filename = 'report' }: ExportProps) {
   const jobs = useJobs()
-  const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleCSV() {
+  function handleCSV() {
     try {
       setError(null)
       exportCSV(data, columns, filename)
-      setOpen(false)
     } catch (e: any) {
-      // Surface export failures to the user instead of silently swallowing
-      // them. CSV errors are rare but happen (encoding issues, huge datasets
-      // blowing through the Blob size limit).
+      // Surface export failures (encoding issues, huge datasets past the Blob limit).
       setError(`CSV export failed: ${e?.message ?? 'unknown error'}`)
     }
   }
@@ -69,68 +68,29 @@ export function ReportExportButton({ data, columns, filename = 'report' }: Expor
   async function handleExcel() {
     try {
       setError(null)
-      setOpen(false)
       await jobs.start('report.export', { filename }, { effect: 'download', input: { text: excelJobInput(data, columns) }, pendingMessage: 'Preparing your Excel file…' })
     } catch (e: any) {
-      // Show the real reason (server error, too large, signed out) so users
-      // can report it.
+      // Show the real reason (server error, too large, signed out) so users can report it.
       setError(`Excel export failed: ${e?.message ?? 'unknown error'}`)
     }
   }
 
   return (
     <div className="relative">
-      <Button size="sm" variant="outline" onClick={() => setOpen(!open)} className="gap-1.5">
-        <Download size={14} /> Export <ChevronDown size={12} />
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="secondary" leadingIcon={<Download />} trailingIcon={<ChevronDown />}>Export</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem icon={<FileText />} onSelect={handleCSV}>Download CSV</DropdownMenuItem>
+          <DropdownMenuItem icon={<FileSpreadsheet />} onSelect={() => void handleExcel()}>Download Excel</DropdownMenuItem>
+          <DropdownMenuItem icon={<Printer />} onSelect={exportPDF}>Print / PDF</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {error && (
-        <div
-          className="absolute right-0 top-full mt-1 z-50 w-64 rounded-lg border px-3 py-2 text-xs shadow-lg"
-          style={{
-            backgroundColor: 'var(--status-error-bg)',
-            borderColor: 'var(--status-error)',
-            color: 'var(--status-error)',
-          }}
-        >
-          {error}
-          <button
-            className="block mt-1 underline"
-            onClick={() => setError(null)}
-          >
-            Dismiss
-          </button>
+        <div className="absolute right-0 top-full z-50 mt-1 w-72">
+          <InlineNotice tone="danger" message={error} onDismiss={() => setError(null)} />
         </div>
-      )}
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border shadow-lg py-1"
-            style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-          >
-            <button
-              className="w-full px-3 py-2 text-left text-xs hover:bg-[var(--theme-surface)] flex items-center gap-2"
-              style={{ color: 'var(--theme-card-text)' }}
-              onClick={handleCSV}
-            >
-              <FileText size={13} /> Download CSV
-            </button>
-            <button
-              className="w-full px-3 py-2 text-left text-xs hover:bg-[var(--theme-surface)] flex items-center gap-2"
-              style={{ color: 'var(--theme-card-text)' }}
-              onClick={handleExcel}
-            >
-              <FileSpreadsheet size={13} /> Download Excel
-            </button>
-            <button
-              className="w-full px-3 py-2 text-left text-xs hover:bg-[var(--theme-surface)] flex items-center gap-2"
-              style={{ color: 'var(--theme-card-text)' }}
-              onClick={() => { exportPDF(); setOpen(false) }}
-            >
-              <Printer size={13} /> Print / PDF
-            </button>
-          </div>
-        </>
       )}
     </div>
   )

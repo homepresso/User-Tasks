@@ -3,8 +3,10 @@ import path from "path";
 import type { NextConfig } from "next";
 import { contentSecurityPolicy as currentContentSecurityPolicy } from "./lib/csp";
 import { LEGACY_DOC_REDIRECTS } from "./lib/docs/redirects";
+import { OUTPUT_FILE_TRACING_INCLUDES, TESSERACT_WORKER_FILES } from "./lib/function-tracing";
 import { missingStubPath, optionalPackageNames } from "./lib/optional-drivers";
 import { USE_CASE_REDIRECTS } from "./lib/use-cases";
+import { TASK_QUEUE_REDIRECT } from "./lib/tasks/unified-list";
 
 // Defense-in-depth headers (see lib/csp.ts for the policy and why). The CSP
 // here is evaluated when the server starts / the build runs; proxy.ts
@@ -32,14 +34,33 @@ const isInstalled = (pkg: string) => existsSync(path.join(process.cwd(), "node_m
 const missingDriverAliases = Object.fromEntries(
   optionalPackageNames().filter((pkg) => !isInstalled(pkg)).map((pkg) => [pkg, missingStubPath(pkg)]),
 );
-const OPTIONAL_EXTERNALS = [...optionalPackageNames("storage"), ...optionalPackageNames("provider"), ...optionalPackageNames("document")].filter(isInstalled);
+// The Docker image's server bundle (NEXT_OUTPUT_STANDALONE=true).
+const STANDALONE = process.env.NEXT_OUTPUT_STANDALONE === "true";
+const OPTIONAL_EXTERNALS =[...optionalPackageNames("storage"), ...optionalPackageNames("provider"), ...optionalPackageNames("document")].filter(isInstalled);
 
 const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (see Dockerfile). Opt-in
   // so `next start` and Vercel builds keep the default output.
-  output: process.env.NEXT_OUTPUT_STANDALONE === "true" ? "standalone" : undefined,
+  output: STANDALONE ? "standalone" : undefined,
+  // Vercel's build machine (2 cores, 8 GB) runs out of memory when `next build`
+  // also type-checks this codebase. CI and the release gates run
+  // `tsc --noEmit` before every deploy, so the hosted build skips the
+  // duplicate check. Set NEXT_BUILD_TYPECHECK=true to force it. The Docker
+  // build type-checks before removing the optional packages it leaves out,
+  // then builds with NEXT_BUILD_TYPECHECK=false.
+  typescript: {
+    ignoreBuildErrors: process.env.NEXT_BUILD_TYPECHECK === "false"
+      || (Boolean(process.env.VERCEL) && process.env.NEXT_BUILD_TYPECHECK !== "true"),
+  },
   poweredByHeader: false,
+  // A browser tab left open across a deploy otherwise calls Server Actions
+  // that no longer exist ("Server Action … was not found on the server").
+  // With a deployment id, Next sees the mismatch and reloads the page instead.
+  // Prebuilt Vercel deploys get a fresh id per build; NEXT_DEPLOYMENT_ID wins.
+  deploymentId: process.env.NEXT_DEPLOYMENT_ID || (process.env.VERCEL ? `ut-${Date.now().toString(36)}` : undefined),
   experimental: {
+    // Fewer static-generation workers on Vercel keeps peak memory in bounds.
+    ...(process.env.VERCEL ? { cpus: 1 } : {}),
     serverActions: {
       // Was 1gb — a DoS amplifier. Document uploads cap well below this; raise
       // deliberately if a real payload exceeds it.
@@ -54,10 +75,29 @@ const nextConfig: NextConfig = {
     // refuses a body shorter than the size the browser declared.
     proxyClientMaxBodySize: `${Math.max(1, Math.min(Number(process.env.FORM_UPLOAD_MAX_BODY_MB) || 50, 1024))}mb`,
   },
-  turbopack: { resolveAlias: missingDriverAliases },
+  // The project directory is the root. Without it Turbopack infers the root
+  // from the outermost lockfile, so a checkout nested inside another (a git
+  // worktree) traces the outer checkout's node_modules.
+  turbopack: { root: process.cwd(), resolveAlias: missingDriverAliases },
   // Workspace package shipped as TypeScript source (the postgres db provider).
   transpilePackages: ["@usertasks/pg-query"],
-  serverExternalPackages: ["pg", "mssql", "bcryptjs", "@azure/identity", "exceljs", ...OPTIONAL_EXTERNALS],
+  // The QuickJS sandbox embeds its WebAssembly binary in a JS string; when the
+  // production build minifies it, the string becomes a template literal with
+  // octal escapes that Node refuses to parse ("Failed to load chunk"). Load
+  // both packages from node_modules untouched.
+  serverExternalPackages: ["pg", "mssql", "ssh2", "bcryptjs", "@azure/identity", "exceljs", "quickjs-emscripten-core", "@jitl/quickjs-singlefile-cjs-release-sync", ...OPTIONAL_EXTERNALS],
+  // Prebuilt Vercel deploys are built on macOS; the darwin sharp/libvips
+  // binaries (~15 MB) cannot run on Vercel's Linux functions and push every
+  // function towards the 250 MB limit.
+  outputFileTracingExcludes: process.env.VERCEL
+    ? { "/*": ["node_modules/@img/sharp-darwin-*/**/*", "node_modules/@img/sharp-libvips-darwin-*/**/*"] }
+    : undefined,
+  // Files read at runtime through paths the tracer is told to ignore (see
+  // lib/function-tracing.ts). Everything else a route needs is traced from
+  // its imports; `npm run check:function-size` verifies both.
+  outputFileTracingIncludes: STANDALONE && isInstalled("tesseract.js-core")
+    ? { ...OUTPUT_FILE_TRACING_INCLUDES, "/**": [...OUTPUT_FILE_TRACING_INCLUDES["/**"], ...TESSERACT_WORKER_FILES] }
+    : OUTPUT_FILE_TRACING_INCLUDES,
   async redirects() {
     return [
       // Apps (formerly Projects) were retired; send old links to automations.
@@ -65,8 +105,10 @@ const nextConfig: NextConfig = {
       { source: "/apps/:path*", destination: "/automations", permanent: true },
       { source: "/projects", destination: "/automations", permanent: true },
       { source: "/projects/:path*", destination: "/automations", permanent: true },
-      // The home dashboard was retired; tasks is the post-login landing page.
-      { source: "/dashboard", destination: "/tasks", permanent: true },
+      // The old dashboard URL lands on Home (/home), the post-login landing page.
+      { source: "/dashboard", destination: "/home", permanent: true },
+      // The Task queue page was folded into My tasks (status Queued).
+      TASK_QUEUE_REDIRECT,
       // Forms, pages and the templates hub were retired; email templates moved
       // to /automations/email-templates.
       { source: "/templates", destination: "/automations", permanent: true },
@@ -86,9 +128,21 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // Custom form control frames (app/form-controls/frame) set their own
+      // CSP (sandboxed, framed by the app only): no DENY framing, no app CSP.
       {
-        source: "/:path*",
+        source: "/((?!form-controls/frame/|f/|form/|form-login|p/).*)",
         headers: securityHeaders,
+      },
+      // Form link pages other sites may embed (lib/forms/embed.ts): no
+      // X-Frame-Options; proxy.ts sets their CSP with `frame-ancestors *`.
+      ...["/f/:path*", "/form/:path*", "/p/:path*", "/form-login"].map((source) => ({
+        source,
+        headers: securityHeaders.filter((h) => h.key !== "X-Frame-Options"),
+      })),
+      {
+        source: "/form-controls/frame/:path*",
+        headers: securityHeaders.filter((h) => h.key !== "Content-Security-Policy" && h.key !== "X-Frame-Options"),
       },
     ];
   },

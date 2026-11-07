@@ -22,6 +22,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
+import { collectionAt, isCollectionPath, normalizeCollectionPath } from '@/lib/response-collections'
 
 export type LookupSource = 'table' | 'reference'
 
@@ -76,11 +77,29 @@ export interface LookupConfig {
   /** Reuse a response for the same inputs for this long (seconds, 0 = no cache). */
   cache_ttl_s?: number
   // ── Both ──
+  /**
+   * What the person sees, as a template over item columns / fields:
+   * `{{name}} ({{code}})`. Empty: the first shown column / field. The value
+   * stored is still the value column / field — the label is display only
+   * (kept as `<key>_label` beside the value and `<key>_item`).
+   */
+  label_template?: string
+  /** Secondary text under each suggestion (template). Empty: the other shown columns / fields, joined. */
+  description_template?: string
+  /** The typed text also matches the stored value (e.g. a code typed directly). Data tables: the value column (not the row id). */
+  search_value?: boolean
   max_results?: number
   min_chars?: number
   multiple?: boolean
   allow_free_text?: boolean
   fill?: LookupFill[]
+  /**
+   * Anonymous forms (/p/<token>): visitors who are not signed in may get
+   * suggestions from this lookup — only its declared columns / fields,
+   * within its filters, capped like everyone's. Off (default): an anonymous
+   * visitor gets nothing from this source (lib/services/anonymous-forms.ts).
+   */
+  anonymous_read?: boolean
 }
 
 /** One suggestion as the browser receives it. */
@@ -107,6 +126,7 @@ export const LOOKUP_LIMITS = {
   maxDebounceMs: 2000,
   maxCacheTtlS: 3600,
   maxTemplate: 500,
+  maxLabelTemplate: 200,
 } as const
 
 /** A data table row's own id, as a lookup column (rows read as `{ row_id, ...data }`). */
@@ -151,6 +171,32 @@ function template(raw: unknown): string {
   return typeof raw === 'string' ? raw.slice(0, LOOKUP_LIMITS.maxTemplate) : raw === undefined || raw === null ? '' : String(raw).slice(0, LOOKUP_LIMITS.maxTemplate)
 }
 
+const DISPLAY_TEMPLATE_RE = /\{\{\s*([^{}\s]+)\s*\}\}/g
+
+/** A display template whose placeholders are all valid columns (tables) / paths (references), or ''. */
+function displayTemplate(raw: unknown, source: LookupSource): string {
+  if (typeof raw !== 'string') return ''
+  const text = raw.replace(/[<>]/g, '').trim().slice(0, LOOKUP_LIMITS.maxLabelTemplate)
+  if (!text.includes('{{')) return ''
+  const refs = displayTemplateFields(text)
+  if (!refs.length || refs.length > LOOKUP_LIMITS.maxColumns) return ''
+  const valid = source === 'table' ? isLookupColumn : isLookupPath
+  return refs.every((r) => valid(r)) ? text : ''
+}
+
+/** Columns / paths a display template reads (`{{name}} ({{code}})` → name, code). */
+export function displayTemplateFields(text: string | undefined): string[] {
+  const out: string[] = []
+  for (const m of String(text ?? '').matchAll(DISPLAY_TEMPLATE_RE)) if (!out.includes(m[1])) out.push(m[1])
+  return out
+}
+
+/** A display template filled from a record (missing values → ''; empty brackets and stray spaces tidied). */
+export function renderDisplayTemplate(text: string, record: unknown): string {
+  const filled = text.replace(DISPLAY_TEMPLATE_RE, (_m, path: string) => displayText(pathValue(record, path)))
+  return filled.replace(/\(\s*\)|\[\s*\]/g, '').replace(/\s+/g, ' ').replace(/\s+([,.;:)\]])/g, '$1').trim()
+}
+
 /** Clean a stored / submitted lookup config (unknown props dropped, columns validated, bounds clamped). */
 export function normalizeLookupConfig(raw: unknown): LookupConfig {
   const src = isPlainObject(raw) ? raw : {}
@@ -190,8 +236,8 @@ export function normalizeLookupConfig(raw: unknown): LookupConfig {
       }
       if (Object.keys(mappings).length) out.input_mappings = mappings
     }
-    const path = typeof src.results_path === 'string' ? src.results_path.trim().replace(/\[\]$/, '').replace(/\.$/, '') : ''
-    if (path && isLookupPath(path)) out.results_path = path
+    const path = typeof src.results_path === 'string' ? normalizeCollectionPath(src.results_path) : ''
+    if (path && isCollectionPath(path)) out.results_path = path
     const display = columnList(src.display_fields, isLookupPath)
     if (display.length) out.display_fields = display
     if (isLookupPath(src.value_field)) out.value_field = src.value_field
@@ -200,12 +246,18 @@ export function normalizeLookupConfig(raw: unknown): LookupConfig {
     const ttl = intIn(src.cache_ttl_s, 0, LOOKUP_LIMITS.maxCacheTtlS)
     if (ttl) out.cache_ttl_s = ttl
   }
+  const labelTemplate = displayTemplate(src.label_template, source)
+  if (labelTemplate) out.label_template = labelTemplate
+  const descriptionTemplate = displayTemplate(src.description_template, source)
+  if (descriptionTemplate) out.description_template = descriptionTemplate
+  if (src.search_value === true) out.search_value = true
   const max = intIn(src.max_results, 1, LOOKUP_LIMITS.maxResults)
   if (max !== undefined && max !== LOOKUP_LIMITS.defaultMaxResults) out.max_results = max
   const minChars = intIn(src.min_chars, 0, LOOKUP_LIMITS.maxMinChars)
   if (minChars !== undefined && minChars !== LOOKUP_LIMITS.defaultMinChars) out.min_chars = minChars
   if (src.multiple === true) out.multiple = true
   if (src.allow_free_text === true) out.allow_free_text = true
+  if (src.anonymous_read === true) out.anonymous_read = true
   if (Array.isArray(src.fill)) {
     const fill: LookupFill[] = []
     for (const f of src.fill) {
@@ -245,7 +297,7 @@ export function lookupValueField(config: LookupConfig): string {
 /** Every item field the server may return: display + value + fill sources (nothing else leaves the server). */
 export function lookupItemFields(config: LookupConfig): string[] {
   const out: string[] = []
-  for (const f of [...lookupDisplayFields(config), lookupValueField(config), ...(config.fill ?? []).map((x) => x.from)]) {
+  for (const f of [...lookupDisplayFields(config), lookupValueField(config), ...displayTemplateFields(config.label_template), ...displayTemplateFields(config.description_template), ...(config.fill ?? []).map((x) => x.from)]) {
     if (f && !out.includes(f)) out.push(f)
   }
   return out
@@ -253,7 +305,7 @@ export function lookupItemFields(config: LookupConfig): string[] {
 
 /** Columns the config touches (for validating against the table's columns). */
 export function lookupTableColumns(config: LookupConfig): string[] {
-  const out = new Set<string>([...(config.search_columns ?? []), ...(config.display_columns ?? []), ...(config.filters ?? []).map((f) => f.column), ...(config.fill ?? []).map((f) => f.from)])
+  const out = new Set<string>([...(config.search_columns ?? []), ...(config.display_columns ?? []), ...displayTemplateFields(config.label_template), ...displayTemplateFields(config.description_template), ...(config.filters ?? []).map((f) => f.column), ...(config.fill ?? []).map((f) => f.from)])
   if (config.value_column) out.add(config.value_column)
   if (config.sort) out.add(config.sort.column)
   out.delete(LOOKUP_ROW_ID)
@@ -270,10 +322,10 @@ export function lookupConfigProblem(config: LookupConfig | undefined, ownKey: st
   if (config.source === 'table') {
     if (!config.table_id) return 'Choose a data table'
     if (!config.search_columns?.length) return 'Choose at least one column to search'
-    if (!config.display_columns?.length) return 'Choose at least one column to show'
+    if (!config.display_columns?.length && !config.label_template) return 'Choose at least one column to show'
   } else {
     if (!config.reference_id) return 'Choose an API reference'
-    if (!config.display_fields?.length) return 'Choose at least one field to show'
+    if (!config.display_fields?.length && !config.label_template) return 'Choose at least one field to show'
     if (!config.value_field) return 'Choose the field to store as the value'
   }
   for (const fill of config.fill ?? []) {
@@ -349,21 +401,39 @@ export function toLookupItem(config: LookupConfig, record: unknown): LookupItem 
   if (rawValue === null || rawValue === undefined || rawValue === '' || typeof rawValue === 'object') return null
   const fields: Record<string, unknown> = {}
   for (const path of lookupItemFields(config)) setPath(fields, path, scalar(pathValue(record, path)))
-  const display = lookupDisplayFields(config)
-  const texts = display.map((path) => displayText(pathValue(record, path))).filter(Boolean)
   const value = String(rawValue)
-  const item: LookupItem = { value, label: texts[0] ?? value, fields }
-  if (texts.length > 1) item.description = texts.slice(1).join(' · ')
+  const item: LookupItem = { value, label: lookupLabel(config, record, value), fields }
+  const description = lookupDescription(config, record)
+  if (description) item.description = description
   return item
+}
+
+/** The label of a record / stored item: the label template, else the first shown field, else the value. */
+export function lookupLabel(config: LookupConfig, record: unknown, value: string): string {
+  if (config.label_template) {
+    const text = renderDisplayTemplate(config.label_template, record)
+    if (text) return text.slice(0, 500)
+  }
+  const texts = lookupDisplayFields(config).map((path) => displayText(pathValue(record, path))).filter(Boolean)
+  return texts[0] ?? value
+}
+
+/** The secondary text of a suggestion: the description template, else the other shown fields joined. */
+export function lookupDescription(config: LookupConfig, record: unknown): string {
+  if (config.description_template) return renderDisplayTemplate(config.description_template, record).slice(0, 500)
+  const texts = lookupDisplayFields(config).map((path) => displayText(pathValue(record, path))).filter(Boolean)
+  return texts.slice(1).join(' · ')
+}
+
+/** `<key>_label` of a lookup field: the display label(s) of the stored value (an array when multiple). */
+export function lookupLabelKey(key: string): string {
+  return `${key}_label`
 }
 
 /** The results array of a reference response (`results_path`, or the response / its first array). */
 export function lookupResultsArray(config: LookupConfig, data: unknown): unknown[] {
-  const at = config.results_path ? pathValue(data, config.results_path) : data
-  if (Array.isArray(at)) return at
-  // A single object at the path: one result.
-  if (isPlainObject(at) && config.results_path) return [at]
-  return []
+  // Any depth (`data.result.items`, `value[0].children`, `orders[].lines`); a single object at the path is one result.
+  return collectionAt(data, config.results_path)
 }
 
 /**
@@ -400,11 +470,22 @@ export function lookupValues(value: unknown, multiple: boolean | undefined): str
 
 /* ── Templates (filters, reference inputs) ───────────────────────────── */
 
+/**
+ * `param.x` → `__form_params.x`, `var.x` → `__form_vars.x`: the form's parameters / variables in
+ * the values (lib/forms/form-params.ts formContextPath; inlined so this module keeps no import of it).
+ */
+function contextPath(path: string): string | null {
+  if (path === 'param' || path.startsWith('param.')) return `__form_params${path.slice(5)}`
+  if (path === 'var' || path.startsWith('var.')) return `__form_vars${path.slice(3)}`
+  if (path === 'control' || path.startsWith('control.')) return `__form_controls${path.slice(7)}`
+  return null
+}
+
 const TEMPLATE_RE = /\{\{\s*([\w.\-[\]]+)\s*\}\}/g
 
 /** Paths resolved at lookup time (the form's own values, the search text, the task); everything else is a workflow variable resolved when the task is created. */
 export function isLookupTimePath(path: string): boolean {
-  return /^(search|query|task_data|task|form)(\.|$)/.test(path)
+  return /^(search|query|task_data|task|form|param|var|control)(\.|$)/.test(path)
 }
 
 /** Field keys a template refers to as {{task_data.<key>}} / {{form.<key>}} / {{task.data.<key>}}. */
@@ -455,6 +536,9 @@ export function resolveLookupTemplate(text: string, scope: { search: string; val
     if (path === 'search' || path === 'query') return scope.search
     let m = /^(?:task_data|form|task\.data)\.(.+)$/.exec(path)
     if (m) return pathValue(scope.values, m[1])
+    // {{param.x}} / {{var.x}}: the form's parameters and variables, validated by the server (lib/forms/form-params.ts).
+    const context = contextPath(path)
+    if (context) return pathValue(scope.values, context)
     m = /^task\.(.+)$/.exec(path)
     if (m && scope.task) return pathValue(scope.task, m[1])
     return undefined
@@ -473,8 +557,20 @@ export function resolveLookupTemplate(text: string, scope: { search: string; val
 /** Display label of a stored item (`<key>_item` entry): its first display field, else the value. */
 export function storedItemLabel(config: LookupConfig | undefined, item: unknown, value: string): string {
   if (!config || !isPlainObject(item)) return value
-  const texts = lookupDisplayFields(config).map((path) => displayText(pathValue(item, path))).filter(Boolean)
-  return texts[0] ?? value
+  return lookupLabel(config, item, value)
+}
+
+/**
+ * The `<key>_label` to store for the selected value(s) and their stored
+ * items: a string (single), a list (multiple) or null when nothing is chosen.
+ * A value without an item (free text) labels itself.
+ */
+export function lookupStoredLabels(config: LookupConfig, value: unknown, stored: unknown): string | string[] | null {
+  const values = lookupValues(value, config.multiple)
+  const byValue = storedItemsByValue(config, stored)
+  const labels = values.map((v) => storedItemLabel(config, byValue.get(v), v))
+  if (config.multiple) return labels
+  return labels[0] ?? null
 }
 
 /** Stored `<key>_item` entries (object or array) by value. */

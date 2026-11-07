@@ -6,6 +6,7 @@
  */
 
 import { normalizeReportConfig } from '@/lib/report-config'
+import { scopeReportRead } from '@/lib/reports-access'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { audit, dbError } from './_shared'
 
@@ -21,8 +22,8 @@ export interface ReportExport {
 
 export async function exportReport(ctx: ServiceContext, reportId: string): Promise<ReportExport> {
   requirePerm(ctx, 'reports.view')
-  const { data, error } = await (ctx.supabase as any).from('reports')
-    .select('*').eq('id', reportId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  const { data, error } = await scopeReportRead((ctx.supabase as any).from('reports')
+    .select('*').eq('id', reportId).eq('tenant_id', ctx.tenantId), ctx.actorId).maybeSingle()
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Report not found')
   return {

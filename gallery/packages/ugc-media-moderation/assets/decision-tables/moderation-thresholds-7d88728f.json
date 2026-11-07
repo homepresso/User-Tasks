@@ -1,0 +1,135 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "7d88728f-9cf3-5ce9-aeb4-f072ea109614",
+  "asset": {
+    "id": "7d88728f-9cf3-5ce9-aeb4-f072ea109614",
+    "name": "Moderation thresholds",
+    "description": "Automatic approve and reject bands for the AI risk score, and categories that always go to a person. Tune them to your community guidelines.",
+    "inputs": [
+      {
+        "key": "risk_score",
+        "label": "Risk score (0-1)",
+        "type": "number",
+        "id": "f9439d94-53a4-5a93-bae8-f4333f13e959"
+      },
+      {
+        "key": "category",
+        "label": "Top category",
+        "type": "string",
+        "id": "a09c0022-937e-569d-a8a4-9ffdf294fdc9"
+      },
+      {
+        "key": "minor_safety",
+        "label": "Minor safety concern",
+        "type": "string",
+        "id": "91e944e7-5155-5361-80cd-7d05b847623b"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "action",
+        "label": "Action",
+        "type": "string",
+        "id": "b50561ee-5da6-53ed-9df4-158afc65756f"
+      },
+      {
+        "key": "priority",
+        "label": "Queue priority",
+        "type": "string",
+        "id": "217989f5-bf1e-54cb-a5c1-41bc2114cff0"
+      },
+      {
+        "key": "reason",
+        "label": "Reason",
+        "type": "string",
+        "id": "89620317-6922-5a77-8790-72579d50e72c"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Possible child safety issue",
+        "conditions": [
+          {
+            "inputKey": "minor_safety",
+            "operator": "equals",
+            "value": "true",
+            "id": "c0be983e-a60d-5d3b-a4dc-dfc397d041a5"
+          }
+        ],
+        "outputs": {
+          "action": "Review",
+          "priority": "critical",
+          "reason": "Possible child safety issue: specialist review and your legal reporting process"
+        },
+        "id": "2d97bc37-0124-5f34-866e-b42b3d7ffa82",
+        "enabled": true
+      },
+      {
+        "label": "High risk",
+        "conditions": [
+          {
+            "inputKey": "risk_score",
+            "operator": "greater_than_or_equal",
+            "value": 0.85,
+            "id": "738413ab-1723-5e10-af96-077c7f133000"
+          }
+        ],
+        "outputs": {
+          "action": "Reject",
+          "priority": "high",
+          "reason": "High risk score"
+        },
+        "id": "945263c4-84f7-54f1-9c39-50962ea2f432",
+        "enabled": true
+      },
+      {
+        "label": "Self-harm always reviewed",
+        "conditions": [
+          {
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "self_harm",
+            "id": "58c82c03-0b70-54bf-a989-69353ebf47cc"
+          }
+        ],
+        "outputs": {
+          "action": "Review",
+          "priority": "high",
+          "reason": "Self-harm content is always reviewed by a person"
+        },
+        "id": "fe40478a-7cfa-54e0-83e2-752a2cfeaf59",
+        "enabled": true
+      },
+      {
+        "label": "Borderline",
+        "conditions": [
+          {
+            "inputKey": "risk_score",
+            "operator": "greater_than_or_equal",
+            "value": 0.3,
+            "id": "9e41d111-8b4f-53f5-93c8-9128376d5ce2"
+          }
+        ],
+        "outputs": {
+          "action": "Review",
+          "priority": "medium",
+          "reason": "Borderline risk score"
+        },
+        "id": "63adf289-a9da-5002-9da7-97d021f71acd",
+        "enabled": true
+      },
+      {
+        "label": "Low risk",
+        "conditions": [],
+        "outputs": {
+          "action": "Approve",
+          "priority": "low",
+          "reason": "Low risk score"
+        },
+        "id": "27f4f4f9-1480-58ff-8a76-fe6b9df7ff4d",
+        "enabled": true
+      }
+    ]
+  }
+}

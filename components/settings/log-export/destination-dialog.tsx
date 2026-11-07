@@ -1,7 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import * as Dialog from '@radix-ui/react-dialog'
+import { overlayClass } from '@/components/ui/dialog'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,7 +42,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <div>
       <label className="block text-xs font-medium mb-1.5">{label}</label>
       {children}
-      {hint && <p className="text-[11px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{hint}</p>}
+      {hint && <p className="text-2xs mt-1 text-fg-muted">{hint}</p>}
     </div>
   )
 }
@@ -73,17 +75,16 @@ export function DestinationDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dialog-overlay" />
+        <Dialog.Overlay className={overlayClass} />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-50 w-[min(40rem,94vw)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl p-6 shadow-xl dialog-content"
-          style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }}
+          className="fixed left-1/2 top-1/2 z-50 w-[min(40rem,94vw)] max-h-[90vh] [transform:translate(-50%,-50%)] overflow-y-auto rounded-xl p-6 shadow-elev-3 ds-dialog bg-elevated text-fg"
         >
           <div className="flex items-start justify-between mb-4">
             <div>
               <Dialog.Title className="text-lg font-semibold">
                 {destination ? `Edit ${destination.name}` : 'Add log destination'}
               </Dialog.Title>
-              <Dialog.Description className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+              <Dialog.Description className="text-xs mt-0.5 text-fg-muted">
                 Events are shipped continuously, at least once, usually within seconds.
               </Dialog.Description>
             </div>
@@ -122,6 +123,8 @@ function DestinationFormBody({
   const [form, setForm] = useState<DestinationForm>(() => (destination ? formFromDestination(destination) : emptyForm('webhook')))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // Synchronous guard: a double click / double Enter must not add the destination twice.
+  const saveGuard = useSubmitGuard()
   const set = <K extends keyof DestinationForm>(key: K, value: DestinationForm[K]) => setForm((prev) => ({ ...prev, [key]: value }))
 
   const { data: workflows } = useQuery({
@@ -138,25 +141,27 @@ function DestinationFormBody({
   )
 
   async function save() {
-    const invalid = validateForm(form, mode)
-    if (invalid) { setError(invalid); return }
-    setSaving(true)
-    setError(null)
-    try {
-      if (destination) {
-        const result = await updateLogDestinationAction(String(destination.id), buildUpdateInput(form, destination))
-        if (!result.ok) { setError(result.error); return }
-        onSaved({ name: result.data.log_destination.name })
-      } else {
-        const result = await createLogDestinationAction(buildCreateInput(form))
-        if (!result.ok) { setError(result.error); return }
-        onSaved({ name: result.data.log_destination.name, signingSecret: result.data.signing_secret })
+    await saveGuard.run(async () => {
+      const invalid = validateForm(form, mode)
+      if (invalid) { setError(invalid); return }
+      setSaving(true)
+      setError(null)
+      try {
+        if (destination) {
+          const result = await updateLogDestinationAction(String(destination.id), buildUpdateInput(form, destination))
+          if (!result.ok) { setError(result.error); return }
+          onSaved({ name: result.data.log_destination.name })
+        } else {
+          const result = await createLogDestinationAction(buildCreateInput(form))
+          if (!result.ok) { setError(result.error); return }
+          onSaved({ name: result.data.log_destination.name, signingSecret: result.data.signing_secret })
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setSaving(false)
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   const restricted = exportsRestricted(form.categories)

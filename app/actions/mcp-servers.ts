@@ -4,6 +4,8 @@ import { requirePermission } from '@/lib/permissions-server'
 import { writeAudit } from '@/lib/audit-log'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
 import { requireTenant } from '@/lib/actions/require-tenant'
+import { encryptSensitiveFields } from '@/lib/secret-fields'
+import { findRecentDuplicate } from '@/lib/recent-duplicate'
 
 export async function addMcpServer(input: {
   name: string
@@ -22,12 +24,23 @@ export async function addMcpServer(input: {
   if (['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host)) {
     throw new Error('Private network URLs are not allowed')
   }
+  try {
+    const { assertSafeEgressUrl } = await import('@/lib/egress-guard')
+    await assertSafeEgressUrl(url)
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'That URL is not allowed')
+  }
 
   const authConfig = input.authType === 'bearer'
     ? { token: input.token ?? '' }
     : input.authType === 'api_key'
       ? { key_name: 'X-API-Key', key_value: input.token ?? '' }
       : {}
+
+  // A repeated submit (double click, retry) must not add the same server twice
+  // (created_by isn't stored, so match tenant + name + URL).
+  const recent = await findRecentDuplicate<{ id: string }>(supabase, 'mcp_servers', { tenant_id: tenantId, name, url })
+  if (recent) return recent.id
 
   const { data, error } = await (supabase as any)
     .from('mcp_servers')
@@ -36,7 +49,8 @@ export async function addMcpServer(input: {
       name,
       url,
       auth_type: input.authType,
-      auth_config: authConfig,
+      // Credentials are encrypted at rest (decrypted only when an agent calls the server).
+      auth_config: encryptSensitiveFields(authConfig),
       is_active: true,
     })
     .select('id')

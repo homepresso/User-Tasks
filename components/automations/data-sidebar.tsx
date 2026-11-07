@@ -9,7 +9,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Database, X } from 'lucide-react'
+import { Database, PanelRightOpen, X } from 'lucide-react'
+import { IconButton } from '@/components/ui/icon-button'
+import { Kbd } from '@/components/ui/kbd'
 import { buildDataTree, type PickerEdgeLike, type PickerNodeLike, type PickerWorkflowVariable } from '@/lib/workflow-data-picker'
 import { DataTree } from './data-picker'
 import { useActiveInput } from './active-input'
@@ -17,14 +19,19 @@ import { useLinkedForms } from './linked-forms'
 
 const STORAGE_KEY = 'ut.workflow.dataSidebar'
 
-/** Open/closed state of the sidebar, remembered per viewer (open by default). */
+/**
+ * Docked state of the Data panel, remembered per viewer. The panel always
+ * lives in the inspector's Data tab; docked, it also gets its own column
+ * beside the inspector so fields can be dragged onto the step's inputs.
+ * Not docked by default (the canvas keeps its width).
+ */
 export function useDataSidebarState(): [boolean, (next: boolean | ((current: boolean) => boolean)) => void] {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY)
-      if (stored === '0') setOpen(false)
-    } catch { /* storage unavailable: default open */ }
+      if (stored === '1') setOpen(true) // eslint-disable-line react-hooks/set-state-in-effect -- read once after hydration
+    } catch { /* storage unavailable: default undocked */ }
   }, [])
   const update = useCallback((next: boolean | ((current: boolean) => boolean)) => {
     setOpen((current) => {
@@ -41,13 +48,17 @@ export function isDataSidebarShortcut(event: KeyboardEvent): boolean {
   return event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.code === 'KeyD'
 }
 
-export function DataSidebar({ nodes, edges, selectedNodeId, workflowVariables, onInsertLoopBefore, onClose }: {
+export function DataSidebar({ nodes, edges, selectedNodeId, workflowVariables, onInsertLoopBefore, onClose, embedded = false, onDock }: {
   nodes: PickerNodeLike[]
   edges: PickerEdgeLike[]
   selectedNodeId: string | null
   workflowVariables?: PickerWorkflowVariable[]
   onInsertLoopBefore?: (nodeId: string, itemsExpression: string) => void
   onClose: () => void
+  /** Rendered inside the inspector's Data tab (no frame; offers "Dock beside"). */
+  embedded?: boolean
+  /** Embedded only: dock the panel as its own column. */
+  onDock?: () => void
 }) {
   const { insertIntoActive } = useActiveInput()
   const linkedForms = useLinkedForms()
@@ -72,38 +83,58 @@ export function DataSidebar({ nodes, edges, selectedNodeId, workflowVariables, o
     }
   }
 
+  const intro = (
+    <p className="text-xs leading-snug text-fg-muted">
+      {selected
+        ? <>Available at <strong className="font-medium text-fg">{selected.label}</strong>. Drag onto an input, or click to insert where you last typed.</>
+        : 'Select a step to see the data available to it. Drag onto an input, or click to insert.'}
+    </p>
+  )
+  const statusLine = <p role="status" aria-live="polite" className="min-h-4 text-2xs text-primary-text">{status ?? ''}</p>
+  const tree = (
+    <DataTree
+      key={selectedNodeId ?? 'none'}
+      groups={groups}
+      className="flex min-h-0 flex-1 flex-col"
+      fill
+      onPick={apply}
+      onLoop={selectedNodeId && onInsertLoopBefore && selected?.type !== 'loop' ? (items, insert) => { onInsertLoopBefore(selectedNodeId, items); apply(insert) } : undefined}
+    />
+  )
+
+  if (embedded) {
+    return (
+      <div aria-label="Data" className="flex h-full min-h-0 flex-col" data-no-dnd="true">
+        <div className="flex items-start gap-2 pb-1">
+          <div className="min-w-0 flex-1">{intro}</div>
+          {onDock && (
+            <IconButton size="sm" label="Dock beside the inspector (⌥D) to drag fields onto inputs" icon={<PanelRightOpen />} onClick={onDock} />
+          )}
+        </div>
+        {statusLine}
+        {tree}
+      </div>
+    )
+  }
+
   return (
     <aside
       aria-label="Data"
-      className="w-64 shrink-0 flex flex-col overflow-hidden rounded-xl border max-lg:hidden"
-      style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+      className="flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-panel max-lg:hidden"
       data-no-dnd="true"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-border-subtle px-3">
         <div className="flex items-center gap-1.5">
-          <Database size={14} aria-hidden style={{ color: 'var(--theme-primary-text)' }} />
-          <span className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>Data</span>
-          <kbd className="rounded border px-1 text-[9px]" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }} title="Toggle the Data sidebar">⌥D</kbd>
+          <Database size={14} aria-hidden className="text-fg-muted" />
+          <span className="text-ui font-semibold text-fg">Data</span>
+          <Kbd>⌥D</Kbd>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close the Data sidebar" className="rounded p-0.5 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-          <X size={14} aria-hidden />
-        </button>
+        <IconButton size="sm" label="Close the Data sidebar" icon={<X />} onClick={onClose} />
       </div>
-      <p className="px-3 pt-2 text-[11px] leading-snug" style={{ color: 'var(--theme-muted-text)' }}>
-        {selected
-          ? <>Available at <strong style={{ color: 'var(--theme-card-text)' }}>{selected.label}</strong>. Drag onto an input, or click to insert where you last typed.</>
-          : 'Select a step to see the data available to it. Drag onto an input, or click to insert.'}
-      </p>
-      <p role="status" aria-live="polite" className="min-h-[16px] px-3 text-[10px]" style={{ color: 'var(--theme-primary-text)' }}>{status ?? ''}</p>
-      <DataTree
-        key={selectedNodeId ?? 'none'}
-        groups={groups}
-        className="flex min-h-0 flex-1 flex-col"
-        fill
-        onPick={apply}
-        onLoop={selectedNodeId && onInsertLoopBefore && selected?.type !== 'loop' ? (items, insert) => { onInsertLoopBefore(selectedNodeId, items); apply(insert) } : undefined}
-      />
+      <div className="px-3 pt-2">{intro}</div>
+      <div className="px-3">{statusLine}</div>
+      {tree}
     </aside>
   )
 }

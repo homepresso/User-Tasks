@@ -1,0 +1,94 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+  "asset": {
+    "id": "634615f8-afe5-554f-b6a0-4ff133c2ab3a",
+    "name": "Attendees",
+    "description": "Everyone registered, one row per person: their session, dietary and accessibility needs and status. The organiser dashboard emails this list.",
+    "columns": [
+      {
+        "id": "d9f3f6fd-6588-5bf3-b238-88656c7e39bd",
+        "required": true,
+        "key": "attendee_ref",
+        "name": "Attendee",
+        "type": "text"
+      },
+      {
+        "id": "4a780504-1955-53c8-ac6b-d2c943412a24",
+        "required": false,
+        "key": "reg_ref",
+        "name": "Registration",
+        "type": "text"
+      },
+      {
+        "id": "9f1a23f2-4128-5519-bc19-a096daff7bf2",
+        "required": false,
+        "key": "event_code",
+        "name": "Event code",
+        "type": "text"
+      },
+      {
+        "id": "dea752e6-303a-5a76-9149-785a5702d70d",
+        "required": false,
+        "key": "session",
+        "name": "Session",
+        "type": "text"
+      },
+      {
+        "id": "f0ddb5f3-1902-5fa4-9bb6-fa7f22dd6f0f",
+        "required": false,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "8fba75a4-df5a-52a5-8d4e-af085b80b567",
+        "required": false,
+        "key": "email",
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "id": "1344d637-894b-53fe-b89c-048ff7d9b6d2",
+        "required": false,
+        "key": "dietary",
+        "name": "Dietary",
+        "type": "select",
+        "options": [
+          "None",
+          "Vegetarian",
+          "Vegan",
+          "Gluten free",
+          "Halal",
+          "Other"
+        ]
+      },
+      {
+        "id": "932ddd6f-0329-5ddf-9d5f-c49eb6b77e75",
+        "required": false,
+        "key": "accessibility",
+        "name": "Accessibility needs",
+        "type": "text"
+      },
+      {
+        "id": "d456e06a-bc52-57e4-bb8a-c406de622ae0",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Confirmed",
+          "Waitlisted"
+        ]
+      },
+      {
+        "id": "18123934-4bbe-541c-9032-9489e08f5730",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      }
+    ]
+  }
+}

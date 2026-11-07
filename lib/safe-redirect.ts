@@ -5,7 +5,7 @@
  * authorize→login bounce, and the auth callback — the `?redirect=` parameter
  * is attacker-influenceable in all three.
  */
-export function sanitizeRedirect(raw: string | null | undefined, fallback = '/tasks'): string {
+export function sanitizeRedirect(raw: string | null | undefined, fallback = '/home'): string {
   const candidate = String(raw ?? '').trim()
   if (!candidate) return fallback
   // Must start with a single '/' not followed by '/' or '\'

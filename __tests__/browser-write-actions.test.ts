@@ -27,13 +27,14 @@ import { createMemorySupabase } from './fixtures/supabase-memory'
 function sessionDb(perms: Record<string, string[]>, memberOf = Object.keys(perms)) {
   const db = createMemorySupabase({
     tasks: [
-      { id: 'task-a', tenant_id: 'tenant-a', title: 'A', status: 'completed', actual_effort: 0, deleted_at: null },
-      { id: 'task-b', tenant_id: 'tenant-b', title: 'B', status: 'completed', actual_effort: 0, deleted_at: null },
+      { id: 'task-a', tenant_id: 'tenant-a', title: 'A', status: 'completed', assignee_id: 'user-1', actual_effort: 0, deleted_at: null },
+      { id: 'task-b', tenant_id: 'tenant-b', title: 'B', status: 'completed', assignee_id: 'user-1', actual_effort: 0, deleted_at: null },
     ],
     users: [{ id: 'user-1', current_tenant_id: 'tenant-a', tenant_id: 'tenant-a' }],
     custom_tables: [{ id: 'tbl-a', tenant_id: 'tenant-a' }],
     effort_records: [],
     lifecycle_events: [],
+    task_assignees: [],
   }) as any
   db.rpc = vi.fn(async (name: string, args?: any) => {
     if (name === 'get_user_tenant_ids') return { data: memberOf, error: null }

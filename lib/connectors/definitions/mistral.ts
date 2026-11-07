@@ -18,7 +18,7 @@ export const mistralConnector: ConnectorDefinition = {
         { value: 'mistral-medium-latest', label: 'Mistral Medium' },
         { value: 'mistral-small-latest', label: 'Mistral Small' },
         { value: 'codestral-latest', label: 'Codestral' },
-        { value: 'open-mistral-nemo', label: 'Mistral Nemo' },
+
       ],
       defaultValue: 'mistral-large-latest',
     },
@@ -30,15 +30,15 @@ export const mistralConnector: ConnectorDefinition = {
     {
       key: 'chat_completion', name: 'Chat Completion', description: 'Generate a chat completion', method: 'POST', pathTemplate: '/v1/chat/completions',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ model: '{{model}}', messages: [{ role: 'system', content: '{{system_prompt}}' }, { role: 'user', content: '{{user_message}}' }], max_tokens: '{{max_tokens}}', temperature: '{{temperature}}' }),
+      bodyTemplate: '{"model":"{{model}}","messages":[{"role":"system","content":"{{system_prompt}}"},{"role":"user","content":"{{user_message}}"}],"max_tokens":{{max_tokens}},"temperature":{{temperature}}}',
       inputs: [
         { name: 'model', type: 'string', required: false, description: 'Model name', defaultValue: 'mistral-large-latest' },
-        { name: 'system_prompt', type: 'string', required: false, description: 'System prompt' },
+        { name: 'system_prompt', type: 'string', required: false, description: 'System prompt', defaultValue: 'You are a helpful assistant.' },
         { name: 'user_message', type: 'string', required: true, description: 'User message' },
         { name: 'max_tokens', type: 'number', required: false, description: 'Max tokens', defaultValue: '1024' },
         { name: 'temperature', type: 'number', required: false, description: 'Temperature 0-1', defaultValue: '0.7' },
       ],
-      outputs: [{ name: 'content', type: 'string' }, { name: 'usage', type: 'object' }],
+      outputs: [{ name: 'choices.0.message.content', type: 'string' }, { name: 'usage', type: 'object' }],
     },
   ],
   buildIntegrationConfig: (_config, credentials) => ({

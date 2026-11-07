@@ -1,10 +1,11 @@
 'use client'
 
 /**
- * Generic activity feed renderer used by the global /activity page and
- * the trace viewer. Takes an array of ActivityItems and renders them
- * as a vertical timeline with colored dots, actor attribution, and
- * optional click-through links.
+ * Generic activity feed renderer used by the global /activity page. Takes
+ * ActivityItems (newest first) and renders them grouped by day (§5.17): a
+ * 12px muted sticky header per day, then one row per event — avatar,
+ * actor + action + object link, and a right-aligned relative time with the
+ * absolute time in a tooltip.
  *
  * Purpose-built for the observability layer — keeps the existing
  * components/tasks/timeline.tsx untouched (it has task-specific
@@ -12,13 +13,17 @@
  */
 
 import Link from 'next/link'
-import type { ReactNode } from 'react'
 import {
   Activity, Bot, GitBranch, Network, Database,
-  Users, Key, Palette, Server, CheckCircle2, XCircle, AlertCircle,
-  Plus, Pencil, Trash2, Play, Pause, Eye, ArrowRight, Clock,
+  Users, Key, Palette, Server, ClipboardList, ChevronRight,
 } from 'lucide-react'
-import { formatRelativeDate } from '@/lib/utils'
+import { Avatar } from '@/components/ui/avatar'
+import { Tag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { formatDay, toDate } from '@/lib/format/date'
+import { cn } from '@/lib/utils'
+import { auditActionLabel, auditObjectTypeLabel } from '@/lib/audit-labels'
+import { RelativeTime } from './relative-time'
 
 export interface ActivityItem {
   id: string
@@ -51,6 +56,8 @@ const OBJECT_ICONS: Record<string, any> = {
   integration_call: Network,
   report: Activity,
   data_table: Database,
+  form: ClipboardList,
+  form_theme: ClipboardList,
   team: Users,
   role: Users,
   api_key: Key,
@@ -58,42 +65,11 @@ const OBJECT_ICONS: Record<string, any> = {
   mcp_server: Server,
 }
 
-const ACTION_COLORS: Record<string, string> = {
-  create: 'var(--theme-success)',
-  update: 'var(--theme-primary)',
-  delete: 'var(--theme-danger)',
-  publish: 'var(--theme-success)',
-  unpublish: 'var(--theme-warning)',
-  toggle: 'var(--theme-primary)',
-  rename: 'var(--theme-primary)',
-  execute: 'var(--status-info)',
-  grant: 'var(--theme-success)',
-  revoke: 'var(--theme-danger)',
-  restore: 'var(--theme-success)',
-  duplicate: 'var(--status-info)',
-  share: 'var(--status-info)',
-  unshare: 'var(--theme-muted-text)',
-}
-
-const ACTION_ICONS: Record<string, any> = {
-  create: Plus,
-  update: Pencil,
-  delete: Trash2,
-  publish: Play,
-  unpublish: Pause,
-  toggle: Play,
-  execute: Play,
-}
-
-function colorFor(item: ActivityItem): string {
-  if (item.severity === 'error') return 'var(--theme-danger)'
-  if (item.severity === 'warning') return 'var(--theme-warning)'
-  if (item.severity === 'success') return 'var(--theme-success)'
-  return ACTION_COLORS[item.action] ?? 'var(--theme-muted-text)'
-}
-
-function iconFor(item: ActivityItem): any {
-  return ACTION_ICONS[item.action] ?? OBJECT_ICONS[item.objectType] ?? Activity
+const SEVERITY_TEXT: Record<NonNullable<ActivityItem['severity']>, string> = {
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-danger',
 }
 
 interface ActivityFeedProps {
@@ -106,64 +82,92 @@ interface ActivityFeedProps {
   compact?: boolean
 }
 
+/** Local calendar-day key ("2026-11-04") of a timestamp. */
+function dayKey(iso: string): string {
+  const d = toDate(iso)
+  if (!d) return 'unknown'
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** "Today", "Yesterday", then "27 Oct" / "27 Oct 2025". */
+export function dayLabel(iso: string, now: Date = new Date()): string {
+  const key = dayKey(iso)
+  if (key === dayKey(now.toISOString())) return 'Today'
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (key === dayKey(yesterday.toISOString())) return 'Yesterday'
+  return formatDay(iso)
+}
+
+/** Consecutive items grouped by local day (the feed is newest first). */
+export function groupByDay(items: ActivityItem[]): Array<{ key: string; label: string; items: ActivityItem[] }> {
+  const groups: Array<{ key: string; label: string; items: ActivityItem[] }> = []
+  for (const item of items) {
+    const key = dayKey(item.timestamp)
+    const last = groups[groups.length - 1]
+    if (last && last.key === key) last.items.push(item)
+    else groups.push({ key, label: dayLabel(item.timestamp), items: [item] })
+  }
+  return groups
+}
+
 export function ActivityFeed({ items, emptyMessage = 'No activity yet', className = '', compact = false }: ActivityFeedProps) {
   if (items.length === 0) {
     return (
-      <div className={`rounded-xl border p-8 text-center ${className}`}
-        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-        <Activity size={28} className="mx-auto mb-2" style={{ color: 'var(--theme-muted-text)', opacity: 0.5 }} />
-        <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>{emptyMessage}</p>
+      <div className={cn('rounded-lg border border-border bg-panel', className)}>
+        <EmptyState size="sm" icon={Activity} title={emptyMessage} />
       </div>
     )
   }
 
-  const padX = compact ? 'px-3' : 'px-4'
-  const padY = compact ? 'py-2' : 'py-3'
-
   return (
-    <div className={`rounded-xl border overflow-hidden ${className}`}
-      style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-      {items.map((item, i) => {
-        const Icon = iconFor(item)
-        const color = colorFor(item)
-        const row = (
-          <div className={`flex items-start gap-3 ${padX} ${padY} transition-colors ${item.href ? 'hover:bg-[var(--theme-row-highlight)]' : ''}`}
-            style={{ borderTop: i > 0 ? '1px solid var(--theme-surface-border)' : undefined }}>
-            {/* Icon bubble */}
-            <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
-              style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <Icon size={12} style={{ color }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>
-                  {item.summary}
-                </span>
-                {item.badge && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono uppercase"
-                    style={{ backgroundColor: 'var(--theme-row-highlight)', color: 'var(--theme-muted-text)' }}>
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-0.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                <span className="capitalize font-mono">{item.objectType.replace(/_/g, ' ')}</span>
-                <span>·</span>
-                <span className="capitalize">{item.action.replace(/_/g, ' ')}</span>
-                {item.actor && <><span>·</span><span>{item.actor}</span></>}
-                <span>·</span>
-                <span>{formatRelativeDate(item.timestamp)}</span>
-              </div>
-            </div>
-            {item.href && <ArrowRight size={12} className="shrink-0 mt-2" style={{ color: 'var(--theme-muted-text)' }} />}
-          </div>
-        )
-        if (item.href) {
-          return <Link key={item.id} href={item.href} className="block">{row}</Link>
-        }
-        return <div key={item.id}>{row}</div>
-      })}
+    <div className={cn('overflow-hidden rounded-lg border border-border bg-panel', className)} data-activity-feed>
+      {groupByDay(items).map((group) => (
+        <section key={group.key} aria-label={group.label}>
+          <h3 className="sticky top-0 z-[1] border-b border-border-subtle bg-subtle px-4 py-1.5 text-xs font-medium text-fg-muted">
+            {group.label}
+          </h3>
+          <ul>
+            {group.items.map((item) => (
+              <FeedRow key={item.id} item={item} compact={compact} />
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
+  )
+}
+
+function FeedRow({ item, compact }: { item: ActivityItem; compact: boolean }) {
+  const Icon = OBJECT_ICONS[item.objectType] ?? Activity
+  const actor = item.actor || 'System'
+  const object = (
+    <span className="truncate">{item.summary}</span>
+  )
+  return (
+    <li className={cn('flex items-center gap-3 border-b border-border-subtle px-4 last:border-b-0', compact ? 'py-1.5' : 'py-2', item.href && 'transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle')}>
+      {item.actor ? <Avatar name={item.actor} size="sm" /> : (
+        <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-fg-muted" aria-hidden>
+          <Icon className="size-3.5" />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="flex min-w-0 items-baseline gap-1.5 text-ui text-fg">
+          <span className="shrink-0 font-medium">{actor}</span>
+          <span className={cn('shrink-0 text-fg-muted', item.severity && SEVERITY_TEXT[item.severity])}>{auditActionLabel(item.action).toLowerCase()}</span>
+          {item.href ? (
+            <Link href={item.href} className="min-w-0 truncate text-primary-text hover:underline">{item.summary}</Link>
+          ) : object}
+        </p>
+        <p className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-muted">
+          <Icon className="size-3.5 shrink-0" aria-hidden />
+          {auditObjectTypeLabel(item.objectType)}
+          {item.badge && <Tag mono>{item.badge}</Tag>}
+        </p>
+      </div>
+      <RelativeTime at={item.timestamp} className="shrink-0 text-xs text-fg-muted" />
+      {item.href && <ChevronRight className="size-3.5 shrink-0 text-fg-subtle" aria-hidden />}
+    </li>
   )
 }
 
@@ -196,6 +200,9 @@ export function hrefForObject(objectType: string, objectId: string, metadata?: R
     case 'integration': return `/integrations/${objectId}`
     case 'report': return `/reports/${objectId}`
     case 'data_table': return `/data/${objectId}`
+    // A deleted form's link opens the library (there are no Details to show).
+    case 'form': return `/automations/forms?details=${objectId}`
+    case 'form_theme': return '/automations/forms'
     default: return null
   }
 }

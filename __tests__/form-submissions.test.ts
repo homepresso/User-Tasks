@@ -216,7 +216,7 @@ describe('submitForm', () => {
     expect(started[0].input).toMatchObject({ workflow_id: WORKFLOW, async: true, variables: { employee: 'Nancy', amount: 245.5, form_submission_id: row.id } })
     // The submitter (ctx.actorId) starts the run, via form — signed by startWorkflow, not a start variable.
     expect(started[0].input.variables.workflow_started_by).toBeUndefined()
-    expect(started[0].options).toEqual({ via: 'form', filesVerified: true })
+    expect(started[0].options).toMatchObject({ via: 'form', filesVerified: true, submission: { id: row.id, source: 'page', submitted_by: { id: USER, name: 'Nancy Davolio' } } })
     expect(audits.some((a) => a.objectType === 'form' && a.action === 'execute' && /started workflow "Reimburse"/.test(a.summary))).toBe(true)
     expect(result.runs).toEqual([{ workflow_id: WORKFLOW, workflow_name: 'Reimburse', job_id: 'job-1-0000-0000', status: 'queued' }])
     expect(result.effects.success_screen).toEqual({ title: 'Thanks Nancy', text: 'Reference job-1-00', button: 'submit_another' })
@@ -275,7 +275,7 @@ describe('submitForm', () => {
     await expect(getFormSubmission(ctx(), u(51))).rejects.toThrow(/not found/)
     const csv = await formSubmissionsCsv(ctx({ permissions: new Set(['forms.submit', 'forms.edit']) }), { form_id: FORM })
     expect(csv.rows).toBe(2)
-    expect(csv.csv.split('\n')[0]).toBe('submission_id,submitted_at,submitted_by,source,button,outcome,task_id,name,amount,urgent')
+    expect(csv.csv.split('\n')[0]).toBe('submission_id,reference,submitted_at,submitted_by,submitted_by_email,submitted_by_id,form_version,source,submission_source,button,outcome,task_id,name,amount,urgent')
   })
 
   it('CSV cells cannot become formulas', async () => {

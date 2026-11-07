@@ -1,13 +1,17 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { serverRead } from '@/lib/server-read'
 import type { ActionResult } from '@/lib/action-result'
 import { setEffortEstimate, setEstimatedCompletion as setEstimatedCompletionAction, setRemainingEffort } from '@/app/actions/task-effort'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, Clock, Timer, CalendarClock, RotateCcw, Save } from 'lucide-react'
-import { formatRelativeDate } from '@/lib/utils'
+import { ChevronDown, ChevronRight, Clock, Info, Timer, RotateCcw, Save } from 'lucide-react'
+import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Card, CardHeader } from '@/components/ui/card'
+import { InlineNotice } from '@/components/ui/inline-notice'
+import { Tooltip } from '@/components/ui/tooltip'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 
 interface EffortBoxProps {
@@ -23,14 +27,18 @@ interface EffortBoxProps {
     assignee_id?: string | null
     assignment_mode?: string | null
   }
+  /** Card header actions (the task timer). */
+  actions?: ReactNode
+  /** Under the effort log (manual effort entry). */
+  footer?: ReactNode
 }
 
-function EffortColumn({ label, value, editable, onSave, className, helper }: {
+/** One effort value: label, then hours in tabular figures; editable values edit inline (dotted underline on hover). */
+function EffortColumn({ label, value, editable, onSave, helper }: {
   label: string
   value: number | null
   editable?: boolean
   onSave?: (minutes: number) => void
-  className?: string
   helper?: string
 }) {
   const [editing, setEditing] = useState(false)
@@ -53,38 +61,39 @@ function EffortColumn({ label, value, editable, onSave, className, helper }: {
   const displayHours = value != null ? (value / 60).toFixed(1) : '—'
 
   return (
-    <div className="text-center">
-      <p className="text-[10px] mb-1" style={{ color: 'var(--theme-muted-text)' }}>{label}</p>
-      {editable && editing ? (
-        <input
-          type="number"
-          value={inputVal}
-          onChange={(e) => setInputVal(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => e.key === 'Enter' && commit()}
-          autoFocus
-          className="w-16 text-center text-lg font-semibold border rounded px-1 py-0.5"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-        />
-      ) : (
-        <p
-          className={`text-lg font-semibold ${className ?? ''} ${editable ? 'cursor-pointer hover:opacity-70' : ''}`}
-          style={!className ? { color: 'var(--theme-card-text)' } : undefined}
-          onClick={() => editable && setEditing(true)}
-        >
-          {displayHours}h
-        </p>
-      )}
-      {helper && (
-        <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-          {helper}
-        </p>
-      )}
+    <div className="min-w-0" data-effort-column={label}>
+      <dt className="text-xs text-fg-muted">{label}</dt>
+      <dd className="mt-0.5">
+        {editable && editing ? (
+          <input
+            type="number"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => e.key === 'Enter' && commit()}
+            autoFocus
+            aria-label={`${label} (minutes)`}
+            className="num h-7 w-20 rounded-md border border-input-border bg-input px-1.5 text-base font-semibold text-fg"
+          />
+        ) : editable ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={`Edit ${label.toLowerCase()}: ${displayHours} hours`}
+            className="num cursor-text text-base font-semibold text-fg decoration-fg-subtle decoration-dotted underline-offset-4 hover:underline"
+          >
+            {displayHours}h
+          </button>
+        ) : (
+          <span className="num text-base font-semibold text-fg">{displayHours}h</span>
+        )}
+        {helper && <span className="ml-1.5 text-xs text-fg-muted">{helper}</span>}
+      </dd>
     </div>
   )
 }
 
-export function EffortBox({ task }: EffortBoxProps) {
+export function EffortBox({ task, actions, footer }: EffortBoxProps) {
   const [assigneeEstimate, setAssigneeEstimate] = useState(task.estimated_effort_assignee)
   const [assignerEstimate, setAssignerEstimate] = useState(task.estimated_effort_assigner)
   const [remainingOverride, setRemainingOverride] = useState<number | null>(() => {
@@ -181,143 +190,128 @@ export function EffortBox({ task }: EffortBoxProps) {
   }, [estimatedCompletion])
 
   return (
-    <div className="rounded-xl mb-5" style={{ backgroundColor: 'var(--theme-surface)' }}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
+    <Card padding="none" className="mb-5" data-effort-card>
+      <CardHeader title="Effort" actions={actions} className="pb-3" />
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 pb-4 md:grid-cols-4">
         <EffortColumn
           label="Assigner est."
           value={assigner}
           editable={canEditAssignerEstimate}
           onSave={(minutes) => saveEstimate('assigner', minutes)}
-          helper={canEditAssignerEstimate ? 'Click to edit' : undefined}
         />
         <EffortColumn
           label={isAssignee ? 'Your estimate' : 'Execution est.'}
           value={assignee}
           editable={canEditExecutionPlan}
           onSave={(minutes) => saveEstimate('assignee', minutes)}
-          helper={canEditExecutionPlan ? 'Click to edit' : undefined}
         />
-        <EffortColumn label="Actual" value={actual} className="text-[color:var(--theme-card-text)]" />
+        <EffortColumn label="Actual" value={actual} />
         <EffortColumn
           label="Remaining"
           value={remaining}
           editable={canEditExecutionPlan}
           onSave={(minutes) => saveRemaining(minutes)}
-          className="text-amber-500"
           helper={remainingOverride != null ? 'Manual plan' : 'Calculated'}
         />
-      </div>
+      </dl>
 
-      <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: 'var(--theme-surface-border)' }}>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-xl">
-            <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-              Execution plan
-            </p>
-            <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
-              The assigner sets the expected size of the work, the assignee adjusts the working estimate, and remaining effort can be updated as the task evolves.
-            </p>
+      {bestEstimate > 0 && (
+        <div className="flex items-center gap-2 px-4 pb-4">
+          <div
+            role="progressbar"
+            aria-label="Effort progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(pct, 100)}
+            className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+          >
+            <div
+              className={cn('h-full rounded-full transition-[width] duration-[var(--ds-dur-base)]', pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-primary')}
+              style={{ width: `${Math.min(pct, 100)}%` }}
+            />
           </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="min-w-[220px] max-md:w-full">
-              <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
-                <CalendarClock size={11} />
-                Estimated Completion
-              </label>
-              <DateTimePicker
-                value={etaInputValue}
-                onChange={setEstimatedCompletion}
-                disabled={!canEditExecutionPlan}
-                placeholder="Set ETA"
-              />
-            </div>
-            {canEditExecutionPlan && (
-              <Button size="sm" variant="outline" onClick={() => saveEstimatedCompletion(etaInputValue)} disabled={savingState !== null}>
-                <Save size={12} className="mr-1" />
-                Save ETA
-              </Button>
-            )}
+          <span className={cn('num w-10 shrink-0 text-right text-xs font-medium', pct >= 100 ? 'text-danger' : 'text-fg-muted')}>{pct}%</span>
+        </div>
+      )}
+
+      {/* Execution plan: ETA and the remaining-effort controls. */}
+      <div className="space-y-3 border-t border-border-subtle px-4 py-3" data-execution-plan>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[220px] max-md:w-full">
+            <p className="mb-1 flex items-center gap-1 text-xs text-fg-muted">
+              Estimated completion
+              <Tooltip content="The assigner sets the expected size of the work, the assignee adjusts the working estimate, and remaining effort can be updated as the task evolves.">
+                <button type="button" aria-label="About the execution plan" className="inline-flex text-fg-subtle hover:text-fg-muted"><Info className="size-3.5" /></button>
+              </Tooltip>
+            </p>
+            <DateTimePicker
+              value={etaInputValue}
+              onChange={setEstimatedCompletion}
+              disabled={!canEditExecutionPlan}
+              placeholder="Set ETA"
+            />
           </div>
+          {canEditExecutionPlan && (
+            <Button size="sm" variant="secondary" onClick={() => saveEstimatedCompletion(etaInputValue)} disabled={savingState !== null} leadingIcon={<Save />}>
+              Save ETA
+            </Button>
+          )}
         </div>
 
-        {saveError && (
-          <p className="text-xs" style={{ color: 'var(--theme-danger)' }}>{saveError}</p>
-        )}
+        {saveError && <InlineNotice tone="danger">{saveError}</InlineNotice>}
 
         {canEditExecutionPlan && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => saveRemaining(calculatedRemaining)} disabled={savingState !== null}>
-              Sync Remaining
+            <Button size="sm" variant="ghost" onClick={() => saveRemaining(calculatedRemaining)} disabled={savingState !== null}>
+              Sync remaining
             </Button>
-            <Button size="sm" variant="outline" onClick={() => saveRemaining(null)} disabled={savingState !== null}>
-              <RotateCcw size={12} className="mr-1" />
-              Use Calculated Remaining
+            <Button size="sm" variant="ghost" onClick={() => saveRemaining(null)} disabled={savingState !== null} leadingIcon={<RotateCcw />}>
+              Use calculated remaining
             </Button>
-            <span className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <span className="num text-xs text-fg-muted">
               Based on {((bestEstimate || 0) / 60).toFixed(1)}h planned and {(actual / 60).toFixed(1)}h logged.
             </span>
           </div>
         )}
       </div>
 
-      {bestEstimate > 0 && (
-        <div className="px-4 pb-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Effort progress</span>
-            <span className="text-[10px] font-semibold" style={{ color: pct >= 100 ? '#EF4444' : 'var(--theme-primary-text)' }}>
-              {pct}%
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--theme-surface-border)' }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${Math.min(pct, 100)}%`,
-                backgroundColor: pct >= 100 ? '#EF4444' : pct >= 80 ? '#F59E0B' : 'var(--theme-primary)',
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       <button
+        type="button"
         onClick={() => setShowLog(!showLog)}
-        className="w-full flex items-center gap-1.5 px-4 py-2 text-[10px] font-medium border-t transition-colors hover:opacity-80"
-        style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-primary-text)' }}
+        aria-expanded={showLog}
+        className="flex w-full items-center gap-1.5 border-t border-border-subtle px-4 py-2 text-xs font-medium text-fg-muted transition-colors hover:bg-subtle hover:text-fg"
+        data-effort-log-toggle
       >
-        {showLog ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        Effort Log ({effortEntries?.length ?? 0} entries)
+        {showLog ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5" aria-hidden />}
+        Effort log <span className="num">({effortEntries?.length ?? 0})</span>
       </button>
 
       {showLog && (
-        <div className="px-4 pb-3 space-y-1.5">
+        <ul className="px-4 pb-3">
           {!effortEntries?.length ? (
-            <p className="text-[10px] py-2" style={{ color: 'var(--theme-muted-text)' }}>No effort logged yet</p>
+            <li className="py-2 text-xs text-fg-muted">No effort logged yet</li>
           ) : (
             effortEntries.map((e: any) => (
-              <div key={e.id} className="flex items-center gap-2 text-xs py-1" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-                {e.record_type === 'timer_entry' ? (
-                  <Timer size={11} style={{ color: '#8B5CF6' }} />
-                ) : (
-                  <Clock size={11} style={{ color: 'var(--theme-primary-text)' }} />
-                )}
-                <span className="font-semibold" style={{ color: '#8B5CF6' }}>
-                  {(e.minutes / 60).toFixed(1)}h
-                </span>
-                <span className="flex-1 truncate" style={{ color: 'var(--theme-muted-text)' }}>
+              <li key={e.id} className="flex items-center gap-2 border-b border-border-subtle py-1.5 text-ui last:border-b-0">
+                {e.record_type === 'timer_entry'
+                  ? <Timer className="size-3.5 shrink-0 text-fg-muted" aria-label="Timer" />
+                  : <Clock className="size-3.5 shrink-0 text-fg-muted" aria-label="Manual" />}
+                <span className="num font-medium text-fg">{(e.minutes / 60).toFixed(1)}h</span>
+                <span className="flex-1 truncate text-fg-muted">
                   {e.notes || (e.record_type === 'timer_entry' ? 'Timer' : 'Manual')}
                 </span>
-                <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
-                  {(e.user as any)?.display_name ?? ''}
-                </span>
-                <span className="text-[10px] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
-                  {formatRelativeDate(e.created_at)}
-                </span>
-              </div>
+                <span className="shrink-0 text-xs text-fg-muted">{(e.user as any)?.display_name ?? ''}</span>
+                <Tooltip content={formatAbsolute(e.created_at)}>
+                  <time dateTime={e.created_at} className="shrink-0 text-xs text-fg-muted">{formatRelative(e.created_at)}</time>
+                </Tooltip>
+              </li>
             ))
           )}
-        </div>
+        </ul>
       )}
-    </div>
+
+      {footer != null && <div className="border-t border-border-subtle px-4 py-3">{footer}</div>}
+    </Card>
   )
 }

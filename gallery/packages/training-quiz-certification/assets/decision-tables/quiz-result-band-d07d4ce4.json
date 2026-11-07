@@ -1,0 +1,87 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "d07d4ce4-1956-52ba-b128-6dad947eef87",
+  "asset": {
+    "id": "d07d4ce4-1956-52ba-b128-6dad947eef87",
+    "name": "Quiz result band",
+    "description": "Compares the score with the course pass mark: at or above it passes, up to 20 points below means a retake, more than 20 below means a booked session. Change the margins or follow-up days here.",
+    "inputs": [
+      {
+        "key": "points_below_pass",
+        "label": "Points below the pass mark",
+        "type": "number",
+        "id": "9b193fd5-2b92-55d4-b0dc-e02e3bee220e"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "band",
+        "label": "Band",
+        "type": "string",
+        "id": "cf2f9b7b-0243-5ea5-94a7-8b9f2f47ac34"
+      },
+      {
+        "key": "band_message",
+        "label": "Message to the learner",
+        "type": "string",
+        "id": "c6885823-e6c6-5831-be88-eadfd42707d9"
+      },
+      {
+        "key": "follow_up_days",
+        "label": "Follow up within (days)",
+        "type": "number",
+        "id": "46b241eb-f373-5de8-bc6c-7db18b091120"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Pass",
+        "conditions": [
+          {
+            "inputKey": "points_below_pass",
+            "operator": "less_than_or_equal",
+            "value": "0",
+            "id": "49af6924-b7eb-538d-a452-b7931507cf40"
+          }
+        ],
+        "outputs": {
+          "band": "Pass",
+          "band_message": "Well done: you passed and your certificate is attached.",
+          "follow_up_days": 0
+        },
+        "id": "e102db77-aa57-512b-be87-ad2610e807e3",
+        "enabled": true
+      },
+      {
+        "label": "Retake",
+        "conditions": [
+          {
+            "inputKey": "points_below_pass",
+            "operator": "less_than_or_equal",
+            "value": "20",
+            "id": "8767d380-2f21-51ff-bfb7-e23ad63d34c5"
+          }
+        ],
+        "outputs": {
+          "band": "Retake",
+          "band_message": "You were close: revise the topics below and take the quiz again.",
+          "follow_up_days": 7
+        },
+        "id": "da5a4437-8f43-5303-a6cd-fbdb158d1649",
+        "enabled": true
+      },
+      {
+        "label": "Fail",
+        "conditions": [],
+        "outputs": {
+          "band": "Fail",
+          "band_message": "The training coordinator will book you onto a session.",
+          "follow_up_days": 5
+        },
+        "id": "2879f72a-6c68-5eae-b32c-d71fd8e87cef",
+        "enabled": true
+      }
+    ]
+  }
+}

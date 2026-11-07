@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import { usePermissions } from '@/lib/permissions-context'
+import { Badge, StatusPill, type Tone } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -106,7 +107,7 @@ export default function GitHubSyncPage() {
   })
 
   if (!canView) {
-    return <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>Not authorized.</p>
+    return <p className="text-sm text-fg-muted">Not authorized.</p>
   }
   if (isLoading && !data) {
     return <PageSkeleton variant="settings" />
@@ -123,7 +124,7 @@ export default function GitHubSyncPage() {
           <GitBranch size={22} />
           GitHub Sync
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-sm mt-1 text-fg-muted">
           Version your workspace configuration in a GitHub repository and deploy it back.
         </p>
       </div>
@@ -198,13 +199,12 @@ function ActiveSyncBar({ run }: { run: SyncRun }) {
   const percent = runPercent(run)
   return (
     <div
-      className="rounded-xl border p-4"
-      style={{ borderColor: 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' }}
+      className="rounded-xl border p-4 border-primary bg-primary-wash"
     >
       <div className="flex items-center gap-2 mb-2">
-        <CloudUpload size={15} className="animate-pulse" style={{ color: 'var(--theme-primary-text)' }} />
+        <CloudUpload size={15} className="animate-pulse text-primary-text" />
         <p className="text-sm font-medium">{RUN_KIND_LABELS[run.kind]}</p>
-        <span className="ml-auto text-xs tabular-nums font-medium" style={{ color: 'var(--theme-primary-text)' }}>
+        <span className="ml-auto text-xs tabular-nums font-medium text-primary-text">
           {percent}%
         </span>
       </div>
@@ -228,7 +228,7 @@ function ActiveSyncBar({ run }: { run: SyncRun }) {
           }}
         />
       </div>
-      <p className="text-xs mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mt-2 text-fg-muted">
         {run.progress?.message ?? 'Waiting for the sync worker to pick this up…'}
         {' '}You can leave this page — the sync continues in the background.
       </p>
@@ -297,7 +297,7 @@ function ConnectCard({ canEdit, onConnected }: { canEdit: boolean; onConnected: 
     return (
       <Card>
         <h3 className="text-sm font-semibold mb-2">Connection</h3>
-        <p className="text-sm" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-sm text-fg-muted">
           GitHub sync is not connected. Ask an administrator with edit access to connect a repository.
         </p>
       </Card>
@@ -307,7 +307,7 @@ function ConnectCard({ canEdit, onConnected }: { canEdit: boolean; onConnected: 
   return (
     <Card>
       <h3 className="text-sm font-semibold mb-1">Connect a repository</h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Workspace configuration (workflows, forms, pages, and more) is committed as JSON files to the repository you choose.
       </p>
 
@@ -333,7 +333,7 @@ function ConnectCard({ canEdit, onConnected }: { canEdit: boolean; onConnected: 
               {reposMutation.isPending ? 'Verifying…' : 'Verify & list repos'}
             </Button>
           </div>
-          <p className="text-xs mt-1.5" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-1.5 text-fg-muted">
             Needs the classic <code>repo</code> scope, or a fine-grained token with read/write <code>Contents</code> access to the target repository.
           </p>
         </div>
@@ -371,7 +371,7 @@ function ConnectCard({ canEdit, onConnected }: { canEdit: boolean; onConnected: 
                 onChange={(e) => setPathPrefix(e.target.value)}
                 placeholder="usertasks"
               />
-              <p className="text-xs mt-1.5" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs mt-1.5 text-fg-muted">
                 Directory in the repository where configuration files are written.
               </p>
             </div>
@@ -427,7 +427,7 @@ function ModeRadio({
           />
           <span>
             <span className="block text-sm font-medium">{option.label}</span>
-            <span className="block text-xs" style={{ color: 'var(--theme-muted-text)' }}>{option.description}</span>
+            <span className="block text-xs text-fg-muted">{option.description}</span>
           </span>
         </label>
       ))}
@@ -494,7 +494,7 @@ function ConnectedCard({
             <GitBranch size={14} style={{ color: 'var(--theme-primary-text)' }} />
             Connected repository
           </h3>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-0.5 text-fg-muted">
             Changes to workspace configuration are synced to this repository.
           </p>
         </div>
@@ -564,8 +564,8 @@ function ConnectedCard({
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-      <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>{label}</p>
+    <div className="rounded-lg px-3 py-2 bg-subtle">
+      <p className="text-2xs text-fg-muted">{label}</p>
       <p className="text-sm font-medium truncate" title={value}>{value}</p>
     </div>
   )
@@ -640,7 +640,7 @@ function ScheduleCard({
         <CalendarClock size={14} style={{ color: 'var(--theme-primary-text)' }} />
         Scheduled sync
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Automatically push the full workspace configuration to GitHub on a schedule
         {savedSummary ? <> — currently <span className="font-medium">{savedSummary}</span>.</> : '. Currently off.'}
       </p>
@@ -699,7 +699,7 @@ function ScheduleCard({
         )}
       </div>
       {enabled && frequency !== 'hourly' && (
-        <p className="text-xs mt-2" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs mt-2 text-fg-muted">
           Times use your current timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone}). Syncs run within a minute of the scheduled time.
         </p>
       )}
@@ -754,12 +754,12 @@ function PendingChangesCard({
       <h3 className="text-sm font-semibold mb-1">
         Pending changes
         {pendingChanges.length > 0 && (
-          <span className="text-xs font-normal ml-2" style={{ color: 'var(--theme-muted-text)' }}>
+          <span className="text-xs font-normal ml-2 text-fg-muted">
             ({pendingChanges.length})
           </span>
         )}
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         {connection.mode === 'queue'
           ? 'Saved changes wait here until you commit them.'
           : 'Auto-sync backlog — changes are usually pushed within a minute.'}
@@ -769,13 +769,13 @@ function PendingChangesCard({
       {notice && <InlineNotice tone="success" message={notice} onDismiss={() => setNotice(null)} className="mb-3" />}
 
       {pendingChanges.length === 0 ? (
-        <p className="text-sm py-3" style={{ color: 'var(--theme-muted-text)' }}>No pending changes.</p>
+        <p className="text-sm py-3 text-fg-muted">No pending changes.</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border mb-4" style={{ borderColor: 'var(--theme-surface-border)' }}>
+          <div className="overflow-x-auto rounded-lg border mb-4 border-border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs" style={{ color: 'var(--theme-muted-text)', backgroundColor: 'var(--theme-surface)' }}>
+                <tr className="text-left text-xs text-fg-muted bg-subtle">
                   <th className="px-3 py-2 font-medium">Asset</th>
                   <th className="px-3 py-2 font-medium">Type</th>
                   <th className="px-3 py-2 font-medium">Action</th>
@@ -785,23 +785,16 @@ function PendingChangesCard({
               </thead>
               <tbody>
                 {pendingChanges.map((row) => (
-                  <tr key={row.id} className="border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
+                  <tr key={row.id} className="border-t border-border">
                     <td className="px-3 py-2 font-medium">{row.asset_name || row.asset_id}</td>
-                    <td className="px-3 py-2 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{row.asset_type}</td>
+                    <td className="px-3 py-2 text-xs text-fg-muted">{row.asset_type}</td>
                     <td className="px-3 py-2">
-                      <span
-                        className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase"
-                        style={row.action === 'delete'
-                          ? { backgroundColor: '#FEF2F2', color: '#DC2626' }
-                          : { backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
-                      >
-                        {row.action}
-                      </span>
+                      <Badge tone={row.action === 'delete' ? 'danger' : 'brand'} className="capitalize">{row.action}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{formatRelativeDate(row.queued_at)}</td>
+                    <td className="px-3 py-2 text-xs text-fg-muted">{formatRelativeDate(row.queued_at)}</td>
                     <td className="px-3 py-2 text-xs">
                       <span style={{ color: 'var(--theme-muted-text)' }}>{row.status}</span>
-                      {row.error && <span className="block text-red-500 truncate max-w-48" title={row.error}>{row.error}</span>}
+                      {row.error && <span className="block text-danger truncate max-w-48" title={row.error}>{row.error}</span>}
                     </td>
                   </tr>
                 ))}
@@ -832,16 +825,16 @@ function PendingChangesCard({
       )}
 
       {recentCommits.length > 0 && (
-        <div className="mt-5 pt-4 border-t" style={{ borderColor: 'var(--theme-surface-border)' }}>
-          <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--theme-muted-text)' }}>Recently committed</h4>
+        <div className="mt-5 pt-4 border-t border-border">
+          <h4 className="text-xs font-semibold mb-2 text-fg-muted">Recently committed</h4>
           <div className="space-y-1">
             {recentCommits.map((row) => (
               <div key={row.id} className="flex items-center gap-2 text-xs">
-                <GitCommitHorizontal size={12} className="shrink-0" style={{ color: 'var(--theme-muted-text)' }} />
+                <GitCommitHorizontal size={12} className="shrink-0 text-fg-muted" />
                 <span className="font-medium truncate">{row.asset_name || row.asset_id}</span>
                 <span style={{ color: 'var(--theme-muted-text)' }}>{row.asset_type} · {row.action}</span>
-                <span className="ml-auto shrink-0 font-mono" style={{ color: 'var(--theme-muted-text)' }}>{shortSha(row.commit_sha)}</span>
-                <span className="shrink-0" style={{ color: 'var(--theme-muted-text)' }}>{formatRelativeDate(row.updated_at)}</span>
+                <span className="ml-auto shrink-0 font-mono text-fg-muted">{shortSha(row.commit_sha)}</span>
+                <span className="shrink-0 text-fg-muted">{formatRelativeDate(row.updated_at)}</span>
               </div>
             ))}
           </div>
@@ -853,11 +846,18 @@ function PendingChangesCard({
 
 // ── Deployments ──────────────────────────────────────────────────────────────
 
-const DEPLOY_STATUS_STYLES: Record<Deployment['status'], { backgroundColor: string; color: string }> = {
-  pending: { backgroundColor: '#FFFBEB', color: '#B45309' },
-  running: { backgroundColor: '#EFF6FF', color: '#1D4ED8' },
-  completed: { backgroundColor: '#ECFDF5', color: '#047857' },
-  failed: { backgroundColor: '#FEF2F2', color: '#DC2626' },
+/** Deployment / activity status → StatusPill tone (pending waits, running works, completed, failed). */
+const SYNC_STATUS_TONE: Record<Deployment['status'], Tone> = {
+  pending: 'warning',
+  running: 'info',
+  completed: 'success',
+  failed: 'danger',
+}
+const SYNC_STATUS_TEXT: Record<Deployment['status'], string> = {
+  pending: 'text-warning border-warning',
+  running: 'text-info border-info',
+  completed: 'text-success border-success',
+  failed: 'text-danger border-danger',
 }
 
 function deploymentStats(stats: Record<string, any> | null): string | null {
@@ -897,7 +897,7 @@ function DeploymentsCard({
   return (
     <Card>
       <h3 className="text-sm font-semibold mb-1">Deployments</h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Import configuration from {connection.owner}/{connection.repo} into this workspace. Re-deploys update existing assets instead of duplicating them.
       </p>
 
@@ -928,7 +928,7 @@ function DeploymentsCard({
       )}
 
       {deployments.length === 0 ? (
-        <p className="text-sm py-3" style={{ color: 'var(--theme-muted-text)' }}>No deployments yet.</p>
+        <p className="text-sm py-3 text-fg-muted">No deployments yet.</p>
       ) : (
         <div className="space-y-2">
           {deployments.slice(0, 8).map((deployment) => {
@@ -940,33 +940,27 @@ function DeploymentsCard({
                 style={{ backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-surface-border)' }}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase"
-                    style={DEPLOY_STATUS_STYLES[deployment.status]}
-                  >
-                    {deployment.status}
-                  </span>
+                  <StatusPill status={deployment.status} tone={SYNC_STATUS_TONE[deployment.status]} />
                   {deployment.dry_run && (
                     <span
-                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase"
-                      style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
+                      className="inline-block rounded px-1.5 py-0.5 text-2xs font-medium uppercase bg-primary-wash text-primary-text"
                     >
                       dry run
                     </span>
                   )}
-                  <span className="text-xs font-mono" style={{ color: 'var(--theme-muted-text)' }}>
+                  <span className="text-xs font-mono text-fg-muted">
                     {deployment.source?.ref ?? ''}{deployment.source?.commit_sha ? ` @ ${shortSha(deployment.source.commit_sha)}` : ''}
                   </span>
-                  <span className="ml-auto text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                  <span className="ml-auto text-xs text-fg-muted">
                     {formatRelativeDate(deployment.created_at)}
                     {deployment.completed_at ? ` · finished ${formatRelativeDate(deployment.completed_at)}` : ''}
                   </span>
                 </div>
                 {stats && (
-                  <p className="text-xs mt-1.5" style={{ color: 'var(--theme-muted-text)' }}>{stats}</p>
+                  <p className="text-xs mt-1.5 text-fg-muted">{stats}</p>
                 )}
                 {deployment.status === 'failed' && deployment.error && (
-                  <p className="text-xs text-red-500 mt-1.5">{deployment.error}</p>
+                  <p className="text-xs text-danger mt-1.5">{deployment.error}</p>
                 )}
               </div>
             )
@@ -989,12 +983,6 @@ interface ActivityEvent {
   timestamp: string
 }
 
-const ACTIVITY_STATUS_COLORS: Record<ActivityEvent['status'], string> = {
-  pending: '#B45309',
-  running: '#1D4ED8',
-  completed: '#047857',
-  failed: '#DC2626',
-}
 
 /** Unified export/import history — the visual audit trail for GitHub sync. */
 function SyncActivityCard({ syncRuns, deployments }: { syncRuns: SyncRun[]; deployments: Deployment[] }) {
@@ -1032,45 +1020,37 @@ function SyncActivityCard({ syncRuns, deployments }: { syncRuns: SyncRun[]; depl
   return (
     <Card>
       <h3 className="text-sm font-semibold mb-1">Sync activity</h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Every export to and import from GitHub, most recent first. These events are also recorded in the workspace audit log.
       </p>
 
       <div className="relative pl-6">
         {/* vertical spine */}
         <div
-          className="absolute left-[11px] top-1 bottom-1 w-px"
-          style={{ backgroundColor: 'var(--theme-surface-border)' }}
+          className="absolute left-[11px] top-1 bottom-1 w-px bg-border"
         />
         <div className="space-y-4">
           {events.map((event) => {
-            const color = ACTIVITY_STATUS_COLORS[event.status]
             const Icon = event.direction === 'export' ? CloudUpload : CloudDownload
             return (
               <div key={event.id} className="relative">
                 <span
-                  className="absolute -left-6 top-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2"
-                  style={{ borderColor: color, backgroundColor: 'var(--theme-card-bg, var(--theme-surface))' }}
+                  className={`absolute -left-6 top-0.5 flex size-6 items-center justify-center rounded-full border-2 bg-panel ${SYNC_STATUS_TEXT[event.status]}`}
                 >
-                  <Icon size={12} style={{ color }} />
+                  <Icon className="size-3" aria-hidden />
                 </span>
                 <div className="flex flex-wrap items-baseline gap-x-2 pl-2">
                   <span className="text-sm font-medium">{event.title}</span>
-                  <span
-                    className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase"
-                    style={{ backgroundColor: `${color}18`, color }}
-                  >
-                    {event.status}
-                  </span>
-                  <span className="ml-auto text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+                  <StatusPill status={event.status} tone={SYNC_STATUS_TONE[event.status]} />
+                  <span className="ml-auto text-xs text-fg-muted">
                     {formatRelativeDate(event.timestamp)}
                   </span>
                 </div>
                 {event.detail && (
-                  <p className="text-xs mt-0.5 pl-2" style={{ color: 'var(--theme-muted-text)' }}>{event.detail}</p>
+                  <p className="text-xs mt-0.5 pl-2 text-fg-muted">{event.detail}</p>
                 )}
                 {event.error && (
-                  <p className="text-xs mt-0.5 pl-2 text-red-500">{event.error}</p>
+                  <p className="text-xs mt-0.5 pl-2 text-danger">{event.error}</p>
                 )}
               </div>
             )
@@ -1103,25 +1083,25 @@ function CommitHistoryCard({
         <GitCommitHorizontal size={14} style={{ color: 'var(--theme-primary-text)' }} />
         Commits
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Latest commits on <span className="font-mono">{connection.owner}/{connection.repo}</span> · <span className="font-mono">{connection.branch}</span>
       </p>
 
       {error && <InlineNotice tone="error" message={errText(error)} />}
-      {isLoading && <p className="text-sm py-2" style={{ color: 'var(--theme-muted-text)' }}>Loading commits…</p>}
+      {isLoading && <p className="text-sm py-2 text-fg-muted">Loading commits…</p>}
       {!isLoading && !error && (commits ?? []).length === 0 && (
-        <p className="text-sm py-2" style={{ color: 'var(--theme-muted-text)' }}>No commits yet — push everything to create the first one.</p>
+        <p className="text-sm py-2 text-fg-muted">No commits yet — push everything to create the first one.</p>
       )}
 
-      <div className="divide-y" style={{ borderColor: 'var(--theme-surface-border)' }}>
+      <div className="divide-y border-border">
         {(commits ?? []).map((commit) => (
           <div key={commit.sha} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
-            <GitCommitHorizontal size={14} className="shrink-0" style={{ color: 'var(--theme-muted-text)' }} />
+            <GitCommitHorizontal size={14} className="shrink-0 text-fg-muted" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate" title={commit.message}>
                 {commit.message.split('\n')[0]}
               </p>
-              <p className="text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs text-fg-muted">
                 {commit.author ?? 'unknown'}{commit.date ? ` · ${formatRelativeDate(commit.date)}` : ''}
               </p>
             </div>
@@ -1129,8 +1109,7 @@ function CommitHistoryCard({
               href={commit.html_url}
               target="_blank"
               rel="noreferrer"
-              className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs hover:underline"
-              style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-primary-text)' }}
+              className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs hover:underline bg-subtle text-primary-text"
             >
               {commit.sha.slice(0, 7)}
               <ExternalLink size={10} />
@@ -1226,7 +1205,7 @@ function TemplatesCard({
           </Button>
         )}
       </div>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Push a selection — whole asset types or individual items — on demand or on a schedule, instead of syncing everything.
       </p>
 
@@ -1241,7 +1220,7 @@ function TemplatesCard({
           onCancel={() => setEditing(null)}
         />
       ) : (templates ?? []).length === 0 ? (
-        <p className="text-sm py-3" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-sm py-3 text-fg-muted">
           No templates yet. Create one to sync a specific set of workflows, forms, or any other items.
         </p>
       ) : (
@@ -1258,18 +1237,17 @@ function TemplatesCard({
                   <span className="text-sm font-medium min-w-0 truncate">{template.name}</span>
                   {scheduleText && (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                      style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium bg-primary-wash text-primary-text"
                     >
                       <CalendarClock size={10} />
                       {scheduleText}
                     </span>
                   )}
-                  <span className="ml-auto text-xs shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
+                  <span className="ml-auto text-xs shrink-0 text-fg-muted">
                     {template.last_run_at ? `Last run ${formatRelativeDate(template.last_run_at)}` : 'Never run'}
                   </span>
                 </div>
-                <p className="text-xs mt-1" style={{ color: 'var(--theme-muted-text)' }}>{templateSummary(template)}</p>
+                <p className="text-xs mt-1 text-fg-muted">{templateSummary(template)}</p>
                 {canEdit && (
                   <div className="flex items-center gap-1.5 mt-2">
                     <Button
@@ -1464,8 +1442,7 @@ function TemplateEditor({
             {assets.map((asset) => (
               <span
                 key={`${asset.section}:${asset.id}`}
-                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium max-w-56"
-                style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}
+                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-medium max-w-56 border-border bg-panel"
               >
                 <span className="truncate">{asset.name ?? asset.id}</span>
                 <span style={{ color: 'var(--theme-muted-text)' }}>· {SECTION_LABELS[asset.section] ?? asset.section}</span>

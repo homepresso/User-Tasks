@@ -2,36 +2,46 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useRouter } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
-import { MobileNavDrawer, MobileTabBar } from './mobile-nav'
+import { MobileNavSheet, MobileTabBar } from './mobile-nav'
+import { GlobalSearch } from './global-search'
+import { ShellDocumentTitle } from './document-title'
 import { PermissionsProvider } from '@/lib/permissions-context'
+import { BreadcrumbsProvider } from '@/lib/breadcrumbs-context'
 import { useDashboardAuth } from '@/lib/dashboard-auth-context'
 import { canAccessPath } from '@/lib/route-permissions'
 import { LastSeenHeartbeat } from './last-seen-heartbeat'
+import { NotAuthorizedView } from './route-states'
 import { LogoMark } from '@/components/brand/logo'
+import { Skeleton } from '@/components/ui/skeleton'
+import { BusyBar } from '@/components/ui/busy-bar'
 import { JobsProvider } from '@/components/jobs/jobs-provider'
 
+/**
+ * The dashboard frame (docs/design/ui-polish-spec.md §4.4): sidebar, top bar
+ * and the scrolling main area, plus the ⌘K palette, the tab title and the
+ * mobile Sheet nav / tab bar. Pages own their width (lists full width,
+ * settings 1080px, detail 960px).
+ *
+ * Only #main scrolls. The frame is the dynamic viewport tall (h-dvh: on iOS
+ * Safari 100vh is the toolbar-hidden height, which let the whole page scroll
+ * under the toolbar), and #main is `relative` so absolutely positioned bits
+ * inside it (sr-only labels) are clipped by it. Without that they escaped
+ * to the document, made the page itself scroll and dragged the frame up,
+ * cutting off the end of #main above the tab bar.
+ */
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { loading, profile, userRole, permissions, userId } = useDashboardAuth()
   const pathname = usePathname()
-  const router = useRouter()
   const [hasHydrated, setHasHydrated] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const routeAllowed = profile && userId ? canAccessPath(pathname, permissions) : true
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- first client render matches the server's loading shell
     setHasHydrated(true)
   }, [])
-
-  useEffect(() => {
-    if (!loading && profile && userId && !routeAllowed) {
-      // /tasks is the landing page; fall back to the ungated settings page for
-      // roles without task access so the redirect can't loop.
-      router.replace(canAccessPath('/tasks', permissions) ? '/tasks' : '/settings')
-    }
-  }, [loading, profile, userId, routeAllowed, router, permissions])
 
   // Only show the full skeleton on very first load (no cached profile at all).
   // Once we have a profile (even from cache), keep the shell visible during
@@ -41,105 +51,76 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // If auth dropped entirely (signed out) — redirect handled by auth context
   if (!profile || !userId) return null
 
-  if (!routeAllowed) return null
-
   return (
     <PermissionsProvider permissions={permissions} userId={userId}>
-      <LastSeenHeartbeat userId={userId} />
-      <JobsProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar user={profile} currentTenantId={profile.current_tenant_id} userRole={userRole} />
-        <MobileNavDrawer
-          open={mobileNavOpen}
-          onClose={() => setMobileNavOpen(false)}
-          branding={profile.tenant?.branding ?? null}
-        />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Topbar user={profile} onMenuClick={() => setMobileNavOpen(true)} />
-          <main
-            key={pathname}
-            className="flex-1 overflow-y-auto page-transition max-md:pb-20 p-3 md:p-6"
-            style={{ backgroundColor: 'var(--theme-surface)' }}
-          >
-            {children}
-          </main>
-          <MobileTabBar />
-        </div>
-      </div>
-      </JobsProvider>
+      <BreadcrumbsProvider resetKey={pathname}>
+        <LastSeenHeartbeat userId={userId} />
+        <ShellDocumentTitle />
+        <JobsProvider>
+          <div className="flex h-dvh overflow-hidden">
+            <Sidebar user={profile} currentTenantId={profile.current_tenant_id} userRole={userRole} />
+            <MobileNavSheet
+              open={mobileNavOpen}
+              onOpenChange={setMobileNavOpen}
+              user={profile}
+              currentTenantId={profile.current_tenant_id}
+            />
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <Topbar user={profile} currentTenantId={profile.current_tenant_id} onMenuClick={() => setMobileNavOpen(true)} />
+              <main
+                key={pathname}
+                id="main"
+                className="page-transition relative flex-1 overflow-y-auto bg-bg p-4 max-md:pb-[calc(var(--ds-tabbar-h)+1.5rem+env(safe-area-inset-bottom))] md:p-6"
+              >
+                {/* A page the role doesn't allow: "Not authorized" in place of the page (nothing of it mounts). */}
+                {routeAllowed ? children : <NotAuthorizedView />}
+              </main>
+              <MobileTabBar />
+            </div>
+          </div>
+          <GlobalSearch />
+        </JobsProvider>
+      </BreadcrumbsProvider>
     </PermissionsProvider>
   )
 }
 
+/** First-load frame: the sidebar and top bar outlines, a busy bar and shimmering rows (no spinner). */
 function DashboardLoadingShell() {
   return (
-    <div className="flex h-screen overflow-hidden" style={{ animation: 'shell-enter 0.4s ease-out' }}>
-      {/* Branded sidebar skeleton — the workspace theme's server-rendered vars */}
-      <aside className="premium-sidebar w-[var(--theme-sidebar-width)] border-r flex flex-col max-md:hidden" style={{ backgroundColor: 'var(--theme-sidebar)' }}>
-        <div className="h-[var(--theme-topbar-height)] flex items-center px-4 border-b" style={{ borderColor: 'var(--theme-sidebar-border)' }}>
-          <span className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <LogoMark variant="glyph" size={24} color="var(--theme-sidebar-text)" accent="var(--theme-sidebar-accent)" />
-            <span>
-              <span style={{ color: 'var(--theme-sidebar-text)' }}>user</span>
-              <span style={{ color: 'var(--theme-sidebar-accent)' }}>tasks</span>
-            </span>
-          </span>
+    <div className="flex h-dvh overflow-hidden" aria-busy="true" aria-label="Loading your workspace">
+      <aside className="premium-sidebar themed-sidebar flex w-[var(--theme-sidebar-width)] shrink-0 flex-col border-r border-[color:var(--theme-sidebar-border)] max-md:hidden">
+        <div className="flex h-[var(--theme-topbar-height)] items-center gap-2 border-b border-[color:var(--theme-sidebar-border)] px-4">
+          <LogoMark variant="glyph" size={22} color="var(--theme-sidebar-text)" accent="var(--theme-sidebar-accent, var(--theme-primary))" />
+          <span className="h-2.5 w-24 rounded-sm bg-[color-mix(in_srgb,var(--theme-sidebar-text)_12%,transparent)]" />
         </div>
-        <div className="flex-1 p-3 space-y-1.5">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-            <div key={i} className="h-9 rounded-lg flex items-center gap-3 px-3" style={{
-              backgroundColor: i === 1 ? 'var(--theme-sidebar-active)' : 'transparent',
-              animation: `shell-fade-in 0.3s ease-out ${0.1 + i * 0.04}s both`,
-            }}>
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: i === 1 ? 'var(--theme-primary)' : 'color-mix(in srgb, var(--theme-sidebar-text) 8%, transparent)', opacity: i === 1 ? 0.4 : 1 }} />
-              <div className="h-2.5 rounded" style={{ width: `${50 + (i * 7) % 40}%`, backgroundColor: i === 1 ? 'var(--theme-primary)' : 'color-mix(in srgb, var(--theme-sidebar-text) 8%, transparent)', opacity: i === 1 ? 0.3 : 1 }} />
+        <div className="flex-1 space-y-1 p-3">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="flex h-8 items-center gap-2 px-2">
+              <span className="size-4 rounded-sm bg-[color-mix(in_srgb,var(--theme-sidebar-text)_10%,transparent)]" />
+              <span className="h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--theme-sidebar-text)_10%,transparent)]" style={{ width: `${45 + (i * 7) % 35}%` }} />
             </div>
           ))}
         </div>
       </aside>
-
-      {/* Main area with progress indicator */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="h-[var(--theme-topbar-height)] border-b flex items-center justify-between px-6" style={{ backgroundColor: 'var(--theme-topbar)', borderColor: 'var(--theme-surface-border)' }}>
-          <div className="space-y-1.5" style={{ animation: 'shell-fade-in 0.3s ease-out 0.2s both' }}>
-            <div className="h-3.5 w-28 rounded" style={{ backgroundColor: 'var(--theme-surface-border)' }} />
-            <div className="h-2.5 w-16 rounded" style={{ backgroundColor: 'var(--theme-surface)' }} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="themed-topbar relative flex h-[var(--theme-topbar-height)] shrink-0 items-center justify-between border-b border-border-subtle px-6">
+          <Skeleton className="h-3 w-40" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-[280px] max-lg:hidden" />
+            <Skeleton className="size-7 rounded-full" />
           </div>
-          <div className="flex items-center gap-3" style={{ animation: 'shell-fade-in 0.3s ease-out 0.3s both' }}>
-            <div className="h-8 w-48 rounded-lg" style={{ backgroundColor: 'var(--theme-surface)' }} />
-            <div className="h-8 w-8 rounded-full" style={{ backgroundColor: 'var(--theme-surface-border)' }} />
-          </div>
+          <BusyBar className="absolute inset-x-0 bottom-0" />
         </div>
-
-        {/* Content area with centered loading */}
-        <main className="flex-1 flex flex-col items-center justify-center" style={{ backgroundColor: 'var(--theme-surface)' }}>
-          <div className="flex flex-col items-center gap-4" style={{ animation: 'shell-fade-in 0.4s ease-out 0.2s both' }}>
-            {/* Animated logo spinner */}
-            <div className="relative w-12 h-12">
-              <div className="absolute inset-0 rounded-full" style={{ border: '2px solid var(--theme-surface-border)' }} />
-              <div className="absolute inset-0 rounded-full" style={{ border: '2px solid transparent', borderTopColor: 'var(--theme-primary)', animation: 'spin 0.8s linear infinite' }} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-bold" style={{ color: 'var(--theme-primary-text)' }}>ut</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium" style={{ color: 'var(--theme-card-text)' }}>Loading your workspace</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>Setting up your dashboard...</p>
-            </div>
-            {/* Progress bar */}
-            <div className="w-48 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-surface-border)' }}>
-              <div className="h-full rounded-full" style={{ backgroundColor: 'var(--theme-primary)', animation: 'shell-progress 1.5s ease-in-out infinite' }} />
-            </div>
+        <main className="flex-1 bg-bg p-6">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="mt-2 h-3 w-80" />
+          <div className="mt-8 space-y-3">
+            {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
+          <p className="sr-only" role="status">Loading your workspace…</p>
         </main>
       </div>
-
-      <style>{`
-        @keyframes shell-enter { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes shell-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes shell-progress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
-      `}</style>
     </div>
   )
 }

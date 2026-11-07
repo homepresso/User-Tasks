@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { serverQuery } from '@/lib/server-read'
 import { useEffect, useState } from 'react'
 import { getCurrentTenantId } from '@/lib/get-user-id'
-import { useDebounced, useRealtime } from '@/hooks/use-realtime'
+import { useDebounced, useRealtime, useRealtimeUserId } from '@/hooks/use-realtime'
 import type { RealtimeFilter } from '@/lib/realtime/topics'
 
 interface TaskFilters {
@@ -14,6 +14,8 @@ interface TaskFilters {
   search?: string
   sortBy?: string
   sortDir?: 'asc' | 'desc'
+  /** The unified My tasks list: queued tasks included, each with display_status / queue_action. */
+  mine?: boolean
 }
 
 /**
@@ -53,6 +55,7 @@ export function useTasks(filters: TaskFilters) {
       search: filters.search,
       sortBy: filters.sortBy,
       sortDir: filters.sortDir,
+      mine: filters.mine,
     }),
   })
 
@@ -70,6 +73,9 @@ export function useTasks(filters: TaskFilters) {
   // Bursts (workflow runs touching many tasks) collapse into one refetch.
   const invalidate = useDebounced(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), 300)
   useRealtime('tasks', scope, invalidate)
+  // My tasks: a collaboration invitation (task_assignees) queues a task too.
+  const userId = useRealtimeUserId()
+  useRealtime('task_assignees', filters.mine && userId ? { column: 'user_id', value: userId } : null, invalidate)
 
   return query
 }

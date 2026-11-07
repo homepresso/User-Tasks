@@ -36,10 +36,19 @@ export const mysqlConnector: ConnectorDefinition = {
       label: 'SSL',
       type: 'select',
       options: [
-        { value: 'true', label: 'Enable SSL' },
+        { value: 'true', label: 'Enable SSL (verify certificate)' },
+        { value: 'skip-verify', label: 'Enable SSL (no certificate check)' },
         { value: 'false', label: 'Disable SSL' },
       ],
       defaultValue: 'true',
+    },
+    {
+      key: 'ca_cert',
+      label: 'CA Certificate (optional, PEM)',
+      type: 'textarea',
+      placeholder: '-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----',
+      visibleWhen: { field: 'ssl', equals: 'true' },
+      helpText: 'Only needed when the server certificate is not signed by a public CA (e.g. Amazon RDS).',
     },
   ],
   credentialFields: [
@@ -191,7 +200,7 @@ export const mysqlConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/db/query',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ sql: "SELECT TABLE_NAME, TABLE_TYPE, TABLE_ROWS, ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME", params: ['{{database}}'] }),
+      bodyTemplate: JSON.stringify({ sql: "SELECT TABLE_NAME, TABLE_TYPE, TABLE_ROWS, ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = COALESCE(NULLIF(?, ''), DATABASE()) ORDER BY TABLE_NAME", params: ['{{database}}'] }),
       inputs: [
         { name: 'database', type: 'string', required: false, description: 'Database name (uses default if empty)' },
       ],
@@ -207,7 +216,7 @@ export const mysqlConnector: ConnectorDefinition = {
       method: 'POST',
       pathTemplate: '/_internal/db/query',
       headers: { 'Content-Type': 'application/json' },
-      bodyTemplate: JSON.stringify({ sql: "SELECT TABLE_NAME AS VIEW_NAME, VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME", params: ['{{database}}'] }),
+      bodyTemplate: JSON.stringify({ sql: "SELECT TABLE_NAME AS VIEW_NAME, VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = COALESCE(NULLIF(?, ''), DATABASE()) ORDER BY TABLE_NAME", params: ['{{database}}'] }),
       inputs: [
         { name: 'database', type: 'string', required: false, description: 'Database name (uses default if empty)' },
       ],
@@ -249,6 +258,7 @@ export const mysqlConnector: ConnectorDefinition = {
       port: String(config.port || 3306),
       database: config.database,
       ssl: config.ssl || 'true',
+      ...(config.ca_cert ? { ca_cert: String(config.ca_cert) } : {}),
     },
   }),
 }

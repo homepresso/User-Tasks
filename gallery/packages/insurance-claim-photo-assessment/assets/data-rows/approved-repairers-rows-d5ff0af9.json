@@ -1,0 +1,41 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d5ff0af9-1f39-5065-a1bf-49a47761ec0b",
+  "asset": {
+    "id": "d5ff0af9-1f39-5065-a1bf-49a47761ec0b",
+    "name": "Approved repairers rows",
+    "rows": [
+      {
+        "id": "7ae02e0d-e225-5cef-a5ed-36ab93e810b8",
+        "data": {
+          "name": "Example Panel & Paint",
+          "email": "jobs@panel-paint.example.com",
+          "region": "North",
+          "specialty": "panel, paint",
+          "active": true
+        }
+      },
+      {
+        "id": "94705361-abc4-5b33-a4c9-8bf5c5dc5fae",
+        "data": {
+          "name": "Sample Auto Glass",
+          "email": "bookings@autoglass.example.com",
+          "region": "Any",
+          "specialty": "glass",
+          "active": true
+        }
+      },
+      {
+        "id": "13b8bb4d-d031-5712-8c95-e666fa9fbf53",
+        "data": {
+          "name": "Demo Collision Centre",
+          "email": "intake@collision.example.com",
+          "region": "South",
+          "specialty": "structural, panel",
+          "active": true
+        }
+      }
+    ]
+  }
+}

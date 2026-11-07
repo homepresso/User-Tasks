@@ -1,5 +1,6 @@
 "use client"
 
+import { AddTaskAttachmentConfig } from "@/components/task-attachments/add-task-attachment-config"
 import { useState, useMemo, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { serverRead, type ReadArgs } from "@/lib/server-read"
@@ -14,28 +15,42 @@ function tableNamesOf(tables: { id: string; name: string }[] | undefined): Table
 }
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
+import { Tooltip } from "@/components/ui/tooltip"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card } from "@/components/ui/card"
+import { InlineNotice } from "@/components/ui/inline-notice"
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-schema"
-import { NODE_CATALOG } from "@/lib/workflow-schema"
-import { Plus, X, ChevronDown, ChevronRight, Database } from "lucide-react"
+import { NODE_CATALOG, nodeColorCategory, nodeColorVar } from "@/lib/workflow-schema"
+import { Plus, X, ChevronDown, ChevronRight, Database, ArrowUp, ArrowDown } from "lucide-react"
 import { useLinkedForms } from "./linked-forms"
 import { VariableInput, TriggerTypeProvider } from "./variable-input"
+import { CustomActionConfig } from "./custom-action-config"
 import { FormSubmittedTriggerConfig } from "@/components/automations/form-submitted-trigger-config";
 import { StartFormPageSection } from "@/components/forms/start-form-page";
 import { NodeFormSection } from '@/components/forms/node-form-section'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
+import { QUEUE_BEHAVIOURS, QUEUE_BEHAVIOUR_LABELS, normaliseQueueBehaviour } from '@/lib/tasks/queue-rules'
 import { CallReferenceConfig } from "./call-reference-config"
 import { TriggerFilterConfig } from "./trigger-filter-config"
 import { DocWordConfig, DocExcelConfig, DocPowerPointConfig } from "./doc-config-panels"
 import { DocumentActionConfig, isDocumentActionPanel } from "./document-action-panels"
+import { MediaActionConfig, isMediaActionPanel } from "./media-action-panels"
+import { EsignActionConfig, EsignEventTriggerConfig, isEsignActionPanel } from "./esign-action-panels"
 import { normalizeTableColumns } from '@/lib/data-table-columns'
-import { getWorkflowActivityDisplayName, getWorkflowActivityInputDefinitions, getWorkflowActivityOutputDefinitions, getWorkflowActivitySetupNotes, getWorkflowActivitySummary, getWorkflowActivityPresentation } from '@/lib/extensibility'
 import { PERMISSION_KEYS } from '@/lib/permissions'
-import { agentOutputPrefix } from '@/lib/agent-knowledge'
+import { agentOutputPrefix, runAgentOutputPrefix } from '@/lib/agent-knowledge'
 import { normalizeScheduleConfig, describeSchedule, getNextOccurrence } from '@/lib/workflow-schedule'
 import { buildDataTree } from '@/lib/workflow-data-picker'
+import { setVariableAssignments, setVariableEditorRows, setVariableNames, setVariableRowIssues } from "@/lib/workflow-set-variable"
 import { DataPickerProvider, LoopItemsInput, type DataPickerContextValue } from './data-picker'
+import { LoopCollectionPicker } from './loop-collection-picker'
 import { HttpResponseModelEditor } from './response-model-editor'
+import { AgentPinBadge } from './agent-pin-badge'
+import { AadGroupAssignmentConfig, AssignmentSegments, useDirectoryCapabilities } from './aad-group-assignment'
 
 const SWITCH_COLORS = ["var(--theme-chart-1)", "var(--theme-chart-2)", "var(--theme-chart-3)", "var(--theme-chart-4)", "var(--theme-chart-5)", "var(--theme-chart-6)", "var(--theme-chart-7)", "var(--theme-chart-8)"]
 const PANEL_QUERY_DEFAULTS = {
@@ -159,7 +174,7 @@ function useAgentOptions() {
     queryKey: ['agents-for-config'],
     queryFn: async () => {
       const { data } = await serverRead('automations.agentOptions')
-      return (data ?? []) as { id: string; name: string; is_active: boolean; integration_id?: string | null; model?: string | null; output_config?: { variables?: { name?: string; type?: string; description?: string }[] } | null }[]
+      return (data ?? []) as { id: string; name: string; is_active: boolean; integration_id?: string | null; model?: string | null; version?: number | null; output_config?: { variables?: { name?: string; type?: string; description?: string }[] } | null }[]
     },
     staleTime: 60_000,
     ...PANEL_QUERY_DEFAULTS,
@@ -228,10 +243,15 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         }
         if (n.type === 'custom_activity') {
           const group = `🧩 ${n.label}`
-          const outputs = Array.isArray(n.config.manifest?.outputs) ? n.config.manifest.outputs : []
-          for (const output of outputs) pushVar(String(output?.name ?? output?.key ?? '').trim(), group)
+          const outputs = Array.isArray(n.config._action_outputs) ? n.config._action_outputs : Array.isArray(n.config.manifest?.outputs) ? n.config.manifest.outputs : []
+          const actionPrefix = String(n.config._output_prefix ?? '').trim()
+          for (const output of outputs) {
+            const outputName = String(output?.name ?? output?.key ?? '').trim()
+            if (actionPrefix) pushVar(`${actionPrefix}_${outputName}`, group)
+            pushVar(outputName, group)
+          }
         }
-        if (n.type === 'set_variable' && c.name) pushVar(c.name, `📌 ${n.label}`)
+        if (n.type === 'set_variable') for (const name of setVariableNames(c)) pushVar(name, `📌 ${n.label}`)
         if (['math', 'modify_string', 'text_template', 'format_date', 'date_math', 'regex', 'collection_count', 'collection_get', 'collection_filter', 'collection_sort', 'collection_unique', 'collection_join'].includes(n.type) && c.output_var) {
           pushVar(c.output_var, `🔧 ${n.label}`)
         }
@@ -254,7 +274,9 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           pushVar(`${outVar}_usage`, group)
           pushVar(`${outVar}_status`, group)
           pushVar(`${outVar}_duration_ms`, group)
-          const prefix = deriveOutputPrefix(n)
+          pushVar(`${outVar}_outputs`, group)
+          pushVar(`${outVar}_files`, group)
+          const prefix = runAgentOutputPrefix(c)
           for (const output of getAgentOutputDefinitions(c)) {
             const key = String(output?.name ?? '').trim()
             pushVar(key, group)
@@ -342,7 +364,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
   if (!node) {
     return (
       <div className="text-center py-8">
-        <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs text-fg-muted">
           Select a node to configure it
         </p>
       </div>
@@ -361,39 +383,38 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
     <TriggerTypeProvider value={triggerType}>
     <DataPickerProvider value={dataPicker}>
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: catalog?.color }} />
-        <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>
+      <div className="flex items-center gap-2">
+        <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: node.config.node_color ?? nodeColorVar(nodeColorCategory(node.type)) }} />
+        <h3 className="min-w-0 truncate text-ui font-semibold text-fg">
           {catalog?.label ?? node.type}
         </h3>
         {onToggleDataSidebar && (
-          <button
-            type="button"
-            onClick={onToggleDataSidebar}
-            aria-pressed={!!dataSidebarOpen}
-            title={dataSidebarOpen ? 'Hide the Data sidebar (⌥D)' : 'Show the Data sidebar: form fields and step outputs to drag into inputs (⌥D)'}
-            className="ml-auto flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium hover:opacity-90"
-            style={{
-              backgroundColor: dataSidebarOpen ? 'var(--theme-primary-light)' : 'var(--theme-card-bg)',
-              borderColor: dataSidebarOpen ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-              color: 'var(--theme-primary-text)',
-            }}
-          >
-            <Database size={11} aria-hidden /> Data
-          </button>
+          <Tooltip content={dataSidebarOpen ? 'Hide the Data sidebar (⌥D)' : 'Show the Data sidebar: form fields and step outputs to drag into inputs (⌥D)'}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onToggleDataSidebar}
+              aria-pressed={!!dataSidebarOpen}
+              leadingIcon={<Database aria-hidden />}
+              className={`ml-auto ${dataSidebarOpen ? 'border-primary bg-primary-wash text-primary-text hover:border-primary hover:bg-primary-wash' : ''}`}
+            >
+              Data
+            </Button>
+          </Tooltip>
         )}
       </div>
 
       {/* Label */}
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-medium mb-1">Label</label>
+        <label className="block text-xs font-medium mb-1.5">Label</label>
         <Input value={node.label} onChange={(e) => onUpdateNode(node.id, { label: e.target.value })} />
       </div>
 
       {/* Appearance — custom color + custom SVG icon (stored in config, so
           it exports/imports and syncs like any other node setting) */}
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Appearance</label>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Appearance</label>
         <div className="flex flex-wrap items-center gap-1.5">
           {['#22C55E', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#EF4444', '#64748B'].map((swatch) => (
             <button
@@ -401,11 +422,10 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
               type="button"
               title={swatch}
               onClick={() => updateConfig('node_color', node.config.node_color === swatch ? undefined : swatch)}
-              className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
-              style={{
-                backgroundColor: swatch,
-                borderColor: node.config.node_color === swatch ? 'var(--theme-card-text)' : 'transparent',
-              }}
+              aria-label={`Colour ${swatch}`}
+              aria-pressed={node.config.node_color === swatch}
+              className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 ${node.config.node_color === swatch ? 'border-fg' : 'border-transparent'}`}
+              style={{ backgroundColor: swatch }}
             />
           ))}
           <input
@@ -413,24 +433,22 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             value={node.config.node_color ?? catalog?.color ?? '#6B7280'}
             onChange={(e) => updateConfig('node_color', e.target.value)}
             title="Custom color"
-            className="h-5 w-7 cursor-pointer rounded border bg-transparent p-0"
-            style={{ borderColor: 'var(--theme-surface-border)' }}
+            aria-label="Custom color"
+            className="h-5 w-7 cursor-pointer rounded border border-border bg-transparent p-0"
           />
           {node.config.node_color && (
             <button
               type="button"
               onClick={() => updateConfig('node_color', undefined)}
-              className="text-[9px] underline"
-              style={{ color: 'var(--theme-muted-text)' }}
+              className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline"
             >
               Reset color
             </button>
           )}
         </div>
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-2">
           <label
-            className="cursor-pointer rounded border border-dashed px-2 py-1 text-[9px] font-medium hover:opacity-80"
-            style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+            className="cursor-pointer rounded-md border border-dashed border-border px-2 py-1 text-xs font-medium text-fg-muted hover:border-border-strong hover:text-fg"
           >
             {node.config.node_icon_svg ? 'Replace custom icon (SVG)' : 'Upload custom icon (SVG)'}
             <input
@@ -457,8 +475,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
               <button
                 type="button"
                 onClick={() => updateConfig('node_icon_svg', undefined)}
-                className="text-[9px] underline"
-                style={{ color: 'var(--theme-muted-text)' }}
+                className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline"
               >
                 Remove icon
               </button>
@@ -470,41 +487,39 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       {/* Output prefix — for nodes that produce auto-named variables */}
       {['call_reference', 'live_reference', 'http_request', 'call_sub_workflow', 'decision_table', 'user_task', 'server_event', 'run_agent', 'retention_policies'].includes(node.type) && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Output Prefix</label>
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">Output prefix</label>
           <Input
             value={node.config._output_prefix ?? ""}
             onChange={(e) => updateConfig("_output_prefix", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-            placeholder={deriveOutputPrefix(node)}
-            className="!text-xs font-mono"
+            placeholder={node.type === 'run_agent' ? runAgentOutputPrefix(node.config) : deriveOutputPrefix(node)}
+            className="font-mono"
           />
-          <p className="text-[9px] mt-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-            Variables: {'{{'}{deriveOutputPrefix(node)}_{node.type === 'retention_policies' ? 'retention_policy_id' : 'response'}{'}}'}
+          <p className="text-xs mt-0.5 text-fg-muted">
+            {node.type === 'run_agent'
+              ? <>Variables: {'{{'}{runAgentOutputPrefix(node.config)}_&lt;output&gt;{'}}'} for each declared output</>
+              : <>Variables: {'{{'}{deriveOutputPrefix(node)}_{node.type === 'retention_policies' ? 'retention_policy_id' : 'response'}{'}}'}</>}
           </p>
         </div>
       )}
 
       {/* Error handling — show on all non-trigger nodes */}
-      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received'].includes(node.type) && (
+      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event'].includes(node.type) && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>On Error</label>
-          <div className="flex gap-0.5">
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">On error</label>
+          <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
             {[
               { val: 'stop', label: 'Stop workflow' },
               { val: 'continue', label: 'Continue' },
             ].map(o => (
               <button key={o.val} type="button"
                 onClick={() => onUpdateNode(node.id, { onError: o.val as any })}
-                className="flex-1 text-[9px] font-medium py-1 rounded transition-colors"
-                style={{
-                  backgroundColor: (node.onError ?? 'stop') === o.val ? (o.val === 'stop' ? 'var(--theme-danger)' : 'var(--theme-warning)') : 'var(--theme-surface)',
-                  color: (node.onError ?? 'stop') === o.val ? 'var(--theme-card-bg)' : 'var(--theme-muted-text)',
-                }}>
+                className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(node.onError ?? 'stop') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
                 {o.label}
               </button>
             ))}
           </div>
           {node.onError === 'continue' && (
-            <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs mt-1 text-fg-muted">
               On error: sets {'{{has_error}}'}, {'{{last_error}}'}, {'{{last_error_node}}'} and continues to next nodes
             </p>
           )}
@@ -512,27 +527,23 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       )}
 
       {/* Execution mode — show on action/operation nodes */}
-      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'condition', 'switch_case', 'end_workflow', 'placeholder'].includes(node.type) && (
+      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'condition', 'switch_case', 'end_workflow', 'placeholder'].includes(node.type) && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Execution</label>
-          <div className="flex gap-0.5">
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">Execution</label>
+          <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
             {[
               { val: 'sync', label: 'Wait for result', desc: 'Next step runs after this completes' },
               { val: 'async', label: 'Fire & forget', desc: 'Next step runs immediately' },
             ].map(o => (
               <button key={o.val} type="button"
                 onClick={() => onUpdateNode(node.id, { executionMode: o.val as any })}
-                className="flex-1 text-[9px] font-medium py-1 rounded transition-colors"
-                style={{
-                  backgroundColor: (node.executionMode ?? 'sync') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                  color: (node.executionMode ?? 'sync') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-                }}>
+                className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(node.executionMode ?? 'sync') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
                 {o.label}
               </button>
             ))}
           </div>
           {node.executionMode === 'async' && (
-            <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs mt-1 text-fg-muted">
               Async: output variables won't be available to subsequent nodes
             </p>
           )}
@@ -541,22 +552,22 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Webhook trigger info ─── */}
       {(node.type === "webhook_received" || node.type === "middleware_received") && (
-        <div className="rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-          <p className="text-xs font-medium mb-1" style={{ color: "var(--theme-primary-text)" }}>
-            {node.type === "middleware_received" ? "Middleware Trigger" : "Webhook Trigger"}
+        <Card variant="inset" padding="sm">
+          <p className="text-xs font-medium mb-1 text-fg">
+            {node.type === "middleware_received" ? "Middleware trigger" : "Webhook trigger"}
           </p>
-          <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+          <p className="text-xs text-fg-muted">
             Configure the endpoint, API key, and payload mappings in the Webhook Configuration section above.
           </p>
-          <p className="text-[10px] mt-2" style={{ color: "var(--theme-muted-text)" }}>
+          <p className="text-xs mt-2 text-fg-muted">
             Mapped variables from the incoming payload are available in all downstream nodes using {"{{variable_name}}"} syntax.
           </p>
           {node.type === "middleware_received" && (
-            <p className="text-[10px] mt-2" style={{ color: "var(--theme-muted-text)" }}>
-              Middleware runs synchronously and returns the response configured on the <code style={{ color: 'var(--theme-primary-text)' }}>End Workflow</code> node.
+            <p className="text-xs mt-2 text-fg-muted">
+              Middleware runs synchronously and returns the response configured on the <code className="text-primary-text">End Workflow</code> node.
             </p>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ─── Task trigger nodes ─── */}
@@ -564,7 +575,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         <>
           <TriggerFilterConfig config={node.config} onUpdate={updateConfig} />
           <div className="mt-3">
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Task form (optional)</label>
+            <label className="block text-xs font-medium mb-1.5 text-fg-muted">Task form (optional)</label>
             <NodeFormSection variant="task_trigger" node={node} allNodes={allNodes ?? []} onPatch={batchUpdateConfig} onUpdateOtherNode={(id, config) => onUpdateNode(id, { config })} />
           </div>
         </>
@@ -597,6 +608,11 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         <FormSubmittedTriggerConfig config={node.config} onBatchUpdate={batchUpdateConfig} />
       )}
 
+      {/* ─── E-signature event trigger ─── */}
+      {node.type === "esign_event" && (
+        <EsignEventTriggerConfig type={node.type} config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} />
+      )}
+
       {/* ─── Data Table trigger ─── */}
       {node.type === "data_table_event" && (
         <DataTableTriggerConfig config={node.config} onUpdate={updateConfig} />
@@ -614,93 +630,98 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Update Task ─── */}
       {node.type === "update_task" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Field to Update</label>
-          <AutocompleteSelect
-            value={node.config.field ?? ""}
-            onChange={(value) => updateConfig("field", value)}
-            placeholder="Select field..."
-            clearable
-            options={[
-              { value: "status", label: "Status" },
-              { value: "priority", label: "Priority" },
-              { value: "assignee_id", label: "Assignee" },
-              { value: "due_date", label: "Due Date" },
-              { value: "title", label: "Title" },
-              { value: "description", label: "Description" },
-              { value: "progress_pct", label: "Progress %" },
-              { value: "tags", label: "Tags" },
-              { value: "outcome", label: "Outcome" },
-              { value: "outcome_notes", label: "Outcome Notes" },
-            ]}
-          />
-          <label className="block text-xs font-medium">New Value</label>
-          {(node.config.field === 'priority' || node.config.field === 'status') && !(node.config.value ?? '').includes('{{') ? (
-            <div className="space-y-1">
-              <select value={node.config.value ?? ""} onChange={(e) => updateConfig("value", e.target.value)}
-                className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
-                {node.config.field === 'priority' ? (
-                  <>
-                    <option value="">Select priority...</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                    <option value="none">None</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="">Select status...</option>
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="blocked">Blocked</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </>
-                )}
-              </select>
-              <button onClick={() => updateConfig("value", "{" + "{")}
-                className="text-[9px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>
-                Use variable instead
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <VariableInput value={node.config.value ?? ""} onChange={(value) => updateConfig("value", value)}
-                placeholder="Value or {{variable}}" extraVariables={extraVariables} />
-              {(node.config.field === 'priority' || node.config.field === 'status') && (
-                <button onClick={() => updateConfig("value", "")}
-                  className="text-[9px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>
-                  Use dropdown instead
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Field to update</label>
+            <AutocompleteSelect
+              value={node.config.field ?? ""}
+              onChange={(value) => updateConfig("field", value)}
+              placeholder="Select field..."
+              clearable
+              options={[
+                { value: "status", label: "Status" },
+                { value: "priority", label: "Priority" },
+                { value: "assignee_id", label: "Assignee" },
+                { value: "due_date", label: "Due Date" },
+                { value: "title", label: "Title" },
+                { value: "description", label: "Description" },
+                { value: "progress_pct", label: "Progress %" },
+                { value: "tags", label: "Tags" },
+                { value: "outcome", label: "Outcome" },
+                { value: "outcome_notes", label: "Outcome Notes" },
+              ]}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">New value</label>
+            {(node.config.field === 'priority' || node.config.field === 'status') && !(node.config.value ?? '').includes('{{') ? (
+              <div className="space-y-1">
+                <Select value={node.config.value ?? ""} onChange={(e) => updateConfig("value", e.target.value)}>
+                  {node.config.field === 'priority' ? (
+                    <>
+                      <option value="">Select priority...</option>
+                      <option value="critical">Critical</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                      <option value="none">None</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="">Select status...</option>
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="blocked">Blocked</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </>
+                  )}
+                </Select>
+                <button onClick={() => updateConfig("value", "{" + "{")}
+                  className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">
+                  Use variable instead
                 </button>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <VariableInput value={node.config.value ?? ""} onChange={(value) => updateConfig("value", value)}
+                  placeholder="Value or {{variable}}" extraVariables={extraVariables} />
+                {(node.config.field === 'priority' || node.config.field === 'status') && (
+                  <button onClick={() => updateConfig("value", "")}
+                    className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">
+                    Use dropdown instead
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* ─── Set Title ─── */}
       {node.type === "set_title" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Instance Title</label>
-          <VariableInput value={node.config.title ?? ""} onChange={(value) => updateConfig("title", value)}
-            placeholder="{{task.title}} — {{task.priority}}" extraVariables={extraVariables} />
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            Sets a descriptive title for this workflow run. Supports expressions. Visible in the queue.
-          </p>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Instance title</label>
+            <VariableInput value={node.config.title ?? ""} onChange={(value) => updateConfig("title", value)}
+              placeholder="{{task.title}} — {{task.priority}}" extraVariables={extraVariables} />
+            <p className="text-xs text-fg-muted">
+              Sets a descriptive title for this workflow run. Supports expressions. Visible in the queue.
+            </p>
+          </div>
         </div>
       )}
 
       {node.type === "set_sla" && (
-        <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-            <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="rounded-lg p-3 bg-subtle">
+            <p className="text-xs text-fg-muted">
               Sets an SLA on the current workflow run so queues, reports, and SLA-triggered workflows can detect warning and breach states.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">SLA Label</label>
+            <label className="block text-xs font-medium mb-1.5">SLA label</label>
             <VariableInput
               value={node.config.sla_label ?? ""}
               onChange={(value) => updateConfig("sla_label", value)}
@@ -708,21 +729,20 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Due Mode</label>
-            <select
+            <label className="block text-xs font-medium mb-1.5">Due mode</label>
+            <Select
               value={node.config.mode ?? 'relative'}
               onChange={(e) => updateConfig("mode", e.target.value)}
-              className="w-full rounded border px-2 py-1.5 text-xs"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+              
             >
               <option value="relative">Relative from now</option>
               <option value="exact">Exact date/time</option>
-            </select>
+            </Select>
           </div>
 
           {(node.config.mode ?? 'relative') === 'exact' ? (
             <div>
-              <label className="block text-xs font-medium mb-1">Due At</label>
+              <label className="block text-xs font-medium mb-1.5">Due at</label>
               <VariableInput
                 value={node.config.due_at ?? ''}
                 onChange={(value) => updateConfig('due_at', value)}
@@ -733,7 +753,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           ) : (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium mb-1">Amount</label>
+                <label className="block text-xs font-medium mb-1.5">Amount</label>
                 <VariableInput
                   value={String(node.config.amount ?? 4)}
                   onChange={(value) => updateConfig("amount", value)}
@@ -742,38 +762,36 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Unit</label>
-                <select
+                <label className="block text-xs font-medium mb-1.5">Unit</label>
+                <Select
                   value={node.config.unit ?? 'hours'}
                   onChange={(e) => updateConfig("unit", e.target.value)}
-                  className="w-full rounded border px-2 py-1.5 text-xs"
-                  style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                  
                 >
                   <option value="minutes">Minutes</option>
                   <option value="hours">Hours</option>
                   <option value="days">Days</option>
                   <option value="weeks">Weeks</option>
-                </select>
+                </Select>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-medium mb-1">Warning Mode</label>
-            <select
+            <label className="block text-xs font-medium mb-1.5">Warning mode</label>
+            <Select
               value={node.config.warning_mode ?? 'relative'}
               onChange={(e) => updateConfig("warning_mode", e.target.value)}
-              className="w-full rounded border px-2 py-1.5 text-xs"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+              
             >
               <option value="relative">Before due time</option>
               <option value="exact">Exact warning date/time</option>
-            </select>
+            </Select>
           </div>
 
           {(node.config.warning_mode ?? 'relative') === 'exact' ? (
             <div>
-              <label className="block text-xs font-medium mb-1">Warning At</label>
+              <label className="block text-xs font-medium mb-1.5">Warning at</label>
               <VariableInput
                 value={node.config.warning_at ?? ''}
                 onChange={(value) => updateConfig('warning_at', value)}
@@ -784,7 +802,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           ) : (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium mb-1">Warn Before</label>
+                <label className="block text-xs font-medium mb-1.5">Warn before</label>
                 <VariableInput
                   value={String(node.config.warning_amount ?? 1)}
                   onChange={(value) => updateConfig("warning_amount", value)}
@@ -793,18 +811,17 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Warning Unit</label>
-                <select
+                <label className="block text-xs font-medium mb-1.5">Warning unit</label>
+                <Select
                   value={node.config.warning_unit ?? node.config.unit ?? 'hours'}
                   onChange={(e) => updateConfig("warning_unit", e.target.value)}
-                  className="w-full rounded border px-2 py-1.5 text-xs"
-                  style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                  
                 >
                   <option value="minutes">Minutes</option>
                   <option value="hours">Hours</option>
                   <option value="days">Days</option>
                   <option value="weeks">Weeks</option>
-                </select>
+                </Select>
               </div>
             </div>
           )}
@@ -813,187 +830,216 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── JSON Build Object ─── */}
       {node.type === "json_build_object" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Source Variable (optional — merge into existing)</label>
-          <Input value={node.config.source_var ?? ""} onChange={(e) => updateConfig("source_var", e.target.value)}
-            placeholder="e.g. existing_object" className="!text-xs font-mono" />
-          <label className="block text-xs font-medium">Fields</label>
-          {((node.config.fields ?? [{ key: '', value: '' }]) as { key: string; value: string }[]).map((field, i) => (
-            <div key={i} className="flex gap-1.5 items-start">
-              <Input value={field.key} onChange={(e) => {
-                const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], key: e.target.value }
-                updateConfig("fields", updated)
-              }} placeholder="key" className="!text-xs font-mono flex-1" />
-              <VariableInput value={field.value} onChange={(value) => {
-                const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], value: value }
-                updateConfig("fields", updated)
-              }} placeholder="{{variable}} or value" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-              <button onClick={() => {
-                const updated = (node.config.fields ?? []).filter((_: any, j: number) => j !== i)
-                updateConfig("fields", updated.length > 0 ? updated : [{ key: '', value: '' }])
-              }} className="text-xs px-1 mt-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
-            </div>
-          ))}
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Source variable (optional — merge into existing)</label>
+            <Input value={node.config.source_var ?? ""} onChange={(e) => updateConfig("source_var", e.target.value)}
+              placeholder="e.g. existing_object" className="font-mono" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Fields</label>
+            {((node.config.fields ?? [{ key: '', value: '' }]) as { key: string; value: string }[]).map((field, i) => (
+              <div key={i} className="flex gap-1.5 items-start">
+                <Input value={field.key} onChange={(e) => {
+                  const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], key: e.target.value }
+                  updateConfig("fields", updated)
+                }} placeholder="key" className="font-mono flex-1" />
+                <VariableInput value={field.value} onChange={(value) => {
+                  const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], value: value }
+                  updateConfig("fields", updated)
+                }} placeholder="{{variable}} or value" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
+                <IconButton size="sm" label="Remove field" icon={<X />} onClick={() => {
+                  const updated = (node.config.fields ?? []).filter((_: any, j: number) => j !== i)
+                  updateConfig("fields", updated.length > 0 ? updated : [{ key: '', value: '' }])
+                }} />
+              </div>
+            ))}
+          </div>
           <button onClick={() => updateConfig("fields", [...(node.config.fields ?? []), { key: '', value: '' }])}
-            className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add field</button>
-          <label className="block text-xs font-medium">Output Variable</label>
-          <Input value={node.config.output_var ?? "json_object"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            placeholder="json_object" className="!text-xs font-mono" />
+            className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add field</button>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Output variable</label>
+            <Input value={node.config.output_var ?? "json_object"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              placeholder="json_object" className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── JSON Build Array ─── */}
       {node.type === "json_build_array" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Source Variable (optional — append to existing)</label>
-          <Input value={node.config.source_var ?? ""} onChange={(e) => updateConfig("source_var", e.target.value)}
-            placeholder="e.g. existing_array" className="!text-xs font-mono" />
-          <label className="block text-xs font-medium">Items to Add</label>
-          {((node.config.items ?? [{ value: '' }]) as { value: string }[]).map((item, i) => (
-            <div key={i} className="flex gap-1.5 items-start">
-              <VariableInput value={item.value} onChange={(value) => {
-                const updated = [...(node.config.items ?? [{ value: '' }])]; updated[i] = { value: value }
-                updateConfig("items", updated)
-              }} placeholder='{{variable}} or "static"' extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-              <button onClick={() => {
-                const updated = (node.config.items ?? []).filter((_: any, j: number) => j !== i)
-                updateConfig("items", updated.length > 0 ? updated : [{ value: '' }])
-              }} className="text-xs px-1 mt-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
-            </div>
-          ))}
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Source variable (optional — append to existing)</label>
+            <Input value={node.config.source_var ?? ""} onChange={(e) => updateConfig("source_var", e.target.value)}
+              placeholder="e.g. existing_array" className="font-mono" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Items to add</label>
+            {((node.config.items ?? [{ value: '' }]) as { value: string }[]).map((item, i) => (
+              <div key={i} className="flex gap-1.5 items-start">
+                <VariableInput value={item.value} onChange={(value) => {
+                  const updated = [...(node.config.items ?? [{ value: '' }])]; updated[i] = { value: value }
+                  updateConfig("items", updated)
+                }} placeholder='{{variable}} or "static"' extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
+                <IconButton size="sm" label="Remove item" icon={<X />} onClick={() => {
+                  const updated = (node.config.items ?? []).filter((_: any, j: number) => j !== i)
+                  updateConfig("items", updated.length > 0 ? updated : [{ value: '' }])
+                }} />
+              </div>
+            ))}
+          </div>
           <button onClick={() => updateConfig("items", [...(node.config.items ?? []), { value: '' }])}
-            className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add item</button>
-          <label className="block text-xs font-medium">Output Variable</label>
-          <Input value={node.config.output_var ?? "json_array"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            placeholder="json_array" className="!text-xs font-mono" />
+            className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add item</button>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Output variable</label>
+            <Input value={node.config.output_var ?? "json_array"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              placeholder="json_array" className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── JSON Add to Array ─── */}
       {node.type === "json_add_to_array" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Array Variable</label>
-          <Input value={node.config.array_var ?? ""} onChange={(e) => updateConfig("array_var", e.target.value)}
-            placeholder="json_array" className="!text-xs font-mono" />
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            The variable holding the array to add to. Use inside a loop to build up an array of objects.
-          </p>
-          <label className="block text-xs font-medium">Object Fields</label>
-          {((node.config.fields ?? [{ key: '', value: '' }]) as { key: string; value: string }[]).map((field, i) => (
-            <div key={i} className="flex gap-1.5 items-start">
-              <Input value={field.key} onChange={(e) => {
-                const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], key: e.target.value }
-                updateConfig("fields", updated)
-              }} placeholder="key" className="!text-xs font-mono flex-1" />
-              <VariableInput value={field.value} onChange={(value) => {
-                const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], value: value }
-                updateConfig("fields", updated)
-              }} placeholder="{{item.field}} or value" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-              <button onClick={() => {
-                const updated = (node.config.fields ?? []).filter((_: any, j: number) => j !== i)
-                updateConfig("fields", updated.length > 0 ? updated : [{ key: '', value: '' }])
-              }} className="text-xs px-1 mt-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
-            </div>
-          ))}
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Array variable</label>
+            <Input value={node.config.array_var ?? ""} onChange={(e) => updateConfig("array_var", e.target.value)}
+              placeholder="json_array" className="font-mono" />
+            <p className="text-xs text-fg-muted">
+              The variable holding the array to add to. Use inside a loop to build up an array of objects.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Object fields</label>
+            {((node.config.fields ?? [{ key: '', value: '' }]) as { key: string; value: string }[]).map((field, i) => (
+              <div key={i} className="flex gap-1.5 items-start">
+                <Input value={field.key} onChange={(e) => {
+                  const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], key: e.target.value }
+                  updateConfig("fields", updated)
+                }} placeholder="key" className="font-mono flex-1" />
+                <VariableInput value={field.value} onChange={(value) => {
+                  const updated = [...(node.config.fields ?? [{ key: '', value: '' }])]; updated[i] = { ...updated[i], value: value }
+                  updateConfig("fields", updated)
+                }} placeholder="{{item.field}} or value" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
+                <IconButton size="sm" label="Remove field" icon={<X />} onClick={() => {
+                  const updated = (node.config.fields ?? []).filter((_: any, j: number) => j !== i)
+                  updateConfig("fields", updated.length > 0 ? updated : [{ key: '', value: '' }])
+                }} />
+              </div>
+            ))}
+          </div>
           <button onClick={() => updateConfig("fields", [...(node.config.fields ?? []), { key: '', value: '' }])}
-            className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add field</button>
+            className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add field</button>
         </div>
       )}
 
       {/* ─── JSON Get Value ─── */}
       {node.type === "json_get_value" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Source</label>
-          <VariableInput value={node.config.source ?? ""} onChange={(value) => updateConfig("source", value)}
-            placeholder="{{api_response}} or {{json_object}}" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Path</label>
-          <Input value={node.config.path ?? ""} onChange={(e) => updateConfig("path", e.target.value)}
-            placeholder="data.items.0.name" className="!text-xs font-mono" />
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            Dot notation. Use numbers for array indices: data.items.0.name
-          </p>
-          <label className="block text-xs font-medium">Output Variable</label>
-          <Input value={node.config.output_var ?? "json_value"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            placeholder="json_value" className="!text-xs font-mono" />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Source</label>
+            <VariableInput value={node.config.source ?? ""} onChange={(value) => updateConfig("source", value)}
+              placeholder="{{api_response}} or {{json_object}}" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Path</label>
+            <Input value={node.config.path ?? ""} onChange={(e) => updateConfig("path", e.target.value)}
+              placeholder="data.items.0.name" className="font-mono" />
+            <p className="text-xs text-fg-muted">
+              Dot notation. Use numbers for array indices: data.items.0.name
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Output variable</label>
+            <Input value={node.config.output_var ?? "json_value"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              placeholder="json_value" className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── CSV (Read / Write) ─── */}
       {node.type === "read_csv" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Mode</label>
-          <div className="flex gap-0.5">
-            {[{ val: 'read', label: 'Read CSV' }, { val: 'write', label: 'Write CSV' }].map(o => (
-              <button key={o.val} type="button" onClick={() => updateConfig("mode", o.val)}
-                className="flex-1 text-[10px] font-medium py-1.5 rounded transition-colors"
-                style={{ backgroundColor: (node.config.mode ?? 'read') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)', color: (node.config.mode ?? 'read') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}>
-                {o.label}
-              </button>
-            ))}
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Mode</label>
+            <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
+              {[{ val: 'read', label: 'Read CSV' }, { val: 'write', label: 'Write CSV' }].map(o => (
+                <button key={o.val} type="button" onClick={() => updateConfig("mode", o.val)}
+                  className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(node.config.mode ?? 'read') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {(node.config.mode ?? 'read') === 'read' ? (
             <>
-              <label className="block text-xs font-medium">Source</label>
-              <select value={node.config.source_mode ?? "url"} onChange={(e) => updateConfig("source_mode", e.target.value)}
-                className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-                <option value="url">File URL</option>
-                <option value="ref">File Reference (from API / workflow)</option>
-                <option value="table">Data Table File Column</option>
-              </select>
-              <label className="block text-xs font-medium">{node.config.source_mode === 'ref' ? 'File Variable' : node.config.source_mode === 'table' ? 'Table Row File Variable' : 'File URL'}</label>
-              <VariableInput value={node.config.file_url ?? ""} onChange={(value) => updateConfig("file_url", value)}
-                placeholder={node.config.source_mode === 'ref' ? '{{api_file}}' : node.config.source_mode === 'table' ? '{{item.file_column}}' : 'https://example.com/data.csv'} extraVariables={extraVariables} />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Source</label>
+                <Select value={node.config.source_mode ?? "url"} onChange={(e) => updateConfig("source_mode", e.target.value)}>
+                  <option value="url">File URL</option>
+                  <option value="ref">File Reference (from API / workflow)</option>
+                  <option value="table">Data Table File Column</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">{node.config.source_mode === 'ref' ? 'File Variable' : node.config.source_mode === 'table' ? 'Table Row File Variable' : 'File URL'}</label>
+                <VariableInput value={node.config.file_url ?? ""} onChange={(value) => updateConfig("file_url", value)}
+                  placeholder={node.config.source_mode === 'ref' ? '{{api_file}}' : node.config.source_mode === 'table' ? '{{item.file_column}}' : 'https://example.com/data.csv'} extraVariables={extraVariables} />
+              </div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-xs font-medium">Delimiter</label>
-                  <select value={node.config.delimiter ?? ","} onChange={(e) => updateConfig("delimiter", e.target.value)}
-                    className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                    style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+                  <Select value={node.config.delimiter ?? ","} onChange={(e) => updateConfig("delimiter", e.target.value)}>
                     <option value=",">Comma (,)</option>
                     <option value=";">Semicolon (;)</option>
                     <option value="\t">Tab</option>
                     <option value="|">Pipe (|)</option>
-                  </select>
+                  </Select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-medium">First Row</label>
-                  <select value={node.config.has_headers === false ? "no" : "yes"} onChange={(e) => updateConfig("has_headers", e.target.value === "yes")}
-                    className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                    style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+                  <label className="block text-xs font-medium">First row</label>
+                  <Select value={node.config.has_headers === false ? "no" : "yes"} onChange={(e) => updateConfig("has_headers", e.target.value === "yes")}>
                     <option value="yes">Headers</option>
                     <option value="no">Data (no headers)</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
-              <label className="block text-xs font-medium">Output Variable</label>
-              <Input value={node.config.output_var ?? "csv_data"} onChange={(e) => updateConfig("output_var", e.target.value)}
-                placeholder="csv_data" className="!text-xs font-mono" />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Output variable</label>
+                <Input value={node.config.output_var ?? "csv_data"} onChange={(e) => updateConfig("output_var", e.target.value)}
+                  placeholder="csv_data" className="font-mono" />
+              </div>
             </>
           ) : (
             <>
-              <label className="block text-xs font-medium">Data Variable (JSON array)</label>
-              <VariableInput value={node.config.data_var ?? ""} onChange={(value) => updateConfig("data_var", value)}
-                placeholder="{{csv_data}} or {{json_array}}" extraVariables={extraVariables} />
-              <label className="block text-xs font-medium">Delimiter</label>
-              <select value={node.config.delimiter ?? ","} onChange={(e) => updateConfig("delimiter", e.target.value)}
-                className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-                <option value=",">Comma (,)</option>
-                <option value=";">Semicolon (;)</option>
-                <option value="\t">Tab</option>
-                <option value="|">Pipe (|)</option>
-              </select>
-              <label className="block text-xs font-medium">File Name</label>
-              <VariableInput value={node.config.file_name ?? ""} onChange={(value) => updateConfig("file_name", value)}
-                placeholder="export.csv" extraVariables={extraVariables} />
-              <label className="block text-xs font-medium">Output Variable</label>
-              <Input value={node.config.output_var ?? "csv_file"} onChange={(e) => updateConfig("output_var", e.target.value)}
-                placeholder="csv_file" className="!text-xs font-mono" />
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                Creates a CSV file in storage. Output is a file reference {'{{csv_file}}'} with .url, .name, .size.
-              </p>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Data variable (JSON array)</label>
+                <VariableInput value={node.config.data_var ?? ""} onChange={(value) => updateConfig("data_var", value)}
+                  placeholder="{{csv_data}} or {{json_array}}" extraVariables={extraVariables} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Delimiter</label>
+                <Select value={node.config.delimiter ?? ","} onChange={(e) => updateConfig("delimiter", e.target.value)}>
+                  <option value=",">Comma (,)</option>
+                  <option value=";">Semicolon (;)</option>
+                  <option value="\t">Tab</option>
+                  <option value="|">Pipe (|)</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">File name</label>
+                <VariableInput value={node.config.file_name ?? ""} onChange={(value) => updateConfig("file_name", value)}
+                  placeholder="export.csv" extraVariables={extraVariables} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Output variable</label>
+                <Input value={node.config.output_var ?? "csv_file"} onChange={(e) => updateConfig("output_var", e.target.value)}
+                  placeholder="csv_file" className="font-mono" />
+                <p className="text-xs text-fg-muted">
+                  Creates a CSV file in storage. Output is a file reference {'{{csv_file}}'} with .url, .name, .size.
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -1001,64 +1047,77 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Excel (Read / Write) ─── */}
       {node.type === "read_excel" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Mode</label>
-          <div className="flex gap-0.5">
-            {[{ val: 'read', label: 'Read Excel' }, { val: 'write', label: 'Write Excel' }].map(o => (
-              <button key={o.val} type="button" onClick={() => updateConfig("mode", o.val)}
-                className="flex-1 text-[10px] font-medium py-1.5 rounded transition-colors"
-                style={{ backgroundColor: (node.config.mode ?? 'read') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)', color: (node.config.mode ?? 'read') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)' }}>
-                {o.label}
-              </button>
-            ))}
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Mode</label>
+            <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
+              {[{ val: 'read', label: 'Read Excel' }, { val: 'write', label: 'Write Excel' }].map(o => (
+                <button key={o.val} type="button" onClick={() => updateConfig("mode", o.val)}
+                  className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(node.config.mode ?? 'read') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {(node.config.mode ?? 'read') === 'read' ? (
             <>
-              <label className="block text-xs font-medium">Source</label>
-              <select value={node.config.source_mode ?? "url"} onChange={(e) => updateConfig("source_mode", e.target.value)}
-                className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
-                <option value="url">File URL</option>
-                <option value="ref">File Reference (from API / workflow)</option>
-                <option value="table">Data Table File Column</option>
-              </select>
-              <label className="block text-xs font-medium">{node.config.source_mode === 'ref' ? 'File Variable' : node.config.source_mode === 'table' ? 'Table Row File Variable' : 'File URL'}</label>
-              <VariableInput value={node.config.file_url ?? ""} onChange={(value) => updateConfig("file_url", value)}
-                placeholder={node.config.source_mode === 'ref' ? '{{api_file}}' : node.config.source_mode === 'table' ? '{{item.file_column}}' : 'https://example.com/data.xlsx'} extraVariables={extraVariables} />
-              <label className="block text-xs font-medium">Sheet Name (optional)</label>
-              <VariableInput value={node.config.sheet_name ?? ""} onChange={(value) => updateConfig("sheet_name", value)}
-                placeholder="Leave empty for first sheet" extraVariables={extraVariables} />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Source</label>
+                <Select value={node.config.source_mode ?? "url"} onChange={(e) => updateConfig("source_mode", e.target.value)}>
+                  <option value="url">File URL</option>
+                  <option value="ref">File Reference (from API / workflow)</option>
+                  <option value="table">Data Table File Column</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">{node.config.source_mode === 'ref' ? 'File Variable' : node.config.source_mode === 'table' ? 'Table Row File Variable' : 'File URL'}</label>
+                <VariableInput value={node.config.file_url ?? ""} onChange={(value) => updateConfig("file_url", value)}
+                  placeholder={node.config.source_mode === 'ref' ? '{{api_file}}' : node.config.source_mode === 'table' ? '{{item.file_column}}' : 'https://example.com/data.xlsx'} extraVariables={extraVariables} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Sheet name (optional)</label>
+                <VariableInput value={node.config.sheet_name ?? ""} onChange={(value) => updateConfig("sheet_name", value)}
+                  placeholder="Leave empty for first sheet" extraVariables={extraVariables} />
+              </div>
               <div>
-                <label className="block text-xs font-medium">First Row</label>
-                <select value={node.config.has_headers === false ? "no" : "yes"} onChange={(e) => updateConfig("has_headers", e.target.value === "yes")}
-                  className="w-full rounded-lg border px-2 py-1.5 text-xs"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+                <label className="block text-xs font-medium">First row</label>
+                <Select value={node.config.has_headers === false ? "no" : "yes"} onChange={(e) => updateConfig("has_headers", e.target.value === "yes")}>
                   <option value="yes">Headers</option>
                   <option value="no">Data (no headers)</option>
-                </select>
+                </Select>
               </div>
-              <label className="block text-xs font-medium">Output Variable</label>
-              <Input value={node.config.output_var ?? "excel_data"} onChange={(e) => updateConfig("output_var", e.target.value)}
-                placeholder="excel_data" className="!text-xs font-mono" />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Output variable</label>
+                <Input value={node.config.output_var ?? "excel_data"} onChange={(e) => updateConfig("output_var", e.target.value)}
+                  placeholder="excel_data" className="font-mono" />
+              </div>
             </>
           ) : (
             <>
-              <label className="block text-xs font-medium">Data Variable (JSON array)</label>
-              <VariableInput value={node.config.data_var ?? ""} onChange={(value) => updateConfig("data_var", value)}
-                placeholder="{{excel_data}} or {{json_array}}" extraVariables={extraVariables} />
-              <label className="block text-xs font-medium">Sheet Name</label>
-              <VariableInput value={node.config.sheet_name ?? ""} onChange={(value) => updateConfig("sheet_name", value)}
-                placeholder="Sheet1" extraVariables={extraVariables} />
-              <label className="block text-xs font-medium">File Name</label>
-              <VariableInput value={node.config.file_name ?? ""} onChange={(value) => updateConfig("file_name", value)}
-                placeholder="export.xlsx" extraVariables={extraVariables} />
-              <label className="block text-xs font-medium">Output Variable</label>
-              <Input value={node.config.output_var ?? "excel_file"} onChange={(e) => updateConfig("output_var", e.target.value)}
-                placeholder="excel_file" className="!text-xs font-mono" />
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                Creates an Excel file in storage. Output is a file reference {'{{excel_file}}'} with .url, .name, .size.
-              </p>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Data variable (JSON array)</label>
+                <VariableInput value={node.config.data_var ?? ""} onChange={(value) => updateConfig("data_var", value)}
+                  placeholder="{{excel_data}} or {{json_array}}" extraVariables={extraVariables} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Sheet name</label>
+                <VariableInput value={node.config.sheet_name ?? ""} onChange={(value) => updateConfig("sheet_name", value)}
+                  placeholder="Sheet1" extraVariables={extraVariables} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">File name</label>
+                <VariableInput value={node.config.file_name ?? ""} onChange={(value) => updateConfig("file_name", value)}
+                  placeholder="export.xlsx" extraVariables={extraVariables} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Output variable</label>
+                <Input value={node.config.output_var ?? "excel_file"} onChange={(e) => updateConfig("output_var", e.target.value)}
+                  placeholder="excel_file" className="font-mono" />
+                <p className="text-xs text-fg-muted">
+                  Creates an Excel file in storage. Output is a file reference {'{{excel_file}}'} with .url, .name, .size.
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -1066,57 +1125,60 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Set Variable ─── */}
       {node.type === "set_variable" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Variable Name</label>
-          <Input value={node.config.name ?? ""} onChange={(e) => updateConfig("name", e.target.value)}
-            placeholder="my_variable" className="!text-xs font-mono" />
-          <label className="block text-xs font-medium">Value / Expression</label>
-          <VariableInput value={node.config.expression ?? ""} onChange={(value) => updateConfig("expression", value)}
-            placeholder="{{task.priority}} or static value" extraVariables={extraVariables} />
-        </div>
+        <SetVariableConfig
+          nodeId={node.id}
+          config={node.config}
+          onReplaceConfig={(config) => onUpdateNode(node.id, { config })}
+          nameSuggestions={[
+            ...(workflowVariables ?? []).map((v) => v.name),
+            ...(allNodes ?? []).filter((n) => n.type === "set_variable" && n.id !== node.id).flatMap((n) => setVariableNames(n.config)),
+          ]}
+          extraVariables={extraVariables}
+        />
       )}
 
       {/* ─── Delay ─── */}
       {node.type === "delay" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Duration</label>
-          <div className="flex gap-2">
-            <Input type="number" value={node.config.duration ?? ""} onChange={(e) => updateConfig("duration", Number(e.target.value))}
-              placeholder="5" className="!text-xs w-20" />
-            <select value={node.config.unit ?? "minutes"} onChange={(e) => updateConfig("unit", e.target.value)}
-              className="rounded border px-2 py-1.5 text-xs flex-1" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
-              <option value="seconds">Seconds</option>
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
-            </select>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Duration</label>
+            <div className="flex gap-2">
+              <Input type="number" value={node.config.duration ?? ""} onChange={(e) => updateConfig("duration", Number(e.target.value))}
+                placeholder="5" className="w-20" />
+              <Select value={node.config.unit ?? "minutes"} onChange={(e) => updateConfig("unit", e.target.value)}
+                wrapperClassName="flex-1">
+                <option value="seconds">Seconds</option>
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </Select>
+            </div>
           </div>
         </div>
       )}
 
       {/* ─── HTTP Request ─── */}
       {node.type === "http_request" && (
-        <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           {/* Method + URL */}
           <div className="flex gap-2">
-            <select value={node.config.method ?? "GET"} onChange={(e) => updateConfig("method", e.target.value)}
-              className="rounded border px-2 py-1.5 text-xs font-bold w-24 shrink-0" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+            <Select value={node.config.method ?? "GET"} onChange={(e) => updateConfig("method", e.target.value)}
+              className="font-semibold" wrapperClassName="w-24 shrink-0">
               <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
-            </select>
+            </Select>
             <VariableInput value={node.config.url ?? ""} onChange={(value) => updateConfig("url", value)}
               placeholder="https://api.example.com/{{path}}" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
           </div>
 
           {/* Auth */}
           <div>
-            <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Authentication</label>
-            <select value={node.config.auth_type ?? "none"} onChange={(e) => updateConfig("auth_type", e.target.value)}
-              className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+            <label className="block text-xs font-medium mb-1.5 text-fg-muted">Authentication</label>
+            <Select value={node.config.auth_type ?? "none"} onChange={(e) => updateConfig("auth_type", e.target.value)}>
               <option value="none">None</option>
               <option value="bearer">Bearer Token</option>
               <option value="api_key">API Key</option>
               <option value="basic">Basic Auth</option>
-            </select>
+            </Select>
             {node.config.auth_type === "bearer" && (
               <VariableInput value={node.config.auth_token ?? ""} onChange={(value) => updateConfig("auth_token", value)}
                 placeholder="{{api_key}} or token" extraVariables={extraVariables} wrapperClassName="mt-1" />
@@ -1124,7 +1186,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             {node.config.auth_type === "api_key" && (
               <div className="flex gap-1 mt-1">
                 <Input value={node.config.auth_key_name ?? "X-API-Key"} onChange={(e) => updateConfig("auth_key_name", e.target.value)}
-                  placeholder="Header name" className="!text-xs font-mono w-28" />
+                  placeholder="Header name" className="font-mono w-28" />
                 <VariableInput value={node.config.auth_key_value ?? ""} onChange={(value) => updateConfig("auth_key_value", value)}
                   placeholder="{{api_key}}" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
               </div>
@@ -1134,66 +1196,64 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                 <VariableInput value={node.config.auth_username ?? ""} onChange={(value) => updateConfig("auth_username", value)}
                   placeholder="Username" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
                 <Input value={node.config.auth_password ?? ""} onChange={(e) => updateConfig("auth_password", e.target.value)}
-                  placeholder="Password" className="!text-xs font-mono flex-1" type="password" />
+                  placeholder="Password" className="font-mono flex-1" type="password" />
               </div>
             )}
           </div>
 
           {/* Headers */}
           <div>
-            <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Headers</label>
+            <label className="block text-xs font-medium mb-1.5 text-fg-muted">Headers</label>
             {((node.config.headers ?? []) as { key: string; value: string }[]).map((h, i) => (
               <div key={i} className="flex gap-1 mb-1">
                 <Input value={h.key} onChange={(e) => {
                   const updated = [...(node.config.headers ?? [])]; updated[i] = { ...updated[i], key: e.target.value }
                   updateConfig("headers", updated)
-                }} placeholder="Header name" className="!text-xs font-mono flex-1" />
+                }} placeholder="Header name" className="font-mono flex-1" />
                 <VariableInput value={h.value} onChange={(value) => {
                   const updated = [...(node.config.headers ?? [])]; updated[i] = { ...updated[i], value: value }
                   updateConfig("headers", updated)
                 }} placeholder="{{variable}} or value" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-                <button onClick={() => updateConfig("headers", (node.config.headers ?? []).filter((_: any, j: number) => j !== i))}
-                  className="text-xs px-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+                <IconButton size="sm" label="Remove header" icon={<X />} onClick={() => updateConfig("headers", (node.config.headers ?? []).filter((_: any, j: number) => j !== i))} />
               </div>
             ))}
             <button onClick={() => updateConfig("headers", [...(node.config.headers ?? []), { key: '', value: '' }])}
-              className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add header</button>
+              className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add header</button>
           </div>
 
           {/* Query Params */}
           <div>
-            <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Query Parameters</label>
+            <label className="block text-xs font-medium mb-1.5 text-fg-muted">Query parameters</label>
             {((node.config.params ?? []) as { key: string; value: string }[]).map((p, i) => (
               <div key={i} className="flex gap-1 mb-1">
                 <Input value={p.key} onChange={(e) => {
                   const updated = [...(node.config.params ?? [])]; updated[i] = { ...updated[i], key: e.target.value }
                   updateConfig("params", updated)
-                }} placeholder="Param name" className="!text-xs font-mono flex-1" />
+                }} placeholder="Param name" className="font-mono flex-1" />
                 <VariableInput value={p.value} onChange={(value) => {
                   const updated = [...(node.config.params ?? [])]; updated[i] = { ...updated[i], value: value }
                   updateConfig("params", updated)
                 }} placeholder="{{variable}} or value" extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-                <button onClick={() => updateConfig("params", (node.config.params ?? []).filter((_: any, j: number) => j !== i))}
-                  className="text-xs px-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+                <IconButton size="sm" label="Remove parameter" icon={<X />} onClick={() => updateConfig("params", (node.config.params ?? []).filter((_: any, j: number) => j !== i))} />
               </div>
             ))}
             <button onClick={() => updateConfig("params", [...(node.config.params ?? []), { key: '', value: '' }])}
-              className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add parameter</button>
+              className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add parameter</button>
           </div>
 
           {/* Body */}
           {node.config.method !== "GET" && (
             <div>
-              <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Body</label>
-              <select value={node.config.content_type ?? "json"} onChange={(e) => updateConfig("content_type", e.target.value)}
-                className="w-full rounded border px-2 py-1 text-[10px] mb-1" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+              <label className="block text-xs font-medium mb-1.5 text-fg-muted">Body</label>
+              <Select value={node.config.content_type ?? "json"} onChange={(e) => updateConfig("content_type", e.target.value)}
+                wrapperClassName="mb-1">
                 <option value="json">JSON</option>
                 <option value="form">Form URL Encoded</option>
                 <option value="multipart">Multipart form (files)</option>
                 <option value="binary">Binary (one file)</option>
                 <option value="text">Plain Text</option>
                 <option value="none">No Body</option>
-              </select>
+              </Select>
               {node.config.content_type === "multipart" && (
                 <div className="space-y-1" data-multipart-parts>
                   {((node.config.multipart ?? []) as { key: string; value: string; type?: string }[]).map((part, i) => (
@@ -1201,25 +1261,24 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                       <Input value={part.key} onChange={(e) => {
                         const updated = [...(node.config.multipart ?? [])]; updated[i] = { ...updated[i], key: e.target.value }
                         updateConfig("multipart", updated)
-                      }} placeholder="Part name" className="!text-xs font-mono w-24 shrink-0" />
-                      <select value={part.type ?? "text"} aria-label="Part type" onChange={(e) => {
+                      }} placeholder="Part name" className="font-mono w-24 shrink-0" />
+                      <Select value={part.type ?? "text"} aria-label="Part type" onChange={(e) => {
                         const updated = [...(node.config.multipart ?? [])]; updated[i] = { ...updated[i], type: e.target.value }
                         updateConfig("multipart", updated)
-                      }} className="rounded border px-1 py-1 text-[10px] shrink-0" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+                      }} size="sm" wrapperClassName="w-auto shrink-0">
                         <option value="text">Text</option>
                         <option value="file">File(s)</option>
-                      </select>
+                      </Select>
                       <VariableInput value={part.value ?? ""} onChange={(value) => {
                         const updated = [...(node.config.multipart ?? [])]; updated[i] = { ...updated[i], value }
                         updateConfig("multipart", updated)
                       }} placeholder={part.type === "file" ? "{{item}} or {{task_data.files}}" : "{{variable}} or value"} extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
-                      <button onClick={() => updateConfig("multipart", (node.config.multipart ?? []).filter((_: any, j: number) => j !== i))}
-                        className="text-xs px-1 hover:opacity-70" aria-label="Remove part" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+                      <IconButton size="sm" label="Remove part" icon={<X />} onClick={() => updateConfig("multipart", (node.config.multipart ?? []).filter((_: any, j: number) => j !== i))} />
                     </div>
                   ))}
                   <button onClick={() => updateConfig("multipart", [...(node.config.multipart ?? []), { key: '', value: '', type: 'text' }])}
-                    className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add part</button>
-                  <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>A File(s) part sends a form attachment (or each file of a list) with its name and type.</p>
+                    className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add part</button>
+                  <p className="text-xs text-fg-muted">A File(s) part sends a form attachment (or each file of a list) with its name and type.</p>
                 </div>
               )}
               {node.config.content_type === "binary" && (
@@ -1235,9 +1294,9 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
           {/* Output Variable */}
           <div>
-            <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--theme-muted-text)" }}>Output Variable</label>
+            <label className="block text-xs font-medium mb-1.5 text-fg-muted">Output variable</label>
             <Input value={node.config.output_var ?? ""} onChange={(e) => updateConfig("output_var", e.target.value)}
-              placeholder="http_response" className="!text-xs font-mono" />
+              placeholder="http_response" className="font-mono" />
           </div>
 
           {/* Response model — makes the response pickable in later steps */}
@@ -1245,30 +1304,40 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         </div>
       )}
 
+      {node.type === "add_task_attachment" && <AddTaskAttachmentConfig config={node.config} onUpdate={updateConfig} extraVariables={extraVariables} />}
+
       {/* ─── Create Subtask ─── */}
       {node.type === "create_subtask" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Parent Task</label>
-          <VariableInput value={node.config.parent_task_id ?? ''} onChange={(value) => updateConfig('parent_task_id', value)}
-            placeholder="{{task_id}} (defaults to the triggering task)" extraVariables={extraVariables} />
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            Select the task to add a subtask to — a task id or a variable like <code style={{ color: 'var(--theme-primary-text)' }}>{'{{task_id}}'}</code>. Leave blank to use the task that triggered this workflow.
-          </p>
-          <label className="block text-xs font-medium">Subtask Title</label>
-          <VariableInput value={node.config.title ?? ""} onChange={(value) => updateConfig("title", value)}
-            placeholder="Review: {{task.title}}" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Assignee</label>
-          <VariableInput value={node.config.assignee ?? ""} onChange={(value) => updateConfig("assignee", value)}
-            placeholder="User ID or {{variable}}" extraVariables={extraVariables} />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Parent task</label>
+            <VariableInput value={node.config.parent_task_id ?? ''} onChange={(value) => updateConfig('parent_task_id', value)}
+              placeholder="{{task_id}} (defaults to the triggering task)" extraVariables={extraVariables} />
+            <p className="text-xs text-fg-muted">
+              Select the task to add a subtask to — a task id or a variable like <code className="text-primary-text">{'{{task_id}}'}</code>. Leave blank to use the task that triggered this workflow.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Subtask title</label>
+            <VariableInput value={node.config.title ?? ""} onChange={(value) => updateConfig("title", value)}
+              placeholder="Review: {{task.title}}" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Assignee</label>
+            <VariableInput value={node.config.assignee ?? ""} onChange={(value) => updateConfig("assignee", value)}
+              placeholder="User ID or {{variable}}" extraVariables={extraVariables} />
+          </div>
         </div>
       )}
 
       {/* ─── Log ─── */}
       {node.type === "log" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Message</label>
-          <VariableInput value={node.config.message ?? ""} onChange={(value) => updateConfig("message", value)}
-            placeholder="Task {{task.title}} processed" extraVariables={extraVariables} />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Message</label>
+            <VariableInput value={node.config.message ?? ""} onChange={(value) => updateConfig("message", value)}
+              placeholder="Task {{task.title}} processed" extraVariables={extraVariables} />
+          </div>
         </div>
       )}
 
@@ -1280,19 +1349,21 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       {/* ─── Live Reference ─── */}
       {node.type === "live_reference" && (
         <>
-          <div onPointerDown={(e) => e.stopPropagation()} className="space-y-2">
-            <label className="block text-[10px] font-medium" style={{ color: "var(--theme-muted-text)" }}>
-              Binding Name
-            </label>
-            <Input
-              value={node.config.binding_name ?? ''}
-              onChange={(e) => updateConfig('binding_name', e.target.value.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase())}
-              placeholder="e.g. customer, order_data"
-              className="!text-xs font-mono"
-            />
-            <p className="text-[9px] px-0.5" style={{ color: 'var(--theme-muted-text)' }}>
-              Access fresh data with <span className="font-mono font-semibold" style={{ color: 'var(--theme-primary-text)' }}>{'{{live.<name>.<field>}}'}</span> — re-fetched each time it's used.
-            </p>
+          <div onPointerDown={(e) => e.stopPropagation()} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-fg-muted">
+                Binding name
+              </label>
+              <Input
+                value={node.config.binding_name ?? ''}
+                onChange={(e) => updateConfig('binding_name', e.target.value.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase())}
+                placeholder="e.g. customer, order_data"
+                className="font-mono"
+              />
+              <p className="text-xs px-0.5 text-fg-muted">
+                Access fresh data with <span className="font-mono font-semibold text-primary-text">{'{{live.<name>.<field>}}'}</span> — re-fetched each time it's used.
+              </p>
+            </div>
           </div>
           <CallReferenceConfig config={node.config} nodeId={node.id} outputPrefix={deriveOutputPrefix(node)} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} />
         </>
@@ -1308,73 +1379,80 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         <DocumentActionConfig type={node.type} config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
       )}
 
+      {/* ─── Media actions (transcribe / analyze / redact / generate / text to speech / utilities) ─── */}
+      {isMediaActionPanel(node.type) && (
+        <MediaActionConfig type={node.type} config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
+      )}
+
+      {/* ─── E-signature (send / wait / envelope actions) ─── */}
+      {isEsignActionPanel(node.type) && (
+        <EsignActionConfig type={node.type} config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
+      )}
+
       {/* ─── Auto Action ─── */}
       {node.type === "auto_action" && (
-        <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-          <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <p className="text-xs text-fg-muted">
             Automatically update task fields. Leave blank to skip a field.
           </p>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Task ID</label>
+            <label className="block text-xs font-medium mb-1.5">Task ID</label>
             <VariableInput value={node.config.target_task_id ?? ""} onChange={(value) => updateConfig("target_task_id", value)}
               placeholder="{{task_id}} (defaults to triggering task)" extraVariables={extraVariables} />
-            <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
+            <p className="text-xs mt-0.5 text-fg-muted">
               Leave blank to action the triggering task, or use a variable for a different task.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Set Status</label>
-            <select value={node.config.status ?? ""} onChange={(e) => updateConfig("status", e.target.value)}
-              className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+            <label className="block text-xs font-medium mb-1.5">Set status</label>
+            <Select value={node.config.status ?? ""} onChange={(e) => updateConfig("status", e.target.value)}>
               <option value="">— Don't change —</option>
               <option value="todo">To Do</option>
               <option value="in_progress">In Progress</option>
               <option value="blocked">Blocked</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
-            </select>
+            </Select>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Set Outcome</label>
+            <label className="block text-xs font-medium mb-1.5">Set outcome</label>
             <VariableInput value={node.config.outcome ?? ""} onChange={(value) => updateConfig("outcome", value)}
               placeholder="e.g. approved, rejected, or {{variable}}" extraVariables={extraVariables} />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Outcome Notes</label>
+            <label className="block text-xs font-medium mb-1.5">Outcome notes</label>
             <VariableInput value={node.config.outcome_notes ?? ""} onChange={(value) => updateConfig("outcome_notes", value)}
               placeholder="Auto-processed by workflow" extraVariables={extraVariables} />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Set Acceptance Status</label>
-            <select value={node.config.acceptance_status ?? ""} onChange={(e) => updateConfig("acceptance_status", e.target.value)}
-              className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+            <label className="block text-xs font-medium mb-1.5">Set acceptance status</label>
+            <Select value={node.config.acceptance_status ?? ""} onChange={(e) => updateConfig("acceptance_status", e.target.value)}>
               <option value="">— Don't change —</option>
               <option value="accepted">Accepted</option>
               <option value="pending">Pending</option>
               <option value="held">Held</option>
               <option value="rejected">Rejected</option>
-            </select>
+            </Select>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Set Priority</label>
-            <select value={node.config.priority ?? ""} onChange={(e) => updateConfig("priority", e.target.value)}
-              className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+            <label className="block text-xs font-medium mb-1.5">Set priority</label>
+            <Select value={node.config.priority ?? ""} onChange={(e) => updateConfig("priority", e.target.value)}>
               <option value="">— Don't change —</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
-            </select>
+            </Select>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Reassign To</label>
+            <label className="block text-xs font-medium mb-1.5">Reassign to</label>
             <VariableInput value={node.config.assignee_id ?? ""} onChange={(value) => updateConfig("assignee_id", value)}
               placeholder="User ID or {{variable}}" extraVariables={extraVariables} />
           </div>
@@ -1387,7 +1465,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       )}
 
       {node.type === "custom_activity" && (
-        <CustomWorkflowActivityConfig
+        <CustomActionConfig
           node={node}
           activities={customActivities}
           onUpdate={updateConfig}
@@ -1398,36 +1476,44 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Loop ─── */}
       {node.type === "loop" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Items to loop through</label>
-          <LoopItemsInput value={node.config.items ?? ""} onChange={(value) => updateConfig("items", value)} groups={dataPicker?.groups ?? []} />
-          <label className="block text-xs font-medium">Current item variable</label>
-          <Input value={node.config.item_var ?? "item"} onChange={(e) => updateConfig("item_var", e.target.value)}
-            placeholder="item" className="!text-xs font-mono" />
-          <label className="block text-xs font-medium">Index variable</label>
-          <Input value={node.config.index_var ?? "index"} onChange={(e) => updateConfig("index_var", e.target.value)}
-            placeholder="index" className="!text-xs font-mono" />
-          <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
-            For each item in the list, {'{{item}}'} will hold the current value and {'{{index}}'} the position (0-based). Connect downstream nodes to process each item.
-          </p>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Items to loop through</label>
+            <LoopItemsInput value={node.config.items ?? ""} onChange={(value) => updateConfig("items", value)} groups={dataPicker?.groups ?? []} />
+          </div>
+          <LoopCollectionPicker loopId={node.id} items={String(node.config.items ?? "")} nodes={(allNodes ?? []) as any[]} edges={(allEdges ?? []) as any[]}
+            onSetItems={(value) => updateConfig("items", value)} onUpdateNodeConfig={(id, config) => onUpdateNode(id, { config })} />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Current item variable</label>
+            <Input value={node.config.item_var ?? "item"} onChange={(e) => updateConfig("item_var", e.target.value)}
+              placeholder="item" className="font-mono" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Index variable</label>
+            <Input value={node.config.index_var ?? "index"} onChange={(e) => updateConfig("index_var", e.target.value)}
+              placeholder="index" className="font-mono" />
+            <p className="text-xs text-fg-muted">
+              For each item in the list, {'{{item}}'} will hold the current value and {'{{index}}'} the position (0-based). Connect downstream nodes to process each item.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ─── Switch/Case ─── */}
       {node.type === "switch_case" && (
-        <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-          <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <p className="text-xs text-fg-muted">
             Evaluates a value and routes to the matching case. Each case appears as an output port on the canvas.
           </p>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Value to switch on</label>
+            <label className="block text-xs font-medium mb-1.5">Value to switch on</label>
             <VariableInput value={node.config.field ?? ""} onChange={(value) => updateConfig("field", value)}
               placeholder="{{task.priority}} or {{task.status}}" extraVariables={extraVariables} />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--theme-muted-text)" }}>
+            <label className="block text-xs font-medium mb-2 text-fg-muted">
               Cases
             </label>
             <div className="space-y-1.5">
@@ -1441,37 +1527,36 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                       const cases = [...(node.config.cases ?? [])]
                       cases[i] = e.target.value
                       updateConfig("cases", cases)
-                    }} placeholder={`e.g. critical, high, completed...`} className="!text-xs font-mono" />
-                    <button onClick={() => {
+                    }} placeholder={`e.g. critical, high, completed...`} className="font-mono" />
+                    <IconButton size="sm" label="Remove case" icon={<X />} className="shrink-0" onClick={() => {
                       updateConfig("cases", (node.config.cases ?? []).filter((_: any, j: number) => j !== i))
-                    }} className="shrink-0 text-[color:var(--theme-muted-text)] hover:text-[color:var(--theme-danger)] p-0.5"><X size={12} /></button>
+                    }} />
                   </div>
                 )
               })}
             </div>
-            <Button variant="outline" size="sm" onClick={() => updateConfig("cases", [...(node.config.cases ?? []), ""])} className="!text-[10px] mt-2">
-              <Plus size={10} className="mr-1" /> Add Case
+            <Button variant="secondary" size="sm" onClick={() => updateConfig("cases", [...(node.config.cases ?? []), ""])} className="mt-2" leadingIcon={<Plus />}>
+              Add case
             </Button>
           </div>
 
           {/* Default case */}
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={node.config.has_default !== false}
               onChange={(e) => updateConfig("has_default", e.target.checked)}
-              className="rounded border-[color:var(--theme-surface-border)]"
+              
             />
-            <span className="text-xs" style={{ color: "var(--theme-card-text)" }}>
+            <span className="text-xs text-fg">
               Include Default case (no match)
             </span>
           </label>
 
           {node.config.has_default !== false && (
-            <div className="rounded-lg px-2.5 py-2 flex items-center gap-2" style={{ backgroundColor: "var(--theme-surface)", borderLeft: "3px solid var(--theme-muted-text)" }}>
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "var(--theme-muted-text)" }} />
-              <span className="text-xs font-semibold" style={{ color: "var(--theme-muted-text)" }}>Default</span>
-              <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>— runs if no case matches</span>
+            <div className="rounded-lg border-l-[3px] border-l-border-strong px-2.5 py-2 flex items-center gap-2 bg-subtle">
+              <span className="w-2 h-2 rounded-full shrink-0 bg-fg-muted" />
+              <span className="text-xs font-semibold text-fg-muted">Default</span>
+              <span className="text-2xs text-fg-muted">— runs if no case matches</span>
             </div>
           )}
         </div>
@@ -1480,66 +1565,73 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       {/* ─── Disabled nodes ─── */}
       {/* ─── Loop N Times ─── */}
       {node.type === "loop_n_times" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Number of iterations</label>
-          <VariableInput value={node.config.count ?? ""} onChange={(value) => updateConfig("count", value)}
-            placeholder="10 or {{variable}}" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Index variable</label>
-          <Input value={node.config.index_var ?? "i"} onChange={(e) => updateConfig("index_var", e.target.value)}
-            placeholder="i" className="!text-xs font-mono" />
-          <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
-            {'{{i}}'} will be 0, 1, 2... on each iteration.
-          </p>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Number of iterations</label>
+            <VariableInput value={node.config.count ?? ""} onChange={(value) => updateConfig("count", value)}
+              placeholder="10 or {{variable}}" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Index variable</label>
+            <Input value={node.config.index_var ?? "i"} onChange={(e) => updateConfig("index_var", e.target.value)}
+              placeholder="i" className="font-mono" />
+            <p className="text-xs text-fg-muted">
+              {'{{i}}'} will be 0, 1, 2... on each iteration.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ─── Pause Until Date ─── */}
       {node.type === "pause_until" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Wait until</label>
-          <VariableInput value={node.config.date ?? ""} onChange={(value) => updateConfig("date", value)}
-            placeholder="{{task.due_date}} or 2026-04-01T09:00" extraVariables={extraVariables} />
-          <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
-            ISO date string or a variable containing a date.
-          </p>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Wait until</label>
+            <VariableInput value={node.config.date ?? ""} onChange={(value) => updateConfig("date", value)}
+              placeholder="{{task.due_date}} or 2026-04-01T09:00" extraVariables={extraVariables} />
+            <p className="text-xs text-fg-muted">
+              ISO date string or a variable containing a date.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ─── End Workflow ─── */}
       {node.type === "end_workflow" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Reason</label>
-          <VariableInput value={node.config.reason ?? ""} onChange={(value) => updateConfig("reason", value)}
-            placeholder="Completed successfully" extraVariables={extraVariables} />
-          <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
-            Stops the workflow. All nodes after this will not execute.
-          </p>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Reason</label>
+            <VariableInput value={node.config.reason ?? ""} onChange={(value) => updateConfig("reason", value)}
+              placeholder="Completed successfully" extraVariables={extraVariables} />
+            <p className="text-xs text-fg-muted">
+              Stops the workflow. All nodes after this will not execute.
+            </p>
+          </div>
           {triggerType === 'middleware_received' && (
             <>
-              <div className="pt-2" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
-                <label className="block text-xs font-medium mb-1">HTTP Status Code</label>
+              <div className="pt-2 border-t border-border-subtle">
+                <label className="block text-xs font-medium mb-1.5">HTTP status code</label>
                 <VariableInput
                   value={node.config.response_status_code ?? "200"}
                   onChange={(value) => updateConfig("response_status_code", value)}
                   placeholder="200" extraVariables={extraVariables} />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Response Body</label>
-                <select
+                <label className="block text-xs font-medium mb-1.5">Response body</label>
+                <Select
                   value={node.config.response_body_mode ?? 'json'}
                   onChange={(e) => updateConfig('response_body_mode', e.target.value)}
-                  className="w-full rounded border px-2 py-1.5 text-xs"
-                  style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                  
                 >
                   <option value="json">JSON fields</option>
                   <option value="json_variable">JSON variable</option>
                   <option value="text">Text</option>
                   <option value="file">File stream</option>
-                </select>
+                </Select>
               </div>
               {(node.config.response_body_mode ?? 'json') === 'text' ? (
                 <div>
-                  <label className="block text-xs font-medium mb-1">Text Response</label>
+                  <label className="block text-xs font-medium mb-1.5">Text response</label>
                   <VariableInput
                     value={node.config.response_body ?? ''}
                     onChange={(value) => updateConfig('response_body', value)}
@@ -1549,33 +1641,33 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                 </div>
               ) : (node.config.response_body_mode ?? 'json') === 'json_variable' ? (
                 <div>
-                  <label className="block text-xs font-medium mb-1">JSON Source</label>
+                  <label className="block text-xs font-medium mb-1.5">JSON source</label>
                   <VariableInput
                     value={node.config.response_json_body ?? ''}
                     onChange={(value) => updateConfig('response_json_body', value)}
                     placeholder="{{api_response}}"
                     extraVariables={extraVariables}
                   />
-                  <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                  <p className="text-xs mt-1 text-fg-muted">
                     Point this at an object or array variable to return it directly.
                   </p>
                 </div>
               ) : (node.config.response_body_mode ?? 'json') === 'file' ? (
                 <div className="space-y-2">
                   <div>
-                    <label className="block text-xs font-medium mb-1">File Source</label>
+                    <label className="block text-xs font-medium mb-1.5">File source</label>
                     <VariableInput
                       value={node.config.response_file_source ?? ''}
                       onChange={(value) => updateConfig('response_file_source', value)}
                       placeholder="{{api_file}} or {{downloaded_file_base64}}"
                       extraVariables={extraVariables}
                     />
-                    <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+                    <p className="text-xs mt-1 text-fg-muted">
                       Accepts a file variable, a file URL, a data URL, or a base64 variable.
                     </p>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">File Name</label>
+                    <label className="block text-xs font-medium mb-1.5">File name</label>
                     <VariableInput
                       value={node.config.response_file_name ?? ''}
                       onChange={(value) => updateConfig('response_file_name', value)}
@@ -1584,7 +1676,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">Content Type</label>
+                    <label className="block text-xs font-medium mb-1.5">Content type</label>
                     <VariableInput
                       value={node.config.response_file_content_type ?? ''}
                       onChange={(value) => updateConfig('response_file_content_type', value)}
@@ -1593,21 +1685,20 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">Content Disposition</label>
-                    <select
+                    <label className="block text-xs font-medium mb-1.5">Content disposition</label>
+                    <Select
                       value={node.config.response_file_disposition ?? 'attachment'}
                       onChange={(e) => updateConfig('response_file_disposition', e.target.value)}
-                      className="w-full rounded border px-2 py-1.5 text-xs"
-                      style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                      
                     >
                       <option value="attachment">Download attachment</option>
                       <option value="inline">Open inline</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-medium">JSON Fields</label>
+                  <label className="block text-xs font-medium">JSON fields</label>
                   {((node.config.response_mappings ?? [{ key: 'ok', value: 'true' }]) as { key: string; value: string }[]).map((field, index) => (
                     <div key={index} className="flex gap-1.5 items-start">
                       <Input
@@ -1618,7 +1709,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                           updateConfig('response_mappings', next)
                         }}
                         placeholder="status"
-                        className="!text-xs font-mono flex-1"
+                        className="font-mono flex-1"
                       />
                       <VariableInput
                         value={field.value}
@@ -1631,27 +1722,25 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                         className="flex-1"
                         extraVariables={extraVariables}
                       />
-                      <button
+                      <IconButton
                         type="button"
+                        size="sm"
+                        label="Remove mapping"
+                        icon={<X />}
                         onClick={() => {
                           const next = (node.config.response_mappings ?? [{ key: 'ok', value: 'true' }]).filter((_: unknown, i: number) => i !== index)
                           updateConfig('response_mappings', next.length > 0 ? next : [{ key: '', value: '' }])
                         }}
-                        className="rounded p-1 hover:opacity-70"
-                        style={{ color: 'var(--theme-muted-text)' }}
-                      >
-                        <X size={12} />
-                      </button>
+                      />
                     </div>
                   ))}
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => updateConfig('response_mappings', [...(node.config.response_mappings ?? [{ key: 'ok', value: 'true' }]), { key: '', value: '' }])}
-                    className="w-full !text-[10px]"
-                  >
-                    <Plus size={10} className="mr-1" /> Add Response Field
+                    className="w-full" leadingIcon={<Plus />}>
+                    Add response field
                   </Button>
                 </div>
               )}
@@ -1667,7 +1756,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                         updateConfig('response_headers', next)
                       }}
                       placeholder="Content-Type"
-                      className="!text-xs font-mono flex-1"
+                      className="font-mono flex-1"
                     />
                     <VariableInput
                       value={header.value}
@@ -1680,24 +1769,22 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                       className="flex-1"
                       extraVariables={extraVariables}
                     />
-                    <button
+                    <IconButton
                       type="button"
+                      size="sm"
+                      label="Remove header"
+                      icon={<X />}
                       onClick={() => updateConfig('response_headers', (node.config.response_headers ?? []).filter((_: unknown, i: number) => i !== index))}
-                      className="rounded p-1 hover:opacity-70"
-                      style={{ color: 'var(--theme-muted-text)' }}
-                    >
-                      <X size={12} />
-                    </button>
+                    />
                   </div>
                 ))}
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={() => updateConfig('response_headers', [...(node.config.response_headers ?? []), { key: '', value: '' }])}
-                  className="w-full !text-[10px]"
-                >
-                  <Plus size={10} className="mr-1" /> Add Header
+                  className="w-full" leadingIcon={<Plus />}>
+                  Add header
                 </Button>
               </div>
             </>
@@ -1707,48 +1794,56 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Math / Calculate ─── */}
       {node.type === "math" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Expression</label>
-          <VariableInput value={node.config.expression ?? ""} onChange={(value) => updateConfig("expression", value)}
-            placeholder="{{task.actual_effort}} / 60" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? "result"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            className="!text-xs font-mono" />
-          <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
-            Supports: + - * / % and parentheses. Variables are resolved first.
-          </p>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Expression</label>
+            <VariableInput value={node.config.expression ?? ""} onChange={(value) => updateConfig("expression", value)}
+              placeholder="{{task.actual_effort}} / 60" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? "result"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              className="font-mono" />
+            <p className="text-xs text-fg-muted">
+              Supports: + - * / % and parentheses. Variables are resolved first.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ─── Modify String ─── */}
       {node.type === "modify_string" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Input</label>
-          <VariableInput value={node.config.input ?? ""} onChange={(value) => updateConfig("input", value)}
-            placeholder="{{task.title}}" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Operation</label>
-          <AutocompleteSelect
-            value={node.config.operation ?? "trim"}
-            onChange={(value) => updateConfig("operation", value)}
-            options={[
-              { value: "uppercase", label: "To Uppercase" },
-              { value: "lowercase", label: "To Lowercase" },
-              { value: "trim", label: "Trim whitespace" },
-              { value: "replace", label: "Find & Replace" },
-              { value: "substring", label: "Substring" },
-              { value: "slug", label: "Slugify" },
-              { value: "reverse", label: "Reverse" },
-            ]}
-          />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Input</label>
+            <VariableInput value={node.config.input ?? ""} onChange={(value) => updateConfig("input", value)}
+              placeholder="{{task.title}}" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Operation</label>
+            <AutocompleteSelect
+              value={node.config.operation ?? "trim"}
+              onChange={(value) => updateConfig("operation", value)}
+              options={[
+                { value: "uppercase", label: "To Uppercase" },
+                { value: "lowercase", label: "To Lowercase" },
+                { value: "trim", label: "Trim whitespace" },
+                { value: "replace", label: "Find & Replace" },
+                { value: "substring", label: "Substring" },
+                { value: "slug", label: "Slugify" },
+                { value: "reverse", label: "Reverse" },
+              ]}
+            />
+          </div>
           {node.config.operation === "replace" && (
             <>
               <Input value={node.config.search ?? ""} onChange={(e) => updateConfig("search", e.target.value)}
-                placeholder="Find..." className="!text-xs" />
+                placeholder="Find..." />
               <VariableInput value={node.config.replace_with ?? ""} onChange={(value) => updateConfig("replace_with", value)}
                 placeholder="Replace with..." extraVariables={extraVariables} />
               <label className="flex items-center gap-2 text-xs">
-                <input type="checkbox" checked={node.config.replace_all ?? false}
-                  onChange={(e) => updateConfig("replace_all", e.target.checked)} className="rounded" />
+                <Checkbox checked={node.config.replace_all ?? false}
+                  onChange={(e) => updateConfig("replace_all", e.target.checked)} />
                 Replace all occurrences
               </label>
             </>
@@ -1756,150 +1851,181 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           {node.config.operation === "substring" && (
             <div className="flex gap-2">
               <Input type="number" value={node.config.start ?? 0} onChange={(e) => updateConfig("start", e.target.value)}
-                placeholder="Start" className="!text-xs" />
+                placeholder="Start" />
               <Input type="number" value={node.config.end ?? ""} onChange={(e) => updateConfig("end", e.target.value)}
-                placeholder="End (optional)" className="!text-xs" />
+                placeholder="End (optional)" />
             </div>
           )}
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? "modified_string"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            className="!text-xs font-mono" />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? "modified_string"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── Text Template ─── */}
       {node.type === "text_template" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Template</label>
-          <VariableInput multiline rows={3} value={node.config.template ?? ""} onChange={(value) => updateConfig("template", value)}
-            placeholder={"Task {{task.title}} assigned to {{task.assignee_id}} is due {{task.due_date}}"} extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? "text"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            className="!text-xs font-mono" />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Template</label>
+            <VariableInput multiline rows={3} value={node.config.template ?? ""} onChange={(value) => updateConfig("template", value)}
+              placeholder={"Task {{task.title}} assigned to {{task.assignee_id}} is due {{task.due_date}}"} extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? "text"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── Format Date ─── */}
       {node.type === "format_date" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Date</label>
-          <VariableInput value={node.config.date ?? ""} onChange={(value) => updateConfig("date", value)}
-            placeholder="{{task.due_date}}" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Format</label>
-          <AutocompleteSelect
-            value={node.config.format ?? "short"}
-            onChange={(value) => updateConfig("format", value)}
-            options={[
-              { value: "iso", label: "ISO 8601 (2026-03-27T12:00:00Z)" },
-              { value: "short", label: "Short (Mar 27, 2026)" },
-              { value: "date", label: "Date (3/27/2026)" },
-              { value: "time", label: "Time (12:00:00 PM)" },
-              { value: "datetime", label: "Date + Time" },
-              { value: "relative", label: "Relative (2 days ago)" },
-              { value: "custom", label: "Custom format..." },
-            ]}
-          />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Date</label>
+            <VariableInput value={node.config.date ?? ""} onChange={(value) => updateConfig("date", value)}
+              placeholder="{{task.due_date}}" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Format</label>
+            <AutocompleteSelect
+              value={node.config.format ?? "short"}
+              onChange={(value) => updateConfig("format", value)}
+              options={[
+                { value: "iso", label: "ISO 8601 (2026-03-27T12:00:00Z)" },
+                { value: "short", label: "Short (Mar 27, 2026)" },
+                { value: "date", label: "Date (3/27/2026)" },
+                { value: "time", label: "Time (12:00:00 PM)" },
+                { value: "datetime", label: "Date + Time" },
+                { value: "relative", label: "Relative (2 days ago)" },
+                { value: "custom", label: "Custom format..." },
+              ]}
+            />
+          </div>
           {node.config.format === "custom" && (
             <Input value={node.config.custom_format ?? "YYYY-MM-DD"} onChange={(e) => updateConfig("custom_format", e.target.value)}
-              placeholder="YYYY-MM-DD HH:mm" className="!text-xs font-mono" />
+              placeholder="YYYY-MM-DD HH:mm" className="font-mono" />
           )}
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? "formatted_date"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            className="!text-xs font-mono" />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? "formatted_date"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── Date Math ─── */}
       {node.type === "date_math" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Operation</label>
-          <select value={node.config.operation ?? "add"} onChange={(e) => updateConfig("operation", e.target.value)}
-            className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
-            <option value="add">Add time to date</option>
-            <option value="subtract">Subtract time from date</option>
-            <option value="interval">Find interval between dates</option>
-          </select>
-          <label className="block text-xs font-medium">Date</label>
-          <VariableInput value={node.config.date ?? ""} onChange={(value) => updateConfig("date", value)}
-            placeholder="{{task.due_date}}" extraVariables={extraVariables} />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Operation</label>
+            <Select value={node.config.operation ?? "add"} onChange={(e) => updateConfig("operation", e.target.value)}>
+              <option value="add">Add time to date</option>
+              <option value="subtract">Subtract time from date</option>
+              <option value="interval">Find interval between dates</option>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Date</label>
+            <VariableInput value={node.config.date ?? ""} onChange={(value) => updateConfig("date", value)}
+              placeholder="{{task.due_date}}" extraVariables={extraVariables} />
+          </div>
           {node.config.operation === "interval" ? (
             <>
-              <label className="block text-xs font-medium">Second date</label>
-              <VariableInput value={node.config.date2 ?? ""} onChange={(value) => updateConfig("date2", value)}
-                placeholder="{{task.completed_at}}" extraVariables={extraVariables} />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Second date</label>
+                <VariableInput value={node.config.date2 ?? ""} onChange={(value) => updateConfig("date2", value)}
+                  placeholder="{{task.completed_at}}" extraVariables={extraVariables} />
+              </div>
             </>
           ) : (
             <div className="flex gap-2">
               <VariableInput value={node.config.amount ?? ""} onChange={(value) => updateConfig("amount", value)}
                 placeholder="5" extraVariables={extraVariables} wrapperClassName="w-28 shrink-0" />
-              <select value={node.config.unit ?? "days"} onChange={(e) => updateConfig("unit", e.target.value)}
-                className="rounded border px-2 py-1.5 text-xs flex-1" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+              <Select value={node.config.unit ?? "days"} onChange={(e) => updateConfig("unit", e.target.value)}
+                wrapperClassName="flex-1">
                 <option value="minutes">Minutes</option>
                 <option value="hours">Hours</option>
                 <option value="days">Days</option>
                 <option value="weeks">Weeks</option>
                 <option value="months">Months</option>
                 <option value="years">Years</option>
-              </select>
+              </Select>
             </div>
           )}
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? (node.config.operation === "interval" ? "interval" : "new_date")}
-            onChange={(e) => updateConfig("output_var", e.target.value)} className="!text-xs font-mono" />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? (node.config.operation === "interval" ? "interval" : "new_date")}
+              onChange={(e) => updateConfig("output_var", e.target.value)} className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── Regex ─── */}
       {node.type === "regex" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Input</label>
-          <VariableInput value={node.config.input ?? ""} onChange={(value) => updateConfig("input", value)}
-            placeholder="{{task.description}}" extraVariables={extraVariables} />
-          <label className="block text-xs font-medium">Operation</label>
-          <select value={node.config.operation ?? "match"} onChange={(e) => updateConfig("operation", e.target.value)}
-            className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
-            <option value="match">Match (extract)</option>
-            <option value="test">Test (true/false)</option>
-            <option value="replace">Replace</option>
-            <option value="split">Split</option>
-          </select>
-          <label className="block text-xs font-medium">Pattern</label>
-          <Input value={node.config.pattern ?? ""} onChange={(e) => updateConfig("pattern", e.target.value)}
-            placeholder="\\d+" className="!text-xs font-mono" />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Input</label>
+            <VariableInput value={node.config.input ?? ""} onChange={(value) => updateConfig("input", value)}
+              placeholder="{{task.description}}" extraVariables={extraVariables} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Operation</label>
+            <Select value={node.config.operation ?? "match"} onChange={(e) => updateConfig("operation", e.target.value)}>
+              <option value="match">Match (extract)</option>
+              <option value="test">Test (true/false)</option>
+              <option value="replace">Replace</option>
+              <option value="split">Split</option>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Pattern</label>
+            <Input value={node.config.pattern ?? ""} onChange={(e) => updateConfig("pattern", e.target.value)}
+              placeholder="\\d+" className="font-mono" />
+          </div>
           <div className="flex gap-2">
             <Input value={node.config.flags ?? "g"} onChange={(e) => updateConfig("flags", e.target.value)}
-              placeholder="g" className="!text-xs font-mono w-16" />
-            <span className="text-[9px] self-center" style={{ color: "var(--theme-muted-text)" }}>flags (g, i, m)</span>
+              placeholder="g" className="font-mono w-16" />
+            <span className="text-2xs self-center text-fg-muted">flags (g, i, m)</span>
           </div>
           {node.config.operation === "replace" && (
             <>
-              <label className="block text-xs font-medium">Replace with</label>
-              <Input value={node.config.replace_with ?? ""} onChange={(e) => updateConfig("replace_with", e.target.value)}
-                placeholder="replacement" className="!text-xs" />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Replace with</label>
+                <Input value={node.config.replace_with ?? ""} onChange={(e) => updateConfig("replace_with", e.target.value)}
+                  placeholder="replacement" />
+              </div>
             </>
           )}
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? "regex_result"} onChange={(e) => updateConfig("output_var", e.target.value)}
-            className="!text-xs font-mono" />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? "regex_result"} onChange={(e) => updateConfig("output_var", e.target.value)}
+              className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── Collection Operations ─── */}
       {["collection_count", "collection_get", "collection_filter", "collection_sort", "collection_unique", "collection_join"].includes(node.type) && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-medium">Collection</label>
-          <VariableInput value={node.config.collection ?? ""} onChange={(value) => updateConfig("collection", value)}
-            placeholder="{{ref_items}}" extraVariables={extraVariables} />
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Collection</label>
+            <VariableInput value={node.config.collection ?? ""} onChange={(value) => updateConfig("collection", value)}
+              placeholder="{{ref_items}}" extraVariables={extraVariables} />
+          </div>
 
           {node.type === "collection_get" && (
             <>
-              <label className="block text-xs font-medium">Get by</label>
-              <select value={node.config.by ?? "index"} onChange={(e) => updateConfig("by", e.target.value)}
-                className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
-                <option value="index">Index (position)</option>
-                <option value="last">Last item</option>
-                <option value="key">By key/field value</option>
-              </select>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Get by</label>
+                <Select value={node.config.by ?? "index"} onChange={(e) => updateConfig("by", e.target.value)}>
+                  <option value="index">Index (position)</option>
+                  <option value="last">Last item</option>
+                  <option value="key">By key/field value</option>
+                </Select>
+              </div>
               {node.config.by === "index" && (
                 <VariableInput value={node.config.index ?? "0"} onChange={(value) => updateConfig("index", value)}
                   placeholder="0" extraVariables={extraVariables} />
@@ -1907,7 +2033,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
               {node.config.by === "key" && (
                 <>
                   <Input value={node.config.key_field ?? ""} onChange={(e) => updateConfig("key_field", e.target.value)}
-                    placeholder="Field name (e.g. id)" className="!text-xs font-mono" />
+                    placeholder="Field name (e.g. id)" className="font-mono" />
                   <VariableInput value={node.config.key ?? ""} onChange={(value) => updateConfig("key", value)}
                     placeholder="Value to match" extraVariables={extraVariables} />
                 </>
@@ -1917,14 +2043,15 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
           {node.type === "collection_filter" && (
             <>
-              <label className="block text-xs font-medium">Filter field</label>
-              <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
-                placeholder="status (leave blank for primitives)" className="!text-xs font-mono" />
-              <select value={node.config.operator ?? "equals"} onChange={(e) => updateConfig("operator", e.target.value)}
-                className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Filter field</label>
+                <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
+                  placeholder="status (leave blank for primitives)" className="font-mono" />
+              </div>
+              <Select value={node.config.operator ?? "equals"} onChange={(e) => updateConfig("operator", e.target.value)}>
                 <option value="equals">=</option><option value="not_equals">!=</option>
                 <option value="contains">contains</option><option value="gt">&gt;</option><option value="lt">&lt;</option>
-              </select>
+              </Select>
               <VariableInput value={node.config.value ?? ""} onChange={(value) => updateConfig("value", value)}
                 placeholder="Value to compare" extraVariables={extraVariables} />
             </>
@@ -1932,94 +2059,103 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
           {node.type === "collection_sort" && (
             <>
-              <label className="block text-xs font-medium">Sort by field</label>
-              <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
-                placeholder="name (leave blank for primitives)" className="!text-xs font-mono" />
-              <select value={node.config.direction ?? "asc"} onChange={(e) => updateConfig("direction", e.target.value)}
-                className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Sort by field</label>
+                <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
+                  placeholder="name (leave blank for primitives)" className="font-mono" />
+              </div>
+              <Select value={node.config.direction ?? "asc"} onChange={(e) => updateConfig("direction", e.target.value)}>
                 <option value="asc">Ascending (A→Z, 0→9)</option>
                 <option value="desc">Descending (Z→A, 9→0)</option>
-              </select>
+              </Select>
             </>
           )}
 
           {node.type === "collection_unique" && (
             <>
-              <label className="block text-xs font-medium">Deduplicate by field</label>
-              <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
-                placeholder="id (leave blank for whole item)" className="!text-xs font-mono" />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Deduplicate by field</label>
+                <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
+                  placeholder="id (leave blank for whole item)" className="font-mono" />
+              </div>
             </>
           )}
 
           {node.type === "collection_join" && (
             <>
-              <label className="block text-xs font-medium">Separator</label>
-              <Input value={node.config.separator ?? ", "} onChange={(e) => updateConfig("separator", e.target.value)}
-                className="!text-xs font-mono" />
-              <label className="block text-xs font-medium">Field to join</label>
-              <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
-                placeholder="name (leave blank for whole item)" className="!text-xs font-mono" />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Separator</label>
+                <Input value={node.config.separator ?? ", "} onChange={(e) => updateConfig("separator", e.target.value)}
+                  className="font-mono" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium">Field to join</label>
+                <Input value={node.config.field ?? ""} onChange={(e) => updateConfig("field", e.target.value)}
+                  placeholder="name (leave blank for whole item)" className="font-mono" />
+              </div>
             </>
           )}
 
-          <label className="block text-xs font-medium">Save result as</label>
-          <Input value={node.config.output_var ?? ""} onChange={(e) => updateConfig("output_var", e.target.value)}
-            placeholder={node.type === "collection_count" ? "count" : node.type === "collection_join" ? "joined" : "result"}
-            className="!text-xs font-mono" />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Save result as</label>
+            <Input value={node.config.output_var ?? ""} onChange={(e) => updateConfig("output_var", e.target.value)}
+              placeholder={node.type === "collection_count" ? "count" : node.type === "collection_join" ? "joined" : "result"}
+              className="font-mono" />
+          </div>
         </div>
       )}
 
       {/* ─── Send Email ─── */}
       {node.type === "send_email" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           <div>
-            <label className="block text-xs font-medium mb-1">Email template</label>
-            <select value={node.config.email_template_id ?? ""} onChange={(e) => updateConfig("email_template_id", e.target.value || undefined)} className="w-full rounded border px-2 py-1.5 text-xs" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+            <label className="block text-xs font-medium mb-1.5">Email template</label>
+            <Select value={node.config.email_template_id ?? ""} onChange={(e) => updateConfig("email_template_id", e.target.value || undefined)} >
               <option value="">Custom subject and body</option>
               {emailTemplates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
-            </select>
+            </Select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">To</label>
+            <label className="block text-xs font-medium mb-1.5">To</label>
             <VariableInput value={node.config.to ?? ""} onChange={(value) => updateConfig("to", value)}
               placeholder="email@example.com or {{task.assignee_email}}" extraVariables={extraVariables} />
-            <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
+            <p className="text-xs mt-0.5 text-fg-muted">
               Separate multiple addresses with commas
             </p>
           </div>
           {!node.config.email_template_id && <>
             <div>
-              <label className="block text-xs font-medium mb-1">Subject</label>
+              <label className="block text-xs font-medium mb-1.5">Subject</label>
               <VariableInput value={node.config.subject ?? ""} onChange={(value) => updateConfig("subject", value)} placeholder="Task {{task.title}} requires attention" extraVariables={extraVariables} />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Body (HTML)</label>
+              <label className="block text-xs font-medium mb-1.5">Body (HTML)</label>
               <VariableInput multiline rows={6} value={node.config.body ?? ""} onChange={(value) => updateConfig("body", value)} placeholder={"<h2>Task Update</h2>\n<p>Task <strong>{{task.title}}</strong> has been {{task.status}}.</p>"} extraVariables={extraVariables} />
             </div>
           </>}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-medium mb-1">From (optional)</label>
+              <label className="block text-xs font-medium mb-1.5">From (optional)</label>
               <VariableInput value={node.config.from ?? ""} onChange={(value) => updateConfig("from", value)}
                 placeholder="Name <email>" extraVariables={extraVariables} />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Reply-To (optional)</label>
+              <label className="block text-xs font-medium mb-1.5">Reply-To (optional)</label>
               <VariableInput value={node.config.reply_to ?? ""} onChange={(value) => updateConfig("reply_to", value)}
                 placeholder="reply@example.com" extraVariables={extraVariables} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Attachments (optional)</label>
+            <label className="block text-xs font-medium mb-1.5">Attachments (optional)</label>
             <VariableInput value={node.config.attachments ?? ""} onChange={(value) => updateConfig("attachments", value || undefined)}
               placeholder="{{task_data.documents}} — all files, or {{item}} in a loop" extraVariables={extraVariables} />
-            <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
+            <p className="text-xs mt-0.5 text-fg-muted">
               A form&apos;s Attachments field attaches every file; one file (<code>{'{{item}}'}</code> inside a Loop, a generated document) attaches one. Separate several with commas. Up to 20 files, 25 MB in total.
             </p>
           </div>
-          <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <div className="rounded-lg p-2 text-2xs bg-subtle text-fg-muted">
             <p className="font-medium mb-0.5">Setup required:</p>
-            <p>Add <code className="font-mono" style={{ color: "var(--theme-primary-text)" }}>RESEND_API_KEY</code> to your .env.local file.</p>
+            <p>Add <code className="font-mono text-primary-text">RESEND_API_KEY</code> to your .env.local file.</p>
             <p>Free tier: 100 emails/day at <a href="https://resend.com" target="_blank" rel="noopener" className="underline">resend.com</a></p>
           </div>
         </div>
@@ -2027,30 +2163,28 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Server Event ─── */}
       {node.type === "server_event" && (
-        <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="rounded-lg p-3" style={{ backgroundColor: "color-mix(in srgb, var(--status-info) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--status-info) 19%, transparent)" }}>
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--status-info)" }}>Server Event</p>
-            <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <Card variant="inset" padding="sm">
+            <p className="mb-1 text-xs font-medium text-fg">Server event</p>
+            <p className="text-xs text-fg-muted">
               Pauses the workflow and waits for an external server to call back. A unique event ID is generated and sent to the external system.
             </p>
-          </div>
+          </Card>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Event Name</label>
+            <label className="block text-xs font-medium mb-1.5">Event name</label>
             <VariableInput value={node.config.event_name ?? ""} onChange={(value) => updateConfig("event_name", value)}
               placeholder="e.g. order.processing" extraVariables={extraVariables} />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Outbound Action</label>
-            <p className="text-[9px] mb-1" style={{ color: "var(--theme-muted-text)" }}>How to notify the external system</p>
-            <select value={node.config.outbound_action ?? "none"} onChange={(e) => updateConfig("outbound_action", e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-xs"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}>
+            <label className="block text-xs font-medium mb-1.5">Outbound action</label>
+            <p className="text-xs mb-1 text-fg-muted">How to notify the external system</p>
+            <Select value={node.config.outbound_action ?? "none"} onChange={(e) => updateConfig("outbound_action", e.target.value)}>
               <option value="none">None (manual trigger)</option>
               <option value="api_reference">Call API Reference</option>
               <option value="data_table">Write to Data Table</option>
-            </select>
+            </Select>
           </div>
 
           {node.config.outbound_action === "api_reference" && (
@@ -2083,8 +2217,8 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           )}
 
           <div>
-            <label className="block text-xs font-medium mb-1">Outbound payload</label>
-            <div className="flex gap-1 mb-1.5">
+            <label className="block text-xs font-medium mb-1.5">Outbound payload</label>
+            <div className="flex gap-0.5 rounded-md bg-muted p-0.5 mb-1.5">
               {[
                 { value: 'variables', label: 'Variable list' },
                 { value: 'custom', label: 'Custom JSON' },
@@ -2093,11 +2227,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                   key={option.value}
                   type="button"
                   onClick={() => updateConfig('payload_mode', option.value)}
-                  className="flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium transition-colors"
-                  style={{
-                    backgroundColor: (node.config.payload_mode ?? 'variables') === option.value ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                    color: (node.config.payload_mode ?? 'variables') === option.value ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-                  }}
+                  className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${(node.config.payload_mode ?? 'variables') === option.value ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}
                 >
                   {option.label}
                 </button>
@@ -2105,14 +2235,14 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             </div>
             {(node.config.payload_mode ?? 'variables') === 'variables' ? (
               <>
-                <p className="text-[9px] mb-1" style={{ color: "var(--theme-muted-text)" }}>Variable names to include in the outbound payload (comma-separated)</p>
+                <p className="text-xs mb-1 text-fg-muted">Variable names to include in the outbound payload (comma-separated)</p>
                 <Input value={(node.config.send_variables ?? []).join(", ")}
                   onChange={(e) => updateConfig("send_variables", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
-                  placeholder="e.g. task_id, assignee_id, amount" className="!text-xs font-mono" />
+                  placeholder="e.g. task_id, assignee_id, amount" className="font-mono" />
               </>
             ) : (
               <>
-                <p className="text-[9px] mb-1" style={{ color: "var(--theme-muted-text)" }}>
+                <p className="text-xs mb-1 text-fg-muted">
                   A JSON object; {'{{variable}}'} placeholders resolve at runtime. <code>event_id</code> and <code>event_name</code> are always merged in so the callback contract holds.
                 </p>
                 <VariableInput multiline rows={5}
@@ -2124,25 +2254,25 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Expected Return Variables</label>
-            <p className="text-[9px] mb-1" style={{ color: "var(--theme-muted-text)" }}>
+            <label className="block text-xs font-medium mb-1.5">Expected return variables</label>
+            <p className="text-xs mb-1 text-fg-muted">
               Every field in the callback payload is merged into the run by name automatically — list the ones you expect here so they appear in the variable picker for later steps.
             </p>
             <Input value={(node.config.return_variables ?? []).join(", ")}
               onChange={(e) => updateConfig("return_variables", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
-              placeholder="e.g. approval_status, comments, processed_at" className="!text-xs font-mono" />
+              placeholder="e.g. approval_status, comments, processed_at" className="font-mono" />
           </div>
 
-          <div className="rounded-lg p-2.5 text-[9px] space-y-1" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <div className="rounded-lg p-2.5 text-2xs space-y-1 bg-subtle text-fg-muted">
             <p className="font-semibold">How the callback works</p>
             <p>The outbound call includes a unique <code>event_id</code> (e.g. <code>evt_a1b2…</code>). The workflow pauses until your server calls back with that id — then the payload merges into the run and the workflow continues.</p>
             <p className="font-semibold mt-1.5">External systems (recommended) — authenticate with a workspace API key:</p>
-            <code className="block font-mono" style={{ color: "var(--theme-primary-text)" }}>
+            <code className="block font-mono text-primary-text">
               POST /api/v1/workflows/events/{'{event_id}'}/complete
             </code>
             <p>Header: <code>Authorization: Bearer &lt;api key&gt;</code> · Body: <code>{"{"} &quot;return_variables&quot;: {"{"} &quot;approval_status&quot;: &quot;approved&quot; {"}"} {"}"}</code></p>
             <p className="font-semibold mt-1.5">Internal / signed-in callers:</p>
-            <code className="block font-mono" style={{ color: "var(--theme-primary-text)" }}>
+            <code className="block font-mono text-primary-text">
               POST /api/events/complete
             </code>
             <p>Body: <code>{"{"} &quot;event_id&quot;: &quot;evt_...&quot;, &quot;approval_status&quot;: &quot;approved&quot;, ... {"}"}</code> (requires a user session or the processor secret — unauthenticated external calls are rejected).</p>
@@ -2171,14 +2301,9 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       {/* ─── User Task ─── */}
       {node.type === "user_task" && (
         triggerType === 'middleware_received' ? (
-          <div className="rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--theme-warning)" }}>
-              Unavailable In Middleware
-            </p>
-            <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
-              Middleware workflows are synchronous system flows and cannot pause for a human <code style={{ color: 'var(--theme-primary-text)' }}>User Task</code>.
-            </p>
-          </div>
+          <InlineNotice tone="warning" title="Unavailable in middleware">
+            Middleware workflows are synchronous system flows and cannot pause for a human <code className="text-primary-text">User Task</code>.
+          </InlineNotice>
         ) : (
           <UserTaskConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} emailTemplates={emailTemplates}
             formSection={<NodeFormSection variant="user_task" node={node} allNodes={allNodes ?? []} onPatch={batchUpdateConfig} onUpdateOtherNode={(id, config) => onUpdateNode(id, { config })} />} />
@@ -2207,28 +2332,24 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Parallel / Sequential ─── */}
       {node.type === "parallel" && (
-        <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-chart-6) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--theme-chart-6) 20%, transparent)' }}>
-            <p className="text-xs font-medium mb-1" style={{ color: 'var(--theme-chart-6-text)' }}>Parallel / Sequential</p>
-            <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <Card variant="inset" padding="sm">
+            <p className="mb-1 text-xs font-medium text-fg">Parallel or sequential</p>
+            <p className="text-xs text-fg-muted">
               Define named branches. In parallel mode all run at once. In sequential mode they run in the numbered order.
             </p>
-          </div>
+          </Card>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Execution Mode</label>
-            <div className="flex gap-0.5">
+            <label className="block text-xs font-medium mb-1.5">Execution mode</label>
+            <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
               {[
                 { val: 'parallel', label: 'All at once' },
                 { val: 'sequential', label: 'One by one' },
               ].map(o => (
                 <button key={o.val} type="button"
                   onClick={() => updateConfig("mode", o.val)}
-                  className="flex-1 text-[9px] font-medium py-1.5 rounded transition-colors"
-                  style={{
-                    backgroundColor: (node.config.mode ?? 'parallel') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                    color: (node.config.mode ?? 'parallel') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-                  }}>
+                  className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(node.config.mode ?? 'parallel') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
                   {o.label}
                 </button>
               ))}
@@ -2236,20 +2357,19 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">
+            <label className="block text-xs font-medium mb-1.5">
               Branches
               {(node.config.mode ?? 'parallel') === 'sequential' && (
-                <span className="ml-1 text-[9px] font-normal" style={{ color: 'var(--theme-muted-text)' }}>
+                <span className="ml-1 text-2xs font-normal text-fg-muted">
                   (executed top to bottom)
                 </span>
               )}
             </label>
             <div className="space-y-1.5">
               {((node.config.branches ?? [{ label: 'Branch 1', order: 1 }, { label: 'Branch 2', order: 2 }]) as { label: string; order: number }[]).map((branch, i) => (
-                <div key={i} className="flex items-center gap-1.5 rounded-lg p-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
+                <div key={i} className="flex items-center gap-1.5 rounded-lg p-2 bg-subtle">
                   {(node.config.mode ?? 'parallel') === 'sequential' && (
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
-                      style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-2xs font-semibold shrink-0 bg-primary text-primary-fg">
                       {i + 1}
                     </span>
                   )}
@@ -2261,32 +2381,33 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                       updateConfig('branches', updated)
                     }}
                     placeholder={`Branch ${i + 1}`}
-                    className="!text-xs !h-7 flex-1"
+                    className="flex-1" size="sm"
                   />
                   {(node.config.branches ?? []).length > 2 && (
-                    <button
+                    <IconButton
+                      size="sm"
+                      label="Remove branch"
+                      icon={<X />}
+                      className="shrink-0"
                       onClick={() => {
                         const updated = [...(node.config.branches ?? [])]
                         updated.splice(i, 1)
                         updateConfig('branches', updated)
                       }}
-                      className="p-0.5 rounded hover:text-[color:var(--theme-danger)] shrink-0"
-                      style={{ color: 'var(--theme-muted-text)' }}>
-                      <X size={12} />
-                    </button>
+                    />
                   )}
                 </div>
               ))}
             </div>
-            <Button variant="outline" size="sm" onClick={() => {
+            <Button variant="secondary" size="sm" onClick={() => {
               const branches = node.config.branches ?? [{ label: 'Branch 1', order: 1 }, { label: 'Branch 2', order: 2 }]
               updateConfig('branches', [...branches, { label: `Branch ${branches.length + 1}`, order: branches.length + 1 }])
-            }} className="w-full mt-2 !text-[10px] !h-7">
-              <Plus size={10} className="mr-1" /> Add Branch
+            }} className="w-full mt-2" leadingIcon={<Plus />}>
+              Add branch
             </Button>
           </div>
 
-          <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+          <div className="rounded-lg p-2 text-2xs bg-subtle text-fg-muted">
             Connect each branch port below to the first action in that branch. All branches rejoin after this node's downstream edges.
           </div>
         </div>
@@ -2306,17 +2427,16 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Placeholder ─── */}
       {node.type === "placeholder" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-            <p className="text-xs" style={{ color: "var(--theme-muted-text)" }}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="rounded-lg p-3 bg-subtle">
+            <p className="text-xs text-fg-muted">
               This is a placeholder action. It does nothing when executed — use it to sketch out your workflow, then replace it with a real action later.
             </p>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Note (optional)</label>
-            <textarea value={node.config.note ?? ""} onChange={(e) => updateConfig("note", e.target.value)}
-              rows={2} className="w-full rounded-md border px-3 py-2 text-xs resize-none"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}
+            <label className="block text-xs font-medium mb-1.5">Note (optional)</label>
+            <Textarea value={node.config.note ?? ""} onChange={(e) => updateConfig("note", e.target.value)}
+              rows={2} className="resize-none"
               placeholder="What should this step do?" />
           </div>
         </div>
@@ -2324,117 +2444,115 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
       {/* ─── Run Agent ─── */}
       {node.type === "run_agent" && (
-        <RunAgentConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
+        <RunAgentConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} workflowId={workflowId} nodeId={node.id} />
       )}
 
       {/* ─── File to Base64 ─── */}
       {node.type === "file_to_base64" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           <div>
-            <label className="block text-xs font-medium mb-1">File URL</label>
+            <label className="block text-xs font-medium mb-1.5">File URL</label>
             <VariableInput value={node.config.file_url ?? ""} onChange={(value) => updateConfig("file_url", value)}
               placeholder="{{file_url}} or https://..." extraVariables={extraVariables} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Output Variable</label>
+            <label className="block text-xs font-medium mb-1.5">Output variable</label>
             <Input value={node.config.output_var ?? "file_base64"} onChange={(e) => updateConfig("output_var", e.target.value)}
-              className="!text-xs font-mono" />
+              className="font-mono" />
           </div>
-          <div className="rounded-lg p-2 text-[9px] space-y-0.5" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <div className="rounded-lg p-2 text-2xs space-y-0.5 bg-subtle text-fg-muted">
             <p className="font-medium">Output variables:</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_base64"}}}`}</code> — Base64 string</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_base64"}_name}}`}</code> — Filename</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_base64"}_size}}`}</code> — Size in bytes</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_base64"}}}`}</code> — Base64 string</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_base64"}_name}}`}</code> — Filename</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_base64"}_size}}`}</code> — Size in bytes</p>
           </div>
         </div>
       )}
 
       {/* ─── Base64 to File ─── */}
       {node.type === "base64_to_file" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           <div>
-            <label className="block text-xs font-medium mb-1">Base64 Data</label>
+            <label className="block text-xs font-medium mb-1.5">Base64 data</label>
             <VariableInput value={node.config.base64_data ?? ""} onChange={(value) => updateConfig("base64_data", value)}
               placeholder="{{file_base64}}" extraVariables={extraVariables} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">File Name</label>
+            <label className="block text-xs font-medium mb-1.5">File name</label>
             <VariableInput value={node.config.file_name ?? ""} onChange={(value) => updateConfig("file_name", value)}
               placeholder="output.pdf" extraVariables={extraVariables} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Content Type (optional)</label>
+            <label className="block text-xs font-medium mb-1.5">Content type (optional)</label>
             <Input value={node.config.content_type ?? ""} onChange={(e) => updateConfig("content_type", e.target.value)}
-              placeholder="application/pdf" className="!text-xs font-mono" />
+              placeholder="application/pdf" className="font-mono" />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Output Variable</label>
+            <label className="block text-xs font-medium mb-1.5">Output variable</label>
             <Input value={node.config.output_var ?? "file_url"} onChange={(e) => updateConfig("output_var", e.target.value)}
-              className="!text-xs font-mono" />
+              className="font-mono" />
           </div>
-          <div className="rounded-lg p-2 text-[9px] space-y-0.5" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <div className="rounded-lg p-2 text-2xs space-y-0.5 bg-subtle text-fg-muted">
             <p className="font-medium">Output variables:</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_url"}}}`}</code> — Public URL</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_url"}_path}}`}</code> — Storage path</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_url"}_size}}`}</code> — Size in bytes</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_url"}}}`}</code> — Public URL</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_url"}_path}}`}</code> — Storage path</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_url"}_size}}`}</code> — Size in bytes</p>
           </div>
         </div>
       )}
 
       {/* ─── Download File ─── */}
       {node.type === "download_file" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           <div>
-            <label className="block text-xs font-medium mb-1">URL</label>
+            <label className="block text-xs font-medium mb-1.5">URL</label>
             <VariableInput value={node.config.url ?? ""} onChange={(value) => updateConfig("url", value)}
               placeholder="https://example.com/file.pdf" extraVariables={extraVariables} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">File Name (optional)</label>
+            <label className="block text-xs font-medium mb-1.5">File name (optional)</label>
             <VariableInput value={node.config.file_name ?? ""} onChange={(value) => updateConfig("file_name", value)}
               placeholder="Auto-detect from URL/headers" extraVariables={extraVariables} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Output Variable</label>
+            <label className="block text-xs font-medium mb-1.5">Output variable</label>
             <Input value={node.config.output_var ?? "downloaded_file"} onChange={(e) => updateConfig("output_var", e.target.value)}
-              className="!text-xs font-mono" />
+              className="font-mono" />
           </div>
-          <div className="rounded-lg p-2 text-[9px] space-y-0.5" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <div className="rounded-lg p-2 text-2xs space-y-0.5 bg-subtle text-fg-muted">
             <p className="font-medium">Output variables:</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "downloaded_file"}}}`}</code> — Public URL</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "downloaded_file"}_base64}}`}</code> — Base64 content</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "downloaded_file"}_name}}`}</code> — Filename</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "downloaded_file"}_size}}`}</code> — Size in bytes</p>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "downloaded_file"}_type}}`}</code> — MIME type</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "downloaded_file"}}}`}</code> — Public URL</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "downloaded_file"}_base64}}`}</code> — Base64 content</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "downloaded_file"}_name}}`}</code> — Filename</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "downloaded_file"}_size}}`}</code> — Size in bytes</p>
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "downloaded_file"}_type}}`}</code> — MIME type</p>
           </div>
         </div>
       )}
 
       {/* ─── Read File Content ─── */}
       {node.type === "read_file" && (
-        <div className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           <div>
-            <label className="block text-xs font-medium mb-1">File URL</label>
+            <label className="block text-xs font-medium mb-1.5">File URL</label>
             <VariableInput value={node.config.file_url ?? ""} onChange={(value) => updateConfig("file_url", value)}
               placeholder="{{file_url}} or https://..." extraVariables={extraVariables} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Read As</label>
-            <select value={node.config.encoding ?? "utf-8"} onChange={(e) => updateConfig("encoding", e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-xs"
-              style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)", color: "var(--theme-card-text)" }}>
+            <label className="block text-xs font-medium mb-1.5">Read as</label>
+            <Select value={node.config.encoding ?? "utf-8"} onChange={(e) => updateConfig("encoding", e.target.value)}>
               <option value="utf-8">Text (UTF-8)</option>
               <option value="base64">Base64</option>
               <option value="json">JSON (parse)</option>
-            </select>
+            </Select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Output Variable</label>
+            <label className="block text-xs font-medium mb-1.5">Output variable</label>
             <Input value={node.config.output_var ?? "file_content"} onChange={(e) => updateConfig("output_var", e.target.value)}
-              className="!text-xs font-mono" />
+              className="font-mono" />
           </div>
-          <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-            <p><code style={{ color: "var(--theme-primary-text)" }}>{`{{${node.config.output_var || "file_content"}}}`}</code> — File content in selected format</p>
+          <div className="rounded-lg p-2 text-2xs bg-subtle text-fg-muted">
+            <p><code className="text-primary-text">{`{{${node.config.output_var || "file_content"}}}`}</code> — File content in selected format</p>
           </div>
         </div>
       )}
@@ -2461,6 +2579,100 @@ interface ConditionBranch {
 const BRANCH_COLORS = ["var(--theme-chart-1)", "var(--theme-chart-2)", "var(--theme-chart-3)", "var(--theme-chart-4)", "var(--theme-chart-5)", "var(--theme-chart-6)", "var(--theme-chart-7)"]
 
 // ─── Sub Workflow Config ───
+/**
+ * Set Variable: an ordered list of name / value rows (lib/workflow-set-variable.ts).
+ * Editing writes `assignments` and drops the legacy `name` / `expression`, so a
+ * legacy node only changes shape when someone edits it.
+ */
+function SetVariableConfig({ nodeId, config, onReplaceConfig, nameSuggestions, extraVariables }: {
+  nodeId: string
+  config: Record<string, any>
+  onReplaceConfig: (config: Record<string, any>) => void
+  nameSuggestions: string[]
+  extraVariables: { name: string; group: string }[]
+}) {
+  const rows = setVariableEditorRows(config)
+  const issues = setVariableRowIssues({ assignments: rows })
+  const listId = `set-variable-names-${nodeId.replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const suggestions = [...new Set(nameSuggestions.map((n) => String(n ?? '').trim()).filter(Boolean))]
+
+  const write = (next: { name: string; expression: string }[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { name: _name, expression: _expression, variable: _variable, value: _value, ...rest } = config
+    onReplaceConfig({ ...rest, assignments: next.length > 0 ? next : [{ name: '', expression: '' }] })
+  }
+  const update = (index: number, patch: Partial<{ name: string; expression: string }>) =>
+    write(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+  const move = (index: number, delta: number) => {
+    const target = index + delta
+    if (target < 0 || target >= rows.length) return
+    const next = [...rows]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    write(next)
+  }
+
+  return (
+    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()} data-set-variable-rows="">
+      <datalist id={listId}>
+        {suggestions.map((name) => <option key={name} value={name} />)}
+      </datalist>
+      <p className="text-xs text-fg-muted">
+        Set in order, top to bottom: a later value can use a variable set above it.
+      </p>
+      <ol className="space-y-2">
+        {rows.map((row, i) => {
+          const rowIssues = issues.filter((issue) => issue.index === i)
+          // A blank row just added isn't an error yet (the canvas still flags it).
+          const pristine = !row.name && !row.expression
+          const nameIssue = pristine ? undefined : rowIssues.find((issue) => issue.field === 'name')
+          const valueIssue = rowIssues.find((issue) => issue.field === 'expression')
+          const rowLabel = row.name ? `"${row.name}"` : `row ${i + 1}`
+          return (
+            <li key={i} className="rounded-md border border-border-subtle p-2 space-y-1.5" data-set-variable-row={i}>
+              <div className="flex items-center gap-1">
+                <span className="w-5 shrink-0 text-center text-2xs font-medium text-fg-muted num" aria-hidden="true">{i + 1}</span>
+                <Input
+                  value={row.name}
+                  onChange={(e) => update(i, { name: e.target.value })}
+                  placeholder="variable_name"
+                  aria-label={`Variable name, row ${i + 1}`}
+                  aria-invalid={nameIssue ? true : undefined}
+                  list={listId}
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  className="font-mono"
+                  wrapperClassName="flex-1 min-w-0"
+                />
+                <div className="flex shrink-0 items-center">
+                  <IconButton size="sm" label={`Move ${rowLabel} up`} icon={<ArrowUp />} disabled={i === 0} onClick={() => move(i, -1)} />
+                  <IconButton size="sm" label={`Move ${rowLabel} down`} icon={<ArrowDown />} disabled={i === rows.length - 1} onClick={() => move(i, 1)} />
+                  <IconButton size="sm" label={`Remove ${rowLabel}`} icon={<X />} disabled={rows.length === 1 && !row.name && !row.expression}
+                    onClick={() => write(rows.filter((_, j) => j !== i))} />
+                </div>
+              </div>
+              {nameIssue && <p className="pl-6 text-xs text-danger" role="alert">{nameIssue.message}</p>}
+              <div className="pl-6">
+                <VariableInput
+                  value={row.expression}
+                  onChange={(value) => update(i, { expression: value })}
+                  placeholder="{{task.priority}} or static value"
+                  ariaLabel={`Value for ${row.name || `row ${i + 1}`}`}
+                  extraVariables={extraVariables}
+                />
+              </div>
+              {valueIssue && <p className="pl-6 text-xs text-danger" role="alert">{valueIssue.message}</p>}
+            </li>
+          )
+        })}
+      </ol>
+      <Button type="button" variant="outline" size="sm" leadingIcon={<Plus />} onClick={() => write([...rows, { name: '', expression: '' }])}>
+        Add variable
+      </Button>
+    </div>
+  )
+}
+
 function SubWorkflowConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
   config: Record<string, any>
   onUpdate: (key: string, value: any) => void
@@ -2474,17 +2686,17 @@ function SubWorkflowConfig({ config, onUpdate, onBatchUpdate, extraVariables }: 
   const inputMappings = (config.input_mappings ?? {}) as Record<string, string>
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-chart-3) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--theme-chart-3) 20%, transparent)' }}>
-        <p className="text-xs font-medium mb-1" style={{ color: 'var(--theme-chart-3-text)' }}>Call Sub Workflow</p>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">Call sub-workflow</p>
+        <p className="text-xs text-fg-muted">
           Execute another workflow as a child process. Use the Execution toggle above to choose whether to wait for completion or fire and forget.
         </p>
-      </div>
+      </Card>
 
       {/* Workflow picker */}
       <div>
-        <label className="block text-xs font-medium mb-1">Workflow</label>
+        <label className="block text-xs font-medium mb-1.5">Workflow</label>
         <AutocompleteSelect
           value={config.sub_workflow_id ?? ''}
           placeholder="Select a workflow..."
@@ -2509,21 +2721,21 @@ function SubWorkflowConfig({ config, onUpdate, onBatchUpdate, extraVariables }: 
       {/* Dynamic variable inputs */}
       {selectedWorkflow && subVars.length > 0 && (
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">
             Input Variables ({subVars.length})
           </label>
-          <p className="text-[9px] mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mb-2 text-fg-muted">
             Map values to the sub-workflow's variables. Leave empty to use the default.
           </p>
           <div className="space-y-2">
             {subVars.map(v => (
               <div key={v.name}>
                 <div className="flex items-center gap-1 mb-0.5">
-                  <code className="text-[10px] font-mono font-medium" style={{ color: 'var(--theme-chart-3-text)' }}>{v.name}</code>
-                  <span className="text-[8px] px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{v.type}</span>
-                  {v.defaultValue && <span className="text-[8px]" style={{ color: 'var(--theme-muted-text)' }}>default: {v.defaultValue}</span>}
+                  <code className="text-2xs font-mono font-medium text-fg">{v.name}</code>
+                  <span className="text-2xs px-1 py-0.5 rounded bg-subtle text-fg-muted">{v.type}</span>
+                  {v.defaultValue && <span className="text-2xs text-fg-muted">default: {v.defaultValue}</span>}
                 </div>
-                {v.description && <p className="text-[9px] mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>{v.description}</p>}
+                {v.description && <p className="text-xs mb-0.5 text-fg-muted">{v.description}</p>}
                 <VariableInput
                   value={inputMappings[v.name] ?? ''}
                   onChange={val => onUpdate('input_mappings', { ...inputMappings, [v.name]: val })}
@@ -2537,15 +2749,15 @@ function SubWorkflowConfig({ config, onUpdate, onBatchUpdate, extraVariables }: 
       )}
 
       {selectedWorkflow && subVars.length === 0 && (
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs text-fg-muted">
           This workflow has no input variables defined.
         </p>
       )}
 
-      <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
         <p className="font-semibold">Return variables:</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{sub_workflow_status}}'}</code> — completed/failed</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{sub_workflow_results}}'}</code> — node results from sub-workflow</p>
+        <p><code className="text-primary-text">{'{{sub_workflow_status}}'}</code> — completed/failed</p>
+        <p><code className="text-primary-text">{'{{sub_workflow_results}}'}</code> — node results from sub-workflow</p>
       </div>
     </div>
   )
@@ -2577,16 +2789,16 @@ function DecisionTableConfig({ config, onUpdate, onBatchUpdate, extraVariables }
   }, [selectedTable, config._decision_outputs, config._decision_inputs, onBatchUpdate])
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--status-info) 20%, transparent)' }}>
-        <p className="text-xs font-medium mb-1" style={{ color: 'var(--status-info)' }}>Decision Table</p>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">Decision table</p>
+        <p className="text-xs text-fg-muted">
           Send inputs into a business rule table and return the matched outputs to downstream workflow steps.
         </p>
-      </div>
+      </Card>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Business Rule</label>
+        <label className="block text-xs font-medium mb-1.5">Business rule</label>
         <AutocompleteSelect
           value={config.decision_table_id ?? ''}
           placeholder="Select a business rule…"
@@ -2609,22 +2821,22 @@ function DecisionTableConfig({ config, onUpdate, onBatchUpdate, extraVariables }
           }}
         />
         {selectedTable?.description && (
-          <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>{selectedTable.description}</p>
+          <p className="text-xs mt-1 text-fg-muted">{selectedTable.description}</p>
         )}
       </div>
 
       {inputDefs.length > 0 && (
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">
             Inputs ({inputDefs.length})
           </label>
           <div className="space-y-2">
             {inputDefs.map((input) => (
               <div key={input.key}>
                 <div className="flex items-center gap-1 mb-0.5">
-                  <code className="text-[10px] font-mono font-medium" style={{ color: 'var(--status-info)' }}>{input.key}</code>
+                  <code className="text-2xs font-mono font-medium text-info">{input.key}</code>
                   {input.type && (
-                    <span className="text-[8px] px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                    <span className="text-2xs px-1 py-0.5 rounded bg-subtle text-fg-muted">
                       {input.type}
                     </span>
                   )}
@@ -2642,13 +2854,13 @@ function DecisionTableConfig({ config, onUpdate, onBatchUpdate, extraVariables }
       )}
 
       {outputDefs.length > 0 && (
-        <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+        <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
           <p className="font-semibold">Outputs</p>
-          <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{matched}}'}</code> — true if a rule matched</p>
-          <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{outputs}}'}</code> — object containing all returned outputs</p>
+          <p><code className="text-primary-text">{'{{matched}}'}</code> — true if a rule matched</p>
+          <p><code className="text-primary-text">{'{{outputs}}'}</code> — object containing all returned outputs</p>
           {outputDefs.map((output) => (
             <p key={output.key}>
-              <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${output.key}}}`}</code> — {output.label || output.key}
+              <code className="text-primary-text">{`{{${output.key}}}`}</code> — {output.label || output.key}
             </p>
           ))}
         </div>
@@ -2669,76 +2881,60 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
 }) {
   const { data: users } = useUserOptions('all-users')
   const { data: teams } = useTeamOptions('all-teams')
+  const directoryCapabilities = useDirectoryCapabilities()
 
   const reminders = (config.reminders ?? []) as { offset_minutes: number }[]
   const escalation = config.escalation as { type: string; user_id?: string; team_id?: string; after_minutes: number } | undefined
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)' }}>
-        <p className="text-xs font-medium mb-1" style={{ color: 'var(--theme-primary-text)' }}>User Task</p>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">User task</p>
+        <p className="text-xs text-fg-muted">
           Creates a task assigned to a person or team. The workflow pauses until the task is actioned.
         </p>
-      </div>
+      </Card>
 
       {/* Title */}
       <div>
-        <label className="block text-xs font-medium mb-1">Task Title</label>
+        <label className="block text-xs font-medium mb-1.5">Task title</label>
         <VariableInput value={config.task_title ?? ''} onChange={v => onUpdate('task_title', v)}
           placeholder="e.g. Review {{task.title}}" extraVariables={extraVariables} />
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-xs font-medium mb-1">Instructions</label>
+        <label className="block text-xs font-medium mb-1.5">Instructions</label>
         <VariableInput multiline rows={2} value={config.task_description ?? ''} onChange={(value) => onUpdate('task_description', value)}
           placeholder="Describe what the assignee needs to do..." extraVariables={extraVariables} />
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Assignment notification template</label>
-        <select value={config.notification_template_id ?? ''} onChange={e => onUpdate('notification_template_id', e.target.value || undefined)} className="w-full rounded-md border px-3 py-2 text-xs" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+        <label className="block text-xs font-medium mb-1.5">Assignment notification template</label>
+        <Select value={config.notification_template_id ?? ''} onChange={e => onUpdate('notification_template_id', e.target.value || undefined)} >
           <option value="">Default task notification</option>
           {emailTemplates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
-        </select>
-        <p className="mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>Uses the template subject and plain-text body for the assignee’s in-app notification.</p>
+        </Select>
+        <p className="mt-1 text-xs text-fg-muted">Uses the template subject and plain-text body for the assignee’s in-app notification.</p>
       </div>
 
       {/* Priority */}
       <div>
-        <label className="block text-xs font-medium mb-1">Priority</label>
-        <select value={config.task_priority ?? 'medium'} onChange={e => onUpdate('task_priority', e.target.value)}
-          className="w-full rounded-md border px-3 py-2 text-xs"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+        <label className="block text-xs font-medium mb-1.5">Priority</label>
+        <Select value={config.task_priority ?? 'medium'} onChange={e => onUpdate('task_priority', e.target.value)}>
           <option value="low">Low</option>
           <option value="medium">Medium</option>
           <option value="high">High</option>
           <option value="critical">Critical</option>
-        </select>
+        </Select>
       </div>
 
       {/* ─── Assignment ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Assignment</label>
-        <div className="flex gap-0.5 mb-2">
-          {[
-            { val: 'individual', label: 'Individual' },
-            { val: 'team', label: 'Team' },
-            { val: 'aad_group', label: 'AAD Group' },
-          ].map(o => (
-            <button key={o.val} type="button"
-              onClick={() => onUpdate('assignment_type', o.val)}
-              disabled={o.val === 'aad_group'}
-              className="flex-1 text-[9px] font-medium py-1.5 rounded transition-colors disabled:opacity-30"
-              style={{
-                backgroundColor: (config.assignment_type ?? 'individual') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: (config.assignment_type ?? 'individual') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}>
-              {o.label}{o.val === 'aad_group' ? ' (soon)' : ''}
-            </button>
-          ))}
-        </div>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Assignment</label>
+        {/* AAD Group only when Entra ID is configured (or already saved on this node). */}
+        <AssignmentSegments value={config.assignment_type} capabilities={directoryCapabilities}
+          onChange={(value) => onUpdate('assignment_type', value)} />
 
         {(config.assignment_type ?? 'individual') === 'individual' && (
           <UserSearchPicker
@@ -2757,20 +2953,41 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
           />
         )}
 
-        <div className="mt-1">
-          <label className="text-[9px] block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Or use a variable:</label>
-          <VariableInput value={config.assignee_variable ?? ''} onChange={v => onUpdate('assignee_variable', v)}
-            placeholder="{{task.assignee_id}}" extraVariables={extraVariables} />
-        </div>
+        {config.assignment_type === 'aad_group' && (
+          <AadGroupAssignmentConfig config={config} capabilities={directoryCapabilities}
+            onUpdate={onUpdate} onBatchUpdate={onBatchUpdate} />
+        )}
+
+        {config.assignment_type !== 'aad_group' && (
+          <div className="mt-1">
+            <label className="text-xs block mb-1.5 text-fg-muted">Or use a variable:</label>
+            <VariableInput value={config.assignee_variable ?? ''} onChange={v => onUpdate('assignee_variable', v)}
+              placeholder="{{task.assignee_id}}" extraVariables={extraVariables} />
+          </div>
+        )}
+      </div>
+
+      {/* ─── Queue behaviour (overrides the assignee's queue rules) ─── */}
+      <div>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Queue behaviour</label>
+        <Select
+          aria-label="Queue behaviour"
+          value={normaliseQueueBehaviour(config.queue_behaviour)}
+          onChange={(e) => onUpdate('queue_behaviour', e.target.value === 'rules' ? undefined : e.target.value)}
+          options={QUEUE_BEHAVIOURS.map((value) => ({ value, label: QUEUE_BEHAVIOUR_LABELS[value] }))}
+          data-queue-behaviour
+        />
+        <p className="mt-1 text-2xs text-fg-muted">
+          Queued tasks show as Queued in the assignee&apos;s task list until they accept or decline.
+        </p>
       </div>
 
       {/* ─── Redirect / Invite ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Task Routing</label>
-        <div className="space-y-2 rounded-lg p-2.5" style={{ backgroundColor: 'var(--theme-surface)' }}>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Task routing</label>
+        <div className="space-y-2 rounded-lg p-2.5 bg-subtle">
           <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={!!config.allow_redirect}
               onChange={e => {
                 const checked = e.target.checked
@@ -2779,29 +2996,28 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
                   allow_invite_on_redirect: checked ? !!config.allow_invite_on_redirect : false,
                 })
               }}
-              className="rounded mt-0.5"
+              className="mt-0.5"
             />
             <span>
-              <span className="block text-xs" style={{ color: 'var(--theme-card-text)' }}>Allow assignee to redirect task</span>
-              <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <span className="block text-xs text-fg">Allow assignee to redirect task</span>
+              <span className="block text-2xs text-fg-muted">
                 Show redirect controls on the task so the current assignee can send it to another user.
               </span>
             </span>
           </label>
 
           <div className={`ml-5 ${config.allow_redirect ? '' : 'opacity-60'}`}>
-            <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Redirect to</label>
-            <select
+            <label className="text-xs font-medium block mb-1.5 text-fg-muted">Redirect to</label>
+            <Select
               value={config.redirect_assignment_mode ?? 'single'}
               disabled={!config.allow_redirect}
               onChange={e => onUpdate('redirect_assignment_mode', e.target.value)}
-              className="w-full rounded-md border px-2 py-1 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+              
             >
               <option value="single">1 person</option>
               <option value="many">Many people</option>
-            </select>
-            <p className="text-[10px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            </Select>
+            <p className="text-xs mt-1 text-fg-muted">
               {config.redirect_assignment_mode === 'many'
                 ? 'Redirecting will create a collaborative task for multiple assignees.'
                 : 'Redirecting will move the task to a single assignee.'}
@@ -2810,27 +3026,26 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
             {config.allow_redirect && config.redirect_assignment_mode === 'many' && (
               <div className="mt-2 space-y-2">
                 <div>
-                  <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Recipient limit</label>
-                  <select
+                  <label className="text-xs font-medium block mb-1.5 text-fg-muted">Recipient limit</label>
+                  <Select
                     value={config.redirect_recipient_limit_mode ?? 'unlimited'}
                     onChange={e => onUpdate('redirect_recipient_limit_mode', e.target.value)}
-                    className="w-full rounded-md border px-2 py-1 text-xs"
-                    style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                    
                   >
                     <option value="unlimited">Unlimited</option>
                     <option value="capped">Up to a number</option>
-                  </select>
+                  </Select>
                 </div>
 
                 {(config.redirect_recipient_limit_mode ?? 'unlimited') === 'capped' && (
                   <div>
-                    <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Maximum people</label>
+                    <label className="text-xs font-medium block mb-1.5 text-fg-muted">Maximum people</label>
                     <Input
                       type="number"
                       min={1}
                       value={config.redirect_recipient_limit ?? 2}
                       onChange={e => onUpdate('redirect_recipient_limit', Math.max(1, Number(e.target.value) || 1))}
-                      className="!text-xs !h-8"
+
                     />
                   </div>
                 )}
@@ -2840,42 +3055,40 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
 
           <div className="ml-5 space-y-2">
             <label className={`flex items-start gap-2 ${config.allow_redirect ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!config.allow_invite_on_redirect}
                 disabled={!config.allow_redirect}
                 onChange={e => onUpdate('allow_invite_on_redirect', e.target.checked)}
-                className="rounded mt-0.5"
+                className="mt-0.5"
               />
               <span>
-                <span className="block text-xs" style={{ color: 'var(--theme-card-text)' }}>Allow invite by email</span>
-                <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <span className="block text-xs text-fg">Allow invite by email</span>
+                <span className="block text-2xs text-fg-muted">
                   If the redirect target is not already in the organisation, send them an invitation instead.
                 </span>
               </span>
             </label>
 
             {!config.allow_redirect && (
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs text-fg-muted">
                 Enable redirect first to allow invite-by-email.
               </p>
             )}
 
             {config.allow_redirect && config.allow_invite_on_redirect && (
               <div>
-                <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Invite role</label>
-                <select
+                <label className="text-xs font-medium block mb-1.5 text-fg-muted">Invite role</label>
+                <Select
                   value={config.redirect_invite_role ?? 'viewer'}
                   onChange={e => onUpdate('redirect_invite_role', e.target.value)}
-                  className="w-full rounded-md border px-2 py-1 text-xs"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                  
                 >
                   <option value="viewer">Viewer</option>
                   <option value="member">Member</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                   <option value="owner">Owner</option>
-                </select>
+                </Select>
               </div>
             )}
           </div>
@@ -2884,8 +3097,8 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
 
       {/* ─── Due Date ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Due Date</label>
-        <div className="flex gap-0.5 mb-2">
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Due date</label>
+        <div className="flex gap-0.5 rounded-md bg-muted p-0.5 mb-2">
           {[
             { val: 'absolute', label: 'Fixed date' },
             { val: 'relative', label: 'Relative' },
@@ -2893,11 +3106,7 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
           ].map(o => (
             <button key={o.val} type="button"
               onClick={() => onUpdate('due_date_mode', o.val)}
-              className="flex-1 text-[9px] font-medium py-1.5 rounded transition-colors"
-              style={{
-                backgroundColor: (config.due_date_mode ?? 'relative') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: (config.due_date_mode ?? 'relative') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}>
+              className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(config.due_date_mode ?? 'relative') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
               {o.label}
             </button>
           ))}
@@ -2911,78 +3120,72 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
           <div className="flex gap-2">
             <Input type="number" value={config.due_offset_amount ?? 3}
               onChange={e => onUpdate('due_offset_amount', Number(e.target.value))}
-              className="!text-xs !h-7 w-20" min={1} />
-            <select value={config.due_offset_unit ?? 'days'}
+              className="w-20" size="sm" min={1} />
+            <Select value={config.due_offset_unit ?? 'days'}
               onChange={e => onUpdate('due_offset_unit', e.target.value)}
-              className="flex-1 rounded-md border px-2 py-1 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+              size="sm" wrapperClassName="flex-1">
               <option value="minutes">Minutes</option>
               <option value="hours">Hours</option>
               <option value="days">Days</option>
               <option value="weeks">Weeks</option>
-            </select>
-            <span className="text-[10px] self-center" style={{ color: 'var(--theme-muted-text)' }}>after creation</span>
+            </Select>
+            <span className="text-2xs self-center text-fg-muted">after creation</span>
           </div>
         )}
       </div>
 
       {/* ─── Reminders ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Reminders</label>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Reminders</label>
         <div className="space-y-1.5">
           {reminders.map((r, i) => (
             <div key={i} className="flex items-center gap-2">
-              <Input type="number" value={r.offset_minutes / 60} className="!text-xs !h-6 w-16"
+              <Input type="number" value={r.offset_minutes / 60} className="w-16" size="sm"
                 onChange={e => {
                   const updated = [...reminders]
                   updated[i] = { offset_minutes: Number(e.target.value) * 60 }
                   onUpdate('reminders', updated)
                 }} />
-              <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>hours before due</span>
-              <button onClick={() => onUpdate('reminders', reminders.filter((_, j) => j !== i))}
-                className="text-[10px] hover:text-[color:var(--theme-danger)]" style={{ color: 'var(--theme-muted-text)' }}>
-                <X size={10} />
-              </button>
+              <span className="text-2xs text-fg-muted">hours before due</span>
+              <IconButton size="sm" label="Remove reminder" icon={<X />} onClick={() => onUpdate('reminders', reminders.filter((_, j) => j !== i))} />
             </div>
           ))}
         </div>
-        <Button variant="outline" size="sm" className="w-full mt-1 !text-[10px] !h-6"
-          onClick={() => onUpdate('reminders', [...reminders, { offset_minutes: 1440 }])}>
-          <Plus size={10} className="mr-1" /> Add Reminder
+        <Button variant="secondary" size="sm" className="w-full mt-1"
+          onClick={() => onUpdate('reminders', [...reminders, { offset_minutes: 1440 }])} leadingIcon={<Plus />}>
+          Add reminder
         </Button>
       </div>
 
       {/* ─── Escalation ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Escalation</label>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Escalation</label>
         <label className="flex items-center gap-2 cursor-pointer mb-2">
-          <input type="checkbox" checked={!!config.escalation_enabled} onChange={e => onUpdate('escalation_enabled', e.target.checked)}
-            className="rounded" />
-          <span className="text-xs" style={{ color: 'var(--theme-card-text)' }}>Escalate if not actioned by due date</span>
+          <Checkbox checked={!!config.escalation_enabled} onChange={e => onUpdate('escalation_enabled', e.target.checked)} />
+          <span className="text-xs text-fg">Escalate if not actioned by due date</span>
         </label>
         {config.escalation_enabled && (
-          <div className="space-y-2 rounded-lg p-2.5" style={{ backgroundColor: 'var(--theme-surface)' }}>
+          <div className="space-y-2 rounded-lg p-2.5 bg-subtle">
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Escalate after</label>
+                <label className="text-xs font-medium block mb-1.5 text-fg-muted">Escalate after</label>
                 <div className="flex gap-1">
                   <Input type="number" value={config.escalate_after_minutes ?? 60}
                     onChange={e => onUpdate('escalate_after_minutes', Number(e.target.value))}
-                    className="!text-xs !h-6 w-14" min={0} />
-                  <span className="text-[10px] self-center" style={{ color: 'var(--theme-muted-text)' }}>min past due</span>
+                    className="w-14" size="sm" min={0} />
+                  <span className="text-2xs self-center text-fg-muted">min past due</span>
                 </div>
               </div>
             </div>
             <div>
-              <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Escalate to</label>
-              <select value={config.escalation_type ?? 'manager'}
+              <label className="text-xs font-medium block mb-1.5 text-fg-muted">Escalate to</label>
+              <Select value={config.escalation_type ?? 'manager'}
                 onChange={e => onUpdate('escalation_type', e.target.value)}
-                className="w-full rounded-md border px-2 py-1 text-xs"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+                >
                 <option value="manager">Assignee's Manager</option>
                 <option value="individual">Specific User</option>
                 <option value="team">Team</option>
-              </select>
+              </Select>
             </div>
             {config.escalation_type === 'individual' && (
               <AutocompleteSelect
@@ -3006,8 +3209,8 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
 
       {/* ─── Outcomes ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Outcomes</label>
-        <p className="text-[9px] mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Outcomes</label>
+        <p className="text-xs mb-2 text-fg-muted">
           Define the possible outcomes. Each creates a branch port on the canvas for routing the workflow.
         </p>
         <div className="space-y-1.5">
@@ -3020,72 +3223,68 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
                   updated[i] = e.target.value
                   onUpdate('outcomes', updated)
                 }}
-                className="!text-xs !h-7 flex-1" placeholder={`Outcome ${i + 1}`} />
+                className="flex-1" size="sm" placeholder={`Outcome ${i + 1}`} />
               {(config.outcomes ?? []).length > 1 && (
-                <button onClick={() => onUpdate('outcomes', (config.outcomes ?? []).filter((_: any, j: number) => j !== i))}
-                  className="p-0.5 rounded hover:text-[color:var(--theme-danger)] shrink-0" style={{ color: 'var(--theme-muted-text)' }}>
-                  <X size={10} />
-                </button>
+                <IconButton size="sm" label="Remove outcome" icon={<X />} className="shrink-0" onClick={() => onUpdate('outcomes', (config.outcomes ?? []).filter((_: any, j: number) => j !== i))} />
               )}
             </div>
           ))}
         </div>
-        <Button variant="outline" size="sm" className="w-full mt-1.5 !text-[10px] !h-6"
-          onClick={() => onUpdate('outcomes', [...(config.outcomes ?? []), `Outcome ${(config.outcomes ?? []).length + 1}`])}>
-          <Plus size={10} className="mr-1" /> Add Outcome
+        <Button variant="secondary" size="sm" className="w-full mt-1.5"
+          onClick={() => onUpdate('outcomes', [...(config.outcomes ?? []), `Outcome ${(config.outcomes ?? []).length + 1}`])} leadingIcon={<Plus />}>
+          Add outcome
         </Button>
       </div>
 
       {/* ─── Completion Rules ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Completion Rule</label>
-        <p className="text-[9px] mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Completion rule</label>
+        <p className="text-xs mb-2 text-fg-muted">
           When multiple people are assigned, how is the task considered complete?
         </p>
-        <select value={config.completion_rule ?? 'first_response'}
+        <Select value={config.completion_rule ?? 'first_response'}
           onChange={e => onUpdate('completion_rule', e.target.value)}
-          className="w-full rounded-md border px-3 py-2 text-xs"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
+          >
           <option value="first_response">First response (any one person)</option>
           <option value="all_complete">All must complete</option>
           <option value="consensus">Consensus (majority vote on same outcome)</option>
           <option value="unanimous">Unanimous (all must choose same outcome)</option>
           <option value="custom">Custom rule</option>
-        </select>
+        </Select>
 
         {config.completion_rule === 'all_complete' && (
-          <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-1 text-fg-muted">
             Every assignee must action the task. The workflow resumes after the last person responds.
           </p>
         )}
 
         {config.completion_rule === 'consensus' && (
           <div className="mt-2 space-y-1">
-            <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs text-fg-muted">
               The outcome with the most votes wins. In a tie, the first response wins.
             </p>
             <div className="flex items-center gap-2">
-              <label className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>Min. responses required:</label>
+              <label className="text-xs text-fg-muted">Min. responses required:</label>
               <Input type="number" value={config.min_responses ?? 2}
                 onChange={e => onUpdate('min_responses', Number(e.target.value))}
-                className="!text-xs !h-6 w-14" min={1} />
+                className="w-14" size="sm" min={1} />
             </div>
           </div>
         )}
 
         {config.completion_rule === 'unanimous' && (
-          <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs mt-1 text-fg-muted">
             All assignees must choose the same outcome. If they disagree, the task remains open.
           </p>
         )}
 
         {config.completion_rule === 'custom' && (
           <div className="mt-2 space-y-2">
-            <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs text-fg-muted">
               Define a custom completion condition using expressions.
             </p>
             <div>
-              <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Complete when</label>
+              <label className="text-xs font-medium block mb-1.5 text-fg-muted">Complete when</label>
               <VariableInput value={config.custom_rule_expression ?? ''}
                 onChange={v => onUpdate('custom_rule_expression', v)}
                 placeholder='e.g. {{=AND(response_count >= 3, outcome_approve_count >= 2)}}'
@@ -3097,7 +3296,7 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
                 ]} />
             </div>
             <div>
-              <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Winning outcome</label>
+              <label className="text-xs font-medium block mb-1.5 text-fg-muted">Winning outcome</label>
               <VariableInput value={config.custom_rule_outcome ?? ''}
                 onChange={v => onUpdate('custom_rule_outcome', v)}
                 placeholder='e.g. {{=IF(outcome_approve_count > outcome_reject_count, "Approved", "Rejected")}}'
@@ -3109,25 +3308,21 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
 
       {/* ─── Form (fields, grid layout, theme) ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>Form (optional)</label>
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">Form (optional)</label>
         {formSection}
       </div>
 
       {/* ─── External form ─── */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--theme-muted-text)' }}>External form (optional)</label>
-        <div className="flex gap-0.5 mb-2">
+        <label className="block text-xs font-medium mb-1.5 text-fg-muted">External form (optional)</label>
+        <div className="flex gap-0.5 rounded-md bg-muted p-0.5 mb-2">
           {[
             { val: 'none', label: 'None' },
             { val: 'url', label: 'Custom URL' },
           ].map(o => (
             <button key={o.val} type="button"
               onClick={() => onUpdate('form_type', o.val)}
-              className="flex-1 text-[9px] font-medium py-1.5 rounded transition-colors"
-              style={{
-                backgroundColor: (config.form_type === 'url' ? 'url' : 'none') === o.val ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: (config.form_type === 'url' ? 'url' : 'none') === o.val ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}>
+              className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${(config.form_type === 'url' ? 'url' : 'none') === o.val ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}>
               {o.label}
             </button>
           ))}
@@ -3135,20 +3330,20 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
         {config.form_type === 'url' && (
           <div className="space-y-1.5">
             <div>
-              <label className="text-[9px] font-medium block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Form URL</label>
+              <label className="text-xs font-medium block mb-1.5 text-fg-muted">Form URL</label>
               <VariableInput value={config.form_url ?? ''} onChange={v => onUpdate('form_url', v)}
                 placeholder="https://forms.example.com/review?task_id={{user_task_id}}" extraVariables={extraVariables} />
             </div>
-            <div className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
-              Variables available in URL: <code style={{ color: 'var(--theme-primary-text)' }}>{'{{user_task_id}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{event_id}}'}</code>
+            <div className="text-2xs text-fg-muted">
+              Variables available in URL: <code className="text-primary-text">{'{{user_task_id}}'}</code>, <code className="text-primary-text">{'{{event_id}}'}</code>
             </div>
           </div>
         )}
       </div>
 
-      <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
         <p className="font-semibold">Workflow pauses until the task is actioned.</p>
-        <p>Return variables: <code style={{ color: 'var(--theme-primary-text)' }}>{'{{outcome}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{outcome_notes}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{actioned_by}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{task_data.<key>}}'}</code></p>
+        <p>Return variables: <code className="text-primary-text">{'{{outcome}}'}</code>, <code className="text-primary-text">{'{{outcome_notes}}'}</code>, <code className="text-primary-text">{'{{actioned_by}}'}</code>, <code className="text-primary-text">{'{{task_data.<key>}}'}</code></p>
         {(config.outcomes ?? []).length > 0 && (
           <p>The workflow routes to the branch matching the outcome. Connect each outcome port below.</p>
         )}
@@ -3176,45 +3371,40 @@ function UserSearchPicker({ users, selectedId, onSelect }: {
 
   if (selectedId && selected && !open) {
     return (
-      <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:opacity-80"
-        style={{ borderColor: 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' }}
+      <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer border-primary bg-primary-wash hover:border-primary-hover"
         onClick={() => setOpen(true)}>
-        <span className="flex-1" style={{ color: 'var(--theme-primary-text)' }}>
-          {selected.display_name} <span style={{ color: 'var(--theme-muted-text)' }}>({selected.email})</span>
+        <span className="flex-1 text-primary-text">
+          {selected.display_name} <span className="text-fg-muted">({selected.email})</span>
         </span>
         <button onClick={(e) => { e.stopPropagation(); onSelect('', '') }}
-          className="text-[9px] underline" style={{ color: 'var(--theme-muted-text)' }}>Clear</button>
+          className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline">Clear</button>
       </div>
     )
   }
 
   return (
     <div className="relative">
-      <input
+      <Input
         value={search}
         onChange={e => { setSearch(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
         placeholder="Search by name or email..."
-        className="w-full rounded-md border px-3 py-2 text-xs outline-none"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+        
       />
       {open && filtered.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 max-h-40 overflow-y-auto rounded-lg border shadow-lg"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 max-h-40 overflow-y-auto rounded-lg border border-border bg-elevated shadow-elev-2">
           {filtered.map(u => (
             <button key={u.id} type="button"
-              className="flex items-center w-full px-3 py-2 text-xs text-left hover:opacity-80"
-              style={{ backgroundColor: u.id === selectedId ? 'var(--theme-primary-light)' : 'var(--theme-card-bg)' }}
+              className={`flex items-center w-full px-3 py-2 text-xs text-left ${u.id === selectedId ? 'bg-primary-wash' : 'hover:bg-subtle'}`}
               onClick={() => { onSelect(u.id, u.display_name); setSearch(''); setOpen(false) }}>
               <span className="flex-1 truncate">{u.display_name}</span>
-              <span className="text-[10px] ml-2 truncate" style={{ color: 'var(--theme-muted-text)' }}>{u.email}</span>
+              <span className="text-2xs ml-2 truncate text-fg-muted">{u.email}</span>
             </button>
           ))}
         </div>
       )}
       {open && filtered.length === 0 && search.trim() && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border px-3 py-2 text-xs"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}>
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-border bg-elevated px-3 py-2 text-xs text-fg-muted shadow-elev-2">
           No users matching "{search}"
         </div>
       )}
@@ -3254,25 +3444,23 @@ function SearchableEntityPicker({
   if (selectedId && selected && !open) {
     return (
       <div
-        className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:opacity-80"
-        style={{ borderColor: selected.missing ? 'var(--theme-warning)' : 'var(--theme-primary)', backgroundColor: 'var(--theme-primary-light)' }}
+        className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer bg-primary-wash ${selected.missing ? 'border-warning' : 'border-primary'}`}
         onClick={() => setOpen(true)}
         data-picker-selected={selected.id}
         data-picker-missing={selected.missing ? '' : undefined}
         title={selected.missing ? 'This record no longer exists or is not visible to you' : undefined}
       >
-        <span className="flex-1 min-w-0" style={{ color: 'var(--theme-primary-text)' }}>
+        <span className="flex-1 min-w-0 text-primary-text">
           <span className="truncate block">{selected.name}</span>
           {selected.subtitle && (
-            <span className="truncate block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <span className="truncate block text-2xs text-fg-muted">
               {selected.subtitle}
             </span>
           )}
         </span>
         <button
           onClick={(e) => { e.stopPropagation(); onSelect('', '') }}
-          className="text-[9px] underline"
-          style={{ color: 'var(--theme-muted-text)' }}
+          className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline"
         >
           Clear
         </button>
@@ -3282,33 +3470,30 @@ function SearchableEntityPicker({
 
   return (
     <div className="relative">
-      <input
+      <Input
         value={search}
         onChange={(e) => { setSearch(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-md border px-3 py-2 text-xs outline-none"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+        
       />
       {open && filtered.length > 0 && (
         <div
-          className="absolute left-0 right-0 top-full mt-1 z-50 max-h-52 overflow-y-auto rounded-lg border shadow-lg"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
+          className="absolute left-0 right-0 top-full mt-1 z-50 max-h-52 overflow-y-auto rounded-lg border border-border bg-elevated shadow-elev-2"
         >
           {filtered.map((item) => (
             <button
               key={item.id}
               type="button"
-              className="flex items-start w-full px-3 py-2 text-xs text-left hover:opacity-80"
-              style={{ backgroundColor: item.id === selectedId ? 'var(--theme-primary-light)' : 'var(--theme-card-bg)' }}
+              className={`flex items-start w-full px-3 py-2 text-xs text-left ${item.id === selectedId ? 'bg-primary-wash' : 'hover:bg-subtle'}`}
               onClick={() => { onSelect(item.id, item.name); setSearch(''); setOpen(false) }}
             >
               <span className="flex-1 min-w-0">
-                <span className="truncate block" style={{ color: 'var(--theme-card-text)' }}>
+                <span className="truncate block text-fg">
                   {item.name}{item.archived ? ' (archived)' : ''}
                 </span>
                 {item.subtitle && (
-                  <span className="truncate block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                  <span className="truncate block text-2xs text-fg-muted">
                     {item.subtitle}
                   </span>
                 )}
@@ -3319,8 +3504,7 @@ function SearchableEntityPicker({
       )}
       {open && filtered.length === 0 && (
         <div
-          className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border px-3 py-2 text-xs"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }}
+          className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-border bg-elevated px-3 py-2 text-xs text-fg-muted shadow-elev-2"
         >
           {emptyLabel}
         </div>
@@ -3348,27 +3532,26 @@ function GovernanceRoleAssignmentConfig({
 
   const roleMode = config.role_mode ?? (config.role_name && !config.role_id ? 'name' : 'id')
   const actionLabel = action === 'add_user_to_role' ? 'Add User To Role' : 'Remove User From Role'
-  const actionColor = action === 'add_user_to_role' ? 'var(--status-info)' : 'var(--theme-danger)'
   const outputPrefix = action === 'add_user_to_role' ? 'governance_role_added' : 'governance_role_removed'
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: `color-mix(in srgb, ${actionColor} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${actionColor} 20%, transparent)` }}>
-        <p className="text-xs font-medium mb-1" style={{ color: actionColor }}>{actionLabel}</p>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">{actionLabel}</p>
+        <p className="text-xs text-fg-muted">
           Manage governance role membership inside the workflow with tenant-safe validation, deduping, and audit logging.
         </p>
-      </div>
+      </Card>
 
       <div>
-        <label className="block text-xs font-medium mb-1">User</label>
+        <label className="block text-xs font-medium mb-1.5">User</label>
         <UserSearchPicker
           users={users ?? []}
           selectedId={config.user_id ?? ''}
           onSelect={(id, name) => onBatchUpdate({ user_id: id, user_label: name })}
         />
         <div className="mt-1.5">
-          <label className="text-[9px] block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Or use a variable</label>
+          <label className="text-xs block mb-1.5 text-fg-muted">Or use a variable</label>
           <VariableInput
             value={config.user_id ?? ''}
             onChange={(value) => onBatchUpdate({ user_id: value, user_label: '' })}
@@ -3379,8 +3562,8 @@ function GovernanceRoleAssignmentConfig({
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Role Match</label>
-        <div className="flex gap-0.5 mb-2">
+        <label className="block text-xs font-medium mb-1.5">Role match</label>
+        <div className="flex gap-0.5 rounded-md bg-muted p-0.5 mb-2">
           {[
             { value: 'id', label: 'Select role' },
             { value: 'name', label: 'Role name / slug' },
@@ -3394,11 +3577,7 @@ function GovernanceRoleAssignmentConfig({
                 role_name: option.value === 'name' ? config.role_name ?? '' : '',
                 role_label: option.value === 'name' ? config.role_label ?? config.role_name ?? '' : config.role_label ?? '',
               })}
-              className="flex-1 text-[9px] font-medium py-1.5 rounded transition-colors"
-              style={{
-                backgroundColor: roleMode === option.value ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: roleMode === option.value ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-              }}
+              className={`flex-1 text-xs font-medium py-1 rounded transition-colors ${roleMode === option.value ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}
             >
               {option.label}
             </button>
@@ -3425,7 +3604,7 @@ function GovernanceRoleAssignmentConfig({
                 })
               }}
             />
-            <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs mt-1 text-fg-muted">
               Best for fixed workflows where the target role is known up front.
             </p>
           </>
@@ -3437,18 +3616,18 @@ function GovernanceRoleAssignmentConfig({
               placeholder="Admin or {{role_name}}"
               extraVariables={extraVariables}
             />
-            <p className="text-[9px] mt-1" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="text-xs mt-1 text-fg-muted">
               Matches by role name or slug inside the current tenant.
             </p>
           </>
         )}
       </div>
 
-      <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
         <p className="font-semibold">Outputs</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{`{{${outputPrefix}_success}}`}</code> — true when the action completes</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{`{{${outputPrefix}_action}}`}</code> — added, removed, already_assigned, or already_removed</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{`{{${outputPrefix}_role_id}}`}</code> and <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${outputPrefix}_user_id}}`}</code> — resolved identifiers</p>
+        <p><code className="text-primary-text">{`{{${outputPrefix}_success}}`}</code> — true when the action completes</p>
+        <p><code className="text-primary-text">{`{{${outputPrefix}_action}}`}</code> — added, removed, already_assigned, or already_removed</p>
+        <p><code className="text-primary-text">{`{{${outputPrefix}_role_id}}`}</code> and <code className="text-primary-text">{`{{${outputPrefix}_user_id}}`}</code> — resolved identifiers</p>
       </div>
     </div>
   )
@@ -3469,23 +3648,23 @@ function PermissionCheckConfig({
   const { data: users } = useUserOptions('workflow-governance-users')
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-chart-6) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--theme-chart-6) 20%, transparent)' }}>
-        <p className="text-xs font-medium mb-1" style={{ color: 'var(--theme-chart-6-text)' }}>Check Permission</p>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">Check permission</p>
+        <p className="text-xs text-fg-muted">
           Resolve the user’s effective permissions from their roles and branch the workflow based on the result.
         </p>
-      </div>
+      </Card>
 
       <div>
-        <label className="block text-xs font-medium mb-1">User</label>
+        <label className="block text-xs font-medium mb-1.5">User</label>
         <UserSearchPicker
           users={users ?? []}
           selectedId={config.user_id ?? ''}
           onSelect={(id, name) => onBatchUpdate({ user_id: id, user_label: name })}
         />
         <div className="mt-1.5">
-          <label className="text-[9px] block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Or use a variable</label>
+          <label className="text-xs block mb-1.5 text-fg-muted">Or use a variable</label>
           <VariableInput
             value={config.user_id ?? ''}
             onChange={(value) => onBatchUpdate({ user_id: value, user_label: '' })}
@@ -3496,7 +3675,7 @@ function PermissionCheckConfig({
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Permission</label>
+        <label className="block text-xs font-medium mb-1.5">Permission</label>
         <AutocompleteSelect
           value={config.permission ?? ''}
           placeholder="Select a permission..."
@@ -3505,10 +3684,10 @@ function PermissionCheckConfig({
         />
       </div>
 
-      <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
         <p className="font-semibold">Outputs</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{has_permission}}'}</code> — true or false</p>
-        <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{permissions}}'}</code> — full effective permission list for the user</p>
+        <p><code className="text-primary-text">{'{{has_permission}}'}</code> — true or false</p>
+        <p><code className="text-primary-text">{'{{permissions}}'}</code> — full effective permission list for the user</p>
       </div>
     </div>
   )
@@ -3573,15 +3752,15 @@ function RetentionPoliciesWorkflowConfig({
   })
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           Manage retention policies from workflows. You can create or delete policies, inspect what assets are assigned to a policy, or apply a policy to a table or row.
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Operation</label>
+        <label className="block text-xs font-medium mb-1.5">Operation</label>
         <div className="grid grid-cols-2 gap-1">
           {[
             { value: 'list_policies', label: 'List Policies' },
@@ -3594,12 +3773,7 @@ function RetentionPoliciesWorkflowConfig({
               key={option.value}
               type="button"
               onClick={() => onUpdate('operation', option.value)}
-              className="rounded-lg border px-2 py-1.5 text-[10px] font-medium transition-colors"
-              style={{
-                backgroundColor: operation === option.value ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: operation === option.value ? 'var(--theme-on-primary)' : 'var(--theme-card-text)',
-                borderColor: operation === option.value ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-              }}
+              className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${operation === option.value ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
             >
               {option.label}
             </button>
@@ -3610,22 +3784,21 @@ function RetentionPoliciesWorkflowConfig({
       {operation === 'list_policies' && (
         <>
           <div>
-            <label className="block text-xs font-medium mb-1">Scope Filter (optional)</label>
-            <select
+            <label className="block text-xs font-medium mb-1.5">Scope filter (optional)</label>
+            <Select
               value={config.scope ?? ''}
               onChange={(e) => onUpdate('scope', e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+              
             >
               <option value="">All scopes</option>
               <option value="data_tables">Data tables</option>
               <option value="data_rows">Data rows</option>
-            </select>
+            </Select>
           </div>
-          <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+          <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
             <p className="font-semibold">Outputs</p>
-            <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{policy_count}}'}</code> — number of matching policies</p>
-            <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{policies}}'}</code> — full policy list</p>
+            <p><code className="text-primary-text">{'{{policy_count}}'}</code> — number of matching policies</p>
+            <p><code className="text-primary-text">{'{{policies}}'}</code> — full policy list</p>
           </div>
         </>
       )}
@@ -3633,7 +3806,7 @@ function RetentionPoliciesWorkflowConfig({
       {operation === 'create_policy' && (
         <>
           <div>
-            <label className="block text-xs font-medium mb-1">Policy Name</label>
+            <label className="block text-xs font-medium mb-1.5">Policy name</label>
             <VariableInput
               value={config.name ?? ''}
               onChange={(value) => onUpdate('name', value)}
@@ -3642,7 +3815,7 @@ function RetentionPoliciesWorkflowConfig({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Description (optional)</label>
+            <label className="block text-xs font-medium mb-1.5">Description (optional)</label>
             <VariableInput
               value={config.description ?? ''}
               onChange={(value) => onUpdate('description', value)}
@@ -3651,24 +3824,23 @@ function RetentionPoliciesWorkflowConfig({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Policy Mode</label>
-            <select
+            <label className="block text-xs font-medium mb-1.5">Policy mode</label>
+            <Select
               value={config.policy_mode ?? 'review'}
               onChange={(e) => onUpdate('policy_mode', e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-xs"
-              style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+              
             >
               <option value="review">Review after duration</option>
               <option value="review_on_exact_date">Review on exact date</option>
               <option value="purge_on">Purge after duration</option>
               <option value="purge_on_exact_date">Purge on exact date</option>
               <option value="keep_forever">Keep forever</option>
-            </select>
+            </Select>
           </div>
 
           {(config.policy_mode ?? 'review') === 'review_on_exact_date' || (config.policy_mode ?? 'review') === 'purge_on_exact_date' ? (
             <div>
-              <label className="block text-xs font-medium mb-1">Exact Date</label>
+              <label className="block text-xs font-medium mb-1.5">Exact date</label>
               <VariableInput
                 value={config.exact_date ?? ''}
                 onChange={(value) => onUpdate('exact_date', value)}
@@ -3679,7 +3851,7 @@ function RetentionPoliciesWorkflowConfig({
           ) : (config.policy_mode ?? 'review') !== 'keep_forever' ? (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium mb-1">Duration Value</label>
+                <label className="block text-xs font-medium mb-1.5">Duration value</label>
                 <VariableInput
                   value={config.duration_value ?? ''}
                   onChange={(value) => onUpdate('duration_value', value)}
@@ -3688,23 +3860,22 @@ function RetentionPoliciesWorkflowConfig({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Duration Unit</label>
-                <select
+                <label className="block text-xs font-medium mb-1.5">Duration unit</label>
+                <Select
                   value={config.duration_unit ?? 'days'}
                   onChange={(e) => onUpdate('duration_unit', e.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-xs"
-                  style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+                  
                 >
                   <option value="days">Days</option>
                   <option value="months">Months</option>
                   <option value="years">Years</option>
-                </select>
+                </Select>
               </div>
             </div>
           ) : null}
 
           <div>
-            <label className="block text-xs font-medium mb-1">Applies To</label>
+            <label className="block text-xs font-medium mb-1.5">Applies to</label>
             <div className="grid grid-cols-2 gap-1">
               {[
                 { value: 'data_tables', label: 'Data Tables' },
@@ -3720,12 +3891,7 @@ function RetentionPoliciesWorkflowConfig({
                       const next = selected ? current.filter((item: string) => item !== scopeOption.value) : [...current, scopeOption.value]
                       onUpdate('applies_to', next)
                     }}
-                    className="rounded-md border px-2 py-1.5 text-[10px] font-medium transition-colors"
-                    style={{
-                      backgroundColor: selected ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                      color: selected ? 'var(--theme-on-primary)' : 'var(--theme-card-text)',
-                      borderColor: selected ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-                    }}
+                    className={`rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${selected ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
                   >
                     {scopeOption.label}
                   </button>
@@ -3733,18 +3899,18 @@ function RetentionPoliciesWorkflowConfig({
               })}
             </div>
           </div>
-          <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+          <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
             <p className="font-semibold">Outputs</p>
-            <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{retention_policy_id}}'}</code> — created policy ID</p>
-            <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{retention_policy_name}}'}</code> — created policy name</p>
-            <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{policy}}'}</code> — created policy object</p>
+            <p><code className="text-primary-text">{'{{retention_policy_id}}'}</code> — created policy ID</p>
+            <p><code className="text-primary-text">{'{{retention_policy_name}}'}</code> — created policy name</p>
+            <p><code className="text-primary-text">{'{{policy}}'}</code> — created policy object</p>
           </div>
         </>
       )}
 
       {(operation === 'delete_policy' || operation === 'list_assets' || operation === 'assign_policy') && (
         <div>
-          <label className="block text-xs font-medium mb-1">Retention Policy</label>
+          <label className="block text-xs font-medium mb-1.5">Retention policy</label>
           <SearchableEntityPicker
             items={selectablePolicies.map((policy: any) => ({
               id: policy.id,
@@ -3768,18 +3934,18 @@ function RetentionPoliciesWorkflowConfig({
       )}
 
       {operation === 'list_assets' && (
-        <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+        <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
           <p className="font-semibold">Outputs</p>
-          <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{asset_count}}'}</code> — total assigned assets</p>
-          <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{assets}}'}</code> — grouped assets by type</p>
-          <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{data_tables}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{data_rows}}'}</code></p>
+          <p><code className="text-primary-text">{'{{asset_count}}'}</code> — total assigned assets</p>
+          <p><code className="text-primary-text">{'{{assets}}'}</code> — grouped assets by type</p>
+          <p><code className="text-primary-text">{'{{data_tables}}'}</code>, <code className="text-primary-text">{'{{data_rows}}'}</code></p>
         </div>
       )}
 
       {operation === 'assign_policy' && (
         <>
           <div>
-            <label className="block text-xs font-medium mb-1">Target Type</label>
+            <label className="block text-xs font-medium mb-1.5">Target type</label>
             <div className="grid grid-cols-2 gap-1">
               {[
                 { value: 'data_table', label: 'Data Table' },
@@ -3794,12 +3960,7 @@ function RetentionPoliciesWorkflowConfig({
                     table_id: option.value === 'data_row' ? config.table_id ?? '' : '',
                     table_name: option.value === 'data_row' ? config.table_name ?? '' : '',
                   })}
-                  className="rounded-md border px-2 py-1.5 text-[10px] font-medium transition-colors"
-                  style={{
-                    backgroundColor: selectedTargetType === option.value ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                    color: selectedTargetType === option.value ? 'var(--theme-on-primary)' : 'var(--theme-card-text)',
-                    borderColor: selectedTargetType === option.value ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-                  }}
+                  className={`rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${selectedTargetType === option.value ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
                 >
                   {option.label}
                 </button>
@@ -3809,7 +3970,7 @@ function RetentionPoliciesWorkflowConfig({
 
           {selectedTargetType === 'data_table' && (
             <div>
-              <label className="block text-xs font-medium mb-1">Data Table</label>
+              <label className="block text-xs font-medium mb-1.5">Data table</label>
               <SearchableEntityPicker
                 items={(tables ?? []).map((table: any) => ({ id: table.id, name: table.name }))}
                 selectedId={config.target_id ?? ''}
@@ -3823,7 +3984,7 @@ function RetentionPoliciesWorkflowConfig({
           {selectedTargetType === 'data_row' && (
             <>
               <div>
-                <label className="block text-xs font-medium mb-1">Data Table</label>
+                <label className="block text-xs font-medium mb-1.5">Data table</label>
                 <SearchableEntityPicker
                   items={(tables ?? []).map((table: any) => ({ id: table.id, name: table.name }))}
                   selectedId={dataTableIdOf(config)}
@@ -3835,7 +3996,7 @@ function RetentionPoliciesWorkflowConfig({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Row ID</label>
+                <label className="block text-xs font-medium mb-1.5">Row ID</label>
                 <VariableInput
                   value={config.target_id ?? ''}
                   onChange={(value) => onUpdate('target_id', value)}
@@ -3848,7 +4009,7 @@ function RetentionPoliciesWorkflowConfig({
 
           {!['data_row'].includes(selectedTargetType) && (
             <div className="mt-1.5">
-              <label className="text-[9px] block mb-0.5" style={{ color: 'var(--theme-muted-text)' }}>Or use a variable</label>
+              <label className="text-xs block mb-1.5 text-fg-muted">Or use a variable</label>
               <VariableInput
                 value={config.target_id ?? ''}
                 onChange={(value) => onUpdate('target_id', value)}
@@ -3858,9 +4019,9 @@ function RetentionPoliciesWorkflowConfig({
             </div>
           )}
 
-          <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+          <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
             <p className="font-semibold">Outputs</p>
-            <p><code style={{ color: 'var(--theme-primary-text)' }}>{'{{target_type}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{target_id}}'}</code>, <code style={{ color: 'var(--theme-primary-text)' }}>{'{{retention_policy_id}}'}</code></p>
+            <p><code className="text-primary-text">{'{{target_type}}'}</code>, <code className="text-primary-text">{'{{target_id}}'}</code>, <code className="text-primary-text">{'{{retention_policy_id}}'}</code></p>
           </div>
         </>
       )}
@@ -3889,7 +4050,7 @@ function RowLookupFields({
   return (
     <div className="space-y-1.5">
       <label className="block text-xs font-medium">Find row by</label>
-      <div className="flex gap-0.5">
+      <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
         {[
           { value: 'row_id', label: 'Row ID' },
           { value: 'column', label: 'Column match' },
@@ -3900,11 +4061,7 @@ function RowLookupFields({
             onClick={() => onBatchUpdate(mode.value === 'row_id'
               ? { row_match_field: undefined, row_match_value: undefined, match_column: undefined, match_value: undefined }
               : { row_id: undefined, row_match_field: config.row_match_field ?? '', row_match_value: config.row_match_value ?? '' })}
-            className="flex-1 rounded px-2 py-1 text-[10px] font-medium transition-colors"
-            style={{
-              backgroundColor: matchMode === mode.value ? 'var(--theme-primary)' : 'var(--theme-surface)',
-              color: matchMode === mode.value ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-            }}
+            className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${matchMode === mode.value ? 'bg-panel text-fg shadow-elev-1' : 'text-fg-muted hover:text-fg'}`}
           >
             {mode.label}
           </button>
@@ -3918,7 +4075,7 @@ function RowLookupFields({
             placeholder="{{row_id}} or specific ID"
             extraVariables={rowIdVariables}
           />
-          <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs text-fg-muted">
             The unique row ID to {verb}. Use {'{{row_id}}'} from a previous list or insert.
           </p>
         </>
@@ -3938,410 +4095,9 @@ function RowLookupFields({
               extraVariables={rowIdVariables}
             />
           </div>
-          <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-xs text-fg-muted">
             The first row whose column equals this value is the one to {verb}.
           </p>
-        </>
-      )}
-    </div>
-  )
-}
-
-function CustomWorkflowActivityConfig({ node, activities, onUpdate, onBatchUpdate, extraVariables }: {
-  node: WorkflowNode
-  activities: any[]
-  onUpdate: (key: string, value: any) => void
-  onBatchUpdate: (updates: Record<string, any>) => void
-  extraVariables: { name: string; group: string }[]
-}) {
-  const [simpleMode, setSimpleMode] = useState(true)
-  const activityId = node.config.custom_activity_id ?? ''
-  const selectedActivity = activities.find((item) => item.id === activityId)
-  const manifest = selectedActivity?.manifest ?? node.config.manifest ?? { inputs: [], outputs: [] }
-  const inputs = getWorkflowActivityInputDefinitions(manifest)
-  const outputs = getWorkflowActivityOutputDefinitions(manifest)
-  const presentation = getWorkflowActivityPresentation(manifest)
-  const inputMappings = (node.config.input_mappings ?? {}) as Record<string, string>
-  const outputPrefix = String(
-    node.config._output_prefix
-      || selectedActivity?.key
-      || node.config.custom_activity_key
-      || 'custom_activity',
-  )
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, '')
-
-  function formatExampleValue(value: unknown) {
-    if (value === undefined || value === null || value === '') return null
-    if (typeof value === 'string') return value
-    try {
-      return JSON.stringify(value)
-    } catch {
-      return String(value)
-    }
-  }
-
-  const configuredRequiredInputs = inputs.filter((input) => {
-    if (!input.required) return false
-    const value = String(inputMappings[input.name] ?? '').trim()
-    return value.length > 0
-  }).length
-  const requiredInputCount = inputs.filter((input) => input.required).length
-  const configuredOptionalInputs = inputs.filter((input) => {
-    if (input.required) return false
-    const value = String(inputMappings[input.name] ?? '').trim()
-    return value.length > 0
-  }).length
-  const summaryInputNames = inputs.slice(0, 3).map((input) => input.label)
-  const summaryOutputNames = outputs.slice(0, 3).map((output) => output.label)
-  const hasAdvancedConfig = Boolean(selectedActivity)
-  const manifestSummary = getWorkflowActivitySummary(manifest)
-  const setupNotes = getWorkflowActivitySetupNotes(manifest)
-  const displayName = getWorkflowActivityDisplayName(manifest, selectedActivity?.name ?? node.config.activity_name ?? null) ?? selectedActivity?.name ?? 'Reusable activity'
-
-  useEffect(() => {
-    setSimpleMode(true)
-  }, [activityId])
-
-  function applyActivity(activity: any) {
-    const nextManifest = activity?.manifest ?? { inputs: [], outputs: [] }
-    const normalizedInputs = getWorkflowActivityInputDefinitions(nextManifest)
-    const defaultPrefix = activity?.key || activity?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'custom_activity'
-    onBatchUpdate({
-      custom_activity_id: activity.id,
-      custom_activity_key: activity.key,
-      activity_name: activity.name,
-      activity_description: activity.description ?? '',
-      activity_icon_name: activity.icon_name ?? 'Puzzle',
-      activity_color: activity.color ?? '#0EA5E9',
-      source_code: activity.source_code ?? '',
-      manifest: nextManifest,
-      demo_inputs: activity.demo_inputs ?? {},
-      input_mappings: Object.fromEntries(normalizedInputs.map((input) => [input.name, ''])),
-      _output_prefix: node.config._output_prefix ?? defaultPrefix,
-    })
-  }
-
-  return (
-    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-          Reusable activities let you add a pre-built step to your workflow. Choose the step, fill in what it needs, and its outputs will be available for later conditions, messages, updates, and actions.
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium mb-1">Choose Reusable Step</label>
-        <AutocompleteSelect
-          value={activityId}
-          placeholder="Select a reusable activity..."
-          options={activities.map((activity: any) => ({
-            value: activity.id,
-            label: activity.name,
-            hint: activity.description ?? undefined,
-          }))}
-          onChange={(nextId) => {
-            const activity = activities.find((item) => item.id === nextId)
-            if (activity) applyActivity(activity)
-          }}
-        />
-      </div>
-
-      {selectedActivity && (
-        <>
-          <div className="rounded-lg border p-3 text-[10px] space-y-1" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-            <p className="font-semibold" style={{ color: 'var(--theme-card-text)' }}>{selectedActivity.name}</p>
-            <p style={{ color: 'var(--theme-muted-text)' }}>{selectedActivity.description || 'No description yet.'}</p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-              >
-                Reusable activity
-              </span>
-              {selectedActivity.key && (
-                <span
-                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono"
-                  style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-primary-text)' }}
-                >
-                  {selectedActivity.key}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {hasAdvancedConfig && (
-            <div className="rounded-lg border p-3 space-y-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-                      {simpleMode ? `${displayName} · Simple Mode` : `${displayName} · Advanced Mode`}
-                    </p>
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    {simpleMode
-                      ? 'Start with a plain-English overview, then expand if you need deeper control.'
-                      : 'You are editing the full input and output setup for this reusable step.'}
-                  </p>
-                </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setSimpleMode((current) => !current)}>
-                  {simpleMode ? (
-                    <>
-                      Show details <ChevronRight size={12} className="ml-1" />
-                    </>
-                  ) : (
-                    <>
-                      Back to simple <ChevronDown size={12} className="ml-1" />
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-                  What this step does
-                </p>
-                <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                  {selectedActivity.name} takes{' '}
-                  <span style={{ color: 'var(--theme-card-text)' }}>
-                    {inputs.length === 0 ? 'no inputs' : summaryInputNames.join(', ')}
-                    {inputs.length > 3 ? ` and ${inputs.length - 3} more` : ''}
-                  </span>
-                  {' '}and returns{' '}
-                  <span style={{ color: 'var(--theme-card-text)' }}>
-                    {outputs.length === 0 ? 'no outputs' : summaryOutputNames.join(', ')}
-                    {outputs.length > 3 ? ` and ${outputs.length - 3} more` : ''}
-                  </span>
-                  .
-                </p>
-                {manifestSummary && (
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    {manifestSummary}
-                  </p>
-                )}
-                {presentation.recommendedFor && (
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    Recommended for: <span style={{ color: 'var(--theme-card-text)' }}>{presentation.recommendedFor}</span>
-                  </p>
-                )}
-
-                {requiredInputCount > 0 && (
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    Required inputs ready: <span style={{ color: 'var(--theme-card-text)' }}>{configuredRequiredInputs} of {requiredInputCount}</span>
-                  </p>
-                )}
-
-                {configuredOptionalInputs > 0 && (
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    Optional inputs filled: <span style={{ color: 'var(--theme-card-text)' }}>{configuredOptionalInputs}</span>
-                  </p>
-                )}
-
-                <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                  Output group: <code style={{ color: 'var(--theme-primary-text)' }}>{outputPrefix}</code>
-                </p>
-              </div>
-
-              {simpleMode && setupNotes.length > 0 && (
-                <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--theme-card-text)' }}>
-                    Setup notes
-                  </p>
-                  {setupNotes.map((note: string, index: number) => (
-                    <p key={`${selectedActivity.id}-note-${index}`} className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                      {index + 1}. {note}
-                    </p>
-                  ))}
-                </div>
-              )}
-
-              {simpleMode && inputs.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>Quick setup</p>
-                  {inputs.map((input) => {
-                    const value = inputMappings[input.name] ?? ''
-                    const isConfigured = String(value).trim().length > 0
-                    return (
-                      <div
-                        key={input.name}
-                        className="rounded-lg border p-2 flex items-start justify-between gap-3"
-                        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}
-                      >
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <p className="text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>{input.label}</p>
-                            <span
-                              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                              style={{
-                                backgroundColor: input.required ? 'color-mix(in srgb, var(--theme-warning) 12%, transparent)' : 'var(--theme-surface)',
-                                color: input.required ? 'var(--theme-warning)' : 'var(--theme-muted-text)',
-                              }}
-                            >
-                              {input.required ? 'Required' : 'Optional'}
-                            </span>
-                          </div>
-                          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                            {input.description || `Provide a ${input.type || 'value'} for this step.`}
-                          </p>
-                          {isConfigured && (
-                            <p className="text-[10px] truncate" style={{ color: 'var(--theme-muted-text)' }}>
-                              Using: <code style={{ color: 'var(--theme-primary-text)' }}>{value}</code>
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide shrink-0"
-                          style={{
-                            backgroundColor: isConfigured ? 'color-mix(in srgb, var(--theme-success) 12%, transparent)' : 'var(--theme-surface)',
-                            color: isConfigured ? 'var(--theme-success)' : 'var(--theme-muted-text)',
-                          }}
-                        >
-                          {isConfigured ? 'Ready' : 'Needs value'}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {simpleMode && inputs.length === 0 && outputs.length === 0 && (
-                <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                    This reusable step does not need any manual input and does not declare any outputs. You can keep it in simple mode unless you want to rename the output group in advanced mode.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!simpleMode && (
-            <>
-              <div>
-                <label className="block text-xs font-medium mb-1">Save Outputs As</label>
-                <Input
-                  value={node.config._output_prefix ?? ''}
-                  onChange={(e) => onUpdate('_output_prefix', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                  placeholder={selectedActivity.key ?? 'custom_activity'}
-                  className="!text-xs font-mono"
-                />
-                <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                  This groups the values returned by the step. Example: <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${outputPrefix}_result}}`}</code>
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1">Timeout (ms)</label>
-                <Input
-                  type="number"
-                  min={500}
-                  max={120000}
-                  step={500}
-                  value={node.config.timeout_ms ?? ''}
-                  onChange={(e) => onUpdate('timeout_ms', e.target.value ? Number(e.target.value) : undefined)}
-                  placeholder="10000"
-                  className="!text-xs font-mono"
-                />
-                <p className="mt-1 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                  500–120,000 ms. Default 10,000. The step fails if the activity takes longer.
-                </p>
-              </div>
-
-              {inputs.length > 0 && (
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium">What This Step Needs</label>
-                    <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                      Set a fixed value or insert a workflow variable for each input.
-                    </p>
-                  </div>
-                  {inputs.map((input) => {
-                    const name = input.name
-                    const exampleValue = formatExampleValue(input.defaultValue)
-                    const currentValue = inputMappings[name] ?? ''
-                    const helperParts = [
-                      input.type || 'string',
-                      input.required ? 'required' : 'optional',
-                    ]
-                    if (input.description) helperParts.push(input.description)
-                    return (
-                      <div key={name} className="rounded-lg border p-2 space-y-1.5" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <p className="text-xs font-medium">{input.label}</p>
-                              <span
-                                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                                style={{
-                                  backgroundColor: input.required ? 'color-mix(in srgb, var(--theme-warning) 12%, transparent)' : 'var(--theme-surface)',
-                                  color: input.required ? 'var(--theme-warning)' : 'var(--theme-muted-text)',
-                                }}
-                              >
-                                {input.required ? 'Required' : 'Optional'}
-                              </span>
-                            </div>
-                            <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                              {helperParts.join(' · ')}
-                            </p>
-                            {exampleValue && (
-                              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                                Example value: <code style={{ color: 'var(--theme-primary-text)' }}>{exampleValue}</code>
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <VariableInput
-                          value={currentValue}
-                          onChange={(value) => onUpdate('input_mappings', { ...inputMappings, [name]: value })}
-                          placeholder={exampleValue ?? (input.required ? `{{${name}}}` : `Optional ${name}`)}
-                          extraVariables={extraVariables}
-                        />
-                        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-                          Tip: you can type <code style={{ color: 'var(--theme-primary-text)' }}>{'{{'}</code> to insert a variable from the workflow.
-                        </p>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {outputs.length > 0 && (
-                <div className="rounded-lg p-3 text-[10px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)' }}>
-                  <p className="font-semibold" style={{ color: 'var(--theme-card-text)' }}>What This Step Gives Back</p>
-                  <p style={{ color: 'var(--theme-muted-text)' }}>
-                    These outputs are added to workflow variables automatically and can be used anywhere later in the flow.
-                  </p>
-                  {outputs.map((output) => {
-                    const name = output.name
-                    return (
-                      <div
-                        key={name}
-                        className="rounded-lg border p-2 space-y-1.5"
-                        style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}
-                      >
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>{output.label}</p>
-                          <span
-                            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                            style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
-                          >
-                            {output.type || 'string'}
-                          </span>
-                        </div>
-                        {output.description && (
-                          <p style={{ color: 'var(--theme-muted-text)' }}>{output.description}</p>
-                        )}
-                        <p style={{ color: 'var(--theme-muted-text)' }}>
-                          Grouped: <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${outputPrefix}_${name}}}`}</code>
-                        </p>
-                        <p style={{ color: 'var(--theme-muted-text)' }}>
-                          Direct: <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${name}}}`}</code>
-                        </p>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
         </>
       )}
     </div>
@@ -4368,17 +4124,17 @@ function WorkflowErrorTriggerConfig({ config, onUpdate }: {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           This trigger runs when another workflow fails. Use it for fallback handling, notifications, or automated recovery. Error details are available as {'{{error_message}}'}, {'{{error_workflow_name}}'}, {'{{error_node}}'}, and {'{{error_run_id}}'}.
         </p>
       </div>
 
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          Source Workflow Scope
+        <label className="block text-xs font-medium mb-2 text-fg-muted">
+          Source workflow scope
         </label>
-        <select
+        <Select
           value={scope}
           onChange={(e) => {
             const nextScope = e.target.value === 'specific' ? 'specific' : 'all'
@@ -4388,33 +4144,27 @@ function WorkflowErrorTriggerConfig({ config, onUpdate }: {
               onUpdate('workflow_id', null)
             }
           }}
-          className="w-full rounded-lg border px-3 py-2 text-xs"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-            color: 'var(--theme-card-text)',
-          }}
+          
         >
           <option value="all">All workflows</option>
           <option value="specific">Only selected workflows</option>
-        </select>
+        </Select>
       </div>
 
       {scope === 'specific' && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-            Failed Workflow Filters
+          <label className="block text-xs font-medium mb-2 text-fg-muted">
+            Failed workflow filters
           </label>
-          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5 border-border bg-panel">
             {(workflows ?? []).length === 0 ? (
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs text-fg-muted">
                 No source workflows found yet.
               </p>
             ) : (
               (workflows ?? []).map((workflow: any) => (
-                <label key={workflow.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:opacity-90">
-                  <input
-                    type="checkbox"
+                <label key={workflow.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:bg-subtle">
+                  <Checkbox
                     checked={selectedWorkflowIds.includes(workflow.id)}
                     onChange={(e) => {
                       const nextIds = e.target.checked
@@ -4426,10 +4176,10 @@ function WorkflowErrorTriggerConfig({ config, onUpdate }: {
                     className="mt-0.5"
                   />
                   <span className="min-w-0">
-                    <span className="block text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
+                    <span className="block text-xs font-medium text-fg">
                       {workflow.name}
                     </span>
-                    <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="block text-2xs text-fg-muted">
                       {workflow.trigger_type?.replaceAll('_', ' ') ?? 'workflow'} {workflow.is_active ? '· active' : '· inactive'}
                     </span>
                   </span>
@@ -4437,7 +4187,7 @@ function WorkflowErrorTriggerConfig({ config, onUpdate }: {
               ))
             )}
           </div>
-          <p className="mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="mt-1 text-xs text-fg-muted">
             Select one or more source workflows to narrow this error handler.
           </p>
         </div>
@@ -4476,17 +4226,17 @@ function WorkflowSlaTriggerConfig({ config, onUpdate }: {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           This trigger runs when another workflow SLA is approaching or breached. SLA details are available as {'{{workflow_sla_label}}'}, {'{{workflow_sla_due_at}}'}, {'{{workflow_sla_status}}'}, {'{{workflow_sla_event}}'}, {'{{workflow_sla_workflow_name}}'}, and {'{{workflow_sla_run_id}}'}.
         </p>
       </div>
 
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          Source Workflow Scope
+        <label className="block text-xs font-medium mb-2 text-fg-muted">
+          Source workflow scope
         </label>
-        <select
+        <Select
           value={scope}
           onChange={(e) => {
             const nextScope = e.target.value === 'specific' ? 'specific' : 'all'
@@ -4496,29 +4246,27 @@ function WorkflowSlaTriggerConfig({ config, onUpdate }: {
               onUpdate('workflow_id', null)
             }
           }}
-          className="w-full rounded-lg border px-3 py-2 text-xs"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+          
         >
           <option value="all">All workflows</option>
           <option value="specific">Only selected workflows</option>
-        </select>
+        </Select>
       </div>
 
       {scope === 'specific' && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-            Workflow Filters
+          <label className="block text-xs font-medium mb-2 text-fg-muted">
+            Workflow filters
           </label>
-          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5 border-border bg-panel">
             {(workflows ?? []).length === 0 ? (
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs text-fg-muted">
                 No source workflows found yet.
               </p>
             ) : (
               (workflows ?? []).map((workflow: any) => (
-                <label key={workflow.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:opacity-90">
-                  <input
-                    type="checkbox"
+                <label key={workflow.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:bg-subtle">
+                  <Checkbox
                     checked={selectedWorkflowIds.includes(workflow.id)}
                     onChange={(e) => {
                       const nextIds = e.target.checked
@@ -4530,10 +4278,10 @@ function WorkflowSlaTriggerConfig({ config, onUpdate }: {
                     className="mt-0.5"
                   />
                   <span className="min-w-0">
-                    <span className="block text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
+                    <span className="block text-xs font-medium text-fg">
                       {workflow.name}
                     </span>
-                    <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="block text-2xs text-fg-muted">
                       {workflow.trigger_type?.replaceAll('_', ' ') ?? 'workflow'} {workflow.is_active ? '· active' : '· inactive'}
                     </span>
                   </span>
@@ -4545,8 +4293,8 @@ function WorkflowSlaTriggerConfig({ config, onUpdate }: {
       )}
 
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          SLA Events
+        <label className="block text-xs font-medium mb-2 text-fg-muted">
+          SLA events
         </label>
         <div className="grid grid-cols-2 gap-2">
           {[
@@ -4559,11 +4307,7 @@ function WorkflowSlaTriggerConfig({ config, onUpdate }: {
                 key={eventType.value}
                 type="button"
                 onClick={() => toggleEventType(eventType.value as 'warning' | 'breached')}
-                className="rounded px-2 py-2 text-[10px] font-medium transition-colors"
-                style={{
-                  backgroundColor: active ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                  color: active ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-                }}
+                className={`rounded-md border px-2 py-1 text-xs font-medium transition-colors ${active ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
               >
                 {eventType.label}
               </button>
@@ -4593,17 +4337,17 @@ function RetentionPolicyReviewTriggerConfig({ config, onUpdate }: {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           This trigger runs when a retention policy review becomes due. The workflow receives {'{{retention_policy_id}}'}, {'{{retention_policy_name}}'}, {'{{retention_review_date}}'}, {'{{retention_target_type}}'}, {'{{retention_target_id}}'}, and {'{{retention_asset_name}}'}.
         </p>
       </div>
 
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          Policy Scope
+        <label className="block text-xs font-medium mb-2 text-fg-muted">
+          Policy scope
         </label>
-        <select
+        <Select
           value={scope}
           onChange={(e) => {
             const nextScope = e.target.value === 'specific' ? 'specific' : 'all'
@@ -4613,33 +4357,27 @@ function RetentionPolicyReviewTriggerConfig({ config, onUpdate }: {
               onUpdate('retention_policy_id', null)
             }
           }}
-          className="w-full rounded-lg border px-3 py-2 text-xs"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-            color: 'var(--theme-card-text)',
-          }}
+          
         >
           <option value="all">All reviewable policies</option>
           <option value="specific">Only selected policies</option>
-        </select>
+        </Select>
       </div>
 
       {scope === 'specific' && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-            Policy Filters
+          <label className="block text-xs font-medium mb-2 text-fg-muted">
+            Policy filters
           </label>
-          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5 border-border bg-panel">
             {(policies ?? []).length === 0 ? (
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs text-fg-muted">
                 No retention policies found yet.
               </p>
             ) : (
               (policies ?? []).map((policy: any) => (
-                <label key={policy.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:opacity-90">
-                  <input
-                    type="checkbox"
+                <label key={policy.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:bg-subtle">
+                  <Checkbox
                     checked={selectedPolicyIds.includes(policy.id)}
                     onChange={(e) => {
                       const nextIds = e.target.checked
@@ -4651,10 +4389,10 @@ function RetentionPolicyReviewTriggerConfig({ config, onUpdate }: {
                     className="mt-0.5"
                   />
                   <span className="min-w-0">
-                    <span className="block text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
+                    <span className="block text-xs font-medium text-fg">
                       {policy.name}
                     </span>
-                    <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="block text-2xs text-fg-muted">
                       {String(policy.policy_mode ?? '').replaceAll('_', ' ')}
                       {Array.isArray(policy.applies_to) && policy.applies_to.length > 0 ? ` · ${policy.applies_to.join(', ')}` : ''}
                     </span>
@@ -4663,7 +4401,7 @@ function RetentionPolicyReviewTriggerConfig({ config, onUpdate }: {
               ))
             )}
           </div>
-          <p className="mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="mt-1 text-xs text-fg-muted">
             Select one or more retention policies to narrow this review workflow.
           </p>
         </div>
@@ -4695,15 +4433,15 @@ function RetentionPolicyExecutedTriggerConfig({ config, onUpdate }: {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           This trigger runs when a retention policy action is executed. Right now that means purge execution. The workflow receives {'{{retention_execution_event_id}}'}, {'{{retention_policy_id}}'}, {'{{retention_policy_name}}'}, {'{{retention_action_type}}'}, {'{{retention_execution_date}}'}, {'{{retention_target_type}}'}, {'{{retention_target_id}}'}, and {'{{retention_asset_name}}'}.
         </p>
       </div>
 
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          Action Types
+        <label className="block text-xs font-medium mb-2 text-fg-muted">
+          Action types
         </label>
         <div className="grid grid-cols-2 gap-1">
           {[
@@ -4721,12 +4459,7 @@ function RetentionPolicyExecutedTriggerConfig({ config, onUpdate }: {
                   onUpdate('action_types', next.length > 0 ? next : [option.value])
                   onUpdate('action_type', (next.length > 0 ? next : [option.value])[0] ?? option.value)
                 }}
-                className="rounded-md border px-2 py-1.5 text-[10px] font-medium transition-colors"
-                style={{
-                  backgroundColor: active ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                  color: active ? 'var(--theme-on-primary)' : 'var(--theme-card-text)',
-                  borderColor: active ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-                }}
+                className={`rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${active ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
               >
                 {option.label}
               </button>
@@ -4736,10 +4469,10 @@ function RetentionPolicyExecutedTriggerConfig({ config, onUpdate }: {
       </div>
 
       <div onPointerDown={(e) => e.stopPropagation()}>
-        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-          Policy Scope
+        <label className="block text-xs font-medium mb-2 text-fg-muted">
+          Policy scope
         </label>
-        <select
+        <Select
           value={scope}
           onChange={(e) => {
             const nextScope = e.target.value === 'specific' ? 'specific' : 'all'
@@ -4749,33 +4482,27 @@ function RetentionPolicyExecutedTriggerConfig({ config, onUpdate }: {
               onUpdate('retention_policy_id', null)
             }
           }}
-          className="w-full rounded-lg border px-3 py-2 text-xs"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-surface-border)',
-            color: 'var(--theme-card-text)',
-          }}
+          
         >
           <option value="all">All matching policy executions</option>
           <option value="specific">Only selected policies</option>
-        </select>
+        </Select>
       </div>
 
       {scope === 'specific' && (
         <div onPointerDown={(e) => e.stopPropagation()}>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-muted-text)' }}>
-            Policy Filters
+          <label className="block text-xs font-medium mb-2 text-fg-muted">
+            Policy filters
           </label>
-          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="max-h-56 overflow-auto rounded-lg border p-2 space-y-1.5 border-border bg-panel">
             {(policies ?? []).length === 0 ? (
-              <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs text-fg-muted">
                 No retention policies found yet.
               </p>
             ) : (
               (policies ?? []).map((policy: any) => (
-                <label key={policy.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:opacity-90">
-                  <input
-                    type="checkbox"
+                <label key={policy.id} className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:bg-subtle">
+                  <Checkbox
                     checked={selectedPolicyIds.includes(policy.id)}
                     onChange={(e) => {
                       const nextIds = e.target.checked
@@ -4787,10 +4514,10 @@ function RetentionPolicyExecutedTriggerConfig({ config, onUpdate }: {
                     className="mt-0.5"
                   />
                   <span className="min-w-0">
-                    <span className="block text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
+                    <span className="block text-xs font-medium text-fg">
                       {policy.name}
                     </span>
-                    <span className="block text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+                    <span className="block text-2xs text-fg-muted">
                       {String(policy.policy_mode ?? '').replaceAll('_', ' ')}
                       {Array.isArray(policy.applies_to) && policy.applies_to.length > 0 ? ` · ${policy.applies_to.join(', ')}` : ''}
                     </span>
@@ -4819,7 +4546,7 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
   const overrides = (config.input_overrides ?? {}) as Record<string, string>
 
   // Get available nodes (exclude self and triggers)
-  const triggerTypes = ['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received']
+  const triggerTypes = ['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event']
   const availableNodes = allNodes.filter(n => n.id !== currentNodeId && !triggerTypes.includes(n.type))
 
   // Get target node's expected inputs (from config like call_reference inputs, loop items, etc.)
@@ -4831,8 +4558,10 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
         if (val) targetInputs.push({ name, currentValue: val })
       }
     }
-    if (targetNode.type === 'set_variable' && tc.name) {
-      targetInputs.push({ name: tc.name, currentValue: tc.expression ?? '' })
+    if (targetNode.type === 'set_variable') {
+      for (const a of setVariableAssignments(tc)) {
+        if (a.name) targetInputs.push({ name: a.name, currentValue: typeof a.expression === 'string' ? a.expression : String(a.expression ?? '') })
+      }
     }
     if (targetNode.type === 'condition') {
       const branches = (tc.branches ?? []) as any[]
@@ -4855,16 +4584,16 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
   }
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--status-info) 20%, transparent)' }}>
-        <p className="text-xs font-medium mb-1" style={{ color: 'var(--status-info)' }}>Go To Activity</p>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">Go to activity</p>
+        <p className="text-xs text-fg-muted">
           Jumps execution to another activity on the canvas. The target runs with current variables — override specific inputs below.
         </p>
-      </div>
+      </Card>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Target Activity</label>
+        <label className="block text-xs font-medium mb-1.5">Target activity</label>
         <AutocompleteSelect
           value={targetId}
           placeholder="Select an activity..."
@@ -4886,16 +4615,16 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
 
       {targetNode && targetInputs.length > 0 && (
         <div>
-          <label className="block text-xs font-medium mb-1">Input Overrides</label>
-          <p className="text-[9px] mb-2" style={{ color: 'var(--theme-muted-text)' }}>
+          <label className="block text-xs font-medium mb-1.5">Input overrides</label>
+          <p className="text-xs mb-2 text-fg-muted">
             Leave empty to use the target's configured value. Set a value to override.
           </p>
           <div className="space-y-2">
             {targetInputs.map((inp, i) => (
               <div key={i}>
                 <div className="flex items-center gap-1 mb-0.5">
-                  <code className="text-[10px] font-mono" style={{ color: 'var(--theme-primary-text)' }}>{inp.name}</code>
-                  <span className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                  <code className="text-2xs font-mono text-primary-text">{inp.name}</code>
+                  <span className="text-2xs text-fg-muted">
                     current: {inp.currentValue.slice(0, 30)}{inp.currentValue.length > 30 ? '...' : ''}
                   </span>
                 </div>
@@ -4912,7 +4641,7 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
       )}
 
       {targetNode && targetInputs.length === 0 && (
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-xs text-fg-muted">
           Target activity has no configurable inputs to override.
         </p>
       )}
@@ -4946,8 +4675,8 @@ function ServerEventReferenceInputs({ referenceId, mappings, onChange, extraVari
 
   return (
     <div>
-      <label className="block text-xs font-medium mb-1">Reference Inputs</label>
-      <p className="text-[9px] mb-1.5" style={{ color: 'var(--theme-muted-text)' }}>
+      <label className="block text-xs font-medium mb-1.5">Reference inputs</label>
+      <p className="text-xs mb-1.5 text-fg-muted">
         Map values into this reference&apos;s declared inputs. Use <code>{'{{event_id}}'}</code> for the callback reference the external server must send back.
       </p>
       <div className="space-y-1.5">
@@ -4957,12 +4686,12 @@ function ServerEventReferenceInputs({ referenceId, mappings, onChange, extraVari
           return (
             <div key={name}>
               <div className="flex items-center gap-1 mb-0.5">
-                <span className="text-[10px] font-mono font-medium" style={{ color: 'var(--theme-primary-text)' }}>{name}</span>
+                <span className="text-2xs font-mono font-medium text-primary-text">{name}</span>
                 {input.required && (
-                  <span className="text-[8px] px-1 py-0.5 rounded uppercase" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 12%, transparent)', color: 'var(--theme-warning)' }}>required</span>
+                  <span className="rounded bg-warning-wash px-1 py-0.5 text-2xs font-medium text-warning">Required</span>
                 )}
                 {input.type && (
-                  <span className="text-[8px] px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>{input.type}</span>
+                  <span className="text-2xs px-1 py-0.5 rounded bg-subtle text-fg-muted">{input.type}</span>
                 )}
               </div>
               <VariableInput
@@ -5014,37 +4743,35 @@ function ServerEventReferencePicker({ referenceId, referenceName, onSelect }: {
 
   return (
     <div>
-      <label className="block text-xs font-medium mb-1">API Reference</label>
+      <label className="block text-xs font-medium mb-1.5">API reference</label>
 
       {/* Selected display / trigger */}
       {referenceId && !pickerOpen ? (
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="w-full text-left rounded-lg border px-3 py-2 text-xs transition-colors hover:opacity-80"
-          style={{ borderColor: "var(--theme-primary)", backgroundColor: "var(--theme-primary-light)" }}
+          className="w-full text-left rounded-lg border px-3 py-2 text-xs transition-colors border-primary bg-primary-wash hover:border-primary-hover"
         >
-          <p className="font-medium" style={{ color: "var(--theme-primary-text)" }}>{referenceName || selectedRef?.name || 'Unknown'}</p>
+          <p className="font-medium text-primary-text">{referenceName || selectedRef?.name || 'Unknown'}</p>
           {selectedIntName && (
-            <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>from {selectedIntName}</p>
+            <p className="text-xs mt-0.5 text-fg-muted">from {selectedIntName}</p>
           )}
         </button>
       ) : (
-        <div className="rounded-lg border overflow-hidden" style={{ borderColor: "var(--theme-surface-border)" }}>
+        <div className="rounded-lg border overflow-hidden border-border">
           {/* Search */}
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search references..."
-            className="w-full px-3 py-2 text-xs outline-none"
-            style={{ backgroundColor: "var(--theme-card-bg)", color: "var(--theme-card-text)", borderBottom: "1px solid var(--theme-surface-border)" }}
+            className="w-full px-3 py-2 text-xs bg-panel text-fg border-b border-border-subtle"
             autoFocus
           />
 
           {/* Grouped list */}
           <div className="max-h-[200px] overflow-y-auto">
             {groups.length === 0 ? (
-              <p className="px-3 py-4 text-[10px] text-center" style={{ color: "var(--theme-muted-text)" }}>
+              <p className="px-3 py-4 text-xs text-center text-fg-muted">
                 {search ? 'No references matching search' : 'No references available'}
               </p>
             ) : (
@@ -5056,38 +4783,32 @@ function ServerEventReferencePicker({ referenceId, referenceName, onSelect }: {
                     <button
                       type="button"
                       onClick={() => setExpanded(isExpanded && !search ? null : int.id)}
-                      className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:opacity-80"
-                      style={{ backgroundColor: isExpanded ? "var(--theme-surface)" : "transparent" }}
+                      className={`flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-subtle ${isExpanded ? 'bg-subtle' : ''}`}
                     >
-                      <span className="text-[8px] font-bold px-1 py-0.5 rounded shrink-0"
-                        style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}>
+                      <span className="text-2xs font-semibold px-1 py-0.5 rounded shrink-0 bg-primary-wash text-primary-text">
                         {typeLabels[int.type] ?? int.type}
                       </span>
-                      <span className="text-[11px] font-semibold flex-1 truncate">{int.name}</span>
-                      <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>{int.refs.length}</span>
+                      <span className="text-2xs font-semibold flex-1 truncate">{int.name}</span>
+                      <span className="text-2xs text-fg-muted">{int.refs.length}</span>
                     </button>
                     {isExpanded && (
                       <div>
                         {int.refs.map((ref: any) => {
                           const method = (ref.request_config as any)?.method ?? ''
-                          const methodColors: Record<string, string> = { GET: 'var(--theme-success)', POST: 'var(--status-info)', PUT: 'var(--theme-warning)', DELETE: 'var(--theme-danger)', PATCH: 'var(--theme-chart-6)', QUERY: 'var(--theme-chart-3)', EXEC: 'var(--theme-chart-6)' }
+                          const methodClasses: Record<string, string> = { GET: 'bg-success-wash text-success', POST: 'bg-info-wash text-info', PUT: 'bg-warning-wash text-warning', DELETE: 'bg-danger-wash text-danger' }
                           return (
                             <button
                               key={ref.id}
                               type="button"
                               onClick={() => { onSelect(ref.id, ref.name); setPickerOpen(false); setSearch("") }}
-                              className="flex items-center gap-1.5 w-full px-3 py-1.5 pl-7 text-left hover:opacity-80 transition-colors"
-                              style={{
-                                backgroundColor: ref.id === referenceId ? "var(--theme-primary-light)" : "transparent",
-                              }}
+                              className={`flex items-center gap-1.5 w-full px-3 py-1.5 pl-7 text-left transition-colors ${ref.id === referenceId ? 'bg-primary-wash' : 'hover:bg-subtle'}`}
                             >
                               {method && (
-                                <span className="text-[7px] font-bold px-1 py-0.5 rounded shrink-0"
-                                  style={{ color: methodColors[method] ?? 'var(--theme-muted-text)', backgroundColor: `color-mix(in srgb, ${methodColors[method] ?? 'var(--theme-muted-text)'} 8%, transparent)` }}>
+                                <span className={`text-2xs font-semibold px-1 py-0.5 rounded shrink-0 ${methodClasses[method] ?? 'bg-subtle text-fg-muted'}`}>
                                   {method}
                                 </span>
                               )}
-                              <span className="text-[10px] flex-1 truncate">{ref.name}</span>
+                              <span className="text-2xs flex-1 truncate">{ref.name}</span>
                             </button>
                           )
                         })}
@@ -5104,8 +4825,7 @@ function ServerEventReferencePicker({ referenceId, referenceName, onSelect }: {
             <button
               type="button"
               onClick={() => { setPickerOpen(false); setSearch("") }}
-              className="w-full px-3 py-1.5 text-[10px] text-center hover:opacity-70"
-              style={{ color: "var(--theme-muted-text)", borderTop: "1px solid var(--theme-surface-border)" }}
+              className="w-full border-t border-border-subtle px-3 py-1.5 text-center text-xs text-fg-muted hover:bg-subtle hover:text-fg"
             >
               Cancel
             </button>
@@ -5115,10 +4835,10 @@ function ServerEventReferencePicker({ referenceId, referenceName, onSelect }: {
 
       {referenceId && !pickerOpen && (
         <div className="flex items-center gap-2 mt-1">
-          <p className="text-[9px] flex-1" style={{ color: "var(--theme-muted-text)" }}>
-            <code style={{ color: "var(--theme-primary-text)" }}>event_id</code> + send variables sent as JSON body
+          <p className="text-xs flex-1 text-fg-muted">
+            <code className="text-primary-text">event_id</code> + send variables sent as JSON body
           </p>
-          <button type="button" onClick={() => { onSelect("", ""); }} className="text-[9px] underline" style={{ color: "var(--theme-muted-text)" }}>
+          <button type="button" onClick={() => { onSelect("", ""); }} className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline">
             Clear
           </button>
         </div>
@@ -5140,7 +4860,7 @@ function ServerEventTablePicker({ tableId, tableName, onSelect }: {
 
   return (
     <div>
-      <label className="block text-xs font-medium mb-1">Data Table</label>
+      <label className="block text-xs font-medium mb-1.5">Data table</label>
       <AutocompleteSelect
         value={tableId}
         placeholder="Select a table..."
@@ -5158,8 +4878,8 @@ function ServerEventTablePicker({ tableId, tableName, onSelect }: {
         }}
       />
       {tableId && (
-        <p className="text-[9px] mt-1" style={{ color: "var(--theme-muted-text)" }}>
-          A row is created with <code style={{ color: "var(--theme-primary-text)" }}>event_id</code> + send variables as data
+        <p className="text-xs mt-1 text-fg-muted">
+          A row is created with <code className="text-primary-text">event_id</code> + send variables as data
         </p>
       )}
     </div>
@@ -5242,39 +4962,35 @@ function MultiBranchConditionBuilder({
   }
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <label className="block text-xs font-medium text-fg-muted">
         Branches
       </label>
-      <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
+      <p className="text-xs text-fg-muted">
         All branches are evaluated — multiple can match and execute in parallel. Add an Else branch to catch unmatched cases.
       </p>
 
       {branches.map((branch, bi) => {
         const color = BRANCH_COLORS[bi % BRANCH_COLORS.length]
         return (
-          <div key={bi} className="rounded-lg p-2.5 space-y-2" style={{ backgroundColor: "var(--theme-surface)", borderLeft: `3px solid ${color}` }}>
+          <div key={bi} className="rounded-lg p-2.5 space-y-2 bg-subtle" style={{ borderLeft: `3px solid ${color}` }}>
             {/* Branch header */}
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
               <input
                 value={branch.label}
                 onChange={(e) => updateBranchLabel(bi, e.target.value)}
-                className="flex-1 text-xs font-semibold bg-transparent border-none outline-none"
-                style={{ color: "var(--theme-card-text)" }}
+                className="flex-1 text-xs font-semibold bg-transparent border-none text-fg"
                 placeholder={bi === 0 ? "If" : "Else If"}
               />
               <button
                 onClick={() => toggleLogic(bi)}
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: "var(--theme-primary-light)", color: "var(--theme-primary-text)" }}
+                className="text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-primary-wash text-primary-text"
               >
                 {branch.logic.toUpperCase()}
               </button>
               {branches.length > 1 && (
-                <button onClick={() => removeBranch(bi)} className="hover:text-[color:var(--theme-danger)]" style={{ color: "var(--theme-muted-text)" }}>
-                  <X size={12} />
-                </button>
+                <IconButton size="sm" label="Remove branch" icon={<X />} onClick={() => removeBranch(bi)} />
               )}
             </div>
 
@@ -5290,11 +5006,10 @@ function MultiBranchConditionBuilder({
                       extraVariables={extraVariables}
                     />
                   </div>
-                  <select
+                  <Select
                     value={rule.operator}
                     onChange={(e) => updateRule(bi, ri, "operator", e.target.value)}
-                    className="rounded border px-1 py-0.5 text-[10px] shrink-0"
-                    style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                    size="sm" wrapperClassName="w-auto shrink-0"
                   >
                     <option value="equals">=</option>
                     <option value="not_equals">!=</option>
@@ -5312,11 +5027,9 @@ function MultiBranchConditionBuilder({
                     <option value="is_true">is true</option>
                     <option value="is_false">is false</option>
                     <option value="matches">matches regex</option>
-                  </select>
+                  </Select>
                   {branch.rules.length > 1 && (
-                    <button onClick={() => removeRule(bi, ri)} className="hover:text-[color:var(--theme-danger)] shrink-0" style={{ color: "var(--theme-muted-text)" }}>
-                      <X size={10} />
-                    </button>
+                    <IconButton size="sm" label="Remove rule" icon={<X />} className="shrink-0" onClick={() => removeRule(bi, ri)} />
                   )}
                 </div>
                 {!["is_empty", "is_not_empty", "is_true", "is_false"].includes(rule.operator) && (
@@ -5330,35 +5043,34 @@ function MultiBranchConditionBuilder({
               </div>
             ))}
 
-            <Button variant="ghost" size="sm" onClick={() => addRule(bi)} className="!text-[10px] !h-5 !px-2">
-              <Plus size={8} className="mr-1" /> Add Rule
+            <Button variant="ghost" size="sm" onClick={() => addRule(bi)} leadingIcon={<Plus />}>
+              Add rule
             </Button>
           </div>
         )
       })}
 
-      <Button variant="outline" size="sm" onClick={addBranch} className="w-full !text-[10px]">
-        <Plus size={10} className="mr-1" /> Add Branch
+      <Button variant="secondary" size="sm" onClick={addBranch} className="w-full" leadingIcon={<Plus />}>
+        Add branch
       </Button>
 
       {/* Else toggle */}
       <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={hasElse}
           onChange={(e) => onUpdate("has_else", e.target.checked)}
-          className="rounded border-[color:var(--theme-surface-border)]"
+          
         />
-        <span className="text-xs" style={{ color: "var(--theme-card-text)" }}>
+        <span className="text-xs text-fg">
           Include Else branch (catches everything else)
         </span>
       </label>
 
       {hasElse && (
-        <div className="rounded-lg px-2.5 py-2 flex items-center gap-2" style={{ backgroundColor: "var(--theme-surface)", borderLeft: "3px solid var(--theme-muted-text)" }}>
-          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "var(--theme-muted-text)" }} />
-          <span className="text-xs font-semibold" style={{ color: "var(--theme-muted-text)" }}>Else</span>
-          <span className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>— runs if no other branch matches</span>
+        <div className="rounded-lg border-l-[3px] border-l-border-strong px-2.5 py-2 flex items-center gap-2 bg-subtle">
+          <span className="w-2 h-2 rounded-full shrink-0 bg-fg-muted" />
+          <span className="text-xs font-semibold text-fg-muted">Else</span>
+          <span className="text-2xs text-fg-muted">— runs if no other branch matches</span>
         </div>
       )}
     </div>
@@ -5397,16 +5109,16 @@ function ScheduleTriggerConfig({ config, onUpdate, onBatchUpdate }: { config: Re
   }
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           Runs this workflow automatically on a schedule. Task data is not available unless a task is explicitly linked. The variables {'{{schedule_occurrence}}'} and {'{{schedule_description}}'} are provided on each run.
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Repeats</label>
-        <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full rounded-lg border px-2 py-1.5 text-xs" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}>
+        <label className="block text-xs font-medium mb-1.5">Repeats</label>
+        <Select value={mode} onChange={(e) => setMode(e.target.value)} >
           <option value="">Choose a schedule...</option>
           <option value="every_minutes">Every N minutes</option>
           <option value="hourly">Hourly</option>
@@ -5414,24 +5126,24 @@ function ScheduleTriggerConfig({ config, onUpdate, onBatchUpdate }: { config: Re
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="once">Once, on a specific date</option>
-        </select>
+        </Select>
       </div>
 
       {mode === 'every_minutes' && (
         <div>
-          <label className="block text-xs font-medium mb-1">Every how many minutes?</label>
-          <input type="number" min={1} max={1440} value={config.interval_minutes ?? 15}
+          <label className="block text-xs font-medium mb-1.5">Every how many minutes?</label>
+          <Input type="number" min={1} max={1440} value={config.interval_minutes ?? 15}
             onChange={(e) => onUpdate('interval_minutes', Math.max(1, Number(e.target.value || 1)))}
-            className="w-full rounded-lg border px-2 py-1.5 text-xs font-mono" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }} />
+            className="font-mono" />
         </div>
       )}
 
       {mode === 'hourly' && (
         <div>
-          <label className="block text-xs font-medium mb-1">At which minute of the hour?</label>
-          <input type="number" min={0} max={59} value={config.minute_of_hour ?? 0}
+          <label className="block text-xs font-medium mb-1.5">At which minute of the hour?</label>
+          <Input type="number" min={0} max={59} value={config.minute_of_hour ?? 0}
             onChange={(e) => onUpdate('minute_of_hour', Math.min(59, Math.max(0, Number(e.target.value || 0))))}
-            className="w-full rounded-lg border px-2 py-1.5 text-xs font-mono" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }} />
+            className="font-mono" />
         </div>
       )}
 
@@ -5439,7 +5151,7 @@ function ScheduleTriggerConfig({ config, onUpdate, onBatchUpdate }: { config: Re
         <div className="grid grid-cols-2 gap-2">
           {mode === 'weekly' && (
             <div>
-              <label className="block text-xs font-medium mb-1">Day of week</label>
+              <label className="block text-xs font-medium mb-1.5">Day of week</label>
               <AutocompleteSelect
                 value={String(config.day_of_week ?? 1)}
                 options={SCHEDULE_WEEKDAYS.map((label, value) => ({ value: String(value), label }))}
@@ -5449,33 +5161,33 @@ function ScheduleTriggerConfig({ config, onUpdate, onBatchUpdate }: { config: Re
           )}
           {mode === 'monthly' && (
             <div>
-              <label className="block text-xs font-medium mb-1">Day of month</label>
-              <input type="number" min={1} max={31} value={config.day_of_month ?? 1}
+              <label className="block text-xs font-medium mb-1.5">Day of month</label>
+              <Input type="number" min={1} max={31} value={config.day_of_month ?? 1}
                 onChange={(e) => onUpdate('day_of_month', Math.min(31, Math.max(1, Number(e.target.value || 1))))}
-                className="w-full rounded-lg border px-2 py-1.5 text-xs font-mono" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }} />
+                className="font-mono" />
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium mb-1">At what time?</label>
-            <input type="time" value={config.time_of_day ?? '09:00'} onChange={(e) => onUpdate('time_of_day', e.target.value)}
-              className="w-full rounded-lg border px-2 py-1.5 text-xs font-mono" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }} />
+            <label className="block text-xs font-medium mb-1.5">At what time?</label>
+            <Input type="time" value={config.time_of_day ?? '09:00'} onChange={(e) => onUpdate('time_of_day', e.target.value)}
+              className="font-mono" />
           </div>
         </div>
       )}
 
       {mode === 'once' && (
         <div>
-          <label className="block text-xs font-medium mb-1">Run at (UTC)</label>
-          <input type="datetime-local" value={String(config.run_at ?? '').slice(0, 16)}
+          <label className="block text-xs font-medium mb-1.5">Run at (UTC)</label>
+          <Input type="datetime-local" value={String(config.run_at ?? '').slice(0, 16)}
             onChange={(e) => onUpdate('run_at', e.target.value ? `${e.target.value}:00.000Z` : '')}
-            className="w-full rounded-lg border px-2 py-1.5 text-xs font-mono" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }} />
-          <p className="mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>Enter the time in UTC — the workflow fires once, at or shortly after this moment.</p>
+            className="font-mono" />
+          <p className="mt-1 text-xs text-fg-muted">Enter the time in UTC — the workflow fires once, at or shortly after this moment.</p>
         </div>
       )}
 
       {(mode === 'daily' || mode === 'weekly' || mode === 'monthly') && (
         <div>
-          <label className="block text-xs font-medium mb-1">Timezone</label>
+          <label className="block text-xs font-medium mb-1.5">Timezone</label>
           <AutocompleteSelect
             value={config.timezone ?? 'UTC'}
             placeholder="Search timezones..."
@@ -5486,17 +5198,17 @@ function ScheduleTriggerConfig({ config, onUpdate, onBatchUpdate }: { config: Re
       )}
 
       {mode && (
-        <div className="rounded-lg border px-3 py-2" style={{ borderColor: normalized ? 'color-mix(in srgb, var(--theme-success) 35%, var(--theme-surface-border))' : 'color-mix(in srgb, var(--theme-warning) 35%, var(--theme-surface-border))', backgroundColor: 'var(--theme-surface)' }}>
-          <p className="text-[10px] font-semibold" style={{ color: 'var(--theme-card-text)' }}>
+        <div className={`rounded-lg border px-3 py-2 bg-subtle ${normalized ? 'border-success/40' : 'border-warning/40'}`}>
+          <p className="text-xs font-semibold text-fg">
             {normalized ? describeSchedule(normalized) : 'Schedule incomplete — finish the fields above.'}
           </p>
           {nextRun && (
-            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <p className="mt-0.5 text-xs text-fg-muted">
               Next run: {nextRun.toLocaleString()} (your local time)
             </p>
           )}
           {normalized && !nextRun && normalized.schedule_mode === 'once' && (
-            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--theme-warning)' }}>
+            <p className="mt-0.5 text-xs text-warning">
               This date is in the past — the workflow will fire once on the next sweep, then never again.
             </p>
           )}
@@ -5537,15 +5249,15 @@ function DataTableTriggerConfig({ config, onUpdate }: { config: Record<string, a
   }
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="rounded-lg p-3" style={{ backgroundColor: "var(--theme-surface)" }}>
-        <p className="text-[10px]" style={{ color: "var(--theme-muted-text)" }}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="rounded-lg p-3 bg-subtle">
+        <p className="text-xs text-fg-muted">
           Triggers when a row is created, updated, or deleted in a data table. The workflow gets the row ID, full row object, and each selected column as variables.
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Data Table</label>
+        <label className="block text-xs font-medium mb-1.5">Data table</label>
         <SearchableEntityPicker
           items={(tables ?? []).map((table) => ({ id: table.id, name: table.name }))}
           selectedId={dataTableIdOf(config)}
@@ -5558,7 +5270,7 @@ function DataTableTriggerConfig({ config, onUpdate }: { config: Record<string, a
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1">Events</label>
+        <label className="block text-xs font-medium mb-1.5">Events</label>
         <div className="grid grid-cols-3 gap-1">
           {[
             { value: 'created', label: 'Row Created' },
@@ -5571,11 +5283,7 @@ function DataTableTriggerConfig({ config, onUpdate }: { config: Record<string, a
                 key={eventType.value}
                 type="button"
                 onClick={() => toggleEventType(eventType.value as 'created' | 'updated' | 'deleted' | 'archived' | 'restored')}
-                className="rounded px-2 py-1.5 text-[10px] font-medium transition-colors"
-                style={{
-                  backgroundColor: active ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                  color: active ? 'var(--theme-on-primary)' : 'var(--theme-muted-text)',
-                }}
+                className={`rounded-md border px-2 py-1 text-xs font-medium transition-colors ${active ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
               >
                 {eventType.label}
               </button>
@@ -5586,10 +5294,10 @@ function DataTableTriggerConfig({ config, onUpdate }: { config: Record<string, a
 
       {selectedTable && (
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--theme-muted-text)" }}>
-            Trigger Variables
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">
+            Trigger variables
           </label>
-          <div className="space-y-0.5 rounded-lg p-2" style={{ backgroundColor: 'var(--theme-surface)' }}>
+          <div className="space-y-0.5 rounded-lg p-2 bg-subtle">
             {[
               'data_event',
               'data_table_id',
@@ -5599,15 +5307,15 @@ function DataTableTriggerConfig({ config, onUpdate }: { config: Record<string, a
               'data_row',
               'row',
             ].map((name) => (
-              <div key={name} className="flex items-center gap-2 text-[10px] py-0.5">
-                <code className="font-mono" style={{ color: "var(--theme-primary-text)" }}>{`{{${name}}}`}</code>
+              <div key={name} className="flex items-center gap-2 text-2xs py-0.5">
+                <code className="font-mono text-primary-text">{`{{${name}}}`}</code>
               </div>
             ))}
             {tableColumns.map((column) => (
-              <div key={column.key} className="flex items-center gap-2 text-[10px] py-0.5">
-                <code className="font-mono" style={{ color: "var(--theme-primary-text)" }}>{`{{${column.key}}}`}</code>
-                <code className="font-mono" style={{ color: "var(--theme-primary-text)" }}>{`{{row.${column.key}}}`}</code>
-                <span className="truncate" style={{ color: "var(--theme-muted-text)" }}>{column.label}</span>
+              <div key={column.key} className="flex items-center gap-2 text-2xs py-0.5">
+                <code className="font-mono text-primary-text">{`{{${column.key}}}`}</code>
+                <code className="font-mono text-primary-text">{`{{row.${column.key}}}`}</code>
+                <span className="truncate text-fg-muted">{column.label}</span>
               </div>
             ))}
           </div>
@@ -5739,10 +5447,10 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
     : 'Outputs: {{row_id}} of the deleted row.'
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
       {/* Operation — first, so context is clear */}
       <div>
-        <label className="block text-xs font-medium mb-1">Operation</label>
+        <label className="block text-xs font-medium mb-1.5">Operation</label>
         <div className="grid grid-cols-3 gap-1 sm:grid-cols-5">
           {(['list', 'get', 'insert', 'update', 'delete'] as const).map((op) => (
             <button
@@ -5760,12 +5468,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                   Object.entries(patch).forEach(([key, value]) => onUpdate(key, value))
                 }
               }}
-              className="rounded-lg border px-1.5 py-1.5 text-[10px] font-medium transition-colors capitalize"
-              style={{
-                backgroundColor: operation === op ? 'var(--theme-primary)' : 'var(--theme-surface)',
-                color: operation === op ? 'var(--theme-on-primary)' : 'var(--theme-card-text)',
-                borderColor: operation === op ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
-              }}
+              className={`rounded-lg border px-1.5 py-1.5 text-xs font-medium transition-colors capitalize ${operation === op ? 'border-primary bg-primary-wash text-primary-text' : 'border-border bg-panel text-fg hover:bg-subtle'}`}
             >
               {op === 'list'
                 ? 'List'
@@ -5783,7 +5486,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
 
       {/* Table selection */}
       <div>
-        <label className="block text-xs font-medium mb-1">Data Table</label>
+        <label className="block text-xs font-medium mb-1.5">Data table</label>
         <SearchableEntityPicker
           items={(tables ?? []).map((table) => ({ id: table.id, name: table.name }))}
           selectedId={dataTableIdOf(config)}
@@ -5813,21 +5516,21 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           {/* Filters */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>
+              <label className="text-xs font-medium text-fg-muted">
                 Filters
               </label>
-              <Button variant="ghost" size="sm" className="!text-[9px] !h-5 !px-1.5" onClick={addFilter}>
-                <Plus size={8} className="mr-0.5" /> Add Filter
+              <Button variant="ghost" size="sm" onClick={addFilter} leadingIcon={<Plus />}>
+                Add filter
               </Button>
             </div>
             {filters.length === 0 && (
-              <p className="text-[9px] rounded-lg p-2" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
-                No filters — will return all rows. Click Add Filter to narrow results.
+              <p className="text-xs rounded-lg p-2 bg-subtle text-fg-muted">
+                No filters — will return all rows. Use Add filter to narrow results.
               </p>
             )}
             <div className="space-y-2">
               {filters.map((f, i) => (
-                <div key={i} className="flex items-start gap-1 rounded-lg p-2 border" style={{ borderColor: "var(--theme-surface-border)", backgroundColor: "var(--theme-surface)" }}>
+                <div key={i} className="flex items-start gap-1 rounded-lg p-2 border border-border bg-subtle">
                   <div className="flex-1 space-y-1">
                     <AutocompleteSelect
                       value={f.column}
@@ -5835,16 +5538,15 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                       options={tableColumns.map((c) => ({ value: c.key, label: c.label || c.key }))}
                       onChange={(value) => updateFilter(i, 'column', value)}
                     />
-                    <select
+                    <Select
                       value={f.operator}
                       onChange={(e) => updateFilter(i, 'operator', e.target.value)}
-                      className="w-full rounded border px-2 py-1 text-[10px]"
-                      style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                      size="sm"
                     >
                       {FILTER_OPERATORS.map((op) => (
                         <option key={op.value} value={op.value}>{op.label}</option>
                       ))}
-                    </select>
+                    </Select>
                     {f.operator !== 'is_null' && f.operator !== 'not_null' && (
                       <VariableInput
                         value={f.value}
@@ -5854,9 +5556,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                       />
                     )}
                   </div>
-                  <button type="button" onClick={() => removeFilter(i)} className="mt-1 hover:opacity-70" style={{ color: 'var(--theme-muted-text)' }}>
-                    <X size={12} />
-                  </button>
+                  <IconButton type="button" size="sm" label="Remove filter" icon={<X />} onClick={() => removeFilter(i)} />
                 </div>
               ))}
             </div>
@@ -5864,7 +5564,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
 
           {/* Sort */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--theme-muted-text)" }}>
+            <label className="block text-xs font-medium mb-1.5 text-fg-muted">
               Sort
             </label>
             <div className="flex gap-1.5">
@@ -5877,15 +5577,14 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                 onChange={(value) => onUpdate("sort_column", value)}
               />
               {config.sort_column && (
-                <select
+                <Select
                   value={config.sort_direction ?? "asc"}
                   onChange={(e) => onUpdate("sort_direction", e.target.value)}
-                  className="rounded border px-2 py-1.5 text-[10px]"
-                  style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}
+                  size="sm"
                 >
                   <option value="asc">Ascending</option>
                   <option value="desc">Descending</option>
-                </select>
+                </Select>
               )}
             </div>
           </div>
@@ -5893,16 +5592,16 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           {/* Limit & Offset */}
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-[10px] font-medium mb-0.5">Limit</label>
+              <label className="block text-xs font-medium mb-1.5">Limit</label>
               <Input
                 type="number"
                 value={config.limit ?? 100}
                 onChange={(e) => onUpdate("limit", Number(e.target.value) || 100)}
-                className="!h-7 !text-[10px]"
+                size="sm"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] font-medium mb-0.5">Offset</label>
+              <label className="block text-xs font-medium mb-1.5">Offset</label>
               <VariableInput
                 value={config.offset ?? ''}
                 onChange={(v) => onUpdate("offset", v)}
@@ -5915,15 +5614,15 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           {/* Return columns preview */}
           {tableColumns.length > 0 && (
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--theme-muted-text)" }}>
-                Returned Columns
+              <label className="block text-xs font-medium mb-1.5 text-fg-muted">
+                Returned columns
               </label>
               <div className="flex flex-wrap gap-1">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                <span className="text-2xs px-1.5 py-0.5 rounded font-mono bg-primary-wash text-primary-text">
                   row_id
                 </span>
                 {tableColumns.map((c) => (
-                  <span key={c.key} className="text-[9px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                  <span key={c.key} className="text-2xs px-1.5 py-0.5 rounded font-mono bg-subtle text-fg-muted">
                     {c.key}
                     <span className="ml-0.5 opacity-50">{c.type}</span>
                   </span>
@@ -5942,15 +5641,15 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           {/* Return columns preview */}
           {selectedTable && tableColumns.length > 0 && (
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--theme-muted-text)" }}>
-                Returned Columns
+              <label className="block text-xs font-medium mb-1.5 text-fg-muted">
+                Returned columns
               </label>
               <div className="flex flex-wrap gap-1">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--theme-primary-light)', color: 'var(--theme-primary-text)' }}>
+                <span className="text-2xs px-1.5 py-0.5 rounded font-mono bg-primary-wash text-primary-text">
                   row_id
                 </span>
                 {tableColumns.map((c) => (
-                  <span key={c.key} className="text-[9px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                  <span key={c.key} className="text-2xs px-1.5 py-0.5 rounded font-mono bg-subtle text-fg-muted">
                     {c.key}
                     <span className="ml-0.5 opacity-50">{c.type}</span>
                   </span>
@@ -5972,10 +5671,10 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           {/* Column values */}
           {selectedTable && (
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--theme-muted-text)" }}>
-                Column Values
+              <label className="block text-xs font-medium mb-2 text-fg-muted">
+                Column values
               </label>
-              <p className="text-[9px] mb-2" style={{ color: "var(--theme-muted-text)" }}>
+              <p className="text-xs mb-2 text-fg-muted">
                 Set values for each column. Use {'{{variable}}'} syntax or drag from the Variables panel.
               </p>
               {tableColumns.length > 0 ? (
@@ -5983,10 +5682,10 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                   {tableColumns.map((col, ci) => (
                     <div key={`${col.key}-${ci}`}>
                       <div className="flex items-center gap-1 mb-0.5">
-                        <label className="text-[10px] font-mono font-medium" style={{ color: "var(--theme-primary-text)" }}>
+                        <label className="text-xs font-mono font-medium text-primary-text">
                           {col.label || col.key}
                         </label>
-                        <span className="text-[8px] px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+                        <span className="text-2xs px-1 py-0.5 rounded bg-subtle text-fg-muted">
                           {col.type}
                         </span>
                       </div>
@@ -6000,7 +5699,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                   ))}
                 </div>
               ) : (
-                <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+                <div className="rounded-lg p-2 text-2xs bg-subtle text-fg-muted">
                   No columns defined on this table yet. Add columns in the Data section, or use JSON below.
                 </div>
               )}
@@ -6011,26 +5710,25 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                   value={config._new_col_key ?? ''}
                   onChange={(e) => onUpdate("_new_col_key", e.target.value)}
                   placeholder="column_name"
-                  className="!h-6 !text-[10px] font-mono flex-1"
+                  className="font-mono flex-1" size="sm"
                 />
-                <Button variant="outline" size="sm" className="!text-[9px] !h-6 !px-2"
+                <Button variant="secondary" size="sm"
                   onClick={() => {
                     const key = config._new_col_key?.trim()
                     if (key) {
                       onUpdate("column_values", { ...columnValues, [key]: '' })
                       onUpdate("_new_col_key", '')
                     }
-                  }}>
-                  <Plus size={8} className="mr-0.5" /> Add
+                  }} leadingIcon={<Plus />}>
+                  Add
                 </Button>
               </div>
             </div>
           )}
 
-          <div className="space-y-2 rounded-lg border p-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+          <div className="space-y-2 rounded-lg bg-subtle p-3">
             <label className="flex items-center gap-2 text-xs font-medium">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={config.apply_retention_policy === true}
                 onChange={(e) => {
                   if (onBatchUpdate) onBatchUpdate({ apply_retention_policy: e.target.checked })
@@ -6043,7 +5741,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
             {config.apply_retention_policy === true && (
               <>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Retention Policy</label>
+                  <label className="block text-xs font-medium mb-1.5">Retention policy</label>
                   <SearchableEntityPicker
                     items={rowRetentionPolicies.map((policy: any) => ({
                       id: policy.id,
@@ -6072,7 +5770,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
                     extraVariables={extraVariables}
                   />
                 </div>
-                <p className="mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <p className="mt-1 text-xs text-fg-muted">
                   {operation === 'insert'
                     ? 'Apply a row-level retention policy when this row is created.'
                     : selectedRetentionPolicy
@@ -6086,7 +5784,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           {/* Manual JSON fallback */}
           {!selectedTable && config.table_id && (
             <div>
-              <label className="block text-xs font-medium mb-1">Data (JSON)</label>
+              <label className="block text-xs font-medium mb-1.5">Data (JSON)</label>
               <VariableInput multiline rows={3} value={config.data ?? ""} onChange={(value) => onUpdate("data", value)}
                 placeholder={'{"name": "{{task.title}}"}'} extraVariables={extraVariables} />
             </div>
@@ -6101,31 +5799,33 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
 
       {/* ─── Output Configuration ─── */}
       {config.table_id && (
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>
-            Output
-          </label>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-fg-muted">
+              Output
+            </label>
 
-          {/* Custom output variable names */}
+            {/* Custom output variable names */}
+          </div>
           {(operation === 'list' || operation === 'get') && (
             <div className="space-y-1.5">
               {operation === 'list' && (
                 <>
                   <div>
-                    <label className="block text-[10px] font-medium mb-0.5">Rows variable name</label>
+                    <label className="block text-xs font-medium mb-1.5">Rows variable name</label>
                     <Input
                       value={config.output_rows_var ?? 'rows'}
                       onChange={(e) => onUpdate("output_rows_var", e.target.value.replace(/[^a-zA-Z0-9_]/g, '') || 'rows')}
-                      className="!h-6 !text-[10px] font-mono"
+                      className="font-mono" size="sm"
                       placeholder="rows"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium mb-0.5">Count variable name</label>
+                    <label className="block text-xs font-medium mb-1.5">Count variable name</label>
                     <Input
                       value={config.output_count_var ?? 'row_count'}
                       onChange={(e) => onUpdate("output_count_var", e.target.value.replace(/[^a-zA-Z0-9_]/g, '') || 'row_count')}
-                      className="!h-6 !text-[10px] font-mono"
+                      className="font-mono" size="sm"
                       placeholder="row_count"
                     />
                   </div>
@@ -6133,11 +5833,11 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
               )}
               {operation === 'get' && (
                 <div>
-                  <label className="block text-[10px] font-medium mb-0.5">Row variable name</label>
+                  <label className="block text-xs font-medium mb-1.5">Row variable name</label>
                   <Input
                     value={config.output_row_var ?? 'row'}
                     onChange={(e) => onUpdate("output_row_var", e.target.value.replace(/[^a-zA-Z0-9_]/g, '') || 'row')}
-                    className="!h-6 !text-[10px] font-mono"
+                    className="font-mono" size="sm"
                     placeholder="row"
                   />
                 </div>
@@ -6146,11 +5846,11 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           )}
           {(operation === 'insert' || operation === 'update' || operation === 'delete') && (
             <div>
-              <label className="block text-[10px] font-medium mb-0.5">Row ID variable name</label>
+              <label className="block text-xs font-medium mb-1.5">Row ID variable name</label>
               <Input
                 value={config.output_row_id_var ?? 'row_id'}
                 onChange={(e) => onUpdate("output_row_id_var", e.target.value.replace(/[^a-zA-Z0-9_]/g, '') || 'row_id')}
-                className="!h-6 !text-[10px] font-mono"
+                className="font-mono" size="sm"
                 placeholder="row_id"
               />
             </div>
@@ -6158,16 +5858,15 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
 
           {/* Live reference toggle */}
           {(operation === 'list' || operation === 'get') && (
-            <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: config.live_reference ? 'var(--theme-primary-light)' : 'var(--theme-surface)' }}>
-              <input
-                type="checkbox"
+            <label className={`flex items-center gap-2 rounded-lg border p-2 cursor-pointer border-border ${config.live_reference ? 'bg-primary-wash' : 'bg-subtle'}`}>
+              <Checkbox
                 checked={config.live_reference ?? false}
                 onChange={(e) => onUpdate("live_reference", e.target.checked)}
-                className="rounded"
+                
               />
               <div>
-                <span className="text-[10px] font-medium" style={{ color: 'var(--theme-card-text)' }}>Live reference</span>
-                <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+                <span className="text-2xs font-medium text-fg">Live reference</span>
+                <p className="text-xs text-fg-muted">
                   Re-query the table each time the variable is referenced downstream. Use for data that changes between steps.
                 </p>
               </div>
@@ -6175,7 +5874,7 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
           )}
 
           {/* Output hint */}
-          <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+          <div className="rounded-lg p-2 text-2xs bg-subtle text-fg-muted">
             {operation === 'list'
               ? `Outputs: {{${config.output_rows_var || 'rows'}}} (array), {{${config.output_count_var || 'row_count'}}} (number).${config.live_reference ? ' Re-fetched on each access.' : ''}`
               : operation === 'get'
@@ -6191,7 +5890,9 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
 
 // ─── Run Agent Config ───────────────────────────────────────────────────────
 
-function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
+function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables, workflowId, nodeId }: {
+  workflowId?: string
+  nodeId: string
   config: Record<string, any>
   onUpdate: (key: string, value: any) => void
   onBatchUpdate: (updates: Record<string, any>) => void
@@ -6221,10 +5922,10 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
   }, [selectedAgent, selectedAgentOutputs, config._agent_outputs, config.agent_name])
 
   return (
-    <div className="space-y-3" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
       {/* Agent Selector */}
       <div>
-        <label className="block text-xs font-medium mb-1">Agent</label>
+        <label className="block text-xs font-medium mb-1.5">Agent</label>
         <AutocompleteSelect
           value={config.agent_id ?? ''}
           placeholder="Select an agent..."
@@ -6255,9 +5956,11 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
         />
       </div>
 
+      {selectedAgent && <AgentPinBadge workflowId={workflowId} nodeId={nodeId} agentId={selectedAgent.id} latestVersion={selectedAgent.version ?? null} />}
+
       {/* Message / Prompt */}
       <div>
-        <label className="block text-xs font-medium mb-1">Prompt / Message</label>
+        <label className="block text-xs font-medium mb-1.5">Prompt / message</label>
         <VariableInput multiline rows={4}
           value={config.user_message ?? ""}
           onChange={(value) => onUpdate("user_message", value)}
@@ -6266,16 +5969,16 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
 
       {/* Files */}
       <div>
-        <label className="block text-xs font-medium mb-1">Files (optional)</label>
+        <label className="block text-xs font-medium mb-1.5">Files (optional)</label>
         <VariableInput value={config.files ?? ""} onChange={(value) => onUpdate("files", value || undefined)}
           placeholder="{{form.receipts}} or {{item}}" extraVariables={extraVariables} />
-        <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
+        <p className="text-xs mt-0.5 text-fg-muted">
           Up to 10 files. Images go to vision models as images, PDFs as documents where the model&apos;s API takes them (OpenAI), everything else as extracted text; the agent can also read them with read_attached_file. Only names and sizes are logged.
         </p>
       </div>
 
       {selectedAgent && (
-        <div className="rounded-lg p-2 text-[9px] space-y-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}>
+        <div className="rounded-lg p-2 text-2xs space-y-1 bg-subtle text-fg-muted">
           <p><span className="font-semibold">Status:</span> {selectedAgent.is_active ? 'Active' : 'Inactive'}</p>
           <p><span className="font-semibold">Model:</span> {selectedAgent.model || 'Default'}</p>
           <p><span className="font-semibold">Provider linked:</span> {selectedAgent.integration_id ? 'Yes' : 'No'}</p>
@@ -6285,25 +5988,25 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
 
       {/* Output Variable */}
       <div>
-        <label className="block text-xs font-medium mb-1">Output Variable Name</label>
+        <label className="block text-xs font-medium mb-1.5">Output variable name</label>
         <Input
           value={config.output_variable ?? "agent_response"}
           onChange={(e) => onUpdate("output_variable", e.target.value)}
-          className="!text-xs font-mono"
+          className="font-mono"
         />
-        <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
-          Result stored in <code style={{ color: "var(--theme-primary-text)" }}>{`{{${config.output_variable || "agent_response"}}}`}</code>
+        <p className="text-xs mt-0.5 text-fg-muted">
+          Result stored in <code className="text-primary-text">{`{{${config.output_variable || "agent_response"}}}`}</code>
         </p>
-        <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
-          Auto vars: <code style={{ color: "var(--theme-primary-text)" }}>{`{{${config.output_variable || "agent_response"}_status}}`}</code>, <code style={{ color: "var(--theme-primary-text)" }}>{`{{${config.output_variable || "agent_response"}_duration_ms}}`}</code>, <code style={{ color: "var(--theme-primary-text)" }}>{`{{${config.output_variable || "agent_response"}_iterations}}`}</code>
+        <p className="text-xs mt-0.5 text-fg-muted">
+          Auto vars: <code className="text-primary-text">{`{{${config.output_variable || "agent_response"}_status}}`}</code>, <code className="text-primary-text">{`{{${config.output_variable || "agent_response"}_duration_ms}}`}</code>, <code className="text-primary-text">{`{{${config.output_variable || "agent_response"}_iterations}}`}</code>
         </p>
       </div>
 
       {selectedAgentOutputs.length > 0 && (
-        <div className="space-y-2 rounded-lg border p-3" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
+        <div className="space-y-2 rounded-lg bg-subtle p-3">
           <div>
-            <label className="block text-xs font-medium mb-1">Agent Output Variables</label>
-            <p className="text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+            <label className="block text-xs font-medium mb-1.5">Agent output variables</label>
+            <p className="text-xs text-fg-muted">
               These are pulled from the selected agent and exposed as workflow variables automatically.
             </p>
           </div>
@@ -6313,14 +6016,14 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
               if (!key) return null
               const prefix = config._output_prefix || agentOutputPrefix(selectedAgent?.name ?? config.agent_name)
               return (
-                <div key={`${key}-${index}`} className="rounded-md border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                <div key={`${key}-${index}`} className="rounded-md border px-2 py-1.5 text-2xs border-border bg-panel">
                   <div className="flex items-center justify-between gap-2">
-                    <code style={{ color: 'var(--theme-primary-text)' }}>{`{{${key}}}`}</code>
-                    <span style={{ color: 'var(--theme-muted-text)' }}>{output.type || 'string'}</span>
+                    <code className="text-primary-text">{`{{${key}}}`}</code>
+                    <span className="text-fg-muted">{output.type || 'string'}</span>
                   </div>
                   <div className="mt-0.5 flex items-center justify-between gap-2">
-                    <span style={{ color: 'var(--theme-muted-text)' }}>{output.description || 'Structured agent output'}</span>
-                    <code style={{ color: 'var(--theme-muted-text)' }}>{`{{${prefix}_${key}}}`}</code>
+                    <span className="text-fg-muted">{output.description || 'Structured agent output'}</span>
+                    <code className="text-fg-muted">{`{{${prefix}_${key}}}`}</code>
                   </div>
                 </div>
               )
@@ -6331,36 +6034,60 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
 
       {/* Share Context Toggle */}
       <label className="flex items-start gap-2 cursor-pointer">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={config.share_context ?? true}
           onChange={(e) => onUpdate("share_context", e.target.checked)}
-          className="mt-0.5 rounded"
+          className="mt-0.5"
         />
         <div>
-          <span className="text-[10px] font-medium" style={{ color: "var(--theme-card-text)" }}>Share context with other agents</span>
-          <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>
+          <span className="text-2xs font-medium text-fg">Share context with other agents</span>
+          <p className="text-xs text-fg-muted">
             When enabled, this agent can access messages and facts from other agents in the workflow.
           </p>
         </div>
       </label>
 
+      {/* Execution mode */}
+      <div>
+        <label className="block text-xs font-medium mb-1.5">Run</label>
+        <Select aria-label="Run mode" value={config.execution_mode ?? 'inline'} onChange={(e) => onUpdate('execution_mode', e.target.value === 'inline' ? undefined : e.target.value)}>
+          <option value="inline">In this step (the run waits for the agent)</option>
+          <option value="queued">On the agent queue (the run pauses and resumes when the agent finishes)</option>
+        </Select>
+        <p className="text-xs mt-0.5 text-fg-muted">
+          Queued suits long agents. Either way, a tool call that needs approval pauses the run until the reviewer decides.
+        </p>
+      </div>
+
+      {/* Acting identity */}
+      <div>
+        <label className="block text-xs font-medium mb-1.5">Act as</label>
+        <Select aria-label="Agent acts as" value={config.act_as ?? 'initiator'} onChange={(e) => onUpdate('act_as', e.target.value === 'initiator' ? undefined : e.target.value)}>
+          <option value="initiator">The person who started the run (nobody for schedules, webhooks, public forms)</option>
+          <option value="owner">The workflow owner</option>
+          <option value="none">Nobody (the agent&apos;s own scope only)</option>
+        </Select>
+        <p className="text-xs mt-0.5 text-fg-muted">
+          Task and workflow tools act with this person&apos;s permissions; with nobody, they can only read.
+        </p>
+      </div>
+
       {/* Max Iterations */}
       <div>
-        <label className="block text-xs font-medium mb-1">Max Tool Iterations</label>
+        <label className="block text-xs font-medium mb-1.5">Max tool iterations</label>
         <Input
           type="number"
           min={1}
-          max={100}
+          max={50}
           value={config.max_iterations ?? 10}
-          onChange={(e) => onUpdate("max_iterations", parseInt(e.target.value) || 10)}
-          className="!text-xs font-mono"
+          onChange={(e) => onUpdate("max_iterations", Math.max(1, Math.min(50, parseInt(e.target.value) || 10)))}
+          className="font-mono"
         />
       </div>
 
       {/* Max Duration */}
       <div>
-        <label className="block text-xs font-medium mb-1">Max duration (ms)</label>
+        <label className="block text-xs font-medium mb-1.5">Max duration (ms)</label>
         <Input
           type="number"
           min={1000}
@@ -6368,15 +6095,15 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
           value={config.timeout_ms ?? ''}
           onChange={(e) => onUpdate('timeout_ms', e.target.value ? Number(e.target.value) : undefined)}
           placeholder="300000"
-          className="!text-xs font-mono"
+          className="font-mono"
         />
-        <p className="mt-1 text-[9px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="mt-1 text-xs text-fg-muted">
           Wall-clock budget for the whole agent run. Default 300,000 ms (5 minutes).
         </p>
       </div>
 
       {/* Tip */}
-      <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
+      <div className="rounded-lg p-2 text-2xs bg-subtle text-fg-muted">
         Tip: Place multiple Run Agent nodes inside a Parallel node for true multi-agent execution with shared context.
       </div>
     </div>

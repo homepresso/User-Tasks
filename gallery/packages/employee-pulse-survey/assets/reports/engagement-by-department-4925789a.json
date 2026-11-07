@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "4925789a-11e0-5cb0-b6bc-8af1d16eceb3",
+  "asset": {
+    "id": "4925789a-11e0-5cb0-b6bc-8af1d16eceb3",
+    "name": "Engagement by department",
+    "description": "Average engagement score (0-100) and eNPS points per department from the pulse survey runs (workflow variables).",
+    "category": "Employee pulse",
+    "is_shared": true,
+    "config": {
+      "filters": [],
+      "data_source": "workflow_runs",
+      "source_inputs": {
+        "workflow_id": "a5aa7080-4df2-526a-83a1-dbb9697644e4"
+      },
+      "columns": [
+        "vars.form.department",
+        "AVG_vars.engagement_score",
+        "AVG_vars.enps_points",
+        "_count"
+      ],
+      "group_by": [
+        "vars.form.department"
+      ],
+      "aggregations": [
+        {
+          "fn": "AVG",
+          "field": "vars.engagement_score"
+        },
+        {
+          "fn": "AVG",
+          "field": "vars.enps_points"
+        }
+      ],
+      "visualization": "bar",
+      "chart_style": {
+        "chart_title": "Engagement by department",
+        "colors": [
+          "#BE185D",
+          "#0F766E"
+        ],
+        "y_axis_label": "Average"
+      }
+    }
+  }
+}

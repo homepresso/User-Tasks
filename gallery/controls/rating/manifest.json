@@ -1,0 +1,116 @@
+{
+  "manifest_version": 1,
+  "tag": "ut-rating",
+  "name": "Rating",
+  "description": "Star, heart or circle rating from 1 to 10 with optional labels (Poor \u2026 Excellent). Mouse, touch and keyboard.",
+  "icon": "star",
+  "version": "1.2.0",
+  "entry": "ut-rating.js",
+  "value": {
+    "type": "number",
+    "schema": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    }
+  },
+  "props": [
+    {
+      "name": "max", "bindable": true,
+      "label": "Number of symbols",
+      "type": "number",
+      "default": 5,
+      "min": 2,
+      "max": 10
+    },
+    {
+      "name": "symbol",
+      "label": "Symbol",
+      "type": "select",
+      "default": "star",
+      "options": [
+        {
+          "value": "star",
+          "label": "Stars"
+        },
+        {
+          "value": "heart",
+          "label": "Hearts"
+        },
+        {
+          "value": "circle",
+          "label": "Circles"
+        }
+      ]
+    },
+    {
+      "name": "size",
+      "label": "Size",
+      "type": "select",
+      "default": "medium",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (24 px)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (32 px)"
+        },
+        {
+          "value": "large",
+          "label": "Large (40 px)"
+        }
+      ]
+    },
+    {
+      "name": "labels",
+      "label": "Labels",
+      "type": "string[]",
+      "description": "One label per value, lowest first (e.g. Poor, Fair, Good, Very good, Excellent). Shown next to the symbols and read by screen readers."
+    },
+    {
+      "name": "allow_clear",
+      "label": "Allow clearing",
+      "type": "boolean",
+      "default": true,
+      "description": "Clicking the selected symbol again, or pressing Delete, removes the rating."
+    },
+    {
+      "name": "color",
+      "label": "Symbol colour",
+      "type": "color",
+      "description": "Defaults to the form theme's primary colour."
+    }
+  ],
+  "events": [],
+  "validation": {
+    "reports_validity": true
+  },
+  "size": {
+    "default_height": 52,
+    "min_height": 36,
+    "max_height": 120
+  },
+  "capabilities": [],
+  "context": [],
+  "display": {
+    "template": "{{value}} of {{props.max}}",
+    "format": "text"
+  },
+  "output": { "type": "number", "description": "The rating (1 to the maximum)" },
+  "accessibility": {
+    "role": "radiogroup",
+    "keyboard": "Tab to the rating; Left / Right (or Up / Down) change it; Home / End jump to the lowest / highest; Delete or Backspace clears it when clearing is allowed.",
+    "labelled_by_host": true
+  },
+  "author": "UserTasks",
+  "license": "Apache-2.0",
+  "homepage": "https://usertasks.com/gallery/controls/rating",
+  "dependencies": {
+    "@lit/reactive-element": "2.1.2",
+    "lit": "3.3.3",
+    "lit-element": "4.2.2",
+    "lit-html": "3.3.3"
+  }
+}

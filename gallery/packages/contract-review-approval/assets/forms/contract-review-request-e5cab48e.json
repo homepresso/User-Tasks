@@ -1,0 +1,655 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "e5cab48e-47e3-5c67-b334-96212ed1e816",
+  "asset": {
+    "id": "e5cab48e-47e3-5c67-b334-96212ed1e816",
+    "name": "Contract review request",
+    "description": "The request a contract owner fills in: The contract → Term & value → Document → Approvals & submit, with a numbered stepper and in-form Next / Back / Send for review buttons (Application mode). The notice period appears only for auto-renewing contracts and the board approval reference only for NZD 1,000,000 or more; rules check the dates, the notice period and the board reference. Submitting starts the Contract review workflow through its Form submitted trigger.",
+    "tags": [
+      "contracts",
+      "legal",
+      "review"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Contract title",
+        "type": "text",
+        "required": true,
+        "placeholder": "Cleaning and facilities services",
+        "max_length": 120
+      },
+      {
+        "key": "counterparty",
+        "label": "Counterparty",
+        "type": "text",
+        "required": true,
+        "help_text": "The legal name of the other party"
+      },
+      {
+        "key": "contract_type",
+        "label": "Contract type",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Customer agreement",
+          "Supplier agreement",
+          "Partnership",
+          "Licence",
+          "Services agreement",
+          "Lease"
+        ]
+      },
+      {
+        "key": "business_unit",
+        "label": "Business unit",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Sales",
+          "Procurement",
+          "Operations",
+          "Technology",
+          "People",
+          "Finance",
+          "Marketing"
+        ]
+      },
+      {
+        "key": "value",
+        "label": "Total contract value",
+        "type": "currency",
+        "required": true,
+        "currency": "NZD",
+        "min": 0,
+        "help_text": "Over the whole term, excluding GST"
+      },
+      {
+        "key": "board_approval_ref",
+        "label": "Board approval reference",
+        "type": "text",
+        "help_text": "Contracts of NZD 1,000,000 or more need board approval first"
+      },
+      {
+        "key": "start_date",
+        "label": "Start date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "end_date",
+        "label": "End date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "auto_renew",
+        "label": "Renews automatically unless notice is given",
+        "type": "boolean"
+      },
+      {
+        "key": "notice_days",
+        "label": "Notice period (days)",
+        "type": "number",
+        "min": 0,
+        "max": 365,
+        "visible_when": {
+          "field": "auto_renew",
+          "operator": "equals",
+          "value": "true"
+        },
+        "help_text": "How long before the end you must give notice"
+      },
+      {
+        "key": "contract_document",
+        "label": "The contract",
+        "type": "attachments",
+        "required": true,
+        "attachments": {
+          "max_files": 1,
+          "max_file_mb": 20,
+          "types": [
+            "documents"
+          ]
+        },
+        "help_text": "The draft to review: PDF or Word"
+      },
+      {
+        "key": "version_label",
+        "label": "Version label",
+        "type": "text",
+        "placeholder": "Their draft v2, 14 Oct"
+      },
+      {
+        "key": "paper",
+        "label": "Whose paper?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Our template",
+          "Their template"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "known_deviations",
+        "label": "Anything you already know differs from our standard terms",
+        "type": "textarea"
+      },
+      {
+        "key": "budget_approver",
+        "label": "Finance approver",
+        "type": "user",
+        "help_text": "Optional: who approves the spend when finance has to (otherwise the default approver)"
+      },
+      {
+        "key": "confirm",
+        "label": "The commercial terms are agreed in principle and the budget is available",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "contract_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "terms_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "terms_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "document_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "document_next",
+        "label": "Next",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "next_page"
+            }
+          ],
+          "icon": "chevron-right",
+          "align": "right",
+          "icon_after": true
+        }
+      },
+      {
+        "key": "review_back",
+        "label": "Back",
+        "type": "button",
+        "button": {
+          "style": "outline",
+          "actions": [
+            {
+              "type": "previous_page"
+            }
+          ],
+          "icon": "chevron-left"
+        }
+      },
+      {
+        "key": "review_submit",
+        "label": "Send for review",
+        "type": "button",
+        "button": {
+          "style": "primary",
+          "actions": [
+            {
+              "type": "submit",
+              "button": "submit"
+            }
+          ],
+          "icon": "send",
+          "align": "right",
+          "icon_after": true
+        }
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "contract",
+          "title": "The contract",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "title",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "counterparty",
+                  "span": 1
+                },
+                {
+                  "field_key": "contract_type",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "business_unit",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "contract_next",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "file-text",
+          "description": "What it is and who it is with."
+        },
+        {
+          "id": "terms",
+          "title": "Term & value",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "value",
+                  "span": 1
+                },
+                {
+                  "field_key": "board_approval_ref",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "start_date",
+                  "span": 1
+                },
+                {
+                  "field_key": "end_date",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "auto_renew",
+                  "span": 1
+                },
+                {
+                  "field_key": "notice_days",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "terms_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "terms_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "calendar",
+          "description": "How much, how long, and how it renews."
+        },
+        {
+          "id": "document",
+          "title": "Document",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "contract_document",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "version_label",
+                  "span": 1
+                },
+                {
+                  "field_key": "paper",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "known_deviations",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "document_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "document_next",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "paperclip",
+          "description": "The draft legal reviews."
+        },
+        {
+          "id": "review",
+          "title": "Approvals & submit",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "budget_approver",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "confirm",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "review_back",
+                  "span": 1
+                },
+                {
+                  "field_key": "review_submit",
+                  "span": 1
+                }
+              ]
+            }
+          ],
+          "icon": "check-circle",
+          "description": "Who approves the spend, then send it."
+        }
+      ],
+      "page_settings": {
+        "indicator": "numbered",
+        "next_label": "Next",
+        "back_label": "Back"
+      },
+      "application_mode": true,
+      "rules": [
+        {
+          "id": "r_board_hide",
+          "name": "Board reference only for NZD 1,000,000 or more",
+          "event": "always",
+          "then": [
+            {
+              "type": "show_hide",
+              "mode": "hide",
+              "targets": [
+                "field:board_approval_ref"
+              ]
+            }
+          ],
+          "if": {
+            "match": "any",
+            "conditions": [
+              {
+                "column": "value",
+                "operator": "lt",
+                "value": "1000000"
+              },
+              {
+                "column": "value",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_board_required",
+          "name": "Large contracts need board approval",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "board_approval_ref",
+              "text": "Add the board approval reference: contracts of NZD 1,000,000 or more need it."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "value",
+                "operator": "gte",
+                "value": "1000000"
+              },
+              {
+                "column": "board_approval_ref",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_end_after_start",
+          "name": "The contract ends after it starts",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "end_date",
+              "text": "The end date must be after the start date."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "end_date",
+                "operator": "is_set"
+              },
+              {
+                "column": "end_date",
+                "operator": "lte",
+                "value": "{{start_date}}"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_notice_required",
+          "name": "Auto-renewing contracts need a notice period",
+          "event": "before_submit",
+          "then": [
+            {
+              "type": "field_error",
+              "field": "notice_days",
+              "text": "Add the notice period so the renewal date can be tracked."
+            }
+          ],
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "auto_renew",
+                "operator": "eq",
+                "value": "true"
+              },
+              {
+                "column": "notice_days",
+                "operator": "is_not_set"
+              }
+            ]
+          }
+        },
+        {
+          "id": "r_their_paper",
+          "name": "Their paper takes longer",
+          "event": "value_change",
+          "then": [
+            {
+              "type": "message",
+              "text": "Reviews of the other side’s template take longer: list anything you already know is non-standard."
+            }
+          ],
+          "target": "paper",
+          "if": {
+            "match": "all",
+            "conditions": [
+              {
+                "column": "paper",
+                "operator": "eq",
+                "value": "Their template"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send for review",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Sent for review",
+            "screen_button": "submit_another",
+            "screen_button_label": "Send another contract",
+            "text": "\"{{title}}\" with {{counterparty}} is with legal. You will get an email when it is approved or if changes are needed."
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0F766E",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#E6F4F1",
+            "page_to": "#F5FBFA"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "header": {
+          "enabled": true,
+          "title": "Contract review",
+          "subtitle": "Legal checks the draft against our clause playbook, then the right people approve it. It lands in the Contract register with its renewal date."
+        }
+      }
+    },
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Contract review",
+      "align": "left",
+      "subtitle": "Legal checks the draft against our clause playbook, then the right people approve it. It lands in the Contract register with its renewal date."
+    }
+  }
+}

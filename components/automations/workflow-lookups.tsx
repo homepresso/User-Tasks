@@ -14,8 +14,9 @@ export function useWorkflowLookups(): SummaryLookups {
 }
 
 /** id → name of the tenant's data tables (RLS scoped); undefined until loaded. */
-export function useDataTableNames(): TableNames | undefined {
+export function useDataTableNames(enabled = true): TableNames | undefined {
   const { data } = useQuery({
+    enabled,
     queryKey: ["workflow-data-table-names"],
     queryFn: async () => {
       const names: TableNames = {}
@@ -30,7 +31,8 @@ export function useDataTableNames(): TableNames | undefined {
 
 /** Loads the lookups once and shares them with every card below (designer, viewers). */
 export function WorkflowLookupsProvider({ children, value }: { children: React.ReactNode; value?: SummaryLookups }) {
-  const tableNames = useDataTableNames()
+  // Given lookups: nothing is loaded (the submitter-safe view must not read workspace records).
+  const tableNames = useDataTableNames(value === undefined)
   const lookups = useMemo<SummaryLookups>(() => value ?? { tableNames }, [value, tableNames])
   return <WorkflowLookupsContext.Provider value={lookups}>{children}</WorkflowLookupsContext.Provider>
 }

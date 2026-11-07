@@ -1,0 +1,222 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "1c947e12-b645-4ebd-b90d-8d8635f9c197",
+  "asset": {
+    "id": "1c947e12-b645-4ebd-b90d-8d8635f9c197",
+    "name": "Business-hours SLA (sample)",
+    "description": "Sample for the Dates & business calendar action: computes when a request is due given working hours, working days, holidays and a time zone, then the business days until then. Starts from the API or its start form and runs with no input using the defaults.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started (API or form)",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "received_at",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "sla_hours",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "time_zone",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "working_hours",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "holidays",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#0D9488",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#F4F6FB"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Business-hours SLA",
+                  "subtitle": "When is a request due, counting only working hours?"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "due",
+        "type": "custom_activity",
+        "label": "SLA due time",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "custom_activity_id": "ed93d6e0-796c-4424-ad87-d88b55dd1238",
+          "custom_activity_key": "ut_dates",
+          "activity_name": "Dates & business calendar",
+          "operation": "sla_due",
+          "input_mappings": {
+            "start": "{{received_at}}",
+            "hours": "{{sla_hours}}",
+            "working_hours": "{{working_hours}}",
+            "time_zone": "{{time_zone}}",
+            "holidays": "{{holidays}}"
+          },
+          "_output_prefix": "sla"
+        }
+      },
+      {
+        "id": "span",
+        "type": "custom_activity",
+        "label": "Business days until due",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "custom_activity_id": "ed93d6e0-796c-4424-ad87-d88b55dd1238",
+          "custom_activity_key": "ut_dates",
+          "activity_name": "Dates & business calendar",
+          "operation": "duration",
+          "input_mappings": {
+            "from": "{{sla_start_local}}",
+            "to": "{{sla_due_local}}",
+            "time_zone": "{{time_zone}}",
+            "holidays": "{{holidays}}"
+          },
+          "_output_prefix": "span"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Summary",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "name": "summary",
+          "expression": "Received {{sla_start_local}}; due {{sla_due_local}} ({{sla_due}} UTC), {{span_business_days}} business day(s) and {{sla_calendar_hours}} calendar hours later."
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "reason": "{{summary}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-due",
+        "source": "trigger",
+        "target": "due"
+      },
+      {
+        "id": "e-due-span",
+        "source": "due",
+        "target": "span"
+      },
+      {
+        "id": "e-span-summary",
+        "source": "span",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-received_at",
+        "name": "received_at",
+        "type": "string",
+        "format": "datetime",
+        "label": "Received at",
+        "description": "When the request arrived (ISO 8601; local time in the time zone when it has no offset)",
+        "defaultValue": "2026-11-06T15:30:00",
+        "required": true
+      },
+      {
+        "id": "v-sla_hours",
+        "name": "sla_hours",
+        "type": "number",
+        "label": "SLA (working hours)",
+        "description": "How many working hours the team has",
+        "defaultValue": "8",
+        "required": true
+      },
+      {
+        "id": "v-time_zone",
+        "name": "time_zone",
+        "type": "string",
+        "label": "Time zone",
+        "description": "IANA time zone of the team",
+        "defaultValue": "Pacific/Auckland",
+        "required": true
+      },
+      {
+        "id": "v-working_hours",
+        "name": "working_hours",
+        "type": "string",
+        "label": "Working hours",
+        "description": "Start and end of the working day",
+        "defaultValue": "09:00-17:00"
+      },
+      {
+        "id": "v-holidays",
+        "name": "holidays",
+        "type": "array",
+        "label": "Holidays",
+        "description": "Dates that are not working days (JSON list of YYYY-MM-DD)",
+        "defaultValue": "[\"2026-12-25\", \"2026-12-28\", \"2027-01-01\", \"2027-01-04\"]"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

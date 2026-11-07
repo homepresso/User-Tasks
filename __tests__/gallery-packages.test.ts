@@ -8,6 +8,7 @@ import { GALLERY_CATALOG_FILE, GALLERY_OUTPUT_DIR, readAllGallerySources, readGa
 import { GALLERY_CATEGORIES, type GalleryIndex } from '@/lib/gallery/types'
 import { validateGallerySource } from '@/lib/gallery/validate'
 import { GALLERY_ICON_NAMES } from '@/components/gallery/gallery-ui'
+import { readAllControlSources } from '@/lib/gallery/controls'
 import { fromPackageFiles } from '@/lib/packages/build'
 import { unpackPackage, verifySignature } from '@/lib/packages/format'
 import { orderWorkflowsByDependencies } from '@/lib/portability/import'
@@ -24,17 +25,18 @@ function clone(source: GallerySource): GallerySource {
 describe('package gallery sources', () => {
   it('has at least four packages in every category', () => {
     expect(sources.length).toBeGreaterThanOrEqual(50)
-    for (const category of GALLERY_CATEGORIES) {
+    // Form controls (gallery/controls) and workflow actions (gallery/actions) are not workflow packages.
+    for (const category of GALLERY_CATEGORIES.filter((c) => c.id !== 'form-controls' && c.id !== 'workflow-actions')) {
       const count = sources.filter((s) => s.meta.category === category.id).length
       expect(count, category.id).toBeGreaterThanOrEqual(4)
       expect(count, category.id).toBeLessThanOrEqual(15)
     }
   })
 
-  it('has 10-15 "No integrations needed" packages that install with nothing to configure', () => {
+  it('has 10-25 "No integrations needed" packages that install with nothing to configure', () => {
     const native = sources.filter((s) => isNativeContents(galleryContents(s)))
     expect(native.length).toBeGreaterThanOrEqual(10)
-    expect(native.length).toBeLessThanOrEqual(15)
+    expect(native.length).toBeLessThanOrEqual(25)
     for (const source of native) {
       expect(source.meta.needs, source.slug).toEqual([])
       expect(source.meta.systems ?? [], source.slug).toEqual([])
@@ -48,7 +50,75 @@ describe('package gallery sources', () => {
     expect(systems.get('Workday')).toBeGreaterThanOrEqual(3)
     expect(systems.get('SAP S/4HANA')).toBeGreaterThanOrEqual(3)
     expect([...systems.keys()].length).toBeGreaterThanOrEqual(5)
-    for (const source of sources.filter((s) => (s.meta.systems ?? []).length)) expect(source.meta.needs, source.slug).toContain('rest_api')
+    // A system chip is a REST system or the media AI provider the package brings its own key for.
+    for (const source of sources.filter((s) => (s.meta.systems ?? []).length)) expect(source.meta.needs.some((n) => n === 'rest_api' || n === 'media_ai'), source.slug).toBe(true)
+  })
+
+  it('has a Media & Evidence category whose packages run the media steps with a BYO-key media provider', () => {
+    const media = sources.filter((s) => s.meta.category === 'media-evidence')
+    expect(media.map((s) => s.slug).sort()).toEqual(['foia-records-request-redaction', 'insurance-claim-photo-assessment', 'kyc-id-document-redaction', 'meeting-recording-minutes', 'support-call-qa-redaction', 'ugc-media-moderation'])
+    for (const source of media) {
+      const assets = packageAssets(source.manifest) as any
+      const providers = (assets.integrations ?? []).filter((i: any) => i.type === 'google_gemini')
+      expect(providers.length, source.slug).toBe(1)
+      expect(providers[0].config.base_url).toBe('https://generativelanguage.googleapis.com')
+      expect(source.meta.needs, source.slug).toContain('media_ai')
+      const types = new Set((assets.workflows ?? []).flatMap((wf: any) => wf.nodes.map((n: any) => n.type)))
+      expect([...types].some((t) => String(t).startsWith('media_')), source.slug).toBe(true)
+      // The media provider asks for its API key on install (and nothing about the provider is a real secret).
+      const auth = galleryRequirements(assets).find((r) => r.kind === 'integration_auth' && r.ref.asset_id === providers[0].id)
+      expect(auth?.fields.filter((f) => f.secret).map((f) => f.key), source.slug).toEqual(['config.auth_config.key_value'])
+    }
+    const foia = packageAssets(bySlug.get('foia-records-request-redaction')!.manifest) as any
+    const foiaTypes = foia.workflows.flatMap((wf: any) => wf.nodes.map((n: any) => n.type))
+    for (const type of ['media_redact_video', 'media_redact_image', 'media_transcribe', 'doc_redact', 'doc_pdf', 'set_sla', 'retention_policies']) expect(foiaTypes, type).toContain(type)
+    const legal = foia.workflows[0].nodes.find((n: any) => n.id === 'legal')
+    expect(legal.config.outcomes).toEqual(['Approve release', 'Partial release', 'Deny', 'Send back'])
+  })
+
+  it('ships the official form controls a package\'s forms use, and builds "No integrations needed" processes on them', () => {
+    const controls = new Map(readAllControlSources().map((c) => [c.manifest!.tag, c]))
+    const CONTROL_PACKAGES = ['csat-nps-survey', 'employee-pulse-survey', 'training-quiz-certification', 'site-inspection-corrective-actions', 'event-registration-sessions', 'contract-policy-review-esign']
+    expect(sources.filter((s) => s.meta.category === 'surveys-assessments').map((s) => s.slug).sort()).toEqual(['csat-nps-survey', 'employee-pulse-survey', 'site-inspection-corrective-actions', 'training-quiz-certification'])
+    const used = new Set<string>()
+    for (const slug of CONTROL_PACKAGES) {
+      const source = bySlug.get(slug)!
+      expect(source, slug).toBeDefined()
+      const contents = galleryContents(source)
+      expect(isNativeContents(contents), slug).toBe(true)
+      // Sources never copy a module: the official controls are added from gallery/controls by tag.
+      expect(source.files.some((f) => f.path.startsWith('form-controls/')), slug).toBe(false)
+      const shipped = (contents.assets.form_controls ?? []) as any[]
+      expect(shipped.map((c) => c.tag).sort(), slug).toEqual(source.controls.map((c) => c.tag).sort())
+      expect(source.controls.length, slug).toBeGreaterThanOrEqual(4)
+      for (const control of shipped) {
+        const official = controls.get(control.tag)!
+        expect(control.id, `${slug} ${control.tag}`).toBe(official.meta.asset_id)
+        expect(control.versions[0].bundle, `${slug} ${control.tag}`).toBe(official.bundle)
+        used.add(control.tag)
+      }
+      // No third-party controls (address search calls Google Places; the map loads tiles).
+      expect(source.controls.map((c) => c.tag), slug).not.toContain('ut-address')
+      expect(source.controls.map((c) => c.tag), slug).not.toContain('ut-map')
+      // Saved reports travel with workflow-scoped sources only (custom_table_<id> is not remapped on install).
+      for (const report of (contents.assets.reports ?? []) as any[]) {
+        expect(['workflow_runs', 'tasks'], `${slug}: ${report.name}`).toContain(report.config.data_source)
+        expect(source.manifest.workflows.some((wf: any) => wf.id === report.config.source_inputs?.workflow_id), `${slug}: ${report.name}`).toBe(true)
+      }
+      expect((contents.assets.reports ?? []).length, slug).toBeGreaterThanOrEqual(1)
+      expect((contents.assets.data_tables ?? []).length, slug).toBeGreaterThanOrEqual(1)
+      expect(Object.values(contents.data).some((d) => d.mode === 'rows' && (d.rows?.length ?? 0) > 0), slug).toBe(true)
+      // The catalog lists the controls (the package page links to /gallery/controls/<slug>).
+      expect(catalogEntry(source, buildGalleryPackage(source)).controls, slug).toEqual(source.controls)
+    }
+    // Between them they use every official control without a third-party service.
+    for (const tag of [...controls.keys()].filter((t) => t !== 'ut-address' && t !== 'ut-map')) expect(used, tag).toContain(tag)
+  })
+
+  it('builds packages without form controls exactly as before (no form_controls section)', () => {
+    const plain = bySlug.get('visitor-sign-in')!
+    expect(plain.controls).toEqual([])
+    expect(galleryContents(plain).assets.form_controls).toBeUndefined()
   })
 
   it('uses the new forms: form pages, themed grid start forms, outcome buttons and lookups', () => {
@@ -158,7 +228,9 @@ describe('package gallery builds', () => {
   })
 
   it('keeps public/gallery and lib/gallery/catalog.json in step with the sources (npm run gallery:build)', () => {
-    const index = JSON.parse(readFileSync(join(GALLERY_OUTPUT_DIR, 'index.json'), 'utf8')) as GalleryIndex
+    const all = JSON.parse(readFileSync(join(GALLERY_OUTPUT_DIR, 'index.json'), 'utf8')) as GalleryIndex
+    // Workflow packages here; form control entries (kind form_control / control_bundle) in __tests__/gallery-controls.
+    const index = { ...all, packages: all.packages.filter((p) => (p.kind ?? 'process') === 'process') }
     expect(index.packages.map((p) => p.slug).sort()).toEqual(sources.map((s) => s.slug).sort())
     const signing = readGallerySigningConfig()
     if (index.signing.signed) expect(index.signing.fingerprint).toBe(signing.fingerprint)
@@ -227,6 +299,18 @@ describe('gallery validation catches broken packages', () => {
       expect(messages).toMatch(/must not contain secrets/)
     }
     if (node) expect(messages).toMatch(/not in the package/)
+  })
+
+  it('flags a media step on a REST integration and a media provider with a made-up host', () => {
+    const broken = clone(bySlug.get('ugc-media-moderation')!)
+    const rest = broken.manifest.integrations.find((i: { type: string }) => i.type === 'rest_api')
+    const gemini = broken.manifest.integrations.find((i: { type: string }) => i.type === 'google_gemini')
+    gemini.config.base_url = 'https://gemini.realcompany.com'
+    const step = workflow(broken).nodes.find((n: { type: string }) => n.type === 'media_analyze_image')
+    step.config.integration_id = rest.id
+    const messages = validateGallerySource(broken).map((i) => i.message).join('\n')
+    expect(messages).toMatch(/or the provider's API \(generativelanguage\.googleapis\.com\)/)
+    expect(messages).toMatch(/must be a media AI provider integration in the package/)
   })
 
   it('flags a form package without a form and an api package with a missing sample input', () => {

@@ -26,7 +26,8 @@ kubectl port-forward svc/usertasks 3000:80     # http://localhost:3000
 The image decides which [optional drivers](../../../docs/optional-drivers.md)
 exist (Dockerfile build args `INCLUDE_OPTIONAL_DB_DRIVERS`,
 `INCLUDE_STORAGE_SDKS`, `INCLUDE_PROVIDER_SDKS`, `INCLUDE_OCR`); build it with what your
-providers need.
+providers need. FFmpeg (media steps: Media Utilities, Redact Video, long audio)
+is included unless the image is built with `INCLUDE_MEDIA_TOOLS=false`.
 
 ## What it deploys
 
@@ -94,7 +95,9 @@ federate or bind it as well. Hook resources stay after `helm uninstall`
 | `logExport.allowInstanceIdentity` | `false` | `LOG_EXPORT_ALLOW_INSTANCE_IDENTITY` |
 | `logExport.endpoints.<name>` | `{}` | `LOG_EXPORT_<NAME>`: `datadog_url`, `event_hubs_url`, `gcp_logging_url`, `gcp_pubsub_url`, `azure_authority_url`, `gcp_token_url` |
 | `security.allowPrivateEgress` | `false` | `ALLOW_PRIVATE_EGRESS` (LDAP / AD directory sync, log destinations and integrations on private addresses) |
-| `security.enableCustomActivityCode` / `allowQueryKeyAuth` / `mcpAllowedOrigins` | `false` / `false` / `[]` | `ENABLE_CUSTOM_ACTIVITY_CODE`, `ALLOW_QUERY_KEY_AUTH`, `MCP_ALLOWED_ORIGINS` |
+| `security.customActionsDisabled` | `false` | `CUSTOM_ACTIONS_DISABLED`: stop every custom workflow action (they always run in a QuickJS WebAssembly sandbox) |
+| `security.enableCustomActivityCode` | `false` | Deprecated, no effect (was `ENABLE_CUSTOM_ACTIVITY_CODE`; custom actions no longer need switching on). Still accepted so existing values files validate |
+| `security.allowQueryKeyAuth` / `mcpAllowedOrigins` | `false` / `[]` | `ALLOW_QUERY_KEY_AUTH`, `MCP_ALLOWED_ORIGINS` |
 | `env` | `{}` | Extra plain variables for every container |
 | `extraEnv` / `extraEnvFrom` | `[]` | Raw EnvVar / EnvFromSource entries |
 | `extraVolumes` / `extraVolumeMounts` | `[]` | For every UserTasks container (e.g. a ReadWriteMany PVC for `STORAGE_PROVIDER=local`) |

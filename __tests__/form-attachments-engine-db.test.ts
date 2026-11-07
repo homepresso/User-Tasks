@@ -75,6 +75,11 @@ describe.skipIf(!DB_URL)('engine: loop over form attachments, HTTP multipart and
   const saved: Record<string, string | undefined> = {}
   const files: any[] = []
 
+  // The HTTP Request node is egress-guarded; the receiver is a local server.
+  const priorEgress = process.env.ALLOW_PRIVATE_EGRESS
+  beforeAll(() => { process.env.ALLOW_PRIVATE_EGRESS = 'true' })
+  afterAll(() => { if (priorEgress === undefined) delete process.env.ALLOW_PRIVATE_EGRESS; else process.env.ALLOW_PRIVATE_EGRESS = priorEgress })
+
   beforeAll(async () => {
     storageRoot = await mkdtemp(path.join(tmpdir(), 'ut-attach-store-'))
     mailDir = await mkdtemp(path.join(tmpdir(), 'ut-attach-mail-'))

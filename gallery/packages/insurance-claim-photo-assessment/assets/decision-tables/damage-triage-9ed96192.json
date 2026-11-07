@@ -1,0 +1,189 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "9ed96192-eebc-5482-ad27-5e154e802e80",
+  "asset": {
+    "id": "9ed96192-eebc-5482-ad27-5e154e802e80",
+    "name": "Damage triage",
+    "description": "Triage band, estimate band, SLA and whether an inspection is needed, from the AI damage assessment and the policy. Tune the bands to your book; the AI estimate is a hint for the adjuster, never a settlement.",
+    "inputs": [
+      {
+        "key": "severity",
+        "label": "Severity (AI)",
+        "type": "string",
+        "id": "64ae7663-5fdd-5fba-ae9f-06a68ace7b62"
+      },
+      {
+        "key": "estimate_high",
+        "label": "Estimate high (AI)",
+        "type": "number",
+        "id": "23e1617a-bd83-5f20-890f-36160e49000d"
+      },
+      {
+        "key": "drivable",
+        "label": "Drivable (AI)",
+        "type": "string",
+        "id": "e27b6484-e545-5031-8fa4-4067b96f83fc"
+      },
+      {
+        "key": "cover",
+        "label": "Cover",
+        "type": "string",
+        "id": "59658bd8-24bf-5c13-acd2-aeaebb266fdd"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "band",
+        "label": "Triage band",
+        "type": "string",
+        "id": "96dbec4c-538e-5176-9afa-78694e00f6b5"
+      },
+      {
+        "key": "estimate_band",
+        "label": "Estimate band",
+        "type": "string",
+        "id": "9487b7eb-98d9-5a46-a745-99b87e267cdf"
+      },
+      {
+        "key": "sla_days",
+        "label": "Decision SLA (days)",
+        "type": "number",
+        "id": "68c23227-3f62-56fd-83b2-5de4ef15391c"
+      },
+      {
+        "key": "inspection",
+        "label": "Inspection suggested",
+        "type": "string",
+        "id": "eb06d862-3301-5ec2-9da1-873d4b6501e4"
+      },
+      {
+        "key": "note",
+        "label": "Note for the adjuster",
+        "type": "string",
+        "id": "7a700b30-253d-5844-a8ac-c9b9c27697cf"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Third party only cover",
+        "conditions": [
+          {
+            "inputKey": "cover",
+            "operator": "equals",
+            "value": "Third party only",
+            "id": "e70ce7f4-6951-5fae-94da-18c32c81c89c"
+          }
+        ],
+        "outputs": {
+          "band": "Coverage check",
+          "estimate_band": "n/a",
+          "sla_days": 2,
+          "inspection": "no",
+          "note": "Own damage is not covered on third party only policies: check the policy before anything else."
+        },
+        "id": "3a829795-3057-536d-aa44-198f84fa8cfb",
+        "enabled": true
+      },
+      {
+        "label": "Severe or not drivable",
+        "conditions": [
+          {
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "severe",
+            "id": "a2137d58-e8b8-5517-807d-2958999ed279"
+          }
+        ],
+        "outputs": {
+          "band": "Specialist",
+          "estimate_band": "Over 5,000",
+          "sla_days": 2,
+          "inspection": "yes",
+          "note": "Severe damage: book an inspection and check for total loss."
+        },
+        "id": "cd424201-d4ba-5310-abce-350cced748fe",
+        "enabled": true
+      },
+      {
+        "label": "Not drivable",
+        "conditions": [
+          {
+            "inputKey": "drivable",
+            "operator": "equals",
+            "value": "false",
+            "id": "d656b7fd-d3fa-5995-aa6d-b8a9fa2046bc"
+          }
+        ],
+        "outputs": {
+          "band": "Specialist",
+          "estimate_band": "2,500 to 5,000",
+          "sla_days": 2,
+          "inspection": "yes",
+          "note": "Vehicle not drivable: arrange towing and an inspection."
+        },
+        "id": "cc71967d-89ce-54ac-b736-fb4b5ee87696",
+        "enabled": true
+      },
+      {
+        "label": "Moderate, under 3,000",
+        "conditions": [
+          {
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "moderate",
+            "id": "e5971994-c852-5e4f-b1c9-825be6c86fa8"
+          },
+          {
+            "inputKey": "estimate_high",
+            "operator": "less_than",
+            "value": 3000,
+            "id": "0622ef73-71f9-5a2d-a020-74e29e2ff586"
+          }
+        ],
+        "outputs": {
+          "band": "Standard",
+          "estimate_band": "1,000 to 3,000",
+          "sla_days": 3,
+          "inspection": "no",
+          "note": "Standard repair: approve with a preferred repairer if the photos match the description."
+        },
+        "id": "872239ae-db94-5fc9-9ca6-9eefcada5831",
+        "enabled": true
+      },
+      {
+        "label": "Minor",
+        "conditions": [
+          {
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "minor",
+            "id": "ac9cee0d-f371-54dd-ac7b-76fc630b807d"
+          }
+        ],
+        "outputs": {
+          "band": "Fast track",
+          "estimate_band": "Under 1,000",
+          "sla_days": 1,
+          "inspection": "no",
+          "note": "Minor damage: fast-track approval or cash settlement."
+        },
+        "id": "0b33772f-67e3-59dc-86f2-3007855e0bc3",
+        "enabled": true
+      },
+      {
+        "label": "Anything else",
+        "conditions": [],
+        "outputs": {
+          "band": "Standard",
+          "estimate_band": "Unclear",
+          "sla_days": 3,
+          "inspection": "yes",
+          "note": "The AI assessment was unclear: look at the photos and decide."
+        },
+        "id": "b99cec5f-e8ec-5d60-9cc1-43db900f2f08",
+        "enabled": true
+      }
+    ]
+  }
+}

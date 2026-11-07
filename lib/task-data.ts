@@ -42,14 +42,18 @@ export interface TaskDataObject extends Record<string, any> {
   outcome_counts: Record<string, number>
   is_overdue: boolean
   age_hours: number
+  /** Files on the task's Attachments tab (lib/task-attachments.ts), oldest first. */
+  attachments: unknown[]
 }
 
-const ENRICHED_KEYS = ['data', 'actions', 'form_url', 'responses', 'timeline', 'response_count', 'outcome_counts', 'is_overdue', 'age_hours']
+const ENRICHED_KEYS = ['data', 'actions', 'form_url', 'responses', 'timeline', 'response_count', 'outcome_counts', 'is_overdue', 'age_hours', 'attachments']
 
 export function buildTaskDataObject(params: {
   task: Record<string, any>
   responses?: Array<Record<string, any>> | null
   events?: Array<Record<string, any>> | null
+  /** The task's attachments as workflow values (the engine loads them server-side). */
+  attachments?: unknown[] | null
 }): TaskDataObject {
   const { task, responses, events } = params
   const metadata = (task?.metadata ?? {}) as Record<string, any>
@@ -100,6 +104,7 @@ export function buildTaskDataObject(params: {
       : ((metadata.outcome_counts ?? {}) as Record<string, number>),
     is_overdue: isOverdue,
     age_hours: ageHours,
+    attachments: Array.isArray(params.attachments) ? params.attachments : [],
   }
 
   // Defensive: if a raw column ever collides with an enriched key, the raw
@@ -118,7 +123,12 @@ export async function loadTaskDataObject(
   supabase: SupabaseClient,
   taskId: string,
   /** tenantId: only a task of this tenant (the engine passes the run's tenant). */
-  opts?: { includeTimeline?: boolean; tenantId?: string | null },
+  opts?: {
+    includeTimeline?: boolean
+    tenantId?: string | null
+    /** Loads `task.attachments` (injected so this module stays browser-safe). */
+    attachments?: (tenantId: string, taskId: string) => Promise<unknown[]>
+  },
 ): Promise<TaskDataObject | null> {
   let taskQuery = (supabase as any).from('tasks').select('*').eq('id', taskId)
   if (opts?.tenantId) taskQuery = taskQuery.eq('tenant_id', opts.tenantId)
@@ -130,7 +140,8 @@ export async function loadTaskDataObject(
       : Promise.resolve({ data: null }),
   ])
   if (!task) return null
-  return buildTaskDataObject({ task, responses, events: (eventsResult as any)?.data ?? null })
+  const attachments = opts?.attachments ? await opts.attachments(String(task.tenant_id), taskId).catch(() => []) : []
+  return buildTaskDataObject({ task, responses, events: (eventsResult as any)?.data ?? null, attachments })
 }
 
 /**
@@ -164,6 +175,7 @@ export const TASK_VARIABLE_CATALOG: Array<{ name: string; description: string; g
   { name: 'task.timeline', description: 'Recent lifecycle events (newest first)', group: 'Task Data' },
   { name: 'task.actions', description: 'Redirect/invite policy configured on the task', group: 'Task Data' },
   { name: 'task.form_url', description: 'External form URL bound by the workflow', group: 'Task Data' },
+  { name: 'task.attachments', description: 'Files on the task\'s Attachments tab (a list: name, type, description, file_name, mime, size, url, storage_ref, …)', group: 'Task Data' },
   { name: 'task.is_overdue', description: 'True when past due and not completed', group: 'Dates' },
   { name: 'task.age_hours', description: 'Hours since the task was created', group: 'Dates' },
   { name: 'task.due_date', description: 'Due date', group: 'Dates' },

@@ -1,0 +1,229 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "9f0c4cce-2c59-5f47-a5da-f10abec3f724",
+  "asset": {
+    "id": "9f0c4cce-2c59-5f47-a5da-f10abec3f724",
+    "name": "Motor claim: report damage",
+    "description": "Claimants report vehicle damage with photos; the claim is assessed, triaged and sent to an adjuster.",
+    "tags": [
+      "claims",
+      "motor"
+    ],
+    "fields": [
+      {
+        "key": "policy_number",
+        "label": "Policy number",
+        "type": "text",
+        "required": true,
+        "placeholder": "POL-000123"
+      },
+      {
+        "key": "claimant_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "phone",
+        "label": "Phone",
+        "type": "phone"
+      },
+      {
+        "key": "cover",
+        "label": "Cover",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Comprehensive",
+          "Third party, fire and theft",
+          "Third party only"
+        ]
+      },
+      {
+        "key": "incident_date",
+        "label": "When did it happen?",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "location",
+        "label": "Where?",
+        "type": "text"
+      },
+      {
+        "key": "description",
+        "label": "What happened?",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "damage_photos",
+        "label": "Photos of the damage",
+        "type": "attachments",
+        "required": true,
+        "attachments": {
+          "max_files": 6,
+          "max_file_mb": 15,
+          "types": [
+            "images"
+          ]
+        },
+        "camera": true,
+        "help_text": "Take photos of each damaged area from a metre or two away, and one of the whole vehicle."
+      },
+      {
+        "key": "drivable",
+        "label": "Can the vehicle be driven?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Yes",
+          "No",
+          "Not sure"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "declaration",
+        "label": "The information I have given is true",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "policy_number",
+              "span": 1
+            },
+            {
+              "field_key": "cover",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "claimant_name",
+              "span": 1
+            },
+            {
+              "field_key": "email",
+              "span": 1
+            },
+            {
+              "field_key": "phone",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "incident_date",
+              "span": 1
+            },
+            {
+              "field_key": "location",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "description",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "damage_photos",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "drivable",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "declaration",
+              "span": 3
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0E7490",
+            "background": "#FFFFFF",
+            "text": "#0B2530",
+            "page": "#E3F4F7",
+            "page_to": "#F7FCFD"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "full",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit claim",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Claim submitted",
+            "screen_button": "submit_another",
+            "text": "Thanks {{claimant_name}}. We have emailed you the claim reference.",
+            "screen_button_label": "Report another claim"
+          }
+        ]
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Report vehicle damage",
+      "align": "left",
+      "subtitle": "Add photos of the damage: we assess them straight away and an adjuster reviews every claim."
+    }
+  }
+}

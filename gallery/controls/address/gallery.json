@@ -1,0 +1,200 @@
+{
+  "id": "ff7d2d58-2d90-41ce-a66e-b4e0f05150e5",
+  "asset_id": "18a15d5d-59b4-4b61-b77f-f9e05acfb20c",
+  "slug": "address",
+  "title": "Address",
+  "kind": "input",
+  "summary": "Address search with suggestions from Google Places (key kept on the server) or a data table, saved as street, city, postcode, country and coordinates.",
+  "description": "An address field that finds the address for people instead of making them type it in five boxes. As they type, suggestions come from the field's lookup source: Google Places API (New) through an integration that keeps the API key on the UserTasks server, another geocoding API, or a data table of your own sites. Choosing a suggestion stores a structured address (street, city, region, postcode, country and country code) with its coordinates and place id, ready for workflows, reports and the Map control.\n\nIt is a standard ARIA combobox: Up and Down move through the suggestions, Enter chooses, Escape closes, and screen readers hear how many addresses were found. If an address can't be found, \"Enter the address manually\" shows separate street, city, region, postcode and country inputs.\n\nThe package includes the Google Places integration (you enter your API key when installing), the text search API reference and a sample form that pairs Address with a Map. The Map control ships in the same package so the sample works on its own; it stays offline until an admin approves its tile host (tile.openstreetmap.org) in Extensibility → Form controls.",
+  "icon": "map-pin",
+  "tags": [
+    "address",
+    "location",
+    "google places",
+    "geocoding",
+    "autocomplete"
+  ],
+  "version": "1.1.0",
+  "changelog": [{ "version": "1.1.0", "date": "2026-11-04", "notes": "Workflow output: the field is the formatted address (text); the components are <key>_parts (and <key>_raw)." },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Customer, delivery or billing address on a request form",
+    "Site address on an inspection or field-service task, shown on a Map",
+    "Choosing one of your own locations from a data table of sites or stores"
+  ],
+  "setup": [
+    "In Google Cloud, enable Places API (New) and create an API key restricted to that API. It is a server key: the browser never sees it, so do not add a website (referrer) restriction.",
+    "Install the package and paste the key when asked: it is stored in the \"Google Places API (New)\" integration. The \"Places text search (addresses)\" API reference and the \"Address and location (sample)\" form come with it.",
+    "Use the sample form, or drag Address onto your own form and set its lookup source: API reference \"Places text search (addresses)\", query = {{search}}, results path places, display fields formattedAddress, addressComponents and location, value field id.",
+    "Optionally set a country hint (e.g. New Zealand), the placeholder and whether manual entry and the parsed details are shown. Add a Map control with its Location mapped to this field to show the address on a map."
+  ],
+  "systems": [
+    "Google Maps Platform"
+  ],
+  "preview": {
+    "props": {
+      "placeholder": "Start typing an address",
+      "min_chars": 3,
+      "debounce_ms": 350,
+      "allow_manual": true,
+      "show_details": true
+    },
+    "value": null,
+    "label": "Site address",
+    "height": 300,
+    "fixtures": {
+      "lookup": {
+        "items": [
+          {
+            "value": "ChIJLWl7ckhIDW0RRhZBrhyJUBE",
+            "label": "1 Queen Street, Auckland CBD, Auckland 1010, New Zealand",
+            "description": "[{\"longText\":\"1\",\"shortText\":\"1\",\"types\":[\"street_number\"],\"languageCode\":\"en\"},{\"longText\":\"Queen Street\",\"shortText\":\"Queen St\",\"types\":[\"route\"],\"languageCode\":\"en\"},{\"longText\":\"Auckland CBD\",\"sho · {\"latitude\":-36.8441486,\"longitude\":174.7671598}",
+            "fields": {
+              "formattedAddress": "1 Queen Street, Auckland CBD, Auckland 1010, New Zealand",
+              "addressComponents": [
+                {
+                  "longText": "1",
+                  "shortText": "1",
+                  "types": [
+                    "street_number"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Queen Street",
+                  "shortText": "Queen St",
+                  "types": [
+                    "route"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Auckland CBD",
+                  "shortText": "Auckland CBD",
+                  "types": [
+                    "sublocality_level_1",
+                    "sublocality",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Auckland",
+                  "shortText": "Auckland",
+                  "types": [
+                    "locality",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Auckland",
+                  "shortText": "AUK",
+                  "types": [
+                    "administrative_area_level_1",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "New Zealand",
+                  "shortText": "NZ",
+                  "types": [
+                    "country",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "1010",
+                  "shortText": "1010",
+                  "types": [
+                    "postal_code"
+                  ],
+                  "languageCode": "en"
+                }
+              ],
+              "location": {
+                "latitude": -36.8441486,
+                "longitude": 174.7671598
+              },
+              "id": "ChIJLWl7ckhIDW0RRhZBrhyJUBE"
+            }
+          },
+          {
+            "value": "ChIJ9WwMzP2xbW0RkK3ZSVn0b-A",
+            "label": "1 Queen Street East, Hastings 4122, New Zealand",
+            "description": "[{\"longText\":\"1\",\"shortText\":\"1\",\"types\":[\"street_number\"],\"languageCode\":\"en\"},{\"longText\":\"Queen Street East\",\"shortText\":\"Queen St E\",\"types\":[\"route\"],\"languageCode\":\"en\"},{\"longText\":\"Hastings\",\" · {\"latitude\":-39.6406571,\"longitude\":176.8448713}",
+            "fields": {
+              "formattedAddress": "1 Queen Street East, Hastings 4122, New Zealand",
+              "addressComponents": [
+                {
+                  "longText": "1",
+                  "shortText": "1",
+                  "types": [
+                    "street_number"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Queen Street East",
+                  "shortText": "Queen St E",
+                  "types": [
+                    "route"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Hastings",
+                  "shortText": "Hastings",
+                  "types": [
+                    "locality",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "Hawke's Bay",
+                  "shortText": "HKB",
+                  "types": [
+                    "administrative_area_level_1",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "New Zealand",
+                  "shortText": "NZ",
+                  "types": [
+                    "country",
+                    "political"
+                  ],
+                  "languageCode": "en"
+                },
+                {
+                  "longText": "4122",
+                  "shortText": "4122",
+                  "types": [
+                    "postal_code"
+                  ],
+                  "languageCode": "en"
+                }
+              ],
+              "location": {
+                "latitude": -39.6406571,
+                "longitude": 176.8448713
+              },
+              "id": "ChIJ9WwMzP2xbW0RkK3ZSVn0b-A"
+            }
+          }
+        ]
+      }
+    },
+    "note": "The preview answers every search with two sample Google Places results; on a form the suggestions come from your lookup source."
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "id": "7eb7092f-c473-4a02-9bef-f584a95e8a7d",
+  "asset_id": "b660e09e-e760-4c71-95c4-f94e4fb62cbd",
+  "slug": "text-toolkit",
+  "title": "Text toolkit",
+  "summary": "Slugs, case conversion, {{placeholder}} templates, truncation, extraction, fuzzy matching, word counts and masking for workflow text.",
+  "description": "Text toolkit covers the text clean-up and reshaping that workflows do all the time. Make URL- and file-safe slugs from titles (accents folded, & spelled out), convert between camelCase, snake_case, kebab-case, CONSTANT_CASE, Title Case and Sentence case, fill {{placeholder}} templates from an object with nested paths and fallbacks, shorten text for previews without cutting words in half, and pull values out from between markers.\n\nFor messy input there is fuzzy matching: Levenshtein distance, normalised similarity and Jaro-Winkler between two values, or the best match of a typed name in a list of candidates with a threshold, which is useful for matching free-text supplier or customer names to your records. Word count returns words, characters, sentences, paragraphs and reading time, and Mask hides card numbers, account numbers or email addresses before they are logged or sent. Everything runs in the sandbox with no network or data access.",
+  "icon": "type",
+  "tags": [
+    "text",
+    "slug",
+    "template",
+    "fuzzy match",
+    "mask",
+    "case"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-01",
+      "notes": "First release."
+    }
+  ],
+  "uses": [
+    "Match a supplier name typed on a form to the closest name in your vendor list",
+    "Build a notification from a template with the requester's and record's fields",
+    "Mask account or card numbers before writing them to a log, task or email"
+  ],
+  "setup": [
+    "Install the package: the action appears in Extensibility → Workflow actions and in the workflow designer's palette under Custom actions.",
+    "Drag Text toolkit onto a workflow, choose the function and map its inputs from variables or form fields.",
+    "Use the outputs from the data picker, e.g. {{slug_slug}} or {{match_best_match}}.",
+    "Try the included \"Text clean-up (sample)\" workflow from the API or its start form: it slugs a title, fuzzy-matches a name and masks an account number."
+  ],
+  "examples": [
+    {
+      "operation": "slugify",
+      "title": "A slug from a title",
+      "inputs": {
+        "text": "Crème brûlée & Café Menu 2026!"
+      }
+    },
+    {
+      "operation": "similarity",
+      "title": "Best match for a misspelt name",
+      "inputs": {
+        "value": "Jon Smyth",
+        "candidates": [
+          "John Smith",
+          "Joan Smythe",
+          "Jonas Schmidt"
+        ],
+        "threshold": 0.85
+      }
+    },
+    {
+      "operation": "template",
+      "title": "Fill a message template",
+      "inputs": {
+        "template": "Hi {{customer.first_name}}, your order {{order.id}} ships {{order.ship_date | soon}}.",
+        "data": {
+          "customer": {
+            "first_name": "Aroha"
+          },
+          "order": {
+            "id": "SO-1042"
+          }
+        }
+      },
+      "note": "order.ship_date is missing, so its fallback \"soon\" is used."
+    },
+    {
+      "operation": "mask",
+      "title": "Mask a card number",
+      "inputs": {
+        "value": "4111 1111 1111 1111",
+        "mode": "keep_last",
+        "keep": 4
+      }
+    },
+    {
+      "operation": "change_case",
+      "title": "Identifier to camelCase",
+      "inputs": {
+        "text": "customer order ID",
+        "case": "camel"
+      }
+    }
+  ]
+}

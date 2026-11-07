@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { FloatingLayer } from './floating-layer'
 import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -61,40 +61,11 @@ export function DateTimePicker({
   const panelRef = useRef<HTMLDivElement | null>(null)
   const selected = useMemo(() => parseLocalDateTime(value), [value])
   const [viewDate, setViewDate] = useState<Date>(() => selected ?? new Date())
-  const [panelRect, setPanelRect] = useState<{ top: number; left: number; width: number } | null>(null)
 
   useEffect(() => {
     if (selected) setViewDate(selected)
   }, [selected])
 
-  useEffect(() => {
-    if (!open) return
-    function updatePosition() {
-      const rect = rootRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const width = Math.min(576, window.innerWidth - 32)
-      const left = Math.min(Math.max(16, rect.left), window.innerWidth - width - 16)
-      const estimatedHeight = panelRef.current?.offsetHeight ?? 420
-      const preferredTop = rect.bottom + 8
-      const fitsBelow = preferredTop + estimatedHeight <= window.innerHeight - 16
-      const top = fitsBelow ? preferredTop : Math.max(16, rect.top - estimatedHeight - 8)
-      setPanelRect({ top, left, width })
-    }
-    function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-    updatePosition()
-    document.addEventListener('mousedown', handlePointerDown)
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [open])
 
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()
@@ -183,7 +154,7 @@ export function DateTimePicker({
           boxShadow: open ? '0 0 0 3px color-mix(in srgb, var(--theme-primary) 14%, transparent), var(--shadow-sm)' : 'var(--shadow-sm)',
         }}
       >
-        <CalendarClock size={16} style={{ color: 'var(--theme-primary-text)' }} />
+        <CalendarClock size={16} className="text-primary-text" />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {getDisplayValue(selected, placeholder)}
         </span>
@@ -194,44 +165,44 @@ export function DateTimePicker({
         />
       </button>
 
-      {open && panelRect && createPortal((
-        <div
-          ref={panelRef}
-          className="fixed z-[240] overflow-hidden rounded-[20px] border shadow-xl"
+      <FloatingLayer
+          anchorRef={rootRef}
+          open={open}
+          onDismiss={() => setOpen(false)}
+          closeOnEscape
+          panelRef={panelRef}
+          width={576}
+          maxHeight={560}
+          gap={8}
+          className="overflow-y-auto overflow-x-hidden rounded-[20px] border shadow-xl"
           style={{
-            top: panelRect.top,
-            left: panelRect.left,
-            width: panelRect.width,
             backgroundColor: 'var(--theme-card-bg)',
             borderColor: 'var(--theme-surface-border)',
             boxShadow: 'var(--shadow-xl)',
           }}
         >
           <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
-            <div className="border-b p-3 md:border-b-0 md:border-r" style={{ borderColor: 'var(--theme-surface-border)' }}>
+            <div className="border-b p-3 md:border-b-0 md:border-r border-border">
               <div className="mb-3 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => setViewDate(new Date(year, month - 1, 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80 bg-bg text-fg"
                 >
                   <ChevronLeft size={14} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewDate(selected ?? new Date())}
-                  className="flex items-center gap-1 text-sm font-semibold"
-                  style={{ color: 'var(--theme-card-text)' }}
+                  className="flex items-center gap-1 text-sm font-semibold text-fg"
                 >
                   {MONTHS[month]} {year}
-                  <ChevronDown size={13} style={{ color: 'var(--theme-muted-text)' }} />
+                  <ChevronDown size={13} className="text-fg-muted" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewDate(new Date(year, month + 1, 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-card-text)' }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80 bg-bg text-fg"
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -239,7 +210,7 @@ export function DateTimePicker({
 
               <div className="grid grid-cols-7 gap-0.5 text-center">
                 {DAYS.map((day, index) => (
-                  <div key={`${day}-${index}`} className="py-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
+                  <div key={`${day}-${index}`} className="py-1.5 text-2xs font-semibold uppercase tracking-wide text-fg-muted">
                     {day}
                   </div>
                 ))}
@@ -301,11 +272,11 @@ export function DateTimePicker({
                 })}
               </div>
 
-              <div className="mt-3 flex items-center justify-between border-t pt-2.5" style={{ borderColor: 'var(--theme-surface-border)' }}>
-                <button type="button" onClick={clearValue} className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--theme-primary-text)' }}>
+              <div className="mt-3 flex items-center justify-between border-t pt-2.5 border-border">
+                <button type="button" onClick={clearValue} className="text-xs font-medium transition-opacity hover:opacity-75 text-primary-text">
                   Clear
                 </button>
-                <button type="button" onClick={setToday} className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--theme-primary-text)' }}>
+                <button type="button" onClick={setToday} className="text-xs font-medium transition-opacity hover:opacity-75 text-primary-text">
                   Today
                 </button>
               </div>
@@ -317,8 +288,7 @@ export function DateTimePicker({
               <TimeColumn label="Period" items={['AM', 'PM']} selected={selectedIsPm ? 'PM' : 'AM'} onSelect={(item) => setMeridiem(item as 'AM' | 'PM')} />
             </div>
           </div>
-        </div>
-      ), document.body)}
+      </FloatingLayer>
     </div>
   )
 }
@@ -336,7 +306,7 @@ function TimeColumn({
 }) {
   return (
     <div className="min-w-0">
-      <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
+      <div className="mb-1.5 px-1 text-2xs font-semibold uppercase tracking-wide text-fg-muted">
         {label}
       </div>
       <div className="max-h-[16rem] space-y-1 overflow-y-auto pr-1">

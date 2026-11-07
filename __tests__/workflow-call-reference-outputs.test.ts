@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+// The shared reference executor resolves the provider host through the egress guard.
+vi.mock('node:dns/promises', () => ({ lookup: async () => [{ address: '93.184.216.34', family: 4 }] }))
 import { __testing } from '@/lib/workflow-engine'
 import { resolveExpression } from '@/lib/expression-resolver'
 import { buildPickExpression } from '@/lib/workflow-data-picker'
@@ -20,6 +22,7 @@ const body = {
 
 const reference = {
   id: 'ref-1',
+  tenant_id: 'tenant-1',
   name: 'Get customers',
   request_config: { method: 'GET', path_template: '/customers', response_schema: { version: 1, source: 'sample', root: { type: 'object' } } },
   inputs: [],
@@ -29,7 +32,7 @@ const reference = {
     { name: 'customers', path: 'data', type: 'array' },
     { name: 'col_email', path: '[].email', type: 'string' },
   ],
-  integration: { name: 'CRM', config: { base_url: 'https://crm.example.com', auth_type: 'none' } },
+  integration: { id: 'int-1', tenant_id: 'tenant-1', name: 'CRM', config: { base_url: 'https://crm.example.com', auth_type: 'none' } },
 }
 
 type Ctx = Parameters<typeof __testing.executeNode>[3]

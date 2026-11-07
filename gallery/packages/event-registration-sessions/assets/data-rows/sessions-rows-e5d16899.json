@@ -1,0 +1,137 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+  "asset": {
+    "id": "e5d16899-81fd-5816-98cc-bf6005ae8cdc",
+    "name": "Sessions rows",
+    "rows": [
+      {
+        "id": "66b20ed4-def3-5b88-aa51-23b1e8914bbf",
+        "data": {
+          "session_code": "OPS-K1",
+          "session_label": "Keynote: Operations in 2027 · Operations Summit",
+          "event_code": "OPS-26",
+          "title": "Keynote: Operations in 2027",
+          "speaker": "Jordan Sample",
+          "starts": "09:00",
+          "room": "Main hall",
+          "capacity": 150,
+          "seats_taken": 104
+        }
+      },
+      {
+        "id": "2161d5c9-92c2-5f69-9ea5-1ec9cf0c1245",
+        "data": {
+          "session_code": "OPS-W1",
+          "session_label": "Workshop A: Forms that fill themselves · Operations Summit",
+          "event_code": "OPS-26",
+          "title": "Workshop A: Forms that fill themselves",
+          "speaker": "Riley Test",
+          "starts": "10:30",
+          "room": "Room 2",
+          "capacity": 12,
+          "seats_taken": 11
+        }
+      },
+      {
+        "id": "ee27fdd7-5fcd-5373-b43d-72fc4bf7583c",
+        "data": {
+          "session_code": "OPS-W2",
+          "session_label": "Workshop B: Decision tables in practice · Operations Summit",
+          "event_code": "OPS-26",
+          "title": "Workshop B: Decision tables in practice",
+          "speaker": "Casey Demo",
+          "starts": "10:30",
+          "room": "Room 3",
+          "capacity": 16,
+          "seats_taken": 15
+        }
+      },
+      {
+        "id": "07c0d9ef-97ec-5090-8053-9ed82c25e428",
+        "data": {
+          "session_code": "OPS-P1",
+          "session_label": "Panel: Safety and compliance without paper · Operations Summit",
+          "event_code": "OPS-26",
+          "title": "Panel: Safety and compliance without paper",
+          "speaker": "Morgan Placeholder",
+          "starts": "13:30",
+          "room": "Main hall",
+          "capacity": 60,
+          "seats_taken": 31
+        }
+      },
+      {
+        "id": "c9262a66-e300-575f-ab09-9b4363e4b458",
+        "data": {
+          "session_code": "OPS-C1",
+          "session_label": "Clinic: Ask the workflow engineers · Operations Summit",
+          "event_code": "OPS-26",
+          "title": "Clinic: Ask the workflow engineers",
+          "speaker": "Taylor Example",
+          "starts": "15:00",
+          "room": "Room 2",
+          "capacity": 10,
+          "seats_taken": 4
+        }
+      },
+      {
+        "id": "3ff0f897-992a-537b-a4f8-d56fc313d238",
+        "data": {
+          "session_code": "CUS-R1",
+          "session_label": "Roadmap preview · Customer Day",
+          "event_code": "CUS-26",
+          "title": "Roadmap preview",
+          "speaker": "Jordan Sample",
+          "starts": "10:00",
+          "room": "Level 4 auditorium",
+          "capacity": 60,
+          "seats_taken": 22
+        }
+      },
+      {
+        "id": "292eb3e8-2044-529d-b23e-780e21880b51",
+        "data": {
+          "session_code": "CUS-S1",
+          "session_label": "Customer stories · Customer Day",
+          "event_code": "CUS-26",
+          "title": "Customer stories",
+          "speaker": "Quinn Sample",
+          "starts": "11:30",
+          "room": "Level 4 auditorium",
+          "capacity": 40,
+          "seats_taken": 18
+        }
+      },
+      {
+        "id": "7e554efe-40cd-566b-9e67-8f06f8fa639b",
+        "data": {
+          "session_code": "PRT-U1",
+          "session_label": "Partner programme update · Partner briefing",
+          "event_code": "PRT-27",
+          "title": "Partner programme update",
+          "speaker": "Avery Example",
+          "starts": "09:00",
+          "room": "Online",
+          "capacity": 300,
+          "seats_taken": 41
+        }
+      },
+      {
+        "id": "087e59a3-552c-59d7-b1da-e3465b23890e",
+        "data": {
+          "session_code": "PRT-A1",
+          "session_label": "Building on the API · Partner briefing",
+          "event_code": "PRT-27",
+          "title": "Building on the API",
+          "speaker": "Riley Test",
+          "starts": "10:00",
+          "room": "Online",
+          "capacity": 100,
+          "seats_taken": 25
+        }
+      }
+    ]
+  }
+}

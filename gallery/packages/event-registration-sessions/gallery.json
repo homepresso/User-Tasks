@@ -1,0 +1,120 @@
+{
+  "title": "Event registration with session choices",
+  "category": "workplace",
+  "summary": "A four-step registration page with an attendee table, first and second session choices, slider, rating and rich text; seats are checked by a decision table and waitlisted groups go to the organiser.",
+  "description": "Event registration with session choices books groups into limited-seat sessions using only UserTasks features and the official form controls. The registration page has four steps with a progress bar and a review step: an event lookup that fills the date and venue from the Events table, a Table control for the attendees (name, email, dietary needs, accessibility needs), first and second choice sessions looked up in the Sessions table (only the sessions of the chosen event), a Slider for how many sessions they plan to attend, a heart Rating for interest in networking and a Rich text box for questions to the speakers.\n\nThe Event registration workflow counts the attendees with COUNT, reads the event and both sessions, and a Seat allocation decision table compares the spare seats with the size of the group: the first choice if it fits, else the second, else the waitlist. The registration is saved to the Registrations table, the seats taken go up on the session and the event, and a loop records every attendee in the Attendees table and emails each one their session; the person who registered gets a booking summary.\n\nA waitlisted group becomes a task for the organiser (the person who installed the package) with a two-day SLA, a reminder and escalation: an Info card shows the group and both choices, a Progress bar how full the first choice is, and the organiser either offers another session (the group is then booked and emailed) or keeps them on the waitlist with a message.\n\nThe Organiser dashboard page shows a Progress bar of the chosen event's seats filled, Chart controls of seats taken against capacity per session and registrations by status from the data tables, Saved report controls for attendees by session and by dietary need (workflow variables), and a button that emails the event's attendee list with the catering numbers.",
+  "trigger": "form",
+  "entry_workflow": "40d6cad7-b2d0-5b01-bbdf-ad094df25cea",
+  "entry_form": "b4fcf7b1-50c9-592e-8c78-9c33b0ccea5a",
+  "start": "Starts from a form page: share the Event registration with sessions page (/f/<id>) with staff or signed-in guests, or submit it from your own site through the forms API.",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "events",
+    "registration",
+    "sessions",
+    "waitlist",
+    "form controls",
+    "no integrations"
+  ],
+  "version": "1.2.0",
+  "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-04",
+      "notes": "Uses the 1.1.0 form controls: no visible loading, and the questions for the speakers reach the workflow as text."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-11-04",
+      "notes": "The registration form ends on a Submitted page: a party icon, the reference, the chosen sessions, and Register another group / Close form buttons."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-31",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open Forms → Event registration with sessions (share its /f/ link) and Forms → Organiser dashboard.",
+    "The Table, Slider, Rating, Rich text, Info card, Progress, Chart and Saved report controls install with the package (Extensibility → Form controls).",
+    "Replace the sample rows in Events and Sessions with your own (keep the Session column unique: it is what the session lookups store); delete the sample Registrations and Attendees rows when you go live.",
+    "Waitlisted groups go to the person who installed the package: change the Offer an alternative session step's assignee in the designer if someone else organises the events.",
+    "Edit the Seat allocation decision table to change how seats are given out.",
+    "Optional: apply the \"Registrations: 12 months after the event\" retention policy, and set EMAIL_PROVIDER so the confirmations are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Register",
+      "body": "Pick the event (date and venue fill in), list the attendees in the table, choose a first and second session, slide how many sessions you plan to attend, rate your interest in networking and add questions for the speakers."
+    },
+    {
+      "title": "Check seats",
+      "body": "The attendees are counted and the Seat allocation decision table compares the spare seats at the event and in both sessions with the size of the group."
+    },
+    {
+      "title": "Confirm",
+      "body": "A group that fits is booked: seats taken go up on the session and the event, every attendee is recorded and emailed, and the contact gets a summary."
+    },
+    {
+      "title": "Waitlist",
+      "body": "A group that does not fit is waitlisted and the organiser gets a task with an SLA to offer another session or keep them on the waitlist; the contact is emailed either way."
+    },
+    {
+      "title": "Organise",
+      "body": "The Organiser dashboard shows seats filled, seats by session, registrations by status, attendees by session and dietary needs, and emails the attendee list."
+    }
+  ],
+  "sample_input": {
+    "event": "OPS-26",
+    "event_title": "Operations Summit 2026",
+    "event_date": "2026-11-24",
+    "event_venue": "Harbourside Conference Centre, Wellington",
+    "contact_name": "Jamie Example",
+    "contact_email": "jamie.example@example.com",
+    "organisation": "Example Logistics",
+    "attendees": [
+      {
+        "name": "Jamie Example",
+        "email": "jamie.example@example.com",
+        "dietary": "Vegetarian",
+        "accessibility": ""
+      },
+      {
+        "name": "Sam Sample",
+        "email": "sam.sample@example.com",
+        "dietary": "Gluten free",
+        "accessibility": "Step-free access"
+      }
+    ],
+    "first_choice": "Workshop A: Forms that fill themselves · Operations Summit",
+    "second_choice": "Workshop B: Decision tables in practice · Operations Summit",
+    "sessions_planned": 3,
+    "networking": 4,
+    "questions": {
+      "html": "<p>How do you <strong>test</strong> a decision table before it goes live?</p>",
+      "text": "How do you test a decision table before it goes live?"
+    },
+    "consent": true
+  },
+  "expect": "completed",
+  "icon": "ticket",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Offer alternative",
+        "button": "offer",
+        "values": {
+          "alt_session": "Panel: Safety and compliance without paper · Operations Summit",
+          "organiser_message": "Both workshops are full, so we have booked you both into the safety and compliance panel. We will let you know if workshop seats come free."
+        }
+      }
+    ]
+  },
+  "id": "b806c9e9-f5d0-5c55-a71c-7bce505cf13d",
+  "slug": "event-registration-sessions"
+}

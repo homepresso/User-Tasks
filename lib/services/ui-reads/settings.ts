@@ -33,6 +33,31 @@ export const reads = {
     },
   }),
 
+  /** Settings → Workspace: the workspace address (acme.usertasks.com) — any member. */
+  'settings.workspaceAddress': defineRead({
+    args: NO_ARGS,
+    run: async (ctx) => (await import('../workspace-address')).getWorkspaceAddress(ctx),
+  }),
+
+  /** Settings → Workspace: is this subdomain valid and free? */
+  'settings.workspaceAddressCheck': defineRead({
+    args: z.object({ subdomain: z.string().max(100) }),
+    run: async (ctx, { subdomain }) => (await import('../workspace-address')).checkSubdomain(ctx, subdomain),
+  }),
+
+  /** Settings → Document OCR: the workspace's OCR provider (the Azure key is never returned). */
+  'settings.documentOcr': defineRead({
+    args: NO_ARGS,
+    perm: 'settings.view',
+    run: async (ctx) => (await import('../document-ocr')).getDocumentOcr(ctx),
+  }),
+
+  /** Designer: would OCR work in this workspace? (status and message only; any member). */
+  'settings.documentOcrStatus': defineRead({
+    args: NO_ARGS,
+    run: async (ctx) => (await import('../document-ocr')).getDocumentOcrStatus(ctx),
+  }),
+
   /** API keys page: keys plus the scope pickers the key editor offers. */
   'settings.apiKeysPage': defineRead({
     args: NO_ARGS,
@@ -84,7 +109,7 @@ export const reads = {
           .order('created_at', { ascending: false })
           .limit(5),
         db.from('tenants').select('slug').eq('id', tenantId).maybeSingle(),
-        db.from('mcp_servers').select('*').order('created_at', { ascending: false }),
+        db.from('mcp_servers').select('id, tenant_id, name, description, url, auth_type, is_active, tools_cache, tools_cached_at, created_by, created_at, updated_at').order('created_at', { ascending: false }),
       ])
       return {
         apiKeys: (apiKeys.data ?? []) as any[],

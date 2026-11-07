@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { FloatingLayer } from './floating-layer'
 
 export interface AutocompleteOption {
   value: string
@@ -28,6 +29,10 @@ export function AutocompleteSelect({
   disabled = false,
   className,
   size = 'sm',
+  id,
+  labelledBy,
+  describedBy,
+  invalid,
 }: {
   value: string | null | undefined
   onChange: (value: string) => void
@@ -38,6 +43,12 @@ export function AutocompleteSelect({
   disabled?: boolean
   className?: string
   size?: 'sm' | 'md'
+  /** Id of the trigger button (a form label's htmlFor). */
+  id?: string
+  /** Id of the visible label: the trigger is named "<label> <value>". */
+  labelledBy?: string
+  describedBy?: string
+  invalid?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -45,6 +56,7 @@ export function AutocompleteSelect({
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const listId = useId()
 
   const selected = options.find((o) => o.value === value)
 
@@ -56,17 +68,6 @@ export function AutocompleteSelect({
     )
   }, [options, query])
 
-  useEffect(() => {
-    if (!open) return
-    const onDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false)
-        setQuery('')
-      }
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
 
   useEffect(() => {
     if (open) {
@@ -97,6 +98,12 @@ export function AutocompleteSelect({
     <div ref={rootRef} className={cn('relative', className)}>
       <button
         type="button"
+        id={id}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-labelledby={labelledBy && id ? `${labelledBy} ${id}` : undefined}
+        aria-describedby={describedBy}
+        aria-invalid={invalid || undefined}
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         className={cn(
@@ -113,48 +120,60 @@ export function AutocompleteSelect({
         <span className="flex shrink-0 items-center gap-1">
           {clearable && selected ? (
             <X
-              size={12}
-              style={{ color: 'var(--theme-muted-text)' }}
+              size={12} className="text-fg-muted"
               onClick={(event) => {
                 event.stopPropagation()
                 onChange('')
               }}
             />
           ) : null}
-          <ChevronDown size={13} style={{ color: 'var(--theme-muted-text)' }} />
+          <ChevronDown size={13} className="text-fg-muted" />
         </span>
       </button>
 
-      {open && (
-        <div
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border shadow-lg"
-          style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }}
-        >
-          <div className="flex items-center gap-1.5 border-b px-2 py-1.5" style={{ borderColor: 'var(--theme-surface-border)' }}>
-            <Search size={12} style={{ color: 'var(--theme-muted-text)' }} />
+      <FloatingLayer
+        anchorRef={rootRef}
+        open={open}
+        onDismiss={() => { setOpen(false); setQuery('') }}
+        minWidth={200}
+        maxHeight={300}
+        className="flex flex-col overflow-hidden rounded-lg border shadow-lg bg-panel border-border"
+      >
+          <div className="flex items-center gap-1.5 border-b px-2 py-1.5 border-border">
+            <Search size={12} className="text-fg-muted" />
             <input
               ref={inputRef}
+              role="combobox"
+              aria-expanded
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={filtered[highlight] ? `${listId}-${highlight}` : undefined}
+              aria-label="Filter options"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => Math.min(h + 1, filtered.length - 1)) }
                 else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)) }
                 else if (e.key === 'Enter') { e.preventDefault(); const o = filtered[highlight]; if (o) pick(o) }
-                else if (e.key === 'Escape') { setOpen(false); setQuery('') }
+                else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false); setQuery('') }
               }}
               placeholder="Type to filter…"
-              className="w-full bg-transparent text-xs outline-none"
-              style={{ color: 'var(--theme-card-text)' }}
+              className="w-full bg-transparent text-xs outline-none text-fg"
             />
           </div>
-          <div ref={listRef} className="max-h-56 overflow-y-auto py-1">
+          <div ref={listRef} id={listId} role="listbox" className="min-h-0 flex-1 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-xs" style={{ color: 'var(--theme-muted-text)' }}>{emptyLabel}</p>
+              <p className="px-3 py-2 text-xs text-fg-muted">{emptyLabel}</p>
             ) : (
               filtered.map((option, index) => (
                 <button
                   key={option.value}
+                  id={`${listId}-${index}`}
                   type="button"
+                  role="option"
+                  aria-selected={option.value === value}
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   disabled={option.disabled}
                   onMouseEnter={() => setHighlight(index)}
                   onClick={() => pick(option)}
@@ -167,16 +186,15 @@ export function AutocompleteSelect({
                   <span className="min-w-0">
                     <span className="block truncate">{option.label}</span>
                     {option.hint ? (
-                      <span className="block truncate text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{option.hint}</span>
+                      <span className="block truncate text-2xs text-fg-muted">{option.hint}</span>
                     ) : null}
                   </span>
-                  {option.value === value ? <Check size={12} className="shrink-0" style={{ color: 'var(--theme-primary-text)' }} /> : null}
+                  {option.value === value ? <Check size={12} className="shrink-0 text-primary-text" /> : null}
                 </button>
               ))
             )}
           </div>
-        </div>
-      )}
+      </FloatingLayer>
     </div>
   )
 }

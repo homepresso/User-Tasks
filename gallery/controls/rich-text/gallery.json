@@ -1,0 +1,32 @@
+{
+  "id": "02508da5-dd88-419a-b8b1-75a61d19d11a",
+  "asset_id": "5457ce04-49d1-4cd5-ad43-e5d4397bd0b9",
+  "slug": "rich-text",
+  "title": "Rich text",
+  "kind": "input",
+  "summary": "A rich-text editor with bold, italic, underline, headings, lists, quotes and links, a character counter and strict sanitising of everything pasted in.",
+  "description": "A compact editor for the long answers that plain text boxes make hard to read: incident descriptions, change summaries, meeting notes, customer replies. People can use bold, italic and underline, two heading levels, bulleted and numbered lists, quotes and links, and paste from documents, email or web pages without dragging the source's styling along.\n\nEverything that reaches the editor or the stored value is rebuilt from a short allowlist of tags (paragraphs, headings, lists, quotes, links, bold, italic, underline) with every attribute removed; links keep only https, http and mailto addresses and always open in a new tab. Scripts, images, frames, styles and event handlers never get through. The value stores the clean HTML together with a plain-text copy, so workflows, emails and search can use the text directly.\n\nThe toolbar is a proper ARIA toolbar with a single Tab stop and arrow-key navigation, every toggle announces whether it is on, and the usual shortcuts work (Ctrl/Cmd+B, I, U, K, Z). A counter shows the length against the limit and warns screen-reader users politely as they approach it.",
+  "icon": "type",
+  "tags": ["rich text", "editor", "formatting", "notes", "description", "wysiwyg"],
+  "version": "1.1.0",
+  "changelog": [{ "version": "1.1.0", "date": "2026-11-04", "notes": "Workflow output: the field is now text — sanitised HTML by default, or plain text (Workflow output in the field properties) — with the plain text as <key>_text and the full { html, text } value as <key>_raw. Opens with no visible loading." }, { "version": "1.0.1", "date": "2026-10-31", "notes": "Fast typing no longer loses text: a late echo of an earlier keystroke from the form is recognised and ignored instead of re-rendering the editor." }, { "version": "1.0.0", "date": "2026-10-31", "notes": "First release." }],
+  "uses": [
+    "Incident or fault description with steps and a link to evidence",
+    "Change request summary with headings and a numbered rollout plan",
+    "A formatted reply to a customer drafted on an approval step"
+  ],
+  "setup": [
+    "Install the package: the control appears in Extensibility → Form controls and in the form designer's palette under Custom.",
+    "Drag Rich text onto a form, then set the placeholder, the maximum length, the toolbar (full or basic) and the minimum height in the properties panel.",
+    "Anywhere you show the stored HTML outside UserTasks (an email template, another app), sanitise it again on that side; or use the plain-text copy (value.text)."
+  ],
+  "preview": {
+    "props": { "placeholder": "What happened, and what did you expect?", "max_length": 5000, "toolbar": "full", "min_height": 140 },
+    "value": {
+      "html": "<h2>Leak under the sink</h2><p>Water pools after <strong>every</strong> wash. Started <em>last Tuesday</em>.</p><ul><li>Checked the trap</li><li>Seal looks <u>cracked</u></li></ul><p>Photos: <a href=\"https://example.com/photos\" rel=\"noopener noreferrer\" target=\"_blank\">shared album</a></p>",
+      "text": "Leak under the sink\nWater pools after every wash. Started last Tuesday.\n• Checked the trap\n• Seal looks cracked\nPhotos: shared album"
+    },
+    "label": "Describe the problem",
+    "height": 260
+  }
+}

@@ -101,7 +101,7 @@ export function IntegrationWizard({ integration, references }: IntegrationWizard
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium">{step.title}</p>
-                  <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{step.description}</p>
+                  <p className="text-2xs text-fg-muted">{step.description}</p>
                 </div>
               </button>
               {i < steps.length - 1 && (
@@ -138,12 +138,14 @@ export function IntegrationWizard({ integration, references }: IntegrationWizard
             onBack={() => setCurrentStep(isDatabase ? 2 : 1)}
           />
 
-          {/* Existing references (edit/manage) */}
-          {references.length > 0 && (
+          {/* References (edit/manage) — shown when empty too, to start custom references */}
+          {(
             <Card>
               <h3 className="text-sm font-semibold mb-4">Manage References</h3>
-              <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
-                Edit inputs, outputs, and request config for existing references.
+              <p className="text-xs mb-4 text-fg-muted">
+                {references.length > 0
+                  ? 'Edit references, or build a tidy custom one: pick its columns, filters, sort and inputs.'
+                  : 'No references yet. Build a custom reference — pick an operation or table, its columns, filters, sort and inputs.'}
               </p>
               <ReferenceList
                 integrationId={integration.id}
@@ -157,7 +159,7 @@ export function IntegrationWizard({ integration, references }: IntegrationWizard
           {integration.type === 'database' && (
             <Card>
               <h3 className="text-sm font-semibold mb-4">Query Runner</h3>
-              <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+              <p className="text-xs mb-4 text-fg-muted">
                 Browse tables, run SQL queries, and explore your database.
               </p>
               <DbQueryRunner integrationId={integration.id} />

@@ -1,0 +1,191 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+  "asset": {
+    "id": "c8df2abe-d6bc-5f28-a3cb-601cfdc7eeef",
+    "name": "Contract register",
+    "description": "Every contract with its owner, value, term, renewal decision date, risk, status and the playbook deviations legal found. The Contract review workflow adds a row per request and keeps it up to date; the Contract register page lists them and the renewals due in the next 90 days.",
+    "columns": [
+      {
+        "id": "fae35122-3047-564c-8322-8c28c97e3f2a",
+        "required": true,
+        "key": "contract_ref",
+        "name": "Contract",
+        "type": "text"
+      },
+      {
+        "id": "e08f56fe-fa7c-583b-a36a-0bbafb8fd965",
+        "required": false,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "624ae18c-ebd5-54e5-9f03-addeaad69938",
+        "required": false,
+        "key": "counterparty",
+        "name": "Counterparty",
+        "type": "text"
+      },
+      {
+        "id": "47b16c9c-a3d3-59e4-9b15-0f38589fe942",
+        "required": false,
+        "key": "contract_type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Customer agreement",
+          "Supplier agreement",
+          "Partnership",
+          "Licence",
+          "Services agreement",
+          "Lease"
+        ]
+      },
+      {
+        "id": "f7c777a5-9dbd-5636-9492-b58d037260ad",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Sales",
+          "Procurement",
+          "Operations",
+          "Technology",
+          "People",
+          "Finance",
+          "Marketing"
+        ]
+      },
+      {
+        "id": "7954b9fa-4d72-5c73-97bb-5a1882b06594",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "0e52fadb-85bc-5094-8ec3-e3ee4be3bbfb",
+        "required": false,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "email"
+      },
+      {
+        "id": "fb90e025-fc72-5039-9653-c888732e8bbb",
+        "required": false,
+        "key": "value",
+        "name": "Total value",
+        "type": "number"
+      },
+      {
+        "id": "b19a711e-88ae-5643-95cd-1cc7fec1cf14",
+        "required": false,
+        "key": "start_date",
+        "name": "Start",
+        "type": "date"
+      },
+      {
+        "id": "175b97bc-22d3-52e4-ad59-57196fd950d0",
+        "required": false,
+        "key": "end_date",
+        "name": "End",
+        "type": "date"
+      },
+      {
+        "id": "9266c477-16d0-5615-b6de-d234c5e2df78",
+        "required": false,
+        "key": "auto_renew",
+        "name": "Auto-renews",
+        "type": "boolean"
+      },
+      {
+        "id": "accd1ea7-3bde-58d7-a4ba-66e28aa04f03",
+        "required": false,
+        "key": "notice_days",
+        "name": "Notice (days)",
+        "type": "number"
+      },
+      {
+        "id": "0d457f9e-6546-5950-bc9e-8abfa7b4e646",
+        "required": false,
+        "key": "renewal_date",
+        "name": "Renewal decision by",
+        "type": "date"
+      },
+      {
+        "id": "a3cf3539-ec2e-599a-ae1b-6201db6f03fc",
+        "required": false,
+        "key": "risk_level",
+        "name": "Risk",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      {
+        "id": "d54155c4-04a1-5b7e-84aa-1918c07d58f4",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "In review",
+          "Changes requested",
+          "Awaiting approval",
+          "Approved",
+          "Active",
+          "Rejected",
+          "Withdrawn",
+          "Expired"
+        ]
+      },
+      {
+        "id": "bfa466a2-c213-5bec-b90f-c36a9d477c4b",
+        "required": false,
+        "key": "version",
+        "name": "Version",
+        "type": "number"
+      },
+      {
+        "id": "56e6ec4a-e931-5e82-8ec8-fc2807748a6c",
+        "required": false,
+        "key": "document_name",
+        "name": "Document",
+        "type": "text"
+      },
+      {
+        "id": "720493c4-f634-515f-bf0b-834d3f597be2",
+        "required": false,
+        "key": "deviations",
+        "name": "Playbook deviations",
+        "type": "text"
+      },
+      {
+        "id": "22880c4a-a87c-5380-8dc2-789a7a58db86",
+        "required": false,
+        "key": "approval_path",
+        "name": "Approval path",
+        "type": "text"
+      },
+      {
+        "id": "4272d644-65e4-5008-aa82-56d3675b93d5",
+        "required": false,
+        "key": "approved_by",
+        "name": "Approved by",
+        "type": "text"
+      },
+      {
+        "id": "4979ccde-b2ad-5d44-9f81-c562822a1ab6",
+        "required": false,
+        "key": "approved_on",
+        "name": "Approved",
+        "type": "date"
+      }
+    ]
+  }
+}

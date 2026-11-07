@@ -10,6 +10,9 @@ import {
 import { ConnectorLogo } from "./connector-logo"
 import { getConnectorLogoSource } from "@/lib/connectors/logo-sources"
 
+/** Brand logos are drawn for a white tile, whatever the theme. */
+const LOGO_TILE_BG = 'white'
+
 const iconMap: Record<string, any> = {
   MessageSquare, Mail, Sparkles, Brain, CreditCard, Phone,
   Cloud, HardDrive, Users, Plug, CloudCog, FolderOpen,
@@ -48,7 +51,7 @@ export function ConnectorCard({ name, description, connectorKey, icon, color, ca
         {/* Icon */}
         <div
           className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: logoSource ? '#ffffff' : color + '15' }}
+          style={logoSource ? { backgroundColor: LOGO_TILE_BG } : { backgroundColor: color + '15' }}
         >
           {logoSource ? (
             <ConnectorLogo
@@ -67,7 +70,7 @@ export function ConnectorCard({ name, description, connectorKey, icon, color, ca
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold truncate" style={{ color: 'var(--theme-card-text)' }}>
+            <span className="text-sm font-semibold truncate text-fg">
               {name}
             </span>
             {isEnabled && status && (
@@ -83,7 +86,7 @@ export function ConnectorCard({ name, description, connectorKey, icon, color, ca
               />
             )}
           </div>
-          <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-2xs mt-0.5 line-clamp-2 text-fg-muted">
             {description}
           </p>
         </div>
@@ -92,15 +95,14 @@ export function ConnectorCard({ name, description, connectorKey, icon, color, ca
         <div className="shrink-0">
           {isEnabled ? (
             <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              className="text-2xs font-semibold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: color + '15', color }}
             >
               Active
             </span>
           ) : (
             <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-muted-text)' }}
+              className="text-2xs font-medium px-2 py-0.5 rounded-full bg-bg text-fg-muted"
             >
               {category}
             </span>

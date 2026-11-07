@@ -125,6 +125,18 @@ set `DOCUMENT_OCR_LANG_PATH` to that folder or URL. Alternatively set
 `DOCUMENT_OCR_PROVIDER=none` to turn OCR off. See
 [Optional drivers](optional-drivers.md#ocr-tesseractjs).
 
+## Media steps
+
+FFmpeg for the media steps (Media Utilities, Redact Video, frame-sampled
+Analyze Video, splitting long audio) is installed into the image when it is
+built (`INCLUDE_MEDIA_TOOLS=true`, the default), so the bundle's app image
+already carries it; build on the connected machine. The AI media providers
+themselves (OpenAI, Gemini, Azure AI, AWS, Deepgram, AssemblyAI, ElevenLabs,
+Stability AI) are internet services: on an isolated network only steps that
+need no provider work (Media Utilities, Redact Image / Video with custom
+boxes), unless you point an integration's base URL at a reachable endpoint
+(for example an Azure private endpoint).
+
 ## The CLI
 
 ```bash

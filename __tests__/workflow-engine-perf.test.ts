@@ -129,8 +129,8 @@ describe('long delays pause the run and resume from the queue', () => {
     expect(job.trigger_type).toBe('delay_resume')
     expect(job.trigger_data).toEqual({ _resume_run_id: result.run_id, _resume_event_id: row.event_id })
     expect(job.scheduled_for).toBe(new Date('2026-10-24T10:00:45Z').getTime())
-    // Not counted as a finished run yet.
-    expect(fake.tables.workflows[0].run_count).toBe(0)
+    // Counted when it started, even though it is waiting.
+    expect(fake.tables.workflows[0].run_count).toBe(1)
   })
 
   it('the queue worker resumes at the scheduled time at the next node with variables intact', async () => {

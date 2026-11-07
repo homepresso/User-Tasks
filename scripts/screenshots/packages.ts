@@ -89,7 +89,8 @@ async function incomplete(browser: any) {
   await shoot(page, 'packages-complete-setup')
   await page.getByTestId('complete-submit').click()
   await page.getByText('setup complete').waitFor({ timeout: 60_000 })
-  await page.getByRole('button', { name: 'Details' }).first().click().catch(() => {})
+  // Incomplete rows open expanded; the Details toggle lives in the row's ⋯ menu.
+  await page.getByRole('button', { name: /^Show details of/ }).first().click().catch(() => {})
   await page.waitForTimeout(800)
   await shoot(page, 'packages-library-complete')
   await context.close()
@@ -98,7 +99,8 @@ async function incomplete(browser: any) {
 async function upgrade(browser: any) {
   const { context, page } = await session(browser, target())
   await page.goto(`${APP_URL}/settings/packages`, { waitUntil: 'load' })
-  await page.getByRole('button', { name: 'Upgrade' }).first().click()
+  await page.getByRole('button', { name: /^More actions for/ }).first().click()
+  await page.getByRole('menuitem', { name: 'Upgrade' }).click()
   await page.getByTestId('package-file').setInputFiles(resolve(process.env.PKG_FILE!))
   await page.getByRole('button', { name: 'Review changes' }).waitFor()
   await page.waitForFunction(() => !document.querySelector('[data-testid="wizard-next"]')?.hasAttribute('disabled'), null, { timeout: 30_000 })

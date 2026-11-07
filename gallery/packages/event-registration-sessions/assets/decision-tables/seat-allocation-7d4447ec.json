@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "7d4447ec-e178-56ad-b3d4-02ffcc22330c",
+  "asset": {
+    "id": "7d4447ec-e178-56ad-b3d4-02ffcc22330c",
+    "name": "Seat allocation",
+    "description": "Decides where a registration goes from the spare seats after it (seats left minus the attendees): the event first, then the first choice session, then the second. A negative number means it does not fit. Change the order or add rules here.",
+    "inputs": [
+      {
+        "key": "spare_event",
+        "label": "Spare seats at the event after this registration",
+        "type": "number",
+        "id": "5d47f636-f7bb-5711-8483-69cb69f574e9"
+      },
+      {
+        "key": "spare_first",
+        "label": "Spare seats in the first choice",
+        "type": "number",
+        "id": "beaa29fd-e1a0-570e-b347-22bf2b7540cb"
+      },
+      {
+        "key": "spare_second",
+        "label": "Spare seats in the second choice",
+        "type": "number",
+        "id": "62e6558f-b6e1-5aef-a569-670b74cfcced"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "reg_status",
+        "label": "Status",
+        "type": "string",
+        "id": "da9b5b07-336d-592c-9baf-3bc35cdc4c3e"
+      },
+      {
+        "key": "seat_choice",
+        "label": "Session given",
+        "type": "string",
+        "id": "bbf3081e-5558-5178-af3e-8d443fedb9b3"
+      },
+      {
+        "key": "allocation_note",
+        "label": "Note to the registrant",
+        "type": "string",
+        "id": "dc495973-2968-5951-ab50-bcfa9accab8a"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Event full",
+        "conditions": [
+          {
+            "inputKey": "spare_event",
+            "operator": "less_than",
+            "value": "0",
+            "id": "c14f22e6-81ca-5b90-b979-41d1d823149c"
+          }
+        ],
+        "outputs": {
+          "reg_status": "Waitlisted",
+          "seat_choice": "none",
+          "allocation_note": "The event is full."
+        },
+        "id": "185bf027-545c-5e47-80f9-31ad2c88d639",
+        "enabled": true
+      },
+      {
+        "label": "First choice has room",
+        "conditions": [
+          {
+            "inputKey": "spare_first",
+            "operator": "greater_than_or_equal",
+            "value": "0",
+            "id": "9348edb5-75c0-5f03-8bc2-83b20e16964d"
+          }
+        ],
+        "outputs": {
+          "reg_status": "Confirmed",
+          "seat_choice": "first",
+          "allocation_note": "You got your first choice."
+        },
+        "id": "d4341e7f-c7af-582c-b741-e1995a9ada95",
+        "enabled": true
+      },
+      {
+        "label": "Second choice has room",
+        "conditions": [
+          {
+            "inputKey": "spare_second",
+            "operator": "greater_than_or_equal",
+            "value": "0",
+            "id": "e6695e8a-fc5e-5acc-97e9-2dc62dc4347f"
+          }
+        ],
+        "outputs": {
+          "reg_status": "Confirmed",
+          "seat_choice": "second",
+          "allocation_note": "Your first choice was full, so you have your second choice."
+        },
+        "id": "2c478b95-e254-5fa3-a837-d36406bc6b2f",
+        "enabled": true
+      },
+      {
+        "label": "Both choices full",
+        "conditions": [],
+        "outputs": {
+          "reg_status": "Waitlisted",
+          "seat_choice": "none",
+          "allocation_note": "Both sessions you chose are full."
+        },
+        "id": "3e5e4425-b5b3-5fb2-b117-7f07adebdcfb",
+        "enabled": true
+      }
+    ]
+  }
+}

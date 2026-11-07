@@ -34,9 +34,9 @@ describe('built-in presets pass the token audit', () => {
   })
 
   it('light-only presets use one palette in both modes (no near-black washes in dark mode)', () => {
-    const gallery = presetToWorkspaceTheme('basecamp')!
-    expect(gallery.colors.dark.primaryLight).toBe(gallery.colors.light.primaryLight)
-    expect(gallery.colors.dark.accentLight).toBe(gallery.colors.light.accentLight)
+    const blue = presetToWorkspaceTheme('corporate-blue')!
+    expect(blue.colors.dark.primaryLight).toBe(blue.colors.light.primaryLight)
+    expect(blue.colors.dark.accentLight).toBe(blue.colors.light.accentLight)
     // Dark-card presets get the dark status palette.
     const nebula = presetToWorkspaceTheme('nebula')!.colors.light
     expect(nebula.status.todo).not.toBe('#5B6770')
@@ -58,7 +58,9 @@ describe('built-in presets pass the token audit', () => {
 
 describe('legibility pass for stored / custom themes', () => {
   it('repairs a stored theme with the old dark-OS washes (dark tint under dark text)', () => {
+    // A Gallery theme saved before Gallery had a dark palette: its dark palette is the light one.
     const stored = defaultWorkspaceTheme()
+    stored.colors.dark = structuredClone(stored.colors.light)
     stored.colors.dark.primaryLight = '#070605'
     stored.colors.dark.accentLight = '#352919'
     const theme = parseStoredTheme(JSON.parse(JSON.stringify(stored)))

@@ -61,12 +61,16 @@ function resolveProvider<A extends ProviderArea>(
 ): ProviderConfig<A> {
   const options: Record<string, unknown> = {}
   const prefix = `${area}.`
+  // String values are trimmed wherever they come from (settings written by the
+  // Infrastructure page, the admin CLI, the API, or env vars): connection
+  // strings, URLs and keys never carry edge whitespace, and a pasted trailing
+  // newline breaks them (production's anon key had one).
   for (const [key, value] of settings) {
-    if (key.startsWith(prefix)) options[key.slice(prefix.length)] = value
+    if (key.startsWith(prefix)) options[key.slice(prefix.length)] = typeof value === 'string' ? value.trim() : value
   }
   for (const [option, name] of Object.entries(PROVIDER_OPTION_ENV[area] ?? {}) as Array<[string, string]>) {
-    const value = readEnv(name)
-    if (value !== undefined && value !== '') options[option] = value
+    const value = readEnv(name)?.trim()
+    if (value) options[option] = value
   }
 
   if (envId) return { area, id: envId, source: 'env', options }

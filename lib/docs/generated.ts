@@ -262,7 +262,7 @@ export function apiEndpointBlocks(): DocBlock[] {
         code(endpoint.method),
         code(`/api/v1${endpoint.path}`),
         endpoint.summary,
-        endpoint.auth === 'none' ? 'public' : endpoint.permission ? code(endpoint.permission) : 'any',
+        endpoint.auth === 'none' ? 'public' : endpoint.auth === 'instance_admin' ? 'instance admin token' : endpoint.permission ? code(endpoint.permission) : 'any',
       ]),
     })
   }
@@ -353,10 +353,12 @@ export function parseEnvExample(text: string): EnvVarDoc[] {
 
 /**
  * Reads a repository file at build time (docs pages are statically generated).
- * The ignore comment stops Turbopack tracing the whole project into the bundle.
+ * The ignore comments stop Turbopack tracing the whole project into the
+ * bundle (both are needed: the read itself is traced too); the files these
+ * pages read are listed in next.config.ts outputFileTracingIncludes.
  */
 export function readRepoFile(relativePath: string): string {
-  return readFileSync(path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath), 'utf8')
+  return readFileSync(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath), 'utf8')
 }
 
 export function envVarReferenceBlocks(): DocBlock[] {
@@ -388,16 +390,16 @@ const REPO_LINKS: Record<string, string> = {
   'setup-gcp.md': '/docs/self-hosting/google-cloud',
   'setup-kubernetes.md': '/docs/self-hosting/kubernetes',
   'setup-air-gapped.md': '/docs/self-hosting/air-gapped',
-  'packages.md': '/docs/changelog#packages',
-  'kubernetes-air-gapped.md': '/docs/changelog#kubernetes-air-gapped',
+  'packages.md': '/docs/packages',
+  'kubernetes-air-gapped.md': '/docs/self-hosting/kubernetes',
   'setup-aws.md': '/docs/self-hosting/aws',
-  'admin-cli.md': '/docs/changelog#admin-cli',
+  'admin-cli.md': '/docs/self-hosting/switching-providers',
   'parity.md': '/docs/api/parity',
   'results.md': '/docs/performance',
   'baseline.md': '/docs/performance',
-  'performance.md': '/docs/changelog#performance',
-  'log-export.md': '/docs/changelog#log-export',
-  'cli-api.md': '/docs/changelog#cli-api',
+  'performance.md': '/docs/performance',
+  'log-export.md': '/docs/observability',
+  'cli-api.md': '/docs/cli',
 }
 
 /**
@@ -439,7 +441,66 @@ export function includeRepoMarkdown(relativePath: string): DocBlock[] {
   return parseMarkdown(text, { headingShift: 0, resolveLink: (href) => resolveRepoLink(href, relativePath) })
 }
 
+/**
+ * Release notes in docs/changes/ (newest first). Internal history only: the
+ * public changelog page was retired (/docs/changelog redirects to /docs) and
+ * nothing on the site renders this list. Keep appending new notes here.
+ */
 export const CHANGELOG_FILES = [
+  { id: 'report-charts', file: 'docs/changes/report-charts.md' },
+  { id: 'survey-widgets', file: 'docs/changes/survey-widgets.md' },
+  { id: 'form-wizard', file: 'docs/changes/form-wizard.md' },
+  { id: 'task-views-review', file: 'docs/changes/task-views-review.md' },
+  { id: 'process-view-task-links', file: 'docs/changes/process-view-task-links.md' },
+  { id: 'queue-rules-v2', file: 'docs/changes/queue-rules-v2.md' },
+  { id: 'task-quick-actions', file: 'docs/changes/task-quick-actions.md' },
+  { id: 'tracker-following', file: 'docs/changes/tracker-following.md' },
+  { id: 'aad-group-assignment', file: 'docs/changes/aad-group-assignment.md' },
+  { id: 'form-polish', file: 'docs/changes/form-polish.md' },
+  { id: 'org-structure', file: 'docs/changes/org-structure.md' },
+  { id: 'standalone-forms', file: 'docs/changes/standalone-forms.md' },
+  { id: 'form-rules-read-only', file: 'docs/changes/form-rules-read-only.md' },
+  { id: 'preview-test-inputs', file: 'docs/changes/preview-test-inputs.md' },
+  { id: 'unified-task-list', file: 'docs/changes/unified-task-list.md' },
+  { id: 'workspace-dns-setup', file: 'docs/changes/workspace-dns-setup.md' },
+  { id: 'form-animations', file: 'docs/changes/form-animations.md' },
+  { id: 'task-completed-screen', file: 'docs/changes/task-completed-screen.md' },
+  { id: 'workspace-subdomains', file: 'docs/changes/workspace-subdomains.md' },
+  { id: 'form-lazy-load', file: 'docs/changes/form-lazy-load.md' },
+  { id: 'task-attachments', file: 'docs/changes/task-attachments.md' },
+  { id: 'home-compact', file: 'docs/changes/home-compact.md' },
+  { id: 'dynamic-properties', file: 'docs/changes/dynamic-properties.md' },
+  { id: 'home-layout', file: 'docs/changes/home-layout.md' },
+  { id: 'form-params-prefill', file: 'docs/changes/form-params-prefill.md' },
+  { id: 'form-label-control', file: 'docs/changes/form-label-control.md' },
+  { id: 'home-activity-charts', file: 'docs/changes/home-activity-charts.md' },
+  { id: 'anonymous-forms', file: 'docs/changes/anonymous-forms.md' },
+  { id: 'nav-counts-form-actions', file: 'docs/changes/nav-counts-form-actions.md' },
+  { id: 'submission-details-and-paging', file: 'docs/changes/submission-details-and-paging.md' },
+  { id: 'home-dashboard', file: 'docs/changes/home-dashboard.md' },
+  { id: 'form-submitted-page', file: 'docs/changes/form-submitted-page.md' },
+  { id: 'custom-reference-writes', file: 'docs/changes/custom-reference-writes.md' },
+  { id: 'variable-picker', file: 'docs/changes/variable-picker.md' },
+  { id: 'form-sections', file: 'docs/changes/form-sections.md' },
+  { id: 'custom-references', file: 'docs/changes/custom-references.md' },
+  { id: 'form-params', file: 'docs/changes/form-params.md' },
+  { id: 'response-collections', file: 'docs/changes/response-collections.md' },
+  { id: 'forms-governance', file: 'docs/changes/forms-governance.md' },
+  { id: 'available-forms', file: 'docs/changes/available-forms.md' },
+  { id: 'form-messages', file: 'docs/changes/form-messages.md' },
+  { id: 'form-rules', file: 'docs/changes/form-rules.md' },
+  { id: 'document-ocr-byok', file: 'docs/changes/document-ocr-byok.md' },
+  { id: 'form-data-table', file: 'docs/changes/form-data-table.md' },
+  { id: 'esign-connectors', file: 'docs/changes/esign-connectors.md' },
+  { id: 'custom-workflow-actions', file: 'docs/changes/custom-workflow-actions.md' },
+  { id: 'form-buttons-anywhere', file: 'docs/changes/form-buttons-anywhere.md' },
+  { id: 'gallery-form-controls', file: 'docs/changes/gallery-form-controls.md' },
+  { id: 'report-workflow-variables', file: 'docs/changes/report-workflow-variables.md' },
+  { id: 'form-controls-accessibility', file: 'docs/changes/form-controls-accessibility.md' },
+  { id: 'form-steps-tabs', file: 'docs/changes/form-steps-tabs.md' },
+  { id: 'media-actions', file: 'docs/changes/media-actions.md' },
+  { id: 'agents-decisions', file: 'docs/changes/agents-decisions.md' },
+  { id: 'redact-info-types', file: 'docs/changes/redact-info-types.md' },
   { id: 'form-attachments', file: 'docs/changes/form-attachments.md' },
   { id: 'document-actions', file: 'docs/changes/document-actions.md' },
   { id: 'form-qr-publish', file: 'docs/changes/form-qr-publish.md' },
@@ -477,19 +538,6 @@ export const CHANGELOG_FILES = [
   { id: 'cli-api', file: 'docs/changes/cli-api.md' },
 ]
 
-export function changelogBlocks(): DocBlock[] {
-  const blocks: DocBlock[] = []
-  for (const { id, file } of CHANGELOG_FILES) {
-    const text = readRepoFile(file)
-    const title = /^#\s+(.*)$/m.exec(text)?.[1] ?? id
-    blocks.push({ kind: 'heading', level: 2, text: title.replace(/^Release notes:\s*/i, ''), id })
-    blocks.push(...parseMarkdown(text.replace(/^#\s+.*\n/, ''), { headingShift: 1, resolveLink: resolveRepoLink }).map((block) =>
-      block.kind === 'heading' ? { ...block, id: `${id}-${block.id}` } : block,
-    ))
-  }
-  return blocks
-}
-
 export function parityBlocks(): DocBlock[] {
   return parseMarkdown(renderParityMarkdown().replace(/^#\s+.*\n/, ''), { headingShift: 0, resolveLink: resolveRepoLink })
 }
@@ -508,7 +556,6 @@ export const GENERATED_DIRECTIVES: Record<string, (args: string[]) => DocBlock[]
   'report-sources': () => reportSourceBlocks(),
   'agent-tools': () => agentToolBlocks(),
   'env-vars': () => envVarReferenceBlocks(),
-  changelog: () => changelogBlocks(),
   parity: () => parityBlocks(),
   include: ([file]) => includeRepoMarkdown(file),
 }

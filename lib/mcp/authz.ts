@@ -1,7 +1,7 @@
 import type { McpContext } from './server'
 import { mcpErr } from './server'
 import { writeAudit, type AuditObjectType, type AuditAction } from '@/lib/audit-log'
-import type { Permission } from '@/lib/permissions'
+import { expandPermissions, type Permission } from '@/lib/permissions'
 
 /**
  * Per-tool authorization + audit for the MCP surface.
@@ -25,8 +25,13 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   // agents
   agents_create: 'agents.create',
   agents_update: 'agents.edit',
+  agents_cost_settings_update: 'settings.edit',
   agents_delete: 'agents.delete',
   agents_execute: 'agents.test',
+  agents_version_restore: 'agents.edit',
+  agents_eval_case_save: 'agents.edit',
+  agents_eval_case_delete: 'agents.edit',
+  agents_eval_run: 'agents.test',
   // api keys
   api_keys_create: 'settings.manage_api_keys',
   api_keys_revoke: 'settings.manage_api_keys',
@@ -48,11 +53,25 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   retention_policies_update: 'settings.edit',
   retention_policies_delete: 'settings.edit',
   retention_policies_assign: 'settings.edit',
+  // object grants (governance)
+  object_permissions_set: 'team.change_roles',
+  object_permissions_remove: 'team.change_roles',
+  forms_legal_hold: 'team.change_roles',
+  forms_anonymous_update: 'forms.edit',
+  forms_anonymous_regenerate: 'forms.edit',
+  anonymous_forms_settings_update: 'settings.edit',
   // extensibility
   workflow_activities_create: 'extensibility.create',
   workflow_activities_update: 'extensibility.edit',
   workflow_activities_delete: 'extensibility.delete',
   workflow_activities_import: 'extensibility.create',
+  workflow_activities_upload: 'extensibility.create',
+  workflow_activities_secrets_set: 'extensibility.edit',
+  workflow_activities_test: 'extensibility.edit',
+  form_controls_create: 'extensibility.create',
+  form_controls_update: 'extensibility.edit',
+  form_controls_delete: 'extensibility.delete',
+  form_controls_import: 'extensibility.create',
   // email templates (governed by workflow permissions, as in the UI)
   email_templates_create: 'workflows.create',
   email_templates_update: 'workflows.edit',
@@ -63,8 +82,16 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   forms_duplicate: 'forms.edit',
   forms_delete: 'forms.delete',
   forms_submit: 'forms.submit',
+  // The form wizard (the service checks ownership; its steps run with the wizard's own context).
+  forms_wizard_create: 'forms.wizard',
+  forms_wizard_update: 'forms.wizard',
   // Attachments uploads (the service checks the context: task, form or workflow start).
   files_upload: 'forms.submit',
+  // Task attachments (the service checks the task: work access to add, uploader / tasks.delete to delete).
+  tasks_attachments_add: 'tasks.complete',
+  tasks_attachments_add_init: 'tasks.complete',
+  tasks_attachments_complete: 'tasks.complete',
+  tasks_attachments_delete: 'tasks.view_own',
   files_upload_init: 'forms.submit',
   files_upload_complete: 'forms.submit',
   form_themes_create: 'forms.edit',
@@ -79,6 +106,26 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   teams_add_member: 'team.invite',
   users_manager_set: 'team.change_roles',
   teams_remove_member: 'team.remove',
+  // organization (the service also accepts team.change_roles for a manager-only
+  // change of org_person_update; MCP gates on the org permission)
+  org_person_update: 'org.manage',
+  org_person_detach: 'org.manage',
+  org_unit_create: 'org.manage',
+  org_unit_update: 'org.manage',
+  org_unit_delete: 'org.manage',
+  org_unit_detach: 'org.manage',
+  org_unit_member_add: 'org.manage',
+  org_unit_member_remove: 'org.manage',
+  org_import: 'org.manage', // dry run included: it reads every member's attributes
+  // projects
+  projects_create: 'projects.manage',
+  projects_update: 'projects.manage',
+  projects_archive: 'projects.manage',
+  projects_delete: 'projects.manage',
+  projects_member_add: 'projects.manage',
+  projects_member_remove: 'projects.manage',
+  projects_team_attach: 'projects.manage',
+  projects_team_detach: 'projects.manage',
   invitations_send: 'team.invite',
   invitations_revoke: 'team.invite',
   invitations_resend: 'team.invite',
@@ -114,6 +161,15 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   tasks_complete: 'tasks.complete',
   tasks_update: 'tasks.manage_queue', // arbitrary mutation of any task's fields
   tasks_respond: 'tasks.complete', // accept/hold/reject in the caller's queue
+  tasks_claim: 'tasks.complete', // take an unassigned team task (team members only)
+  // home: the acting person's own follows, favourites and preferences
+  home_follow: 'tasks.view_own',
+  // Task tracker → Following: the acting person's own follows (the service checks the task is visible to them)
+  tasks_follow: 'tasks.view_own',
+  tasks_unfollow: 'tasks.view_own',
+  home_favorite_form: 'forms.submit',
+  home_preferences: 'tasks.view_own',
+  home_layout: 'tasks.view_own',
   tasks_complete_workflow: 'tasks.complete',
   // workflows (the catalog has no finer 'run' permission; execution control is
   // gated with 'activate' rather than left ungated)
@@ -146,8 +202,15 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   log_destinations_test: 'settings.edit',
   // workspace theme (applies to every member)
   workspace_theme_update: 'settings.edit',
+  workspace_address_set: 'settings.edit',
+  task_completion_settings_update: 'settings.edit',
+  form_sign_in_page_update: 'settings.edit',
   workspace_theme_apply_preset: 'settings.edit',
   workspace_theme_font_upload: 'settings.edit',
+  // document OCR (the workspace's own Azure key; write-only)
+  document_ocr_update: 'settings.edit',
+  document_ocr_remove_key: 'settings.edit',
+  document_ocr_test: 'settings.edit',
   // config as code: every section is gated by its own create/edit permission in
   // lib/services/config (as POST /config/apply, which has no single permission)
   config_apply: 'tasks.view_own',
@@ -169,10 +232,16 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   // "own tasks" floor so user-context keys can still read their queue)
   tasks_list: 'tasks.view_own',
   tasks_get: 'tasks.view_own',
+  // Task attachments: readers of the task (the download link is audited by the service).
+  tasks_attachments_list: 'tasks.view_own',
+  tasks_attachments_download_url: 'tasks.view_own',
+  // The acting person's followed tasks (visibility re-checked per row by the database).
+  tasks_following: 'tasks.view_own',
   tasks_priority_summary: 'tasks.view_own',
   // Autocomplete / lookup suggestions for a task the caller can act on
   // (no write; the service checks the task and runs only the stored config).
   tasks_lookup: 'tasks.complete',
+  tasks_data_table: 'tasks.complete',
   // workflows
   workflows_catalog: 'workflows.view',
   workflows_preflight: 'workflows.view',
@@ -183,9 +252,10 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   workflows_version_get: 'workflows.view',
   workflows_get_definition: 'workflows.view',
   workflows_inputs_get: 'workflows.view',
-  workflows_runs_list: 'workflows.view_runs',
-  workflows_run_get: 'workflows.view_runs',
-  workflows_instances_list: 'workflows.view_runs',
+  // Run lists: view_queue (involved + granted), view_runs (all) — scoped in the tool / service.
+  workflows_runs_list: 'workflows.view_queue',
+  workflows_run_get: 'workflows.view_queue',
+  workflows_instances_list: 'workflows.view_queue',
   trace_get: 'workflows.view_runs',
   // agents
   agents_list: 'agents.view',
@@ -193,6 +263,13 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   agents_runs_list: 'agents.view',
   agent_runs_list: 'agents.view',
   agent_runs_get: 'agents.view',
+  agents_job_get: 'agents.view',
+  agents_versions_list: 'agents.view',
+  agents_eval_cases_list: 'agents.view',
+  agents_eval_run_get: 'agents.view',
+  agents_eval_runs_list: 'agents.view',
+  agents_usage_get: 'agents.view',
+  agents_workspace_usage_get: 'agents.view',
   // data
   data_tables_list: 'data.view',
   data_tables_get: 'data.view',
@@ -228,6 +305,26 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   team_members_list: 'team.view_members',
   teams_list: 'team.view_members',
   teams_get: 'team.view_members',
+  // organization: the org-wide reads need org.view; self-scoped reads (your own
+  // profile, reports, chain, peers, scope, projects) sit at the floor every role
+  // holds and the service requires org.view / projects.view for anyone else
+  org_chart: 'org.view',
+  org_units_list: 'org.view',
+  org_unit_get: 'org.view',
+  org_unit_members: 'org.view',
+  org_team_tree: 'org.view',
+  org_team_members: 'org.view',
+  org_export: 'org.view',
+  org_person_get: 'tasks.view_own',
+  org_subordinates: 'tasks.view_own',
+  org_manager_chain: 'tasks.view_own',
+  org_peers: 'tasks.view_own',
+  org_scope_resolve: 'tasks.view_own',
+  // projects (get / members: projects.view, or being on the project — checked in the service)
+  projects_list: 'projects.view',
+  projects_mine: 'tasks.view_own',
+  projects_get: 'tasks.view_own',
+  projects_members: 'tasks.view_own',
   audit_log_query: 'team.change_roles', // permission log, as on the governance page
   invitations_list: 'team.invite',
   api_keys_list: 'settings.manage_api_keys',
@@ -242,19 +339,38 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   email_templates_preview: 'workflows.view',
   // reusable task forms and form themes
   forms_list: 'forms.view',
+  forms_wizard_list: 'forms.wizard',
+  forms_wizard_get: 'forms.wizard',
+  // The results page: the owner, the chosen roles / teams or forms.edit (checked in the service).
+  forms_wizard_results: 'forms.submit',
   forms_get: 'forms.view',
   forms_versions: 'forms.view',
   forms_version_get: 'forms.view',
   forms_usages: 'forms.view',
+  forms_governance_get: 'forms.view',
+  forms_anonymous_get: 'forms.view',
+  forms_links: 'forms.view',
+  forms_system_name_check: 'forms.view',
+  anonymous_forms_settings_get: 'settings.view',
+  object_permissions_list: 'team.change_roles',
+  forms_check_accessibility: 'forms.view',
   forms_submissions_list: 'forms.submit',
   forms_submission_get: 'forms.submit',
   forms_lookup: 'forms.submit',
+  forms_data_table: 'forms.submit',
   form_themes_list: 'forms.view',
   form_themes_get: 'forms.view',
   // extensibility
   workflow_activities_list: 'extensibility.view',
   workflow_activities_get: 'extensibility.view',
   workflow_activities_export: 'extensibility.view',
+  workflow_activities_usages: 'extensibility.view',
+  workflow_activities_version_get: 'extensibility.view',
+  form_controls_list: 'extensibility.view',
+  form_controls_get: 'extensibility.view',
+  form_controls_version_get: 'extensibility.view',
+  form_controls_usages: 'extensibility.view',
+  form_controls_export: 'extensibility.view',
   // retention
   retention_policies_list: 'settings.view',
   retention_policies_list_assets: 'settings.view',
@@ -264,6 +380,8 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   directory_sync_list: 'settings.view',
   directory_sync_get: 'settings.view',
   directory_sync_runs_list: 'settings.view',
+  directory_capabilities: 'workflows.view',
+  directory_entra_groups_search: 'workflows.view',
   scim_tokens_list: 'settings.view',
   log_destinations_list: 'observability.view',
   log_destinations_get: 'observability.view',
@@ -271,10 +389,25 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   // webhooks (reads expose payload mappings and urls: same permission as writes)
   webhooks_list: 'settings.manage_webhooks',
   webhooks_get: 'settings.manage_webhooks',
+  // home: the acting person's own rows (tasks.view_own is the floor every role holds)
+  home_metrics: 'tasks.view_own',
+  home_stats: 'tasks.view_own',
+  home_tasks: 'tasks.view_own',
+  home_queue: 'tasks.view_own',
+  home_following: 'tasks.view_own',
+  home_run_progress: 'tasks.view_own',
+  home_submissions: 'forms.submit',
+  home_favorite_forms: 'forms.submit',
   // workspace theme: readable by any member (REST needs no permission);
   // tasks.view_own is the floor every role holds
   workspace_theme_get: 'tasks.view_own',
+  workspace_address_get: 'tasks.view_own',
+  workspace_address_check: 'tasks.view_own',
+  task_completion_settings_get: 'tasks.view_own',
+  form_sign_in_page_get: 'tasks.view_own',
+  tasks_next_step: 'tasks.view_own',
   workspace_theme_presets_list: 'tasks.view_own',
+  document_ocr_get: 'settings.view',
   // config export: per-section view permissions are checked in lib/services/config
   config_export: 'tasks.view_own',
   // packages (dry runs: install plan, inspect)
@@ -303,6 +436,11 @@ export function requiredToolPermission(toolName: string): Permission | undefined
 // auditToolCall skips them so each mutation is audited exactly once.
 // Tests/executions are not audited by the services, so they stay here.
 export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
+  'tasks_claim',
+  'tasks_attachments_add',
+  'tasks_attachments_add_init',
+  'tasks_attachments_complete',
+  'tasks_attachments_delete',
   'packages_create',
   'packages_update',
   'packages_delete',
@@ -331,13 +469,29 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'workflow_activities_update',
   'workflow_activities_delete',
   'workflow_activities_import',
+  'workflow_activities_upload',
+  'workflow_activities_secrets_set',
+  'workflow_activities_test',
+  'form_controls_create',
+  'form_controls_update',
+  'form_controls_delete',
+  'form_controls_import',
   'email_templates_create',
   'email_templates_update',
   'email_templates_delete',
   'forms_create',
+  'forms_wizard_create',
+  'forms_wizard_update',
   'forms_update',
   'forms_duplicate',
   'forms_delete',
+  'forms_legal_hold',
+  'forms_anonymous_update',
+  'forms_anonymous_regenerate',
+  'anonymous_forms_settings_update',
+  'object_permissions_set',
+  'object_permissions_remove',
+  'retention_policies_assign',
   'form_themes_create',
   'form_themes_update',
   'form_themes_delete',
@@ -361,6 +515,23 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'teams_add_member',
   'users_manager_set',
   'teams_remove_member',
+  'org_person_update',
+  'org_person_detach',
+  'org_unit_create',
+  'org_unit_update',
+  'org_unit_delete',
+  'org_unit_detach',
+  'org_unit_member_add',
+  'org_unit_member_remove',
+  'org_import',
+  'projects_create',
+  'projects_update',
+  'projects_archive',
+  'projects_delete',
+  'projects_member_add',
+  'projects_member_remove',
+  'projects_team_attach',
+  'projects_team_detach',
   'invitations_send',
   'invitations_revoke',
   'invitations_resend',
@@ -383,8 +554,14 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'log_destinations_reset_cursor',
   'log_destinations_test',
   'workspace_theme_update',
+  'workspace_address_set',
+  'task_completion_settings_update',
+  'form_sign_in_page_update',
   'workspace_theme_apply_preset',
   'workspace_theme_font_upload',
+  'document_ocr_update',
+  'document_ocr_remove_key',
+  'document_ocr_test',
 ])
 
 // Category prefix → audit object type (best-effort; some are cast strings that
@@ -398,11 +575,14 @@ const CATEGORY_AUDIT_TYPE: Record<string, AuditObjectType | string> = {
   scim: 'directory_sync',
   retention: 'retention_policy',
   workflow_activities: 'workflow_activity',
+  form_controls: 'form_control',
   email: 'email_template',
   forms: 'form',
   form: 'form_theme',
   roles: 'role',
   teams: 'team',
+  org: 'org_unit',
+  projects: 'project',
   invitations: 'team',
   integrations: 'integration',
   connectors: 'integration',
@@ -426,7 +606,7 @@ function auditActionFor(toolName: string): AuditAction | string {
 
 function auditTypeFor(toolName: string): AuditObjectType | string {
   const prefix = toolName.split('_')[0]
-  return CATEGORY_AUDIT_TYPE[toolName.startsWith('workflow_activities') ? 'workflow_activities' : prefix] ?? prefix
+  return CATEGORY_AUDIT_TYPE[toolName.startsWith('workflow_activities') ? 'workflow_activities' : toolName.startsWith('form_controls') ? 'form_controls' : prefix] ?? prefix
 }
 
 /** Best-effort object id: an *_id arg, an `id` arg, or an id parsed from the result. */
@@ -470,7 +650,8 @@ function gatingActive(ctx: McpContext): boolean {
 export function ctxHasPermission(ctx: McpContext, permission: Permission): boolean {
   const perms = (ctx as any).permissions as string[] | undefined
   if (!Array.isArray(perms)) return true // gating disabled
-  return perms.includes(permission)
+  // Implied permissions count (view_runs ⊃ view_queue) even on a raw list.
+  return expandPermissions(perms).includes(permission)
 }
 
 /**

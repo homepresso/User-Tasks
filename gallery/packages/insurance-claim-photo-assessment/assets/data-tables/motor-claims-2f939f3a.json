@@ -1,0 +1,103 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+  "asset": {
+    "id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+    "name": "Motor claims",
+    "description": "Claims reported with damage photos: AI assessment, triage band, adjuster decision and repairer.",
+    "columns": [
+      {
+        "id": "c4c2f778-d86f-5f93-b8d8-114504dd12d6",
+        "required": true,
+        "key": "claim_ref",
+        "name": "Claim",
+        "type": "text"
+      },
+      {
+        "id": "935b4711-957f-5bb0-8834-7146fe0f8b5e",
+        "required": true,
+        "key": "policy_number",
+        "name": "Policy",
+        "type": "text"
+      },
+      {
+        "id": "ed728248-011d-57c9-8193-9139b282bcf8",
+        "required": false,
+        "key": "claimant",
+        "name": "Claimant",
+        "type": "text"
+      },
+      {
+        "id": "898bfcae-ed24-5d13-a43e-73c323370424",
+        "required": false,
+        "key": "email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "a9c4ee4c-1e00-5270-87e2-6fb8b8aad899",
+        "required": false,
+        "key": "incident_date",
+        "name": "Incident",
+        "type": "date"
+      },
+      {
+        "id": "d6fc22e1-8499-5ffe-901a-aaf15c413928",
+        "required": false,
+        "key": "severity",
+        "name": "Severity (AI)",
+        "type": "text"
+      },
+      {
+        "id": "75e7c56f-f9fd-5a33-8b62-82311e36cafd",
+        "required": false,
+        "key": "damaged_parts",
+        "name": "Damaged parts (AI)",
+        "type": "text"
+      },
+      {
+        "id": "fde7fbfa-e14e-5083-aacf-991cc5be9974",
+        "required": false,
+        "key": "band",
+        "name": "Band",
+        "type": "text"
+      },
+      {
+        "id": "e3a8f991-a9b3-580e-8e7f-618a2716e69c",
+        "required": false,
+        "key": "estimate_band",
+        "name": "Estimate band",
+        "type": "text"
+      },
+      {
+        "id": "55fcbca2-18c2-5232-a6d3-2a0c9e2df25c",
+        "required": false,
+        "key": "approved_amount",
+        "name": "Approved",
+        "type": "number"
+      },
+      {
+        "id": "60fe963e-3304-595e-a5ce-40e8ff82dd3c",
+        "required": false,
+        "key": "repairer",
+        "name": "Repairer",
+        "type": "text"
+      },
+      {
+        "id": "519634f2-04bc-5655-a083-6a8dae05e8d9",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "152a3da7-1d9b-5edf-8370-02b5dd5119d1",
+        "required": false,
+        "key": "decided_by",
+        "name": "Decided by",
+        "type": "text"
+      }
+    ]
+  }
+}

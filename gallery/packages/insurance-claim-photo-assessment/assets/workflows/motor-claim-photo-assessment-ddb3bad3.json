@@ -1,0 +1,768 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "ddb3bad3-44f4-50e7-b4df-d19f64ce0c80",
+  "asset": {
+    "id": "ddb3bad3-44f4-50e7-b4df-d19f64ce0c80",
+    "name": "Motor claim photo assessment",
+    "description": "Damage photos from the claim form are analysed by AI, triaged by a decision table and reviewed by an adjuster, who approves the repair, asks for an inspection or declines; repairers only get copies with faces and plates blurred.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Claim submitted",
+        "position": {
+          "x": 600,
+          "y": 60
+        },
+        "config": {
+          "form_id": "9f0c4cce-2c59-5f47-a5da-f10abec3f724",
+          "form_name": "Motor claim: report damage"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Claim reference",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "config": {
+          "name": "claim_ref",
+          "expression": "CLM-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 600,
+          "y": 340
+        },
+        "config": {
+          "title": "{{claim_ref}} · {{form.policy_number}} · {{form.claimant_name}}"
+        }
+      },
+      {
+        "id": "assess",
+        "type": "media_analyze_image",
+        "label": "Analyze damage photo",
+        "position": {
+          "x": 600,
+          "y": 480
+        },
+        "config": {
+          "integration_id": "62e4ea04-29f7-5186-b9da-0fff70aff37d",
+          "provider_label": "Google Gemini",
+          "source": "{{form.damage_photos}}",
+          "features": [
+            "description",
+            "labels",
+            "objects"
+          ],
+          "prompt": "Assess the visible vehicle damage for an insurance adjuster. Do not identify people. Severity is minor (cosmetic, under about 1,000), moderate (panels or lights, about 1,000 to 5,000) or severe (structural, airbags, likely total loss).",
+          "fields": [
+            {
+              "name": "severity",
+              "type": "string",
+              "description": "minor, moderate or severe"
+            },
+            {
+              "name": "damaged_parts",
+              "type": "string",
+              "description": "Damaged parts, comma separated"
+            },
+            {
+              "name": "estimate_low",
+              "type": "number",
+              "description": "Rough repair cost, low"
+            },
+            {
+              "name": "estimate_high",
+              "type": "number",
+              "description": "Rough repair cost, high"
+            },
+            {
+              "name": "drivable",
+              "type": "boolean",
+              "description": "Looks safe to drive"
+            },
+            {
+              "name": "consistent_with_description",
+              "type": "boolean",
+              "description": "The photo matches the described incident"
+            },
+            {
+              "name": "confidence",
+              "type": "number",
+              "description": "0 to 1"
+            }
+          ],
+          "max_results": 15,
+          "output_var": "damage"
+        }
+      },
+      {
+        "id": "keep",
+        "type": "set_variable",
+        "label": "Assessment",
+        "position": {
+          "x": 600,
+          "y": 620
+        },
+        "config": {
+          "name": "assessment",
+          "expression": "{{damage_answer}}"
+        }
+      },
+      {
+        "id": "drv",
+        "type": "set_variable",
+        "label": "Drivable",
+        "position": {
+          "x": 600,
+          "y": 760
+        },
+        "config": {
+          "name": "drivable",
+          "expression": "{{=IF(form.drivable == \"No\", \"false\", TO_STRING(assessment.drivable))}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Triage",
+        "position": {
+          "x": 600,
+          "y": 900
+        },
+        "config": {
+          "decision_table_id": "9ed96192-eebc-5482-ad27-5e154e802e80",
+          "decision_table_name": "Damage triage",
+          "input_mappings": {
+            "severity": "{{=LOWER(assessment.severity)}}",
+            "estimate_high": "{{assessment.estimate_high}}",
+            "drivable": "{{drivable}}",
+            "cover": "{{form.cover}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Decision SLA",
+        "position": {
+          "x": 600,
+          "y": 1040
+        },
+        "config": {
+          "sla_label": "{{band}} claim decision",
+          "mode": "exact",
+          "due_at": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), sla_days), \"YYYY-MM-DD\")}}T17:00:00Z",
+          "warning_amount": 4,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to motor claims",
+        "position": {
+          "x": 600,
+          "y": 1180
+        },
+        "config": {
+          "table_id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+          "table_name": "Motor claims",
+          "operation": "insert",
+          "output_row_id_var": "claim_row_id",
+          "column_values": {
+            "claim_ref": "{{claim_ref}}",
+            "policy_number": "{{form.policy_number}}",
+            "claimant": "{{form.claimant_name}}",
+            "email": "{{form.email}}",
+            "incident_date": "{{form.incident_date}}",
+            "severity": "{{assessment.severity}}",
+            "damaged_parts": "{{assessment.damaged_parts}}",
+            "band": "{{band}}",
+            "estimate_band": "{{estimate_band}}",
+            "status": "With adjuster"
+          }
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each photo",
+        "position": {
+          "x": 600,
+          "y": 1320
+        },
+        "config": {
+          "items": "{{form.damage_photos}}",
+          "item_var": "photo"
+        }
+      },
+      {
+        "id": "blur",
+        "type": "media_redact_image",
+        "label": "Blur faces and plates",
+        "position": {
+          "x": 240,
+          "y": 1460
+        },
+        "config": {
+          "integration_id": "62e4ea04-29f7-5186-b9da-0fff70aff37d",
+          "provider_label": "Google Gemini",
+          "source": "{{photo}}",
+          "targets": [
+            "faces",
+            "plates"
+          ],
+          "style": "blur",
+          "padding": 15,
+          "output_format": "same",
+          "output_var": "shareable_photo",
+          "output_name": "{{claim_ref}}-photo"
+        }
+      },
+      {
+        "id": "collect",
+        "type": "json_add_to_array",
+        "label": "Collect shareable photo",
+        "position": {
+          "x": 240,
+          "y": 1600
+        },
+        "config": {
+          "array_var": "shareable_photos",
+          "value": "{{shareable_photo_file}}"
+        }
+      },
+      {
+        "id": "ack",
+        "type": "send_email",
+        "label": "Email claimant: received",
+        "position": {
+          "x": 600,
+          "y": 1460
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "fdc15c8a-9588-54a2-ba6e-d5451f93534f"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "adjust",
+        "type": "user_task",
+        "label": "Adjuster review",
+        "position": {
+          "x": 600,
+          "y": 1760
+        },
+        "config": {
+          "task_title": "{{band}}: {{claim_ref}} ({{form.claimant_name}})",
+          "task_description": "<p><strong>{{form.cover}}</strong> policy {{form.policy_number}} · incident {{form.incident_date}} at {{form.location}} · drivable (claimant): {{form.drivable}}</p><blockquote>{{form.description}}</blockquote><p><strong>AI assessment (a hint, not a decision)</strong>: {{assessment.severity}} damage to {{assessment.damaged_parts}}; rough estimate {{assessment.estimate_low}} to {{assessment.estimate_high}}; matches the description: {{assessment.consistent_with_description}}; confidence {{assessment.confidence}}.</p><p>{{damage_description}}</p><p>Triage: <strong>{{band}}</strong> · estimate band {{estimate_band}} · inspection suggested: {{inspection}}. {{note}}</p><p>Photos: <a href=\"{{form.damage_photos[0].url}}\">original (claim file only)</a> · <a href=\"{{shareable_photos[0].url}}\">shareable copy</a> (faces and plates blurred: this is what the repairer receives).</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve repair",
+            "Request inspection",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "9f5eb65b-c9b4-5f85-aedc-c9a3dfefb6f9",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "approved_amount",
+              "label": "Approved amount",
+              "type": "currency",
+              "default": "{{assessment.estimate_high}}"
+            },
+            {
+              "key": "repairer",
+              "label": "Repairer",
+              "type": "lookup",
+              "lookup": {
+                "source": "table",
+                "table_id": "d5ff0af9-1f39-5065-a1bf-49a47761ec0b",
+                "search_columns": [
+                  "name",
+                  "region",
+                  "specialty"
+                ],
+                "display_columns": [
+                  "name",
+                  "region",
+                  "specialty"
+                ],
+                "value_column": "email",
+                "fill": [
+                  {
+                    "from": "email",
+                    "to": "repairer_email"
+                  }
+                ],
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "repairer_email",
+              "label": "Repairer email",
+              "type": "email",
+              "read_only": true
+            },
+            {
+              "key": "note",
+              "label": "Note to the claimant",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "approved_amount",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "repairer",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "repairer_email",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve repair",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve repair"
+            },
+            {
+              "id": "inspect",
+              "label": "Request inspection",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request inspection"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{claim_ref}}: {{band}}",
+            "align": "left",
+            "subtitle": "{{assessment.severity}} · {{estimate_band}} · {{form.cover}}"
+          }
+        }
+      },
+      {
+        "id": "ap_text",
+        "type": "text_template",
+        "label": "Approval letter",
+        "position": {
+          "x": 180,
+          "y": 1940
+        },
+        "config": {
+          "output_var": "approval_letter",
+          "template": "CLAIM APPROVAL\n\nClaim: {{claim_ref}}\nPolicy: {{form.policy_number}}\nTo: {{form.claimant_name}}\nDate: {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}\n\nYour claim for the damage on {{form.incident_date}} is approved for repair up to {{task_data.approved_amount}}, less your excess.\n\nRepairer: {{task_data.repairer_item.name}} ({{task_data.repairer_email}}). They will contact you to book the repair.\n\n{{task_data.note}}"
+        }
+      },
+      {
+        "id": "ap_pdf",
+        "type": "doc_convert",
+        "label": "Letter to PDF",
+        "position": {
+          "x": 180,
+          "y": 2080
+        },
+        "config": {
+          "source": "{{approval_letter}}",
+          "target": "pdf",
+          "title": "Claim approval",
+          "output_var": "approval_pdf",
+          "output_name": "{{claim_ref}}-approval"
+        }
+      },
+      {
+        "id": "ap_mail",
+        "type": "send_email",
+        "label": "Email claimant: approved",
+        "position": {
+          "x": 180,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "42007dde-7c93-51b4-9bf0-29069e3a4241",
+          "attachments": "{{approval_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "job_mail",
+        "type": "send_email",
+        "label": "Email repairer: redacted photos",
+        "position": {
+          "x": 180,
+          "y": 2360
+        },
+        "config": {
+          "to": "{{task_data.repairer_email}}",
+          "email_template_id": "88c77a93-7f0f-579b-88c9-5f08ce7f219d",
+          "attachments": "{{shareable_photos}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ap_row",
+        "type": "update_data_table",
+        "label": "Claim approved",
+        "position": {
+          "x": 180,
+          "y": 2500
+        },
+        "config": {
+          "table_id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+          "table_name": "Motor claims",
+          "operation": "update",
+          "row_id": "{{claim_row_id}}",
+          "column_values": {
+            "approved_amount": "{{task_data.approved_amount}}",
+            "repairer": "{{task_data.repairer_item.name}}",
+            "status": "Approved",
+            "decided_by": "{{actioned_by_name}}"
+          }
+        }
+      },
+      {
+        "id": "ap_end",
+        "type": "end_workflow",
+        "label": "Approved",
+        "position": {
+          "x": 180,
+          "y": 2640
+        },
+        "config": {
+          "reason": "{{claim_ref}} approved"
+        }
+      },
+      {
+        "id": "in_mail",
+        "type": "send_email",
+        "label": "Email claimant: inspection",
+        "position": {
+          "x": 600,
+          "y": 1940
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "3c944468-1b21-5597-82ff-7b608ef3a043"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "in_row",
+        "type": "update_data_table",
+        "label": "Inspection requested",
+        "position": {
+          "x": 600,
+          "y": 2080
+        },
+        "config": {
+          "table_id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+          "table_name": "Motor claims",
+          "operation": "update",
+          "row_id": "{{claim_row_id}}",
+          "column_values": {
+            "status": "Inspection",
+            "decided_by": "{{actioned_by_name}}"
+          }
+        }
+      },
+      {
+        "id": "in_end",
+        "type": "end_workflow",
+        "label": "Inspection booked",
+        "position": {
+          "x": 600,
+          "y": 2220
+        },
+        "config": {
+          "reason": "{{claim_ref}} needs an inspection"
+        }
+      },
+      {
+        "id": "de_text",
+        "type": "text_template",
+        "label": "Decline letter",
+        "position": {
+          "x": 1020,
+          "y": 1940
+        },
+        "config": {
+          "output_var": "decline_letter",
+          "template": "CLAIM DECISION\n\nClaim: {{claim_ref}}\nPolicy: {{form.policy_number}}\nTo: {{form.claimant_name}}\nDate: {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}\n\nWe are unable to accept your claim for the damage on {{form.incident_date}}.\n\nReason: {{task_data.note}}\n\nIf you disagree, reply to this letter within 30 days to ask for a review by a senior claims handler."
+        }
+      },
+      {
+        "id": "de_pdf",
+        "type": "doc_convert",
+        "label": "Letter to PDF",
+        "position": {
+          "x": 1020,
+          "y": 2080
+        },
+        "config": {
+          "source": "{{decline_letter}}",
+          "target": "pdf",
+          "title": "Claim decision",
+          "output_var": "decline_pdf",
+          "output_name": "{{claim_ref}}-decision"
+        }
+      },
+      {
+        "id": "de_mail",
+        "type": "send_email",
+        "label": "Email claimant: declined",
+        "position": {
+          "x": 1020,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "453b983e-a280-5e82-8d5f-ce32cd72452b",
+          "attachments": "{{decline_pdf}}"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "de_row",
+        "type": "update_data_table",
+        "label": "Claim declined",
+        "position": {
+          "x": 1020,
+          "y": 2360
+        },
+        "config": {
+          "table_id": "2f939f3a-11ac-59a5-b25d-a21a162a8059",
+          "table_name": "Motor claims",
+          "operation": "update",
+          "row_id": "{{claim_row_id}}",
+          "column_values": {
+            "status": "Declined",
+            "decided_by": "{{actioned_by_name}}"
+          }
+        }
+      },
+      {
+        "id": "de_end",
+        "type": "end_workflow",
+        "label": "Declined",
+        "position": {
+          "x": 1020,
+          "y": 2500
+        },
+        "config": {
+          "reason": "{{claim_ref}} declined"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-assess",
+        "source": "title",
+        "target": "assess"
+      },
+      {
+        "id": "e-assess-keep",
+        "source": "assess",
+        "target": "keep"
+      },
+      {
+        "id": "e-keep-drv",
+        "source": "keep",
+        "target": "drv"
+      },
+      {
+        "id": "e-drv-rules",
+        "source": "drv",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-sla",
+        "source": "rules",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-row",
+        "source": "sla",
+        "target": "row"
+      },
+      {
+        "id": "e-row-each",
+        "source": "row",
+        "target": "each"
+      },
+      {
+        "id": "e-each-blur-each-item",
+        "source": "each",
+        "target": "blur",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-blur-collect",
+        "source": "blur",
+        "target": "collect"
+      },
+      {
+        "id": "e-each-ack-done",
+        "source": "each",
+        "target": "ack",
+        "label": "Done"
+      },
+      {
+        "id": "e-ack-adjust",
+        "source": "ack",
+        "target": "adjust"
+      },
+      {
+        "id": "e-adjust-ap_text-approve-repair",
+        "source": "adjust",
+        "target": "ap_text",
+        "label": "Approve repair"
+      },
+      {
+        "id": "e-adjust-in_mail-request-inspection",
+        "source": "adjust",
+        "target": "in_mail",
+        "label": "Request inspection"
+      },
+      {
+        "id": "e-adjust-de_text-decline",
+        "source": "adjust",
+        "target": "de_text",
+        "label": "Decline"
+      },
+      {
+        "id": "e-ap_text-ap_pdf",
+        "source": "ap_text",
+        "target": "ap_pdf"
+      },
+      {
+        "id": "e-ap_pdf-ap_mail",
+        "source": "ap_pdf",
+        "target": "ap_mail"
+      },
+      {
+        "id": "e-ap_mail-job_mail",
+        "source": "ap_mail",
+        "target": "job_mail"
+      },
+      {
+        "id": "e-job_mail-ap_row",
+        "source": "job_mail",
+        "target": "ap_row"
+      },
+      {
+        "id": "e-ap_row-ap_end",
+        "source": "ap_row",
+        "target": "ap_end"
+      },
+      {
+        "id": "e-in_mail-in_row",
+        "source": "in_mail",
+        "target": "in_row"
+      },
+      {
+        "id": "e-in_row-in_end",
+        "source": "in_row",
+        "target": "in_end"
+      },
+      {
+        "id": "e-de_text-de_pdf",
+        "source": "de_text",
+        "target": "de_pdf"
+      },
+      {
+        "id": "e-de_pdf-de_mail",
+        "source": "de_pdf",
+        "target": "de_mail"
+      },
+      {
+        "id": "e-de_mail-de_row",
+        "source": "de_mail",
+        "target": "de_row"
+      },
+      {
+        "id": "e-de_row-de_end",
+        "source": "de_row",
+        "target": "de_end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

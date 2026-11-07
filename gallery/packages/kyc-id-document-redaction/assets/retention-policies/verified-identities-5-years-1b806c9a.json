@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "1b806c9a-2e1b-5dfa-b8ca-aadc0603fb13",
+  "asset": {
+    "id": "1b806c9a-2e1b-5dfa-b8ca-aadc0603fb13",
+    "name": "Verified identities: 5 years",
+    "description": "Identity records are kept five years after the relationship ends, then reviewed. Set this to your AML / KYC record-keeping rule.",
+    "policy_mode": "review",
+    "duration_value": 5,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

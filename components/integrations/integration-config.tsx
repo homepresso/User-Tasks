@@ -150,6 +150,8 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
         token_url: oauthTokenUrl,
         scopes: oauthScopes,
         extra_authorize_params: oauthCfg.extra_authorize_params ?? oauthPreset?.extraAuthorizeParams,
+        ...(oauthCfg.refresh_url ?? oauthPreset?.refreshUrl ? { refresh_url: oauthCfg.refresh_url ?? oauthPreset?.refreshUrl } : {}),
+        ...(oauthCfg.client_auth ?? oauthPreset?.clientAuth ? { client_auth: oauthCfg.client_auth ?? oauthPreset?.clientAuth } : {}),
       }
     }
 
@@ -180,6 +182,8 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
           authorize_url: oauthAuthorizeUrl,
           token_url: oauthTokenUrl,
           scopes: oauthScopes,
+          ...(oauthCfg.refresh_url ?? oauthPreset?.refreshUrl ? { refresh_url: oauthCfg.refresh_url ?? oauthPreset?.refreshUrl } : {}),
+          ...(oauthCfg.client_auth ?? oauthPreset?.clientAuth ? { client_auth: oauthCfg.client_auth ?? oauthPreset?.clientAuth } : {}),
         },
       }
       await updateIntegration(integration.id, { config: newConfig })
@@ -220,8 +224,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
         {!editing && integration.type !== "database" && (
           <button
             onClick={() => setEditing(true)}
-            className="text-xs flex items-center gap-1 hover:opacity-70"
-            style={{ color: "var(--theme-primary-text)" }}
+            className="text-xs flex items-center gap-1 hover:opacity-70 text-primary-text"
           >
             <Pencil size={12} /> Edit
           </button>
@@ -245,11 +248,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
             <select
               value={authType}
               onChange={(e) => setAuthType(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{
-                backgroundColor: "var(--theme-card-bg)",
-                borderColor: "var(--theme-surface-border)",
-              }}
+              className="w-full rounded-lg border px-3 py-2 text-sm bg-panel border-border"
             >
               <option value="none">None</option>
               <option value="api_key">API Key</option>
@@ -301,7 +300,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
             </div>
           )}
           {authType === "oauth2" && (
-            <div className="space-y-3 rounded-lg border p-3" style={{ borderColor: "var(--theme-surface-border)" }}>
+            <div className="space-y-3 rounded-lg border p-3 border-border">
               {isOauthConnected && (
                 <div className="flex items-center gap-1.5 text-xs font-medium text-green-600">
                   <Check size={14} /> Connected
@@ -365,7 +364,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
       ) : (
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--theme-muted-text)" }}>Type</span>
+            <span className="text-fg-muted">Type</span>
             <span className="font-medium capitalize">
               {integration.type.replace("_", " ")}
             </span>
@@ -373,7 +372,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
           {integration.type !== "database" && (
             <>
               <div className="flex justify-between text-sm">
-                <span style={{ color: "var(--theme-muted-text)" }}>
+                <span className="text-fg-muted">
                   Base URL
                 </span>
                 <span className="font-mono text-xs">
@@ -381,7 +380,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span style={{ color: "var(--theme-muted-text)" }}>Auth</span>
+                <span className="text-fg-muted">Auth</span>
                 <span className="capitalize">
                   {config?.auth_type === "api_key"
                     ? `API Key (${config?.auth_config?.key_name ?? "X-API-Key"})`
@@ -413,7 +412,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
             </p>
             <p className="text-xs mt-0.5">{testResult.message}</p>
             {testResult.serverVersion && (
-              <p className="text-[10px] mt-1 opacity-70 font-mono">
+              <p className="text-2xs mt-1 opacity-70 font-mono">
                 {testResult.serverVersion}
               </p>
             )}

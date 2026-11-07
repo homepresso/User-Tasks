@@ -5,6 +5,9 @@ import { Wand2, Trash2 } from 'lucide-react'
 import { captureResponseSample, countSchemaFields, normalizeResponseSchema, stripSample, type ResponseSchema } from '@/lib/response-schema'
 import type { DataGroup, PickerItem } from '@/lib/workflow-data-picker'
 import { DataTree } from './data-picker'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 
 const SOURCE_LABEL: Record<string, string> = {
   openapi: 'from the API spec',
@@ -38,7 +41,7 @@ export function ResponseModelTree({ schema, rootPath, rootLabel = 'response', on
   }] : []), [schema, rootPath, rootLabel])
   if (!schema) return null
   return (
-    <div className="rounded-lg border" style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+    <div className="overflow-hidden rounded-md border border-border bg-panel">
       <DataTree
         groups={groups}
         readOnly
@@ -90,43 +93,39 @@ export function HttpResponseModelEditor({ config, outputPrefix, onUpdate }: {
   }
 
   return (
-    <div className="rounded-lg border p-2 space-y-2" style={{ borderColor: 'var(--theme-surface-border)' }}>
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center justify-between text-left">
-        <span className="text-[11px] font-medium" style={{ color: 'var(--theme-card-text)' }}>Response model</span>
-        <span className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>{describeModel(schema)}</span>
+    <Card variant="inset" padding="sm" className="space-y-2">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center justify-between gap-2 rounded-sm text-left">
+        <span className="text-xs font-medium text-fg">Response model</span>
+        <span className="truncate text-xs text-fg-muted">{describeModel(schema)}</span>
       </button>
       {open && (
         <>
-          <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
-            Paste a sample response (from a test run or the API docs). Its fields become pickable as <code className="font-mono">{`{{${outputPrefix}_response…}}`}</code> in later steps. Each capture is merged into the model.
+          <p className="text-xs text-fg-muted">
+            Paste a sample response (from a test run or the API docs). Its fields become pickable as <code className="font-mono text-2xs text-fg">{`{{${outputPrefix}_response…}}`}</code> in later steps. Each capture is merged into the model.
           </p>
-          <textarea
+          <Textarea
             value={sample}
             onChange={(e) => setSample(e.target.value)}
             rows={4}
             aria-label="Sample response JSON"
+            aria-invalid={error ? true : undefined}
             placeholder='{"data": [{"id": 1, "email": "ada@example.com"}]}'
-            className="w-full rounded border px-2 py-1.5 font-mono text-[11px]"
-            style={{ backgroundColor: 'var(--theme-input-bg, var(--theme-card-bg))', borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
+            className="font-mono text-xs"
           />
-          {error && <p className="text-[11px]" style={{ color: 'var(--theme-danger)' }}>{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
           <div className="flex gap-1.5">
-            <button type="button" onClick={capture} disabled={!sample.trim()}
-              className="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium disabled:opacity-50"
-              style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-on-primary)' }}>
-              <Wand2 size={11} aria-hidden /> Capture model
-            </button>
+            <Button type="button" variant="secondary" size="sm" onClick={capture} disabled={!sample.trim()} leadingIcon={<Wand2 aria-hidden />}>
+              Capture model
+            </Button>
             {schema && (
-              <button type="button" onClick={() => onUpdate('_response_schema', undefined)}
-                className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
-                style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}>
-                <Trash2 size={11} aria-hidden /> Clear
-              </button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onUpdate('_response_schema', undefined)} leadingIcon={<Trash2 aria-hidden />}>
+                Clear
+              </Button>
             )}
           </div>
           <ResponseModelTree schema={schema} rootPath={`${outputPrefix}_response`} />
         </>
       )}
-    </div>
+    </Card>
   )
 }

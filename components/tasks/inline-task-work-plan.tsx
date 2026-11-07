@@ -93,7 +93,7 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
 
     await queryClient.invalidateQueries({ queryKey: ['task-detail', task.id] })
     await queryClient.invalidateQueries({ queryKey: ['task-tree', task.id] })
-    await queryClient.invalidateQueries({ queryKey: ['task-queue'] })
+    await queryClient.invalidateQueries({ queryKey: ['home'] })
     await queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] })
     await queryClient.invalidateQueries({ queryKey: ['tasks'] })
     setSaving(false)
@@ -106,28 +106,26 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
   }
 
   const wrapperClass = density === 'compact'
-    ? 'rounded-lg border px-3 py-3 space-y-3'
-    : 'rounded-xl border px-4 py-4 space-y-4'
+    ? 'rounded-lg border border-border bg-panel px-3 py-3 space-y-3'
+    : 'rounded-lg border border-border bg-panel px-4 py-4 space-y-4'
 
   return (
-    <div className={wrapperClass} style={{ borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+    <div className={wrapperClass}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>
-            Work Plan
-          </p>
-          <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted-text)' }}>
+          <p className="text-ui font-semibold text-fg">Work plan</p>
+          <p className="mt-1 text-xs text-fg-muted">
             Update the estimate, remaining effort, and ETA without leaving this list.
           </p>
         </div>
-        <div className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <div className="num text-xs text-fg-muted">
           Actual {(actual / 60).toFixed(1)}h
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <div>
-          <label className="mb-1 block text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Assigner (min)</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Assigner (min)</label>
           <Input
             type="number"
             min="0"
@@ -138,7 +136,7 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
           />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Execution (min)</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Execution (min)</label>
           <Input
             type="number"
             min="0"
@@ -149,7 +147,7 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
           />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>Remaining (min)</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">Remaining (min)</label>
           <Input
             type="number"
             min="0"
@@ -160,7 +158,7 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
           />
         </div>
         <div>
-          <label className="mb-1 flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--theme-muted-text)' }}>
+          <label className="mb-1 flex items-center gap-1 text-xs font-medium text-fg-muted">
             <CalendarClock size={11} />
             ETA
           </label>
@@ -174,24 +172,22 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
       </div>
 
       {saveError && (
-        <p className="text-xs" style={{ color: 'var(--theme-danger)' }}>{saveError}</p>
+        <p className="text-xs text-danger">{saveError}</p>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[11px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <span className="num text-xs text-fg-muted">
           Calculated remaining {(calculatedRemaining / 60).toFixed(1)}h
         </span>
         <div className="flex flex-wrap gap-2">
           {canEditExecutionPlan && (
-            <Button size="sm" variant="outline" onClick={useCalculatedRemaining} disabled={saving}>
-              <RotateCcw size={12} className="mr-1" />
-              Use Calculated
+            <Button size="sm" variant="secondary" onClick={useCalculatedRemaining} disabled={saving} leadingIcon={<RotateCcw />}>
+              Use calculated
             </Button>
           )}
           {(canEditAssignerEstimate || canEditExecutionPlan) && (
-            <Button size="sm" onClick={() => persist()} disabled={saving}>
-              <Save size={12} className="mr-1" />
-              {saving ? 'Saving...' : 'Save Plan'}
+            <Button size="sm" onClick={() => persist()} loading={saving} leadingIcon={<Save />}>
+              {saving ? 'Saving…' : 'Save plan'}
             </Button>
           )}
         </div>

@@ -1,4 +1,9 @@
 import type { DocPageDef } from '../types'
+import { NODE_CATALOG } from '@/lib/workflow-schema'
+import { CUSTOM_ACTIONS_PAGE, OFFICIAL_ACTIONS_PAGE } from './custom-actions'
+
+/** Step types a workflow can place (the section and live-reference canvas tools aside). */
+const STEP_NODE_COUNT = NODE_CATALOG.filter((node) => node.category !== 'section').length
 
 export const WORKFLOW_PAGES: DocPageDef[] = [
   {
@@ -15,12 +20,12 @@ A workflow is a directed graph: one **trigger** node, then nodes connected by ed
 - **Start** from a task event, a data-table row change, a webhook, a schedule, an SLA or error in another workflow, a retention review, or a direct API / MCP / CLI call. See [Triggers](/docs/workflows/triggers).
 - **Decide** with conditions, value switches and [decision tables](/docs/decision-tables).
 - **Repeat** with for-each and N-times loops, and run **parallel** branches.
-- **Call** integration references, HTTP endpoints, [custom workflow steps](/docs/custom-steps), [AI agents](/docs/agents) and other workflows.
+- **Call** integration references, HTTP endpoints, [custom workflow actions](/docs/workflows/custom-actions) (your own sandboxed steps, or the [official ones](/docs/workflows/official-actions)), [AI agents](/docs/agents) and other workflows.
 - **Change data** in [data tables](/docs/data-tables) and tasks; transform text, dates, JSON, collections, CSV/Excel files and Office documents.
 - **Involve people** with [User Tasks](/docs/tasks) that wait for an outcome, and send email from [templates](/docs/email-templates).
 - **Wait** for minutes, days or a date without holding a server process (see [Delays and pauses](/docs/workflows/timing)).
 
-All 72 node types are listed in the [node reference](/docs/workflows/nodes).
+All ${STEP_NODE_COUNT} node types (plus the section and live-reference canvas tools) are listed in the [node reference](/docs/workflows/nodes).
 
 ## Lifecycle
 
@@ -64,9 +69,9 @@ AI assistants can author workflows the same way through MCP (\`workflows_catalog
     title: 'The designer',
     description: 'Build workflows on the visual canvas: palette, settings panel, sections, test runs and validation.',
     body: `
-Open **Automations**, then a workflow (or **New workflow**). The designer has three areas:
+Open **Build › Workflows**, then a workflow (or **New workflow**). The designer has three areas:
 
-- **Palette** — every node type, grouped as triggers, logic, actions, operations and collections, plus your active [custom workflow steps](/docs/custom-steps). Drag a node onto the canvas, or drop it on an edge to insert it.
+- **Palette** — every node type, grouped as triggers, logic, actions, operations and collections, plus your enabled [custom workflow actions](/docs/workflows/custom-actions) under **Custom actions**. Drag a node onto the canvas, or drop it on an edge to insert it.
 - **Canvas** — nodes and edges. Each node shows a one-line summary of its settings (for example \`GET Get vendor\` or \`→ Invoice approval policy\`), so a published flow reads like a specification. Group related nodes in a **Section**.
 - **Settings panel** — opens when you select a node. Fields accept [expressions](/docs/workflows/expressions); the variable picker lists the trigger's variables and the outputs of earlier nodes.
 
@@ -151,7 +156,7 @@ A schedule trigger runs \`every_minutes\`, \`hourly\`, \`daily\`, \`weekly\`, \`
 
 ## Variables a trigger provides
 
-Every run starts with \`workflow_id\`, \`workflow_name\`, \`workflow_started_at\`, \`workflow_started_by\`, \`workflow_started_via\`, \`workflow_owner_id\`, \`tenant_id\`, \`task_id\` and \`trigger_type\`, plus the user variables' defaults and whatever the trigger or caller passes. The per-trigger variables are listed in the [node reference](/docs/workflows/nodes#category-trigger).
+Every run starts with \`workflow_id\`, \`workflow_name\`, \`workflow_started_at\`, \`workflow_started_by\`, \`workflow_started_via\`, \`workflow_owner_id\`, \`workflow_initiator_user_id\`, \`tenant_id\`, \`task_id\` and \`trigger_type\`, plus the user variables' defaults and whatever the trigger or caller passes. The per-trigger variables are listed in the [node reference](/docs/workflows/nodes#category-trigger).
 
 ### Who started the run
 
@@ -170,7 +175,9 @@ Every run starts with \`workflow_id\`, \`workflow_name\`, \`workflow_started_at\
 | **Call Sub Workflow** | The parent run's \`workflow_started_by\` | \`subworkflow\` |
 | A schedule, webhook, workflow error / SLA or retention trigger | Nobody, so the workflow's owner | \`schedule\`, \`webhook\`, \`event\` |
 
-These three variables are owned by the engine: a caller's start variables, a task's submitted values and a data-table get never change them. Steps that act with the workflow's own authority (an AI agent's acting user, the governance and retention actions' actor) use the owner, \`workflow_owner_id\`.
+\`{{workflow_initiator_user_id}}\` is the same person without the owner fallback — empty when no person started the run (schedules, webhooks, public forms, events).
+
+These four variables are owned by the engine: a caller's start variables, a task's submitted values and a data-table get never change them. Steps that act with the workflow's own authority (the governance and retention actions' actor) use the owner, \`workflow_owner_id\`. A Run Agent step's agent acts for \`workflow_initiator_user_id\` — the person who started the run, or nobody (the agent's own scope, no task or workflow writes) — unless the step is set to act as the workflow owner.
 `,
   },
   {
@@ -251,6 +258,19 @@ Operands are literals (\`"text"\`, \`12.5\`, \`true\`, \`false\`, \`null\`), var
 ## Node outputs
 
 Nodes write their results into variables. Most let you name the output (\`output_var\`); integration calls, decision tables and agents also write prefixed variables (\`{{get_vendor_response}}\`, \`{{approval_policy_outputs}}\`) so several calls in one run don't collide. The designer's data picker lists everything available at the selected node — see [Reading values from an API response](/docs/workflows/api-responses).
+
+## Setting variables
+
+A **Set Variable** node sets one or more variables. Add a row per variable (name and value); rows run top to bottom, so a later row can use a variable set above it:
+
+\`\`\`json
+{ "type": "set_variable", "config": { "assignments": [
+  { "name": "net", "expression": "{{=amount / 1.2}}" },
+  { "name": "tax", "expression": "{{=amount - net}}" }
+] } }
+\`\`\`
+
+Names must be filled in and unique within the node. If a row's value fails, the node fails with an error naming that variable; rows above it stay set. Older workflows that use the single \`{ "name", "expression" }\` form keep working unchanged.
 
 ## User variables
 
@@ -426,6 +446,14 @@ Nodes connected to the loop's body edge run for each iteration; the other edge c
 
 **Parallel / Sequential** runs two or more branches. In \`parallel\` mode they start together; in \`sequential\` mode one after another. The run continues once every branch has finished.
 
+A step that two or more branches lead to is their **join**. It runs once, after every branch that can reach it has finished — arrived at the join, or ended somewhere else (for example down a condition path that skips it). A branch that cannot reach the join is not waited for by it.
+
+- **Variables** — branches share the run's variables while they run. When the join runs, the values each branch set are applied again in branch order, so if two branches set the same variable, the later branch in the node's list wins, whichever finished last. Use the step's own prefixed outputs (\`{{get_vendor_response}}\`) to keep both.
+- **Waits** — a branch waiting on a User Task, a server event or a long delay pauses only that branch; the others carry on, and the run pauses once nothing else can run. The join runs after the wait is resumed. Several branches can wait at once (parallel approvals): the run waits for each, and a task completed while the run is waiting on another branch's task is kept and applied in turn.
+- **Errors** — a failing step set to *Stop* fails the run once the other branches have finished, and the join does not run; with *Continue* the branch carries on to the join.
+- Joins of nested Parallel nodes and of Parallel nodes inside loops (one join per iteration) work the same way. The run canvas shows a join that is still waiting as *Waiting for N of M branches*.
+- Steps where the paths of a condition or switch meet (only one path runs) are unaffected: they run when the path arrives.
+
 ## Go To Activity
 
 **Go To Activity** jumps to another node, optionally resetting variables first — ideal for "send back for rework, then approve again" loops.
@@ -466,7 +494,7 @@ Queue jobs are retried automatically with backoff before they are marked dead; \
 
 ## Finding failures
 
-- **Automations → Runs** filters by status; each run shows its path, step logs and the error.
+- **Build › Workflows → Runs** filters by status; each run shows its path, step logs and the error.
 - \`usertasks logs tail --type workflow.run.failed\` follows failures live.
 - Ship \`severity=error\` events to your log platform and alert on them; see [Observability](/docs/observability).
 `,
@@ -501,7 +529,7 @@ Any active, published workflow can be started by hand, whatever its trigger. Its
 | Boolean | Checkbox (true / false) |
 | Object | JSON |
 
-**In the app:** choose **Run** on the workflow's row in **Automations → Workflows**, or in the designer header. The dialog shows a form for the inputs, with defaults filled in, descriptions as help text and required inputs marked. **Run in background** (the default) queues the run with an optional priority (0-100); **Wait for result** runs it now and shows the final status and step outputs. Either way you get a link to the run. The button is disabled until the workflow is published and active, and only shown to people with the **Activate workflows** permission (\`workflows.activate\`).
+**In the app:** choose **Run** on the workflow's row in **Build › Workflows**, or in the designer header. The dialog shows a form for the inputs, with defaults filled in, descriptions as help text and required inputs marked. **Run in background** (the default) queues the run with an optional priority (0-100); **Wait for result** runs it now and shows the final status and step outputs. Either way you get a link to the run. The button is disabled until the workflow is published and active, and only shown to people with the **Activate workflows** permission (\`workflows.activate\`).
 
 ::image run-workflow | Run workflow dialog with a required text input, a number with a default, a checkbox and the background / wait options | Running a workflow from the list: its inputs become a form.
 
@@ -568,11 +596,24 @@ usertasks workflows migrate-instances <id> --to <version-id> --run <run-id> --ta
 
 ::image cli-migrate-instances | Terminal: listing live instances and dry-running a migration with the CLI | Listing live instances and planning a migration from a terminal.
 
-The CLI always plans first, prints the plan and asks before migrating (\`--yes\` skips the prompt). The target node for each instance is \`--map\` for its current node, else \`--target\`, else the node with the same id. Over REST it is \`POST /api/v1/workflows/{id}/instances/migrate\` with \`to_version_id\`, the instances (\`run_ids\`, \`from_version_id\` or \`all_active\`), optional \`node_map\` and \`default_target_node_id\`, and \`dry_run\`. MCP has \`workflows_instances_list\` and \`workflows_instances_migrate\`. One request handles up to 500 instances. Migrating needs the **Migrate live runs** permission (\`workflows.manage_runs\`; Owner, Admin and Manager have it by default, and OAuth apps get it with \`workflows:write\`). Listing needs **View runs**.
+The CLI always plans first, prints the plan and asks before migrating (\`--yes\` skips the prompt). The target node for each instance is \`--map\` for its current node, else \`--target\`, else the node with the same id. Over REST it is \`POST /api/v1/workflows/{id}/instances/migrate\` with \`to_version_id\`, the instances (\`run_ids\`, \`from_version_id\` or \`all_active\`), optional \`node_map\` and \`default_target_node_id\`, and \`dry_run\`. MCP has \`workflows_instances_list\` and \`workflows_instances_migrate\`. One request handles up to 500 instances. Migrating needs the **Migrate live runs** permission (\`workflows.manage_runs\`; Owner, Admin and Manager have it by default, and OAuth apps get it with \`workflows:write\`). Listing needs **View queue** and follows [who sees which runs](#who-sees-which-queue-items-and-runs).
 
 ## The queue
 
 Asynchronous starts, triggered runs, resumes after tasks and timed waits go through a durable queue in Postgres. The processor claims jobs in batches and runs up to \`WORKFLOW_CONCURRENCY\` (default 5) at once per invocation, re-kicking itself while work remains. Enqueuing code kicks it immediately; pg_cron calls it every minute as a safety net.
+
+### Who sees which queue items and runs
+
+The queue page (**Operate › Queue**), run pages, \`GET /api/v1/workflows/queue\`, \`/workflows/runs\`, \`/workflows/runs/{id}\`, \`/workflows/{id}/instances\` and the MCP tools \`workflows_runs_list\`, \`workflows_run_get\` and \`workflows_instances_list\` all apply the same rule:
+
+| Who | Sees |
+|---|---|
+| **View all runs** (\`workflows.view_runs\`; Owner, Admin and Manager by default) | Every queue item and run in the workspace |
+| An explicit **View** grant on a workflow (to the person, a role they hold or a team they are in) | Every queue item and run of **that** workflow, on top of the next row |
+| **View queue** (\`workflows.view_queue\`; Member by default, implied by View all runs) | The runs they are involved in: they started it, their form submission started it, or they have (or had) a task in it — as assignee or collaborator |
+| Neither permission | No queue or run list (Not authorized / 403). Their own runs stay on **Home** (Following, My submissions) |
+
+Cancelling, retrying, deleting, pausing or resuming an item also needs **Activate workflows** (\`workflows.activate\`), and the item must be one the person can see. API keys and OAuth tokens without a user see nothing with View queue alone — give them View all runs.
 
 \`\`\`bash
 usertasks queue list --status failed
@@ -581,7 +622,11 @@ usertasks queue action <job-id> --set action=retry
 
 ## Run history
 
-Each run records its trigger, variables, every step (status, duration, input and output, capped in size), logs and the execution path. Open it in **Automations → Runs**, fetch it with \`usertasks runs get <id>\`, or follow its events with \`usertasks logs tail --run <id>\`. Finished queue rows are kept for \`QUEUE_RETENTION_DAYS\` (default 7); run history follows your [retention policies](/docs/governance/audit-and-retention).
+Each run records its trigger, variables, every step (status, duration, input and output, capped in size), logs and the execution path. Open it in **Build › Workflows → Runs**, fetch it with \`usertasks runs get <id>\`, or follow its events with \`usertasks logs tail --run <id>\`.
+
+The run page (**Process view**) also shows each User Task step's people, status and history, and a form icon to open a waiting task when you may: as its assignee, a manager of the assignee, a manager of the workflow (an explicit **Edit** grant), or with **View all tasks**. Managers of the workflow and of the assignee can act **on behalf** of the assignee from the task page, giving a reason. See [Process view: open the waiting task](/docs/home#open-the-waiting-task). \`GET /api/v1/workflows/runs/{id}\` and MCP \`workflows_run_get\` return the same list as \`tasks\`, with your own \`can_open\` / \`can_act\` for each task. Finished queue rows are kept for \`QUEUE_RETENTION_DAYS\` (default 7); run history follows your [retention policies](/docs/governance/audit-and-retention).
 `,
   },
+  CUSTOM_ACTIONS_PAGE,
+  OFFICIAL_ACTIONS_PAGE,
 ]

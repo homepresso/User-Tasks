@@ -60,10 +60,13 @@ Sending needs an email provider: set \`RESEND_API_KEY\` and \`EMAIL_FROM\` when 
   },
   {
     slug: 'custom-steps',
-    title: 'Custom workflow steps',
-    description: 'Package your own JavaScript as a typed workflow node with inputs, outputs, logging and versioning.',
+    title: 'Inline workflow steps',
+    description: 'Script activities written in the Extensibility editor: a JavaScript function with typed inputs and outputs, now run in the custom action sandbox. For new work, build a packaged custom workflow action.',
     body: `
-A custom workflow step (an *activity*) is a small JavaScript function with a typed manifest. Once active, it appears in the designer palette next to the built-in nodes, with a settings panel generated from its inputs.
+An *inline* workflow step (a script activity) is a small JavaScript function with typed inputs and outputs, written in the **Extensibility → Workflow actions** editor or created with \`POST /api/v1/workflow-activities\`. Once active, it appears in the designer palette with a settings panel generated from its inputs.
+
+> [!TIP]
+> For anything new, build a **packaged** [custom workflow action](/docs/workflows/custom-actions): several functions per action, richer field types, capabilities for HTTP, data tables, files and secrets, a starter kit with a local test harness, signed and immutable versions — or install one of the [official actions](/docs/workflows/official-actions).
 
 ::image custom-step | A custom workflow step with its manifest | A custom step: typed inputs and outputs, code, and a preview run.
 
@@ -92,14 +95,15 @@ async function run(inputs, context, helpers) {
 module.exports = run
 \`\`\`
 
-Download the [starter template](/downloads/workflow-activity-template.zip) (code, manifest and README).
+The function receives \`inputs\`, \`context\` (tenant, run, task, variables, node) and \`helpers\` (\`resolveExpression\`, \`getVariable\`, \`setVariable\`, \`log\`, \`uuid\`, \`now\`). Download the [starter template](/downloads/workflow-activity-template.zip) (code, manifest and README).
+
+## Sandbox
+
+Inline steps run in the same QuickJS WebAssembly sandbox as packaged actions, with the same [limits](/docs/workflows/custom-actions#limits) and [kill switches](/docs/workflows/custom-actions#kill-switches): no \`require\`, \`fetch\`, \`process.env\` or timers, and no capabilities. Code that needs an API or a secret belongs in a packaged action — see [Migrating legacy activities](/docs/workflows/custom-actions#migrating-legacy-activities). The old \`ENABLE_CUSTOM_ACTIVITY_CODE\` switch is no longer needed and is ignored; \`CUSTOM_ACTIONS_DISABLED=true\` turns all custom code off on a server.
 
 ## Lifecycle
 
 Steps are \`draft\`, \`active\` or \`archived\` and carry a stable key and version. Export and import them as JSON (\`usertasks activities export|import\`) or move them with [config as code](/docs/config-as-code).
-
-> [!WARNING]
-> Custom step code runs **in the app process, without a sandbox**. It only executes when the server sets \`ENABLE_CUSTOM_ACTIVITY_CODE=true\`; leave it off unless every author is trusted.
 
 Permissions: \`extensibility.view\`, \`extensibility.create\`, \`extensibility.edit\`, \`extensibility.delete\`.
 `,
@@ -166,11 +170,69 @@ usertasks reports export <id> > report.json      # portable definition
 
 Aggregations run in the database, and exports are produced on the server, so large reports stay fast.
 
+## Summary charts
+
+A report can also have up to **8 summary charts**: a row of number cards and a grid of chart cards above its table (or main chart). Each one counts or totals the report's own rows — the same source, filters, joins and date range, and the same permissions — so "Total responses", "Responses over time" or "Average score by status" always agree with the table. In the builder, open **Charts**, pick a starting point (*Count of rows by day*, *by day of the week*, *by hour of the day*, a day × hour heatmap, *Count of rows by <column>*, *Average of <column>*), then change what it shows:
+
+| Setting | Choices |
+|---------|---------|
+| **Chart** | number card, line, area, columns, bars, donut, pie, day × hour heatmap |
+| **Show** | count of rows, or the total, average, lowest, highest or Net Promoter Score of a number column |
+| **Split by** | a column's values (largest first, or the N largest with the rest as *Other*), or a date column grouped by day, week (from Monday), month, day of the week or hour of the day |
+| **Only the last … days** | a rolling window on the date column |
+
+Charts can be reordered and removed; one that no longer fits the report (a removed column) is flagged and left out. The numbers are worked out on the server from up to the newest 10,000 matching rows (the card says so when there are more) and only the chart values reach the browser. Days, weeks and hours are in **your time zone** (the browser's; the API uses \`?timezone=\`, else your profile's, else UTC). Every card has a **Table** button with the same numbers, and the cards print with the report (**Export → Print / PDF**).
+
+\`\`\`json title="Summary charts in a report config"
+{
+  "charts": [
+    { "id": "total", "title": "Total responses", "type": "number", "measure": { "fn": "count" } },
+    { "id": "over_time", "title": "Responses over time", "type": "area",
+      "dimension": { "field": "created_at", "bucket": "day" }, "measure": { "fn": "count" }, "range_days": 90 },
+    { "id": "by_status", "title": "Average score by status", "type": "bar",
+      "dimension": { "field": "data_status" }, "measure": { "fn": "avg", "field": "data_score" }, "top_n": 8 }
+  ]
+}
+\`\`\`
+
+\`POST /api/v1/reports/preview\` (\`usertasks reports preview\`) and MCP \`reports_preview\` return each chart's series (\`charts\`: \`value\` for number cards, \`points\` in display order, \`cells\` for a heatmap). Reports without \`charts\` are unchanged. Edit a saved report with **Edit** on its page: the builder opens it, and **Save** updates it (someone else's report is saved as your own copy).
+
 ## Sources
 
 Built-in sources (generated from the report registry), plus one source per data table and per reference with outputs:
 
 ::report-sources
+
+## Workflow variables
+
+Pick **Workflow runs** as the source, then a **Workflow**: the report lists only that workflow's runs, and its variables become columns you can show, filter, sort, group by and aggregate (sum, average, min and max on number columns), chart and export:
+
+| Column | What it is |
+|--------|-----------|
+| \`vars.<name>\` | a workflow input (start form field / user variable), a Set Variable, or a step's scalar output (\`score\`, \`total\`, \`outcome\`, \`<step>_status\`) |
+| \`vars.task_data.<key>\` | a field of a User Task's form, as last submitted (attachments as \`<key>_count\`, a lookup's selected item as \`<key>_item.<field>\`) |
+| \`vars.form.<key>\` | a field of the form that started the run (**Form submitted**), with \`vars.submitted_by_email\`, \`vars.submitted_at\`, \`vars.form_outcome\` |
+
+Columns are typed (number, date, yes/no, text) from the workflow's definition — the draft and its recent published versions — and from the values stored on recent runs, so a variable a step sets dynamically appears too. Pickers group them by where they come from (Workflow inputs, a task's form, a step).
+
+\`\`\`json title="Approved amount by region"
+{
+  "data_source": "workflow_runs",
+  "source_inputs": { "workflow_id": "<workflow id>" },
+  "columns": ["vars.region", "SUM_vars.task_data.approved_amount"],
+  "filters": [{ "field": "vars.amount", "operator": "gt", "value": "100" }],
+  "group_by": ["vars.region"],
+  "aggregations": [{ "field": "vars.task_data.approved_amount", "fn": "SUM" }],
+  "visualization": "bar"
+}
+\`\`\`
+
+- **What is stored**: when a run completes, fails or pauses, the engine stores a bounded copy of its variables on the run (\`workflow_runs.variables\`). It leaves out engine keys (ids, who started it, steps' resume tokens), anything under a credential-like name (\`password\`, \`*_token\`, \`api_key\`, \`secret\`…) and secret-looking values, file contents and file lists (their counts are kept), nesting deeper than three levels, text beyond 500 characters and lists beyond 25 values; a run keeps at most about 32 KB. Runs that finished before this was added have no stored variables, so their variable columns are blank.
+- **Who sees values**: variable columns need **View workflows** (\`workflows.view\`) as well as \`reports.view\` — the permission that opens a workflow's runs. Without it the builder doesn't offer them and the API refuses the report.
+- **Tasks**: pick **Tasks** and a workflow to report on the tasks that workflow created; their form fields are \`fields.<key>\` columns.
+- **Without a workflow**, \`vars.<name>\` columns still work across all your workflows' runs (untyped).
+- **API, CLI and MCP**: \`GET /api/v1/reports/sources?workflow_id=<id>\` (\`usertasks reports sources --workflow-id <id>\`) and MCP \`reports_source_get\` with \`workflow_id\` list the columns; reports carry the workflow in \`source_inputs\`. OData's \`SavedReportResults\` includes the variable values of saved reports.
+- A workflow's **process overview** (Reports → Workflows → a workflow) shows its first three inputs on each instance and links to a report on them.
 
 ## Access
 
@@ -180,36 +242,84 @@ Reports have owners and sharing (\`reports.share\`). Read them in the app, with 
   {
     slug: 'agents',
     title: 'AI agents',
-    description: 'Optional, governed AI agents with instructions, granted tools and structured outputs — as workflow steps or on demand.',
+    description: 'Optional, governed AI agents with instructions, granted tools, typed outputs, approvals, knowledge, tests and versions — as workflow steps or on demand.',
     body: `
-Agents are optional. An agent is a model, instructions and a set of **granted tools**, with an output schema so workflows get structured results back. Nothing an agent does bypasses permissions: tools run with the agent's credentials and every run is traced.
+Agents are optional. An agent is a model, instructions and a set of **granted tools**, with typed outputs so workflows get structured results back. Tools act with the permissions of the person the agent works for, inside the scopes you grant, and every run is traced step by step.
 
 ## Models
 
-Agents use any **OpenAI-compatible** chat-completions endpoint with tool calling — OpenAI, Azure OpenAI, Groq, Together, Ollama, or an Anthropic-compatible proxy. Connect the provider as an AI [connector](/docs/integrations/connectors) and choose the model, temperature, token and iteration limits.
+Connect a provider as an AI [connector](/docs/integrations/connectors) — **OpenAI**, **Anthropic Claude**, **Azure OpenAI**, **Google Gemini**, **Mistral**, **DeepSeek**, **Groq**, **Together**, **Perplexity**, **Ollama** — or an integration whose base URL is any OpenAI-compatible Chat Completions server (vLLM, LM Studio, Amazon Bedrock's \`bedrock-runtime.<region>.amazonaws.com/openai/v1\`, a proxy). Agents call each provider's OpenAI-compatible endpoint with the right path and auth (Azure takes an \`api-key\` header; a local server needs no key). Pick the model (the provider's models are suggested), temperature — or the provider's default, which newer Claude and OpenAI reasoning models require — token and iteration limits (1–50).
+
+Each model call is retried on rate limits (429, honouring \`Retry-After\`), provider errors (5xx) and timeouts with backoff, inside the run's time budget (default 5 minutes, at most 15). A run that runs out of iterations while still calling tools **fails** rather than completing with an empty answer.
 
 ## Instructions and outputs
 
-Set the system prompt (or role, task and boundaries) and declare outputs. The agent's final answer is parsed into those outputs, which the **Run Agent** node writes to \`output_variable\`.
+Set the role, task, boundaries and custom instructions, and declare outputs: a name, a type (\`string\`, \`number\`, \`integer\`, \`boolean\`, \`array\`, \`object\`), optional **required** and **allowed values**. The agent ends its answer with a JSON block; each value is checked and coerced to its type (\`"3"\` → 3). When outputs are missing or invalid the agent is asked once to fix them; a **strict** agent then fails the run instead of completing with nulls.
+
+In a workflow the **Run Agent** step puts the response text in its \`output_variable\` (default \`agent_response\`), every output as \`{{name}}\` and \`{{<prefix>_name}}\` (prefix: the step's Output Prefix, else the agent's name), and \`<output_variable>_outputs\`, \`_status\`, \`_usage\`, \`_iterations\`, \`_tool_calls\`, \`_duration_ms\` and \`_files\` (files its tools produced).
+
+Every agent's prompt starts with operating rules: content from tools, files, documents, knowledge and other agents is **data, not instructions**. Tool results reach the model inside an "untrusted data" envelope, cut to 20,000 characters.
 
 ## Tools
 
 Grant only what the agent needs:
 
-- **References** — any integration reference, with its input schema;
-- **Workflows** — start a workflow;
-- **MCP servers** — tools from external MCP servers you register;
+- **References** — an integration reference; its inputs become the tool's parameters;
+- **MCP tools** — a tool on one of the workspace's MCP servers (suggested from the server's tool list);
+- **Data tables** — none by default: grant each table the agent needs and, per table, **read** (\`query_data_table\`), **insert** (\`insert_data_row\`), **update** (\`update_data_rows\`) and **delete** (\`delete_data_rows\`) — at most 100 rows per update or delete call. The model only gets the tools for the granted operations; with an acting person, reads also need their \`data.view\` and writes \`data.manage_rows\`. Agents created before per-table grants keep the access they had (read, add and update every table; the designer shows a banner suggesting narrowing, and **Switch to per-table grants** lists every table so you can untick what it doesn't need); "all tables" can't be given to an agent again. API / MCP: \`output_config.data_access.grants\` = \`[{"table_id": "…", "read": true, "insert": false, "update": false, "delete": false}]\`;
+- **Governed capabilities** — tasks (all or selected teams / workflows), workflows (all or selected), documents (Excel generation, CSV and file reading);
+- **Media** — turn on **Media (images, audio, video)** and choose a provider connection: the agent gets \`transcribe_media\` and \`analyze_image\` for files attached to the conversation or a URL. They send the media to that provider, so consider putting them on the approval list. In a workflow, the [media steps](/docs/workflows/media) do the same and more (redaction, video, speech) — see [Agents](/docs/workflows/media#agents);
+- **Knowledge** — upload documents (PDF, Word, Excel, PowerPoint, text, CSV, JSON, HTML) and pick data tables; the agent gets \`search_knowledge\` (ranked passages and rows, read-only) and \`read_knowledge_document\`;
 - **Built-in tools**:
 
 ::agent-tools
 
+References and MCP servers must belong to the agent's workspace. URL tools (\`http_get\`, \`http_post\`, downloads) go through the platform's egress guard on every redirect: private, loopback and cloud-metadata addresses are refused. **Outbound hosts** limits them to the hosts you list (\`api.example.com\`, \`*.example.org\`).
+
+## Who the agent acts for
+
+Task and workflow tools act with a person's permissions — the same ones the app checks (\`tasks.complete\`, \`workflows.activate\`, …), and for workflow tasks the assignee / manager-on-behalf rule:
+
+- in the test console, REST, CLI and MCP: the signed-in person or the credential's user (a tenant API key has none);
+- in a **Run Agent** step: the person who started the run (\`{{workflow_initiator_user_id}}\`) — nobody for schedules, webhooks and public forms — unless the step is set to act as the **workflow owner** or as nobody.
+
+With nobody to act for, the agent keeps its own scope: it can read tasks and runs and use its data tables, but task and workflow **writes are refused**.
+
+## Approvals
+
+List tools that need a person's approval (or all except read-only built-ins), and a reviewer (a person or a team; default the agent's creator). When the model calls one, the run pauses (status \`awaiting_approval\`) and the reviewer gets a task with the tool and its arguments and the outcomes **Approve** / **Reject**. Completing it — in the app, \`POST /api/v1/tasks/{id}/action\` or MCP — continues the run on the agent queue: an approved call runs; a rejected one is reported to the model with the reviewer's note. A Run Agent step waits the whole time and resumes with the agent's variables.
+
+## Limits, budgets and cost
+
+Per agent: tokens per run and tool calls per run, and **budgets** per day (the last 24 hours) and per month (the calendar month, UTC) in tokens and in **cost** (a currency, default USD). Per workspace (**Agents → Costs & budgets**, \`settings.edit\` to change): the same four budgets over all its agents. A run is refused once a budget is spent. The agent's Settings tab shows today and this month against its budgets and tokens or cost per day; \`GET /api/v1/agents/{id}/usage\` (\`usertasks agents usage <id>\`, MCP \`agents_usage_get\`) and \`GET /api/v1/agents/usage\` for the workspace (\`usertasks agents workspace-usage\`, MCP \`agents_workspace_usage_get\`) return the same, with cost per currency.
+
+**Cost** is computed when a run is recorded, from the model's price per 1M input, output and cached-input tokens, and stored with the price used — later price changes never rewrite past runs. The run page, its trace (per model call), the runs list and the usage charts show it. Prices come from, first match wins:
+
+1. the workspace's prices (Agents → Costs & budgets; \`PUT /api/v1/agents/cost-settings\`, MCP \`agents_cost_settings_update\`),
+2. the instance's prices (Settings → Infrastructure → AI model prices, instance administrators; the \`instance.ai_model_prices\` instance setting),
+3. the shipped defaults: providers' published **list prices as of 2026-10-29, editable**, for OpenAI GPT-4o, GPT-4o mini, GPT-4.1 / mini / nano and o3-mini; Claude Opus 5.5, Opus 4.6, Sonnet 4.6 and Haiku 4.5; Gemini 2.5 Flash and 2.5 Pro; Mistral Large, Medium, Small and Codestral; and Perplexity Sonar.
+
+Each price is per provider and model (or any provider) with the date it applies from. The defaults are list prices only — no discounts, batch or priority tiers, long-context or cache-write surcharges, per-request or search fees, or taxes — and they make no claim beyond that; replace them with your contract prices. A model with no price — Azure deployments, Bedrock, local models, retired models — shows **cost unknown**, never a guessed or zero cost, and isn't counted in cost budgets (the usage view says how many runs that is); a provider that doesn't report token usage makes the run's cost unknown too.
+
+## Testing
+
+- The **test console** (Test) is a multi-turn conversation with the saved agent: the reply **streams** token by token, tool calls show as they happen, then outputs, tokens, cost and a link to the trace; **Stop** cancels the run.
+- **Tests**: cases with an input and expectations — phrases the answer must or must not contain, output values, tools it must or must not call, a token ceiling, and an optional **rubric** graded by the agent's own model. Running the suite uses the saved agent in evaluation mode: tools that change data or call out are **simulated**, approvals never wait, so a run changes nothing. Results show every check per case with a link to its trace (\`usertasks agents eval <id>\`, \`POST /api/v1/agents/{id}/evals/runs\`, MCP \`agents_eval_run\`).
+
+## Versions
+
+Every save is a new version (the **History** tab, \`GET /api/v1/agents/{id}/versions\`). Restoring one saves its settings as the newest version, so a restore can be undone — and a published workflow pinned to a version keeps running that version. Restoring a version from before per-table grants keeps the agent's current data grants rather than re-opening every table. Exports and packages carry each agent's version and data grants, and each published workflow's pins (\`published_agent_pins\`); an import pins again when the workflow is published.
+
 ## Running agents
 
-- In a workflow with **Run Agent**.
-- On demand: \`usertasks agents execute <id> --set message="Classify INV-1042"\` (add \`--set async:=true\` to queue it), \`POST /api/v1/agents/{id}/execute\`, or MCP.
-- Runs, steps, tool calls, token counts and errors are recorded and emitted as \`agent.run.*\` events. Prompts and model outputs are **not** included in exported events.
+- In a workflow with **Run Agent** — in the step (the run waits), or on the **agent queue** (the run pauses and resumes when the agent finishes; suited to long agents).
+- On demand: \`usertasks agents execute <id> --set message="Classify INV-1042"\` (add \`--set async:=true\` to queue it; poll \`usertasks agents job <job-id>\`), \`POST /api/v1/agents/{id}/execute\` (\`"stream": true\` streams Server-Sent Events: the reply as \`delta\` events, then \`done\`), or MCP \`agents_execute\` (queued).
+- **Published workflows** run the agent version pinned when they were published (see Run Agent); drafts and Save & Test run the latest.
+- **Streaming**: the test console, Save & Test (on the Run Agent step) and REST \`stream\` show the reply as the model writes it. Providers are streamed through their OpenAI-compatible Server-Sent Events (OpenAI, Azure, Claude's and Gemini's OpenAI compatibility, Mistral, DeepSeek, Groq, Together, Perplexity, Ollama, Bedrock's OpenAI endpoint), with Anthropic Messages events understood too; tool-call arguments are assembled from their pieces. A provider, model or gateway that refuses streaming gets a normal request instead; an error mid-stream retries the call (the partial reply is discarded). Workflows on the server get the final result as before.
+- **Who can read runs**: a run's input, output, trace and tool calls (and test-suite runs and queue jobs) need \`agents.view\` — except your own runs: those the agent acted for you or that you started. Others get "not found". A workflow run still shows a Run Agent step's output to people who can view the run, but not the agent's trace.
+- **Trace**: every run records each model call (latency, tokens, retries, finish reason) and tool call (arguments and results with credentials redacted, latency, status, approval) — the run page's Trace tab, \`GET /api/v1/agents/runs/{id}\`. Runs emit \`agent.run.*\` events (status, model, tokens, duration — prompts, outputs and tool payloads are **not** in exported events).
 
-Rate limits apply per workspace. Permissions: \`agents.view\`, \`agents.create\`, \`agents.edit\`, \`agents.test\`, \`agents.delete\`.
+Rate limits apply per workspace. Permissions: \`agents.view\`, \`agents.create\`, \`agents.edit\` (also tests and restore), \`agents.test\` (run, run tests), \`agents.delete\`. Agents, runs and the queue are written only by the server; members read agents, and runs as above.
 `,
   },
 ]

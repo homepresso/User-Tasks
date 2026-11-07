@@ -1,14 +1,18 @@
 import { z } from 'zod'
 import { getDb } from '../context'
 import { loadGovernanceData } from '@/lib/governance-data'
+import { RETENTION_APPLIES_TO } from '@/lib/retention-policy-api'
+import { OBJECT_PERMISSION_META, type ObjectPermissionType } from '@/lib/object-permission-types'
+import { getFormGovernance, listFormGovernance } from '../form-governance'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
 /**
- * Governance: the settings page, object-permission pickers and overview,
- * retention-policy picker, and asset dependency scans (integrations,
- * references, data tables).
+ * Governance: the settings page, object-permission pickers and overview
+ * (workflows, data tables, forms, agents, integrations), retention-policy
+ * picker, forms' retention and legal hold, and asset dependency scans
+ * (integrations, references, data tables).
  */
 
 interface Dep { id: string; name: string }
@@ -22,7 +26,8 @@ export interface AssetDeps {
   runs: number
 }
 
-type ObjectType = 'workflow' | 'data_table' | 'agent' | 'integration'
+/** Object types listed in the governance permissions overview (reports and API keys are managed on their own pages). */
+const OVERVIEW_TYPES = ['workflow', 'data_table', 'form', 'agent', 'integration'] as const satisfies readonly ObjectPermissionType[]
 
 const emptyDeps = (): AssetDeps => ({ workflows: [], tables: [], references: [], integrations: [], tasks: 0, submissions: 0, runs: 0 })
 
@@ -40,7 +45,7 @@ async function workflowsUsing(db: any, matches: (config: any) => boolean): Promi
 const tenantArgs = z.object({ tenantId: id })
 
 /** Retention policy scopes (retention_policies.applies_to values). */
-const retentionScope = z.enum(['data_tables', 'data_rows', 'roles'])
+const retentionScope = z.enum(RETENTION_APPLIES_TO)
 
 export const reads = {
   /** Settings → Governance: roles, users with role assignments, retention policies, audit log. */
@@ -83,15 +88,12 @@ export const reads = {
     perm: 'team.change_roles',
     run: async (ctx, { tenantId }) => {
       const db = getDb(ctx) as any
-      const [workflows, tables, agents, integrations] = await Promise.all(
-        ['workflows', 'custom_tables', 'agents', 'integrations']
-          .map((table) => db.from(table).select('id, name').eq('tenant_id', tenantId).order('name')),
-      ) as Array<{ data: { id: string; name: string }[] | null }>
-      const results: { type: ObjectType; id: string; name: string; href: string }[] = []
-      workflows.data?.forEach((w) => results.push({ type: 'workflow', id: w.id, name: w.name, href: `/automations/${w.id}` }))
-      tables.data?.forEach((t) => results.push({ type: 'data_table', id: t.id, name: t.name, href: `/data/${t.id}` }))
-      agents.data?.forEach((a) => results.push({ type: 'agent', id: a.id, name: a.name, href: `/agents/${a.id}` }))
-      integrations.data?.forEach((i) => results.push({ type: 'integration', id: i.id, name: i.name, href: `/integrations/${i.id}` }))
+      const lists = await Promise.all(OVERVIEW_TYPES.map((type) =>
+        db.from(OBJECT_PERMISSION_META[type].table).select(type === 'form' ? 'id, name, available_in_menu' : 'id, name').eq('tenant_id', tenantId).order('name'),
+      )) as Array<{ data: { id: string; name: string; available_in_menu?: boolean }[] | null }>
+      const results: { type: ObjectPermissionType; id: string; name: string; href: string; in_menu?: boolean }[] = []
+      OVERVIEW_TYPES.forEach((type, index) => lists[index].data?.forEach((row) =>
+        results.push({ type, id: row.id, name: row.name, href: OBJECT_PERMISSION_META[type].href(row.id), ...(type === 'form' ? { in_menu: row.available_in_menu === true } : {}) })))
       return results
     },
   }),
@@ -112,16 +114,30 @@ export const reads = {
     },
   }),
 
-  /** Retention policies that apply to a scope (data table, row, role pickers). */
+  /** Retention policies that apply to a scope (data table, row, role, form pickers). */
   'governance.retentionPolicies': defineRead({
     args: z.object({ scope: retentionScope }),
-    perm: ['data.view', 'team.change_roles'],
+    perm: ['data.view', 'forms.view', 'team.change_roles'],
     run: async (ctx, { scope }) => {
       const data = check(await (getDb(ctx) as any).from('retention_policies')
         .select('id, name, description, policy_mode, duration_value, duration_unit, exact_date, applies_to')
         .order('name')) as Array<{ applies_to?: string[] | null } & Record<string, any>> | null
       return (data ?? []).filter((policy) => (policy.applies_to ?? []).includes(scope)) as any[]
     },
+  }),
+
+  /** Every form with its retention policy and legal hold (Settings → Governance → Retention). */
+  'governance.formRetention': defineRead({
+    args: NO_ARGS,
+    perm: 'team.change_roles',
+    run: async (ctx) => listFormGovernance(ctx),
+  }),
+
+  /** One form's retention policy, legal hold and submission count (the form's Details). */
+  'governance.form': defineRead({
+    args: z.object({ formId: id }),
+    perm: 'forms.view',
+    run: async (ctx, { formId }) => getFormGovernance(ctx, formId),
   }),
 
   /** An integration's references and the workflows that call them. */

@@ -38,7 +38,7 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
 
   return (
     <div className="space-y-1">
-      <label className="block text-xs font-medium" style={{ color: 'var(--theme-card-text)' }}>
+      <label className="block text-xs font-medium text-fg">
         {field.label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -78,8 +78,7 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 hover:opacity-70"
-            style={{ color: 'var(--theme-muted-text)' }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 hover:opacity-70 text-fg-muted"
           >
             {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
@@ -102,22 +101,22 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
       )}
 
       {field.helpText && (
-        <p className="text-[10px]" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-2xs text-fg-muted">
           {field.helpText}
         </p>
       )}
       {field.setupHint && (
-        <p className="text-[10px]" style={{ color: 'var(--theme-card-text)' }}>
+        <p className="text-2xs text-fg">
           {field.setupHint}
         </p>
       )}
       {field.exampleText && (
-        <p className="text-[10px] font-mono" style={{ color: 'var(--theme-muted-text)' }}>
+        <p className="text-2xs font-mono text-fg-muted">
           Example: {field.exampleText}
         </p>
       )}
       {error && (
-        <p className="text-[10px]" style={{ color: 'var(--theme-danger)' }}>
+        <p className="text-2xs text-danger">
           {error}
         </p>
       )}

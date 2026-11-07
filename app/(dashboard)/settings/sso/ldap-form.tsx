@@ -23,6 +23,13 @@ const MAPPING_LABELS: Record<LdapMappingKey, string> = {
   group_description: 'Group description',
   member: 'Group member attribute',
   manager: 'Manager (DN)',
+  job_title: 'Job title',
+  department: 'Department',
+  location: 'Office location',
+  employee_id: 'Employee id',
+  company: 'Company',
+  division: 'Division',
+  cost_center: 'Cost centre',
 }
 
 const SECRET = '__SECRET__'
@@ -128,7 +135,7 @@ export function LdapForm({
         <Server size={14} style={{ color: 'var(--theme-primary-text)' }} />
         {editing ? 'LDAP / Active Directory settings' : 'Connect LDAP / Active Directory'}
       </h3>
-      <p className="text-xs mb-4" style={{ color: 'var(--theme-muted-text)' }}>
+      <p className="text-xs mb-4 text-fg-muted">
         Users and groups are read with a service account over LDAPS or StartTLS. Use a read-only account; the password is encrypted and never shown again.
       </p>
 
@@ -176,12 +183,12 @@ export function LdapForm({
           </div>
         )}
 
-        <button type="button" className="text-xs underline" style={{ color: 'var(--theme-primary-text)' }} onClick={() => setShowAdvanced(!showAdvanced)}>
+        <button type="button" className="text-xs underline text-primary-text" onClick={() => setShowAdvanced(!showAdvanced)}>
           {showAdvanced ? 'Hide' : 'Show'} TLS, search and attribute mapping options
         </button>
 
         {showAdvanced && (
-          <div className="space-y-4 rounded-lg p-3" style={{ backgroundColor: 'var(--theme-surface)' }}>
+          <div className="space-y-4 rounded-lg p-3 bg-subtle">
             <Field label="CA certificate (PEM)" hint="The certificate(s) the server certificate must chain to. Empty: the system's trusted roots.">
               <TextArea rows={4} value={caCert} onChange={(e) => setCaCert(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----" />
             </Field>
@@ -204,7 +211,7 @@ export function LdapForm({
                     <Input
                       value={mapping[key] ?? ''}
                       onChange={(e) => setMapping({ ...mapping, [key]: e.target.value })}
-                      placeholder={preset.map[key]}
+                      placeholder={preset.map[key] || 'not read'}
                       className="font-mono text-xs"
                     />
                   </Field>
@@ -235,11 +242,11 @@ export function LdapTestSummary({ result }: { result: LdapTestResult }) {
   return (
     <div className="rounded-lg p-3 text-xs space-y-2" style={{ backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-surface-border)' }}>
       <p className="flex items-center gap-1.5 font-medium text-sm">
-        <CheckCircle2 size={14} className="text-green-600" />
+        <CheckCircle2 size={14} className="text-success" />
         Connected to {result.server}{result.vendor ? ` (${result.vendor})` : ''} — {result.users} users, {result.groups} groups{result.encrypted ? ', encrypted' : ''}
       </p>
       {result.warnings.map((warning) => (
-        <p key={warning} className="flex items-start gap-1.5 text-amber-700"><TriangleAlert size={12} className="mt-0.5 shrink-0" />{warning}</p>
+        <p key={warning} className="flex items-start gap-1.5 text-warning"><TriangleAlert size={12} className="mt-0.5 shrink-0" />{warning}</p>
       ))}
       {result.sample.length > 0 && (
         <table className="w-full text-left">
