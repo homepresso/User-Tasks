@@ -46,7 +46,7 @@ export const formDuplicateBody = z.object({
 export const formThemeCreateBody = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(2000).nullable().optional(),
-  overrides: looseObject.describe('Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header'),
+  overrides: looseObject.describe('Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header'),
 })
 
 export const formThemeUpdateBody = z.object({

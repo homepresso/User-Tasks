@@ -23,6 +23,7 @@ import {
   Server,
   Shield,
   SlidersHorizontal,
+  Sparkles,
   User,
   UserPlus,
   UsersRound,
@@ -103,6 +104,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
     label: "Infrastructure",
     items: [
+      { label: "Agent", href: "/settings/assistants", icon: Sparkles, permission: "assistants.manage" },
       { label: "Document OCR", href: "/settings/document-ocr", icon: ScanText, permission: "settings.view" },
       { label: "Infrastructure", href: "/settings/infrastructure", icon: Server, instanceAdmin: true },
       { label: "Workspace DNS", href: "/settings/workspace-dns", icon: Globe, instanceAdmin: true },
@@ -121,7 +123,7 @@ export function settingsTabFrom(raw: string | null): SettingsTab {
 }
 
 /** Pages whose content is a form get the 720px reading width; the rest fill the column. */
-const NARROW = new Set(["/settings", "/settings/document-ocr", "/settings/invitations", "/settings/webhooks", "/settings/sso"])
+const NARROW = new Set(["/settings", "/settings/document-ocr", "/settings/assistants", "/settings/invitations", "/settings/webhooks", "/settings/sso"])
 /** Editors that take the whole canvas, without the sub-nav. */
 const FULL_BLEED = new Set(["/settings/theme"])
 

@@ -27,6 +27,7 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: '/settings/logs', allOf: ['settings.view'] },
   { prefix: '/settings/log-export', allOf: ['observability.view'] },
   { prefix: '/settings/document-ocr', allOf: ['settings.view'] },
+  { prefix: '/settings/assistants', allOf: ['assistants.manage'] },
   { prefix: '/settings/packages', allOf: ['packages.view'] },
   { prefix: '/packages', allOf: ['packages.view'] },
   { prefix: '/activity', allOf: ['settings.view'] },

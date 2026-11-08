@@ -1,6 +1,6 @@
 /**
  * Data-table tools of an agent (server only): query_data_table,
- * insert_data_row, update_data_rows, delete_data_rows.
+ * insert_data_row, insert_data_rows (many, same insert grant), update_data_rows, delete_data_rows.
  *
  * Access is per table and per operation (output_config.data_access.grants:
  * read / insert / update / delete). New agents have none; a legacy
@@ -14,9 +14,10 @@ import { AgentToolError, requireActingPermission, type AgentToolRuntime, type To
 
 const COLUMN = /^[A-Za-z0-9_ -]{1,64}$/
 export const MAX_UPDATE_ROWS = 100
+export const MAX_INSERT_ROWS = 100
 
 const OPERATION: Record<string, AgentTableOperation> = {
-  query_data_table: 'read', insert_data_row: 'insert', update_data_rows: 'update', delete_data_rows: 'delete',
+  query_data_table: 'read', insert_data_row: 'insert', insert_data_rows: 'insert', update_data_rows: 'update', delete_data_rows: 'delete',
 }
 const OPERATION_LABEL: Record<AgentTableOperation, string> = { read: 'read', insert: 'add rows to', update: 'update rows in', delete: 'delete rows from' }
 
@@ -69,6 +70,17 @@ export async function runDataTool(runtime: AgentToolRuntime, name: string, args:
     const { data: row, error } = await db.from('custom_table_rows').insert({ table_id: table.id, tenant_id: runtime.tenantId, data }).select('id').maybeSingle()
     if (error) throw new AgentToolError(error.message, 500)
     return { success: true, table: table.name, row_id: row?.id ?? null }
+  }
+
+  if (name === 'insert_data_rows') {
+    await requireActingPermission(runtime, ['data.manage_rows'], { requireUser: false, what: 'Adding rows' })
+    const rows = Array.isArray(args.rows) ? args.rows : null
+    if (!rows || !rows.length) throw new AgentToolError('rows must be a non-empty array of JSON objects of column values')
+    if (rows.length > MAX_INSERT_ROWS) throw new AgentToolError(`At most ${MAX_INSERT_ROWS} rows per call`)
+    if (rows.some((r: unknown) => !r || typeof r !== 'object' || Array.isArray(r))) throw new AgentToolError('Each row must be a JSON object of column values')
+    const { data: inserted, error } = await db.from('custom_table_rows').insert(rows.map((data: Record<string, unknown>) => ({ table_id: table.id, tenant_id: runtime.tenantId, data }))).select('id')
+    if (error) throw new AgentToolError(error.message, 500)
+    return { success: true, table: table.name, inserted: inserted?.length ?? rows.length, row_ids: (inserted ?? []).map((r: any) => r.id) }
   }
 
   if (name === 'update_data_rows') {

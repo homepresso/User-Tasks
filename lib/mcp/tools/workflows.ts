@@ -15,6 +15,7 @@ import { validateWorkflow } from '@/lib/workflow-validation'
 import { MCP_BUILD_ORDER_SENTENCE, MCP_CORE_TOOL_DESCRIPTIONS, MCP_WORKFLOW_RECIPES_GUIDANCE } from '@/lib/mcp/descriptions'
 import { normalizeScaffoldWorkflow } from '@/lib/portability/normalize'
 import { isObjectLike } from '@/lib/utils/guards'
+import { workflowWiringWarnings } from '@/lib/services/workflow-wiring'
 
 const TRIGGER_TYPES = new Set([
   'task_created',
@@ -55,6 +56,8 @@ const TRIGGER_LABELS: Record<string, string> = {
   esign_event: 'E-signature Event',
   manual: 'Manual Trigger',
 }
+
+const WARNINGS_NEXT_STEP = 'The workflow was saved, but warnings lists references that will be blank at run time or config keys the engine ignores. Apply each suggestion (workflows_update) and re-check with workflows_validate.'
 
 function parseJsonArg<T>(value: string | undefined, fieldName: string): T | null | { error: string } {
   if (!value) return null
@@ -416,7 +419,7 @@ export function registerWorkflowTools(server: McpToolServer, ctx: McpContext) {
     let existing: any = null
     if (args.workflow_id) {
       const { data, error } = await supabase.from('workflows')
-        .select('id, trigger_type, trigger_config, nodes, edges')
+        .select('id, trigger_type, trigger_config, nodes, edges, user_variables')
         .eq('id', args.workflow_id)
         .eq('tenant_id', tenantId)
         .single()
@@ -451,6 +454,7 @@ export function registerWorkflowTools(server: McpToolServer, ctx: McpContext) {
       triggerConfig,
     })
 
+    const warnings = await workflowWiringWarnings(supabase, tenantId, { nodes, edges, user_variables: existing?.user_variables })
     const issues = [
       ...(middlewareViolation ? [middlewareViolation] : []),
       ...triggerChecks,
@@ -469,6 +473,8 @@ export function registerWorkflowTools(server: McpToolServer, ctx: McpContext) {
       },
       issues,
       node_errors: validation.nodeErrors,
+      // Advisory (do not affect valid): references that will be blank, ignored config keys.
+      warnings,
       dependency_checks: dependencyResult.checks,
       remediation_hints: dependencyResult.missing.map((item) => ({
         type: item.type,
@@ -482,6 +488,64 @@ export function registerWorkflowTools(server: McpToolServer, ctx: McpContext) {
         'Run workflows_catalog before generation so MCP uses only supported trigger and node types.',
         'Publish the workflow after the graph validates cleanly and all dependencies exist.',
       ],
+    })
+  })
+
+  server.tool('workflows_validate', MCP_CORE_TOOL_DESCRIPTIONS.workflows_validate, {
+    workflow_id: z.string().optional().describe('A saved workflow to check (its draft). Omit to check the graph given in nodes / edges'),
+    trigger_type: z.string().optional().describe('Trigger type of the draft graph (default: the saved workflow\'s, else task_created)'),
+    nodes: z.string().optional().describe('JSON string array of workflow nodes (as for workflows_create); overrides the saved draft\'s'),
+    edges: z.string().optional().describe('JSON string array of edges; overrides the saved draft\'s'),
+    user_variables: z.string().optional().describe('JSON string array of workflow variables ({ name, type, … }); overrides the saved draft\'s'),
+  }, async (args) => {
+    if (args.workflow_id && !canAccessWorkflow({ ...ctx, success: true } as any, args.workflow_id)) {
+      return mcpErr('This API key is not allowed to access that workflow')
+    }
+    if (!args.workflow_id && !args.nodes) return mcpErr('Give workflow_id or nodes')
+    const parsedNodes = parseJsonArg<any[]>(args.nodes, 'nodes')
+    if (parsedNodes && 'error' in parsedNodes) return mcpErr(parsedNodes.error)
+    const parsedEdges = parseJsonArg<any[]>(args.edges, 'edges')
+    if (parsedEdges && 'error' in parsedEdges) return mcpErr(parsedEdges.error)
+    const parsedUserVariables = parseJsonArg<any[]>(args.user_variables, 'user_variables')
+    if (parsedUserVariables && 'error' in parsedUserVariables) return mcpErr(parsedUserVariables.error)
+
+    let existing: any = null
+    if (args.workflow_id) {
+      const { data, error } = await supabase.from('workflows')
+        .select('id, trigger_type, nodes, edges, user_variables')
+        .eq('id', args.workflow_id)
+        .eq('tenant_id', tenantId)
+        .single()
+      if (error || !data) return mcpErr('Workflow not found')
+      existing = data
+    }
+    const triggerType = args.trigger_type ?? existing?.trigger_type ?? 'task_created'
+    // A draft graph is checked as workflows_create / workflows_update would save it (aliases canonicalised).
+    const draft = parsedNodes || parsedEdges
+      ? normalizeScaffoldWorkflow({
+        trigger_type: triggerType,
+        trigger_config: {},
+        nodes: parsedNodes ?? existing?.nodes ?? [],
+        edges: parsedEdges ?? existing?.edges ?? [],
+      })
+      : null
+    const nodes = (parsedNodes ? draft?.nodes : existing?.nodes) ?? []
+    const edges = (parsedEdges ? draft?.edges : existing?.edges) ?? []
+    const userVariables = parsedUserVariables ?? existing?.user_variables ?? []
+
+    const usesAadGroup = Array.isArray(nodes) && nodes.some((node: any) => node?.type === 'user_task' && node?.config?.assignment_type === 'aad_group')
+    const entraGroups = usesAadGroup
+      ? (await (await import('@/lib/directory-sync/entra-groups')).entraGroupCapabilities(supabase as any, tenantId).catch(() => null))?.entraGroups
+      : undefined
+    const validation = validateWorkflow(nodes as any[], triggerType, { entraGroups })
+    const warnings = await workflowWiringWarnings(supabase, tenantId, { nodes, edges, user_variables: userVariables })
+    return mcpOk({
+      valid: validation.valid,
+      trigger_type: triggerType,
+      error_count: validation.totalErrors,
+      warning_count: warnings.length,
+      node_errors: validation.nodeErrors,
+      warnings,
     })
   })
 
@@ -600,7 +664,7 @@ TRIGGER CONFIG EXAMPLES:
 - form_submitted: {"form_id":"form-id","button_ids":["optional-button-or-outcome"]} (forms_list for ids)
 - task events: {"filter_priority":"high"}
 
-FORM SUBMITTED VARIABLES: form_submitted triggers expose {{form.<field_key>}} (typed; {{form.<key>_item}} for lookups), {{form_id}}, {{form_name}}, {{form_version}}, {{form_submission_id}}, {{form_button}}, {{form_outcome}}, {{form_source}} (standalone, api or task), {{submitted_by}}, {{submitted_by_name}}, {{submitted_by_email}}, {{submitted_at}} and {{task_id}} for task forms.
+FORM SUBMITTED VARIABLES: form_submitted triggers expose {{form.<field_key>}} (typed; {{form.<key>_item}} for lookups; never the bare {{<field_key>}}, which is blank), {{form_id}}, {{form_name}}, {{form_version}}, {{form_submission_id}}, {{form_button}}, {{form_outcome}}, {{form_source}} (standalone, api or task), {{submitted_by}}, {{submitted_by_name}}, {{submitted_by_email}}, {{submitted_at}} and {{task_id}} for task forms.
 
 DATA TABLE EVENT VARIABLES: data_table_event triggers expose {{data_event}}, {{data_table_id}}, {{data_table_name}}, {{data_row_id}}, {{data_row}}, {{row}}, plus each column keyed by column id/name slug where available.
 
@@ -614,28 +678,30 @@ MIDDLEWARE NOTES: middleware_received behaves like a webhook trigger with a sync
 
 USER VARIABLES: Define workflow-scoped variables via user_variables. Set them with set_variable nodes and reference them as {{variable_name}}.
 
+WARNINGS: the response lists \`warnings\` [{ node_id, node_label, kind, message, suggestion }] — references that will be blank at run time (e.g. {{full_name}} after a form_submitted trigger → {{form.full_name}}; a bare User Task field → {{task_data.<key>}}) and config keys the engine ignores (e.g. output_var on update_data_table → output_row_id_var). The workflow is saved anyway: apply each suggestion with workflows_update and re-check with workflows_validate until warnings is empty.
+
 NODE TYPES AND CONFIGS:
 - set_variable: { assignments: [{ name: "var_name" (REQUIRED, unique in the node), expression: "{{some.value}}" (REQUIRED) }, { name: "other", expression: "{{=var_name * 2}}" }] } sets several variables in one node, in order (a later row can use an earlier one; a failing row fails the node naming the variable). The single form { name, expression } is still accepted.
 - set_sla: { sla_label: "First response", mode: "relative"|"exact", amount: 4, unit: "hours"|"days"|"weeks"|"minutes", due_at: "{{some_date}}" (used when mode is exact), warning_mode: "relative"|"exact", warning_amount: 1, warning_unit: "hours"|"days"|"weeks"|"minutes", warning_at: "{{warning_date}}" (used when warning_mode is exact) }
 - condition: { branches: [{ label: "Approved", logic: "and"|"or" (lowercase), rules: [{ field: "{{var}}", operator: "equals"|"not_equals"|"contains"|"not_contains"|"gt"|"lt"|"gte"|"lte"|"starts_with"|"ends_with"|"in"|"matches"|"is_empty"|"is_not_empty"|"is_true"|"is_false" (lowercase; is_true/is_false treat true/"true"/1/"yes" as true and false/"false"/0/""/missing as false), value: "approved" }] }], has_else: true }. IMPORTANT: every branch.label must appear as the label on an outgoing edge from the condition node so the engine can route to it — edge label matching is case-insensitive. If has_else is true an edge labelled "Else" routes the no-match path. Empty branches (no rules with a non-empty field) are skipped.
-- update_data_table: { table_id, operation: "insert"|"update"|"get"|"list"|"delete", row_id: "{{row_id}}", column_values: { col: "{{expr}}" }, apply_retention_policy: true|false, retention_policy_id: "policy-id or {{variable}}" (only used when apply_retention_policy is true on insert/update), filters: [{ column: "status", operator: "equals"|"not_equals"|"contains"|"starts_with"|"ends_with"|"gt"|"lt"|"gte"|"lte"|"ilike"|"is_null"|"not_null", value: "approved" }], sort_column: "created_at", sort_direction: "asc"|"desc", limit: 100, offset: 0, output_row_id_var: "row_id", output_row_var: "row", output_rows_var: "rows", output_count_var: "count" }
-- user_task: { task_title: "Approve {{name}}" (REQUIRED), task_description: "...", assignee_id: "user-id" (REQUIRED for individual), task_priority: "medium", outcomes: ["approved","rejected"], assignment_type: "individual"|"team"|"aad_group", team_id: "team-id" (REQUIRED if team), aad_group_id: "<Entra group object id>" (REQUIRED if aad_group; only when Entra ID directory sync is connected — find ids with directory_entra_groups_search), aad_group_name, aad_group_mode: "claim"|"everyone" (claim: anyone in the group can claim one task; everyone: collaborative task for every member, completion_rule applies), aad_include_nested: true|false (default true), due_date_mode: "relative", due_offset_amount: 3, due_offset_unit: "days", queue_behaviour: "rules"|"queue"|"add" (optional; default "rules" follows the assignee's queue rules, "queue" always waits for them to accept, "add" always goes straight to their tasks), fields: [{ key: "amount", label: "Amount", type: "number", required: true }, { key: "category", label: "Category", type: "choice", options: ["A","B"] }] }. FIELDS: when the assignee must capture data beyond an outcome, list it in fields (type text|number|date|boolean|choice; choice needs options; keys must be unique; optional default may use {{variables}}). Values are stored on the task as task.data.<key> and are available after the node as {{task_data.<key>}}. Complete via tasks_complete_workflow with values: { <key>: value }. Tasks that only need an outcome button can omit fields.
+- update_data_table: { table_id, operation: "insert"|"update"|"get"|"list"|"delete", row_id: "{{row_id}}", column_values: { col: "{{expr}}" }, apply_retention_policy: true|false, retention_policy_id: "policy-id or {{variable}}" (only used when apply_retention_policy is true on insert/update), filters: [{ column: "status", operator: "eq"|"neq"|"gt"|"gte"|"lt"|"lte"|"like"|"ilike"|"starts_with"|"ends_with"|"is_null"|"not_null", value: "approved" }] (like / ilike = contains), sort_column: "created_at", sort_direction: "asc"|"desc", limit: 100, offset: 0, output_row_id_var: "row_id" (insert / update / get: the row id → {{row_id}}; NOT output_var), output_row_var: "row" (get), output_rows_var: "rows" (list), output_count_var: "count" (list) }
+- user_task: { task_title: "Approve {{name}}" (REQUIRED), task_description: "...", assignee_id: "user-id" (REQUIRED for individual), task_priority: "medium", outcomes: ["approved","rejected"], assignment_type: "individual"|"team"|"aad_group", team_id: "team-id" (REQUIRED if team), aad_group_id: "<Entra group object id>" (REQUIRED if aad_group; only when Entra ID directory sync is connected — find ids with directory_entra_groups_search), aad_group_name, aad_group_mode: "claim"|"everyone" (claim: anyone in the group can claim one task; everyone: collaborative task for every member, completion_rule applies), aad_include_nested: true|false (default true), due_date_mode: "relative", due_offset_amount: 3, due_offset_unit: "days", queue_behaviour: "rules"|"queue"|"add" (optional; default "rules" follows the assignee's queue rules, "queue" always waits for them to accept, "add" always goes straight to their tasks), fields: [{ key: "amount", label: "Amount", type: "number", required: true }, { key: "category", label: "Category", type: "choice", options: ["A","B"] }] }. FIELDS: when the assignee must capture data beyond an outcome, list it in fields (type text|number|date|boolean|choice; choice needs options; keys must be unique; optional default may use {{variables}}). Values are stored on the task as task.data.<key> and are available after the node as {{task_data.<key>}} (the LATEST completed User Task's values) and {{<prefix>_task_data.<key>}} (this task's, kept after later tasks; <prefix> = the node label in snake_case, e.g. "HR approval" → {{hr_approval_task_data.comment}}). Outcome: {{outcome}} / {{<prefix>_outcome}}; comment: {{outcome_notes}}; who completed it: {{completed_by}} (user id), {{completed_by_name}}, {{completed_by_email}}. Never reference a task field bare ({{comment}}): it is blank. PREFILL: field_values: { <field key>: "{{expression}}" } fills the task's form fields when the task is created (over each field's default; works for a linked form_id without changing the saved form). Read-only display fields (e.g. the request being approved) need a value from field_values or a field default, e.g. field_values: { full_name: "{{form.full_name}}", start_date: "{{form.start_date}}" }, or the assignee sees them blank. Complete via tasks_complete_workflow with values: { <key>: value }. Tasks that only need an outcome button can omit fields.
 - add_task_attachment: { file: "{{doc_file}}" (REQUIRED: file object, storage:// ref, URL or base64), name: "...", type: "Contract", description: "...", task_id: "{{user_task_id}}" (default: the run's task) } → {{attachment}}
 - create_subtask: { title: "..." (REQUIRED), description: "...", assignee_id: "user-id", priority: "medium" }
 - update_task: { field: "status" (REQUIRED), value: "in_progress" (REQUIRED) }
 - http_request: { url: "https://..." (REQUIRED), method: "GET"|"POST"|"PUT"|"DELETE" (REQUIRED), headers: {}, body: "{{json}}", content_type: "json"|"form", auth_type: "none"|"bearer"|"basic"|"api_key", auth_token: "...", output_var: "response" }
-- call_reference: { reference_id: "ref-id" (REQUIRED), input_mappings: { param: "{{value}}" }, output_var: "result" }
+- call_reference: { reference_id: "ref-id" (REQUIRED), input_mappings: { param: "{{value}}" }, output_mappings: { <output name>: { enabled: true, variableName: "customer_email" } } } → {{<prefix>_response}} (full response), {{<prefix>_status}}, each enabled output as its variableName (<prefix> = the node label in snake_case)
 - send_email: { to: "{{email}}" (REQUIRED), subject: "..." (REQUIRED), body: "..." }
 - delay: { duration: 24 (REQUIRED), unit: "seconds"|"minutes"|"hours"|"days" }
 - loop: { items: "{{some_array}}" (REQUIRED), item_var: "item", index_var: "index" }
 - math: { expression: "{{a}} + {{b}}" (REQUIRED), output_var: "result" }
-- modify_string: { operation: "uppercase"|"lowercase"|"trim"|"replace"|"slice"|"concat"|"split", input: "{{var}}", find: "old", replace_with: "new", output_var: "result" }
+- modify_string: { operation: "uppercase"|"lowercase"|"trim"|"replace"|"slice"|"concat"|"split", input: "{{var}}", search: "old", replace_with: "new", output_var: "result" }
 - text_template: { template: "Hello {{name}}", output_var: "message" }
 - format_date: { date: "{{submitted_at}}", format: "DD/MM/YYYY", output_var: "formatted" }
-- date_math: { date: "{{due_date}}", operation: "add"|"subtract", value: 7, unit: "days", output_var: "new_date" }
+- date_math: { date: "{{due_date}}", operation: "add"|"subtract", amount: 7, unit: "days", output_var: "new_date" } → {{new_date}}
 - regex: { input: "{{text}}", pattern: "\\\\d+", operation: "match"|"replace"|"test", replace_with: "", output_var: "result" }
 - json_build_object: { fields: [{ key: "name", value: "{{name}}" }] (REQUIRED), output_var: "obj", source_var: "existing_obj" }
-- json_get_value: { input: "{{response}}", path: "data.items[0].id", output_var: "item_id" }
+- json_get_value: { source: "{{response}}", path: "data.items[0].id", output_var: "item_id" }
 - collection_filter: { collection: "{{list}}" (REQUIRED), field: "status", operator: "equals", value: "active", output_var: "filtered" }
 - collection_sort: { collection: "{{list}}" (REQUIRED), field: "created_at", direction: "asc"|"desc", output_var: "sorted" }
 - log: { message: "Processing: {{name}}" (REQUIRED), level: "info"|"warn"|"error" }
@@ -643,13 +709,13 @@ NODE TYPES AND CONFIGS:
 - parallel: { mode: "parallel"|"sequential", branches: [{ label: "Branch 1" }, { label: "Branch 2" }] } (edges labelled with branch names; a step the branches meet at runs once, after all of them; an edge labelled "Done" runs once after every branch has finished)
 - end_workflow: {} for normal flows, or middleware response config such as { status_code: 200, headers: [{ key: "content-type", value: "application/json" }], body_mode: "json"|"text"|"file", json_body: { ok: true, order_id: "{{row_id}}" }, text_body: "done", file_url: "{{file.url}}", file_name: "report.pdf", file_content_type: "application/pdf" }
 - pause_until: { date: "{{resume_date}}" }
-- call_sub_workflow: { sub_workflow_id: "wf-id" (REQUIRED), input_mappings: { key: "{{value}}" }, output_var: "sub_result" }
-- run_agent: { agent_id: "agent-id" (REQUIRED), user_message: "{{prompt}}" (REQUIRED), output_var: "agent_response", max_iterations: 10 }
-- auto_action: { instructions: "Summarize: {{description}}", output_var: "summary" }
+- call_sub_workflow: { sub_workflow_id: "wf-id" (REQUIRED), input_mappings: { key: "{{value}}" } } → {{<prefix>_status}}, {{<prefix>_results}} (also {{sub_workflow_status}}, {{sub_workflow_results}}, {{sub_workflow_error}})
+- run_agent: { agent_id: "agent-id" (REQUIRED), user_message: "{{prompt}}" (REQUIRED), output_variable: "agent_response", max_iterations: 10 }
+- auto_action: { status: "completed", outcome: "Auto-approved", outcome_notes: "...", acceptance_status, priority, assignee_id, target_task_id: "{{user_task_id}}" (default: the run's task) } sets task fields without a person acting
 - custom_activity: { custom_activity_id: "activity-id" (REQUIRED), custom_activity_key: "stable_key", activity_name: "Friendly Name", source_code: "// snapshot from extensibility", manifest: { inputs: [...], outputs: [...] }, input_mappings: { score: "{{amount}}" }, _output_prefix: "scorecard" }
 - retention_policies: { operation: "list_policies"|"create_policy"|"delete_policy"|"list_assets"|"assign_policy", retention_policy_id: "policy-id", name: "Contracts", policy_mode: "review"|"review_on_exact_date"|"purge_on"|"purge_on_exact_date"|"keep_forever", duration_value: 30, duration_unit: "days"|"months"|"years", exact_date: "{{date}}", applies_to: ["data_tables","data_rows","roles"], target_type: "data_table"|"data_row"|"role", target_id: "{{row_id}}" }
 - file_to_base64: { file_url: "{{receipt.url}}", output_var: "receipt_base64" }
-- base64_to_file: { input: "{{base64_data}}", file_name: "report.pdf", output_var: "saved_file" }
+- base64_to_file: { base64_data: "{{base64_data}}", file_name: "report.pdf", output_var: "saved_file" }
 - download_file: { url: "{{file_url}}", output_var: "downloaded_file" }
 - read_file: { file_url: "{{file.url}}", output_var: "file_contents" }
 - read_csv / read_excel: { file_url: "{{file.url}}", output_var: "rows" }
@@ -746,6 +812,8 @@ NODE TYPES AND CONFIGS:
       return mcpOk({
         created: true,
         workflow: { id: created.workflow_id, name: created.name, is_active: created.is_active, trigger_type: triggerType },
+        warnings: created.warnings,
+        ...(created.warnings.some((w) => w.severity !== 'info') ? { next_step: WARNINGS_NEXT_STEP } : {}),
       })
     } catch (error) {
       return mcpErr((error instanceof Error && error.message) || 'Failed to create workflow')
@@ -836,7 +904,7 @@ NODE TYPES AND CONFIGS:
         publish: args.publish ?? false,
         publish_notes: args.publish_notes,
       })
-      return mcpOk({ updated: true, ...result })
+      return mcpOk({ updated: true, ...result, ...(result.warnings.some((w) => w.severity !== 'info') ? { next_step: WARNINGS_NEXT_STEP } : {}) })
     } catch (error) {
       return mcpErr((error instanceof Error && error.message) || 'Failed to update workflow')
     }

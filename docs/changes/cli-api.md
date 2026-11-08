@@ -20,7 +20,7 @@ permission gets `Forbidden: … lacks the '<permission>' permission`.
 | Read tools | Permission |
 |---|---|
 | `tasks_list`, `tasks_get`, `tasks_priority_summary` | `tasks.view_own` |
-| `workflows_list`, `workflows_get`, `workflows_catalog`, `workflows_preflight`, `workflows_resolve_dependencies`, `workflows_versions_list` | `workflows.view` |
+| `workflows_list`, `workflows_get`, `workflows_catalog`, `workflows_preflight`, `workflows_validate`, `workflows_resolve_dependencies`, `workflows_versions_list` | `workflows.view` |
 | `workflows_runs_list`, `workflows_run_get`, `trace_get` | `workflows.view_runs` |
 | `agents_list`, `agents_get`, `agents_runs_list`, `agent_runs_list`, `agent_runs_get` | `agents.view` |
 | `data_tables_list`, `data_tables_get`, `data_rows_query`, `data_rows_search` | `data.view` |

@@ -19,6 +19,7 @@
  * and never moves or drops data. Pure and isomorphic.
  */
 
+import { defaultFormAnimation, defaultSubmittedPage } from '../success-defaults'
 import { uniqueFieldKey, type TaskFieldDef } from '@/lib/task-field-schema'
 import type { FormRule } from '@/lib/forms/form-rules'
 import type { FormLayout, FormPage, FormRow } from '@/lib/forms/layout'
@@ -175,14 +176,9 @@ const row = (key: string): FormRow => ({ columns: 1, cells: [{ field_key: key, s
 export function buildFormLayout(spec: WizardSpec): FormLayout {
   const fields = spec.questions.filter((q) => q.kind !== 'page_break')
   const rules: FormRule[] = []
-  const submitted_page = {
-    enabled: true,
-    icon: 'check_circle' as const,
-    heading: spec.look.success.heading || 'Thank you — your response was submitted',
-    subheading: spec.look.success.message || 'Your reference is {{submission.reference}}.',
-    submit_another: { enabled: spec.audience.multiple_responses },
-    close: { enabled: true },
-  }
+  // The animated thank-you page (lib/forms/success-defaults.ts, shared with the Agent).
+  const submitted_page = defaultSubmittedPage({ heading: spec.look.success.heading, message: spec.look.success.message, submitAnother: spec.audience.multiple_responses })
+  const animation = defaultFormAnimation()
   let pages: FormPage[] | null = null
   if (spec.look.layout === 'steps' && spec.questions.some((q) => q.kind === 'page_break')) {
     const groups: WizardQuestion[][] = [[]]
@@ -215,13 +211,14 @@ export function buildFormLayout(spec: WizardSpec): FormLayout {
       page_settings: { indicator: spec.look.layout === 'one_at_a_time' ? 'progress' : 'numbered', resume: true },
       ...(rules.length ? { rules } : {}),
       submitted_page,
+      animation,
     }
   }
   for (const q of fields) {
     const rule = conditionRule(spec, q)
     if (rule) rules.push(rule)
   }
-  return { rows: fields.map((q) => row(keyOf(q))), ...(rules.length ? { rules } : {}), submitted_page }
+  return { rows: fields.map((q) => row(keyOf(q))), ...(rules.length ? { rules } : {}), submitted_page, animation }
 }
 
 function toPages(groups: WizardQuestion[][]): FormPage[] {

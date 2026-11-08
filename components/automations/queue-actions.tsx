@@ -4,12 +4,19 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Play, RefreshCw, Check, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { formatCount } from "@/lib/format/number"
 
 export function QueueActions() {
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<{ count: number; error?: string } | null>(null)
   const router = useRouter()
+  const queryClient = useQueryClient()
+  // The queue page reads through TanStack Query: refetch it as well as the route.
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["workflow-queue"] })
+    router.refresh()
+  }
 
   async function processQueue() {
     setProcessing(true)
@@ -26,7 +33,7 @@ export function QueueActions() {
       setResult({ count: 0, error: e.message })
     }
     setProcessing(false)
-    router.refresh()
+    refresh()
     setTimeout(() => setResult(null), 4000)
   }
 
@@ -41,7 +48,7 @@ export function QueueActions() {
       <Button
         variant="secondary"
         leadingIcon={<RefreshCw />}
-        onClick={() => router.refresh()}
+        onClick={refresh}
       >
         Refresh
       </Button>

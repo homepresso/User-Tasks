@@ -94,12 +94,12 @@ describe('listReportTasks', () => {
 })
 
 describe('reassignReportTask', () => {
-  it('to another report or to self; respects the step\'s redirect rule', async () => {
+  it('to another report or to self; a manager can reassign even when the step has no redirect', async () => {
     await expect(reassignReportTask(ctxAs('mia'), 'a1', { target_user_id: 'ben', comment: 'Ben has capacity' })).resolves.toMatchObject({ assignee_id: 'ben' })
     const { data: notes } = await (db as any).from('notifications').select('*')
     expect(notes.map((n: any) => n.user_id).sort()).toEqual(['alice', 'ben'])
     await expect(reassignReportTask(ctxAs('mia'), 'a2', { target_user_id: 'mia' })).resolves.toMatchObject({ assignee_id: 'mia' })
-    await expect(reassignReportTask(ctxAs('mia'), 'b1', { target_user_id: 'alice' })).rejects.toMatchObject({ status: 409 })
+    await expect(reassignReportTask(ctxAs('mia'), 'b1', { target_user_id: 'alice' })).resolves.toMatchObject({ assignee_id: 'alice' })
     await expect(reassignReportTask(ctxAs('mia'), 'bob1', { target_user_id: 'mia' })).rejects.toMatchObject({ status: 403 })
     await expect(reassignReportTask(ctxAs('mia'), 'a1', { target_user_id: 'bob' })).rejects.toMatchObject({ status: 400 })
     await expect(reassignReportTask(ctxAs('mia'), 'x1', { target_user_id: 'ben' })).rejects.toMatchObject({ status: 404 })

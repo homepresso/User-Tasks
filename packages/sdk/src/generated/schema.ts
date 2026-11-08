@@ -326,7 +326,7 @@ export interface paths {
         put?: never;
         /**
          * Create a workflow from nodes and edges
-         * @description workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         * @description workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. `warnings` lists wiring problems (references that will be blank, ignored config keys) with suggestions; they never block the save. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
          */
         post: operations["createWorkflow"];
         delete?: never;
@@ -355,7 +355,7 @@ export interface paths {
         head?: never;
         /**
          * Save draft changes to a workflow (publish separately, or with publish: true)
-         * @description Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         * @description Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. `warnings` lists wiring problems in the saved draft (references that will be blank, ignored config keys) with suggestions; they never block the save. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
          */
         patch: operations["updateWorkflowDefinition"];
         trace?: never;
@@ -6421,6 +6421,26 @@ export interface operations {
                             workflow_id: string;
                             name: string;
                             published: boolean;
+                            /** @description Advisory wiring warnings: references that will be blank at run time (e.g. {{full_name}} after a Form submitted trigger — use {{form.full_name}}), config keys the engine ignores, and User Tasks with no assignee (kind unassigned: the task would sit in the queue with nobody assigned). They never block the save. */
+                            warnings: ({
+                                node_id: string;
+                                node_label: string;
+                                /** @enum {string} */
+                                kind: "reference" | "config_key" | "syntax" | "prefill" | "unassigned" | "assigned_for_testing";
+                                /**
+                                 * @description info: a note that needs no fix (assigned_for_testing); warnings otherwise
+                                 * @enum {string}
+                                 */
+                                severity?: "warning" | "info";
+                                message: string;
+                                /** @description What to write instead: an expression such as {{form.full_name}}, or a config key */
+                                suggestion?: string;
+                                reference?: string;
+                                /** @description Where in the node config */
+                                key?: string;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
                         } & {
                             [key: string]: unknown;
                         };
@@ -6711,6 +6731,26 @@ export interface operations {
                             changed: boolean;
                             updated_fields: string[];
                             published: boolean;
+                            /** @description Advisory wiring warnings: references that will be blank at run time (e.g. {{full_name}} after a Form submitted trigger — use {{form.full_name}}), config keys the engine ignores, and User Tasks with no assignee (kind unassigned: the task would sit in the queue with nobody assigned). They never block the save. */
+                            warnings: ({
+                                node_id: string;
+                                node_label: string;
+                                /** @enum {string} */
+                                kind: "reference" | "config_key" | "syntax" | "prefill" | "unassigned" | "assigned_for_testing";
+                                /**
+                                 * @description info: a note that needs no fix (assigned_for_testing); warnings otherwise
+                                 * @enum {string}
+                                 */
+                                severity?: "warning" | "info";
+                                message: string;
+                                /** @description What to write instead: an expression such as {{form.full_name}}, or a config key */
+                                suggestion?: string;
+                                reference?: string;
+                                /** @description Where in the node config */
+                                key?: string;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
                         } & {
                             [key: string]: unknown;
                         };
@@ -16659,7 +16699,7 @@ export interface operations {
                 "application/json": {
                     name: string;
                     description?: string | null;
-                    /** @description Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header */
+                    /** @description Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header */
                     overrides: {
                         [key: string]: unknown;
                     };
@@ -26216,108 +26256,198 @@ export interface operations {
                     meta: {
                         name: string;
                         basePreset?: string;
-                        /** @enum {string} */
+                        /**
+                         * @description Light / dark: auto follows each member's OS setting; light or dark forces one palette for everyone.
+                         * @enum {string}
+                         */
                         mode: "auto" | "light" | "dark";
                         /** @constant */
                         schemaVersion: 1;
                         /** @enum {string} */
                         decorationPreset?: "dawn" | "nebula";
                     };
+                    /** @description Colours per mode. Text below its contrast target is raised when drawn; button / navigation text below 3:1 is refused. */
                     colors: {
+                        /** @description The light palette. */
                         light: {
+                            /** Format: color */
                             primary: string;
+                            /** Format: color */
                             primaryHover: string;
+                            /** Format: color */
                             primaryLight: string;
+                            /** Format: color */
                             onPrimary?: string;
+                            /** Format: color */
                             accent: string;
+                            /** Format: color */
                             accentLight: string;
+                            /** Format: color */
                             sidebar: string;
+                            /** Format: color */
                             sidebarText: string;
+                            /** Format: color */
                             sidebarActive: string;
+                            /** Format: color */
                             sidebarBorder: string;
+                            /** Format: color */
                             sidebarAccent?: string;
+                            /** Format: color */
                             topbar: string;
+                            /** Format: color */
                             topbarText: string;
+                            /** Format: color */
                             surface: string;
+                            /** Format: color */
                             surfaceBorder: string;
+                            /** Format: color */
                             cardBg: string;
+                            /** Format: color */
                             cardText: string;
+                            /** Format: color */
                             mutedText: string;
+                            /** Format: color */
                             success: string;
+                            /** Format: color */
                             warning: string;
+                            /** Format: color */
                             danger: string;
+                            /** Format: color */
                             info: string;
                             status: {
+                                /** Format: color */
                                 todo: string;
+                                /** Format: color */
                                 todoBg: string;
+                                /** Format: color */
                                 progress: string;
+                                /** Format: color */
                                 progressBg: string;
+                                /** Format: color */
                                 blocked: string;
+                                /** Format: color */
                                 blockedBg: string;
+                                /** Format: color */
                                 done: string;
+                                /** Format: color */
                                 doneBg: string;
+                                /** Format: color */
                                 info: string;
+                                /** Format: color */
                                 infoBg: string;
+                                /** Format: color */
                                 warningBg: string;
+                                /** Format: color */
                                 dangerBg: string;
+                                /** Format: color */
                                 successBg: string;
                             };
+                            /** Format: color */
                             rowHighlight: string;
+                            /** Format: color */
                             rowHighlightStrong: string;
+                            /** Format: color */
                             focusRing?: string;
+                            /** Format: color */
                             inputBg?: string;
+                            /** Format: color */
                             inputBorder?: string;
+                            /** Format: color */
                             overlay: string;
                             chart: string[];
                         };
+                        /** @description The dark palette (used in dark mode: mode dark, or auto with a dark OS). */
                         dark: {
+                            /** Format: color */
                             primary: string;
+                            /** Format: color */
                             primaryHover: string;
+                            /** Format: color */
                             primaryLight: string;
+                            /** Format: color */
                             onPrimary?: string;
+                            /** Format: color */
                             accent: string;
+                            /** Format: color */
                             accentLight: string;
+                            /** Format: color */
                             sidebar: string;
+                            /** Format: color */
                             sidebarText: string;
+                            /** Format: color */
                             sidebarActive: string;
+                            /** Format: color */
                             sidebarBorder: string;
+                            /** Format: color */
                             sidebarAccent?: string;
+                            /** Format: color */
                             topbar: string;
+                            /** Format: color */
                             topbarText: string;
+                            /** Format: color */
                             surface: string;
+                            /** Format: color */
                             surfaceBorder: string;
+                            /** Format: color */
                             cardBg: string;
+                            /** Format: color */
                             cardText: string;
+                            /** Format: color */
                             mutedText: string;
+                            /** Format: color */
                             success: string;
+                            /** Format: color */
                             warning: string;
+                            /** Format: color */
                             danger: string;
+                            /** Format: color */
                             info: string;
                             status: {
+                                /** Format: color */
                                 todo: string;
+                                /** Format: color */
                                 todoBg: string;
+                                /** Format: color */
                                 progress: string;
+                                /** Format: color */
                                 progressBg: string;
+                                /** Format: color */
                                 blocked: string;
+                                /** Format: color */
                                 blockedBg: string;
+                                /** Format: color */
                                 done: string;
+                                /** Format: color */
                                 doneBg: string;
+                                /** Format: color */
                                 info: string;
+                                /** Format: color */
                                 infoBg: string;
+                                /** Format: color */
                                 warningBg: string;
+                                /** Format: color */
                                 dangerBg: string;
+                                /** Format: color */
                                 successBg: string;
                             };
+                            /** Format: color */
                             rowHighlight: string;
+                            /** Format: color */
                             rowHighlightStrong: string;
+                            /** Format: color */
                             focusRing?: string;
+                            /** Format: color */
                             inputBg?: string;
+                            /** Format: color */
                             inputBorder?: string;
+                            /** Format: color */
                             overlay: string;
                             chart: string[];
                         };
                     };
+                    /** @description Fonts, weights and sizes. */
                     typography: {
+                        /** @description Body font. */
                         sans: {
                             /** @constant */
                             source: "google";
@@ -26333,6 +26463,7 @@ export interface operations {
                             family: string;
                             url: string;
                         };
+                        /** @description Display / heading font (used for h1 / h2 when headingFont is display). */
                         display: {
                             /** @constant */
                             source: "google";
@@ -26348,6 +26479,7 @@ export interface operations {
                             family: string;
                             url: string;
                         };
+                        /** @description Monospace font (code, ids). */
                         mono: {
                             /** @constant */
                             source: "google";
@@ -26370,32 +26502,49 @@ export interface operations {
                             bold: number;
                             heading?: number;
                         };
+                        /** @description Root font size; rem sizes scale with it. */
                         baseSize: number;
-                        /** @enum {string} */
+                        /**
+                         * @description Which family page headings use: display = typography.display.
+                         * @enum {string}
+                         */
                         headingFont: "sans" | "display";
+                        /** @description Heading letter spacing: normal or an em value (-1em to 1em). */
                         headingLetterSpacing: string;
+                        /** @description Upper-case form labels. */
                         uppercaseLabels: boolean;
                     };
                     shape: {
                         cardRadius: number;
+                        /** @description Button corners in px: 0 square, 6–10 rounded, 9999 pill. */
                         buttonRadius: number;
                         inputRadius: number;
                         badgeRadius: number;
                         dialogRadius: number;
                     };
+                    /** @description Elevation. `none` or box shadows built from lengths and one colour per layer (no url(), var() or other CSS). Suggested values: see shadow_presets. */
                     shadows: {
+                        /** Format: box-shadow */
                         sm: string;
+                        /** Format: box-shadow */
                         md: string;
+                        /** Format: box-shadow */
                         lg: string;
+                        /** Format: box-shadow */
                         xl: string;
+                        /** Format: box-shadow */
                         card: string;
                     };
                     layout: {
-                        /** @enum {string} */
+                        /**
+                         * @description Row, control and navigation heights across the app (forms keep 40px controls).
+                         * @enum {string}
+                         */
                         density: "compact" | "comfortable" | "spacious";
                         sidebarWidth: number;
                         topbarHeight: number;
                     };
+                    /** @description Sidebar, top bar and canvas backgrounds: solid, gradient or a dot texture. */
                     chrome: {
                         sidebar: {
                             /** @enum {string} */
@@ -26403,6 +26552,7 @@ export interface operations {
                             gradient?: {
                                 angle: number;
                                 stops: {
+                                    /** Format: color */
                                     color: string;
                                     at: number;
                                 }[];
@@ -26410,15 +26560,21 @@ export interface operations {
                             texture?: {
                                 /** @constant */
                                 pattern: "dots";
+                                /** Format: color */
                                 color: string;
                                 size: number;
                             };
+                            /** Format: color */
                             glow1: string;
+                            /** Format: color */
                             glow2: string;
+                            /** Format: color */
                             hoverBg: string;
+                            /** Format: color */
                             brandColor: string;
                             /** @enum {string} */
                             decorations: "off" | "on" | "light";
+                            /** Format: color */
                             decorationColor?: string;
                         };
                         topbar: {
@@ -26427,6 +26583,7 @@ export interface operations {
                             gradient?: {
                                 angle: number;
                                 stops: {
+                                    /** Format: color */
                                     color: string;
                                     at: number;
                                 }[];
@@ -26434,6 +26591,7 @@ export interface operations {
                             texture?: {
                                 /** @constant */
                                 pattern: "dots";
+                                /** Format: color */
                                 color: string;
                                 size: number;
                             };
@@ -26442,11 +26600,13 @@ export interface operations {
                             texture?: {
                                 /** @constant */
                                 pattern: "dots";
+                                /** Format: color */
                                 color: string;
                                 size: number;
                             };
                         };
                     };
+                    /** @description Logos (uploads in this workspace's logos storage) and the wordmark. */
                     branding: {
                         logoLight?: string;
                         logoDark?: string;

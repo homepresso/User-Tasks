@@ -912,6 +912,33 @@ export function defaultTaskFieldValues(
 }
 
 /**
+ * A User Task step's prefill map (`config.field_values`: field key →
+ * expression or value), resolved and coerced: what the task opens with over
+ * the fields' own defaults. Only the form's declared value fields are taken
+ * (unknown keys, display fields and labels are ignored) and blank entries
+ * are skipped, so the field's default still applies. The reusable form is
+ * not changed; read-only fields stay read-only (mergeTaskFieldValues keeps
+ * their stored value on submit).
+ */
+export function stepFieldValues(
+  fields: TaskFieldDef[],
+  map: unknown,
+  resolve: (value: string) => unknown = (v) => v,
+): Record<string, TaskFieldValue> {
+  if (!isPlainObject(map)) return {}
+  const raw: Record<string, unknown> = {}
+  const targets: TaskFieldDef[] = []
+  for (const field of fields) {
+    if (isDisplayField(field) || field.type === 'label' || !Object.prototype.hasOwnProperty.call(map, field.key)) continue
+    const template = map[field.key]
+    if (template === undefined || template === null || (typeof template === 'string' && !template.trim())) continue
+    raw[field.key] = typeof template === 'string' ? resolve(template) : template
+    targets.push(field)
+  }
+  return coerceTaskFieldValues(targets, raw)
+}
+
+/**
  * Apply submitted values to a task's metadata: validates against
  * `metadata.fields` and returns the merged `template_values` (existing values
  * overlaid with the coerced submission). Only declared, editable field keys

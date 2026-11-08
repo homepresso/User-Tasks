@@ -19,14 +19,14 @@ The first time a workspace owner signs in, \`/onboarding\` asks for the organisa
 1. Go to **Build › Workflows → New workflow**.
 2. Pick a trigger. **Webhook** is the easiest to test: it gives you a URL you can POST to.
 3. Drag nodes from the palette onto the canvas and connect them. Click a node to open its settings panel.
-4. Click **Test run** to execute the draft with sample variables and inspect every step.
+4. Click **Save & test** to save the draft and run it with test inputs, step by step.
 5. Click **Publish**. Runs always use the published version; you can keep editing the draft.
 
 ::image designer | The workflow designer with the settings panel open on a User Task node | An invoice approval workflow: an integration call, a decision table, a user task with typed fields and an email.
 
 ## 3. Run it and watch it
 
-Start the workflow from the designer, by calling its webhook, or from the API. Open **Build › Workflows → Runs** to follow each run step by step; a run that reaches a User Task waits until someone completes the task in **Tasks**.
+Start the workflow from the designer, by calling its webhook, or from the API. Open the workflow's **⋯ → View runs** to follow each run step by step; a run that reaches a User Task waits until someone completes the task in **Tasks**.
 
 ## 4. Do the same from a terminal
 
@@ -40,6 +40,8 @@ usertasks logs tail --category workflow
 
 ## Next steps
 
+- [Tutorials](/docs/tutorials): build a form, a [form with the wizard](/docs/tutorials/first-form-wizard), an approval workflow, an AI agent and an integration, step by step.
+- Not a designer? [Build a form with the wizard](/docs/tasks/form-wizard) makes a form, its responses table and a results page in a few steps.
 - [Concepts](/docs/concepts): workflows, runs, tasks and the asset types around them.
 - [Workflows](/docs/workflows): the designer, triggers and the [node reference](/docs/workflows/nodes).
 - [CLI](/docs/cli) and [API](/docs/api): automate everything you just did by hand.

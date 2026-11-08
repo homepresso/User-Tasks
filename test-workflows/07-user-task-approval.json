@@ -24,7 +24,8 @@
         "task_title": "Approve request",
         "task_description": "Please review and approve or reject this request.",
         "outcomes": ["Approved", "Rejected"],
-        "assignee_mode": "specific",
+        "assignment_type": "individual",
+        "assignee_variable": "{{workflow_started_by}}",
         "fields": [
           { "key": "amount", "label": "Amount", "type": "number", "required": true },
           { "key": "reason", "label": "Reason", "type": "text", "placeholder": "Why approve or reject?" },

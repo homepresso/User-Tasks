@@ -364,7 +364,7 @@
         "filters": [
           {
             "column": "order_no",
-            "operator": "equals",
+            "operator": "eq",
             "value": "{{order_no}}"
           }
         ],

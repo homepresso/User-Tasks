@@ -1,4 +1,4 @@
-/** Copy shared by the /workflows, /forms, /documents, /media and /connectors pages, their metadata and OG cards. */
+/** Copy shared by the /workflows, /forms, /documents, /media, /ai-assistants and /connectors pages, their metadata and OG cards. */
 
 export const WORKFLOWS_PAGE = {
   slug: 'workflows',
@@ -48,4 +48,14 @@ export const MEDIA_PAGE = {
   metaTitle: 'Media Workflows: Transcribe, Analyse and Redact Images, Audio and Video with AI | UserTasks',
   description:
     'Workflow steps that transcribe recordings with speakers and subtitles, analyse images and video, blur faces, plates and sensitive text, bleep spoken personal data, generate images and speech, and trim or convert media — with OpenAI, Gemini, Azure, AWS, Deepgram, AssemblyAI, ElevenLabs or Stability AI on your own key.',
+}
+
+/** /ai-assistants — Agent, the in-app AI co-worker (not the workflow Agents in /connectors#ai). */
+export const AI_ASSISTANTS_PAGE = {
+  slug: 'ai-assistants',
+  eyebrow: 'Agent',
+  title: 'Agent: your AI co-worker in every screen',
+  metaTitle: 'Agent: an AI Co-worker for Forms, Tasks and Workflow Design, on Your Own Model | UserTasks',
+  description:
+    'Agent is one AI panel on every screen: it helps people fill forms, work tasks and design workflows, forms, tables and plugins, following the screen and their permissions. It proposes; people apply, decide and confirm. Bring your own key for OpenAI, Claude, Grok, Gemini, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model.',
 }

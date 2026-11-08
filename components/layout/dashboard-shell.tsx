@@ -17,6 +17,7 @@ import { LogoMark } from '@/components/brand/logo'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BusyBar } from '@/components/ui/busy-bar'
 import { JobsProvider } from '@/components/jobs/jobs-provider'
+import { AssistantHost } from '@/components/assistants/assistant-host'
 
 /**
  * The dashboard frame (docs/design/ui-polish-spec.md §4.4): sidebar, top bar
@@ -77,6 +78,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </main>
               <MobileTabBar />
             </div>
+            {/* The Agent: one floating button and a docked panel that pushes the page (only when available to this person). It lives in the shell, so its conversation follows navigation. */}
+            <AssistantHost />
           </div>
           <GlobalSearch />
         </JobsProvider>

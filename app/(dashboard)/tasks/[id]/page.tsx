@@ -15,6 +15,7 @@ import { FormLookupProvider } from '@/components/forms/lookup-field'
 import { FormHeaderBlock } from '@/components/forms/form-shell'
 import { TaskFormButtons } from '@/components/tasks/task-form-buttons'
 import { OnBehalfBanner, OnBehalfProvider, useOnBehalf, type TaskActMode } from '@/components/tasks/on-behalf'
+import { UnassignedTaskBanner } from '@/components/tasks/assign-task'
 import { normalizeFormHeader } from '@/lib/forms/header'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { ProgressOverride } from '@/components/tasks/progress-override'
@@ -41,6 +42,7 @@ import { parseFormThemeOverrides } from '@/lib/forms/form-theme'
 import { formCardWidth } from '@/lib/forms/form-width'
 import { TaskCompletedScreen, type TaskCompletedEvent } from '@/components/tasks/task-completed-screen'
 import { resolveTaskCompletion, taskCompletedOverride } from '@/lib/tasks/completion-screen'
+import { useAssistantSurface } from '@/lib/assistants/client-registry'
 
 // Task tree plus tenant badge, assignee/assigner names and workflow source, read server-side.
 async function loadTaskDetail(id: string) {
@@ -89,6 +91,8 @@ export default function TaskDetailPage({
     queryFn: async () => (await serverRead('tasks.actAccess', { taskId: id })).data ?? null,
   })
   const [onBehalfNote, setOnBehalfNote] = useState('')
+  // The AI task assistant (shown only when available: components/assistants/assistant-host).
+  useAssistantSurface(data?.treeData?.task?.id ? { kind: 'task', taskId: id, title: data.treeData.task.title ?? null } : null)
 
   if (isLoading) return <PageSkeleton variant="detail" />
   if (!data) {
@@ -107,7 +111,12 @@ export default function TaskDetailPage({
   const open = !['completed', 'cancelled'].includes(data.treeData.task.status)
   return (
     <OnBehalfProvider mode={mode} workflowTask={workflowTask} note={onBehalfNote}>
-      {workflowTask && open && mode && mode !== 'assignee' && (
+      {open && access?.unassigned && (
+        <div className="max-w-4xl mx-auto">
+          <UnassignedTaskBanner taskId={id} canTakeOwnership={access.canTakeOwnership === true} canReassign={access.canReassign === true} />
+        </div>
+      )}
+      {workflowTask && open && mode && mode !== 'assignee' && !access?.unassigned && (
         <div className="max-w-4xl mx-auto">
           <OnBehalfBanner mode={mode} basis={access?.basis ?? null} assigneeName={data.assigneeName ?? null} note={onBehalfNote} onNoteChange={setOnBehalfNote} />
         </div>

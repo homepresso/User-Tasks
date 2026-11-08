@@ -253,6 +253,9 @@ export function IntegrationsPage() {
               <div>
                 <p className="leading-7 text-(color:--mkt-text)">Runs, steps, tool calls, token counts and errors are recorded and emitted as events; prompts and model outputs are not exported. Rate limits apply per workspace, and models can run on your own hardware with Ollama.</p>
                 <p className="mt-4 rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) p-4 text-sm leading-6 text-(color:--mkt-text)">
+                  AI for people, too: <Link href="/ai-assistants" className="font-semibold text-(color:--mkt-bronze) hover:underline">Agent</Link>, the AI co-worker in every screen, helps people fill forms, work tasks and build, on your own key. It proposes; the person applies, decides or confirms.
+                </p>
+                <p className="mt-4 rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) p-4 text-sm leading-6 text-(color:--mkt-text)">
                   Images, audio and video too: <Link href="/media" className="font-semibold text-(color:--mkt-bronze) hover:underline">media steps</Link> transcribe recordings, analyse photos and video, blur faces and bleep spoken personal data with OpenAI, Gemini, Azure, AWS, Deepgram, AssemblyAI, ElevenLabs or Stability AI — and agents can use them as tools.
                 </p>
                 <DocLinks links={[{ href: "/docs/agents", label: "AI agents" }, { href: "/media", label: "AI for images, audio and video" }, { href: "/use-cases/ai-agent-orchestration", label: "Agents with a person in the loop" }, { href: "/gallery/ai-agent-triage-hitl", label: "Triage package" }]} />
@@ -267,7 +270,7 @@ usertasks agents execute <agent-id> --set message="…" --set async:=true`} />
         {/* MCP both ways */}
         <section id="mcp" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="MCP, both ways" title="AI assistants drive UserTasks. Agents use your MCP servers." />
+            <SectionHeading eyebrow="MCP, both ways" title="AI clients drive UserTasks. Agents use your MCP servers." />
             <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <article className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-6">
                 <Bot size={20} className="text-(color:--mkt-bronze)" aria-hidden="true" />

@@ -115,6 +115,23 @@ describe('docs pages', () => {
     }
   })
 
+  it('keep the pages the website links to', () => {
+    for (const slug of ['tutorials', 'ai-assistants', 'ai-assistants/using', 'tasks/form-wizard']) expect(getDocPage(slug), slug).toBeDefined()
+  })
+
+  it('give every tutorial a goal, prerequisites, a time, a recap and next steps', () => {
+    const tutorials = ALL_DOC_PAGES.filter((page) => page.slug.startsWith('tutorials/'))
+    expect(tutorials.length).toBeGreaterThanOrEqual(6)
+    const hub = JSON.stringify(pageBlocks(getDocPage('tutorials')!))
+    for (const page of tutorials) {
+      expect(hub, page.slug).toContain(`(/docs/${page.slug})`)
+      const headings = pageBlocks(page).filter((block) => block.kind === 'heading').map((block) => (block as { text: string }).text)
+      expect(headings, page.slug).toContain('What you built')
+      expect(headings, page.slug).toContain('Next steps')
+      for (const label of ['**Goal:**', '**You need:**', '**Time:**']) expect(page.body, `${page.slug} ${label}`).toContain(label)
+    }
+  })
+
   it('index every page and heading for search', () => {
     const index = buildSearchIndex()
     for (const page of ALL_DOC_PAGES) expect(index.some((entry) => entry.h === `/docs/${page.slug}`)).toBe(true)

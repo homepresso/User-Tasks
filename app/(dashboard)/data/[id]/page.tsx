@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { RetentionPolicyAssignment } from '@/components/governance/retention-policy-assignment'
 import { getRetentionStatus } from '@/lib/retention-policies'
 import { ExportAssetButton } from '@/components/shared/config-transfer'
+import { useDesignerContext } from '@/lib/assistants/client-registry'
 
 interface TableColumn {
   id: string
@@ -108,6 +109,12 @@ export default function CustomTablePage({
       return (data ?? []) as CustomTableRow[]
     },
   })
+
+  // The Agent: this table is the open item ("add 10 rows to this table"); its rows refresh after a confirmed change (the Agent invalidates queries).
+  useDesignerContext(table ? {
+    area: 'data', item_id: id, item_name: table.name,
+    summary: `Columns: ${(table.columns ?? []).slice(0, 60).map((c) => `${c.name}${(c as { type?: string }).type ? ` (${(c as { type?: string }).type})` : ''}`).join(', ')}`.slice(0, 2_000),
+  } : null)
 
   const colCount = table?.columns?.length ?? 0
   const rowCount = rows?.length ?? 0

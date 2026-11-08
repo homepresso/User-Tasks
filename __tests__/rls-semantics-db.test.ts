@@ -138,6 +138,12 @@
  * UPDATE grant. tenant_id always follows the task (trigger), so a "move"
  * keeps the row in its tenant.
  *
+ * 20261230000000_ai_assistants.sql added assistant_settings (one row per
+ * workspace; SELECT only with assistants.manage in the current workspace, and
+ * the encrypted key column is not granted to authenticated at all, so a
+ * `select *` is refused) and assistant_usage (own rows, or assistants.manage);
+ * neither has client write grants.
+ *
  * Runs only against a LOCAL Supabase stack — set EVENT_STREAM_DB_URL, e.g.
  *   EVENT_STREAM_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npx vitest run __tests__/rls-semantics-db.test.ts
  * End users are simulated the way PostgREST does it: SET ROLE + request.jwt.claims.
@@ -449,6 +455,10 @@ const SPECS: Spec[] = [
   { table: 'api_keys', make: (k, v) => ({ tenant_id: TENANT[k], name: `key ${v}`, key_prefix: 'p', key_hash: `rls-${k}-${v}` }) },
   // Form wizard projects (20261229000000): a person reads their own rows in member workspaces; no end-user writes.
   { table: 'form_wizard_projects', make: (k, v) => ({ tenant_id: TENANT[k], owner_id: v === 'row' ? OWNER[k] : U.ab_unified, name: `wizard ${v}` }), touch: 'name' },
+  // AI assistants (20261230000000): settings readable only with assistants.manage (never the key column — not granted);
+  // usage rows: own rows, or assistants.manage. No end-user writes.
+  { table: 'assistant_settings', variants: ['row'], insertVariant: 'row', make: (k) => ({ tenant_id: TENANT[k], provider: 'openai', model: 'gpt-4.1' }), touch: 'model' },
+  { table: 'assistant_usage', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, capability: 'form' }), touch: 'model' },
   // Org structure (20261224000000): members read; writes need org.manage / projects.manage.
   { table: 'org_units', make: (k, v) => ({ tenant_id: TENANT[k], name: `unit ${v}` }) },
   { table: 'org_unit_members', make: (k, v) => ({ tenant_id: TENANT[k], org_unit_id: id('org_units', k), user_id: v === 'row' ? OWNER[k] : U.ab_unified }), touch: 'role' },

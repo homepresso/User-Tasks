@@ -279,6 +279,9 @@ describe('MCP data tools (service wrappers)', () => {
     expect(json(await server.callTool('data_rows_upsert', { table_id: 'tbl-a', row_id: 'row-1', data: { order_no: 'A-1' } }))).toEqual({ updated: true, row_id: 'row-1' })
     const query = json(await server.callTool('data_rows_query', { table_id: 'tbl-a', limit: 1 }))
     expect(query).toMatchObject({ count: 1, limit: 1, offset: 0 })
+    // The Data step's operator spellings are accepted (eq → equals).
+    const aliased = await server.callTool('data_rows_query', { table_id: 'tbl-a', filters: [{ field: 'order_no', operator: 'eq', value: 'A-1' }] })
+    expect(aliased.isError).toBeFalsy()
     expect(json(await server.callTool('data_tables_list', {})).tables.map((t: any) => t.id).sort()).toEqual(['tbl-a', 'tbl-a2'])
     expect(json(await server.callTool('data_rows_delete', { row_id: 'row-2' }))).toEqual({ deleted: true, row_id: 'row-2' })
     expect(enqueueDeletionJob).toHaveBeenCalledWith(db, expect.objectContaining({ targetType: 'data_row', targetId: 'row-2' }))

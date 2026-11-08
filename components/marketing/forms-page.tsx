@@ -27,6 +27,7 @@ import {
   QrCode,
   Search,
   ShieldCheck,
+  Sparkles,
   Table2,
   Type,
   AlignLeft,
@@ -80,6 +81,8 @@ const FIELD_TYPES: Array<{ icon: typeof Type; label: string; note: string }> = [
   { icon: Heading, label: "Section heading", note: "layout" },
   { icon: Minus, label: "Divider", note: "layout" },
 ]
+
+const SURVEY_CONTROLS = ["Star rating", "NPS (0 to 10)", "Agreement scale", "Matrix / grid", "Slider", "Satisfaction faces", "Ranking", "Picture choice", "Yes / No / Maybe"]
 
 const BEHAVIOURS = [
   { step: "Show message", body: "A message under the form, with the submitted values filled in." },
@@ -208,7 +211,14 @@ export function FormsPage() {
               "A results page with response counts, approval rate and charts, for the people you choose",
               "Change it later: new questions add columns, collected answers are never removed",
             ]} />
-            <DocLinks links={[{ href: "/docs/tasks/form-wizard", label: "Build a form with the wizard" }]} />
+            <DocLinks links={[{ href: "/docs/tasks/form-wizard", label: "Build a form with the wizard" }, { href: "/docs/tutorials", label: "Tutorials" }]} />
+            <div className="mt-10 flex flex-col gap-4 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-gradient-to-br from-(color:--mkt-primary)/[0.04] to-(color:--mkt-gold)/[0.10] p-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <h3 className="flex items-center gap-2 text-lg font-semibold"><Sparkles size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />Agent on your forms and in the designer</h3>
+                <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">With your own AI provider key, Agent helps people fill a form: it answers questions, explains validation errors and proposes values they apply. It never submits. In the form designer it proposes fields and rules, and every change waits for your confirmation.</p>
+              </div>
+              <Link href="/ai-assistants" className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">Agent, your AI co-worker <ArrowRight size={14} aria-hidden="true" /></Link>
+            </div>
           </div>
         </section>
 
@@ -242,7 +252,7 @@ export function FormsPage() {
         <section id="fields" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <SectionHeading eyebrow="Field types" title="Every field a real process needs.">
-              Eighteen types, each with its own validation, help text, default value (expressions welcome), read-only and <em>visible when</em> rules.
+              Eighteen types plus nine survey controls, each with its own validation, help text, default value (expressions welcome), read-only and <em>visible when</em> rules.
             </SectionHeading>
             <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-label="Field types">
               {FIELD_TYPES.map(({ icon: Icon, label, note }) => (
@@ -253,6 +263,14 @@ export function FormsPage() {
                 </li>
               ))}
             </ul>
+            <div className="mt-6 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-5">
+              <h3 className="font-semibold">Survey controls, built in</h3>
+              <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Survey controls">
+                {SURVEY_CONTROLS.map((label) => <li key={label} className="rounded-full border border-(color:--mkt-ink)/10 bg-(color:--mkt-paper) px-2.5 py-1 text-xs font-medium text-(color:--mkt-ink-soft)">{label}</li>)}
+              </ul>
+              <p className="mt-3 text-sm leading-6 text-(color:--mkt-text)">They work in the designer, the wizard, task forms, public forms and embeds, in rules and validation, and save to data tables and reports, where summary charts count and average them.</p>
+              <DocLinks links={[{ href: "/docs/tasks/survey-controls", label: "Survey controls and charts" }, { href: "/docs/reports#summary-charts", label: "Report summary charts" }]} />
+            </div>
             <div className="mt-14 grid grid-cols-1 items-center gap-10 lg:grid-cols-[2fr_3fr]">
               <div>
                 <h3 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Lookups into your data and your APIs.</h3>

@@ -34,6 +34,7 @@ const EXPECTED_READ_PERMISSIONS: Record<string, string> = {
   tasks_data_table: 'tasks.complete',
   workflows_catalog: 'workflows.view',
   workflows_preflight: 'workflows.view',
+  workflows_validate: 'workflows.view',
   workflows_resolve_dependencies: 'workflows.view',
   workflows_list: 'workflows.view',
   workflows_get: 'workflows.view',

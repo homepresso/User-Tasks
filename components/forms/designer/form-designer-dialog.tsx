@@ -56,6 +56,8 @@ import { collectFormRules } from '@/lib/forms/form-rules'
 import { ThemeEditor, type SavedFormTheme } from './theme-editor'
 import { useHistory } from './use-history'
 import { useResizableDialog } from './use-resizable-dialog'
+import { AgentDialogButton, useAgentDock } from '@/components/assistants/assistant-panel'
+import { useDesignerContext } from '@/lib/assistants/client-registry'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { AccessibilityPanel, AccessibilitySaveCheck, useFormAccessibility } from './accessibility-panel'
 
@@ -182,6 +184,13 @@ function DesignerBody({ onClose, title, subtitle, badge, initial, actions, allow
 
   const definition = useMemo(() => definitionFrom(state), [state])
   const dirty = formDefinitionKey(definition) !== initialKey
+  // The Agent: this dialog hosts its panel (a modal makes the shell's inert) and, for a saved form, is the open item.
+  const agentPanel = useAgentDock()
+  const agentSummary = useMemo(() => {
+    const lines = state.fields.slice(0, 80).map((f) => `${f.key} (${f.type}${f.required ? ', required' : ''}): ${String(f.label ?? '').slice(0, 60)}`)
+    return `${state.fields.length} field${state.fields.length === 1 ? '' : 's'}${isPaged(state.layout) ? ` on ${state.layout.pages.length} pages` : ''}:\n${lines.join('\n')}`.slice(0, 4_000)
+  }, [state.fields, state.layout])
+  useDesignerContext(formId ? { area: 'form', item_id: formId, item_name: title, dirty, summary: agentSummary } : null)
   const problems = useMemo(() => designerProblems(state), [state])
   // Steps / tabs: the page being edited (its grid in the centre, its settings in the Page tab).
   const pages = isPaged(state.layout) ? state.layout.pages : []
@@ -369,6 +378,7 @@ function DesignerBody({ onClose, title, subtitle, badge, initial, actions, allow
                   <IconButton label={frame.maximized ? 'Restore designer size' : 'Maximize designer'} icon={frame.maximized ? <Minimize2 /> : <Maximize2 />}
                     onClick={frame.toggleMaximized} aria-pressed={frame.maximized} data-designer-maximize tooltipSide="bottom" />
                 )}
+                <AgentDialogButton />
                 <IconButton label="Close" icon={<X />} onClick={requestClose} tooltipSide="bottom" />
               </div>
             </TooltipProvider>
@@ -677,6 +687,7 @@ function DesignerBody({ onClose, title, subtitle, badge, initial, actions, allow
               </DesignerVariableScope>
               </DesignerPreviewValuesProvider>
             </aside>}
+            {agentPanel}
           </div>
 
           {/* Footer */}

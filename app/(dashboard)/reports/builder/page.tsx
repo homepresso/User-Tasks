@@ -28,6 +28,7 @@ import {
 } from '@/lib/reference-input-utils'
 import { ReportChart, ReportSummaryCharts } from '@/components/reports/lazy-charts'
 import { ReportChartsEditor, validCharts } from '@/components/reports/report-charts-editor'
+import { useAssistantChanges, useDesignerContext, type AssistantChange } from '@/lib/assistants/client-registry'
 import type { ReportChartResult, ReportChartSpec } from '@/lib/report-charts'
 import { normalizeReportConfig } from '@/lib/report-config'
 import { ReportDataTable } from '@/components/reports/report-data-table'
@@ -582,6 +583,16 @@ export default function ReportBuilderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // The Agent: the report being built is the open item; a confirmed change to it reloads it here.
+  useDesignerContext({
+    area: 'report', item_id: editing?.id ?? null, item_name: editing?.name ?? null,
+    summary: [`Source: ${source || '(none)'}`, `Columns: ${selectedCols.slice(0, 30).join(', ') || '(none)'}`, filters.length ? `Filters: ${filters.length}` : '', groupBy.length ? `Grouped by: ${groupBy.join(', ')}` : '', `View: ${viz}`, charts.length ? `Charts: ${charts.map((c) => (c as { title?: string; type?: string }).title ?? (c as { type?: string }).type).join(', ')}` : ''].filter(Boolean).join('\n').slice(0, 2_000),
+  })
+  const [reloadTick, setReloadTick] = useState(0)
+  useAssistantChanges(useCallback((change: AssistantChange) => {
+    if (change.kind === 'report' && editing?.id && change.id === editing.id) { editAppliedRef.current = false; setReloadTick((t) => t + 1) }
+  }, [editing?.id]))
+
   // ?edit=<id> (the saved report's Edit button): load its config into the builder.
   const editAppliedRef = useRef(false)
   useEffect(() => {
@@ -635,7 +646,7 @@ export default function ReportBuilderPage() {
       setExpandedSections((prev) => new Set([...prev, 'charts']))
       setAutoRun(true)
     }).catch(() => { /* not found / not visible: start blank */ })
-  }, [loadingSources])
+  }, [loadingSources, reloadTick])
 
   // Compute date range for preview
   function getDateRange() {

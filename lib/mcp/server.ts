@@ -49,6 +49,8 @@ export interface McpContext {
   oauthScopes?: string[]
   /** User who created the API key / OAuth client (attribution for tenant keys). */
   credentialOwnerId?: string | null
+  /** 'agent': the in-app Agent calling the tools in-process for the signed-in person (audit rows say so). */
+  via?: 'agent'
 }
 
 export interface McpToolDef {

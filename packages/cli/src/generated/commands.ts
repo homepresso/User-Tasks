@@ -4736,7 +4736,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "overrides",
           "type": "object",
           "required": true,
-          "description": "Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
+          "description": "Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
         }
       ]
     },
@@ -8686,12 +8686,14 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "colors",
           "type": "object",
-          "required": true
+          "required": true,
+          "description": "Colours per mode. Text below its contrast target is raised when drawn; button / navigation text below 3:1 is refused."
         },
         {
           "name": "typography",
           "type": "object",
-          "required": true
+          "required": true,
+          "description": "Fonts, weights and sizes."
         },
         {
           "name": "shape",
@@ -8701,7 +8703,8 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "shadows",
           "type": "object",
-          "required": true
+          "required": true,
+          "description": "Elevation. `none` or box shadows built from lengths and one colour per layer (no url(), var() or other CSS). Suggested values: see shadow_presets."
         },
         {
           "name": "layout",
@@ -8711,12 +8714,14 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "chrome",
           "type": "object",
-          "required": true
+          "required": true,
+          "description": "Sidebar, top bar and canvas backgrounds: solid, gradient or a dot texture."
         },
         {
           "name": "branding",
           "type": "object",
-          "required": true
+          "required": true,
+          "description": "Logos (uploads in this workspace's logos storage) and the wordmark."
         },
         {
           "name": "expected_version",

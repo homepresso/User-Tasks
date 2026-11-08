@@ -2,11 +2,12 @@ import { z } from 'zod'
 import type { RunTask } from '@/lib/run-tasks'
 import { getDb } from '../context'
 import { getDirectoryCapabilities, searchDirectoryEntraGroups } from '../directory-groups'
-import { applyScope, queueJobInScope, queueScopeFilter, resolveRunScope, runInScope, runScopeFilter } from '../run-visibility'
+import { applyScope, queueJobInScope, resolveRunScope, runInScope, runScopeFilter } from '../run-visibility'
 import { fetchLiveInstanceCounts } from '@/lib/workflow-live-counts'
 import { normalizeScheduleConfig, type ScheduleConfig } from '@/lib/workflow-schedule'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 import { applyWorkflowListQuery, MAX_WORKFLOW_SEARCH } from '@/lib/automations/workflow-list-page'
+import { MAX_QUEUE_SEARCH, STATUS_CHIPS, TRIGGER_GROUPS, type QueueTriggerGroup } from '@/lib/automations/queue-filters'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
@@ -28,9 +29,41 @@ const RUNS_PAGE_SIZE = 25
 /** List columns only: definitions (nodes/edges) stay on the server — node_count is maintained by a trigger, run_count by the engine. */
 const WORKFLOW_LIST_COLUMNS = 'id, name, description, trigger_type, is_active, run_count, last_run_at, node_count, tags, published_version_id, created_at, updated_at'
 
-const QUEUE_STATUSES = ['pending', 'processing', 'failed', 'completed', 'dead'] as const
+const uuidList = z.array(z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)).max(100).optional()
+/** Queue page arguments (lib/automations/queue-filters QueueReadFilters + paging). */
+const QUEUE_LIST_ARGS = z.object({
+  view: z.enum(['active', 'attention', 'completed', 'all']).default('active'),
+  statuses: z.array(z.enum(STATUS_CHIPS.map((c) => c.value) as [string, ...string[]])).max(20).optional(),
+  search: z.string().max(MAX_QUEUE_SEARCH).optional(),
+  workflowIds: uuidList,
+  startedBy: uuidList,
+  assigneeIds: uuidList,
+  dateField: z.enum(['created', 'started', 'updated']).optional(),
+  dateFrom: z.string().datetime({ offset: true }).optional(),
+  dateTo: z.string().datetime({ offset: true }).optional(),
+  sla: z.array(z.enum(['on_track', 'warning', 'breached'])).max(3).optional(),
+  triggers: z.array(z.enum(TRIGGER_GROUPS.map((g) => g.value) as [QueueTriggerGroup, ...QueueTriggerGroup[]])).max(10).optional(),
+  versionIds: uuidList,
+  hasErrors: z.boolean().optional(),
+  sort: z.enum(['created_at', 'started_at', 'status']).optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
+  page: z.number().int().min(1).max(100_000).optional(),
+  pageSize: z.number().int().min(1).max(100).optional(),
+}).optional()
 
 /** Selects the designer's retention-policy pickers use (fixed list, not free text). */
+const ACTIVE_TASK_ARGS = z.object({
+  search: z.string().max(200).optional(),
+  assignee: z.string().uuid().nullable().optional(),
+  workflow: z.string().uuid().nullable().optional(),
+  waiting: z.enum(['1d', '3d', '1w']).nullable().optional(),
+  sla: z.enum(['overdue', 'due_soon', 'on_track', 'none']).nullable().optional(),
+  priority: z.enum(['critical', 'high', 'medium', 'low']).nullable().optional(),
+  unassigned: z.boolean().optional(),
+  page: z.number().int().min(1).max(10_000).optional(),
+  pageSize: z.number().int().min(1).max(100).optional(),
+}).optional()
+
 const RETENTION_POLICY_SELECTS = [
   'id, name, description, applies_to',
   'id, name, description, policy_mode, applies_to',
@@ -450,91 +483,44 @@ export const reads = {
     },
   }),
 
-  /** Queue page: status counts, the latest jobs (matched to their runs) merged with middleware runs. */
+  /**
+   * Queue page: one page of queue items for a view + filters (filtered,
+   * sorted and paged in the database), view counts and status totals
+   * (lib/services/workflow-queue-list).
+   */
   'automations.queue': defineRead({
-    args: NO_ARGS,
+    args: QUEUE_LIST_ARGS,
     // Everything with view_runs; involved runs + granted workflows with
     // view_queue (lib/services/run-visibility — the one scoping rule).
     perm: QUEUE,
+    run: async (ctx, args) => {
+      const { listQueuePage } = await import('../workflow-queue-list')
+      return listQueuePage(ctx, args ?? { view: 'active' })
+    },
+  }),
+
+  /**
+   * Queue page → Active tasks: open human tasks in the person's scope
+   * (everything with tasks.view_all; else their own, their reporting chain's
+   * and the workflows they manage — lib/services/active-tasks), with what
+   * they may do on each (take ownership, reassign).
+   */
+  'automations.activeTasks': defineRead({
+    args: ACTIVE_TASK_ARGS,
+    perm: ['tasks.view_own', 'tasks.view_all', 'workflows.view_queue', 'workflows.view_runs'],
+    run: async (ctx, args) => {
+      const { listActiveTasks } = await import('../active-tasks')
+      return listActiveTasks(ctx, args ?? {})
+    },
+  }),
+
+  /** The queue's advanced filter options: workflows, versions, starters and assignees in the person's scope. */
+  'automations.queueFacets': defineRead({
+    args: NO_ARGS,
+    perm: QUEUE,
     run: async (ctx) => {
-      const db = getDb(ctx) as any
-      const scope = await resolveRunScope(ctx)
-      const jobScope = queueScopeFilter(scope)
-      const runScope = runScopeFilter(scope)
-      const [statsResults, jobsResult, middlewareRunsResult] = await Promise.all([
-        Promise.all(QUEUE_STATUSES.map((s) => applyScope(db.from('workflow_queue').select('*', { count: 'exact', head: true }).eq('status', s), jobScope))),
-        applyScope(db.from('workflow_queue')
-          .select('*, workflow:workflows!workflow_queue_workflow_id_fkey(id, name)'), jobScope)
-          .order('created_at', { ascending: false })
-          .limit(200),
-        applyScope(db.from('workflow_runs')
-          .select('id, workflow_id, version_id, status, event_id, paused_node_id, started_at, completed_at, error, title, sla_label, sla_due_at, sla_warning_at, sla_status, workflow:workflows(id, name, trigger_type)'), runScope)
-          .order('started_at', { ascending: false })
-          .limit(200),
-      ])
-
-      const counts: Record<string, number> = {}
-      QUEUE_STATUSES.forEach((s, i) => { counts[s] = (statsResults[i] as any).count ?? 0 })
-
-      const jobs = (jobsResult.data ?? []) as any[]
-      const workflowIds = [...new Set(jobs.map((j) => j.workflow_id))]
-
-      const runs: Record<string, any> = {}
-      const runsByWorkflow: Record<string, any[]> = {}
-      if (workflowIds.length > 0) {
-        const { data: runData } = await applyScope(db.from('workflow_runs')
-          .select('id, workflow_id, version_id, status, event_id, paused_node_id, started_at, title, sla_label, sla_due_at, sla_warning_at, sla_status')
-          .in('workflow_id', workflowIds), runScope)
-          .order('started_at', { ascending: false })
-          .limit(200)
-        for (const r of (runData ?? []) as any[]) {
-          runs[r.id] = r
-          ;(runsByWorkflow[r.workflow_id] ??= []).push(r)
-        }
-      }
-
-      // Match each job to its most likely run
-      for (const job of jobs) {
-        if (job.result?.run_id && runs[job.result.run_id]) continue
-        const workflowRuns = runsByWorkflow[job.workflow_id] ?? []
-        if (workflowRuns.length > 0 && job.started_at) {
-          const jobStart = new Date(job.started_at).getTime()
-          let bestRun = workflowRuns[0]
-          let bestDiff = Math.abs(new Date(bestRun.started_at).getTime() - jobStart)
-          for (const r of workflowRuns) {
-            const diff = Math.abs(new Date(r.started_at).getTime() - jobStart)
-            if (diff < bestDiff) { bestRun = r; bestDiff = diff }
-          }
-          if (bestDiff < 30000) {
-            if (!job.result) job.result = {}
-            job.result.run_id = bestRun.id
-          }
-        }
-      }
-
-      const queueRunIds = new Set(jobs.map((job) => job.result?.run_id).filter(Boolean))
-      const middlewareRuns = ((middlewareRunsResult.data ?? []) as any[])
-        .filter((run) => run.workflow?.trigger_type === 'middleware_received')
-        .filter((run) => !queueRunIds.has(run.id))
-        .map((run) => ({
-          id: `run:${run.id}`,
-          workflow_id: run.workflow_id,
-          workflow: { id: run.workflow?.id ?? run.workflow_id, name: run.workflow?.name ?? 'Unknown' },
-          status: run.status,
-          trigger_type: 'middleware_received',
-          created_at: run.started_at,
-          started_at: run.started_at,
-          completed_at: run.completed_at,
-          error: run.error,
-          result: { run_id: run.id },
-          synthetic_run: true,
-        }))
-
-      const mergedJobs = [...middlewareRuns, ...jobs]
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      const waitingCount = Object.values(runs).filter((r: any) => r.status === 'waiting_for_event').length
-      const pausedCount = Object.values(runs).filter((r: any) => r.status === 'paused').length
-      return { counts, jobs: mergedJobs as any[], runs, waitingCount, pausedCount }
+      const { queueFacets } = await import('../workflow-queue-list')
+      return queueFacets(ctx)
     },
   }),
 

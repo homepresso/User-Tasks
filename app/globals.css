@@ -956,6 +956,34 @@ textarea {
   --tw-ring-offset-color: var(--theme-card-bg);
 }
 
+/* Form theme heading font (overrides.heading_font → --form-heading-font):
+   the form header, section and page headings. */
+[data-form-heading-font] :is(h1, h2, h3, h4, [data-form-heading]) {
+  font-family: var(--form-heading-font);
+}
+
+/* Button shape (overrides.button_shape → --form-button-radius): the form's
+   own buttons and its step Back / Next, not every rounded control. */
+[data-form-button-shape] :is([data-form-button], [data-step-back], [data-step-next]) {
+  border-radius: var(--form-button-radius);
+}
+
+/* Field style (overrides.field_style). Inputs keep a 3:1 bottom rule
+   (WCAG 1.4.11) in both styles; checkboxes, radios and sliders are untouched. */
+[data-form-field-style="filled"] .border-input-border:not([type="checkbox"], [type="radio"], [type="range"]) {
+  background-color: color-mix(in srgb, var(--theme-card-text) 6%, var(--theme-input-bg, var(--theme-card-bg)));
+  border-color: transparent;
+  border-bottom-color: var(--theme-input-border);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+[data-form-field-style="underline"] .border-input-border:not([type="checkbox"], [type="radio"], [type="range"]) {
+  background-color: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  border-bottom-color: var(--theme-input-border);
+}
+
 /* Form banners (components/forms/form-messages.tsx) stick to the top of the
    form; a focused input scrolls clear of them instead of hiding underneath. */
 [data-form-messages] :is(input, select, textarea, button, [tabindex]) {

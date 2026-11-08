@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, ClipboardPen, LayoutGrid, Plus, RotateCcw, Sparkles, X } from "lucide-react"
-import Link from "next/link"
+import { Check, LayoutGrid, Plus, RotateCcw, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
 import { PageHeader } from "@/components/ui/page-header"
@@ -30,6 +29,7 @@ import { useFavoriteForms } from "./favorite-star"
 import { HOME_QUERY_KEY } from "./shared"
 import { HomeContext, useHome, type HomeContextValue } from "./home-context"
 import { HomeGrid } from "./home-grid"
+import { HomeBuildAction } from "@/components/assistants/home-build-action"
 
 /** React Query key of my Home layout (not under HOME_QUERY_KEY: follow / claim invalidations needn't refetch it). */
 export const HOME_LAYOUT_QUERY_KEY = ["home-layout"] as const
@@ -160,12 +160,8 @@ export function HomeDashboard() {
   const headerActions = (
     <>
       {showsCharts && <ActivityPeriod />}
-      {/* Quick action: the form wizard (forms.wizard). */}
-      {can("forms.wizard" as never) && (
-        <Button asChild variant="secondary" size="sm" leadingIcon={<ClipboardPen />}>
-          <Link href="/forms/wizard/new" data-home-build-form>Build a form</Link>
-        </Button>
-      )}
+      {/* Quick action: "Build from a process with Agent" when the Agent is on for this builder, else the form wizard (forms.wizard). */}
+      <HomeBuildAction canWizard={can("forms.wizard" as never)} />
       <Button type="button" variant="ghost" size="sm" onClick={startEditing} disabled={!saved} leadingIcon={<LayoutGrid />} data-home-edit-layout>
         Edit layout
       </Button>

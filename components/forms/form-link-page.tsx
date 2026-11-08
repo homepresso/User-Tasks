@@ -4,6 +4,7 @@ import { loadSessionWorkspaceTheme } from '@/lib/theme/server'
 import { themeFontsHref, themeStylesheet } from '@/lib/theme/to-css'
 import { EmbedFrame } from './embed-frame'
 import { StandaloneForm } from './standalone-form'
+import { AssistantHost } from '@/components/assistants/assistant-host'
 
 /**
  * A form link page for a signed-in member (/f/<id> and /form/<system name>
@@ -33,7 +34,10 @@ export async function MemberFormPage({ formId, query, embed, userId }: {
           <FormLinkLayout>
             <EmbedFrame embed={embed}>
               {allowed ? (
-                <StandaloneForm formId={formId} query={query} surface="standalone" embed={embed} />
+                <>
+                  <StandaloneForm formId={formId} query={query} surface="standalone" embed={embed} />
+                  {!embed && <AssistantHost standalone />}
+                </>
               ) : (
                 <FormLinkNotice title="You can't open this form" body="Your role in this workspace doesn't include submitting forms. Ask an admin for access." />
               )}

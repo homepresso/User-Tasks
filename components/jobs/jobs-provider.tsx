@@ -25,7 +25,8 @@ import { formatBytes as formatByteSize } from '@/lib/format/number'
 import { cancelJobAction, getJobAction, listMyJobsAction, markJobSeenAction, retryJobAction, startJobAction, type StartJobInput } from '@/app/actions/user-jobs'
 import { unwrapAction } from '@/lib/action-result'
 import { useRealtime, useRealtimeUserId } from '@/hooks/use-realtime'
-import { isActiveJobStatus, type UserJobView } from '@/lib/user-jobs/types'
+import { isActiveJobStatus, JOBS_TOAST_EVENT, type JobsToastDetail, type UserJobView } from '@/lib/user-jobs/types'
+import { AGENT_OPEN_EVENT } from '@/lib/assistants/history'
 
 export type JobEffect = 'download' | 'change' | 'result'
 
@@ -56,7 +57,12 @@ interface Toast {
   job?: UserJobView
   /** ms; 0 = until dismissed. */
   timeout: number
+  /** Its own action (instead of Download / Retry / View jobs). */
+  action?: JobsToastDetail['action']
 }
+
+const AGENT_KIND = 'agent.turn'
+const openAgent = () => window.dispatchEvent(new Event(AGENT_OPEN_EVENT))
 
 export interface JobsApi {
   start(kind: string, params: unknown, options?: StartJobOptions): Promise<UserJobView | null>
@@ -176,7 +182,20 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
       options?.onFailure?.(job)
     }
     if (options?.quiet || (inline && options?.quietIfInline)) return
-    if (job.status === 'cancelled') {
+    if (job.kind === AGENT_KIND) {
+      // Agent work that ran in the background: "View" opens the Agent with the result merged.
+      if (job.status !== 'cancelled') {
+        const summary = job.title.replace(/^Agent:\s*/, '')
+        const confirm = job.status === 'succeeded' && job.result?.summary === 'Waiting for your confirmation'
+        notify({
+          tone: job.status === 'succeeded' ? 'success' : 'error',
+          title: job.status === 'failed' ? `Agent stopped: ${job.error ?? 'something went wrong'}` : confirm ? `Agent needs your confirmation: ${summary}` : `Agent finished: ${summary}`,
+          body: job.status === 'failed' ? summary : null,
+          job,
+          action: { label: 'View', onClick: openAgent, testId: 'agent-toast-view' },
+        })
+      }
+    } else if (job.status === 'cancelled') {
       notify({ tone: 'info', title: `${job.title} was cancelled`, job })
     } else {
       notify({
@@ -208,6 +227,16 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
     }
     initialised.current = true
   }, [query.data, finished])
+
+  // Toasts from outside React (the Agent: "still working in the background").
+  useEffect(() => {
+    const onToast = (event: Event) => {
+      const detail = (event as CustomEvent<JobsToastDetail>).detail
+      if (detail?.title) notify({ tone: detail.tone, title: detail.title, body: detail.body ?? null, action: detail.action, timeout: detail.timeout })
+    }
+    window.addEventListener(JOBS_TOAST_EVENT, onToast)
+    return () => window.removeEventListener(JOBS_TOAST_EVENT, onToast)
+  }, [notify])
 
   // The bell's job notifications open the panel.
   useEffect(() => {
@@ -327,7 +356,9 @@ function JobToast({ toast, live, onDismiss, onRetry, onOpenPanel }: {
   const running = toast.tone === 'info' && !!live && isActiveJobStatus(live.status)
   const job = toast.job
   // One action per toast: the file, a retry, or the Jobs panel.
-  const action = toast.tone === 'success' && job?.downloadable
+  const action = toast.action
+    ? { label: toast.action.label, onClick: () => { toast.action!.onClick(); onDismiss(toast.id) }, testId: toast.action.testId ?? 'job-toast-action' }
+    : toast.tone === 'success' && job?.downloadable
     ? { label: `Download${job.result?.file ? ` (${formatBytes(job.result.file.size)})` : ''}`, onClick: () => { downloadJobFile(job); onDismiss(toast.id) }, testId: 'job-toast-download' }
     : toast.tone === 'error' && job?.retryable
       ? { label: 'Retry', onClick: () => { onRetry(job.id); onDismiss(toast.id) }, testId: 'job-toast-retry' }

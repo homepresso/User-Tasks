@@ -18,6 +18,9 @@ export const metadata: Metadata = {
 
 /** Deep links into long guides that are easy to miss from the section list. */
 const POPULAR = [
+  { title: 'Step-by-step tutorials', href: '/docs/tutorials' },
+  { title: 'Build a form with the wizard', href: '/docs/tasks/form-wizard' },
+  { title: 'Set up the Agent (AI assistant)', href: '/docs/ai-assistants' },
   { title: 'Share and embed a form', href: '/docs/tasks/forms#sharing-and-embedding-forms' },
   { title: 'Form sign-in page', href: '/docs/tasks/forms#form-sign-in-page' },
   { title: 'Workspace address and friendly links', href: '/docs/governance/workspace-address' },

@@ -51,7 +51,7 @@ describe('decideTaskAction', () => {
       .toEqual({ allowed: true, mode: 'break_glass', onBehalfOf: 'alice', basis: 'break_glass' })
     expect(decideTaskAction({ task: TASK, actorId: 'owen', permissions: perms('tasks.complete_any'), facts: facts() })).toMatchObject({ allowed: false, status: 403 })
     // Team task without an individual assignee: nobody to act for.
-    expect(decideTaskAction({ task: { ...TASK, assignee_id: null }, actorId: 'owen', permissions: perms('tasks.complete_any'), facts: facts({ assigneeIds: [] }), onBehalf: true, note: 'x' }))
+    expect(decideTaskAction({ task: { ...TASK, assignee_id: null, assigned_team_id: 'team' }, actorId: 'owen', permissions: perms('tasks.complete_any'), facts: facts({ assigneeIds: [] }), onBehalf: true, note: 'x' }))
       .toMatchObject({ allowed: false, status: 403 })
   })
 

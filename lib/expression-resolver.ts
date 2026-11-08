@@ -28,7 +28,7 @@ export interface ExpressionContext {
  * Respects quoted strings so `}` inside quotes won't terminate the match.
  * Returns array of { start, end, expr } where expr is the content between {{= and }}.
  */
-function extractFunctionExpressions(str: string): { start: number; end: number; expr: string }[] {
+export function extractFunctionExpressions(str: string): { start: number; end: number; expr: string }[] {
   const results: { start: number; end: number; expr: string }[] = []
   let i = 0
   while (i < str.length - 4) {

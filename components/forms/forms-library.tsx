@@ -1,7 +1,7 @@
 'use client'
 
 import { FavoriteStar } from '@/components/home/favorite-star'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,7 @@ import { blockingFormThemeIssues, type FormThemeOverrides, type FormThemeRef } f
 import { defaultTaskFieldValues, type TaskFieldDef } from '@/lib/task-field-schema'
 import { formatCount } from '@/lib/format/number'
 import { FormDesignerDialog } from './designer/form-designer-dialog'
+import { useAssistantChanges, type AssistantChange } from '@/lib/assistants/client-registry'
 import { ThemeEditor, type SavedFormTheme } from './designer/theme-editor'
 import { FormRenderer } from './form-renderer'
 import { FormSubmissionsPanel } from './form-submissions-panel'
@@ -140,6 +141,15 @@ export function FormsLibrary() {
     if (!result.data) { setNotice({ tone: 'error', message: 'The form could not be loaded' }); return }
     setDesigning({ form: result.data as FormDetail })
   }
+
+  // The Agent changed the form open in the designer (a confirmed change): load the new version into it.
+  const designingId = designing?.form?.id ?? null
+  useAssistantChanges(useCallback((change: AssistantChange) => {
+    if (change.kind !== 'form' || !designingId || change.id !== designingId) return
+    void serverRead('forms.get', { id: designingId }).then((result) => {
+      if (result.data) setDesigning((prev) => (prev?.form?.id === designingId ? { form: result.data as FormDetail } : prev))
+    })
+  }, [designingId]))
 
   async function copyLink(form: FormListItem) {
     // The friendly link (acme.usertasks.com/form/<name>) when the workspace has an address, else /f/<id>.
@@ -390,6 +400,8 @@ export function FormsLibrary() {
       </Dialog>
 
       <FormDesignerDialog
+        // A new version (saved here or by the Agent) reopens the designer on it.
+        key={designing?.form ? `${designing.form.id}:${designing.form.version}` : 'new'}
         open={Boolean(designing)}
         onClose={() => setDesigning(null)}
         title={designing?.form ? designing.form.name : designing?.details?.name || 'New form'}

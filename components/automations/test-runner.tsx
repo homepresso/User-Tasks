@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useQuery } from '@tanstack/react-query'
-import { Play, X, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight, Copy, ClipboardCheck, Loader2, Zap, Plus, Trash2, PlayCircle, ListChecks, TriangleAlert, Maximize2, Minimize2, SlidersHorizontal, PauseCircle } from 'lucide-react'
+import { Play, X, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight, Copy, ClipboardCheck, Loader2, Zap, Plus, Trash2, PlayCircle, ListChecks, TriangleAlert, Maximize2, Minimize2, SlidersHorizontal, PauseCircle, Sparkles } from 'lucide-react'
 import { validateWorkflow } from '@/lib/workflow-validation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -29,8 +29,11 @@ import type { UserVariable, Swimlane } from './workflow-builder'
 import type { WorkflowNode, WorkflowEdge } from '@/lib/workflow-schema'
 import { TaskDescription } from '@/components/tasks/task-description'
 import { WorkflowStartFormView } from '@/components/forms/workflow-start-form-view'
-import { rememberTaskValues, runAllPauseDecision, savedTaskValuesFor, type CaseTaskValues, type TestPausePrompt } from '@/lib/automations/test-run-all'
+import { rememberTaskValues, runAllPauseDecision, savedTaskValuesFor, testTaskStartValues, type CaseTaskValues, type TestPausePrompt } from '@/lib/automations/test-run-all'
 import { serverRead } from '@/lib/server-read'
+import { AgentDialogButton, useAgentDock } from '@/components/assistants/assistant-panel'
+import { askAgentToFix, useAgentState } from '@/components/assistants/agent-store'
+import { canAskAgentToFix, failureAttachment, FIX_PROMPT } from '@/lib/assistants/failure'
 import { formStartGate, NEEDS_FORM_INPUT, rememberSubmission, runAllCaseDecision, runSelectedDecision, TEST_START_LABEL } from '@/lib/automations/test-form-start'
 import type { FormButton } from '@/lib/forms/buttons'
 import { formCardWidth } from '@/lib/forms/form-width'
@@ -68,6 +71,12 @@ interface TestRunnerProps {
   /** The workflow is active: cards show the same live dot as on the designer. */
   workflowActive?: boolean
   onClose: () => void
+  /** For "Ask Agent to fix": the workflow's name, and whether the person can edit it. */
+  workflowName?: string | null
+  canEdit?: boolean
+  /** Start with these inputs (the Agent's "Re-run test"), and run them once the runner is ready. */
+  initialValues?: Record<string, string> | null
+  autoRun?: boolean
 }
 
 
@@ -82,13 +91,16 @@ function cancelWaitingTestRuns(workflowId: string) {
   }).then(() => undefined, () => undefined)
 }
 
-export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes = [], triggerType, workflowActive = false, onClose }: TestRunnerProps) {
+export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes = [], triggerType, workflowActive = false, onClose, workflowName = null, canEdit = false, initialValues = null, autoRun = false }: TestRunnerProps) {
   // Test cases
   const [testCases, setTestCases] = useState<TestCase[]>(() => {
     const defaults: Record<string, string> = {}
     for (const v of userVariables) defaults[v.name] = v.defaultValue ?? ''
-    return [{ id: crypto.randomUUID(), name: 'Default', values: defaults, status: null }]
+    return [{ id: crypto.randomUUID(), name: initialValues ? 'Re-run' : 'Default', values: { ...defaults, ...(initialValues ?? {}) }, status: null }]
   })
+  // The Agent: this runner (an overlay) hosts its panel; a failed run can be handed to it.
+  const agentPanel = useAgentDock()
+  const agentState = useAgentState()
   const [selectedCaseId, setSelectedCaseId] = useState(testCases[0].id)
   const selectedCase = testCases.find(c => c.id === selectedCaseId) ?? testCases[0]
 
@@ -109,6 +121,17 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   // (and its checks pass): Run Selected shows the form, Run All reruns each
   // case's last submission, nothing runs while the form is loading.
   const gate = useMemo(() => formStartGate(startKind, startKind ? startForm : undefined), [startKind, startForm])
+  // The Agent's "Re-run test": run the same inputs once the start form (if any) is known.
+  const autoRanRef = useRef(false)
+  useEffect(() => {
+    if (!autoRun || autoRanRef.current || (startKind && !startForm)) return
+    const t = window.setTimeout(() => {
+      if (autoRanRef.current || !onRunSelectedRef.current) return
+      autoRanRef.current = true
+      onRunSelectedRef.current()
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [autoRun, startKind, startForm])
   const [formPrompt, setFormPrompt] = useState<string | null>(null)
   const formPanelRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<'form' | 'fields'>('form')
@@ -173,7 +196,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   const [autoCompleteTasks, setAutoCompleteTasks] = useState(true)
   const autoCompleteRef = useRef(true)
   /** The step the current case is paused at (mirrors the prompt state for synchronous reads). */
-  const pausePromptRef = useRef<(TestPausePrompt & { eventId: string; fields?: TaskFieldDef[] }) | null>(null)
+  const pausePromptRef = useRef<(TestPausePrompt & { eventId: string; fields?: TaskFieldDef[]; values?: Record<string, unknown> }) | null>(null)
   /** The case being executed (whose saved task values apply). */
   const currentCaseIdRef = useRef<string | null>(null)
   const testCasesRef = useRef<TestCase[]>([])
@@ -452,7 +475,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
         return 'paused'
       }
       appendLog({ level: 'info', message: `Completing "${prompt.title}" with this case's saved task values (outcome "${decision.outcome}")` })
-      current = await resumeTestTask({ eventId: prompt.eventId, title: prompt.title, fields: prompt.fields ?? [] }, decision.outcome, decision.values, { log: false })
+      current = await resumeTestTask({ eventId: prompt.eventId, title: prompt.title, fields: prompt.fields ?? [] }, decision.outcome, testTaskStartValues(prompt.fields ?? [], prompt.values, decision.values), { log: false })
     }
     return current === 'completed' ? 'completed' : 'failed'
   }
@@ -546,6 +569,8 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
    * Run Selected. With a form start (form view) it never runs: it shows and
    * focuses the case's form, which starts the test from its own button.
    */
+  const onRunSelectedRef = useRef<(() => void) | null>(null)
+  useEffect(() => { onRunSelectedRef.current = onRunSelected })
   function onRunSelected() {
     const decision = runSelectedDecision(gate, view)
     if (decision.action === 'run') { void runSingle(); return }
@@ -639,12 +664,15 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
           })
           // The case's saved values for this task (last time the tester completed it) over the defaults.
           const savedValues = savedTaskValuesFor(testCasesRef.current.find(c => c.id === currentCaseIdRef.current)?.taskValues, event.node_id)
-          setTestTaskValues({ ...((event.data.values ?? {}) as Record<string, unknown>), ...(savedValues ?? {}) })
+          const promptFields = normalizeTaskFields(event.data.fields)
+          const prefilled = (event.data.values ?? {}) as Record<string, unknown>
+          setTestTaskValues(testTaskStartValues(promptFields, prefilled, savedValues))
           setTestTaskErrors({})
           pausePromptRef.current = {
             kind: 'task', nodeId: event.node_id, eventId: event.data.event_id, title: event.data.task_title ?? 'Task',
             outcomes: Array.isArray(event.data.outcomes) ? event.data.outcomes : ['completed'],
-            fields: normalizeTaskFields(event.data.fields),
+            fields: promptFields,
+            values: prefilled,
           }
         }
         // Check if this is a test-mode server event waiting for callback
@@ -813,6 +841,18 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   }
 
   // Canvas: the designer's cards with this run as an overlay (shared with the run viewer).
+  /** "Ask Agent to fix": the failure (redacted) goes to the Agent; a fix it makes can be re-run with the same inputs. */
+  function askFix() {
+    const failedId = Object.entries(nodeResults).find(([, r]) => r?.status === 'error')?.[0] ?? null
+    const failedLog = [...logs].reverse().find((l) => l?.level === 'error')
+    const error = (failedId ? nodeResults[failedId]?.error : null) ?? failedLog?.metadata?.error ?? failedLog?.message ?? 'The run failed'
+    const attachment = failureAttachment({
+      workflow: { id: workflowId, name: workflowName }, nodes: nodes as never, edges: edges as never,
+      failedNodeId: failedId, error: String(error), logs, inputs: selectedCase.values, source: 'test', triggerType: triggerType ?? null,
+    })
+    askAgentToFix(attachment, { workflowId, values: selectedCase.values }, FIX_PROMPT)
+  }
+
   const runOverlay = computeRunOverlay({
     nodes,
     edges,
@@ -896,6 +936,10 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {done && !running && (failedCount > 0 || finalStatus === 'failed') && canAskAgentToFix(agentState.availability, canEdit) && (
+              <Button size="sm" variant="secondary" leadingIcon={<Sparkles />} onClick={askFix} data-testid="test-ask-agent-fix">Ask Agent to fix</Button>
+            )}
+            <AgentDialogButton />
             <IconButton size="sm" onClick={() => setMaximised((m) => !m)} aria-pressed={maximised}
               label={maximised ? 'Restore dialog size' : 'Expand to the full window'}
               icon={maximised ? <Minimize2 /> : <Maximize2 />} />
@@ -904,7 +948,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
         </div>
 
         {/* Main body: sidebar + content */}
-        <div className="flex flex-1 flex-col overflow-hidden sm:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
           {/* Left: Test Cases List (a strip above the form on phones) */}
           <div className="flex max-h-[30vh] w-full shrink-0 flex-col overflow-hidden border-b border-border-subtle sm:max-h-none sm:w-64 sm:border-b-0 sm:border-r">
             {/* Test case list header */}
@@ -1118,7 +1162,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
 
             {/* Variable inputs for selected case */}
             {userVariables.length > 0 && showInputs && (!formSpec || (formSpec.kind === 'start_form' && view === 'fields')) && (
-              <div className="shrink-0 space-y-2 border-b border-border-subtle bg-subtle px-5 py-3">
+              <div className={`${testTaskPrompt ? 'max-h-[20%]' : 'max-h-[40%]'} shrink-0 space-y-2 overflow-auto border-b border-border-subtle bg-subtle px-5 py-3`} data-test-variables>
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-fg-muted">
                     Variables — {selectedCase.name}
@@ -1227,8 +1271,9 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
 
             {/* Test-mode User Task Action Panel */}
             {testTaskPrompt && !resuming && (
-              <div className="mx-4 my-2 rounded-lg border border-warning bg-warning-wash p-4 animate-in fade-in">
-                <div className="flex items-start gap-3">
+              // A long form scrolls inside the panel; the outcome buttons stay in its footer.
+              <div className="mx-4 my-2 flex min-h-[10rem] max-h-max flex-[3_1_0%] flex-col overflow-hidden rounded-lg border border-warning bg-warning-wash animate-in fade-in" data-test-task-panel>
+                <div className="flex min-h-0 flex-1 items-start gap-3 overflow-y-auto p-4" data-test-task-scroll>
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-panel text-warning">
                     <Clock size={16} aria-hidden="true" />
                   </div>
@@ -1258,15 +1303,15 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                         </FormLookupProvider>
                       </div>
                     )}
-                    <div className="mt-3 flex items-center gap-2">
-                      {testTaskPrompt.outcomes.map((outcome, i) => (
-                        <Button key={outcome} size="sm" variant={i === 0 ? 'primary' : 'secondary'} disabled={resuming}
-                          onClick={() => void actionTestTask(outcome)}>
-                          {resuming ? 'Resuming…' : outcome.charAt(0).toUpperCase() + outcome.slice(1)}
-                        </Button>
-                      ))}
-                    </div>
                   </div>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-warning px-4 py-2" data-test-task-actions>
+                  {testTaskPrompt.outcomes.map((outcome, i) => (
+                    <Button key={outcome} size="sm" variant={i === 0 ? 'primary' : 'secondary'} disabled={resuming}
+                      onClick={() => void actionTestTask(outcome)}>
+                      {resuming ? 'Resuming…' : outcome.charAt(0).toUpperCase() + outcome.slice(1)}
+                    </Button>
+                  ))}
                 </div>
               </div>
             )}
@@ -1463,6 +1508,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
               )}
             </div>
           </div>
+          {agentPanel}
         </div>
         </div>
       </div>

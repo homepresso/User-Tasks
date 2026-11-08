@@ -9,6 +9,8 @@ import { SURVEY_CONTROLS_PAGE } from './content/survey-controls'
 import { INTEGRATION_PAGES } from './content/integrations'
 import { BUILDING_BLOCK_PAGES } from './content/building-blocks'
 import { GOVERNANCE_PAGES } from './content/governance'
+import { AI_ASSISTANT_PAGES } from './content/ai-assistants'
+import { TUTORIAL_PAGES } from './content/tutorials'
 import { API_PAGES, CLI_PAGES, SDK_PAGES } from './content/developers'
 import { OBSERVABILITY_PAGES, PROJECT_PAGES, SELF_HOSTING_PAGES } from './content/operations'
 import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
@@ -23,12 +25,14 @@ function withFormWizard(pages: DocPageDef[]): DocPageDef[] {
 /** Sidebar order. Every page belongs to exactly one section. */
 export const DOC_SECTIONS: DocSectionDef[] = [
   { title: 'Getting started', pages: GETTING_STARTED_PAGES },
+  { title: 'Tutorials', pages: TUTORIAL_PAGES },
   { title: 'Workflows', pages: WORKFLOW_PAGES },
   { title: 'Documents', pages: DOCUMENT_PAGES },
   { title: 'Media (images, audio, video)', pages: MEDIA_PAGES },
   { title: 'Tasks', pages: withFormWizard(TASK_PAGES) },
   { title: 'Integrations', pages: INTEGRATION_PAGES },
   { title: 'Building blocks', pages: BUILDING_BLOCK_PAGES },
+  { title: 'AI assistant (Agent)', pages: AI_ASSISTANT_PAGES },
   { title: 'Governance and security', pages: GOVERNANCE_PAGES },
   { title: 'API and MCP', pages: API_PAGES, links: [{ title: 'API Explorer', href: '/docs/api-explorer' }] },
   { title: 'CLI, SDK and config', pages: [...CLI_PAGES, ...SDK_PAGES] },

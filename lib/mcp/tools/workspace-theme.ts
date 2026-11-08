@@ -22,7 +22,7 @@ async function run(fn: () => Promise<unknown>) {
   }
 }
 
-const THEME_HELP = 'The whole theme as returned by workspace_theme_get (`workspace_theme`): { meta: { name, basePreset?, mode: auto|light|dark, schemaVersion: 1 }, colors: { light, dark } (primary, accent, sidebar, topbar, surface, card, text, status, chart … as hex/rgb()/hsl()), typography: { sans, display, mono: { source: google|system|upload, family, url? }, weights, baseSize, headingFont, headingLetterSpacing, uppercaseLabels }, shape, shadows, layout, chrome, branding }'
+const THEME_HELP = 'The whole theme as returned by workspace_theme_get (`workspace_theme`): { meta: { name, basePreset?, mode: auto|light|dark, schemaVersion: 1 }, colors: { light, dark } (primary, accent, sidebar, topbar, surface, card, text, status, chart … as hex/rgb()/hsl()), typography: { sans, display, mono: { source: google|system|upload, family, url? }, weights, baseSize, headingFont (sans|display: display = headings in typography.display), headingLetterSpacing, uppercaseLabels }, shape { cardRadius, buttonRadius (9999 = pill), inputRadius, badgeRadius, dialogRadius }, shadows { sm, md, lg, xl, card: `none` or lengths + one colour per layer }, layout { density compact|comfortable|spacious, sidebarWidth, topbarHeight }, chrome, branding }'
 const expectedVersion = z.number().int().optional().describe('Refuse when the stored version differs (optimistic concurrency); omit to overwrite')
 
 export function registerWorkspaceThemeTools(server: McpToolServer, ctx: McpContext) {

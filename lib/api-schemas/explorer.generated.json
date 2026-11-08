@@ -1132,7 +1132,7 @@
     "method": "POST",
     "path": "/api/v1/workflows",
     "label": "Create a workflow from nodes and edges",
-    "description": "workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. Requires workflows.edit.",
+    "description": "workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. `warnings` lists wiring problems (references that will be blank, ignored config keys) with suggestions; they never block the save. Requires workflows.edit.",
     "params": [
      {
       "name": "name",
@@ -1222,7 +1222,7 @@
     "method": "PATCH",
     "path": "/api/v1/workflows/{id}",
     "label": "Save draft changes to a workflow (publish separately, or with publish: true)",
-    "description": "Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. Requires workflows.edit.",
+    "description": "Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. `warnings` lists wiring problems in the saved draft (references that will be blank, ignored config keys) with suggestions; they never block the save. Requires workflows.edit.",
     "params": [
      {
       "name": "id",
@@ -4533,7 +4533,7 @@
       "type": "body",
       "required": true,
       "placeholder": "{}",
-      "description": "Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
+      "description": "Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
      }
     ],
     "permission": "forms.edit"
@@ -7802,13 +7802,15 @@
       "name": "colors",
       "type": "body",
       "required": true,
-      "placeholder": "{}"
+      "placeholder": "{}",
+      "description": "Colours per mode. Text below its contrast target is raised when drawn; button / navigation text below 3:1 is refused."
      },
      {
       "name": "typography",
       "type": "body",
       "required": true,
-      "placeholder": "{}"
+      "placeholder": "{}",
+      "description": "Fonts, weights and sizes."
      },
      {
       "name": "shape",
@@ -7820,7 +7822,8 @@
       "name": "shadows",
       "type": "body",
       "required": true,
-      "placeholder": "{}"
+      "placeholder": "{}",
+      "description": "Elevation. `none` or box shadows built from lengths and one colour per layer (no url(), var() or other CSS). Suggested values: see shadow_presets."
      },
      {
       "name": "layout",
@@ -7832,13 +7835,15 @@
       "name": "chrome",
       "type": "body",
       "required": true,
-      "placeholder": "{}"
+      "placeholder": "{}",
+      "description": "Sidebar, top bar and canvas backgrounds: solid, gradient or a dot texture."
      },
      {
       "name": "branding",
       "type": "body",
       "required": true,
-      "placeholder": "{}"
+      "placeholder": "{}",
+      "description": "Logos (uploads in this workspace's logos storage) and the wordmark."
      },
      {
       "name": "expected_version",

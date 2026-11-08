@@ -91,6 +91,22 @@ A task a workflow is waiting on (a **User Task**) is actioned by its **assignee 
 
 Everyone else — admins included — sees the task read-only. Standard tasks you create by hand keep the usual rule (anyone with **Complete tasks** in the workspace).
 
+## Unassigned tasks: take ownership
+
+A task can end up with **nobody** on it — no assignee, no collaborators and no team (for example a User Task built without an assignee). Nobody can act on it, so it would wait forever. On such a task:
+
+- a workspace admin (**Complete any task (break-glass)**, \`tasks.complete_any\`) or a **manager of the workflow** (an explicit Edit grant on it) sees a banner, **Nobody is assigned to this task**, with **Take ownership** and **Assign to…**;
+- **Take ownership** assigns the task to you, accepted, so you can act on it at once;
+- **Assign to…** picks a person or a team, with an optional reason;
+- acting on it directly (an outcome button, the form's buttons, \`POST /api/v1/tasks/{id}/action\`, MCP) is the same as taking ownership and then acting;
+- everyone else sees the banner without the buttons and the task read-only. Members of a team still **Claim** team tasks as before.
+
+Every change is written to the task's history (*X took ownership*, *Reassigned from … to …*), the audit log (\`reassign\` on the task, with \`took_ownership\`) and the run's **Process view**, and the new assignee is notified. The Process view's **Unassigned** chip offers **Take ownership** to the people who may, and the workflow queue's **Active tasks** tab lists every active task.
+
+## Reassigning a task
+
+Besides the assignee's own **Reassign…** (when the step allows redirects), **Reassign…** in the task's **More actions** menu is offered to the assignee's manager (anyone in their manager chain), a manager of the workflow and admins (\`tasks.complete_any\`). Pick a person or a team and give a reason; both the new and the previous assignee are notified, and the history, audit log and process view record it.
+
 ## Task completed screen
 
 When someone completes a task with an outcome, on the task page or with the task form's buttons, the **Task completed screen** replaces the task's tabs. It confirms what they did and says what happens next:
@@ -365,14 +381,17 @@ A form is a set of typed fields placed on a grid, with an optional header, butto
 
 ::image forms-designer | The form designer: field palette on the left, a grid of rows with one to four columns, and the Attachments field's settings on the right | The designer: drag types from the palette onto a grid of 1–4 column rows; the selected field's settings are on the right.
 
+> [!TIP]
+> Want a form, a responses table, an approval and a results page without the designer? Use the [form wizard](/docs/tasks/form-wizard). For a guided walk-through of the designer, follow the tutorial [Build your first form](/docs/tutorials/first-form).
+
 ## Build your first form in 5 minutes
 
-1. **Create it.** Open **Build › Forms → New form**, name it (for example *Customer return*) and choose **Continue to designer**.
+1. **Create it.** Open **Build › Forms → New form**, choose **Start blank** if you are offered the wizard, name it (for example *Customer return*) and choose **Continue to designer**.
 2. **Add fields.** Drag **Text**, **Email**, **Currency**, **Single select** and **Attachments** from the palette onto the grid (or select one and press **Enter**). Set each field's label; the key follows it in snake_case (\`contact_email\`).
 3. **Lay it out.** Give a row 2 or 3 columns with the buttons beside **ROW n**, then drag fields side by side. Set **Width** on a field to span columns. Add a **Section** to group fields (optional and collapsible ones too), or **Section heading** and **Divider** for lighter structure.
 4. **Validate.** Tick **Required**, set min / max, a pattern with a message, or **Visible when** on the fields that need it. **Preview → Check validation** tries the rules; **Phone** shows the one-column mobile layout.
-5. **Buttons and look.** In **Buttons & header**, turn on the header, rename **Submit** and add **Show success screen**. In **Form theme**, pick **Custom** and set an accent colour. Choose **Create form**.
-6. **Use it.** **Open form** (or **QR code**) in the library to share its page; add a **Form submitted** trigger to a workflow to run it on every submission, or link the form from a User Task with **Use a saved form**. Every field is in the workflow's **Data** panel as \`{{form.<key>}}\` / \`{{task_data.<key>}}\`.
+5. **Buttons and look.** In the **Header** tab, turn on the header, rename **Submit** and add **Show success screen**. In the **Theme** tab, pick **Custom** and set an accent colour. Choose **Create form**.
+6. **Use it.** **Open** the form in the library, or use **⋯ → Copy link** or **QR code** to share its page; add a **Form submitted** trigger to a workflow to run it on every submission, or link the form from a User Task with **Use a saved form**. Every field is in the workflow's **Data** panel as \`{{form.<key>}}\` / \`{{task_data.<key>}}\`.
 
 Prefer code? \`usertasks forms create -f customer-return.json\` (or \`POST /api/v1/forms\`) takes the same \`fields\`, \`layout\`, \`theme\`, \`header\` and \`buttons\` — see [Reusable forms](#reusable-forms).
 
@@ -1583,7 +1602,11 @@ By default a form uses the [workspace theme](/docs/governance/workspace-theme) �
 - accent colour (buttons, focus ring, selection), background and text colour, separately for light and dark mode
 - the page behind the form (a colour, or a gradient to a second colour — standalone form pages, the frame around a task form, the designer preview), the input background, border colour and primary button colour (derived from the accent unless you set one), per mode
 - corner radius, font (from the workspace theme's fonts), density (comfortable or compact), label position (above or left of the input) and where the buttons sit (right, left or full width)
+- a **heading font** separate from the body font (the same curated list: titles, section and page headings), the **button shape** (square, rounded — the corner radius — or pill), a **shadow** under the card (none, subtle, medium or strong; tuned for light and dark cards) and the **field style** (outlined, filled or underline — inputs always keep a 3:1 bottom rule)
+- **Appearance**: follow the workspace (the default), follow each viewer's own light / dark setting (**Viewer's light / dark**, so your dark colours show to people in dark mode even when the workspace forces light), or **Always light** / **Always dark**
 - an optional header with a title, subtitle, banner colour and the workspace logo
+
+Shadows, button shapes and field styles are named choices, never CSS: a theme stores \`shadow: "subtle"\`, not a box-shadow. In the API, MCP and CLI the keys are \`heading_font\` (\`{ source, family }\`), \`button_shape\`, \`shadow\`, \`field_style\` and \`appearance\`; leaving one out keeps the look forms had before.
 
 The theme covers the whole form: page, card, header banner, headings and dividers, inputs (background, border, focus ring, placeholder), help and error text, buttons, the autocomplete list and chips, checkboxes and radio buttons, the date picker's light / dark, messages, the success screen and the Cancel confirmation. Every text / background pair the form draws is kept legible — AA (4.5:1) for text, 3:1 for input borders and the focus ring; a mid-tone background on which neither white nor dark text would pass is nudged until one does. Contrast is checked against the workspace theme in both modes. Low-contrast pairs are listed with an **Auto-fix**, and the form always raises them when it is drawn, so text is never illegible. A theme whose own text and background are below 3:1 can't be saved. Without dark colours, dark mode keeps the workspace's dark palette with your accent.
 
@@ -1918,6 +1941,7 @@ By API: \`POST /api/v1/tasks/{id}/action\` with \`"on_behalf": true\` and \`"on_
 | Act on behalf | be in the assignee's manager chain, and **Complete tasks** |
 | Act on anyone's task (break-glass) | **Complete any task (break-glass)** — Owner and Admin by default |
 | Reassign a report's task | **Assign tasks** |
+| Take ownership of an unassigned task, or reassign any task | **Complete any task (break-glass)**, or an Edit grant on the task's workflow, and **Complete tasks** |
 | Edit reporting lines | **Manage roles** |
 `,
   },

@@ -367,6 +367,8 @@ export function getAgentBuiltinToolNames(
 
   const dataOps = agentDataOperations(config.data_access)
   for (const op of GRANT_OPS) if (dataOps.has(op)) builtinToolNames.push(DATA_TOOL_FOR_OPERATION[op])
+  // Bulk insert rides on the same insert grant.
+  if (dataOps.has('insert')) builtinToolNames.splice(builtinToolNames.indexOf('insert_data_row') + 1, 0, 'insert_data_rows')
   if (config.knowledge.table_ids.length > 0 || config.knowledge.files.length > 0) {
     builtinToolNames.push('search_knowledge')
     if (config.knowledge.files.length > 0) builtinToolNames.push('read_knowledge_document')

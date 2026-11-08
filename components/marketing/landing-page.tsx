@@ -3,6 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   ArrowRight,
+  BarChart3,
   Bot,
   Braces,
   Check,
@@ -12,6 +13,7 @@ import {
   Files,
   GitBranch,
   ListChecks,
+  MessageSquareText,
   Package,
   Palette,
   Plug,
@@ -34,6 +36,8 @@ import { useCasesInGroup } from "@/lib/use-cases"
 import { GalleryTeaser } from "@/components/gallery/gallery-teaser"
 import { Wordmark } from "@/components/brand/logo"
 import { FormsTasksShowcase } from "@/components/marketing/forms-tasks-showcase"
+import { ScreenshotFrame } from "@/components/marketing/screenshot-frame"
+import assistantForm from "@/public/screenshots/assistant-form.webp"
 
 /**
  * Cloud-edition product page for the headless workflow engine. Server-rendered;
@@ -96,7 +100,7 @@ usertasks log-destinations status <id>`,
 
 const HEADLINERS: Array<{ href: string; icon: typeof Workflow; eyebrow: string; title: string; shot: ScreenshotName; alt: string; points: string[] }> = [
   { href: "/workflows", icon: Workflow, eyebrow: "Workflows", title: "Complex workflows, built visually", shot: "workflows-process-viewer", alt: "The process view of a completed run: the path through the approval policy, the finance manager approval and both parallel branches, with the steps that did not run greyed out", points: [`Branches, parallel paths, loops and sub-workflows — ${WORKFLOW_NODE_COUNT} node types`, "Decision tables, User Tasks, SLAs, timers, events and error paths", "Save & Test with real forms, versions and live migration"] },
-  { href: "/forms", icon: FileInput, eyebrow: "Forms", title: "Forms that start and drive your workflows", shot: "forms-page", alt: "A form page with a header, three-column rows, a customer lookup and three uploaded files", points: ["Grid designer with 18 field types: lookups, data tables you can filter and edit, attachments", "Rules that show, hide, fill or lock fields; custom controls as web components", "Share a link, embed it in your website or print a QR code; buttons start workflows"] },
+  { href: "/forms", icon: FileInput, eyebrow: "Forms", title: "Forms that start and drive your workflows", shot: "forms-page", alt: "A form page with a header, three-column rows, a customer lookup and three uploaded files", points: ["Grid designer with lookups, editable data tables, attachments and survey controls — or the form wizard", "Rules that show, hide, fill or lock fields; custom controls as web components", "Share a link, embed it in your website or print a QR code; buttons start workflows"] },
   { href: "/documents", icon: Files, eyebrow: "Documents", title: "Read, compare and transform documents", shot: "documents-compare-report", alt: "A side-by-side comparison report with deleted words in red and inserted words in green", points: ["Word, Excel, PowerPoint, PDF with OCR, Markdown and HTML", "Redlines with Word tracked changes and side-by-side reports", "Convert, split, extract to tables, redact personal data"] },
   { href: "/media", icon: Waves, eyebrow: "Media", title: "AI for images, audio and video", shot: "media-designer", alt: "The workflow designer with Analyze Image and Redact Image steps and the Redact Image settings open: Google Gemini as provider, faces and sensitive text selected", points: ["Transcribe with speakers, timestamps and SRT / VTT subtitles", "Blur faces, plates and ID numbers; bleep spoken card numbers", "Analyse images and video, generate images and speech — your own key"] },
 ]
@@ -117,13 +121,14 @@ const DESTINATIONS = [
 
 const FEATURES: Array<{ icon: typeof Workflow; title: string; body: string; href: string; shot?: ScreenshotName }> = [
   { icon: Workflow, title: "Workflows", body: `${WORKFLOW_NODE_COUNT} node types: triggers, branches, loops, parallel paths, waits, sub-workflows, documents and error handling. Durable runs with a full step history.`, href: "/workflows", shot: "run-detail" },
-  { icon: FileInput, title: "Forms", body: "Grid forms with lookups, file uploads, rules, buttons and themes: on tasks, workflow starts, their own pages and other websites. Custom controls let you build any field you need. Every submission validated on the server.", href: "/forms", shot: "forms-designer" },
+  { icon: FileInput, title: "Forms", body: "Grid forms with lookups, file uploads, rules, survey controls and themes: on tasks, workflow starts, their own pages and other websites. Or answer a few questions in the form wizard and get the form, its approval workflow and a responses report with charts.", href: "/forms", shot: "forms-designer" },
   { icon: Files, title: "Documents", body: "Read Word, Excel, PowerPoint, PDF and Markdown, redline two versions, convert, extract to tables and redact personal data — inside the run.", href: "/documents", shot: "documents-compare" },
   { icon: Waves, title: "Media", body: "Transcribe recordings, analyse photos and video, blur faces and ID numbers, bleep spoken personal data, generate images and speech — with your own AI provider key.", href: "/media", shot: "media-transcribe" },
-  { icon: ListChecks, title: "Human tasks", body: "User Tasks with typed fields, outcomes and attachments, SLAs, reminders, escalation and multi-assignee rules. One task list with queued tasks and personal queue rules, or your own UI.", href: "/docs/tasks", shot: "task-detail" },
+  { icon: ListChecks, title: "Human tasks", body: "User Tasks with typed fields, outcomes and attachments, SLAs, reminders, escalation and multi-assignee rules. One task list with queue rules and cards on phones, a Process view of who has each step, or your own UI.", href: "/docs/tasks", shot: "task-detail" },
   { icon: Plug, title: "Integrations", body: `${CONNECTOR_COUNT} connectors, plus any REST or OData API, webhook and database — encrypted credentials, OAuth and OpenAPI import.`, href: "/connectors", shot: "integrations" },
   { icon: Scale, title: "Decision tables", body: "Ordered, typed business rules your analysts can change without touching a workflow. Testable from the API.", href: "/docs/decision-tables", shot: "decision-table" },
   { icon: Bot, title: "AI agents, optional", body: "Agents on Claude, OpenAI, Gemini, Mistral, local models and more, with granted tools, files, structured outputs and traces. Leave them off if you don't need them.", href: "/connectors#ai" },
+  { icon: BarChart3, title: "Reports and charts", body: "Saved reports over tasks, runs, rules, integrations and your data tables, with up to eight summary charts above the table. In the app, the API, MCP and OData.", href: "/docs/reports", shot: "reports" },
   { icon: ShieldCheck, title: "Governance", body: "Roles and fine-grained permissions, scoped API keys, OAuth, SSO and directory sync, audit, retention and a deletion queue.", href: "/docs/governance", shot: "roles" },
   { icon: Package, title: "Packages", body: "Bundle a workflow and everything it uses into a signed, versioned package. Install it in another environment, finish the setup it asks for, upgrade in place — or start from the gallery.", href: "/docs/packages", shot: "packages-library-complete" },
   { icon: Palette, title: "Your brand", body: "One workspace theme: colours for light and dark, fonts (or your own woff2), shape, density and logos — designed with a live preview, or set from the API, CLI and config as code.", href: "/docs/governance/workspace-theme", shot: "theme-designer" },
@@ -131,6 +136,12 @@ const FEATURES: Array<{ icon: typeof Workflow; title: string; body: string; href
 
 // Absolute medians from the final run in docs/perf/results.md. No
 // before/after or competitor comparisons on the marketing site.
+const AGENT_POINTS: Array<{ icon: typeof Workflow; title: string; body: string }> = [
+  { icon: FileInput, title: "On forms.", body: "Answers questions, explains errors and proposes values you apply. Never submits." },
+  { icon: MessageSquareText, title: "On tasks.", body: "Summarises the history, drafts comments and suggests an outcome. Never approves or completes." },
+  { icon: Workflow, title: "In the builders.", body: "Designs workflows, forms, tables, decision tables and plugins with you. A confirmation card before each change; workflows and plugins saved as drafts." },
+]
+
 const PERF = [
   { value: "4–8 ms", label: "REST API responses" },
   { value: "3–5 ms", label: "MCP tool calls" },
@@ -219,6 +230,30 @@ export function LandingPage() {
 
         <FormsTasksShowcase />
 
+        {/* Agent */}
+        <section id="agent" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/40">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[2fr_3fr]">
+            <div>
+              <SectionHeading eyebrow="New: Agent" title="Agent, your AI co-worker in every screen.">
+                One panel that knows which screen you are on and follows you from one to the next, with the conversation intact. It explains, summarises, drafts and suggests. You apply, decide and confirm.
+              </SectionHeading>
+              <ul className="mt-6 space-y-3 text-sm leading-6 text-(color:--mkt-text)">
+                {AGENT_POINTS.map(({ icon: Icon, title, body }) => (
+                  <li key={title} className="flex gap-3"><Icon size={18} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" aria-hidden="true" /><span><strong className="text-(color:--mkt-ink)">{title}</strong> {body}</span></li>
+                ))}
+              </ul>
+              <p className="mt-6 text-sm leading-6 text-(color:--mkt-muted)">OpenAI, Claude, Grok, Gemini, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model. Bring your own key. One switch in Settings, the person&rsquo;s own permissions, role and team access, daily limits and monthly cost caps.</p>
+              <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <Link href="/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Explore Agent <ArrowRight size={14} aria-hidden="true" /></Link>
+                <Link href="/docs/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Set it up <ArrowRight size={14} aria-hidden="true" /></Link>
+              </p>
+            </div>
+            <ScreenshotFrame>
+              <Image src={assistantForm} alt="An Expense claim form with the Agent panel open beside it, proposing eight field values with Apply and Apply all buttons" sizes="(min-width: 1152px) 650px, 100vw" placeholder="blur" className="h-auto w-full" />
+            </ScreenshotFrame>
+          </div>
+        </section>
+
         {/* Integrations and AI */}
         <section id="integrations" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
@@ -251,6 +286,7 @@ export function LandingPage() {
             <p className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
               <Link href="/connectors" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">See every connector <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/connectors#ai" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">AI agents and MCP <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Agent: AI for people on every screen <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/media" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">AI for images, audio and video <ArrowRight size={14} aria-hidden="true" /></Link>
             </p>
           </div>
@@ -453,6 +489,7 @@ usertasks --profile prod config apply ./config`} />
             <Link href="/forms" className="hover:text-(color:--mkt-ink)">Forms</Link>
             <Link href="/documents" className="hover:text-(color:--mkt-ink)">Documents</Link>
             <Link href="/media" className="hover:text-(color:--mkt-ink)">Media</Link>
+            <Link href="/ai-assistants" className="hover:text-(color:--mkt-ink)">Agent</Link>
             <Link href="/connectors" className="hover:text-(color:--mkt-ink)">Integrations</Link>
             <Link href="/use-cases" className="hover:text-(color:--mkt-ink)">Use cases</Link>
             <Link href="/gallery" className="hover:text-(color:--mkt-ink)">Package gallery</Link>

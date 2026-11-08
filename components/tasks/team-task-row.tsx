@@ -57,7 +57,8 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
   const actionsId = `${baseId}-actions`
   const toggleRef = useRef<HTMLButtonElement>(null)
   const closed = task.status === "completed" || task.status === "cancelled"
-  const canReassign = !closed && (!(task.is_workflow_task && task.event_id) || task.allow_reassign)
+  // A manager can always reassign a report's task; the step's redirect setting is the assignee's own option.
+  const canReassign = !closed
   const progress = rowProgress(task)
 
   async function reassign(toSelf: boolean) {

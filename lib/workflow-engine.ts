@@ -29,6 +29,8 @@ import {
   handleSwitchCase,
   calculateDelay,
   canonicalDelay,
+  canonicalDataFilterOperator,
+  callReferenceInputValue,
   handleJsonBuildObject,
   handleJsonBuildArray,
   handleJsonAddToArray,
@@ -46,6 +48,7 @@ import { normalizeTaskFieldValue, WORKFLOW_UPDATABLE_TASK_FIELDS } from "./task-
 import { resolveTaskDescriptionTemplate } from "./task-description";
 import { htmlToPlainText } from "./html-sanitize";
 import { loadTaskDataObject } from "./task-data";
+import { USER_TASK_PER_STEP_VARIABLES } from "./workflow-system-variables";
 
 /** `{{task.attachments}}`: the run task's Attachments tab files (service client, the run's tenant). */
 function taskAttachmentsLoader(db: unknown) {
@@ -54,7 +57,7 @@ function taskAttachmentsLoader(db: unknown) {
     return listTaskAttachmentsForWorkflow(db as never, tenantId, taskId);
   };
 }
-import { defaultTaskFieldValues } from "./task-field-schema";
+import { defaultTaskFieldValues, stepFieldValues } from "./task-field-schema";
 import { compactLayoutForSave } from "./forms/layout";
 import { resolveOptionSources, resolveRuntimeForm } from "./services/forms";
 import { preResolveLookupConfig, preResolveLookupTemplate } from "./forms/lookup";
@@ -2151,6 +2154,16 @@ async function followPausedNode(
         ctx.nodeResults[pausedNodeId] = { status: "success", output, duration_ms: waited };
       }
 
+      // A completed User Task: keep its values under the step's own prefix
+      // too ({{<prefix>_task_data.<key>}}, {{<prefix>_outcome}}…) — the
+      // generic task_data / outcome are replaced by the next User Task.
+      if (pausedNodeType === "user_task") {
+        const prefix = nodeVariablePrefix(pausedNode);
+        for (const key of USER_TASK_PER_STEP_VARIABLES) {
+          if (ctx.variables[key] !== undefined) ctx.variables[`${prefix}_${key}`] = ctx.variables[key];
+        }
+      }
+
       // A timed pause (delay / pause_until) is complete once resumed.
       if (pausedNodeType === "delay" || pausedNodeType === "pause_until") {
         const waitOutput = (ctx.nodeResults[pausedNodeId]?.output ?? {}) as Record<string, unknown>;
@@ -2513,38 +2526,7 @@ async function resolveLiveBindingsForNode(
             if (!f.column) continue;
             const val = resolveExpression(f.value, ctx);
             const col = `data->>${f.column}`;
-            switch (f.operator) {
-              case "eq":
-                query = query.eq(col, val);
-                break;
-              case "neq":
-                query = query.neq(col, val);
-                break;
-              case "gt":
-                query = query.gt(col, val);
-                break;
-              case "gte":
-                query = query.gte(col, val);
-                break;
-              case "lt":
-                query = query.lt(col, val);
-                break;
-              case "lte":
-                query = query.lte(col, val);
-                break;
-              case "like":
-                query = query.like(col, `%${val}%`);
-                break;
-              case "ilike":
-                query = query.ilike(col, `%${val}%`);
-                break;
-              case "is_null":
-                query = query.is(col, null);
-                break;
-              case "not_null":
-                query = query.not(col, "is", null);
-                break;
-            }
+            query = applyDataFilter(query, col, f.operator, val);
           }
           if (snap.sort_column) {
             query = query.order(`data->>${snap.sort_column}` as any, {
@@ -3800,20 +3782,26 @@ async function executeNode(
   }
 }
 
+/** A step's variable prefix: `_output_prefix`, else its label as snake_case (≤30), else its id. */
+function nodeVariablePrefix(node: WorkflowNode): string {
+  return (
+    node.config?._output_prefix ||
+    String(node.label ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 30) ||
+    node.id.slice(0, 8)
+  );
+}
+
 async function runNodeAction(
   node: WorkflowNode,
   ctx: ExecutionContext,
 ): Promise<any> {
   const config = node.config;
   // Output prefix: user-configurable or auto-generated from node label
-  const _prefix =
-    config._output_prefix ||
-    node.label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "")
-      .slice(0, 30) ||
-    node.id.slice(0, 8);
+  const _prefix = nodeVariablePrefix(node);
   // Helper: set a prefixed variable AND a generic one (generic = latest wins for backward compat)
   function setVar(baseName: string, value: any) {
     ctx.variables[`${_prefix}_${baseName}`] = value;
@@ -4755,9 +4743,14 @@ async function runNodeAction(
       const taskFormParams = resolveContextParams(runtimeForm.layout, config.form_params, (template) =>
         resolveExpression(template, ctx),
       );
-      const taskFieldValues = defaultTaskFieldValues(taskFields, (value) =>
-        resolveExpression(substituteParams(value, taskFormParams), ctx),
-      );
+      // Values the task opens with: each field's default, then the step's
+      // own prefill map (config.field_values) — the reusable form is untouched.
+      const resolveTaskValue = (value: string) =>
+        resolveExpression(substituteParams(value, taskFormParams), ctx);
+      const taskFieldValues = {
+        ...defaultTaskFieldValues(taskFields, resolveTaskValue),
+        ...stepFieldValues(taskFields, config.field_values, resolveTaskValue),
+      };
 
       // In test mode: don't create a real task, emit event for inline action in test runner
       if (ctx.isTest) {
@@ -5679,7 +5672,7 @@ async function runNodeAction(
       }
 
       // Custom output variable names (user-configurable)
-      const rowIdVar = config.output_row_id_var || "row_id";
+      const rowIdVar = config.output_row_id_var || config.output_var || "row_id";
       const rowVar = config.output_row_var || "row";
       const rowsVar = config.output_rows_var || "rows";
       const countVar = config.output_count_var || "row_count";
@@ -5970,38 +5963,7 @@ async function runNodeAction(
           if (!f.column) continue;
           const val = resolveExpression(f.value, ctx);
           const col = `data->>${f.column}`;
-          switch (f.operator) {
-            case "eq":
-              query = query.eq(col, val);
-              break;
-            case "neq":
-              query = query.neq(col, val);
-              break;
-            case "gt":
-              query = query.gt(col, val);
-              break;
-            case "gte":
-              query = query.gte(col, val);
-              break;
-            case "lt":
-              query = query.lt(col, val);
-              break;
-            case "lte":
-              query = query.lte(col, val);
-              break;
-            case "like":
-              query = query.like(col, `%${val}%`);
-              break;
-            case "ilike":
-              query = query.ilike(col, `%${val}%`);
-              break;
-            case "is_null":
-              query = query.is(col, null);
-              break;
-            case "not_null":
-              query = query.not(col, "is", null);
-              break;
-          }
+          query = applyDataFilter(query, col, f.operator, val);
         }
 
         // Sort
@@ -6083,15 +6045,7 @@ async function runNodeAction(
         | undefined;
       const inputValues: Record<string, any> = {};
       for (const input of inputs) {
-        let value: any;
-        if (inputMappings?.[input.name]) {
-          value = resolveExpression(inputMappings[input.name], ctx);
-        } else if (input.source === "static") {
-          value = input.default_value;
-        } else {
-          value = resolveExpression(input.name, ctx) ?? input.default_value;
-        }
-        inputValues[input.name] = value;
+        inputValues[input.name] = callReferenceInputValue(input, inputMappings?.[input.name], ctx);
       }
       const inputLocations: Record<string, string> = {};
       for (const override of inputLocationOverrides ?? []) {
@@ -6137,14 +6091,7 @@ async function runNodeAction(
                 (o: any) => (o.id ?? o.name) === (input.id ?? input.name),
               )?.location ?? input.location;
             if (location !== "body") continue;
-            let value: any;
-            if (inputMappings?.[input.name]) {
-              value = resolveExpression(inputMappings[input.name], ctx);
-            } else if (input.source === "static") {
-              value = input.default_value;
-            } else {
-              value = resolveExpression(input.name, ctx) ?? input.default_value;
-            }
+            let value: any = callReferenceInputValue(input, inputMappings?.[input.name], ctx);
             if (input.type === "array" && typeof value === "string") {
               try {
                 value = JSON.parse(value);
@@ -7911,6 +7858,34 @@ function summarizeOutput(nodeType: string, output: any): any {
     }
     default:
       return { ok: true };
+  }
+}
+
+/**
+ * One Data step list filter on `data->>column` (both the step and its live
+ * re-query). Aliases ("equals", "==", "contains") read as their canonical
+ * operator; an unknown operator adds no filter (the designer flags it).
+ */
+function applyDataFilter<Q extends { eq: any; neq: any; gt: any; gte: any; lt: any; lte: any; like: any; ilike: any; is: any; not: any }>(
+  query: Q,
+  col: string,
+  operator: unknown,
+  val: any,
+): Q {
+  switch (canonicalDataFilterOperator(operator)) {
+    case "eq": return query.eq(col, val);
+    case "neq": return query.neq(col, val);
+    case "gt": return query.gt(col, val);
+    case "gte": return query.gte(col, val);
+    case "lt": return query.lt(col, val);
+    case "lte": return query.lte(col, val);
+    case "like": return query.like(col, `%${val}%`);
+    case "ilike": return query.ilike(col, `%${val}%`);
+    case "starts_with": return query.ilike(col, `${val}%`);
+    case "ends_with": return query.ilike(col, `%${val}`);
+    case "is_null": return query.is(col, null);
+    case "not_null": return query.not(col, "is", null);
+    default: return query;
   }
 }
 

@@ -492,7 +492,7 @@ function workflowVariableSchema(variable: PickerWorkflowVariable): SchemaNode {
  * The roots one step contributes (what the engine sets after it runs).
  * `known` are roots of steps before it, used to type Set Variable expressions.
  */
-export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): DataRoot[] {
+export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = [], linkedForms?: Record<string, LinkedFormLike> | null): DataRoot[] {
   const c = node.config ?? {}
   const prefix = nodeOutputPrefix(node)
   switch (node.type) {
@@ -534,6 +534,8 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
     case 'update_data_table': {
       const op = c.operation ?? 'insert'
       const cols = (c._table_columns ?? []) as { key: string; label?: string; type?: string }[]
+      // The engine reads `output_var` as the row id variable when output_row_id_var is unset.
+      const rowIdVar = c.output_row_id_var || c.output_var || 'row_id'
       if (op === 'list') {
         return [
           { path: c.output_rows_var || 'rows', label: c.output_rows_var || 'rows', schema: columnsSchema(cols, 'rows'), description: 'Rows returned by the query' },
@@ -543,10 +545,10 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
       if (op === 'get') {
         return [
           { path: c.output_row_var || 'row', label: c.output_row_var || 'row', schema: columnsSchema(cols, 'row'), description: 'The row' },
-          { path: c.output_row_id_var || 'row_id', label: c.output_row_id_var || 'row_id', schema: { type: 'string' }, description: 'Row ID' },
+          { path: rowIdVar, label: rowIdVar, schema: { type: 'string' }, description: 'Row ID' },
         ]
       }
-      return [{ path: c.output_row_id_var || 'row_id', label: c.output_row_id_var || 'row_id', schema: { type: 'string' }, description: `Row ID from ${op}` }]
+      return [{ path: rowIdVar, label: rowIdVar, schema: { type: 'string' }, description: `Row ID from ${op}` }]
     }
     case 'set_variable': {
       // Every assignment, in order; a later one is typed against the earlier ones.
@@ -629,16 +631,26 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
       const ov = c.output_var || defaults[node.type]
       return [{ path: ov, label: ov, schema: { type: 'string' } }]
     }
-    case 'user_task':
+    case 'user_task': {
+      const taskEntries = withContextEntries(formFieldEntries(nodeFormFields(node, linkedForms)), node, linkedForms)
+      const taskDataSchema: SchemaNode | null = taskEntries.length
+        ? { type: 'object', fields: taskEntries.map((entry) => ({ ...entry.schema, name: entry.key, description: `${entry.label} (${entry.typeLabel})` })) }
+        : null
       return [
         { path: `${prefix}_task_id`, label: 'task_id', schema: { type: 'string' }, description: 'Created task ID' },
-        { path: 'outcome', label: 'outcome', schema: { type: 'string' }, description: 'Outcome chosen on completion' },
+        { path: 'outcome', label: 'outcome', schema: { type: 'string' }, description: 'Outcome chosen on completion (the latest User Task\'s)' },
+        { path: `${prefix}_outcome`, label: `${prefix}_outcome`, schema: { type: 'string' }, description: 'Outcome of this task (kept after later User Tasks)' },
+        { path: 'outcome_notes', label: 'outcome_notes', schema: { type: 'string' }, description: 'Comment entered with the outcome' },
+        { path: `${prefix}_outcome_notes`, label: `${prefix}_outcome_notes`, schema: { type: 'string' }, description: 'Comment entered with this task\'s outcome' },
+        ...(taskDataSchema ? [{ path: `${prefix}_task_data`, label: `${prefix}_task_data`, schema: taskDataSchema, description: 'This task\'s form values (kept after later User Tasks)' }] : []),
+        { path: 'user_task_id', label: 'user_task_id', schema: { type: 'string' }, description: 'Created task ID (the latest User Task\'s)' },
         { path: 'completed_by_name', label: 'completed_by_name', schema: { type: 'string' }, description: 'Who completed the task (name)' },
         { path: 'completed_by_email', label: 'completed_by_email', schema: { type: 'string' }, description: 'Who completed the task (email)' },
         { path: 'completed_by', label: 'completed_by', schema: { type: 'string' }, description: 'Who completed the task (user id)' },
         { path: 'completed_at', label: 'completed_at', schema: { type: 'string' }, description: 'When the task was completed (ISO 8601)' },
         { path: 'attachments', label: 'attachments', schema: TASK_ATTACHMENTS_LIST, description: 'Files attached on the task before it completed' },
       ]
+    }
     case 'add_task_attachment':
       return [{ path: `${prefix}_attachment`, label: 'attachment', schema: TASK_ATTACHMENT_SCHEMA, description: 'The attachment the step added' }]
     case 'decision_table': {
@@ -794,7 +806,7 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
         taskFormGroups.push({ id: `form:${node.id}`, label: `${node.label || 'User task'} › Form`, kind: 'form', nodeId: node.id, nodeType: node.type, roots })
       }
     }
-    const roots = rootsForNode(node, known)
+    const roots = rootsForNode(node, known, linkedForms)
     if (!roots.length) continue
     known.push(...roots)
     stepGroups.push({ id: `step:${node.id}`, label: node.label || node.type, kind: 'step', nodeId: node.id, nodeType: node.type, roots })

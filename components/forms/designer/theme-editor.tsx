@@ -7,6 +7,7 @@ import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { useWorkspaceTheme } from '@/components/providers/theme-provider'
 import {
   autoFixFormTheme, blockingFormThemeIssues, formThemeContrast, overridesFromPreset, FORM_THEME_FONTS,
+  FORM_APPEARANCES, FORM_BUTTON_SHAPES, FORM_FIELD_STYLES, FORM_SHADOW_LEVELS,
   type FormThemeColors, type FormThemeOverrides, type FormThemeRef,
 } from '@/lib/forms/form-theme'
 import { FORM_WIDTHS, FORM_WIDTH_LABELS, FORM_WIDTH_PCT, clampFormWidthPct, normalizeFormWidth } from '@/lib/forms/form-width'
@@ -23,6 +24,11 @@ import { designerInputClass as inputClass } from './designer-controls'
  * with an auto-fix, and the renderer raises them anyway so text is never
  * illegible.
  */
+
+const SHAPE_LABELS: Record<(typeof FORM_BUTTON_SHAPES)[number], string> = { square: 'Square', rounded: 'Rounded', pill: 'Pill' }
+const SHADOW_LABELS: Record<(typeof FORM_SHADOW_LEVELS)[number], string> = { none: 'None', subtle: 'Subtle', medium: 'Medium', strong: 'Strong' }
+const FIELD_LABELS: Record<(typeof FORM_FIELD_STYLES)[number], string> = { outlined: 'Outlined', filled: 'Filled', underline: 'Underline' }
+const APPEARANCE_LABELS: Record<(typeof FORM_APPEARANCES)[number], string> = { workspace: 'Follow the workspace', system: 'Viewer\'s light / dark', light: 'Always light', dark: 'Always dark' }
 
 export interface SavedFormTheme { id: string; name: string; overrides: FormThemeOverrides }
 
@@ -100,6 +106,14 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
   const issues = useMemo(() => (['light', 'dark'] as const).flatMap((m) => formThemeContrast(overrides, theme.colors[m], m).map((i) => ({ ...i, mode: m }))), [overrides, theme])
   const blocking = blockingFormThemeIssues(overrides)
   const fontValue = overrides.font ? `${overrides.font.source}:${overrides.font.family}` : ''
+  const headingFontValue = overrides.heading_font ? `${overrides.heading_font.source}:${overrides.heading_font.family}` : ''
+  /** Set or clear (empty / the default) one optional key. */
+  const setKey = <K extends keyof FormThemeOverrides>(key: K, v: FormThemeOverrides[K] | '' | undefined, unset?: FormThemeOverrides[K]) => {
+    const next = { ...overrides }
+    if (v === '' || v === undefined || v === unset) delete next[key]
+    else next[key] = v as FormThemeOverrides[K]
+    setOverrides(next)
+  }
   const logo = theme.branding.logoLight ?? theme.branding.logoDark
 
   return (
@@ -249,6 +263,44 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
                   setOverrides({ ...overrides, font: { source: source as 'google', family: family.join(':') } })
                 }}
               />
+            </div>
+            <div>
+              <Label>Heading font</Label>
+              <AutocompleteSelect
+                value={headingFontValue}
+                placeholder="Same as the body"
+                clearable
+                options={FORM_THEME_FONTS}
+                onChange={(v) => {
+                  if (!v) { setKey('heading_font', undefined); return }
+                  const [source, ...family] = v.split(':')
+                  setOverrides({ ...overrides, heading_font: { source: source as 'google', family: family.join(':') } })
+                }}
+              />
+            </div>
+            <div>
+              <Label>Button shape</Label>
+              <AutocompleteSelect value={overrides.button_shape ?? ''} placeholder="Corner radius" clearable
+                options={FORM_BUTTON_SHAPES.map((v) => ({ value: v, label: SHAPE_LABELS[v] }))}
+                onChange={(v) => setKey('button_shape', v as FormThemeOverrides['button_shape'])} />
+            </div>
+            <div>
+              <Label>Shadow</Label>
+              <AutocompleteSelect value={overrides.shadow ?? ''} placeholder="Default" clearable
+                options={FORM_SHADOW_LEVELS.map((v) => ({ value: v, label: SHADOW_LABELS[v] }))}
+                onChange={(v) => setKey('shadow', v as FormThemeOverrides['shadow'])} />
+            </div>
+            <div>
+              <Label>Field style</Label>
+              <AutocompleteSelect value={overrides.field_style ?? 'outlined'}
+                options={FORM_FIELD_STYLES.map((v) => ({ value: v, label: FIELD_LABELS[v] }))}
+                onChange={(v) => setKey('field_style', v as FormThemeOverrides['field_style'], 'outlined')} />
+            </div>
+            <div>
+              <Label>Appearance</Label>
+              <AutocompleteSelect value={overrides.appearance ?? 'workspace'}
+                options={FORM_APPEARANCES.map((v) => ({ value: v, label: APPEARANCE_LABELS[v] }))}
+                onChange={(v) => setKey('appearance', v as FormThemeOverrides['appearance'], 'workspace')} />
             </div>
             <div>
               <Label>Density</Label>

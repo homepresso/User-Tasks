@@ -33,6 +33,7 @@ import {
 } from './agents/provider'
 import { SAFETY_PREAMBLE, forStorage, redactString, wrapUntrusted } from './agents/safety'
 import { ChatStreamAssembler, SseParser, StreamProviderError, type StreamDelta } from './agents/stream'
+import { fromMessagesResponse } from './agents/anthropic-messages'
 import { blockingErrors, extractJsonObject, outputInstruction, repairMessage, validateOutputs, type OutputVariableSpec } from './agents/outputs'
 import type { AgentToolRuntime } from './agents/tools/runtime'
 import type { NormalizedAgentOutputConfig } from './agent-knowledge'
@@ -78,7 +79,10 @@ export interface AgentUsage {
   prompt_tokens: number
   completion_tokens: number
   total_tokens: number
+  /** Prompt tokens read from the provider's prompt cache (part of prompt_tokens). */
   cached_tokens?: number
+  /** Prompt tokens written to the prompt cache (Anthropic; part of prompt_tokens). */
+  cache_write_tokens?: number
   reasoning_tokens?: number
 }
 
@@ -283,7 +287,7 @@ function messageText(content: unknown): string {
   return ''
 }
 
-function addUsage(total: AgentUsage, usage: any): AgentUsage | undefined {
+export function addUsage(total: AgentUsage, usage: any): AgentUsage | undefined {
   if (!usage || typeof usage !== 'object') return undefined
   const step: AgentUsage = {
     prompt_tokens: Number(usage.prompt_tokens ?? usage.input_tokens ?? 0) || 0,
@@ -291,14 +295,22 @@ function addUsage(total: AgentUsage, usage: any): AgentUsage | undefined {
     total_tokens: Number(usage.total_tokens ?? 0) || 0,
   }
   if (!step.total_tokens) step.total_tokens = step.prompt_tokens + step.completion_tokens
-  const cached = Number(usage.prompt_tokens_details?.cached_tokens ?? 0) || 0
+  // OpenAI-style cached_tokens; Anthropic Messages (input_tokens excludes cache reads / writes) when sent raw.
+  const cached = Number(usage.prompt_tokens_details?.cached_tokens ?? usage.cache_read_input_tokens ?? 0) || 0
+  const written = Number(usage.prompt_tokens_details?.cache_write_tokens ?? usage.cache_creation_input_tokens ?? 0) || 0
+  if (usage.prompt_tokens === undefined && usage.input_tokens !== undefined && (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined)) {
+    step.prompt_tokens += cached + written
+    if (!Number(usage.total_tokens)) step.total_tokens = step.prompt_tokens + step.completion_tokens
+  }
   const reasoning = Number(usage.completion_tokens_details?.reasoning_tokens ?? 0) || 0
   if (cached) step.cached_tokens = cached
+  if (written) step.cache_write_tokens = written
   if (reasoning) step.reasoning_tokens = reasoning
   total.prompt_tokens += step.prompt_tokens
   total.completion_tokens += step.completion_tokens
   total.total_tokens += step.total_tokens
   if (cached) total.cached_tokens = (total.cached_tokens ?? 0) + cached
+  if (written) total.cache_write_tokens = (total.cache_write_tokens ?? 0) + written
   if (reasoning) total.reasoning_tokens = (total.reasoning_tokens ?? 0) + reasoning
   return step
 }
@@ -347,7 +359,7 @@ async function readStream(resp: Response, onDelta: (d: StreamDelta) => void, idl
 }
 
 /** One chat completion with retries (streamed when `stream` is set and the provider allows it). */
-async function callModel(
+export async function callModel(
   url: string,
   headers: Record<string, string>,
   body: Record<string, unknown>,
@@ -355,6 +367,8 @@ async function callModel(
     deadline: number; signal?: AbortSignal; fetchImpl: typeof fetch; sleep: (ms: number) => Promise<void>; maxRetries: number
     onRetry?: (attempt: number, message: string, delay: number) => void
     stream?: { state: StreamState; onDelta: (d: StreamDelta) => void; onReset: () => void }
+    /** 'anthropic': the body is a native Messages request (lib/agents/anthropic-messages); replies come back in the chat-completion shape. */
+    dialect?: 'openai' | 'anthropic'
   },
 ): Promise<{ ok: true; json: any; attempts: number; streamed: boolean; firstTokenMs: number | null } | { ok: false; error: string; kind: AgentErrorKind | 'cancelled'; attempts: number }> {
   let attempt = 0
@@ -379,8 +393,9 @@ async function callModel(
     try {
       const timeout = AbortSignal.timeout(streaming ? remaining : Math.min(120_000, remaining))
       const signals = [timeout, ...(opts.signal ? [opts.signal] : []), ...(streaming ? [idleAbort.signal] : [])]
+      const anthropic = opts.dialect === 'anthropic'
       const requestBody = streaming
-        ? { ...body, stream: true, ...(opts.stream!.state.includeUsage ? { stream_options: { include_usage: true } } : {}) }
+        ? { ...body, stream: true, ...(!anthropic && opts.stream!.state.includeUsage ? { stream_options: { include_usage: true } } : {}) }
         : body
       if (streaming) touch()
       const resp = await opts.fetchImpl(url, {
@@ -396,7 +411,8 @@ async function callModel(
       }
       if (resp.ok) {
         // Not a stream (provider ignored `stream`, or streaming is off): the usual JSON.
-        const json = await resp.json().catch(() => null)
+        const raw = await resp.json().catch(() => null)
+        const json = anthropic ? fromMessagesResponse(raw) : raw
         if (json && typeof json === 'object') return { ok: true, json, attempts: attempt, streamed: false, firstTokenMs: null }
         kind = 'provider_unavailable'
         message = 'Provider returned a response that is not JSON'
@@ -406,7 +422,8 @@ async function callModel(
         message = providerErrorMessage(kind, resp.status, redactString(errText), url)
         retryAfter = parseRetryAfterHeader(resp.headers?.get?.('retry-after') ?? null)
         // A provider / model / gateway that rejects streaming (or its usage option): fall back, without counting it as a retry.
-        if (streaming && (resp.status === 400 || resp.status === 404 || resp.status === 405 || resp.status === 415 || resp.status === 422 || resp.status === 501)) {
+        // (A rejected thinking level is not a streaming problem: the turn retries without it.)
+        if (streaming && !anthropic && !/reasoning_effort|output_config|\beffort\b/i.test(errText) && (resp.status === 400 || resp.status === 404 || resp.status === 405 || resp.status === 415 || resp.status === 422 || resp.status === 501)) {
           const state = opts.stream!.state
           if (state.includeUsage && /stream_options|include_usage/i.test(errText)) state.includeUsage = false
           else state.enabled = false

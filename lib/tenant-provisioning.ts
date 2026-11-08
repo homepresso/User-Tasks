@@ -54,7 +54,7 @@ const MANAGER: Permission[] = ADMIN.filter((p) =>
   p !== 'tasks.complete_any' &&
   !p.startsWith('settings.manage_') &&
   p !== 'team.change_roles' && p !== 'team.remove' && p !== 'settings.edit' && p !== 'org.manage' &&
-  p !== 'observability.view',
+  p !== 'observability.view' && p !== 'assistants.manage',
 )
 
 export const SYSTEM_ROLES: { slug: string; name: string; description: string; permissions: Permission[] }[] = [

@@ -41,6 +41,8 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   data_tables_update_schema: 'data.edit_schema',
   data_tables_delete: 'data.delete',
   data_rows_upsert: 'data.manage_rows',
+  data_rows_create: 'data.manage_rows',
+  data_rows_update: 'data.manage_rows',
   data_rows_delete: 'data.manage_rows',
   data_rows_bulk_delete: 'data.manage_rows',
   // decision tables (governed by workflow permissions)
@@ -245,6 +247,7 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   // workflows
   workflows_catalog: 'workflows.view',
   workflows_preflight: 'workflows.view',
+  workflows_validate: 'workflows.view',
   workflows_resolve_dependencies: 'workflows.view',
   workflows_list: 'workflows.view',
   workflows_get: 'workflows.view',
@@ -682,6 +685,6 @@ export function auditToolCall(ctx: McpContext, toolName: string, args: any, resu
     objectId: extractObjectId(args, result),
     action: auditActionFor(toolName),
     summary: `MCP: ${toolName}`,
-    metadata: { via: 'mcp', tool: toolName, key_type: (ctx as any).keyType ?? null },
+    metadata: { via: 'mcp', tool: toolName, key_type: (ctx as any).keyType ?? null, ...(ctx.via === 'agent' ? { agent: true } : {}) },
   })
 }

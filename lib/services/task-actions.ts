@@ -43,7 +43,7 @@ export function toServiceError(error: unknown): unknown {
 /** Authorise `ctx.actorId` on a task of ctx.tenantId (ServiceError on refusal). */
 export async function authorizeTaskForContext(ctx: ServiceContext, db: AnySupabaseClient, taskId: string, input: OnBehalfInput & { requireNote?: boolean; allowClosed?: boolean; columns?: string } = {}): Promise<AuthorizedTaskAction> {
   try {
-    return await authorizeTaskAction(db, {
+    const access = await authorizeTaskAction(db, {
       tenantId: ctx.tenantId,
       taskId,
       actorId: ctx.actorId,
@@ -54,6 +54,14 @@ export async function authorizeTaskForContext(ctx: ServiceContext, db: AnySupaba
       allowClosed: input.allowClosed,
       columns: input.columns,
     })
+    // An unassigned task an admin / workflow manager acts on: they take ownership first (audited, in its history).
+    if (access.takesOwnership && ctx.actorId) {
+      const { takeTaskOwnership } = await import('./task-ownership')
+      const via = ctx.via === 'agent' ? 'agent' : ctx.source === 'api' ? 'api' : ctx.source === 'mcp' ? 'mcp' : 'ui'
+      await takeTaskOwnership(ctx, taskId, { reason: input.onBehalfNote ?? null, via }, { db })
+      access.task = { ...access.task, assignee_id: ctx.actorId, acceptance_status: 'accepted' }
+    }
+    return access
   } catch (error) {
     throw toServiceError(error)
   }

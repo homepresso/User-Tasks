@@ -161,6 +161,8 @@ export interface FormLayout {
   animation?: FormAnimationConfig
   /** Task forms: the Task completed screen's own wording (lib/tasks/completion-screen.ts); absent = the workspace default. */
   task_completed?: TaskCompletedOverride
+  /** AI assistant on this form (lib/assistants): 'on' / 'off' override the workspace's default; absent follows it. */
+  assistant?: 'on' | 'off'
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -252,8 +254,8 @@ export function normalizeFormLayout(raw: unknown, fieldKeys: string[]): FormLayo
   const flagKeys = new Set((normalizeFormStateConfig(raw.state)?.flags ?? []).map((f) => f.key))
   // State + button bar, cleaned against the fields / pages that end up in the layout.
   const declared = normalizeFormSections(raw.sections, known)
-  const extras = (pageIds: Set<string>, sectionKeys: Set<string>): Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed'> => {
-    const out: Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed'> = {}
+  const extras = (pageIds: Set<string>, sectionKeys: Set<string>): Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed'> => {
+    const out: Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed'> = {}
     const state = normalizeFormStateConfig(raw.state, { fieldKeys: known, pageIds, sectionKeys })
     if (state) out.state = state
     if (raw.application_mode === true) out.application_mode = true
@@ -706,7 +708,7 @@ export function compactLayoutForSave(layout: FormLayout, fieldKeys: string[]): F
   }
   const rows = compactRows(layout.rows)
   const trivial = rows.length === fieldKeys.length && rows.every((row, i) => row.columns === 1 && row.cells.length === 1 && row.cells[0].field_key === fieldKeys[i])
-  return trivial && !layout.state && !layout.application_mode && !layout.rules?.length && !layout.params?.length && !layout.variables?.length && !layout.sections?.length && !layout.submitted_page && !normalizeFormActions(layout.form_actions) && !normalizeFormAnimation(layout.animation) && !normalizeTaskCompletedOverride(layout.task_completed) ? null : withExtras({ rows }, layout)
+  return trivial && !layout.state && !layout.application_mode && !layout.rules?.length && !layout.params?.length && !layout.variables?.length && !layout.sections?.length && !layout.submitted_page && !normalizeFormActions(layout.form_actions) && !normalizeFormAnimation(layout.animation) && !normalizeTaskCompletedOverride(layout.task_completed) && !(layout.assistant === 'on' || layout.assistant === 'off') ? null : withExtras({ rows }, layout)
 }
 
 function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
@@ -731,8 +733,10 @@ function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
 }
 
 /** Parameters and variables (kept beside the grid; lib/forms/form-params.ts). */
-export function contextExtras(layout: { params?: unknown; variables?: unknown }): Pick<FormLayout, 'params' | 'variables'> {
-  const out: Pick<FormLayout, 'params' | 'variables'> = {}
+export function contextExtras(layout: { params?: unknown; variables?: unknown; assistant?: unknown }): Pick<FormLayout, 'params' | 'variables' | 'assistant'> {
+  const out: Pick<FormLayout, 'params' | 'variables' | 'assistant'> = {}
+  // The form's AI assistant setting (kept here so both normalisers carry it).
+  if (layout.assistant === 'on' || layout.assistant === 'off') out.assistant = layout.assistant
   const params = normalizeFormParams(layout.params)
   if (params.length) out.params = params
   const variables = normalizeFormVariables(layout.variables, params.map((p) => p.name))

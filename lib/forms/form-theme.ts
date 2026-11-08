@@ -24,7 +24,7 @@
  */
 
 import { z } from 'zod'
-import { contrastRatio, withAlpha } from '@/lib/theme/colors'
+import { contrastRatio, isDarkColor, withAlpha } from '@/lib/theme/colors'
 import { AA_LARGE, AA_TEXT, ensureContrast, flatten, onColor, worstContrast } from '@/lib/theme/legibility'
 import { parseColor } from '@/lib/theme/colors'
 import { ColorSchema, isOwnStorageUrl, type ThemeMode, type ThemePalette } from '@/lib/theme/schema'
@@ -33,23 +33,22 @@ import { fontFamilyValue, paletteVars } from '@/lib/theme/to-css'
 import { presetToWorkspaceTheme } from '@/lib/theme/presets'
 import { clampFormWidthPct } from './form-width'
 
+/**
+ * Each key carries its own help (`.meta({ description, when_unset })`): the
+ * Agent's theme_reference tool (lib/theme/reference.ts) lists the accepted
+ * settings from this schema, so the reference can't drift from what saves.
+ */
+const color = (description: string, whenUnset: string) => ColorSchema.optional().meta({ description, when_unset: whenUnset })
+
 export const FormThemeColorsSchema = z.object({
-  /** Buttons, focus ring, links, selected options. */
-  accent: ColorSchema.optional(),
-  /** The form card background (inputs follow it). */
-  background: ColorSchema.optional(),
-  /** Labels and values. */
-  text: ColorSchema.optional(),
-  /** The page behind the form (standalone pages, the frame around a task form). */
-  page: ColorSchema.optional(),
-  /** Second page colour: a vertical gradient from `page` to it. */
-  page_to: ColorSchema.optional(),
-  /** Inputs, selects, the lookup box (default: the background). */
-  input: ColorSchema.optional(),
-  /** Borders of inputs and dividers (default: derived from the text). */
-  border: ColorSchema.optional(),
-  /** Primary buttons (default: the accent). */
-  button: ColorSchema.optional(),
+  accent: color('Buttons, focus ring, links, selected options.', 'the workspace primary colour'),
+  background: color('The form card background (inputs follow it).', 'the workspace card colour'),
+  text: color('Labels and values.', 'the workspace text colour'),
+  page: color('The page behind the form (standalone pages, the frame around a task form).', 'the app canvas'),
+  page_to: color('Second page colour: a vertical gradient from `page` to it (needs `page`).', 'no gradient'),
+  input: color('Inputs, selects, the lookup box.', 'the background'),
+  border: color('Borders of inputs and dividers.', 'derived from the text'),
+  button: color('Primary buttons.', 'the accent'),
 }).strict()
 
 const FontSchema = z.discriminatedUnion('source', [
@@ -65,32 +64,40 @@ const FontSchema = z.discriminatedUnion('source', [
 
 const SafeText = (max: number) => z.string().trim().max(max).regex(/^[^<>{}]*$/, 'May not contain <, >, { or }')
 
+/** Button corners: square (0), rounded (the corner radius, 8px by default) or pill (fully round). */
+export const FORM_BUTTON_SHAPES = ['square', 'rounded', 'pill'] as const
+/** Card elevation presets (FORM_SHADOWS): named levels only — never a raw box-shadow string. */
+export const FORM_SHADOW_LEVELS = ['none', 'subtle', 'medium', 'strong'] as const
+/** Input look: outlined (a border all round, the default), filled (a tinted fill with a bottom rule) or underline (a bottom rule only). */
+export const FORM_FIELD_STYLES = ['outlined', 'filled', 'underline'] as const
+/** Which palette the form shows: the workspace's (default), the viewer's OS setting, or always light / dark. */
+export const FORM_APPEARANCES = ['workspace', 'system', 'light', 'dark'] as const
+
 export const FormThemeOverridesSchema = z.object({
-  /** Built-in template the colours started from (informational). */
-  base_preset: z.string().regex(/^[a-z0-9-]{1,40}$/).optional(),
+  base_preset: z.string().regex(/^[a-z0-9-]{1,40}$/).optional().meta({ description: 'Built-in template the colours started from (informational; see presets).', when_unset: 'none' }),
   colors: z.object({
-    light: FormThemeColorsSchema.optional(),
-    /** Dark-mode colours; without them only the accent carries over (made legible). */
-    dark: FormThemeColorsSchema.optional(),
-  }).strict().optional(),
-  /** Corner radius in px for the card, inputs and buttons. */
-  radius: z.number().int().min(0).max(24).optional(),
-  font: FontSchema.optional(),
-  density: z.enum(['compact', 'comfortable']).optional(),
-  label_position: z.enum(['top', 'left']).optional(),
-  /** Where the form's buttons sit: left, right (default) or full width. */
-  button_placement: z.enum(['left', 'right', 'full']).optional(),
-  /** How wide the form card may grow: narrow, normal (default), wide, full or custom (lib/forms/form-width.ts). */
-  form_width: z.enum(['narrow', 'normal', 'wide', 'full', 'custom']).optional(),
-  /** custom: the share of the available width, 40–100 % (clamped and rounded; never under ~320px, 100 % on phones). */
-  form_width_pct: z.number().finite().transform(clampFormWidthPct).optional(),
+    light: FormThemeColorsSchema.optional().meta({ description: 'Colours in light mode.', when_unset: 'the workspace light palette' }),
+    dark: FormThemeColorsSchema.optional().meta({ description: 'Dark-mode palette: used when the form shows dark (the viewer is in dark mode, or appearance is dark).', when_unset: 'the workspace dark palette with the light accent carried over (made legible)' }),
+  }).strict().optional().meta({ description: 'Colours per mode. Text is always kept legible (contrast raised where needed).', when_unset: 'the workspace palette' }),
+  radius: z.number().int().min(0).max(24).optional().meta({ description: 'Corner radius in px for the card, inputs and buttons.', when_unset: 'the workspace radii' }),
+  font: FontSchema.optional().meta({ description: 'Body font: a curated Google font or a system stack (see fonts).', when_unset: 'the workspace font' }),
+  heading_font: FontSchema.optional().meta({ description: 'Heading / display font for the form title, section and page headings, separate from the body font (see fonts).', when_unset: 'the body font' }),
+  button_shape: z.enum(FORM_BUTTON_SHAPES).optional().meta({ description: 'Shape of the form\'s buttons: square, rounded (the corner radius) or pill.', when_unset: 'the corner radius' }),
+  shadow: z.enum(FORM_SHADOW_LEVELS).optional().meta({ description: 'Card elevation: none, subtle, medium or strong (tuned for light and dark).', when_unset: 'a subtle shadow on form pages, none inline' }),
+  field_style: z.enum(FORM_FIELD_STYLES).optional().meta({ description: 'Input look: outlined, filled (tinted with a bottom rule) or underline (bottom rule only).', when_unset: 'outlined' }),
+  appearance: z.enum(FORM_APPEARANCES).optional().meta({ description: 'Light / dark: workspace (follow the workspace theme), system (the viewer\'s OS setting), or always light / dark.', when_unset: 'workspace' }),
+  density: z.enum(['compact', 'comfortable']).optional().meta({ description: 'Spacing between fields.', when_unset: 'comfortable' }),
+  label_position: z.enum(['top', 'left']).optional().meta({ description: 'Labels above or left of the inputs.', when_unset: 'top' }),
+  button_placement: z.enum(['left', 'right', 'full']).optional().meta({ description: 'Where the form\'s buttons sit.', when_unset: 'right' }),
+  form_width: z.enum(['narrow', 'normal', 'wide', 'full', 'custom']).optional().meta({ description: 'How wide the form card may grow (custom: form_width_pct).', when_unset: 'normal' }),
+  form_width_pct: z.number().finite().transform(clampFormWidthPct).optional().meta({ description: 'With form_width custom: the share of the available width, 40–100 % (clamped; never under ~320px, 100 % on phones).', when_unset: 'none' }),
   header: z.object({
-    enabled: z.boolean(),
-    title: SafeText(120).optional(),
-    subtitle: SafeText(300).optional(),
-    logo_url: z.string().max(500).refine((v) => isOwnStorageUrl(v, ['logos']), { message: 'Logos must be uploads in this workspace’s logos storage' }).optional(),
-    banner_color: ColorSchema.optional(),
-  }).strict().optional(),
+    enabled: z.boolean().meta({ description: 'Show the theme header above the form.' }),
+    title: SafeText(120).optional().meta({ description: 'Header title (plain text, ≤120).', when_unset: 'none' }),
+    subtitle: SafeText(300).optional().meta({ description: 'Header subtitle (plain text, ≤300).', when_unset: 'none' }),
+    logo_url: z.string().max(500).refine((v) => isOwnStorageUrl(v, ['logos']), { message: 'Logos must be uploads in this workspace’s logos storage' }).optional().meta({ description: 'A logo already uploaded in this workspace (the workspace logo from Settings → Theme).', when_unset: 'no logo' }),
+    banner_color: color('Header banner colour (its text colour is picked for it).', 'no banner'),
+  }).strict().optional().meta({ description: 'A simple header above the form. A form\'s own header (forms_update header: image, alignment) is drawn in its place when on.', when_unset: 'no header' }),
 }).strict()
 
 export type FormThemeOverrides = z.infer<typeof FormThemeOverridesSchema>
@@ -368,7 +375,53 @@ export function formThemeVars(overrides: FormThemeOverrides | null | undefined, 
     vars['--theme-button-radius'] = px
   }
   if (overrides.font) vars['--theme-font-sans'] = fontFamilyValue(overrides.font, 'sans')
+  if (overrides.heading_font) vars['--form-heading-font'] = fontFamilyValue(overrides.heading_font, 'display')
+  if (overrides.button_shape) vars['--form-button-radius'] = formButtonRadius(overrides)
+  if (overrides.shadow) {
+    const card = vars['--theme-card-bg'] ?? base.cardBg
+    const dark = card ? isDarkColor(card) : mode === 'dark'
+    vars['--form-card-shadow'] = FORM_SHADOWS[dark ? 'dark' : 'light'][overrides.shadow]
+  }
   return vars
+}
+
+/**
+ * Card elevation per level, for light and dark cards (dark ones need deeper
+ * shadows and a top highlight to read). Fixed strings: the theme stores only
+ * the level name, so no CSS from a payload ever reaches the page.
+ */
+export const FORM_SHADOWS: Record<ThemeMode, Record<(typeof FORM_SHADOW_LEVELS)[number], string>> = {
+  light: {
+    none: 'none',
+    subtle: '0 1px 2px rgba(16,16,20,0.06), 0 1px 3px rgba(16,16,20,0.05)',
+    medium: '0 6px 16px -4px rgba(16,16,20,0.12), 0 2px 6px -2px rgba(16,16,20,0.06)',
+    strong: '0 18px 44px -10px rgba(16,16,20,0.24), 0 6px 16px -6px rgba(16,16,20,0.10)',
+  },
+  dark: {
+    none: 'none',
+    subtle: '0 1px 2px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)',
+    medium: '0 10px 28px -6px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+    strong: '0 26px 60px -12px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.06)',
+  },
+}
+
+/** Radius of the form's buttons for its button_shape (rounded follows the corner radius, 8px by default). */
+export function formButtonRadius(overrides: Pick<FormThemeOverrides, 'button_shape' | 'radius'>): string {
+  if (overrides.button_shape === 'square') return '0px'
+  if (overrides.button_shape === 'pill') return '9999px'
+  return `${overrides.radius ?? 8}px`
+}
+
+/**
+ * The palette a form shows (light / dark): forced by `appearance`, the
+ * viewer's OS setting for `system`, otherwise the workspace's mode — which
+ * itself follows the OS unless the workspace theme forces one.
+ */
+export function formAppearanceMode(overrides: Pick<FormThemeOverrides, 'appearance'> | null | undefined, workspaceMode: ThemeMode, osDark: boolean): ThemeMode {
+  const a = overrides?.appearance
+  if (a === 'light' || a === 'dark') return a
+  if (a === 'system') return osDark ? 'dark' : 'light'
+  return workspaceMode
 }
 
 /** Header banner colours (banner + legible text on it). */
@@ -389,10 +442,13 @@ export const FORM_THEME_FONTS: Array<{ value: string; label: string }> = [
 
 /** Google Fonts stylesheet for a mini theme's font (null when bundled / system / none). */
 export function formThemeFontHref(overrides: FormThemeOverrides | null | undefined): string | null {
-  const font = overrides?.font
-  if (!font || font.source !== 'google') return null
-  const curated = findCuratedFont(font.family)
-  if (!curated || curated.bundledVar) return null
-  const weights = [400, 500, 600].map((w) => curated.weights.reduce((best, c) => (Math.abs(c - w) < Math.abs(best - w) ? c : best), curated.weights[0]))
-  return `https://fonts.googleapis.com/css2?family=${curated.family.replace(/ /g, '+')}:wght@${[...new Set(weights)].sort((a, b) => a - b).join(';')}&display=swap`
+  const families: string[] = []
+  for (const font of [overrides?.font, overrides?.heading_font]) {
+    if (!font || font.source !== 'google') continue
+    const curated = findCuratedFont(font.family)
+    if (!curated || curated.bundledVar || families.some((f) => f.startsWith(`family=${curated.family.replace(/ /g, '+')}:`))) continue
+    const weights = [400, 500, 600].map((w) => curated.weights.reduce((best, c) => (Math.abs(c - w) < Math.abs(best - w) ? c : best), curated.weights[0]))
+    families.push(`family=${curated.family.replace(/ /g, '+')}:wght@${[...new Set(weights)].sort((a, b) => a - b).join(';')}`)
+  }
+  return families.length ? `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap` : null
 }

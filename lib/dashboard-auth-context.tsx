@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PERMISSION_PAYLOAD_VERSION } from '@/lib/permissions'
 import { getMySession } from '@/app/actions/session'
 import { signOutAction } from '@/app/actions/auth'
+import { clearAllAgentHistory } from '@/lib/assistants/history'
 import { AUTH_CHANNEL, DASHBOARD_AUTH_CACHE_KEY } from '@/lib/auth-client'
 
 /*
@@ -140,6 +141,7 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
     if (!result?.ok || !result.data.profile) {
       await signOutAction().catch(() => null)
       clearCache()
+      clearAllAgentHistory()
       router.replace('/login?error=no_profile')
       return
     }
@@ -195,6 +197,7 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
 
     const signedOut = () => {
       clearCache()
+      clearAllAgentHistory()
       setProfile(null)
       setUserId(null)
       setPermissions([])

@@ -146,7 +146,7 @@ export const FUNCTION_CATEGORIES: { id: string; label: string; icon: string; col
  * Parse a function call string like FUNC_NAME(arg1, arg2, "string arg", ...)
  * and return { name, args[] }
  */
-function parseFunctionCall(expr: string): { name: string; args: string[] } | null {
+export function parseFunctionCall(expr: string): { name: string; args: string[] } | null {
   const match = expr.match(/^([A-Z_][A-Z0-9_]*)\s*\(([\s\S]*)\)$/)
   if (!match) return null
 
@@ -204,7 +204,7 @@ function parseFunctionCall(expr: string): { name: string; args: string[] } | nul
 //   (the pre-existing behaviour), as are unquoted dates and ids such as
 //   2026-01-05 or 021-555-1234.
 
-type Token =
+export type FormulaToken =
   | { t: 'num'; v: number }
   | { t: 'str'; v: string }
   | { t: 'id'; v: string }
@@ -214,8 +214,8 @@ type Token =
 const OPERATOR_TOKENS = ['==', '!=', '>=', '<=', '>', '<', '+', '-', '*', '/', '%', '(', ')']
 
 /** Tokenise an argument; null when it contains anything an expression cannot. */
-function tokenize(src: string): Token[] | null {
-  const tokens: Token[] = []
+export function tokenizeFormula(src: string): FormulaToken[] | null {
+  const tokens: FormulaToken[] = []
   let i = 0
   while (i < src.length) {
     const ch = src[i]
@@ -321,7 +321,7 @@ class NotAnExpression extends Error {}
  * Evaluate an operator expression. Throws NotAnExpression when the text is not
  * one (unknown name, dangling operator…) so the caller keeps the legacy reading.
  */
-function evaluateOperatorExpression(tokens: Token[], evalFn: (expr: string) => any, scope?: Record<string, any>): any {
+function evaluateOperatorExpression(tokens: FormulaToken[], evalFn: (expr: string) => any, scope?: Record<string, any>): any {
   let pos = 0
   const peek = () => tokens[pos]
   const isOp = (...ops: string[]) => peek()?.t === 'op' && ops.includes(peek()!.v as string)
@@ -390,7 +390,7 @@ const DATE_OR_ID = /^\d+(?:[-/.]\d+){2,}$/
 export function tryOperatorExpression(text: string, evalFn: (expr: string) => any, scope?: Record<string, any>, allowSingle = false): { value: any } | null {
   const trimmed = text.trim()
   if (!trimmed || DATE_OR_ID.test(trimmed)) return null
-  const tokens = tokenize(trimmed)
+  const tokens = tokenizeFormula(trimmed)
   if (!tokens?.length) return null
   if (!allowSingle && !tokens.some((token) => token.t === 'op')) return null
   try {
@@ -410,7 +410,7 @@ function resolveArg(arg: string, evalFn: (expr: string) => any, scope?: Record<s
   if (scope && arg in scope) return scope[arg]
   // Exactly one quoted string. (A starts-and-ends-with-quote check would read
   // '"a" == "b"' as one string.)
-  const tokens = /^["']/.test(arg) ? tokenize(arg) : null
+  const tokens = /^["']/.test(arg) ? tokenizeFormula(arg) : null
   if (tokens?.length === 1 && tokens[0].t === 'str') return tokens[0].v
   // Comparison / arithmetic: "status == \"open\"", "price * qty", "(a + b) / 2".
   const expression = tryOperatorExpression(arg, evalFn, scope)

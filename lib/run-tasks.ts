@@ -46,6 +46,8 @@ export interface RunTaskHistoryEntry {
   /** Redirect / reassign / escalate: from whom, to whom (names). */
   from: string[]
   to: string[]
+  /** A reassignment that was someone taking the task themselves ("took ownership"). */
+  took_ownership?: boolean
 }
 
 export interface RunTask {
@@ -73,6 +75,12 @@ export interface RunTask {
   access: RunTaskAccess | null
   /** For can_act 'on_behalf': whom the caller would act for. */
   on_behalf_of: RunTaskPersonRef | null
+  /** Open task nobody is on (no assignee, collaborators or team). */
+  unassigned?: boolean
+  /** The caller may take ownership (lib/task-authz decideTaskAssignment 'take'). */
+  can_take_ownership?: boolean
+  /** The caller may reassign it to someone else (manager, workflow manager, admin, or the assignee when redirect is allowed). */
+  can_reassign?: boolean
   /** The task page (form tab when it has a form); null unless can_open. */
   href: string | null
   history: RunTaskHistoryEntry[]

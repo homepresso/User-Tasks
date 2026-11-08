@@ -16,7 +16,7 @@ import { CONNECTOR_CATALOG, getConnectorDefinition, type ConnectorCategory, type
 import { getMissingConnectorFields, validateConnectorFieldFormats, validateConnectorFields } from '@/lib/connectors/form-state'
 import { runConnectorPreflight } from '@/lib/connectors/preflight'
 import { buildConnectorTestResult } from '@/lib/connectors/test-diagnostics'
-import { runConnectorProbe } from '@/lib/connectors/test-probes'
+import { resolveConnectorProbeUrl, runConnectorProbe } from '@/lib/connectors/test-probes'
 import { GITHUB_CONNECTOR_KEY } from '@/lib/github-sync/connection'
 import { decryptSensitiveFields, encryptSensitiveFields } from '@/lib/secret-fields'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
@@ -569,9 +569,13 @@ export async function testConnector(
       const db = await testConnection(dbConfig)
       result = buildConnectorTestResult(input.connector_key, db.message, db.success ? 'success' : 'error') as ConnectorTestResult
     } else {
-      const testUrl = integrationConfig.base_url
+      // base_url, or the webhook URL for webhook-only connectors (Teams) —
+      // the same fallback the reference executor uses at run time.
+      const { url: testUrl, fromWebhook } = resolveConnectorProbeUrl(integrationConfig)
       if (!testUrl || (!testUrl.startsWith('http://') && !testUrl.startsWith('https://'))) {
-        return { status: 'error', message: `Invalid base URL: ${testUrl || '(empty)'}. Expected http:// or https://` }
+        // Never echo a webhook URL: it carries its signature.
+        const shown = fromWebhook ? '(webhook URL)' : (testUrl || '(empty)')
+        return { status: 'error', message: `Invalid ${fromWebhook ? 'webhook' : 'base'} URL: ${shown}. Expected http:// or https://` }
       }
       const probe = await runConnectorProbe(input.connector_key, config, credentials, integrationConfig)
       result = buildConnectorTestResult(input.connector_key, probe.message, probe.ok ? 'success' : 'error', probe.statusCode) as ConnectorTestResult

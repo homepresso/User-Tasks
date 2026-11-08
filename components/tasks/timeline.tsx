@@ -141,6 +141,8 @@ export function ActivityTimeline({ events, taskId }: TimelineProps) {
               eventLabel = event.metadata?.source === 'timer_entry' ? 'logged time' : 'logged effort'
             } else if (isTaskMessageEvent) {
               eventLabel = 'sent a message'
+            } else if (event.event_type === 'reassigned' && event.metadata?.took_ownership) {
+              eventLabel = 'took ownership of this task'
             } else if (isSubtaskEvent) {
               eventLabel = event.event_type === 'completed' ? 'completed subtask' : 'reopened subtask'
             } else {

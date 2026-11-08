@@ -1,6 +1,7 @@
 'use client'
 
 import { signOutAction } from '@/app/actions/auth'
+import { clearAllAgentHistory } from '@/lib/assistants/history'
 
 /**
  * Browser side of sign-out. The session cookies are httpOnly, so the server
@@ -25,6 +26,12 @@ export function broadcastSignedOut(): void {
 export async function signOutAndRedirect(to = '/login'): Promise<void> {
   await signOutAction().catch(() => null)
   try { sessionStorage.removeItem(DASHBOARD_AUTH_CACHE_KEY) } catch {}
+  // The persisted query cache (components/providers/query-provider.tsx) is the
+  // signed-out person's: the next person in this tab must not see it (e.g. their
+  // Agent availability / profile name while it refetches).
+  try { sessionStorage.removeItem('rq_cache') } catch {}
+  // The Agent's stored conversations never outlive the session on this device.
+  clearAllAgentHistory()
   broadcastSignedOut()
   window.location.assign(to)
 }

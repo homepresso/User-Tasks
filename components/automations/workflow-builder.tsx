@@ -1,6 +1,9 @@
 "use client"
 
 import { useState, useRef, useId, useEffect, useSyncExternalStore, useContext, useMemo } from "react"
+import { useDesignerContext } from "@/lib/assistants/client-registry"
+import { usePermissions } from "@/lib/permissions-context"
+import { AGENT_RERUN_TEST_EVENT } from "@/components/assistants/agent-store"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import type { WorkflowNode, WorkflowEdge, NodeType } from "@/lib/workflow-schema"
@@ -24,6 +27,7 @@ import type { StartFormVariable } from "@/lib/forms/start-form"
 import { insertLoopBefore } from "@/lib/workflow-data-picker"
 import { saveWorkflow, deleteWorkflow, publishWorkflow, getWorkflowPackageBlock } from "@/app/actions/automations"
 import { validateWorkflow } from "@/lib/workflow-validation"
+import { formatWiringWarning, validateWorkflowWiring, type WiringWarning } from "@/lib/workflow-wiring"
 import {
   canRedo, canUndo, commit, createHistory, describeChange, historyShortcut, redo as redoHistory, redoLabel,
   sameSnapshot, shortcutHints, undo as undoHistory, undoLabel, type DesignerSnapshot, type HistoryState,
@@ -225,6 +229,22 @@ export function WorkflowBuilder({
   }, [nodes, edges, userVariables, swimlanes, initialSnapshot])
 
   const isDirty = !sameSnapshot({ nodes, edges, userVariables, swimlanes }, savedSnapshot)
+  // The designer assistant works on this workflow's saved draft; it asks for unsaved changes to be saved first.
+  useDesignerContext({ area: "workflow", item_id: workflowId, item_name: workflowName ?? null, dirty: isDirty })
+  // "Ask Agent to fix" → the Agent changed this workflow → "Re-run test": open the test runner and run the same inputs.
+  const { can } = usePermissions()
+  const canEditWorkflow = can("workflows.edit" as never)
+  const [rerun, setRerun] = useState<Record<string, string> | null>(null)
+  useEffect(() => {
+    const onRerun = (e: Event) => {
+      const detail = (e as CustomEvent<{ workflowId: string; values: Record<string, unknown> }>).detail
+      if (detail?.workflowId !== workflowId) return
+      setRerun(Object.fromEntries(Object.entries(detail.values ?? {}).map(([k, v]) => [k, v == null ? "" : String(v)])))
+      setShowTestRunner(true)
+    }
+    window.addEventListener(AGENT_RERUN_TEST_EVENT, onRerun)
+    return () => window.removeEventListener(AGENT_RERUN_TEST_EVENT, onRerun)
+  }, [workflowId])
 
   function applyHistory(next: HistoryState<Snapshot>) {
     historyRef.current = next
@@ -934,6 +954,22 @@ export function WorkflowBuilder({
   // Latest versions of linked reusable forms (fills missing / stale cached fields in the pickers).
   const linkedForms = useLinkedFormsQuery(nodes)
 
+  // Wiring warnings (references that will be blank, config keys the engine
+  // ignores): shown beside the issues, never block publishing. Recomputed
+  // only when a node's id / type / label / config, the edges, variables or
+  // linked forms change — not on every drag frame (positions).
+  const wiringCache = useRef<{ parts: unknown[]; warnings: WiringWarning[] } | null>(null)
+  const wiringParts: unknown[] = [edges, userVariables, linkedForms, ...nodes.flatMap((n) => [n.id, n.type, n.label, n.config])]
+  const cachedWiring = wiringCache.current
+  let wiringWarnings: WiringWarning[]
+  if (cachedWiring && cachedWiring.parts.length === wiringParts.length && cachedWiring.parts.every((part, i) => part === wiringParts[i])) {
+    wiringWarnings = cachedWiring.warnings
+  } else {
+    // Info notes (assigned for testing) show on their step only, not in the warning count.
+    wiringWarnings = validateWorkflowWiring({ nodes, edges, workflowVariables: userVariables, linkedForms }).filter((w) => w.severity !== 'info')
+    wiringCache.current = { parts: wiringParts, warnings: wiringWarnings }
+  }
+
   // Plain <input>/<textarea> in the config panel take a dropped {{token}}
   // natively (at the drop caret); highlight the one under the pointer.
   function markNativeDropTarget(event: React.DragEvent) {
@@ -1302,6 +1338,19 @@ export function WorkflowBuilder({
               </span>
             </Tooltip>
           )}
+          {wiringWarnings.length > 0 && (
+            <Tooltip content={[...wiringWarnings.slice(0, 25).map(formatWiringWarning), ...(wiringWarnings.length > 25 ? [`…and ${wiringWarnings.length - 25} more`] : [])].join('\n')}>
+              <button
+                type="button"
+                data-wiring-warnings=""
+                className="inline-flex items-center gap-1 text-fg-muted hover:text-fg"
+                onClick={() => setSelectedNodeId(wiringWarnings[0].node_id)}
+              >
+                <AlertTriangle size={12} aria-hidden="true" className="text-warning" />
+                {plural(wiringWarnings.length, "wiring warning")}
+              </button>
+            </Tooltip>
+          )}
           {validation.valid && nodes.length > 0 && (
             <span className="inline-flex items-center gap-1 text-success">
               <CheckCircle size={12} aria-hidden="true" />
@@ -1462,7 +1511,11 @@ export function WorkflowBuilder({
           swimlanes={swimlanes}
           triggerType={effectiveTriggerType}
           workflowActive={isActive}
-          onClose={() => { setShowTestRunner(false) }}
+          workflowName={workflowName ?? null}
+          canEdit={canEditWorkflow}
+          initialValues={rerun}
+          autoRun={Boolean(rerun)}
+          onClose={() => { setShowTestRunner(false); setRerun(null) }}
         />
       )}
 

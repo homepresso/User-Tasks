@@ -127,6 +127,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { pattern: '/settings/logs', label: 'Live logs' },
   { pattern: '/settings/log-export', label: 'Log export' },
   { pattern: '/settings/document-ocr', label: 'Document OCR' },
+  { pattern: '/settings/assistants', label: 'Agent' },
   { pattern: '/settings/infrastructure', label: 'Infrastructure' },
   { pattern: '/settings/gallery-review', label: 'Gallery review' },
 ]

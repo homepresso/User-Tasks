@@ -1,5 +1,6 @@
 'use client'
 
+import { useAssistantChanges, useDesignerContext, type AssistantChange } from '@/lib/assistants/client-registry'
 import { isCustomReference, isWriteReference } from '@/lib/custom-references/types'
 import { WritesDataBadge } from '@/components/integrations/writes-data-badge'
 import { useState, useCallback, useMemo, useRef } from 'react'
@@ -214,6 +215,14 @@ export function AgentDesigner({ agent: initial, integrations, references, dataTa
 
   const update = useCallback((patch: Partial<AgentState>) => { setSaveStatus(null); setAgent(prev => ({ ...prev, ...patch })) }, [])
   const dirty = JSON.stringify(agent) !== savedSnapshot
+  // The Agent (assistant): this workflow agent is the open item; a confirmed change to it reloads the page.
+  useDesignerContext({
+    area: 'agent', item_id: (agent as { id?: string }).id ?? null, item_name: agent.name ?? null, dirty,
+    summary: [`Model: ${agent.model || 'the connection default'}`, `Tools: ${(Array.isArray(agent.tools) ? agent.tools : []).map((t: unknown) => (typeof t === 'string' ? t : (t as { name?: string })?.name)).filter(Boolean).slice(0, 30).join(', ') || 'none'}`, `Active: ${agent.is_active ? 'yes' : 'no'}`, `Instructions: ${String(agent.system_prompt ?? '').replace(/\s+/g, ' ').slice(0, 400)}`].join('\n'),
+  })
+  useAssistantChanges(useCallback((change: AssistantChange) => {
+    if (change.kind === 'agent' && change.id === (agent as { id?: string }).id && !dirty) window.location.reload()
+  }, [agent, dirty]))
 
   const aiIntegrations = useMemo(() => integrations.filter(isAiIntegration), [integrations])
   const mediaIntegrations = useMemo(() => integrations.flatMap((i) => {
@@ -454,7 +463,7 @@ export function AgentDesigner({ agent: initial, integrations, references, dataTa
       summary: dataAccessSummary(agent.output_config?.data_access),
       description: 'Lets the agent read, add, update or delete rows — per table, only the operations granted.',
       enabled: (agent.output_config?.data_access?.mode ?? 'none') !== 'none',
-      actionNames: ['query_data_table', 'insert_data_row', 'update_data_rows', 'delete_data_rows'],
+      actionNames: ['query_data_table', 'insert_data_row', 'insert_data_rows', 'update_data_rows', 'delete_data_rows'],
     },
     {
       key: 'tasks',

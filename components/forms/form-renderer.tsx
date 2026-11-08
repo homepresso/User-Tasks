@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
@@ -39,6 +39,9 @@ import { formatSurveyValue, isSurveyType } from '@/lib/forms/survey/controls'
 import { SurveyAnswerView, SurveyFieldControl } from './survey/survey-controls'
 import { FormEnteringScope, MotionContainerScope, motionAttrs, staggerStyle, useCellMotion, useExitingKeys, useFormMotion } from './form-motion'
 import { FORM_MOTION_TIMING, staggerIndex, travelDirection, type TravelDirection } from '@/lib/forms/motion'
+import { registerFormBridge, type FormBridge } from '@/lib/assistants/client-registry'
+import { coerceProposedValue, isSecretField, unsettableReason } from '@/lib/assistants/form-values'
+import type { FormSnapshot } from '@/lib/assistants/types'
 
 /**
  * The assignee's form: User Task fields on the designer's grid (or, without
@@ -779,6 +782,8 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
   // Read only by a rule (Make read only / editable — the control, its section, step / tab or the whole form):
   // not greyed out like disabled; a disabled or Read-only field keeps its own look.
   const locked = (field: TaskFieldDef) => Boolean(rules?.readOnlyKeys.has(field.key)) && !field.read_only && !rules?.disabledKeys.has(field.key)
+  // The AI assistant reads the live form and sets values through the same change handler (rules run).
+  useAssistantFormBridge({ fields, values: rawValues, errors, disabled, visible: visibleRule, ruleLocked: (key) => Boolean(rules?.readOnlyKeys.has(key) || rules?.disabledKeys.has(key)), onChange })
   const gap = density === 'compact' ? 'gap-2' : 'gap-3'
   const labelLeft = labelPosition === 'left' && !singleColumn
   // Sections (lib/forms/sections.ts): read-only views collapse locally; live forms keep it in the form state (rules can collapse too).
@@ -926,4 +931,71 @@ function MotionCell({ on, index, exiting, children, ...rest }: React.HTMLAttribu
       {children}
     </div>
   )
+}
+
+/* ── AI assistant bridge (lib/assistants/client-registry.ts) ─────────── */
+
+function optionList(field: TaskFieldDef): Array<{ value: string; label: string }> | undefined {
+  if (field.options?.length) return field.options.map((o) => ({ value: o, label: optionLabel(field, o) }))
+  if (field.type === 'yes_no_maybe') return [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }, { value: 'maybe', label: 'Maybe' }]
+  return undefined
+}
+
+/**
+ * Registers this editable (or read-only) grid with the AI assistant: a
+ * snapshot of the fields as the person sees them, and `apply`, which re-checks
+ * the live field (still visible, editable, not secret, valid value) and then
+ * calls the grid's own onChange — so form rules ("Field value changes") and
+ * validation behave exactly as if the person typed it. Never submits.
+ */
+function useAssistantFormBridge(params: {
+  fields: TaskFieldDef[]
+  values: Record<string, unknown>
+  errors: Record<string, string> | undefined
+  disabled: boolean
+  visible: (field: TaskFieldDef) => boolean
+  ruleLocked: (key: string) => boolean
+  onChange: ((key: string, value: unknown) => void) | undefined
+}) {
+  const live = useRef(params)
+  useLayoutEffect(() => { live.current = params })
+  useLayoutEffect(() => {
+    const snapshot = (): FormSnapshot => {
+      const p = live.current
+      return {
+        read_only: p.disabled || !p.onChange || undefined,
+        fields: p.fields.filter((f) => !isDisplayField(f)).map((f) => ({
+          key: f.key,
+          label: f.label || f.key,
+          type: f.type,
+          required: f.required || undefined,
+          options: optionList(f),
+          help_text: f.help_text, placeholder: f.placeholder,
+          min: f.min, max: f.max,
+          min_length: f.min_length, max_length: f.max_length, pattern: f.pattern, pattern_message: f.pattern_message,
+          min_date: f.min_date, max_date: f.max_date,
+          visible: p.visible(f),
+          read_only: Boolean(f.read_only) || p.ruleLocked(f.key),
+          secret: isSecretField(f),
+          value: p.values[f.key] ?? null,
+          error: p.errors?.[f.key],
+        })),
+      }
+    }
+    const bridge: FormBridge = {
+      snapshot,
+      apply: (key, value) => {
+        const p = live.current
+        if (p.disabled || !p.onChange) return { ok: false, reason: 'the form is read-only' }
+        const field = snapshot().fields.find((f) => f.key === key)
+        const why = unsettableReason(field)
+        if (why) return { ok: false, reason: why }
+        const coerced = coerceProposedValue(field!, value)
+        if (!coerced.ok) return { ok: false, reason: coerced.reason }
+        p.onChange(key, coerced.value)
+        return { ok: true }
+      },
+    }
+    return registerFormBridge(bridge)
+  }, [])
 }

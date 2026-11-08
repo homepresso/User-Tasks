@@ -29,9 +29,19 @@ const columnSchema = z.object({
   }).optional().describe('Lookup configuration for lookup columns'),
 })
 
+// The Data step's spellings (eq, neq, ilike, is_null, ==, …) are accepted too.
+const ROW_FILTER_OPERATOR_ALIASES: Record<string, string> = {
+  eq: 'equals', '==': 'equals', '=': 'equals', equal: 'equals', neq: 'not_equals', ne: 'not_equals', '!=': 'not_equals', '<>': 'not_equals', not_equal: 'not_equals',
+  like: 'contains', ilike: 'contains', '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte', greater_than: 'gt', less_than: 'lt',
+  is_null: 'is_empty', not_null: 'not_empty', is_not_empty: 'not_empty', is_not_null: 'not_empty',
+}
+
 const rowFilterSchema = z.object({
   field: z.string().describe('Field to filter on. Use a table column key/name, or system fields like id, created_at, updated_at, created_by'),
-  operator: z.enum(['equals', 'not_equals', 'contains', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'not_empty']).describe('Filter operator'),
+  operator: z.preprocess(
+    (op) => (typeof op === 'string' ? ROW_FILTER_OPERATOR_ALIASES[op.trim().toLowerCase()] ?? op.trim().toLowerCase() : op),
+    z.enum(['equals', 'not_equals', 'contains', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'not_empty']),
+  ).describe('Filter operator (the Data step spellings eq, neq, ilike, is_null, not_null are accepted too)'),
   value: z.any().optional().describe('Filter value when required by the operator'),
 })
 
@@ -42,6 +52,40 @@ function getSearchableValue(value: unknown): string {
   if (Array.isArray(value)) return value.map(getSearchableValue).join(' ')
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Max rows one data_rows_create / data_rows_update / filtered data_rows_bulk_delete call may touch. */
+export const MCP_ROW_WRITE_CAP = 200
+
+/** A table id, or a table's name / system name (slug) resolved to its id (exact, case-insensitive). */
+export async function resolveTableRef(ctx: ServiceContext, ref: string): Promise<string> {
+  const value = String(ref ?? '').trim()
+  if (!value) throw new Error('table_id is required')
+  if (UUID.test(value)) return value
+  let data_tables: any[]
+  try {
+    ({ data_tables } = await dataTables.listDataTables(ctx, { search: value }, { limit: 50, offset: 0 }))
+    // A system name (slug) isn't a name search: look through every table's slug.
+    if (!data_tables.length) data_tables = (await dataTables.listDataTables(ctx, {}, { limit: 1000, offset: 0 })).data_tables.filter((t: any) => String(t.slug ?? '').toLowerCase() === value.toLowerCase())
+  } catch { return value }
+  const lower = value.toLowerCase()
+  const exact = data_tables.filter((t: any) => String(t.name ?? '').toLowerCase() === lower || String(t.slug ?? '').toLowerCase() === lower)
+  if (exact.length === 1) return String(exact[0].id)
+  if (exact.length > 1) throw new Error(`Several tables are called "${value}": ${exact.map((t: any) => `${t.name} (${t.id})`).join(', ')} — pass the id`)
+  if (data_tables.length === 1) return String(data_tables[0].id)
+  if (data_tables.length) throw new Error(`No table is called exactly "${value}". Close matches: ${data_tables.slice(0, 10).map((t: any) => `${t.name} (${t.id})`).join(', ')}`)
+  // Not a name either: let the service answer for it as an id ("Table not found").
+  return value
+}
+
+/** Rows matching filters (capped): throws when more match than `max` (or the scan was cut short). */
+async function rowsMatching(ctx: ServiceContext, tableId: string, filters: any[], max: number) {
+  const result = await dataTables.queryRows(ctx, tableId, { filters }, { limit: max + 1, offset: 0 })
+  if (result.rows.length > max || result.total > max) throw new Error(`${result.total} or more rows match — at most ${max} per call. Narrow the filters, or pass row_ids.`)
+  if (result.truncated) throw new Error(`The table has more rows than one filtered call can scan (${dataTables.DATA_ROW_LIMITS.scan}) — pass row_ids instead.`)
+  return result.rows as any[]
 }
 
 async function run(fn: () => Promise<unknown>) {
@@ -64,14 +108,16 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
   const writeCtx = (): ServiceContext => fromMcpContext(ctx)
   const readCtx = (): ServiceContext => fromMcpContext(ctx) // reads are gated too (READ_TOOL_PERMISSIONS)
 
-  server.tool('data_tables_list', 'List custom data tables. Data tables are the foundation for reports, lookups, retention assignment, and workflow triggers when rows are created, updated, or deleted.', {}, async () => run(async () => {
-    const { data_tables } = await dataTables.listDataTables(readCtx(), {}, { limit: null, offset: 0 })
+  server.tool('data_tables_list', 'List custom data tables. Data tables are the foundation for reports, lookups, retention assignment, and workflow triggers when rows are created, updated, or deleted. Pass query to find tables by name.', {
+    query: z.string().optional().describe('Only tables whose name contains this text (case-insensitive)'),
+  }, async (args) => run(async () => {
+    const { data_tables } = await dataTables.listDataTables(readCtx(), { search: args?.query }, { limit: null, offset: 0 })
     return { tables: data_tables }
   }))
 
-  server.tool('data_tables_get', 'Get a custom table schema including columns, lookup metadata, and table settings so MCP can safely build workflows, reports, and row operations against it.', {
-    table_id: z.string().describe('Table ID'),
-  }, async (args) => run(() => dataTables.getDataTable(readCtx(), args.table_id)))
+  server.tool('data_tables_get', 'Get a custom table schema including columns, lookup metadata, and table settings so MCP can safely build workflows, reports, and row operations against it. table_id may be the id, the table name or its system name.', {
+    table_id: z.string().describe('Table ID, name or system name (slug)'),
+  }, async (args) => run(async () => dataTables.getDataTable(readCtx(), await resolveTableRef(readCtx(), args.table_id))))
 
   server.tool('data_tables_create', 'Create a new custom data table. Supports standard columns plus lookup columns with filters, distinct result handling, and sorting.', {
     name: z.string().describe('Table name'),
@@ -108,7 +154,7 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
     const limit = Math.min(args.limit ?? 50, 200)
     const offset = Math.max(args.offset ?? 0, 0)
     const local = Boolean(args.search) || Boolean(args.filters?.length) || Boolean(args.sort_field && !['created_at', 'updated_at', 'id', 'row_id'].includes(args.sort_field))
-    const result = await dataTables.queryRows(readCtx(), args.table_id, {
+    const result = await dataTables.queryRows(readCtx(), await resolveTableRef(readCtx(), args.table_id), {
       search: args.search, filters: args.filters, sort_field: args.sort_field, sort_direction: args.sort_direction,
     }, { limit, offset })
     const rows = result.rows.map(({ table_id: _tableId, updated_by: _updatedBy, ...row }: any) => row)
@@ -260,15 +306,43 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
   server.tool('data_rows_get', 'Get one row of a custom table by ID.', {
     table_id: z.string().describe('Table ID'),
     row_id: z.string().describe('Row ID'),
-  }, async (args) => run(async () => ({ row: await dataTables.getRow(readCtx(), args.table_id, args.row_id) })))
+  }, async (args) => run(async () => ({ row: await dataTables.getRow(readCtx(), await resolveTableRef(readCtx(), args.table_id), args.row_id) })))
 
   server.tool('data_rows_upsert', 'Insert or update a row in a custom table. When the table is used by data-table event workflows, created and updated rows trigger those workflows automatically, making this a core MCP write path for app state.', {
     table_id: z.string().describe('Table ID'),
     row_id: z.string().optional().describe('Row ID for update (omit for insert)'),
     data: z.record(z.string(), z.any()).describe('Row data as key-value pairs'),
   }, async (args) => run(async () => {
-    const [result] = await dataTables.upsertRows(writeCtx(), args.table_id, [{ row_id: args.row_id, data: args.data }])
+    const [result] = await dataTables.upsertRows(writeCtx(), await resolveTableRef(writeCtx(), args.table_id), [{ row_id: args.row_id, data: args.data }])
     return result.action === 'updated' ? { updated: true, row_id: result.row_id } : { created: true, row_id: result.row_id }
+  }))
+
+  server.tool('data_rows_create', `Insert several rows into a custom table in one call (up to ${MCP_ROW_WRITE_CAP}). Cells are validated against the column types; data-table event workflows fire for each created row.`, {
+    table_id: z.string().describe('Table ID, name or system name'),
+    rows: z.array(z.record(z.string(), z.any())).min(1).max(MCP_ROW_WRITE_CAP).describe('Row data objects (column key → value), one per new row'),
+  }, async (args) => run(async () => {
+    const tableId = await resolveTableRef(writeCtx(), args.table_id)
+    const results = await dataTables.upsertRows(writeCtx(), tableId, (args.rows as Array<Record<string, unknown>>).map((data) => ({ data })))
+    return { created: results.length, table_id: tableId, row_ids: results.map((r) => r.row_id) }
+  }))
+
+  server.tool('data_rows_update', `Change cells of existing rows of a custom table — the rows given by row_ids, or every row matching filters (at most max_rows, default 50, cap ${MCP_ROW_WRITE_CAP}; more matches fail without changing anything). Other cells are kept. data-table event workflows fire for each updated row.`, {
+    table_id: z.string().describe('Table ID, name or system name'),
+    data: z.record(z.string(), z.any()).describe('Cells to set (column key → value)'),
+    row_ids: z.array(z.string()).max(MCP_ROW_WRITE_CAP).optional().describe('Rows to update'),
+    filters: z.array(rowFilterSchema).optional().describe('Update every row matching all filters (instead of row_ids)'),
+    max_rows: z.number().optional().describe(`Safety cap for a filtered update (default 50, at most ${MCP_ROW_WRITE_CAP})`),
+  }, async (args) => run(async () => {
+    const tableId = await resolveTableRef(writeCtx(), args.table_id)
+    let ids = args.row_ids ?? []
+    if (!ids.length) {
+      if (!args.filters?.length) throw new Error('Pass row_ids or filters')
+      const max = Math.min(Math.max(1, Math.floor(args.max_rows ?? 50)), MCP_ROW_WRITE_CAP)
+      ids = (await rowsMatching(writeCtx(), tableId, args.filters, max)).map((r) => String(r.id))
+    }
+    const updated: string[] = []
+    for (const id of [...new Set(ids as string[])]) { await dataTables.updateRow(writeCtx(), tableId, id, args.data as Record<string, unknown>); updated.push(id) }
+    return { updated: updated.length, table_id: tableId, row_ids: updated }
   }))
 
   server.tool('data_rows_delete', 'Delete a row from a custom table. If the table is connected to data_table_event workflows, deleting a row triggers those workflows.', {
@@ -278,8 +352,17 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
     return { deleted: true, row_id: args.row_id }
   }))
 
-  server.tool('data_rows_bulk_delete', 'Delete several rows of a custom table at once. Data-table event workflows fire for each deleted row.', {
+  server.tool('data_rows_bulk_delete', `Delete several rows of a custom table at once — by row_ids, or every row matching filters (at most max_rows, default 50, cap ${MCP_ROW_WRITE_CAP}; more matches fail without deleting anything). Data-table event workflows fire for each deleted row.`, {
     table_id: z.string().describe('Table ID'),
-    row_ids: z.array(z.string()).min(1).max(1000).describe('Row IDs to delete'),
-  }, async (args) => run(() => dataTables.deleteRows(writeCtx(), args.table_id, args.row_ids)))
+    row_ids: z.array(z.string()).max(1000).optional().describe('Row IDs to delete'),
+    filters: z.array(rowFilterSchema).optional().describe('Delete every row matching all filters (instead of row_ids)'),
+    max_rows: z.number().optional().describe(`Safety cap for a filtered delete (default 50, at most ${MCP_ROW_WRITE_CAP})`),
+  }, async (args) => run(async () => {
+    const tableId = await resolveTableRef(writeCtx(), args.table_id)
+    if (args.row_ids?.length) return dataTables.deleteRows(writeCtx(), tableId, args.row_ids)
+    if (!args.filters?.length) throw new Error('Pass row_ids or filters')
+    const max = Math.min(Math.max(1, Math.floor(args.max_rows ?? 50)), MCP_ROW_WRITE_CAP)
+    const rows = await rowsMatching(writeCtx(), tableId, args.filters, max)
+    return dataTables.deleteRows(writeCtx(), tableId, rows.map((r) => String(r.id)))
+  }))
 }

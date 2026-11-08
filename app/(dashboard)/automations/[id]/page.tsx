@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState } from 'react'
+import { use, useCallback, useState } from 'react'
 import { serverRead } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
 import { WorkflowBuilder } from '@/components/automations/workflow-builder'
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { plural } from '@/lib/format/plural'
+import { useAssistantChanges, type AssistantChange } from '@/lib/assistants/client-registry'
 
 const LiveInstancesPanel = dynamic(() => import('@/components/automations/live-instances').then((m) => m.LiveInstancesPanel))
 
@@ -34,6 +35,12 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
     queryFn: async () => (await serverRead('automations.builder', { id })).data,
   })
   const { data: formEntries } = useWorkflowFormEntries(id, Boolean(data?.workflow))
+  // The designer assistant changed this workflow's draft: reload it into the builder (which keeps local state).
+  const [assistantRev, setAssistantRev] = useState(0)
+  useAssistantChanges(useCallback((change: AssistantChange) => {
+    if (change.kind !== 'workflow' || change.id !== id) return
+    void refetch().then(() => setAssistantRev((r) => r + 1))
+  }, [id, refetch]))
 
   if (isLoading) return <WorkflowBuilderSkeleton />
   if (!data?.workflow) {
@@ -87,6 +94,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
     <DesktopOnly>
     <div className="h-[calc(100vh-7rem)]">
       <WorkflowBuilder
+        key={assistantRev}
         workflowId={workflow.id}
         tenantId={workflow.tenant_id}
         initialNodes={(workflow.nodes as any) ?? []}

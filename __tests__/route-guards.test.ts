@@ -63,7 +63,7 @@ describe('page guards', () => {
     '/automations', '/automations/[id]', '/automations/forms', '/automations/rules', '/automations/schedules', '/automations/email-templates',
     '/integrations', '/agents', '/extensibility', '/packages', '/activity', '/settings/governance', '/settings/api-keys',
     '/settings/oauth-apps', '/settings/webhooks', '/settings/mcp', '/settings/logs', '/settings/log-export', '/settings/sso',
-    '/settings/github-sync', '/settings/theme', '/settings/document-ocr', '/settings/packages', '/settings/invitations',
+    '/settings/github-sync', '/settings/theme', '/settings/document-ocr', '/settings/assistants', '/settings/packages', '/settings/invitations',
     '/org/manage', '/tasks/assigned', '/reports/tasks', '/reports/workflows', '/reports/integrations', '/reports/business-rules',
     '/reports/retention', '/automations/queue', '/automations/runs/[id]',
   ]

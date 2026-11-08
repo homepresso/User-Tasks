@@ -443,6 +443,103 @@ export async function saveAgentCostSettings(ctx: ServiceContext, input: { model_
   return { model_prices: prices, budgets }
 }
 
+/* ── Fetch latest pricing (lib/agents/price-feed.ts) ── */
+
+/** The price feed URL: instance setting, else AI_PRICE_FEED_URL, else LiteLLM's list; "off" / "disabled" = turned off (air-gapped). */
+export async function priceFeedUrl(): Promise<string | null> {
+  const { DEFAULT_PRICE_FEED_URL, PRICE_FEED_SETTING } = await import('@/lib/agents/price-feed')
+  let configured: unknown = null
+  try {
+    const { getInstanceSetting } = await import('@/lib/config/instance-settings')
+    configured = await getInstanceSetting(PRICE_FEED_SETTING)
+  } catch { /* no instance settings store */ }
+  const value = String((typeof configured === 'string' && configured.trim()) || process.env.AI_PRICE_FEED_URL || DEFAULT_PRICE_FEED_URL).trim()
+  return /^(off|disabled|none|false)$/i.test(value) ? null : value
+}
+
+export interface PriceFeedDeps {
+  fetchImpl?: typeof fetch
+  /** Test seam: the feed URL (default: priceFeedUrl()). */
+  url?: string | null
+}
+
+/** Download and parse the price feed: through the egress guard, with a timeout and a size cap. */
+async function loadPriceFeed(deps: PriceFeedDeps) {
+  const { parsePriceFeed, PRICE_FEED_MAX_BYTES, PRICE_FEED_TIMEOUT_MS } = await import('@/lib/agents/price-feed')
+  const url = deps.url !== undefined ? deps.url : await priceFeedUrl()
+  if (!url) throw ServiceError.validation('Fetching prices is turned off on this instance (instance.ai_price_feed_url / AI_PRICE_FEED_URL is "off"). Add prices by hand.')
+  const { safeFetch, EgressBlockedError } = await import('@/lib/egress-guard')
+  let res: Response
+  try {
+    res = await safeFetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(PRICE_FEED_TIMEOUT_MS) }, { fetchImpl: deps.fetchImpl })
+  } catch (error) {
+    if (error instanceof EgressBlockedError) throw ServiceError.validation(`The price list URL is not allowed: ${error.message}`)
+    throw ServiceError.validation(`Could not reach the price list (${(error as Error)?.name === 'TimeoutError' ? 'timed out' : (error as Error)?.message ?? 'network error'})`)
+  }
+  if (!res.ok) throw ServiceError.validation(`The price list answered ${res.status}`)
+  const declared = Number(res.headers.get('content-length') ?? 0)
+  if (declared > PRICE_FEED_MAX_BYTES) throw ServiceError.validation('The price list is too large')
+  const reader = res.body?.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  if (reader) {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      size += value.byteLength
+      if (size > PRICE_FEED_MAX_BYTES) { await reader.cancel().catch(() => {}); throw ServiceError.validation('The price list is too large') }
+      chunks.push(value)
+    }
+  }
+  let json: unknown
+  try { json = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { throw ServiceError.validation('The price list is not valid JSON') }
+  try {
+    return { url, feed: parsePriceFeed(json) }
+  } catch (error) {
+    throw ServiceError.validation((error as Error).message)
+  }
+}
+
+/** The preview: what the latest prices would add or change for this workspace (nothing is saved). settings.edit. */
+export async function fetchPriceUpdates(ctx: ServiceContext, deps: PriceFeedDeps = {}) {
+  requirePerm(ctx, 'settings.edit')
+  const db = await serviceRoleClient(ctx)
+  const { priceLayers } = await import('@/lib/agents/costs')
+  const { diffPrices } = await import('@/lib/agents/price-feed')
+  const [{ url, feed }, layers] = await Promise.all([loadPriceFeed(deps), priceLayers(db, ctx.tenantId)])
+  return { source: url, fetched_at: new Date().toISOString(), ...diffPrices(feed, layers) }
+}
+
+/**
+ * Save the selected latest prices as this workspace's prices (fetched again
+ * server side — the browser only sends keys). A hand-entered price is kept
+ * unless its key is in overwrite_manual. Audited. settings.edit.
+ */
+export async function applyPriceUpdates(ctx: ServiceContext, input: { keys?: unknown; overwrite_manual?: unknown }, deps: PriceFeedDeps = {}) {
+  requirePerm(ctx, 'settings.edit')
+  const keys = Array.isArray(input.keys) ? input.keys.map(String).filter((k) => /^[a-z_]+:.{1,200}$/.test(k)).slice(0, 2000) : []
+  if (!keys.length) throw ServiceError.validation('Select at least one price')
+  const overwrite = Array.isArray(input.overwrite_manual) ? input.overwrite_manual.map(String) : []
+  const db = await serviceRoleClient(ctx)
+  const { loadCostSettings } = await import('@/lib/agents/costs')
+  const { applyFeedPrices } = await import('@/lib/agents/price-feed')
+  const [{ url, feed }, current] = await Promise.all([loadPriceFeed(deps), loadCostSettings(db, ctx.tenantId)])
+  const asOf = new Date().toISOString().slice(0, 10)
+  const result = applyFeedPrices(current.prices, feed, keys, { overwriteManual: overwrite, source: url, asOf })
+  if (result.applied.length) {
+    const { error } = await (db as any).from('agent_cost_settings').upsert({
+      tenant_id: ctx.tenantId, model_prices: result.prices, budgets: current.budgets, updated_by: ctx.actorId, updated_at: new Date().toISOString(),
+    }, { onConflict: 'tenant_id' })
+    if (error) throw dbError(error)
+    await audit(ctx, {
+      objectType: 'workspace', objectId: ctx.tenantId, action: 'update',
+      summary: `Updated ${result.applied.length} AI model price${result.applied.length === 1 ? '' : 's'} from the price list`,
+      metadata: { source: url, as_of: asOf, applied: result.applied.slice(0, 200), kept_manual: result.kept_manual, overwritten_manual: overwrite.filter((k) => result.applied.includes(k)) },
+    })
+  }
+  return { applied: result.applied, kept_manual: result.kept_manual, unknown: result.unknown, model_prices: result.prices, source: url, as_of: asOf }
+}
+
 /* ── Evaluations ── */
 
 export async function listEvalCases(ctx: ServiceContext, agentId: string) {

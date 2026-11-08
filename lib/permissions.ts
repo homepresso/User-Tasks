@@ -1,6 +1,6 @@
 /* ── Permission keys ── */
 
-export const PERMISSION_PAYLOAD_VERSION = 19
+export const PERMISSION_PAYLOAD_VERSION = 20
 
 export const PERMISSION_KEYS = [
   'tasks.create', 'tasks.view_own', 'tasks.view_all', 'tasks.assign', 'tasks.complete',
@@ -17,7 +17,7 @@ export const PERMISSION_KEYS = [
   'team.view_members', 'team.invite', 'team.remove', 'team.change_roles',
   'org.view', 'org.manage', 'projects.view', 'projects.manage',
   'settings.view', 'settings.edit', 'settings.manage_api_keys',
-  'settings.manage_webhooks',
+  'settings.manage_webhooks', 'assistants.manage',
   'sync.view', 'sync.manage', 'sync.deploy',
   'observability.view',
   'packages.view', 'packages.manage', 'packages.install',
@@ -121,6 +121,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'settings.edit', label: 'Edit settings', description: 'Edit branding, name, and configuration' },
     { key: 'settings.manage_api_keys', label: 'Manage API keys', description: 'Create and revoke API keys' },
     { key: 'settings.manage_webhooks', label: 'Manage webhooks', description: 'Configure webhook endpoints' },
+    { key: 'assistants.manage', label: 'Manage the Agent', description: 'Set the AI provider key and model for the Agent (the AI assistant on every screen), turn it on or off, choose who may use it and set its limits' },
     { key: 'sync.view', label: 'View GitHub sync', description: 'See sync status, pending changes, and deployment history' },
     { key: 'sync.manage', label: 'Manage GitHub sync', description: 'Connect repositories, change sync mode, and commit queued changes' },
     { key: 'sync.deploy', label: 'Deploy from GitHub', description: 'Run deployments that import repository configuration into this workspace' },

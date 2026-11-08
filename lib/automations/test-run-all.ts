@@ -55,3 +55,23 @@ export function savedTaskValuesFor(saved: CaseTaskValues | undefined, nodeId: st
   const entry = saved?.[nodeId]
   return entry ? { ...entry.values } : null
 }
+
+/**
+ * The values a test task opens with: what the engine prefilled (field
+ * defaults and the step's field_values), then the case's saved values —
+ * except read-only fields, which always show what the run prefilled (the
+ * tester cannot change them, and a saved copy from an earlier run is stale).
+ */
+export function testTaskStartValues(
+  fields: ReadonlyArray<{ key: string; read_only?: boolean }>,
+  prefilled: Record<string, unknown> | null | undefined,
+  saved: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...(prefilled ?? {}), ...(saved ?? {}) }
+  for (const field of fields) {
+    if (!field.read_only) continue
+    if (prefilled && Object.prototype.hasOwnProperty.call(prefilled, field.key)) out[field.key] = prefilled[field.key]
+    else delete out[field.key]
+  }
+  return out
+}

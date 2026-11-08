@@ -7,8 +7,8 @@
  * overrides (editable with settings.edit). PriceTableEditor is shared with
  * Settings → Infrastructure (instance prices).
  */
-import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { Input } from '@/components/ui/input'
@@ -20,12 +20,18 @@ import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table'
 import { formatCount } from '@/lib/format/number'
 import { plural } from '@/lib/format/plural'
 import { formatCost, type ModelPrice } from '@/lib/agents/pricing'
+import type { PriceDiff, PriceDiffRow } from '@/lib/agents/price-feed'
 
-const PROVIDERS = ['*', 'openai', 'anthropic', 'azure_openai', 'gemini', 'bedrock', 'mistral', 'deepseek', 'groq', 'together', 'perplexity', 'ollama', 'other']
+const PROVIDERS = ['*', 'openai', 'anthropic', 'azure_openai', 'gemini', 'bedrock', 'mistral', 'deepseek', 'groq', 'together', 'perplexity', 'xai', 'ollama', 'other']
 const PROVIDER_OPTIONS = PROVIDERS.map((p) => ({ value: p, label: p === '*' ? 'any' : p }))
 
 export function PriceTableEditor({ value, onChange, disabled }: { value: ModelPrice[]; onChange: (next: ModelPrice[]) => void; disabled?: boolean }) {
-  const set = (i: number, patch: Partial<ModelPrice>) => onChange(value.map((row, j) => (j === i ? { ...row, ...patch } : row)))
+  // An edited row is the admin's own price: "Fetch latest pricing" never replaces it unless they tick it (no source_url = hand-entered).
+  const set = (i: number, patch: Partial<ModelPrice>) => onChange(value.map((row, j) => {
+    if (j !== i) return row
+    const { source_url: _source, ...rest } = { ...row, ...patch }
+    return rest
+  }))
   const num = (v: string) => (v === '' ? null : Number(v))
   return (
     <div className="space-y-2" data-testid="price-table-editor">
@@ -96,6 +102,102 @@ function PriceList({ title, rows, note }: { title: string; rows: readonly ModelP
   )
 }
 
+type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
+export interface PriceUpdateActions {
+  fetch: () => Promise<ActionResult<PriceDiff & { source: string; fetched_at: string }>>
+  apply: (input: { keys: string[]; overwrite_manual: string[] }) => Promise<ActionResult<{ applied: string[]; kept_manual: string[] }>>
+}
+
+const priceText = (p: { input_per_1m: number; output_per_1m: number; cached_input_per_1m: number | null; cache_write_per_1m?: number | null } | null) =>
+  p ? `${p.input_per_1m} / ${p.output_per_1m}${p.cached_input_per_1m != null ? ` · cached ${p.cached_input_per_1m}` : ''}${p.cache_write_per_1m != null ? ` · write ${p.cache_write_per_1m}` : ''}` : '—'
+
+/**
+ * Fetch latest pricing: the preview diff from the price list (new models,
+ * changed prices; unchanged counted), the admin picks rows and saves them as
+ * this workspace's prices. Changed prices start selected, new models not; a
+ * hand-entered price is only replaced when its own box is ticked.
+ */
+export function PriceUpdates({ actions, onApplied }: { actions: PriceUpdateActions; onApplied: () => Promise<void> | void }) {
+  const [diff, setDiff] = useState<(PriceDiff & { source: string; fetched_at: string }) | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [filter, setFilter] = useState('')
+  const [busy, setBusy] = useState<'fetch' | 'apply' | null>(null)
+  const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
+  const rows = useMemo(() => (diff?.rows ?? []).filter((r) => !filter || `${r.provider} ${r.model}`.toLowerCase().includes(filter.toLowerCase())), [diff, filter])
+  const toggle = (r: PriceDiffRow, on: boolean) => setSelected((s) => { const n = new Set(s); if (on) n.add(r.key); else n.delete(r.key); return n })
+  return (
+    <div className="space-y-2" data-testid="price-updates">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="secondary" leadingIcon={<RefreshCw />} loading={busy === 'fetch'} onClick={async () => {
+          setBusy('fetch'); setStatus(null)
+          const res = await actions.fetch()
+          if (res.ok) {
+            setDiff(res.data)
+            setSelected(new Set(res.data.rows.filter((r) => r.status === 'changed' && !r.manual).map((r) => r.key)))
+          } else setStatus({ ok: false, message: res.error })
+          setBusy(null)
+        }}>Fetch latest pricing</Button>
+        <span className="text-xs text-fg-muted">From a maintained public price list (LiteLLM); you review every change before it is saved.</span>
+      </div>
+      {status && <p role="status" className={status.ok ? 'text-xs text-success' : 'text-xs text-danger'}>{status.message}</p>}
+      {diff && (
+        <div className="space-y-2 rounded-md border border-border-subtle p-3">
+          <p className="text-xs text-fg-muted">Source: <span className="font-mono">{diff.source}</span> · fetched {new Date(diff.fetched_at).toLocaleString()}</p>
+          <table className="w-full text-xs">
+            <thead><tr className="text-fg-muted"><th className="text-left font-medium">Provider</th><th className="num font-medium">New</th><th className="num font-medium">Changed</th><th className="num font-medium">Unchanged</th><th /></tr></thead>
+            <tbody>
+              {diff.providers.map((p) => (
+                <tr key={p.provider} className="border-t border-border-subtle">
+                  <td className="py-1">{p.provider}</td><td className="num">{p.new}</td><td className="num">{p.changed}</td><td className="num">{p.unchanged}</td>
+                  <td className="text-right">
+                    {p.new > 0 && <button type="button" className="text-xs text-primary underline" onClick={() => setSelected((s) => new Set([...s, ...diff.rows.filter((r) => r.provider === p.provider && r.status === 'new').map((r) => r.key)]))}>Select new</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {diff.more_new > 0 && <p className="text-xs text-fg-muted">{diff.more_new} more new models are not listed (dated snapshots first left out).</p>}
+          <Input size="sm" aria-label="Filter models" placeholder="Filter models" value={filter} onChange={(e) => setFilter(e.target.value)} className="max-w-xs text-xs" />
+          <div className="max-h-96 overflow-auto">
+            <table className="w-full text-xs" data-testid="price-updates-rows">
+              <thead><tr className="text-fg-muted"><th /><th className="text-left font-medium">Provider</th><th className="text-left font-medium">Model</th><th className="text-left font-medium">Now (in / out per 1M)</th><th className="text-left font-medium">Latest</th></tr></thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.key} className="border-t border-border-subtle">
+                    <td className="py-1 pr-2">
+                      <input type="checkbox" aria-label={r.manual ? `Replace my price for ${r.model}` : `Use the latest price for ${r.model}`} checked={selected.has(r.key)} onChange={(e) => toggle(r, e.target.checked)} />
+                    </td>
+                    <td className="pr-2 text-fg-muted">{r.provider}</td>
+                    <td className="pr-2 font-mono">{r.model}{r.aliases.length ? <span className="text-fg-muted"> (+{r.aliases.length} dated)</span> : null}</td>
+                    <td className="pr-2">{r.status === 'new' ? <span className="text-fg-muted">no price</span> : <>{priceText(r.current)} <span className="text-fg-muted">({r.current?.source}{r.manual ? ', entered by hand — tick to replace' : ''})</span></>}</td>
+                    <td className="pr-2">{priceText(r.next)}</td>
+                  </tr>
+                ))}
+                {rows.length === 0 && <tr><td colSpan={5} className="py-2 text-fg-muted">Everything matches the latest prices.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" disabled={!selected.size} loading={busy === 'apply'} onClick={async () => {
+              setBusy('apply'); setStatus(null)
+              const keys = [...selected]
+              const manual = diff.rows.filter((r) => r.manual && selected.has(r.key)).map((r) => r.key)
+              const res = await actions.apply({ keys, overwrite_manual: manual })
+              if (res.ok) {
+                setStatus({ ok: true, message: `Saved ${plural(res.data.applied.length, 'price')} as this workspace's prices${res.data.kept_manual.length ? ` (${res.data.kept_manual.length} hand-entered kept)` : ''}` })
+                setDiff(null)
+                await onApplied()
+              } else setStatus({ ok: false, message: res.error })
+              setBusy(null)
+            }}>Save {selected.size ? plural(selected.size, 'selected price') : 'selected prices'}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setDiff(null)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export interface WorkspaceCostData {
   days: Array<{ day: string; runs: number; tokens: number; cost: Record<string, number>; unpriced_runs: number }>
   tokens_last_24h: number
@@ -114,7 +216,7 @@ const costText = (byCurrency: Record<string, number>) => {
   return entries.length ? entries.map(([cur, n]) => formatCost(n, cur)).join(' + ') : formatCost(0, 'USD')
 }
 
-export function WorkspaceCosts({ data, onSave }: { data: WorkspaceCostData; onSave: (input: { model_prices: ModelPrice[]; budgets: WorkspaceCostData['budgets'] }) => Promise<string | null> }) {
+export function WorkspaceCosts({ data, onSave, priceUpdates, onPricesChanged }: { data: WorkspaceCostData; onSave: (input: { model_prices: ModelPrice[]; budgets: WorkspaceCostData['budgets'] }) => Promise<string | null>; priceUpdates?: PriceUpdateActions; onPricesChanged?: () => Promise<void> | void }) {
   const [prices, setPrices] = useState<ModelPrice[]>(data.prices.workspace)
   const [budgets, setBudgets] = useState(data.budgets)
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
@@ -207,12 +309,15 @@ export function WorkspaceCosts({ data, onSave }: { data: WorkspaceCostData; onSa
           description={(
             <>
               Per 1M tokens. A run is priced with this workspace&apos;s price for its provider + model, else the instance&apos;s, else the shipped list price.
-              The shipped prices are providers&apos; published list prices as of {data.prices.defaults_as_of}, editable — no discounts, batch or priority tiers,
-              long-context or cache-write surcharges, per-request or search fees, or taxes. A model with no price shows &ldquo;cost unknown&rdquo;; it is never guessed. Past runs keep the price they were charged at.
+              The shipped prices are providers&apos; published list prices (each row says its source), editable — no discounts, batch or priority tiers,
+              long-context surcharges, per-request or search fees, or taxes. A model with no price shows &ldquo;cost unknown&rdquo;; it is never guessed. Past runs keep the price they were charged at.
             </>
           )}
         />
         <CardBody className="pt-0">
+          {data.can_edit && priceUpdates && (
+            <div className="mb-4"><PriceUpdates actions={priceUpdates} onApplied={async () => { await onPricesChanged?.() }} /></div>
+          )}
           <p className="mb-1 text-xs font-medium text-fg">This workspace&apos;s prices (override)</p>
           <PriceTableEditor value={prices} onChange={setPrices} disabled={!data.can_edit} />
           {data.can_edit && (

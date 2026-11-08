@@ -4,7 +4,7 @@
 import { normalizeReportConfig } from '@/lib/report-config'
 import { createDefaultNode, type NodeType } from '@/lib/workflow-schema'
 import { isObjectLike } from '@/lib/utils/guards'
-import { canonicalDelay, canonicalFormatDate, canonicalModifyStringOperation } from '@/lib/workflow-node-handlers'
+import { canonicalDataFilterOperator, canonicalDelay, canonicalFormatDate, canonicalModifyStringOperation } from '@/lib/workflow-node-handlers'
 
 export function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -184,6 +184,22 @@ export function canonicalizeNodeConfigShapes(type: string, config: Record<string
     next.format = format
     if (format === 'custom' && custom_format !== undefined) next.custom_format = custom_format
   }
+  if (type === 'update_data_table') {
+    // The row id variable is `output_row_id_var`; `output_var` (what most
+    // other steps call it) is read as it by the engine.
+    if ((next.output_row_id_var === undefined || next.output_row_id_var === '') && typeof next.output_var === 'string' && next.output_var.trim()) {
+      next.output_row_id_var = next.output_var
+      delete next.output_var
+    }
+    // List filters: "equals" / "==" / "contains" → eq / eq / ilike (the engine reads both).
+    if (Array.isArray(next.filters)) {
+      next.filters = next.filters.map((filter: unknown) => {
+        if (!isObjectLike(filter) || (filter as any).operator === undefined) return filter
+        const operator = canonicalDataFilterOperator((filter as any).operator)
+        return operator === (filter as any).operator ? filter : { ...(filter as object), operator }
+      })
+    }
+  }
   return next
 }
 
@@ -242,6 +258,13 @@ function normalizeWorkflowNodeConfig(type: string, config: Record<string, any>) 
     if (!nextConfig.team_id && nextConfig.teamId) nextConfig.team_id = nextConfig.teamId
     if (!nextConfig.team_id && typeof nextConfig.team === 'string') nextConfig.team_id = nextConfig.team
     if (!nextConfig.outcomes && Array.isArray(nextConfig.outcome_options)) nextConfig.outcomes = nextConfig.outcome_options
+    // Prefill of the task's form fields (field key → expression): the step's field_values.
+    for (const alias of ['prefill', 'prefill_values', 'field_defaults', 'form_values', 'field_prefill']) {
+      if (nextConfig.field_values === undefined && isObjectLike(nextConfig[alias])) {
+        nextConfig.field_values = Object.fromEntries(Object.entries(nextConfig[alias]).map(([key, value]) => [key, normalizeExpressionValue(value)]))
+        delete nextConfig[alias]
+      }
+    }
   }
   if (type === 'set_title' && nextConfig.template && !nextConfig.title) {
     nextConfig.title = nextConfig.template

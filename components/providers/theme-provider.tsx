@@ -27,7 +27,7 @@ function subscribeOsDark(onChange: () => void) {
 }
 
 /** OS dark-mode preference (false on the server). */
-function useOsDark(): boolean {
+export function useOsDark(): boolean {
   return useSyncExternalStore(subscribeOsDark, () => window.matchMedia(DARK_QUERY).matches, () => false)
 }
 

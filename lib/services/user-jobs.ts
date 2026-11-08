@@ -25,6 +25,15 @@ import { openJobObject, readJobObject } from '@/lib/user-jobs/store'
 
 export const JOB_LIST_LIMIT = 50
 const ADMIN_PERMISSION = 'settings.edit'
+/** Agent turns (lib/assistants/background.ts): private to their person, listed only once moved to the background. */
+const AGENT_KIND = 'agent.turn'
+/** Everything the job view needs — never `checkpoint` (an Agent turn's transcript lives there). */
+const LIST_COLUMNS = 'id, tenant_id, user_id, kind, title, params, origin, status, progress, message, result, error, attempts, max_attempts, run_after, cancel_requested_at, created_at, updated_at, started_at, finished_at, expires_at'
+
+function listable(row: Pick<UserJobRow, 'kind' | 'params'>, scope: 'mine' | 'tenant'): boolean {
+  if (row.kind !== AGENT_KIND) return true
+  return scope === 'mine' && row.params?.background === true
+}
 
 export interface JobListFilters {
   /** `tenant`: every job of the workspace (admins). Default `mine`. */
@@ -62,7 +71,8 @@ async function admin(ctx: ServiceContext) {
 export async function listJobs(ctx: ServiceContext, filters: JobListFilters = {}): Promise<{ jobs: UserJobView[] }> {
   const db = await admin(ctx)
   const limit = Math.min(Math.max(Math.trunc(filters.limit ?? JOB_LIST_LIMIT) || JOB_LIST_LIMIT, 1), 200)
-  let query = db.from('user_jobs').select('*').order('created_at', { ascending: false }).limit(limit)
+  // A little headroom for the Agent turns filtered out below.
+  let query = db.from('user_jobs').select(LIST_COLUMNS).order('created_at', { ascending: false }).limit(limit + 10)
 
   if (filters.scope === 'tenant') {
     if (!hasPerm(ctx, ADMIN_PERMISSION) || ctx.permissions === null) throw ServiceError.forbidden(`Forbidden: listing the workspace's jobs needs the '${ADMIN_PERMISSION}' permission`)
@@ -83,17 +93,18 @@ export async function listJobs(ctx: ServiceContext, filters: JobListFilters = {}
 
   const { data, error } = await query
   if (error) throw dbError(error)
-  return { jobs: ((data ?? []) as UserJobRow[]).map((row) => toJobView(row)) }
+  const scope = filters.scope === 'tenant' ? 'tenant' : 'mine'
+  return { jobs: ((data ?? []) as UserJobRow[]).filter((row) => listable(row, scope)).slice(0, limit).map((row) => toJobView(row)) }
 }
 
 async function loadJob(ctx: ServiceContext, jobId: string, access: 'owner' | 'owner_or_admin' = 'owner_or_admin'): Promise<UserJobRow> {
   if (!/^[0-9a-f-]{36}$/i.test(jobId)) throw ServiceError.notFound('Job not found')
   const db = await admin(ctx)
-  const { data, error } = await db.from('user_jobs').select('*').eq('id', jobId).maybeSingle()
+  const { data, error } = await db.from('user_jobs').select(LIST_COLUMNS).eq('id', jobId).maybeSingle()
   if (error) throw dbError(error)
   const row = data as UserJobRow | null
-  // Someone else's job is "not found", so ids don't leak.
-  if (!row || !(ownsJob(ctx, row) || (access === 'owner_or_admin' && canAdminister(ctx, row)))) throw ServiceError.notFound('Job not found')
+  // Someone else's job is "not found", so ids don't leak. Agent turns are their person's alone.
+  if (!row || !(ownsJob(ctx, row) || (access === 'owner_or_admin' && row.kind !== AGENT_KIND && canAdminister(ctx, row)))) throw ServiceError.notFound('Job not found')
   return row
 }
 
@@ -109,11 +120,11 @@ export async function cancelJob(ctx: ServiceContext, jobId: string): Promise<Use
   const now = new Date().toISOString()
   if (row.status === 'queued') {
     const { data } = await db.from('user_jobs').update({ status: 'cancelled', cancel_requested_at: now, finished_at: now, message: 'Cancelled', lease_owner: null, expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString() })
-      .eq('id', row.id).eq('status', 'queued').select('*').maybeSingle()
+      .eq('id', row.id).eq('status', 'queued').select(LIST_COLUMNS).maybeSingle()
     if (data) return toJobView(data as UserJobRow)
   }
   const { data, error } = await db.from('user_jobs').update({ cancel_requested_at: now, message: 'Cancelling…' })
-    .eq('id', row.id).in('status', ['queued', 'running']).select('*').maybeSingle()
+    .eq('id', row.id).in('status', ['queued', 'running']).select(LIST_COLUMNS).maybeSingle()
   if (error) throw dbError(error)
   if (!data) return toJobView((await loadJob(ctx, jobId)))
   return toJobView(data as UserJobRow)
@@ -123,6 +134,7 @@ export async function cancelJob(ctx: ServiceContext, jobId: string): Promise<Use
 export async function retryJob(ctx: ServiceContext, jobId: string): Promise<UserJobView> {
   const row = await loadJob(ctx, jobId, 'owner')
   if (row.status !== 'failed' && row.status !== 'cancelled') throw ServiceError.conflict('Only failed or cancelled jobs can be retried')
+  if (row.kind === AGENT_KIND) throw ServiceError.conflict('Ask the Agent again from the Agent panel')
   const input = row.origin?.has_input ? await readJobObject(`storage://job-results/${row.tenant_id}/${row.id}/input`) : null
   if (row.origin?.has_input && !input) throw ServiceError.conflict('The job input has expired; start it again from the page')
   const { enqueueUserJob } = await import('@/lib/user-jobs/runner')

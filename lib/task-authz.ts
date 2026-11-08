@@ -22,7 +22,17 @@
  *    outside the chain act on behalf, also with a note, audited as such.
  *    Credentials with no person behind them (tenant API keys, ungated
  *    automation) need it too.
- * There is no admin override beyond that.
+ * There is no admin override beyond that — except for UNASSIGNED tasks
+ * (no assignee, no collaborators, no team: nobody can act on them): a
+ * workspace admin (`tasks.complete_any`) or a manager of the workflow may
+ * take ownership (decideTaskAssignment), and acting on one directly takes
+ * ownership first (decideTaskAction → takesOwnership).
+ *
+ * Assigning (decideTaskAssignment): taking ownership or (re)assigning to a
+ * person or team — the current assignee when the step allows redirect
+ * (allow_reassign), anyone in the assignee's manager chain, a manager of the
+ * workflow, or a `tasks.complete_any` holder. Team tasks keep their claim
+ * rule (lib/services/home claimTask) for team members.
  *
  * Standard (non-workflow) tasks keep their earlier rules: the caller's
  * tasks.complete permission, and for user-bound credentials the task must be
@@ -49,6 +59,7 @@ export interface AuthzTask {
   deleted_at?: string | null
   workflow_id?: string | null
   workflow_run_id?: string | null
+  allow_reassign?: boolean | null
 }
 
 /** Facts about one actor and one task, loaded once (loadTaskActorFacts). */
@@ -70,7 +81,7 @@ export type TaskActMode = 'assignee' | 'on_behalf' | 'break_glass' | 'credential
 export type OnBehalfBasis = 'manager' | 'workflow_manager' | 'break_glass'
 
 export type TaskActDecision =
-  | { allowed: true; mode: TaskActMode; onBehalfOf: string | null; basis?: OnBehalfBasis | null }
+  | { allowed: true; mode: TaskActMode; onBehalfOf: string | null; basis?: OnBehalfBasis | null; takesOwnership?: boolean }
   | { allowed: false; status: 400 | 403 | 409; code: 'forbidden' | 'validation_error' | 'conflict'; message: string }
 
 export function isWorkflowTask(task: AuthzTask): boolean {
@@ -83,6 +94,67 @@ export function isClosedTask(task: AuthzTask): boolean {
 
 function hasPermission(permissions: ReadonlySet<string> | null, key: string) {
   return permissions === null || permissions.has(key)
+}
+
+/** Nobody is on the task: no individual assignee, no collaborators, no team. */
+export function isUnassignedTask(task: AuthzTask, facts: Pick<TaskActorFacts, 'assigneeIds'>): boolean {
+  return !task.assignee_id && !facts.assigneeIds.length && !task.assigned_team_id
+}
+
+/** May take an unassigned task: a tasks.complete_any holder (admin) or a manager of the workflow. */
+function unassignedTakeBasis(permissions: ReadonlySet<string> | null, facts: TaskActorFacts): AssignBasis | null {
+  if (hasPermission(permissions, COMPLETE_ANY_PERMISSION)) return 'admin'
+  if (facts.isWorkflowManager === true) return 'workflow_manager'
+  return null
+}
+
+/** Why someone may take or (re)assign a task. */
+export type AssignBasis = 'assignee' | 'manager' | 'workflow_manager' | 'admin'
+
+export type TaskAssignDecision =
+  | { allowed: true; basis: AssignBasis; unassigned: boolean }
+  | { allowed: false; status: 400 | 403 | 409; code: 'forbidden' | 'validation_error' | 'conflict'; message: string }
+
+/**
+ * Take ownership (`take`: assign to the actor) or (re)assign to someone
+ * else (`assign`), pure. Unassigned tasks: admins (tasks.complete_any) and
+ * managers of the workflow. Assigned tasks: the assignee when the step
+ * allows redirect (assign only), anyone in the assignee's manager chain, a
+ * manager of the workflow, or an admin. Team members claim team tasks
+ * through the claim rule instead.
+ */
+export function decideTaskAssignment(input: {
+  task: AuthzTask
+  actorId: string | null
+  permissions: ReadonlySet<string> | null
+  facts: TaskActorFacts
+  action: 'take' | 'assign'
+}): TaskAssignDecision {
+  const { task, actorId, permissions, facts, action } = input
+  if (!actorId) return { allowed: false, status: 403, code: 'forbidden', message: 'Forbidden: assigning a task needs a signed-in person' }
+  if (isClosedTask(task)) return { allowed: false, status: 409, code: 'conflict', message: 'This task is already closed' }
+  if (isUnassignedTask(task, facts)) {
+    const basis = unassignedTakeBasis(permissions, facts)
+    if (!basis) return { allowed: false, status: 403, code: 'forbidden', message: 'Forbidden: only an admin or a manager of the workflow can take or assign an unassigned task' }
+    return { allowed: true, basis, unassigned: true }
+  }
+  if (facts.isAssignee) {
+    if (action === 'take') {
+      if (task.assignee_id === actorId && facts.assigneeIds.length <= 1) return { allowed: false, status: 409, code: 'conflict', message: 'This task is already assigned to you' }
+    } else if (task.allow_reassign === true) {
+      return { allowed: true, basis: 'assignee', unassigned: false }
+    }
+    // An assignee without redirect may still be an admin.
+    if (hasPermission(permissions, COMPLETE_ANY_PERMISSION)) return { allowed: true, basis: 'admin', unassigned: false }
+    return { allowed: false, status: 403, code: 'forbidden', message: 'Redirect is not enabled for this task — ask your manager or an admin to reassign it' }
+  }
+  if (facts.managedAssigneeId) return { allowed: true, basis: 'manager', unassigned: false }
+  if (facts.isWorkflowManager === true) return { allowed: true, basis: 'workflow_manager', unassigned: false }
+  if (hasPermission(permissions, COMPLETE_ANY_PERMISSION)) return { allowed: true, basis: 'admin', unassigned: false }
+  if (facts.isTeamMember && action === 'take') {
+    return { allowed: false, status: 403, code: 'forbidden', message: 'This is a team task: claim it instead (members of the team can claim it)' }
+  }
+  return { allowed: false, status: 403, code: 'forbidden', message: 'Forbidden: only the assignee (when the task allows redirect), their manager, a manager of the workflow or an admin can reassign this task' }
 }
 
 /**
@@ -117,6 +189,12 @@ export function decideTaskAction(input: {
       allowed: false, status: 403, code: 'forbidden',
       message: `Forbidden: workflow tasks are actioned by their assignee. A credential with no user needs the '${COMPLETE_ANY_PERMISSION}' permission`,
     }
+  }
+
+  // Nobody is on the task: an admin / workflow manager acting on it takes ownership first.
+  if (isUnassignedTask(task, facts)) {
+    const basis = unassignedTakeBasis(permissions, facts)
+    if (basis) return { allowed: true, mode: 'assignee', onBehalfOf: null, takesOwnership: true }
   }
 
   const isOwnTask = facts.isAssignee || facts.isTeamMember
@@ -211,7 +289,7 @@ export async function taskWorkflowId(db: any, task: AuthzTask): Promise<string |
   return workflowId ? String(workflowId) : null
 }
 
-const AUTHZ_TASK_COLUMNS = 'id, tenant_id, status, is_workflow_task, event_id, assignee_id, assigned_team_id, assignment_mode, deleted_at, workflow_id, workflow_run_id'
+const AUTHZ_TASK_COLUMNS = 'id, tenant_id, status, is_workflow_task, event_id, assignee_id, assigned_team_id, assignment_mode, deleted_at, workflow_id, workflow_run_id, allow_reassign'
 
 export class TaskAuthzError extends Error {
   readonly status: 400 | 403 | 404 | 409
@@ -231,6 +309,8 @@ export interface AuthorizedTaskAction {
   note: string | null
   /** Why an on-behalf action was allowed (manager / workflow_manager / break_glass). */
   basis: OnBehalfBasis | null
+  /** An unassigned task an admin / workflow manager acts on: assign it to them first. */
+  takesOwnership?: boolean
 }
 
 /**
@@ -271,7 +351,28 @@ export async function authorizeTaskAction(db: any, params: {
   })
   if (!decision.allowed) throw new TaskAuthzError(decision.status, decision.code, decision.message)
   const note = typeof params.note === 'string' && params.note.trim() ? params.note.trim() : null
-  return { task, mode: decision.mode, onBehalfOf: decision.onBehalfOf, note, basis: decision.basis ?? null }
+  return { task, mode: decision.mode, onBehalfOf: decision.onBehalfOf, note, basis: decision.basis ?? null, ...(decision.takesOwnership ? { takesOwnership: true } : {}) }
+}
+
+/** Load the task and apply decideTaskAssignment (throws TaskAuthzError). */
+export async function authorizeTaskAssignment(db: any, params: {
+  tenantId: string
+  taskId: string
+  actorId: string | null
+  permissions: ReadonlySet<string> | null
+  action: 'take' | 'assign'
+  columns?: string
+}): Promise<{ task: AuthzTask & Record<string, any>; basis: AssignBasis; unassigned: boolean; facts: TaskActorFacts }> {
+  const columns = params.columns === '*' ? '*' : params.columns ? `${AUTHZ_TASK_COLUMNS}, ${params.columns}` : AUTHZ_TASK_COLUMNS
+  const { data: task, error } = await db.from('tasks').select(columns)
+    .eq('id', params.taskId).eq('tenant_id', params.tenantId).is('deleted_at', null).maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!task) throw new TaskAuthzError(404, 'not_found', 'Task not found')
+  // Workflow-manager status matters for unassigned tasks too (loadTaskActorFacts skips it only for own / managed tasks).
+  const facts = await loadTaskActorFacts(db, task, params.actorId)
+  const decision = decideTaskAssignment({ task, actorId: params.actorId, permissions: params.permissions, facts, action: params.action })
+  if (!decision.allowed) throw new TaskAuthzError(decision.status, decision.code, decision.message)
+  return { task, basis: decision.basis, unassigned: decision.unassigned, facts }
 }
 
 /**
@@ -340,6 +441,12 @@ export interface TaskAccessSummary {
   onBehalfOf: string | null
   /** Why on behalf is allowed (null for assignee / none). */
   basis?: OnBehalfBasis | null
+  /** Nobody is on the task. */
+  unassigned?: boolean
+  /** May take ownership (assign to themselves): decideTaskAssignment 'take'. */
+  canTakeOwnership?: boolean
+  /** May (re)assign to someone else as manager / workflow manager / admin (the assignee's own redirect stays on the redirect panel). */
+  canReassign?: boolean
 }
 
 /** What the task screen should offer the signed-in user (the server re-checks on every action). */
@@ -348,8 +455,16 @@ export async function describeTaskAccess(db: any, params: { tenantId: string; ta
     .eq('id', params.taskId).eq('tenant_id', params.tenantId).is('deleted_at', null).maybeSingle()
   if (!task) return null
   const facts = await loadTaskActorFacts(db, task, params.actorId)
-  const base = { workflowTask: isWorkflowTask(task), closed: isClosedTask(task) }
+  const unassigned = isUnassignedTask(task, facts)
+  const take = decideTaskAssignment({ task, actorId: params.actorId, permissions: params.permissions, facts, action: 'take' })
+  const assign = decideTaskAssignment({ task, actorId: params.actorId, permissions: params.permissions, facts, action: 'assign' })
+  const base = {
+    workflowTask: isWorkflowTask(task), closed: isClosedTask(task), unassigned,
+    canTakeOwnership: take.allowed, canReassign: assign.allowed && assign.basis !== 'assignee',
+  }
   if (facts.isAssignee || facts.isTeamMember) return { ...base, mode: 'assignee', onBehalfOf: null, basis: null }
+  // Unassigned: an admin / workflow manager acts directly (taking ownership); everyone else read-only.
+  if (unassigned) return { ...base, mode: take.allowed ? 'assignee' : 'none', onBehalfOf: null, basis: null }
   const target = facts.managedAssigneeId ?? facts.assigneeIds[0] ?? null
   if (facts.managedAssigneeId) return { ...base, mode: 'on_behalf', onBehalfOf: facts.managedAssigneeId, basis: 'manager' }
   if (target && facts.isWorkflowManager) return { ...base, mode: 'on_behalf', onBehalfOf: target, basis: 'workflow_manager' }

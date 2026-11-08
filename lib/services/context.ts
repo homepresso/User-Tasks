@@ -77,6 +77,8 @@ export interface ServiceContext {
   jobId?: string
   /** Anonymous form visitor (authKind 'anonymous'). */
   anonymous?: AnonymousScope
+  /** 'agent': made through the in-app Agent (audit metadata `agent: true`). */
+  via?: 'agent'
 }
 
 /** True for an anonymous form visitor's context. */
@@ -195,6 +197,7 @@ export function fromMcpContext(ctx: McpContext): ServiceContext {
     keyType: ctx.keyType,
     oauthScopes: ctx.oauthScopes,
     credentialOwnerId: ctx.credentialOwnerId ?? null,
+    ...(ctx.via === 'agent' ? { via: 'agent' as const } : {}),
   }
 }
 

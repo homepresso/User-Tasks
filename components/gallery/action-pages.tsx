@@ -62,7 +62,7 @@ export function ActionsTeaser({ limit = 6 }: { limit?: number }) {
         </SectionHeading>
         <Link href="/gallery/actions" className="inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] hover:underline">All {GALLERY_ACTIONS.length} actions <ArrowRight size={14} aria-hidden="true" /></Link>
       </div>
-      <ul className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {actions.map((a) => <li key={a.slug}><ActionCardView action={a} /></li>)}
       </ul>
     </div>

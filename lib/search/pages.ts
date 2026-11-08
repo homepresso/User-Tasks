@@ -74,6 +74,7 @@ export const PAGE_SHORTCUTS: PageShortcut[] = [
   { title: 'MCP access', href: '/settings/mcp', area: 'Settings', keywords: 'mcp model context protocol claude ai access' },
   { title: 'Live logs', href: '/settings/logs', area: 'Settings', keywords: 'logs live tail debug' },
   { title: 'Log export', href: '/settings/log-export', area: 'Settings', keywords: 'log export splunk datadog otlp siem' },
+  { title: 'Agent', href: '/settings/assistants', area: 'Settings', keywords: 'agent ai assistant chat openai claude anthropic grok xai gemini llm api key copilot', requires: ['assistants.manage'] },
   { title: 'Document OCR', href: '/settings/document-ocr', area: 'Settings', keywords: 'ocr scanned documents azure document intelligence tesseract key', requires: ['settings.view'] },
 ]
 

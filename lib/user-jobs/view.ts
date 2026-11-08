@@ -42,6 +42,7 @@ export function toJobView(row: UserJobRow, now = Date.now()): UserJobView {
     downloadable,
     download_url: downloadable ? jobDownloadPath(row.id) : null,
     cancellable: (row.status === 'queued' || row.status === 'running') && !row.cancel_requested_at,
-    retryable: row.status === 'failed' || row.status === 'cancelled',
+    // An Agent turn is asked again from the Agent panel, not re-run as a job.
+    retryable: (row.status === 'failed' || row.status === 'cancelled') && row.kind !== 'agent.turn',
   }
 }

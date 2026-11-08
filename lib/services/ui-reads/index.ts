@@ -2,6 +2,7 @@ import { hasPerm, isServiceError, type ServiceContext } from '../context'
 import type { UiRead } from './define'
 import { reads as activity } from './activity'
 import { reads as agents } from './agents'
+import { reads as assistants } from './assistants'
 import { reads as automations } from './automations'
 import { reads as data } from './data'
 import { reads as forms } from './forms'
@@ -22,6 +23,7 @@ import { reads as tasks } from './tasks'
 export const UI_READS = {
   ...activity,
   ...agents,
+  ...assistants,
   ...automations,
   ...data,
   ...forms,

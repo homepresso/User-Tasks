@@ -167,13 +167,46 @@ describe('automations reads: queries', () => {
     expect(data.compareRun).toMatchObject({ id: 'r1' })
   })
 
-  it('queue: status counts, jobs matched to runs, awaiting/paused counts', async () => {
-    const data = await run('automations.queue')
-    expect(data.counts).toEqual({ pending: 1, processing: 0, failed: 1, completed: 0, dead: 0 })
-    expect(data.jobs.map((j: any) => j.id)).toEqual(['q1', 'q2'])
+  it('queue (before the migration): newest items matched to runs, filtered here, Active by default', async () => {
+    const memory = db()
+    memory.rpc = vi.fn(async () => ({ data: null, error: { code: 'PGRST202', message: 'not found' } }))
+    const read = async (args?: unknown) => {
+      const r = await runUiRead(ctx(memory, ['workflows.view_runs']), { name: 'automations.queue', args })
+      expect(r).toMatchObject({ ok: true })
+      return (r as any).data
+    }
+    const active = await read()
+    // q1 is pending (active); q2 failed (needs attention).
+    expect(active.rows.map((j: any) => j.id)).toEqual(['q1'])
+    expect(active.viewCounts).toEqual({ active: 1, attention: 1, completed: 0, all: 2 })
+    expect(active.statusCounts).toEqual({ pending: 1, failed: 1 })
+    expect(active.partial).toBe(false)
+    const all = await read({ view: 'all' })
+    expect(all.rows.map((j: any) => j.id)).toEqual(['q1', 'q2'])
     // q1 started 3s after r2 → matched to it.
-    expect(data.jobs[0].result).toEqual({ run_id: 'r2' })
-    expect(Object.keys(data.runs).sort()).toEqual(['r1', 'r2', 'r3'])
+    expect(all.rows[0].result).toEqual({ run_id: 'r2' })
+    expect((await read({ view: 'attention' })).rows.map((j: any) => j.id)).toEqual(['q2'])
+  })
+
+  it('queue: filters, scope and paging go to the workflow_queue_list RPC', async () => {
+    const memory = db()
+    memory.rpc = vi.fn(async () => ({ data: { total: 41, rows: [{ id: 'q9' }], view_counts: { active: 41, attention: 2, completed: 7, all: 50 }, status_counts: { pending: 3 } }, error: null }))
+    const r: any = await runUiRead(ctx(memory, ['workflows.view_runs']), {
+      name: 'automations.queue',
+      args: { view: 'active', statuses: ['waiting', 'processing'], search: 'PO-1', triggers: ['form'], hasErrors: true, sort: 'started_at', dir: 'asc', page: 3, pageSize: 25 },
+    })
+    expect(r).toMatchObject({ ok: true, data: { total: 41, rows: [{ id: 'q9' }], page: 3, pageSize: 25, viewCounts: { active: 41, attention: 2, completed: 7, all: 50 }, partial: false } })
+    expect(memory.rpc).toHaveBeenCalledWith('workflow_queue_list', {
+      p_tenant_id: 'tenant-a',
+      p_filters: { view: 'active', statuses: ['waiting_for_event', 'processing', 'running'], search: 'PO-1', trigger_types: ['form_submitted', 'task_submitted'], has_errors: true },
+      p_scope: null,
+      p_sort: 'started_at', p_dir: 'asc', p_limit: 25, p_offset: 50,
+    })
+  })
+
+  it('queue: invalid arguments are refused', async () => {
+    expect(await runUiRead(ctx(db(), ['workflows.view_runs']), { name: 'automations.queue', args: { view: 'everything' } })).toMatchObject({ ok: false, status: 400 })
+    expect(await runUiRead(ctx(db(), ['workflows.view_runs']), { name: 'automations.queue', args: { workflowIds: ['not-a-uuid'] } })).toMatchObject({ ok: false, status: 400 })
   })
 
   it('definition nodes come from the run version, else the draft', async () => {

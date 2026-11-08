@@ -115,6 +115,11 @@ export const CONNECTOR_LOGO_SOURCES: Record<string, ConnectorLogoSource> = {
     sourceUrl: "https://groq.com/",
     sourceLabel: "Groq official site icon",
   },
+  xai: {
+    src: "https://x.ai/favicon.ico",
+    sourceUrl: "https://x.ai/",
+    sourceLabel: "xAI official site icon",
+  },
   jira: {
     src: "https://wac-cdn.atlassian.com/assets/img/favicons/atlassian/favicon.png",
     sourceUrl: "https://www.atlassian.com/software/jira",

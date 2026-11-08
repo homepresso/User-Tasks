@@ -589,9 +589,10 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 
 | Surface | Operations | Why |
 |---|---|---|
-| MCP | workflows_catalog, workflows_preflight, workflows_resolve_dependencies | prompt-authoring aids for agents (node catalog, dependency checks); REST/CLI users read the docs and get validation errors from create/update |
+| MCP | workflows_catalog, workflows_preflight, workflows_validate, workflows_resolve_dependencies | prompt-authoring aids for agents (node catalog, dependency and wiring checks); REST/CLI users read the docs and get validation errors and wiring warnings from create/update |
 | MCP | integrations_create_bundle | creates an integration and its references in one prompt step; REST/CLI do it with integrations create + references create, or config apply |
 | MCP | reports_query, reports_source_get, reports_remediate_config, data_rows_search | agent-oriented read helpers |
+| MCP | data_rows_create, data_rows_update (row_ids or capped filters), data_rows_bulk_delete filters | agent-oriented row helpers (the in-app Agent and MCP clients); REST / CLI create many with POST /data-tables/{id}/rows { rows } and update / delete by id |
 | MCP | integration_calls_*, agent_runs_*, trace_get | observability reads, not configuration |
 | CLI | config diff / new | folder helpers over POST /config/apply (dry run) and local scaffolding; config export / apply themselves are on every surface (MCP: config_export / config_apply, single-manifest form) |
 | CLI | tasks complete | ergonomic wrapper over POST /tasks/{id}/action |

@@ -19,6 +19,7 @@ import { invalidateDataTableTriggerCache } from '@/lib/data-table-workflow-trigg
 import { isPlainObject } from '@/lib/utils/guards'
 import { pinWorkflowForms } from './forms'
 import { pinWorkflowAgents } from '@/lib/agents/pins'
+import { workflowWiringWarnings } from './workflow-wiring'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow rows are untyped here */
 
@@ -238,6 +239,8 @@ export async function createWorkflow(ctx: ServiceContext, input: WorkflowWriteIn
   await syncChange(ctx, 'workflow', data)
 
   const published = input.publish ? await publishWorkflow(ctx, data.id, input.publish_notes) : null
+  // Wiring warnings (references that will be blank, ignored config keys): advisory, never block the save.
+  const warnings = await workflowWiringWarnings(ctx.supabase, ctx.tenantId, { nodes, edges, user_variables: input.user_variables })
   return {
     workflow_id: data.id as string,
     name,
@@ -246,6 +249,7 @@ export async function createWorkflow(ctx: ServiceContext, input: WorkflowWriteIn
     is_active: published ? true : Boolean(data.is_active),
     published: Boolean(published),
     ...(published ? { version_number: published.version_number, version_id: published.version_id } : {}),
+    warnings,
   }
 }
 
@@ -303,6 +307,12 @@ export async function updateWorkflow(ctx: ServiceContext, workflowId: string, in
   }
 
   const published = input.publish ? await publishWorkflow(ctx, workflowId, input.publish_notes) : null
+  // Wiring warnings for the saved draft (advisory, never block the save).
+  const warnings = await workflowWiringWarnings(ctx.supabase, ctx.tenantId, {
+    nodes: changes.nodes ?? before.nodes,
+    edges: changes.edges ?? before.edges,
+    user_variables: changes.user_variables ?? before.user_variables,
+  })
   return {
     workflow_id: workflowId,
     name: String(changes.name ?? before.name),
@@ -310,6 +320,7 @@ export async function updateWorkflow(ctx: ServiceContext, workflowId: string, in
     updated_fields: [...changedFields, ...(activeChange ? ['is_active'] : [])],
     published: Boolean(published),
     ...(published ? { version_number: published.version_number, version_id: published.version_id } : {}),
+    warnings,
   }
 }
 

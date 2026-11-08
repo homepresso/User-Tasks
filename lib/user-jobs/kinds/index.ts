@@ -7,6 +7,7 @@ import { instancesMigrateJob, queueBulkJob } from './workflows'
 import { directorySyncJob, syncWatchJob } from './sync'
 import { API_JOB_KINDS } from './api'
 import { formAccessibilityReportJob, formSubmissionsCsvJob } from './forms'
+import { agentTurnJob } from './agent'
 
 /** Every job kind, by name (lib/user-jobs/runner.ts looks kinds up here). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each kind has its own params type
@@ -32,6 +33,7 @@ export const JOB_KINDS: ReadonlyArray<JobKind<any>> = [
   queueBulkJob,
   syncWatchJob,
   directorySyncJob,
+  agentTurnJob,
   ...API_JOB_KINDS,
 ]
 
@@ -43,7 +45,7 @@ export function getJobKind(name: string): JobKind<any> | undefined {
   return BY_NAME.get(name)
 }
 
-/** Kinds the browser may start with startJobAction (the API variants start from their routes). */
+/** Kinds the browser may start with startJobAction (the API variants start from their routes; Agent turns from the chat route). */
 export function isUiJobKind(name: string): boolean {
-  return BY_NAME.has(name) && !name.startsWith('api.')
+  return BY_NAME.has(name) && !name.startsWith('api.') && name !== agentTurnJob.kind
 }

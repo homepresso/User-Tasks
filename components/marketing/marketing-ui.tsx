@@ -74,7 +74,7 @@ const NAV_ITEM = "whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium tex
 
 /**
  * Main navigation of every public page: Workflows, Forms, Documents, Media,
- * Integrations, Gallery, Deploy, Docs (GitHub from xl). Below lg a Menu
+ * Agent, Integrations, Gallery, Deploy, Docs (GitHub from xl). Below lg a Menu
  * button opens all of them plus Use cases and Contact; Docs and Sign in stay
  * visible at every width.
  */
@@ -85,6 +85,7 @@ export function SiteNav() {
     { href: "/forms", label: "Forms" },
     { href: "/documents", label: "Documents" },
     { href: "/media", label: "Media" },
+    { href: "/ai-assistants", label: "Agent" },
     { href: "/connectors", label: "Integrations" },
     { href: "/gallery", label: "Gallery" },
     { href: "/deploy-anywhere", label: "Deploy" },
@@ -101,6 +102,7 @@ export function SiteNav() {
         <Link href="/forms" className={`hidden lg:inline ${NAV_ITEM}`}>Forms</Link>
         <Link href="/documents" className={`hidden lg:inline ${NAV_ITEM}`}>Documents</Link>
         <Link href="/media" className={`hidden lg:inline ${NAV_ITEM}`}>Media</Link>
+        <Link href="/ai-assistants" className={`hidden lg:inline ${NAV_ITEM}`}>Agent</Link>
         <Link href="/connectors" className={`hidden lg:inline ${NAV_ITEM}`}>Integrations</Link>
         <Link href="/gallery" className={`hidden sm:inline ${NAV_ITEM}`}>Gallery</Link>
         <Link href="/deploy-anywhere" className={`hidden lg:inline ${NAV_ITEM}`}>Deploy</Link>
@@ -133,6 +135,7 @@ export function MarketingFooter() {
           <Link href="/forms" className="hover:text-(color:--mkt-ink)">Forms</Link>
           <Link href="/documents" className="hover:text-(color:--mkt-ink)">Documents</Link>
           <Link href="/media" className="hover:text-(color:--mkt-ink)">Media</Link>
+          <Link href="/ai-assistants" className="hover:text-(color:--mkt-ink)">Agent</Link>
           <Link href="/connectors" className="hover:text-(color:--mkt-ink)">Integrations</Link>
           <Link href="/use-cases" className="hover:text-(color:--mkt-ink)">Use cases</Link>
           <Link href="/gallery" className="hover:text-(color:--mkt-ink)">Package gallery</Link>

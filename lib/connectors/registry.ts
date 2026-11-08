@@ -151,6 +151,7 @@ import { onedriveConnector } from './definitions/onedrive'
 import { n8nConnector } from './definitions/n8n'
 import { sapOdataConnector } from './definitions/sap-odata'
 import { groqConnector } from './definitions/groq'
+import { xaiConnector } from './definitions/xai'
 import { mistralConnector } from './definitions/mistral'
 import { togetherConnector } from './definitions/together'
 import { perplexityConnector } from './definitions/perplexity'
@@ -175,6 +176,7 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
   claudeConnector,
   googleGeminiConnector,
   groqConnector,
+  xaiConnector,
   mistralConnector,
   togetherConnector,
   perplexityConnector,

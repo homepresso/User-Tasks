@@ -64,6 +64,14 @@ export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[
     ],
   },
   {
+    id: 'builtin_insert_data_many', type: 'builtin', name: 'insert_data_rows', category: 'data',
+    description: 'Insert several rows into a data table in one call (at most 100).',
+    inputSchema: [
+      { name: 'table_name', type: 'string', description: 'Name of the data table', required: true },
+      { name: 'rows', type: 'array', description: 'Array of JSON objects with column values, one per new row', required: true },
+    ],
+  },
+  {
     id: 'builtin_update_data', type: 'builtin', name: 'update_data_rows', category: 'data',
     description: 'Update rows in a data table matching a filter.',
     inputSchema: [

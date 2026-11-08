@@ -125,7 +125,7 @@ export function DataGrantsPanel({ value, tables, onChange }: {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-fg-muted">With an acting person, reads also need their data.view permission and writes data.manage_rows. Update and delete touch at most 100 matching rows per call; consider requiring approval for them (Settings → Approvals).</p>
+      <p className="text-xs text-fg-muted">With an acting person, reads also need their data.view permission and writes data.manage_rows. Update and delete touch at most 100 matching rows per call; consider requiring approval for them (Approvals, further down this Tools tab).</p>
     </div>
   )
 }

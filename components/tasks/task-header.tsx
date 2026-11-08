@@ -17,8 +17,10 @@ import {
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { reopenTask } from '@/app/actions/tasks'
 import { useRouter } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, RefreshCw, Check, Copy, MoreHorizontal, RotateCcw, Clock, Workflow } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { serverRead } from '@/lib/server-read'
+import { AssignTaskDialog } from './assign-task'
+import { ArrowUpRight, RefreshCw, Check, Copy, MoreHorizontal, RotateCcw, Clock, Workflow, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { usePermissions } from '@/lib/permissions-context'
 import { TaskOutcomeDialog, outcomeLabel } from './task-outcome-dialog'
@@ -133,6 +135,13 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
   const canRedirect = task.allow_reassign === true && ownsActions
   const canEscalate = task.allow_escalate !== false && ownsActions
   const availableTargets = (users ?? []).filter((user: any) => user.id !== currentUserId)
+  // Managers, workflow managers and admins reassign (lib/task-authz decideTaskAssignment; same query as the page).
+  const { data: access } = useQuery({
+    queryKey: ['task-act-access', task.id],
+    queryFn: async () => (await serverRead('tasks.actAccess', { taskId: task.id })).data ?? null,
+  })
+  const [assignOpen, setAssignOpen] = useState(false)
+  const canManagerReassign = access?.canReassign === true && !access.unassigned
   const code = getTaskCode({ id: task.id, tenant })
 
   async function copyId() {
@@ -243,6 +252,9 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
           {canRedirect && (
             <DropdownMenuItem icon={<RefreshCw />} onSelect={() => openPanel('redirect')}>Reassign…</DropdownMenuItem>
           )}
+          {!canRedirect && canManagerReassign && (
+            <DropdownMenuItem icon={<UserPlus />} onSelect={() => setAssignOpen(true)} data-task-manager-reassign>Reassign…</DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>
@@ -259,7 +271,7 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
 
   return (
     <div className="space-y-4">
-      {task.acceptance_status && task.acceptance_status !== 'accepted' && (
+      {task.acceptance_status && task.acceptance_status !== 'accepted' && !access?.unassigned && (
         <TaskAcceptanceBanner
           taskId={task.id}
           status={task.acceptance_status}
@@ -303,6 +315,9 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
       />
       {mobileActionsTarget && createPortal(actions, mobileActionsTarget)}
       {reopenError && <InlineNotice tone="danger">{reopenError}</InlineNotice>}
+      {canManagerReassign && (
+        <AssignTaskDialog taskIds={[task.id]} open={assignOpen} onOpenChange={setAssignOpen} currentAssignee={assigneeName ?? null} onDone={setRoutingMessage} />
+      )}
       {routingMessage && !actionPanel && <InlineNotice tone="success">{routingMessage}</InlineNotice>}
 
       {actionPanel && (

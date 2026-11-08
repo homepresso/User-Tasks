@@ -237,12 +237,24 @@ export const getWorkflowDefinitionEndpoint = defineEndpoint({
   cli: { resource: 'workflows', verb: 'definition', positional: ['id'] },
 })
 
+/** Wiring warnings (lib/workflow-wiring.ts): saved anyway, fix them so the run does not read blanks. */
+const workflowWarnings = z.array(z.looseObject({
+  node_id: z.string(),
+  node_label: z.string(),
+  kind: z.enum(['reference', 'config_key', 'syntax', 'prefill', 'unassigned', 'assigned_for_testing']),
+  severity: z.enum(['warning', 'info']).optional().describe('info: a note that needs no fix (assigned_for_testing); warnings otherwise'),
+  message: z.string(),
+  suggestion: z.string().optional().describe('What to write instead: an expression such as {{form.full_name}}, or a config key'),
+  reference: z.string().optional(),
+  key: z.string().optional().describe('Where in the node config'),
+})).describe('Advisory wiring warnings: references that will be blank at run time (e.g. {{full_name}} after a Form submitted trigger — use {{form.full_name}}), config keys the engine ignores, and User Tasks with no assignee (kind unassigned: the task would sit in the queue with nobody assigned). They never block the save.')
+
 export const updateWorkflowDefinitionEndpoint = defineEndpoint({
   method: 'PATCH', path: '/workflows/{id}', operationId: 'updateWorkflowDefinition', tags,
   summary: 'Save draft changes to a workflow (publish separately, or with publish: true)',
-  description: 'Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published.',
+  description: 'Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. `warnings` lists wiring problems in the saved draft (references that will be blank, ignored config keys) with suggestions; they never block the save.',
   permission: 'workflows.edit', params: idParams, body: workflowDefinitionUpdateBody,
-  response: z.looseObject({ workflow_id: z.string(), changed: z.boolean(), updated_fields: z.array(z.string()), published: z.boolean() }),
+  response: z.looseObject({ workflow_id: z.string(), changed: z.boolean(), updated_fields: z.array(z.string()), published: z.boolean(), warnings: workflowWarnings }),
   roundTrip: { normalize: unwrapWorkflowBody },
   cli: { resource: 'workflows', verb: 'update', positional: ['id'] },
 })
@@ -258,9 +270,9 @@ export const publishWorkflowEndpoint = defineEndpoint({
 export const createWorkflowEndpoint = defineEndpoint({
   method: 'POST', path: '/workflows', operationId: 'createWorkflow', tags,
   summary: 'Create a workflow from nodes and edges', permission: 'workflows.edit',
-  description: 'workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy.',
+  description: 'workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. `warnings` lists wiring problems (references that will be blank, ignored config keys) with suggestions; they never block the save.',
   body: workflowAuthorCreateBody, successStatus: 201,
-  response: z.looseObject({ workflow_id: z.string(), name: z.string(), published: z.boolean() }),
+  response: z.looseObject({ workflow_id: z.string(), name: z.string(), published: z.boolean(), warnings: workflowWarnings }),
   roundTrip: { normalize: unwrapWorkflowBody },
   cli: { resource: 'workflows', verb: 'create' },
 })

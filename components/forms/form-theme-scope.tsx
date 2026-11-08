@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useWorkspaceTheme } from '@/components/providers/theme-provider'
-import { formHeaderColors, formThemeFontHref, formThemeVars, paletteScopeVars, type FormThemeOverrides } from '@/lib/forms/form-theme'
+import { useOsDark, useWorkspaceTheme } from '@/components/providers/theme-provider'
+import { formAppearanceMode, formHeaderColors, formThemeFontHref, formThemeVars, paletteScopeVars, type FormThemeOverrides } from '@/lib/forms/form-theme'
 import { normalizeFormWidth } from '@/lib/forms/form-width'
 import { resolveStorageUrl } from '@/lib/storage/refs'
 import { isDarkColor } from '@/lib/theme/colors'
@@ -15,8 +15,12 @@ import { motionLevel, type ResolvedFormAnimation } from '@/lib/forms/motion'
  * Wraps a form in its mini theme: the overrides laid onto the workspace
  * palette for the viewer's light/dark mode (made legible by the theme
  * renderer) as CSS custom properties on this element, the theme font and the
- * optional header. `mode` forces a palette (the designer's preview toggle).
- * Without overrides it renders a plain wrapper — the workspace theme.
+ * optional header. `mode` forces a palette (the designer's preview toggle);
+ * otherwise the theme's `appearance` picks it (formAppearanceMode). The
+ * heading font, button shape and field style are attributes + variables the
+ * form-theme rules in app/globals.css read; the shadow level is a fixed
+ * box-shadow from FORM_SHADOWS. Without overrides it renders a plain
+ * wrapper — the workspace theme.
  */
 export function FormThemeScope({ overrides, mode, className, children, card = true, page = false, motion }: {
   overrides: FormThemeOverrides | null | undefined
@@ -36,20 +40,22 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
   page?: boolean | 'viewport'
 }) {
   const { theme, mode: appMode } = useWorkspaceTheme()
-  const active = mode ?? appMode
-  // A forced mode other than the viewer's (designer preview) also needs the workspace palette of that mode.
+  const osDark = useOsDark()
+  const active = mode ?? formAppearanceMode(overrides, appMode, osDark)
+  // A mode other than the viewer's (designer preview, the theme's appearance) also needs the workspace palette of that mode.
   const vars = useMemo(() => ({
-    ...(mode && mode !== appMode ? paletteScopeVars(theme.colors[mode]) : {}),
+    ...(active !== appMode ? paletteScopeVars(theme.colors[active]) : {}),
     ...formThemeVars(overrides, theme.colors[active], active),
-  }), [overrides, theme, active, mode, appMode])
+  }), [overrides, theme, active, appMode])
   const fontHref = formThemeFontHref(overrides)
   const header = overrides?.header?.enabled ? overrides.header : null
   const banner = formHeaderColors(overrides)
   const logo = header?.logo_url ? resolveStorageUrl(header.logo_url) : null
   const themed = Boolean(overrides) || Boolean(mode) || Boolean(page)
+  const shadow = vars['--form-card-shadow']
   // Native controls (date pickers, select menus, scrollbars) follow the form's own light / dark.
   const cardBg = vars['--theme-card-bg']
-  const colorScheme = cardBg ? (isDarkColor(cardBg) ? 'dark' : 'light') : mode
+  const colorScheme = cardBg ? (isDarkColor(cardBg) ? 'dark' : 'light') : active !== appMode ? active : mode
   // Form width (lib/forms/form-width.ts): narrow caps the scope here; wide / full widen the surface's container.
   const width = normalizeFormWidth(overrides?.form_width)
   const narrow = width === 'narrow' ? 'mx-auto w-full max-w-xl' : null
@@ -65,6 +71,10 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
       data-form-width={width}
       data-form-density={overrides?.density ?? 'comfortable'}
       data-form-font={overrides?.font ? '' : undefined}
+      data-form-heading-font={overrides?.heading_font ? '' : undefined}
+      data-form-button-shape={overrides?.button_shape}
+      data-form-field-style={overrides?.field_style && overrides.field_style !== 'outlined' ? overrides.field_style : undefined}
+      data-form-mode={active}
       {...motionProps}
       style={{
         ...vars,
@@ -75,6 +85,7 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
           // The card's hairline is the subtle border (in a themed scope the surface border is the 3:1 input border).
           borderColor: 'var(--ds-border-subtle)',
           borderRadius: 'var(--theme-border-radius)',
+          ...(shadow ? { boxShadow: shadow } : {}),
         } : {}),
         ...(overrides?.font ? { fontFamily: 'var(--theme-font-sans)' } : {}),
       } as React.CSSProperties}
@@ -91,7 +102,7 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
             <img src={logo} alt="" className="h-8 w-auto max-w-[120px] object-contain" />
           )}
           <div className="min-w-0">
-            {header.title && <p className="text-base font-semibold leading-tight">{header.title}</p>}
+            {header.title && <p className="text-base font-semibold leading-tight" data-form-heading>{header.title}</p>}
             {header.subtitle && <p className="text-xs opacity-90 mt-0.5">{header.subtitle}</p>}
           </div>
         </div>
@@ -123,7 +134,8 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
  */
 export function useFormPageCanvas(overrides: FormThemeOverrides | null | undefined, mode?: ThemeMode): React.CSSProperties | null {
   const { theme, mode: appMode } = useWorkspaceTheme()
-  const active = mode ?? appMode
+  const osDark = useOsDark()
+  const active = mode ?? formAppearanceMode(overrides, appMode, osDark)
   return useMemo(() => {
     const vars = formThemeVars(overrides, theme.colors[active], active)
     if (!vars['--form-page-bg']) return null

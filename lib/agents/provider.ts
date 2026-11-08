@@ -20,6 +20,7 @@
  *   groq          https://api.groq.com/openai/v1/chat/completions        Bearer
  *   together      https://api.together.xyz/v1/chat/completions           Bearer
  *   perplexity    https://api.perplexity.ai/chat/completions             Bearer
+ *   xai           https://api.x.ai/v1/chat/completions                   Bearer
  *   ollama        {base}/v1/chat/completions                             none (or Bearer when a key is set)
  *   other         {base_url}/chat/completions (unchanged behaviour)      Bearer when a key is set
  *
@@ -30,7 +31,7 @@
 
 export type AgentProviderKind =
   | 'openai' | 'anthropic' | 'azure_openai' | 'gemini' | 'bedrock' | 'mistral'
-  | 'deepseek' | 'groq' | 'together' | 'perplexity' | 'ollama' | 'other'
+  | 'deepseek' | 'groq' | 'together' | 'perplexity' | 'xai' | 'ollama' | 'other'
 
 /** Integration types (connector keys) that are AI providers usable by agents. */
 export const AI_PROVIDER_TYPES: Record<string, AgentProviderKind> = {
@@ -47,6 +48,8 @@ export const AI_PROVIDER_TYPES: Record<string, AgentProviderKind> = {
   groq: 'groq',
   together: 'together',
   perplexity: 'perplexity',
+  xai: 'xai',
+  grok: 'xai',
   ollama: 'ollama',
   openai_compatible: 'other',
 }
@@ -63,6 +66,7 @@ const DEFAULT_PATH: Record<AgentProviderKind, string> = {
   groq: '/openai/v1',
   together: '/v1',
   perplexity: '',
+  xai: '/v1',
   ollama: '/v1',
   other: '',
 }
@@ -76,6 +80,7 @@ export const DEFAULT_MODEL: Partial<Record<AgentProviderKind, string>> = {
   deepseek: 'deepseek-chat',
   groq: 'llama-3.3-70b-versatile',
   perplexity: 'sonar-pro',
+  xai: 'grok-4',
   ollama: 'llama3.1',
 }
 
@@ -95,6 +100,7 @@ export function agentProviderKind(integrationType: string | null | undefined, ba
   if (host === 'api.groq.com') return 'groq'
   if (host === 'api.together.xyz') return 'together'
   if (host === 'api.perplexity.ai') return 'perplexity'
+  if (host === 'api.x.ai') return 'xai'
   return byType ?? 'other'
 }
 
@@ -192,7 +198,7 @@ export function chatBodyParams(kind: AgentProviderKind, model: string, opts: { m
 export function providerFileSupport(kind: AgentProviderKind): { images: boolean; pdf: boolean } {
   switch (kind) {
     case 'openai': return { images: true, pdf: true }
-    case 'azure_openai': case 'anthropic': case 'gemini': case 'bedrock': case 'mistral': case 'ollama':
+    case 'azure_openai': case 'anthropic': case 'gemini': case 'bedrock': case 'mistral': case 'xai': case 'ollama':
       return { images: true, pdf: false }
     default: return { images: false, pdf: false }
   }

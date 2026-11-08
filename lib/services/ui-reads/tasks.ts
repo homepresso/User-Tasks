@@ -496,6 +496,27 @@ export const reads = {
     run: async (ctx, args) => (await import('../team-hierarchy')).getTeamHierarchy(ctx, { root: args?.root ?? null, search: args?.search ?? null }),
   }),
 
+  /** People (active members) and teams a task can be assigned to (Take ownership / Assign to… / Active tasks). */
+  'tasks.assignTargets': defineRead({
+    args: NO_ARGS,
+    perm: TASK_OR_QUEUE_VIEW,
+    run: async (ctx) => {
+      const [{ serviceRoleClient }] = await Promise.all([import('../_shared')])
+      const db = await serviceRoleClient(ctx) as any
+      const [members, teams] = await Promise.all([
+        db.from('user_memberships').select('user_id').eq('tenant_id', ctx.tenantId).eq('is_active', true).limit(2000),
+        db.from('teams').select('id, name').eq('tenant_id', ctx.tenantId).order('name').limit(500),
+      ])
+      const ids = ((members.data ?? []) as any[]).map((m) => String(m.user_id))
+      const { data: users } = ids.length ? await db.from('users').select('id, display_name, email').in('id', ids).is('deleted_at', null) : { data: [] }
+      return {
+        users: ((users ?? []) as any[]).map((u) => ({ id: String(u.id), name: String(u.display_name || u.email || 'Someone'), email: u.email ?? null }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        teams: ((teams.data ?? []) as any[]).map((t) => ({ id: String(t.id), name: String(t.name ?? 'Team') })),
+      }
+    },
+  }),
+
   /** Task screen: may the signed-in user action this task (assignee, on behalf, or not)? */
   'tasks.actAccess': defineRead({
     args: z.object({ taskId: id }),

@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   calculateDelay, canonicalDelay, formatDatePattern, handleDateMath, handleFormatDate,
-  handleJsonBuildArray, handleModifyString,
+  handleJsonBuildArray, handleModifyString, canonicalDataFilterOperator, DATA_FILTER_OPERATORS,
 } from '@/lib/workflow-node-handlers'
 import { canonicalizeNodeConfigShapes, normalizeScaffoldWorkflow } from '@/lib/portability/normalize'
 import { __testing } from '@/lib/workflow-engine'
@@ -112,5 +112,82 @@ describe('manual start node', () => {
     expect(c.nodeResults.t.output?.skipped).toBeUndefined()
     expect(c.variables.v).toBe('ok')
     expect(JSON.stringify(c.logs)).not.toContain('Unknown node type')
+  })
+})
+
+describe('update_data_table aliases', () => {
+  /** A recording Supabase stub: every builder call is logged; inserts return row-1. */
+  function makeCtx(variables: Record<string, unknown> = {}) {
+    const calls: Array<[string, ...unknown[]]> = []
+    const b: any = {}
+    for (const m of ['update', 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'is', 'not', 'select', 'order', 'limit', 'range', 'in', 'insert']) {
+      b[m] = (...args: unknown[]) => { calls.push([m, ...args]); return b }
+    }
+    b.maybeSingle = async () => ({ data: null, error: null })
+    b.single = async () => ({ data: { id: 'row-1' }, error: null })
+    b.then = (res: any) => Promise.resolve({ data: [], error: null }).then(res)
+    const c = {
+      supabase: { from: () => b, rpc: async () => ({ data: null, error: null }) }, tenantId: 'tenant-1', taskId: null, variables, liveBindings: {},
+      nodeResults: {} as Record<string, any>, executedNodes: new Set<string>(), executionTrace: [], logs: [] as any[], onEvent: () => {},
+    } as any
+    return { c, calls }
+  }
+  const node = (config: Record<string, unknown>) => ({ id: 'd', type: 'update_data_table', label: 'Save row', position: { x: 0, y: 0 }, config }) as any
+
+  it('insert: output_var names the row id variable', async () => {
+    const { c } = makeCtx()
+    const n = node({ table_id: 't1', operation: 'insert', column_values: { name: 'Ada' }, output_var: 'temp_row_id' })
+    await __testing.executeNode(n, [n], [], c)
+    expect(c.variables.temp_row_id).toBe('row-1')
+  })
+
+  it('insert: output_row_id_var wins over output_var', async () => {
+    const { c } = makeCtx()
+    const n = node({ table_id: 't1', operation: 'insert', column_values: { name: 'Ada' }, output_row_id_var: 'rid', output_var: 'other' })
+    await __testing.executeNode(n, [n], [], c)
+    expect(c.variables.rid).toBe('row-1')
+    expect(c.variables.other).toBeUndefined()
+  })
+
+  it('list: "equals" / "==" / "contains" filters apply as eq / eq / ilike', async () => {
+    const { c, calls } = makeCtx({ order_no: 'A-1' })
+    const n = node({
+      table_id: 't1', operation: 'list',
+      filters: [
+        { column: 'order_no', operator: 'equals', value: '{{order_no}}' },
+        { column: 'tier', operator: '==', value: 'gold' },
+        { column: 'name', operator: 'contains', value: 'ad' },
+        { column: 'note', operator: 'Not_Equals', value: 'x' },
+        { column: 'sku', operator: 'starts_with', value: 'AB' },
+      ],
+    })
+    await __testing.executeNode(n, [n], [], c)
+    expect(calls).toContainEqual(['eq', 'data->>order_no', 'A-1'])
+    expect(calls).toContainEqual(['eq', 'data->>tier', 'gold'])
+    expect(calls).toContainEqual(['ilike', 'data->>name', '%ad%'])
+    expect(calls).toContainEqual(['neq', 'data->>note', 'x'])
+    expect(calls).toContainEqual(['ilike', 'data->>sku', 'AB%'])
+  })
+
+  it('canonicalDataFilterOperator', () => {
+    expect(canonicalDataFilterOperator('equals')).toBe('eq')
+    expect(canonicalDataFilterOperator('EQ')).toBe('eq')
+    expect(canonicalDataFilterOperator('!=')).toBe('neq')
+    expect(canonicalDataFilterOperator('is_empty')).toBe('is_null')
+    expect(canonicalDataFilterOperator('not_empty')).toBe('not_null')
+    expect(canonicalDataFilterOperator('>=')).toBe('gte')
+    expect(canonicalDataFilterOperator('bogus')).toBe('bogus')
+    for (const op of DATA_FILTER_OPERATORS) expect(canonicalDataFilterOperator(op)).toBe(op)
+  })
+
+  it('the normaliser canonicalises output_var and filter operators', () => {
+    expect(canonicalizeNodeConfigShapes('update_data_table', { operation: 'insert', output_var: 'temp_row_id' }))
+      .toEqual({ operation: 'insert', output_row_id_var: 'temp_row_id' })
+    expect(canonicalizeNodeConfigShapes('update_data_table', { output_var: 'a', output_row_id_var: 'b' }))
+      .toEqual({ output_var: 'a', output_row_id_var: 'b' })
+    expect(canonicalizeNodeConfigShapes('update_data_table', { operation: 'list', filters: [{ column: 'a', operator: 'equals', value: 1 }, { column: 'b', operator: 'lte', value: 2 }] }))
+      .toEqual({ operation: 'list', filters: [{ column: 'a', operator: 'eq', value: 1 }, { column: 'b', operator: 'lte', value: 2 }] })
+    // Other steps' output_var is untouched.
+    expect(canonicalizeNodeConfigShapes('math', { expression: '1', output_var: 'x' })).toEqual({ expression: '1', output_var: 'x' })
   })
 })

@@ -2,6 +2,7 @@ import { applyAuthHeaders } from '@/lib/integrations/attach-auth'
 import { connectorFetch } from '@/lib/integrations/http'
 import { mintFromRefreshToken } from '@/lib/integrations/token-mint'
 import { decryptSensitiveFields } from '@/lib/secret-fields'
+import { isTeamsWebhookUrl } from './definitions/ms-teams'
 import { SALESFORCE_DEFAULT_API_VERSION } from './definitions/salesforce'
 import { getConnectorDefinition } from './registry'
 
@@ -107,6 +108,41 @@ async function performProbe(
     headers,
     body: request.body,
   }, { timeoutMs: TEST_TIMEOUT_MS, maxAttempts: 1 })
+}
+
+/**
+ * The URL a connection test reaches: the integration's base_url, or — like
+ * the reference executor — the (secret) webhook URL kept in
+ * auth_config.webhook_url when base_url is intentionally empty (Teams
+ * Workflows webhooks).
+ */
+export function resolveConnectorProbeUrl(integrationConfig: { base_url?: unknown; auth_config?: Record<string, any> | null }): { url: string; fromWebhook: boolean } {
+  const base = typeof integrationConfig?.base_url === 'string' ? integrationConfig.base_url.trim() : ''
+  if (base) return { url: base, fromWebhook: false }
+  const webhook = integrationConfig?.auth_config?.webhook_url
+  if (typeof webhook === 'string' && webhook.trim()) return { url: webhook.trim(), fromWebhook: true }
+  return { url: '', fromWebhook: false }
+}
+
+/**
+ * Teams Workflows webhooks have no read-only endpoint: any request that
+ * passes the signature check runs the flow and posts to the channel. So the
+ * test checks the URL shape (Workflows / Logic Apps host, signed) without
+ * posting anything; the Send Channel Message reference posts a real card.
+ */
+function probeTeamsWebhook(integrationConfig: IntegrationConfig): ConnectorProbeResult {
+  const { url } = resolveConnectorProbeUrl(integrationConfig)
+  if (!url) return { ok: false, message: 'The Workflows webhook URL is missing.' }
+  if (!isTeamsWebhookUrl(url)) {
+    return { ok: false, message: 'That is not a Teams Workflows webhook URL (expected https://…logic.azure.com/… or …powerplatform.com/…).' }
+  }
+  if (/\.webhook\.office\.com/i.test(new URL(url).hostname)) {
+    return { ok: false, message: 'Classic Office 365 connector webhooks (webhook.office.com) were retired by Microsoft in May 2026 — create a Workflows webhook in Teams instead.' }
+  }
+  if (!new URL(url).searchParams.get('sig')) {
+    return { ok: false, message: 'The webhook URL is missing its signature (sig=…) — copy the full URL from the Teams Workflows step.' }
+  }
+  return { ok: true, message: 'Workflows webhook URL looks valid. Nothing was posted — run Send Channel Message to post a test card to the channel.' }
 }
 
 function buildStandardMessage(serviceName: string, resp: Response) {
@@ -425,13 +461,14 @@ const MODELS_PATH: Record<string, string> = {
   openai: '/v1/models',
   deepseek: '/models',
   groq: '/openai/v1/models',
+  xai: '/v1/models',
   mistral: '/v1/models',
   together: '/v1/models',
   ollama: '/v1/models',
 }
 
 const AI_NAMES: Record<string, string> = {
-  openai: 'OpenAI', deepseek: 'DeepSeek', groq: 'Groq', mistral: 'Mistral', together: 'Together AI', ollama: 'Ollama', claude: 'Anthropic', perplexity: 'Perplexity',
+  openai: 'OpenAI', deepseek: 'DeepSeek', groq: 'Groq', xai: 'xAI', mistral: 'Mistral', together: 'Together AI', ollama: 'Ollama', claude: 'Anthropic', perplexity: 'Perplexity',
 }
 
 async function probeAiModels(connectorKey: string, integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
@@ -534,6 +571,8 @@ export async function runConnectorProbe(
   const { isEsignConnector } = await import('@/lib/esign/catalog')
   if (isEsignConnector(connectorKey)) return probeEsign(connectorKey, integrationConfig, config, credentials)
   switch (connectorKey) {
+    case 'ms_teams':
+      return probeTeamsWebhook(integrationConfig)
     case 'slack':
       return probeSlack(integrationConfig, credentials)
     case 'n8n':
@@ -584,6 +623,7 @@ export async function runConnectorProbe(
     case 'claude':
     case 'deepseek':
     case 'groq':
+    case 'xai':
     case 'mistral':
     case 'together':
     case 'ollama':

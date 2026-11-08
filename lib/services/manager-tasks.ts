@@ -331,8 +331,9 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
 
 /**
  * Reassign a report's open task to another of the caller's reports or to
- * the caller (tasks.assign). Workflow tasks keep their step's rule: only
- * when the step allows redirect (allow_reassign).
+ * the caller (tasks.assign). A manager in the assignee's chain can always
+ * reassign, workflow tasks included: the step's redirect setting
+ * (allow_reassign) only governs the assignee redirecting their own task.
  */
 export async function reassignReportTask(ctx: ServiceContext, taskId: string, input: { target_user_id: string; comment?: string | null }, options: { index?: ReportingIndex } = {}) {
   requirePerm(ctx, 'tasks.assign')
@@ -355,9 +356,6 @@ export async function reassignReportTask(ctx: ServiceContext, taskId: string, in
     throw ServiceError.validation('Reassign to yourself or to one of your reports')
   }
   if (target === task.assignee_id) throw ServiceError.validation('The task is already assigned to that person')
-  if (task.is_workflow_task && task.event_id && task.allow_reassign !== true) {
-    throw ServiceError.conflict('This workflow step does not allow reassigning its task')
-  }
   await requireMember(db, ctx.tenantId, target)
 
   const { error: updateError } = await (db as any).from('tasks')

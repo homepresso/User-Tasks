@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/forms`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/documents`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/media`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${baseUrl}/ai-assistants`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/deploy-anywhere`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/use-cases`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     ...USE_CASES.map((useCase) => ({ url: `${baseUrl}/use-cases/${useCase.slug}`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.85 })),

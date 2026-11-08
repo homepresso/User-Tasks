@@ -624,9 +624,10 @@ export const SURFACE_PARITY: SurfaceResource[] = [
 
 /** Workflow-adjacent operations that live on one surface only, on purpose. */
 export const SURFACE_ONLY_NOTES: ReadonlyArray<{ surface: 'REST' | 'MCP' | 'CLI'; what: string; why: string }> = [
-  { surface: 'MCP', what: 'workflows_catalog, workflows_preflight, workflows_resolve_dependencies', why: 'prompt-authoring aids for agents (node catalog, dependency checks); REST/CLI users read the docs and get validation errors from create/update' },
+  { surface: 'MCP', what: 'workflows_catalog, workflows_preflight, workflows_validate, workflows_resolve_dependencies', why: 'prompt-authoring aids for agents (node catalog, dependency and wiring checks); REST/CLI users read the docs and get validation errors and wiring warnings from create/update' },
   { surface: 'MCP', what: 'integrations_create_bundle', why: 'creates an integration and its references in one prompt step; REST/CLI do it with integrations create + references create, or config apply' },
   { surface: 'MCP', what: 'reports_query, reports_source_get, reports_remediate_config, data_rows_search', why: 'agent-oriented read helpers' },
+  { surface: 'MCP', what: 'data_rows_create, data_rows_update (row_ids or capped filters), data_rows_bulk_delete filters', why: 'agent-oriented row helpers (the in-app Agent and MCP clients); REST / CLI create many with POST /data-tables/{id}/rows { rows } and update / delete by id' },
   { surface: 'MCP', what: 'integration_calls_*, agent_runs_*, trace_get', why: 'observability reads, not configuration' },
   { surface: 'CLI', what: 'config diff / new', why: 'folder helpers over POST /config/apply (dry run) and local scaffolding; config export / apply themselves are on every surface (MCP: config_export / config_apply, single-manifest form)' },
   { surface: 'CLI', what: 'tasks complete', why: 'ergonomic wrapper over POST /tasks/{id}/action' },

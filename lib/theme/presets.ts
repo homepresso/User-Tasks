@@ -336,3 +336,15 @@ export function presetToWorkspaceTheme(id: string): WorkspaceTheme | null {
 export function defaultWorkspaceTheme(): WorkspaceTheme {
   return presetToWorkspaceTheme(DEFAULT_THEME_PRESET_ID)!
 }
+
+/** Elevation presets of the theme designer (Shape & elevation), also listed by the Agent's theme reference. */
+export const WORKSPACE_SHADOW_PRESETS: Array<{ id: string; label: string; value: WorkspaceTheme['shadows'] }> = [
+  { id: 'none', label: 'Flat', value: { sm: 'none', md: 'none', lg: 'none', xl: 'none', card: 'none' } },
+  { id: 'soft', label: 'Soft', value: DEFAULT_SHADOWS },
+  { id: 'crisp', label: 'Crisp', value: {
+    sm: '0 1px 0 rgba(0,0,0,0.08)', md: '0 1px 2px rgba(0,0,0,0.12)', lg: '0 2px 4px rgba(0,0,0,0.14)', xl: '0 4px 8px rgba(0,0,0,0.16)', card: '0 1px 0 rgba(0,0,0,0.08)',
+  } },
+  { id: 'deep', label: 'Deep', value: {
+    sm: '0 2px 4px rgba(0,0,0,0.08)', md: '0 6px 16px rgba(0,0,0,0.12)', lg: '0 16px 40px rgba(0,0,0,0.16)', xl: '0 28px 64px rgba(0,0,0,0.22)', card: '0 6px 16px rgba(0,0,0,0.10)',
+  } },
+]

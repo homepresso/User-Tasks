@@ -50,6 +50,7 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
   const link = readNodeFormLink(node.config)
   const [designerOpen, setDesignerOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [showAllPrefill, setShowAllPrefill] = useState(false)
   const prefix = variant === 'user_task' ? 'task_data' : 'task.data'
 
   const { data: linkedForm } = useQuery({
@@ -115,6 +116,11 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
   }
 
   const fields = valueFields(def.fields)
+  // Fields a step can prefill (field_values): read-only ones first — they are blank without a value.
+  const prefillable = fields.filter((f) => f.type !== 'label' && f.type !== 'button')
+    .sort((a, b) => Number(Boolean(b.read_only)) - Number(Boolean(a.read_only)))
+  // Editable fields without a prefill stay behind "Prefill other fields" (the assignee fills them).
+  const hiddenPrefill = showAllPrefill ? 0 : prefillable.filter((f) => !f.read_only && !String((node.config?.field_values ?? {})[f.key] ?? '')).length
   const initialForDesigner: FormDefinition = link && linkedForm ? normalizeFormDefinition({ fields: linkedForm.fields, layout: linkedForm.layout, theme: linkedForm.theme, buttons: (linkedForm as { buttons?: unknown }).buttons, header: (linkedForm as { header?: unknown }).header }) : def
 
   return (
@@ -191,6 +197,41 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
                 }} />
             </div>
           ))}
+        </div>
+      )}
+
+      {variant === 'user_task' && prefillable.length > 0 && (
+        <div className="space-y-1.5 rounded-lg border px-2.5 py-2 border-border" data-testid="task-field-values">
+          <p className="text-2xs font-semibold">Prefill form fields</p>
+          <p className="text-2xs text-fg-muted">
+            Values the task opens with, resolved when it is created — e.g. <code className="text-primary-text">{'{{form.full_name}}'}</code>. They replace a field&rsquo;s default on this step only{link ? '; the saved form is not changed' : ''}. Read-only fields stay read-only.
+          </p>
+          {prefillable.filter((field) => showAllPrefill || field.read_only || String((node.config?.field_values ?? {})[field.key] ?? '')).map((field) => {
+            const current = String((node.config?.field_values ?? {})[field.key] ?? '')
+            const unsourced = field.read_only && !current && !String(field.default ?? '').trim()
+            return (
+              <div key={field.key} data-prefill-field={field.key}>
+                <p className="text-2xs font-medium">
+                  {field.label || field.key}
+                  {field.read_only && <span className="font-normal text-fg-muted"> · read-only</span>}
+                  {' '}<span className="font-mono font-normal opacity-70">{field.key}</span>
+                  {unsourced && <span className="font-normal text-warning"> · blank without a value</span>}
+                </p>
+                <VariableInput value={current} placeholder={field.default ? `Default: ${field.default}` : '{{variable}} or a value'}
+                  onChange={(v) => {
+                    const next: Record<string, string> = { ...(node.config?.field_values ?? {}) }
+                    if (v) next[field.key] = v
+                    else delete next[field.key]
+                    onPatch({ field_values: Object.keys(next).length ? next : undefined })
+                  }} />
+              </div>
+            )
+          })}
+          {hiddenPrefill > 0 && (
+            <button type="button" className="text-2xs font-medium text-primary-text hover:underline" onClick={() => setShowAllPrefill(true)} data-testid="prefill-show-all">
+              Prefill other fields ({hiddenPrefill})
+            </button>
+          )}
         </div>
       )}
 

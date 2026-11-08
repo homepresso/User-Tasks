@@ -65,3 +65,16 @@ export interface UserJobView {
 export interface StartedJob {
   job: UserJobView
 }
+
+/** Window event for a toast in the jobs toaster from outside React (components/jobs/jobs-provider listens). */
+export const JOBS_TOAST_EVENT = 'usertasks:jobs-toast'
+
+export interface JobsToastDetail {
+  tone: 'info' | 'success' | 'error'
+  title: string
+  body?: string | null
+  /** One action button (e.g. "View" opening the Agent). */
+  action?: { label: string; onClick: () => void; testId?: string }
+  /** ms; 0 = until dismissed (default: the toaster's timing). */
+  timeout?: number
+}

@@ -123,6 +123,7 @@ async function runBuiltin(name: string, args: Record<string, any>, runtime: Agen
   switch (name) {
     case 'query_data_table':
     case 'insert_data_row':
+    case 'insert_data_rows':
     case 'update_data_rows':
     case 'delete_data_rows': {
       const { runDataTool } = await import('./data')

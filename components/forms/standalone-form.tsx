@@ -28,6 +28,7 @@ import { openingFieldDefaults } from '@/lib/forms/preview-inputs'
 import type { AnonymousFormPage } from '@/lib/services/anonymous-forms'
 import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
+import { useAssistantSurface } from '@/lib/assistants/client-registry'
 
 const DRAFT_STORAGE = 'usertasks.form-draft.'
 
@@ -101,6 +102,8 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   })
   // Loaded in the browser (not server-rendered): the form fades in from the loading state.
   const [loadedHere] = useState(isLoading)
+  // The AI form assistant (shown only when available: components/assistants/assistant-host). Not for public or embedded forms.
+  useAssistantSurface(!anonymous && !embed && form ? { kind: 'form', formId, title: form.name ?? null } : null)
   // Parameters: the URL's, typed and validated against the form's declarations (unknown ones ignored).
   const params = useMemo(() => {
     const declared = layoutFormParams(form?.layout)

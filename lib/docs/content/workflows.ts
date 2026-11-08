@@ -30,7 +30,7 @@ All ${STEP_NODE_COUNT} node types (plus the section and live-reference canvas to
 ## Lifecycle
 
 1. **Draft** — edit on the canvas or send a definition with \`PATCH /api/v1/workflows/{id}\` (\`usertasks workflows update\`). Validation runs as you edit.
-2. **Test** — the designer's Test run executes the draft with sample variables and shows each node's input, output and log.
+2. **Test** — the designer's **Save & test** saves the draft and runs your test cases, showing each node's input, output and log.
 3. **Publish** — freezes the draft as a new version. Runs always use the published version. See [Versions and runs](/docs/workflows/versions-and-runs).
 4. **Activate** — an active workflow listens to its trigger; deactivate it to stop new runs without deleting anything.
 
@@ -93,9 +93,23 @@ Drag from a node's port to another node. Nodes with several exits label their ed
 
 The designer validates every node as you work (the same \`validateNode\` the API uses) and shows problems on the node and in the publish dialog — for example "No reference selected" or "Input \\"amount\\" required". The node reference lists each node's validation rules.
 
+It also warns about wiring: a \`{{…}}\` that nothing sets at that step (it would be blank), and settings the engine doesn't read. Each warning suggests a fix, for example \`{{form.full_name}}\` for \`{{full_name}}\`. Warnings are listed in the status bar and on the step, and never block publishing. The API and MCP return the same warnings — see [Paths after a form or a User Task](/docs/workflows/expressions#paths-after-a-form-or-a-user-task).
+
+The wiring warnings are:
+
+| Kind | What it means |
+|------|---------------|
+| \`reference\` | A \`{{…}}\` that nothing sets at that step: it would be blank. |
+| \`config_key\` | A setting the engine doesn't read (often a near-miss, such as \`output_var\` for \`output_row_id_var\`). |
+| \`syntax\` | An expression the engine can't read, such as \`{{ name }}\` with spaces. |
+| \`prefill\` | A User Task form's read-only fields that nothing fills in. |
+| \`unassigned\` | *User Task "X" has no assignee: the task will sit in the queue with nobody assigned.* Assign it to a person, a team, the submitter's manager (\`{{submitted_by_manager_id}}\`) or the person who started it (\`{{submitted_by}}\` for a form, \`{{workflow_started_by}}\` otherwise). |
+
+A User Task the Agent assigned to you while building (see [Who tasks are assigned to](/docs/ai-assistants/using#who-tasks-are-assigned-to)) shows an info note on the step instead: *assigned to the workflow's creator for testing — change the assignee before publishing*. It is not counted as a warning; the API and MCP return it with \`kind: "assigned_for_testing"\` and \`severity: "info"\`.
+
 ## Test runs
 
-**Test run** executes the current draft with variables you enter. You see each step's status, duration, input, output and log lines, and the path taken. Test runs are marked as tests and do not count in reports.
+**Save & test** saves the draft and opens **Test workflow**, which runs it with the test inputs you enter (**Add test case**, **Run selected**). At a User Task you act on it from the panel. You see each step's status, duration, input, output and log lines, and the path taken. Test runs are marked as tests and do not count in reports.
 
 ## Variables panel
 
@@ -258,6 +272,18 @@ Operands are literals (\`"text"\`, \`12.5\`, \`true\`, \`false\`, \`null\`), var
 ## Node outputs
 
 Nodes write their results into variables. Most let you name the output (\`output_var\`); integration calls, decision tables and agents also write prefixed variables (\`{{get_vendor_response}}\`, \`{{approval_policy_outputs}}\`) so several calls in one run don't collide. The designer's data picker lists everything available at the selected node — see [Reading values from an API response](/docs/workflows/api-responses).
+
+## Paths after a form or a User Task
+
+Form fields are never bare variables. \`{{full_name}}\` is blank: write the path.
+
+| After | Path |
+|---|---|
+| Form submitted trigger | \`{{form.<key>}}\` for each field; \`{{submitted_by}}\`, \`{{submitted_by_name}}\`, \`{{submitted_at}}\` |
+| User Task (latest completed) | \`{{task_data.<key>}}\`, \`{{outcome}}\`, \`{{outcome_notes}}\` (the comment), \`{{completed_by}}\` / \`{{completed_by_name}}\` / \`{{completed_by_email}}\` |
+| A particular User Task | \`{{<step>_task_data.<key>}}\`, \`{{<step>_outcome}}\`, \`{{<step>_outcome_notes}}\`, where \`<step>\` is the step's label in snake_case: **HR approval** → \`{{hr_approval_task_data.comment}}\`. These stay after later User Tasks; \`task_data\` and \`outcome\` are replaced by each one. |
+| Data step (insert, update, get) | the row id in \`output_row_id_var\` (default \`{{row_id}}\`) |
+| Date Math | \`output_var\` (default \`{{new_date}}\`) |
 
 ## Setting variables
 
@@ -494,7 +520,7 @@ Queue jobs are retried automatically with backoff before they are marked dead; \
 
 ## Finding failures
 
-- **Build › Workflows → Runs** filters by status; each run shows its path, step logs and the error.
+- The workflow's **⋯ → View runs** (\`/automations/<id>/runs\`) filters by status; each run shows its path, step logs and the error.
 - \`usertasks logs tail --type workflow.run.failed\` follows failures live.
 - Ship \`severity=error\` events to your log platform and alert on them; see [Observability](/docs/observability).
 `,
@@ -619,6 +645,26 @@ Cancelling, retrying, deleting, pausing or resuming an item also needs **Activat
 usertasks queue list --status failed
 usertasks queue action <job-id> --set action=retry
 \`\`\`
+
+### Active tasks
+
+The queue page has two tabs: **Workflows** (the runs above) and **Active tasks** (\`/automations/queue?tab=tasks\`). Active tasks lists every open task people need to act on — workflow User Tasks that are not completed or cancelled, including queued (not yet accepted), on-hold, team and unassigned ones — with the task, its workflow and a link to the run's **Process view**, who it's with (a person, a team, **Queue** for a directory-group claim, or **Unassigned**), how long it has been waiting, its due date / SLA status and its priority.
+
+| Who | Sees |
+|---|---|
+| **View all tasks** (\`tasks.view_all\`) | Every active task in the workspace |
+| A manager | Tasks of anyone in their reporting chain (direct and indirect reports) |
+| A manager of the workflow (an explicit Edit grant) | Every active task of that workflow |
+| Everyone | Their own (assignee, collaborator, or a team they are in) |
+
+Filter by assignee, workflow, waiting time (more than 1 day / 3 days / 1 week), SLA status (overdue, due within 24 hours, on track, no due date), priority and **Unassigned only**, and search titles; filters and the tab live in the URL. On a phone each task is a card.
+
+Each row offers **Open task**, **Process view** and, when you may:
+
+- **Reassign** — pick a person or a team and give a reason. Allowed for an admin (**Complete any task**), the assignee's manager (anyone in their manager chain), a manager of the workflow, and the assignee themselves when the step allows redirects;
+- **Take ownership** — on an unassigned task, for admins and managers of the workflow ([details](/docs/tasks#unassigned-tasks-take-ownership)).
+
+Admins (**Complete any task**) can select rows and **Reassign…** them together to one person, after a confirmation; each task is checked on its own. Every change is audited, shown in the task's history and process view, and the new assignee is notified.
 
 ## Run history
 

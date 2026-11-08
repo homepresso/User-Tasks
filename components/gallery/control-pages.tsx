@@ -166,7 +166,7 @@ export function ControlsTeaser({ limit = 6, heading = true }: { limit?: number; 
           <Link href="/gallery/controls" className="inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] hover:underline">All {controlCards().length} controls <ArrowRight size={14} aria-hidden="true" /></Link>
         </div>
       )}
-      <ul className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => <li key={card.slug}><ControlCardView card={card} /></li>)}
       </ul>
     </div>

@@ -512,3 +512,63 @@ export function calculateDelay(duration: any, unit?: string): number {
     default: return d * TIME_MS.MINUTE
   }
 }
+
+// ─── Data step (update_data_table) list filters ───
+
+/**
+ * The filter operators the Data step's list / live list understands
+ * (`filters: [{ column, operator, value }]`). `like` / `ilike` match the
+ * value anywhere in the cell; `starts_with` / `ends_with` ignore case.
+ */
+export const DATA_FILTER_OPERATORS = [
+  "eq", "neq", "gt", "gte", "lt", "lte", "like", "ilike", "starts_with", "ends_with", "is_null", "not_null",
+] as const
+export type DataFilterOperator = (typeof DATA_FILTER_OPERATORS)[number]
+
+/** Natural / condition-style spellings ("equals", "==", "contains") → the canonical operator. */
+export const DATA_FILTER_OPERATOR_ALIASES: Record<string, DataFilterOperator> = {
+  equals: "eq", equal: "eq", "==": "eq", "=": "eq", "===": "eq", is: "eq",
+  not_equals: "neq", not_equal: "neq", ne: "neq", "!=": "neq", "!==": "neq", "<>": "neq", is_not: "neq",
+  greater_than: "gt", ">": "gt",
+  greater_than_or_equal: "gte", greater_or_equal: "gte", ">=": "gte",
+  less_than: "lt", "<": "lt",
+  less_than_or_equal: "lte", less_or_equal: "lte", "<=": "lte",
+  contains: "ilike", startswith: "starts_with", begins_with: "starts_with", endswith: "ends_with",
+  is_empty: "is_null", empty: "is_null", is_not_set: "is_null",
+  is_not_empty: "not_null", not_empty: "not_null", is_not_null: "not_null", is_set: "not_null",
+}
+
+/** The canonical operator for a Data step filter, or the trimmed input when it is unknown. */
+export function canonicalDataFilterOperator(op: unknown): string {
+  const raw = String(op ?? "").trim()
+  const lower = raw.toLowerCase()
+  if ((DATA_FILTER_OPERATORS as readonly string[]).includes(lower)) return lower
+  return DATA_FILTER_OPERATOR_ALIASES[lower] ?? raw
+}
+
+// ─── Call Reference inputs ───
+
+/**
+ * The value a Call Reference step passes for one reference input: its
+ * mapping (an expression), else the input's static / default value — or,
+ * for an unmapped dynamic input, a run variable of the same name when one is
+ * set. A blank optional input stays empty (undefined → the executor leaves
+ * it out of the query / headers and renders it empty in templates): the
+ * input's NAME is never sent as its value (resolving the bare name used to
+ * return it verbatim, so `?page_size=page_size` went out).
+ */
+export function callReferenceInputValue(
+  input: { name: string; source?: string; default_value?: any },
+  mapping: unknown,
+  ctx: ExpressionContext,
+): any {
+  if (typeof mapping === "string" ? mapping.trim() : mapping !== undefined && mapping !== null && mapping !== "") {
+    return resolveExpression(mapping, ctx)
+  }
+  if (input.source === "static") return input.default_value
+  const name = String(input.name ?? "")
+  let auto: any
+  if (name && Object.prototype.hasOwnProperty.call(ctx.variables, name)) auto = ctx.variables[name]
+  else if (/^[\w.\-[\]]+$/.test(name)) auto = resolveExpression(`{{${name}}}`, ctx)
+  return auto === undefined || auto === null || auto === "" ? input.default_value : auto
+}

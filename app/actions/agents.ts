@@ -95,3 +95,17 @@ export async function saveAgentCostSettings(input: { model_prices?: unknown; bud
     return result
   })
 }
+
+/** Agents → Costs & budgets → Fetch latest pricing: the preview (settings.edit; nothing is saved). */
+export async function fetchAgentPriceUpdates() {
+  return runAction('fetchAgentPriceUpdates', 'Could not fetch the latest prices.', async () => agents.fetchPriceUpdates(await fromSession()))
+}
+
+/** Save the selected latest prices as this workspace's prices (settings.edit; hand-entered prices only when ticked). */
+export async function applyAgentPriceUpdates(input: { keys: string[]; overwrite_manual?: string[] }) {
+  return runAction('applyAgentPriceUpdates', 'Could not save the latest prices.', async () => {
+    const result = await agents.applyPriceUpdates(await fromSession(), input)
+    revalidatePath('/agents/costs')
+    return result
+  })
+}

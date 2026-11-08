@@ -336,6 +336,22 @@ describe('runtime: downstream steps read the form values', () => {
     expect(result.node_results.log?.output?.logged).toBe('ref=C-42 name=Ada amount=12.5 tags=a,b urgent=true customer=Alfreds')
   })
 
+  it('User Task values are also kept per step ({{<prefix>_task_data.<key>}}, {{<prefix>_outcome}})', async () => {
+    const fake = seed([wf('manual', [
+      { id: 'start', type: 'manual', label: 'Start', config: {} },
+      { id: 'ut', type: 'user_task', label: 'HR approval', config: { fields: ALL_FIELDS } },
+      { id: 'log', type: 'log', label: 'Log', config: { message: '{{hr_approval_task_data.name}} {{hr_approval_outcome}} {{hr_approval_outcome_notes}} | {{task_data.name}}' } },
+    ])])
+    fake.tables.workflow_runs.push({
+      id: 'run-paused', workflow_id: WF, tenant_id: TENANT, task_id: null, status: 'waiting_for_event', event_id: 'evt-ut',
+      paused_node_id: 'ut', pause_variables: {},
+      version_id: null, trace_id: null, execution_trace: [], node_results: { start: { status: 'success' } },
+    })
+    const result = await resumeWorkflow('evt-ut', { outcome: 'Approved', outcome_notes: 'ok', task_data: { name: 'Ada' } }, undefined, { supabase: fake.client })
+    expect(result.error).toBeUndefined()
+    expect(result.node_results.log?.output?.logged).toBe('Ada Approved ok | Ada')
+  })
+
   it('Form submitted trigger: {{form.<key>}} and the submitter', async () => {
     const fields = normalizeTaskFields(ALL_FIELDS)
     const fake = seed([wf('form_submitted', [

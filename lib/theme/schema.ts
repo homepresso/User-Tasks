@@ -21,7 +21,7 @@ export const WORKSPACE_THEME_SCHEMA_VERSION = 1
 
 export const ColorSchema = z.string().trim().max(64).refine(isValidColor, {
   message: 'Colours must be #rgb, #rrggbb, #rrggbbaa, rgb(), rgba(), hsl() or hsla()',
-})
+}).meta({ format: 'color' })
 
 const SHADOW_COLOR_RE = /(?:#[0-9a-f]{3,8}\b|rgba?\([^()]*\)|hsla?\([^()]*\))/gi
 const SHADOW_TOKEN_RE = /^(?:inset|0|-?\d{1,3}(?:\.\d+)?(?:px|rem|em))$/
@@ -41,10 +41,10 @@ export function isValidShadow(value: unknown): value is string {
   return true
 }
 
-export const ShadowSchema = z.string().trim().refine(isValidShadow, { message: 'Shadows must be `none` or lengths plus one colour per layer' })
+export const ShadowSchema = z.string().trim().refine(isValidShadow, { message: 'Shadows must be `none` or lengths plus one colour per layer' }).meta({ format: 'box-shadow' })
 
 /** Radius in px (9999 = pill). */
-const Radius = z.number().int().min(0).max(9999)
+const Radius = z.number().int().min(0).max(9999).meta({ unit: 'px', note: '9999 = pill' })
 
 const LetterSpacing = z.string().trim().regex(/^(?:normal|-?0(?:\.\d{1,3})?em)$/, 'Letter spacing must be `normal` or an em value between -1em and 1em')
 
@@ -189,15 +189,18 @@ export const WorkspaceThemeSchema = z.object({
     /** Built-in template this theme started from (informational; THEMES id). */
     basePreset: z.string().regex(/^[a-z0-9-]{1,40}$/).optional(),
     /** auto = follow the OS light/dark setting; light/dark force one palette. */
-    mode: z.enum(['auto', 'light', 'dark']),
+    mode: z.enum(['auto', 'light', 'dark']).meta({ description: 'Light / dark: auto follows each member\'s OS setting; light or dark forces one palette for everyone.' }),
     schemaVersion: z.literal(WORKSPACE_THEME_SCHEMA_VERSION),
     decorationPreset: z.enum(DECORATION_PRESETS).optional(),
   }).strict(),
-  colors: z.object({ light: PaletteSchema, dark: PaletteSchema }).strict(),
+  colors: z.object({
+    light: PaletteSchema.meta({ description: 'The light palette.' }),
+    dark: PaletteSchema.meta({ description: 'The dark palette (used in dark mode: mode dark, or auto with a dark OS).' }),
+  }).strict().meta({ description: 'Colours per mode. Text below its contrast target is raised when drawn; button / navigation text below 3:1 is refused.' }),
   typography: z.object({
-    sans: FontRefSchema,
-    display: FontRefSchema,
-    mono: FontRefSchema,
+    sans: FontRefSchema.meta({ description: 'Body font.' }),
+    display: FontRefSchema.meta({ description: 'Display / heading font (used for h1 / h2 when headingFont is display).' }),
+    mono: FontRefSchema.meta({ description: 'Monospace font (code, ids).' }),
     weights: z.object({
       normal: Weight,
       medium: Weight,
@@ -207,15 +210,15 @@ export const WorkspaceThemeSchema = z.object({
       heading: Weight.optional(),
     }).strict(),
     /** Root font size in px — rem-based sizes scale with it (16 = browser default). */
-    baseSize: z.number().min(12).max(20),
+    baseSize: z.number().min(12).max(20).meta({ unit: 'px', description: 'Root font size; rem sizes scale with it.' }),
     /** Which family h1/h2 use. `sans` leaves headings alone. */
-    headingFont: z.enum(['sans', 'display']),
-    headingLetterSpacing: LetterSpacing,
-    uppercaseLabels: z.boolean(),
-  }).strict(),
+    headingFont: z.enum(['sans', 'display']).meta({ description: 'Which family page headings use: display = typography.display.' }),
+    headingLetterSpacing: LetterSpacing.meta({ description: 'Heading letter spacing: normal or an em value (-1em to 1em).' }),
+    uppercaseLabels: z.boolean().meta({ description: 'Upper-case form labels.' }),
+  }).strict().meta({ description: 'Fonts, weights and sizes.' }),
   shape: z.object({
     cardRadius: Radius,
-    buttonRadius: Radius,
+    buttonRadius: Radius.meta({ description: 'Button corners in px: 0 square, 6–10 rounded, 9999 pill.' }),
     inputRadius: Radius,
     badgeRadius: Radius,
     dialogRadius: Radius,
@@ -226,19 +229,19 @@ export const WorkspaceThemeSchema = z.object({
     lg: ShadowSchema,
     xl: ShadowSchema,
     card: ShadowSchema,
-  }).strict(),
+  }).strict().meta({ description: 'Elevation. `none` or box shadows built from lengths and one colour per layer (no url(), var() or other CSS). Suggested values: see shadow_presets.' }),
   layout: z.object({
-    density: z.enum(['compact', 'comfortable', 'spacious']),
+    density: z.enum(['compact', 'comfortable', 'spacious']).meta({ description: 'Row, control and navigation heights across the app (forms keep 40px controls).' }),
     sidebarWidth: z.number().int().min(200).max(360),
     topbarHeight: z.number().int().min(48).max(72),
   }).strict(),
-  chrome: ChromeSchema,
+  chrome: ChromeSchema.meta({ description: 'Sidebar, top bar and canvas backgrounds: solid, gradient or a dot texture.' }),
   branding: z.object({
     logoLight: ImageUrl.optional(),
     logoDark: ImageUrl.optional(),
     favicon: ImageUrl.optional(),
     wordmark: z.string().trim().max(40).regex(/^[^<>{}]*$/).optional(),
-  }).strict(),
+  }).strict().meta({ description: 'Logos (uploads in this workspace\'s logos storage) and the wordmark.' }),
 }).strict()
 
 export type WorkspaceTheme = z.infer<typeof WorkspaceThemeSchema>

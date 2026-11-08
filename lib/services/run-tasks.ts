@@ -13,7 +13,7 @@
  * canReachTask (open) and decideTaskAction (act) in lib/task-authz.ts.
  */
 
-import { decideTaskAction, type AuthzTask, type TaskActorFacts } from '@/lib/task-authz'
+import { decideTaskAction, decideTaskAssignment, isUnassignedTask, type AuthzTask, type TaskActorFacts } from '@/lib/task-authz'
 import { isInManagerChain, loadReportingIndex, type ReportingIndex } from '@/lib/reporting-lines'
 import { workflowGrantIds } from '@/lib/workflow-grants'
 import { normalizeTaskFields } from '@/lib/task-field-schema'
@@ -156,6 +156,15 @@ export function shapeRunTasks(rows: RunTaskRows, viewer: RunTaskViewer): RunTask
     }
     // Acting needs the task page: a break-glass holder who can't open it can't act from here either.
     if (!canOpen) { canAct = 'none'; onBehalfOf = null }
+    // Taking ownership / reassigning (the Unassigned chip, the reassign action).
+    const assignFacts: TaskActorFacts = { isAssignee, isTeamMember, assigneeIds, managedAssigneeId, isWorkflowManager }
+    const unassigned = open && isUnassignedTask(t as AuthzTask, assignFacts)
+    const assignProbe = (action: 'take' | 'assign') => Boolean(open && canComplete && (canOpen || viewer.has('tasks.complete_any'))
+      && decideTaskAssignment({ task: t as AuthzTask, actorId: me, permissions: viewer.permissions, facts: assignFacts, action }).allowed)
+    const canTakeOwnership = assignProbe('take')
+    const canReassign = assignProbe('assign')
+    // Acting directly on an unassigned task takes ownership first: the task page.
+    if (unassigned && canAct === 'on_behalf') { canAct = canTakeOwnership && canOpen ? 'assignee' : 'none'; onBehalfOf = null }
 
     // History: responses (every one), then redirects / reassignments / escalations / declines.
     const behalfNotes = new Map<string, string>()
@@ -192,7 +201,12 @@ export function shapeRunTasks(rows: RunTaskRows, viewer: RunTaskViewer): RunTask
         if (e.event_type === 'task_redirected') {
           history.push({ ...base, kind: 'redirected', comment: m.comment ?? null, from: e.actor_id ? namesOf(rows.people, e.actor_id) : [], to: [...namesOf(rows.people, m.to_user_ids), ...(Array.isArray(m.invited_emails) ? m.invited_emails.map(String) : [])] })
         } else if (e.event_type === 'reassigned') {
-          history.push({ ...base, kind: 'reassigned', comment: m.comment ?? null, from: namesOf(rows.people, m.old_assignee), to: namesOf(rows.people, m.new_assignee) })
+          history.push({
+            ...base, kind: 'reassigned', comment: m.comment ?? null,
+            from: [...namesOf(rows.people, m.old_assignee), ...(m.old_team ? [rows.teams.get(String(m.old_team)) ?? 'A team'] : [])],
+            to: [...namesOf(rows.people, m.new_assignee), ...(m.new_team ? [rows.teams.get(String(m.new_team)) ?? 'A team'] : [])],
+            ...(m.took_ownership ? { took_ownership: true } : {}),
+          })
         } else if (e.event_type === 'task_escalated') {
           history.push({ ...base, kind: 'escalated', comment: null, from: [], to: [...namesOf(rows.people, m.escalated_to_user), ...(m.escalated_to_team ? [rows.teams.get(String(m.escalated_to_team)) ?? 'A team'] : [])] })
         } else if (e.event_type === 'task_rejected') {
@@ -224,13 +238,16 @@ export function shapeRunTasks(rows: RunTaskRows, viewer: RunTaskViewer): RunTask
       can_act: canAct,
       access,
       on_behalf_of: onBehalfOf,
+      unassigned,
+      can_take_ownership: canTakeOwnership,
+      can_reassign: canReassign,
       href: canOpen ? `/tasks/${id}${form ? '?tab=form' : ''}` : null,
       history,
     }
   })
 }
 
-const TASK_COLUMNS = 'id, tenant_id, title, status, workflow_step_id, workflow_id, workflow_run_id, assignee_id, assigned_team_id, aad_group_id, assignment_mode, assigner_id, acceptance_status, accepted_at, is_workflow_task, event_id, created_at, completed_at, due_date, outcome, outcome_notes, actioned_by, actioned_on_behalf_of, actioned_at, metadata'
+const TASK_COLUMNS = 'id, tenant_id, title, status, workflow_step_id, workflow_id, workflow_run_id, assignee_id, assigned_team_id, aad_group_id, assignment_mode, assigner_id, acceptance_status, accepted_at, is_workflow_task, event_id, created_at, completed_at, due_date, outcome, outcome_notes, actioned_by, actioned_on_behalf_of, actioned_at, metadata, allow_reassign'
 
 /** Step labels of the definition a run executes (its version, else the workflow draft). */
 export async function runStepLabels(db: AnySupabaseClient, tenantId: string, run: { workflow_id: string | null; version_id?: string | null }): Promise<Map<string, string>> {
@@ -296,7 +313,7 @@ export async function loadRunTasks(ctx: ServiceContext, run: RunRef, options: { 
   }
   const teamIds = new Set<string>()
   for (const t of tasks) if (t.assigned_team_id) teamIds.add(String(t.assigned_team_id))
-  for (const e of events) if (e.metadata?.escalated_to_team) teamIds.add(String(e.metadata.escalated_to_team))
+  for (const e of events) for (const k of ['escalated_to_team', 'old_team', 'new_team']) if (e.metadata?.[k]) teamIds.add(String(e.metadata[k]))
 
   const [usersResult, teamsResult] = await Promise.all([
     personIds.size ? db.from('users').select('id, display_name, email, avatar_url').in('id', [...personIds]) : Promise.resolve({ data: [] }),

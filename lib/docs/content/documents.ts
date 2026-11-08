@@ -793,7 +793,7 @@ From an invoice PDF from Exotic Liquids, with a pattern for the invoice number a
     "amounts": [
       { "text": "$180.00", "value": 180, "currency": "USD" },
       { "text": "$95.00", "value": 95, "currency": "USD" },
-      { "text": "NZ$275.00", "value": 275, "currency": "NZD" }
+      { "text": "$275.00", "value": 275, "currency": "USD" }
     ]
   },
   "table_rows_inserted": 2
@@ -1622,7 +1622,7 @@ The document (\`customer-onboarding.docx\`) reads:
 Customer onboarding — Exotic Liquids
 Orders: Nancy Davolio <nancy.davolio@northwind.example>, phone +64 21 555 0100.
 Accounts: accounts@exotic.example, (171) 555-2222.
-Credit limit NZ$25,000.00; discount 2.5% on orders over $1,500.
+Credit limit $25,000.00; discount 2.5% on orders over $1,500.
 Card on file: 4111 1111 1111 1111
 Bank account: GB82 WEST 1234 5698 7654 32
 See https://northwind.example/terms (updated 1 March 2026).
@@ -1659,7 +1659,7 @@ The canvas shows \`tables · 1 pattern · emails, phones, amounts, percentages, 
     "urls": ["https://northwind.example/terms"],
     "phones": ["+64 21 555 0100", "(171) 555-2222", "1234 5698 7654 32"],
     "dates": [{ "text": "1 March 2026", "date": "2026-03-01" }],
-    "amounts": [{ "text": "NZ$25,000.00", "value": 25000, "currency": "NZD" }, { "text": "$1,500", "value": 1500, "currency": "USD" }],
+    "amounts": [{ "text": "$25,000.00", "value": 25000, "currency": "USD" }, { "text": "$1,500", "value": 1500, "currency": "USD" }],
     "percentages": [{ "text": "2.5%", "value": 2.5 }]
   }
 }
@@ -1694,7 +1694,7 @@ The canvas shows \`email, phone, credit_card, iban → redacted\`. Because the s
 Customer onboarding — Exotic Liquids
 Orders: [TERM] <[EMAIL]>, phone [PHONE].
 Accounts: [EMAIL], [PHONE].
-Credit limit NZ$25,000.00; discount 2.5% on orders over $1,500.
+Credit limit $25,000.00; discount 2.5% on orders over $1,500.
 Card on file: [CREDIT_CARD]
 Bank account: [IBAN]
 See https://northwind.example/terms (updated 1 March 2026).
@@ -1854,7 +1854,7 @@ Product Qty Amount
 Chai 10 $180.00
 Chang 5 $95.00
 
-Total due: NZ$275.00 by 2026-11-14
+Total due: $275.00 by 2026-11-14
 \`\`\`
 
 ## 1. Data table and start form
@@ -1879,7 +1879,7 @@ Create **Invoices** with the columns \`invoice_number\` (text), \`supplier_email
 The canvas shows \`OCR auto → invoice\`. With **OCR: Pages without text**, a PDF from an accounting system is read from its text layer (OCR never starts), and a scan is recognised page by page. For a text PDF the run shows:
 
 \`\`\`json
-{ "variable": "invoice", "file": "INV-2026-0042.pdf", "format": "pdf", "pages": 2, "words": 33, "characters": 219, "rows": 2, "tables": 1, "truncated": false, "text_preview": "Invoice INV-2026-0042 Date: 15 October 2026 Bill to: Exotic Liquids, accounts@exotic.example Product Qty Amount Chai 10 $180.00 Chang 5 $95.00 Total due: NZ$275.00 by 2026-11-14 Page two: terms and conditions apply." }
+{ "variable": "invoice", "file": "INV-2026-0042.pdf", "format": "pdf", "pages": 2, "words": 33, "characters": 219, "rows": 2, "tables": 1, "truncated": false, "text_preview": "Invoice INV-2026-0042 Date: 15 October 2026 Bill to: Exotic Liquids, accounts@exotic.example Product Qty Amount Chai 10 $180.00 Chang 5 $95.00 Total due: $275.00 by 2026-11-14 Page two: terms and conditions apply." }
 \`\`\`
 
 For a scan, each page in \`{{invoice.structure.pages}}\` has \`has_text_layer: false\` and an \`ocr\` entry with its confidence. OCR needs a provider on the instance; see [Scanned PDFs and OCR](/docs/workflows/documents/ocr).
@@ -1912,21 +1912,21 @@ The canvas shows \`2 patterns · emails, dates, amounts\`. The result:
 {
   "file": "text.txt",
   "rows": [],
-  "values": { "invoice_number": "INV-2026-0042", "total_text": "NZ$275.00" },
+  "values": { "invoice_number": "INV-2026-0042", "total_text": "$275.00" },
   "found": {
     "emails": ["accounts@exotic.example"],
     "dates": [{ "text": "15 October 2026", "date": "2026-10-15" }, { "text": "2026-11-14", "date": "2026-11-14" }],
     "amounts": [
       { "text": "$180.00", "value": 180, "currency": "USD" },
       { "text": "$95.00", "value": 95, "currency": "USD" },
-      { "text": "NZ$275.00", "value": 275, "currency": "NZD" }
+      { "text": "$275.00", "value": 275, "currency": "USD" }
     ]
   }
 }
 \`\`\`
 
 - \`{{invoice_data_invoice_number}}\` is \`INV-2026-0042\`.
-- The **amounts finder** turns \`NZ$275.00\` into a number and a currency. The total is the last amount on this layout: \`{{=LAST(PLUCK(invoice_data.found.amounts, "value"))}}\` is \`275\` and \`{{=LAST(PLUCK(invoice_data.found.amounts, "currency"))}}\` is \`NZD\`. The line items before it are read as \`USD\` because a plain \`$\` is US dollars — another reason to take the total from the "Total due" line.
+- The **amounts finder** turns \`$275.00\` into a number and a currency. The total is the last amount on this layout: \`{{=LAST(PLUCK(invoice_data.found.amounts, "value"))}}\` is \`275\` and \`{{=LAST(PLUCK(invoice_data.found.amounts, "currency"))}}\` is \`USD\`. The line items before it are read as \`USD\` because a plain \`$\` is US dollars — another reason to take the total from the "Total due" line.
 - The **dates finder** gives ISO dates in the order they appear: the invoice date first, the due date last. **Date order: Day first** reads \`03/04/2026\` as 3 April.
 
 Patterns match within one line and go through the ReDoS guard. Adjust them to each supplier's wording (\`Invoice No\\.?\\s*(\\S+)\`, \`Amount due\\s*(\\S+)\`), or add one Extract step per supplier behind a condition on \`{{invoice_data.found.emails.0}}\`.
@@ -1958,7 +1958,7 @@ On the **Else** path, insert the row:
 }
 \`\`\`
 
-The run ends with a new **Invoices** row: \`INV-2026-0042\`, \`accounts@exotic.example\`, 2026-10-15, 2026-11-14, 275, \`NZD\`, 2.
+The run ends with a new **Invoices** row: \`INV-2026-0042\`, \`accounts@exotic.example\`, 2026-10-15, 2026-11-14, 275, \`USD\`, 2.
 
 ## Line items too
 

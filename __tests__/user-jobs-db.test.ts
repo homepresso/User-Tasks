@@ -29,6 +29,7 @@ import { defineJobKind, type JobKind } from '@/lib/user-jobs/define'
 import { enqueueUserJob, jobServiceContext, processUserJobs, purgeExpiredUserJobs, retryDelayMs, runUserJob } from '@/lib/user-jobs/runner'
 import { cancelJob, getJob, getJobResult, listJobs, openJobDownload, retryJob } from '@/lib/services/user-jobs'
 import { readAll } from '@/lib/providers/storage/types'
+import { AgentJob, listAgentJobs } from '@/lib/assistants/background'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- job rows are untyped in tests */
 
@@ -343,6 +344,27 @@ describe.skipIf(!DB_URL)('background jobs (local DB)', () => {
     expect((await asUser(OWNER, `INSERT INTO public.user_jobs (tenant_id, user_id, kind, title) VALUES ($1, $2, 'test.export', 'x')`, [T, OWNER])).error).toBe('42501')
     expect((await asUser(OWNER, `SELECT * FROM public.user_jobs_claim('x')`)).error).toBe('42501')
     expect((await asUser(OWNER, `SELECT public.user_jobs_actor($1, $2)`, [ADMIN, T])).error).toBe('42501')
+  })
+
+  it('RLS: Agent jobs (agent.turn, 20261231000002) are their owner\'s alone — workspace admins don\'t read them; background finish keeps the transcript and notifies', async () => {
+    const job = await AgentJob.start(admin, { tenantId: T, userId: OWNER, turnId: 'turn-rls', conversationId: 'conv-rls', summary: 'Build it' })
+    expect(job).not.toBeNull()
+    const other = await enqueueUserJob(session(OWNER), 'test.export', { rows: 1 }, deps)
+    const ids = [job!.id, other.id]
+    const seen = async (sub: string) => (await asUser(sub, 'SELECT id, checkpoint FROM public.user_jobs WHERE id = ANY($1)', [ids])).rows.map((r) => r.id).sort()
+    expect(await seen(OWNER)).toEqual([...ids].sort())
+    expect(await seen(ADMIN)).toEqual([other.id]) // settings.edit: other jobs yes, the Agent job no
+    expect(await seen(MATE)).toEqual([])
+
+    expect((await job!.backgroundOnDisconnect()).ok).toBe(true)
+    const result = { status: 'completed' as const, newMessages: [{ role: 'assistant' as const, content: 'Built.' }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, llmCalls: 1, toolCalls: 0, usageMissing: false }
+    expect(await job!.finish(result, { v: 1, turn_id: 'turn-rls', conversation_id: 'conv-rls', outcome: 'completed', events: [], messages: result.newMessages, error: null }, { delivered: false })).toBe('kept')
+    expect((await row(job!.id))).toMatchObject({ status: 'succeeded', lease_owner: null })
+    const list = await listAgentJobs(admin, { tenantId: T, userId: OWNER, conversationId: 'conv-rls' })
+    expect(list[0].transcript?.messages).toEqual(result.newMessages)
+    expect(await listAgentJobs(admin, { tenantId: T, userId: ADMIN, conversationId: 'conv-rls' })).toEqual([])
+    const { rows: bell } = await db.query('SELECT type, title FROM public.notifications WHERE job_id = $1', [job!.id])
+    expect(bell).toEqual([{ type: 'agent_done', title: 'Agent finished: Build it' }])
   })
 
   it('cleanup deletes expired jobs with their files and keeps the rest', async () => {

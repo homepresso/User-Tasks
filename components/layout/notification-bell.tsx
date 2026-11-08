@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import {
-  AlarmClock, Bell, BellOff, CheckCheck, CheckCircle2, ClipboardList, Mail, MailOpen, Package, Square, CheckSquare, Trash2, TriangleAlert,
+  AlarmClock, Bell, BellOff, CheckCheck, CheckCircle2, ClipboardList, Mail, MailOpen, MessageSquareWarning, Package, Sparkles, Square, CheckSquare, Trash2, TriangleAlert,
   TrendingUp, UsersRound, type LucideIcon,
 } from "lucide-react"
 import { useNotifications } from "@/hooks/use-notifications"
@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Tooltip } from "@/components/ui/tooltip"
 import { floatingSurfaceClass } from "@/components/ui/dropdown-menu"
 import { OPEN_JOBS_PANEL_EVENT } from "@/components/jobs/jobs-provider"
+import { AGENT_OPEN_EVENT } from "@/lib/assistants/history"
 
 /** The fields of a notification row this panel reads. */
 interface Note { id: string; type: string; title: string; body?: string | null; is_read: boolean; created_at: string; task_id?: string | null; job_id?: string | null }
@@ -32,6 +33,10 @@ const TYPE_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
   team_invite: { icon: UsersRound, className: "text-fg-muted" },
   job_succeeded: { icon: Package, className: "text-success" },
   job_failed: { icon: TriangleAlert, className: "text-danger" },
+  agent_done: { icon: Sparkles, className: "text-success" },
+  agent_confirm: { icon: MessageSquareWarning, className: "text-warning" },
+  agent_question: { icon: MessageSquareWarning, className: "text-primary-text" },
+  agent_failed: { icon: TriangleAlert, className: "text-danger" },
 }
 
 /**
@@ -194,6 +199,12 @@ export function NotificationBell() {
   function handleRowClick(n: Note) {
     if (selectionMode) { toggleSelect(n.id); return }
     if (!n.is_read) markAsRead([n.id])
+    // Agent work that ran in the background: open the Agent with the result merged into the conversation.
+    if (n.type.startsWith("agent_")) {
+      window.dispatchEvent(new Event(AGENT_OPEN_EVENT))
+      setOpen(false)
+      return
+    }
     // Background job results (exports, imports, bulk actions): the Jobs panel has the download / retry.
     if (n.job_id) {
       window.dispatchEvent(new Event(OPEN_JOBS_PANEL_EVENT))

@@ -2691,7 +2691,7 @@
       "post": {
         "operationId": "createWorkflow",
         "summary": "Create a workflow from nodes and edges",
-        "description": "workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.",
+        "description": "workflows.create is also accepted. A definition fetched from GET /workflows/{id}/definition creates a copy. `warnings` lists wiring problems (references that will be blank, ignored config keys) with suggestions; they never block the save. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.",
         "tags": [
           "Workflows"
         ],
@@ -2978,12 +2978,68 @@
                         },
                         "published": {
                           "type": "boolean"
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "node_id": {
+                                "type": "string"
+                              },
+                              "node_label": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "reference",
+                                  "config_key",
+                                  "syntax",
+                                  "prefill",
+                                  "unassigned",
+                                  "assigned_for_testing"
+                                ]
+                              },
+                              "severity": {
+                                "description": "info: a note that needs no fix (assigned_for_testing); warnings otherwise",
+                                "type": "string",
+                                "enum": [
+                                  "warning",
+                                  "info"
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              },
+                              "suggestion": {
+                                "description": "What to write instead: an expression such as {{form.full_name}}, or a config key",
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "description": "Where in the node config",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "node_id",
+                              "node_label",
+                              "kind",
+                              "message"
+                            ],
+                            "additionalProperties": {}
+                          },
+                          "description": "Advisory wiring warnings: references that will be blank at run time (e.g. {{full_name}} after a Form submitted trigger — use {{form.full_name}}), config keys the engine ignores, and User Tasks with no assignee (kind unassigned: the task would sit in the queue with nobody assigned). They never block the save."
                         }
                       },
                       "required": [
                         "workflow_id",
                         "name",
-                        "published"
+                        "published",
+                        "warnings"
                       ],
                       "additionalProperties": {}
                     }
@@ -3188,7 +3244,7 @@
       "patch": {
         "operationId": "updateWorkflowDefinition",
         "summary": "Save draft changes to a workflow (publish separately, or with publish: true)",
-        "description": "Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.",
+        "description": "Omitted fields are kept and fields equal to the stored value are not changes (changed: false). Runs keep using the published version until the draft is published. `warnings` lists wiring problems in the saved draft (references that will be blank, ignored config keys) with suggestions; they never block the save. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.",
         "tags": [
           "Workflows"
         ],
@@ -3493,13 +3549,69 @@
                         },
                         "published": {
                           "type": "boolean"
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "node_id": {
+                                "type": "string"
+                              },
+                              "node_label": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "reference",
+                                  "config_key",
+                                  "syntax",
+                                  "prefill",
+                                  "unassigned",
+                                  "assigned_for_testing"
+                                ]
+                              },
+                              "severity": {
+                                "description": "info: a note that needs no fix (assigned_for_testing); warnings otherwise",
+                                "type": "string",
+                                "enum": [
+                                  "warning",
+                                  "info"
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              },
+                              "suggestion": {
+                                "description": "What to write instead: an expression such as {{form.full_name}}, or a config key",
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "description": "Where in the node config",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "node_id",
+                              "node_label",
+                              "kind",
+                              "message"
+                            ],
+                            "additionalProperties": {}
+                          },
+                          "description": "Advisory wiring warnings: references that will be blank at run time (e.g. {{full_name}} after a Form submitted trigger — use {{form.full_name}}), config keys the engine ignores, and User Tasks with no assignee (kind unassigned: the task would sit in the queue with nobody assigned). They never block the save."
                         }
                       },
                       "required": [
                         "workflow_id",
                         "changed",
                         "updated_fields",
-                        "published"
+                        "published",
+                        "warnings"
                       ],
                       "additionalProperties": {}
                     }
@@ -22836,7 +22948,7 @@
                     "type": "object",
                     "properties": {},
                     "additionalProperties": {},
-                    "description": "Mini-theme overrides: colors { light, dark: { accent, background, text } }, radius, font, density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
+                    "description": "Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
                   }
                 },
                 "required": [
@@ -41368,7 +41480,8 @@
                           "auto",
                           "light",
                           "dark"
-                        ]
+                        ],
+                        "description": "Light / dark: auto follows each member's OS setting; light or dark forces one palette for everyone."
                       },
                       "schemaVersion": {
                         "type": "number",
@@ -41397,146 +41510,181 @@
                         "properties": {
                           "primary": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "primaryHover": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "primaryLight": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "onPrimary": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "accent": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "accentLight": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebar": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarActive": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarBorder": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarAccent": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "topbar": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "topbarText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "surface": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "surfaceBorder": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "cardBg": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "cardText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "mutedText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "success": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "warning": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "danger": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "info": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "status": {
                             "type": "object",
                             "properties": {
                               "todo": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "todoBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "progress": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "progressBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "blocked": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "blockedBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "done": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "doneBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "info": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "infoBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "warningBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "dangerBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "successBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               }
                             },
                             "required": [
@@ -41558,27 +41706,33 @@
                           },
                           "rowHighlight": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "rowHighlightStrong": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "focusRing": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "inputBg": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "inputBorder": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "overlay": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "chart": {
                             "minItems": 6,
@@ -41586,7 +41740,8 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "maxLength": 64
+                              "maxLength": 64,
+                              "format": "color"
                             }
                           }
                         },
@@ -41617,153 +41772,189 @@
                           "overlay",
                           "chart"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "description": "The light palette."
                       },
                       "dark": {
                         "type": "object",
                         "properties": {
                           "primary": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "primaryHover": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "primaryLight": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "onPrimary": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "accent": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "accentLight": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebar": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarActive": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarBorder": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "sidebarAccent": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "topbar": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "topbarText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "surface": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "surfaceBorder": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "cardBg": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "cardText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "mutedText": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "success": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "warning": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "danger": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "info": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "status": {
                             "type": "object",
                             "properties": {
                               "todo": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "todoBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "progress": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "progressBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "blocked": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "blockedBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "done": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "doneBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "info": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "infoBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "warningBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "dangerBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "successBg": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               }
                             },
                             "required": [
@@ -41785,27 +41976,33 @@
                           },
                           "rowHighlight": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "rowHighlightStrong": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "focusRing": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "inputBg": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "inputBorder": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "overlay": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "chart": {
                             "minItems": 6,
@@ -41813,7 +42010,8 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "maxLength": 64
+                              "maxLength": 64,
+                              "format": "color"
                             }
                           }
                         },
@@ -41844,14 +42042,16 @@
                           "overlay",
                           "chart"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "description": "The dark palette (used in dark mode: mode dark, or auto with a dark OS)."
                       }
                     },
                     "required": [
                       "light",
                       "dark"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Colours per mode. Text below its contrast target is raised when drawn; button / navigation text below 3:1 is refused."
                   },
                   "typography": {
                     "type": "object",
@@ -41920,7 +42120,8 @@
                             ],
                             "additionalProperties": false
                           }
-                        ]
+                        ],
+                        "description": "Body font."
                       },
                       "display": {
                         "oneOf": [
@@ -41986,7 +42187,8 @@
                             ],
                             "additionalProperties": false
                           }
-                        ]
+                        ],
+                        "description": "Display / heading font (used for h1 / h2 when headingFont is display)."
                       },
                       "mono": {
                         "oneOf": [
@@ -42052,7 +42254,8 @@
                             ],
                             "additionalProperties": false
                           }
-                        ]
+                        ],
+                        "description": "Monospace font (code, ids)."
                       },
                       "weights": {
                         "type": "object",
@@ -42094,21 +42297,26 @@
                       "baseSize": {
                         "type": "number",
                         "minimum": 12,
-                        "maximum": 20
+                        "maximum": 20,
+                        "unit": "px",
+                        "description": "Root font size; rem sizes scale with it."
                       },
                       "headingFont": {
                         "type": "string",
                         "enum": [
                           "sans",
                           "display"
-                        ]
+                        ],
+                        "description": "Which family page headings use: display = typography.display."
                       },
                       "headingLetterSpacing": {
                         "type": "string",
-                        "pattern": "^(?:normal|-?0(?:\\.\\d{1,3})?em)$"
+                        "pattern": "^(?:normal|-?0(?:\\.\\d{1,3})?em)$",
+                        "description": "Heading letter spacing: normal or an em value (-1em to 1em)."
                       },
                       "uppercaseLabels": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Upper-case form labels."
                       }
                     },
                     "required": [
@@ -42121,7 +42329,8 @@
                       "headingLetterSpacing",
                       "uppercaseLabels"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Fonts, weights and sizes."
                   },
                   "shape": {
                     "type": "object",
@@ -42129,27 +42338,38 @@
                       "cardRadius": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 9999
+                        "maximum": 9999,
+                        "unit": "px",
+                        "note": "9999 = pill"
                       },
                       "buttonRadius": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 9999
+                        "maximum": 9999,
+                        "unit": "px",
+                        "note": "9999 = pill",
+                        "description": "Button corners in px: 0 square, 6–10 rounded, 9999 pill."
                       },
                       "inputRadius": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 9999
+                        "maximum": 9999,
+                        "unit": "px",
+                        "note": "9999 = pill"
                       },
                       "badgeRadius": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 9999
+                        "maximum": 9999,
+                        "unit": "px",
+                        "note": "9999 = pill"
                       },
                       "dialogRadius": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 9999
+                        "maximum": 9999,
+                        "unit": "px",
+                        "note": "9999 = pill"
                       }
                     },
                     "required": [
@@ -42165,19 +42385,24 @@
                     "type": "object",
                     "properties": {
                       "sm": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "box-shadow"
                       },
                       "md": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "box-shadow"
                       },
                       "lg": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "box-shadow"
                       },
                       "xl": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "box-shadow"
                       },
                       "card": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "box-shadow"
                       }
                     },
                     "required": [
@@ -42187,7 +42412,8 @@
                       "xl",
                       "card"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Elevation. `none` or box shadows built from lengths and one colour per layer (no url(), var() or other CSS). Suggested values: see shadow_presets."
                   },
                   "layout": {
                     "type": "object",
@@ -42198,7 +42424,8 @@
                           "compact",
                           "comfortable",
                           "spacious"
-                        ]
+                        ],
+                        "description": "Row, control and navigation heights across the app (forms keep 40px controls)."
                       },
                       "sidebarWidth": {
                         "type": "integer",
@@ -42249,7 +42476,8 @@
                                   "properties": {
                                     "color": {
                                       "type": "string",
-                                      "maxLength": 64
+                                      "maxLength": 64,
+                                      "format": "color"
                                     },
                                     "at": {
                                       "type": "number",
@@ -42280,7 +42508,8 @@
                               },
                               "color": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "size": {
                                 "type": "integer",
@@ -42297,19 +42526,23 @@
                           },
                           "glow1": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "glow2": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "hoverBg": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "brandColor": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           },
                           "decorations": {
                             "type": "string",
@@ -42321,7 +42554,8 @@
                           },
                           "decorationColor": {
                             "type": "string",
-                            "maxLength": 64
+                            "maxLength": 64,
+                            "format": "color"
                           }
                         },
                         "required": [
@@ -42362,7 +42596,8 @@
                                   "properties": {
                                     "color": {
                                       "type": "string",
-                                      "maxLength": 64
+                                      "maxLength": 64,
+                                      "format": "color"
                                     },
                                     "at": {
                                       "type": "number",
@@ -42393,7 +42628,8 @@
                               },
                               "color": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "size": {
                                 "type": "integer",
@@ -42426,7 +42662,8 @@
                               },
                               "color": {
                                 "type": "string",
-                                "maxLength": 64
+                                "maxLength": 64,
+                                "format": "color"
                               },
                               "size": {
                                 "type": "integer",
@@ -42450,7 +42687,8 @@
                       "topbar",
                       "canvas"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Sidebar, top bar and canvas backgrounds: solid, gradient or a dot texture."
                   },
                   "branding": {
                     "type": "object",
@@ -42470,7 +42708,8 @@
                         "pattern": "^[^<>{}]*$"
                       }
                     },
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Logos (uploads in this workspace's logos storage) and the wordmark."
                   },
                   "expected_version": {
                     "description": "Optimistic check: refuse with 409 unless the stored version still equals this (0 = never saved)",

@@ -23,6 +23,8 @@ export const MCP_WORKFLOW_RECIPES_GUIDANCE =
 export const MCP_CORE_TOOL_DESCRIPTIONS = {
   workflows_preflight:
     'Validate a proposed workflow graph before creation or update. This checks node-level validation, middleware rules, trigger wiring, and whether referenced tables, retention policies, rules, references, teams, users, roles, custom activities, agents, and other workflow dependencies exist in the tenant.',
+  workflows_validate:
+    'Check a workflow (a saved draft by workflow_id, or a draft graph in nodes / edges / user_variables) without saving: node_errors are configuration errors (they block publishing); warnings are wiring problems that run but read blanks — {{…}} references nothing sets at that point (e.g. {{full_name}} after a form_submitted trigger: the fields are {{form.<key>}}; a User Task\'s form values are {{task_data.<key>}} or {{<step>_task_data.<key>}}), typos, and config keys the engine ignores (e.g. update_data_table output_var: the row id goes in output_row_id_var). Each warning has node_id, message and a suggestion to apply.',
   retention_policies_create:
     'Create a centrally governed retention policy that can later be assigned to tables/lists, individual rows, and roles. Roles support review-style retention only.',
   workflow_activities_create:

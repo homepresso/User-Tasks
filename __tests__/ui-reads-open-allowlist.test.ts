@@ -12,6 +12,7 @@ const OPEN_READS: Record<string, string> = {
   'tasks.myQueueRules': "The signed-in user's own queue rules",
   'tasks.queueRuleOptions': 'Picker labels for the queue rules editor; workflows / forms only with workflows.view / forms.view (else the workflows behind the caller\'s own tasks)',
   'tasks.queueRulesPreview': "Evaluates the caller's draft rules for a sample task assigned to themselves",
+  'assistants.availability': "Whether the signed-in person may use the Agent here and which help — booleans for themselves plus an opaque hash of their own user + workspace (history key); no settings, key or other people's data",
   'agents.run': 'One agent run; RLS on agent_runs limits it to agents.view or the person it acted for / who started it',
   'automations.dataTableNames': 'Table names only (ids → names) to label references in task and form screens; no rows or columns',
   'forms.available': "The person's own Available forms menu (explicit grants + forms.submit, checked in the RPC)",

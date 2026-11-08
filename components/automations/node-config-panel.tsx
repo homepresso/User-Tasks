@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card } from "@/components/ui/card"
 import { InlineNotice } from "@/components/ui/inline-notice"
+import { validateWorkflowWiring } from "@/lib/workflow-wiring"
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-schema"
 import { NODE_CATALOG, nodeColorCategory, nodeColorVar } from "@/lib/workflow-schema"
@@ -361,6 +362,14 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
     return { groups, onInsertLoop: onInsertLoopBefore && node.type !== 'loop' ? (items: string) => onInsertLoopBefore(nodeId, items) : undefined }
   }, [allNodes, allEdges, node, workflowVariables, onInsertLoopBefore, linkedForms])
 
+  // This step's wiring warnings: references that will be blank, config keys the engine ignores.
+  const allWiring = useMemo(() => (node
+    ? validateWorkflowWiring({ nodes: allNodes ?? [node], edges: allEdges ?? [], workflowVariables, linkedForms, onlyNodeIds: [node.id] })
+    : []), [allNodes, allEdges, node, workflowVariables, linkedForms])
+  // Info notes (e.g. "assigned to the workflow's creator for testing") need no fix.
+  const wiringWarnings = allWiring.filter((w) => w.severity !== 'info')
+  const wiringNotes = allWiring.filter((w) => w.severity === 'info')
+
   if (!node) {
     return (
       <div className="text-center py-8">
@@ -404,6 +413,26 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           </Tooltip>
         )}
       </div>
+
+      {wiringWarnings.length > 0 && (
+        <InlineNotice tone="warning" title={wiringWarnings.length === 1 ? 'Check this step' : `Check this step (${wiringWarnings.length})`}>
+          <ul className="space-y-1" data-wiring-warnings="">
+            {wiringWarnings.map((w, i) => (
+              <li key={`${w.key ?? ''}:${w.reference ?? ''}:${i}`}>
+                {w.message}
+                {w.suggestion && !w.message.includes(w.suggestion) && <> — use <code className="text-primary-text">{w.suggestion}</code></>}
+              </li>
+            ))}
+          </ul>
+        </InlineNotice>
+      )}
+      {wiringNotes.length > 0 && (
+        <InlineNotice tone="info" title="Note">
+          <ul className="space-y-1" data-wiring-notes="">
+            {wiringNotes.map((w, i) => <li key={`${w.kind}:${i}`}>{w.message}</li>)}
+          </ul>
+        </InlineNotice>
+      )}
 
       {/* Label */}
       <div onPointerDown={(e) => e.stopPropagation()}>
@@ -5417,6 +5446,8 @@ function UpdateDataTableConfig({ config, onUpdate, onBatchUpdate, extraVariables
     { value: 'lte', label: 'Less or equal' },
     { value: 'like', label: 'Contains' },
     { value: 'ilike', label: 'Contains (case-insensitive)' },
+    { value: 'starts_with', label: 'Starts with' },
+    { value: 'ends_with', label: 'Ends with' },
     { value: 'is_null', label: 'Is empty' },
     { value: 'not_null', label: 'Is not empty' },
   ]

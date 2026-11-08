@@ -23,7 +23,7 @@ export function audit(ctx: ServiceContext, entry: {
     tenantId: ctx.tenantId,
     actorId: ctx.actorId,
     ...entry,
-    metadata: { via: ctx.source, ...(ctx.jobId ? { job_id: ctx.jobId } : {}), ...entry.metadata },
+    metadata: { via: ctx.source, ...(ctx.jobId ? { job_id: ctx.jobId } : {}), ...(ctx.via === 'agent' ? { agent: true } : {}), ...entry.metadata },
   })
 }
 

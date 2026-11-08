@@ -16,6 +16,8 @@ import { usePermissions } from '@/lib/permissions-context'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
 import { FollowButton } from '@/components/home/shared'
 import { RunWaitingChip } from '@/components/automations/run-task-links'
+import { RunAskAgentFix } from '@/components/automations/run-ask-agent-fix'
+import { processViewPollMs } from '@/lib/automations/process-view-poll'
 
 // The process viewer (graph + trace replay) is the bulk of this route's JS;
 // its own chunk lets the run header render first.
@@ -35,6 +37,13 @@ export default function ProcessViewPage({ params }: { params: Promise<{ id: stri
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['process-view', id],
     queryFn: async () => (await serverRead('automations.processView', { id })).data,
+    // Live: always re-read on open / focus, and poll while the run is still
+    // moving (a completed task resumes the run within seconds).
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => processViewPollMs((query.state.data as any)?.run?.status),
+    meta: { persist: false },
   })
   const runId: string | undefined = data?.run?.id
   // Follow / Unfollow (Home → Following).
@@ -79,6 +88,7 @@ export default function ProcessViewPage({ params }: { params: Promise<{ id: stri
                 Move to version…
               </Button>
             )}
+            <RunAskAgentFix run={run} workflow={workflow} logs={data.logs} />
             <FollowButton runId={run.id} following={(followed ?? []).includes(run.id)} onChange={() => { void refetchFollowed() }} />
           </>
         ) : undefined}

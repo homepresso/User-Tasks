@@ -356,6 +356,7 @@ export function FormSettings({ state, onChange, outcomes, problems, showDraft }:
       <HeaderEditor header={state.header} placeholders={placeholders} onChange={(header, tag) => onChange({ ...state, header }, tag)} />
       <AppearanceEditor state={state} onChange={onChange} />
       {!showDraft && <FormIconsEditor state={state} onChange={onChange} />}
+      <AssistantEditor state={state} onChange={onChange} />
       <Section title="Application mode">
         <label className="flex items-start gap-1.5 text-2xs">
           <input type="checkbox" className="mt-0.5 accent-primary" checked={appMode} data-testid="application-mode"
@@ -436,6 +437,28 @@ function AppearanceEditor({ state, onChange }: { state: DesignerState; onChange:
           <span><span className="font-medium">Confetti on the Submitted page</span> — a light burst when the page uses the success colour.</span>
         </label>
       )}
+    </Section>
+  )
+}
+
+/* ── Agent form help ─────────────────────────────────────────────────── */
+
+/** "Agent form help on this form" (layout.assistant, lib/assistants): the workspace default unless set here. */
+function AssistantEditor({ state, onChange }: { state: DesignerState; onChange: (next: DesignerState, tag?: string) => void }) {
+  const value = state.layout.assistant === 'on' || state.layout.assistant === 'off' ? state.layout.assistant : 'default'
+  const set = (next: 'default' | 'on' | 'off') => {
+    const layout = { ...state.layout }
+    if (next === 'default') delete layout.assistant
+    else layout.assistant = next
+    onChange({ ...state, layout })
+  }
+  return (
+    <Section title="Agent">
+      <div data-testid="form-assistant-setting">
+        <Segmented<'default' | 'on' | 'off'> label="Agent form help on this form" value={value}
+          options={[['default', 'Workspace default'], ['on', 'On'], ['off', 'Off']]} onChange={set} />
+      </div>
+      <Hint>Whether the Agent may read this form and propose values for the people filling it — on its own page, in the app and on workflow task forms that use it. Off keeps the form&apos;s contents away from the Agent; the Agent itself stays available for other help. Workspace default follows Settings → Agent → Advanced. The Agent never submits.</Hint>
     </Section>
   )
 }

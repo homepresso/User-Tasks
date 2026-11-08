@@ -129,11 +129,14 @@ const price = (over: Partial<ModelPrice> = {}): ModelPrice => ({ provider: 'open
 
 describe('pricing', () => {
   it('ships list prices only for verified models, dated, and leaves the rest unknown', () => {
-    expect(DEFAULT_MODEL_PRICES.every((p) => p.effective_date === '2026-10-29' && p.currency === 'USD')).toBe(true)
+    // Every row is dated (announced vendor increases are later-dated rows) and in USD.
+    expect(DEFAULT_MODEL_PRICES.every((p) => p.effective_date >= '2026-10-29' && p.currency === 'USD')).toBe(true)
     expect(resolvePrice({}, 'openai', 'gpt-4.1')).toMatchObject({ input_per_1m: 2, output_per_1m: 8, source: 'default' })
     expect(resolvePrice({}, 'anthropic', 'claude-haiku-4-5-20251001')).toMatchObject({ model: 'claude-haiku-4-5' })
     expect(resolvePrice({}, 'deepseek', 'deepseek-chat')).toBeNull()
-    expect(resolvePrice({}, 'azure_openai', 'gpt-4.1')).toBeNull() // a default is per provider: Azure deployments are not OpenAI list prices
+    // Azure OpenAI: the OpenAI list price by model name (a deployment named after its model); other deployment names stay unknown.
+    expect(resolvePrice({}, 'azure_openai', 'gpt-4.1')).toMatchObject({ input_per_1m: 2, output_per_1m: 8 })
+    expect(resolvePrice({}, 'azure_openai', 'my-prod-deployment')).toBeNull()
     expect(normalizeModelId('models/Gemini-2.5-Flash')).toBe('gemini-2.5-flash')
   })
 

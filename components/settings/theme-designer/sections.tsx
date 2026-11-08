@@ -11,7 +11,7 @@ import { LogoUpload } from "@/components/settings/logo-upload"
 import { uploadWorkspaceThemeFont } from "@/app/actions/workspace-theme"
 import { paletteContrastChecks, checkThemeContrast, type ContrastCheck } from "@/lib/theme/contrast"
 import { CURATED_FONTS, SYSTEM_FONT_STACKS, findCuratedFont, type FontSlot } from "@/lib/theme/fonts"
-import { DEFAULT_SHADOWS, THEME_TEMPLATES, presetToWorkspaceTheme } from "@/lib/theme/presets"
+import { THEME_TEMPLATES, WORKSPACE_SHADOW_PRESETS, presetToWorkspaceTheme } from "@/lib/theme/presets"
 import { isValidShadow, type FontRef, type ThemeMode, type ThemePalette, type WorkspaceTheme } from "@/lib/theme/schema"
 import { fontFamilyValue } from "@/lib/theme/to-css"
 import { legiblePalette } from "@/lib/theme/legibility"
@@ -306,16 +306,8 @@ export function TypographySection({ theme, set }: SectionProps) {
 
 // ── Shape & elevation ───────────────────────────────────────────────────────
 
-const SHADOW_PRESETS: Array<{ id: string; label: string; value: WorkspaceTheme["shadows"] }> = [
-  { id: "none", label: "Flat", value: { sm: "none", md: "none", lg: "none", xl: "none", card: "none" } },
-  { id: "soft", label: "Soft", value: DEFAULT_SHADOWS },
-  { id: "crisp", label: "Crisp", value: {
-    sm: "0 1px 0 rgba(0,0,0,0.08)", md: "0 1px 2px rgba(0,0,0,0.12)", lg: "0 2px 4px rgba(0,0,0,0.14)", xl: "0 4px 8px rgba(0,0,0,0.16)", card: "0 1px 0 rgba(0,0,0,0.08)",
-  } },
-  { id: "deep", label: "Deep", value: {
-    sm: "0 2px 4px rgba(0,0,0,0.08)", md: "0 6px 16px rgba(0,0,0,0.12)", lg: "0 16px 40px rgba(0,0,0,0.16)", xl: "0 28px 64px rgba(0,0,0,0.22)", card: "0 6px 16px rgba(0,0,0,0.10)",
-  } },
-]
+// Shared with the Agent's theme reference (lib/theme/reference.ts).
+const SHADOW_PRESETS = WORKSPACE_SHADOW_PRESETS
 
 const RADII: Array<{ key: keyof WorkspaceTheme["shape"]; label: string; pill?: boolean }> = [
   { key: "cardRadius", label: "Cards" }, { key: "buttonRadius", label: "Buttons", pill: true }, { key: "inputRadius", label: "Inputs" },

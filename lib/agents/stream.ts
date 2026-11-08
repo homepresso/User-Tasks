@@ -87,6 +87,22 @@ export class SseParser {
   }
 }
 
+/**
+ * Anthropic Messages usage in the OpenAI shape the loop reads: prompt_tokens
+ * = input + cache reads + cache writes; cache reads / writes in
+ * prompt_tokens_details (cached_tokens / cache_write_tokens).
+ */
+export function anthropicUsage(u: Record<string, any>): Record<string, any> {
+  const read = Number(u.cache_read_input_tokens) || 0
+  const written = Number(u.cache_creation_input_tokens) || 0
+  const prompt = (Number(u.input_tokens) || 0) + read + written
+  const completion = Number(u.output_tokens) || 0
+  return {
+    prompt_tokens: prompt, completion_tokens: completion, total_tokens: prompt + completion,
+    ...(read || written ? { prompt_tokens_details: { ...(read ? { cached_tokens: read } : {}), ...(written ? { cache_write_tokens: written } : {}) } } : {}),
+  }
+}
+
 export interface StreamDelta {
   /** Text appended to the reply. */
   text?: string
@@ -204,15 +220,7 @@ export class ChatStreamAssembler {
       case 'message_delta': {
         const stop = json.delta?.stop_reason
         if (stop) this.finishReason = stop === 'tool_use' ? 'tool_calls' : stop === 'max_tokens' ? 'length' : stop === 'end_turn' || stop === 'stop_sequence' ? 'stop' : String(stop)
-        if (json.usage) {
-          const input = this.anthropicInput ?? {}
-          const prompt = (Number(input.input_tokens) || 0) + (Number(input.cache_read_input_tokens) || 0) + (Number(input.cache_creation_input_tokens) || 0)
-          const completion = Number(json.usage.output_tokens) || 0
-          this.usage = {
-            prompt_tokens: prompt, completion_tokens: completion, total_tokens: prompt + completion,
-            ...(Number(input.cache_read_input_tokens) ? { prompt_tokens_details: { cached_tokens: Number(input.cache_read_input_tokens) } } : {}),
-          }
-        }
+        if (json.usage) this.usage = anthropicUsage({ ...(this.anthropicInput ?? {}), ...json.usage })
         break
       }
       case 'message_stop':

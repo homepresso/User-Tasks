@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { Badge, type Tone } from "@/components/ui/badge"
 import { Tooltip } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { TakeOwnershipButton } from "@/components/tasks/assign-task"
 import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import {
   RUN_TASK_PERSON_STATUS_LABEL, runOutcomeLabel, runOutcomeTone, runTaskAllNames, runTaskWho,
@@ -76,6 +77,14 @@ const PERSON_TONE: Record<RunTaskPerson["status"], Tone> = {
 /** Avatars + "Priya Nair +2" (all names and statuses in the tooltip); the team or "Unassigned" when nobody. */
 export function RunTaskPeople({ task, showStatus = true, size = "sm" }: { task: RunTask; showStatus?: boolean; size?: "sm" | "md" }) {
   if (!task.assignees.length) {
+    if (task.unassigned && task.can_take_ownership) {
+      return (
+        <span data-task-people={task.id} data-unassigned-chip="" className="inline-flex flex-wrap items-center gap-1.5 text-xs">
+          <Badge tone="warning" pill>Unassigned</Badge>
+          <TakeOwnershipButton taskId={task.id} size="sm" variant="secondary" />
+        </span>
+      )
+    }
     return <span data-task-people={task.id} className="text-xs text-fg-muted">{task.team ?? "Unassigned"}</span>
   }
   const shown = task.assignees.slice(0, 3)
@@ -113,6 +122,18 @@ function Comment({ text }: { text: string }) {
 
 function HistoryLine({ entry }: { entry: RunTaskHistoryEntry }) {
   const who = entry.actor?.name ?? "Someone"
+  if (entry.kind === "reassigned" && entry.took_ownership) {
+    return (
+      <li className="text-xs text-fg-muted" data-history-kind="took_ownership">
+        <span className="inline-flex flex-wrap items-center gap-1">
+          <ArrowRight className="size-3" aria-hidden />
+          <span className="text-fg">{who}</span> took ownership{entry.from.length ? <> from <span className="text-fg">{entry.from.join(", ")}</span></> : null}
+          <span>· <Ago at={entry.at} /></span>
+        </span>
+        {entry.comment && <Comment text={entry.comment} />}
+      </li>
+    )
+  }
   if (entry.kind === "redirected" || entry.kind === "reassigned" || entry.kind === "escalated") {
     const verb = entry.kind === "redirected" ? "Redirected" : entry.kind === "reassigned" ? "Reassigned" : "Escalated"
     return (
