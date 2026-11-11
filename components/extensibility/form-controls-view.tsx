@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card'
 import { Badge, Tag } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
-import { thClass, tdClass, trClass } from '@/components/ui/table'
+import { TableScroll, thClass, tdClass, trClass } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/format/date'
 import { formatCount } from '@/lib/format/number'
@@ -273,8 +273,8 @@ function ControlCard({ control, canEdit, canDelete, canTrust, act }: {
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-md border border-border-subtle">
-        <table className="w-full border-collapse text-left text-xs text-fg">
+      <TableScroll label={`Versions of ${control.name}`} frameClassName="rounded-md border border-border-subtle">
+        <table className="w-full border-collapse whitespace-nowrap text-left text-xs text-fg">
           <caption className="sr-only">Versions of {control.name}</caption>
           <thead>
             <tr>
@@ -301,7 +301,7 @@ function ControlCard({ control, canEdit, canDelete, canTrust, act }: {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
 
       {showUsage && (
         <div className="rounded-md bg-subtle px-3 py-2 text-xs text-fg" data-testid="control-usages">

@@ -9,7 +9,7 @@ import { SearchInput } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/ui/page-header"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { Table, THead, TBody, TH, TR, TD, TableEmpty, TableSkeleton } from "@/components/ui/table"
+import { Table, THead, TBody, TH, TR, TD, TableDetailCell, TableEmpty, TableSkeleton } from "@/components/ui/table"
 import { PriorityBadge } from "@/components/ui/priority-badge"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -57,6 +57,7 @@ import { PageSkeleton } from "@/components/ui/page-skeleton"
 import { taskDescriptionExcerpt } from "@/components/tasks/task-description"
 import { QueuedTaskActions, TaskStatusPill, TeamTaskBadge } from "@/components/tasks/queued-task-actions"
 import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
+import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
 import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
@@ -301,7 +302,7 @@ export default function TasksPage() {
                   description="Nothing is assigned to you right now." action={{ label: "Create task", href: "/tasks/new" }} />
               )
             ) : (
-              <ul className="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border bg-panel" data-tasks-cards>
+              <ul className="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border bg-panel" data-tasks-cards data-tour="task-list">
                 {orderedTasks.slice((page - 1) * pageSize, page * pageSize).map((task: any) => (
                   <TaskCard key={task.id} task={task} onNotice={setQuickNotice} />
                 ))}
@@ -315,17 +316,19 @@ export default function TasksPage() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <Table containerClassName="max-lg:[&>table]:min-w-[760px]" data-tasks-table>
+              {/* Readable columns (col presets) that scroll sideways below the wide desktop; the
+                  drag handle and the task's name stay in view while scrolling. */}
+              <Table label="My tasks" stickyFirstColumn stickyColumns={2} data-tasks-table data-tour="task-list">
                 <THead>
                   <tr>
                     <TH className="w-8"><span className="sr-only">Reorder</span></TH>
-                    <SortableTH sortKey="title" sort={sort} onSort={toggleSort}>Task</SortableTH>
-                    <SortableTH sortKey="status" sort={sort} onSort={toggleSort} className="w-32">Status</SortableTH>
-                    <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} className="w-28">Priority</SortableTH>
-                    <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric className="w-24">Due</SortableTH>
-                    <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28">Progress</SortableTH>
-                    <TH className="w-[24%]">Notes</TH>
-                    <TH className="w-40"><span className="sr-only">Actions</span></TH>
+                    <SortableTH sortKey="title" sort={sort} onSort={toggleSort} col="title">Task</SortableTH>
+                    <SortableTH sortKey="status" sort={sort} onSort={toggleSort} col="status" className="w-32">Status</SortableTH>
+                    <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} col="status" className="w-28">Priority</SortableTH>
+                    <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric col="date" className="w-24">Due</SortableTH>
+                    <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28 min-w-28">Progress</SortableTH>
+                    <TH col="text" className="w-[24%]">Notes</TH>
+                    <TH col="actions"><span className="sr-only">Actions</span></TH>
                   </tr>
                 </THead>
                 <TBody>
@@ -457,7 +460,7 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
             <span className="flex w-full min-w-0 items-center gap-2">
               <ChevronDown className={cn("size-3.5 shrink-0 text-fg-subtle transition-transform duration-[var(--ds-dur-fast)]", !expanded && "-rotate-90")} aria-hidden="true" />
               <span className="shrink-0 font-mono text-xs text-fg-muted">{getTaskCode(task)}</span>
-              <span className={cn("truncate font-medium text-fg", isDone && "text-fg-muted line-through")}>{task.title}</span>
+              <span className={cn("truncate font-medium text-fg", isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             </span>
             {(task.tenant || task.assignee || hasChildren) && (
               <span className="flex w-full min-w-0 items-center gap-1.5 pl-[22px] text-xs text-fg-muted">
@@ -469,8 +472,8 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
             )}
           </button>
         </TD>
-        <TD><TaskStatusPill status={task.display_status ?? task.status} /></TD>
-        <TD><PriorityBadge priority={task.priority} /></TD>
+        <TD className="whitespace-nowrap"><TaskStatusPill status={task.display_status ?? task.status} /></TD>
+        <TD className="whitespace-nowrap"><PriorityBadge priority={task.priority} /></TD>
         <TD numeric><DueCell task={task} /></TD>
         {queueAction ? (
           // Queued: respond inline (progress and notes start once it's yours).
@@ -493,9 +496,10 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
             </TD>
           </>
         )}
-        <TD className="px-1" onClick={(e) => e.stopPropagation()}>
-          <span className="flex items-center justify-end gap-0.5">
+        <TD col="actions" className="px-1" onClick={(e) => e.stopPropagation()}>
+          <span className="flex flex-nowrap items-center justify-end gap-0.5">
             {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            {task.workflow_run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
             <Tooltip content="Open task">
               <Link href={`/tasks/${task.id}`} aria-label={`Open ${task.title}`}
                 className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-muted hover:text-fg">
@@ -508,9 +512,9 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
       </TR>
       {expanded && (
         <tr className="border-b border-border-subtle bg-subtle" data-task-panel>
-          <td colSpan={COLUMNS} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
+          <TableDetailCell colSpan={COLUMNS} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
             <TaskDetailPanel id={panelId} taskId={task.id} title={task.title} onClose={() => { setExpanded(false); toggleRef.current?.focus() }} className="pl-[30px]" />
-          </td>
+          </TableDetailCell>
         </tr>
       )}
       {mobile ? (
@@ -518,10 +522,10 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
           taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
       ) : actionsOpen && (
         <tr className="border-b border-border-subtle" data-task-actions-row>
-          <td colSpan={COLUMNS} className="p-0">
+          <TableDetailCell colSpan={COLUMNS}>
             <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false}
               taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
-          </td>
+          </TableDetailCell>
         </tr>
       )}
     </>
@@ -555,6 +559,7 @@ function TaskCard({ task, onNotice }: { task: any; onNotice: (message: string) =
         actions={(
           <>
             {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            {task.workflow_run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
             <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
           </>
         )}

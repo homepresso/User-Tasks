@@ -95,7 +95,7 @@ const QueueVisual = (
       ].map((row) => (
         <div key={row.task} className="flex items-center gap-2 px-3 py-2">
           <span className="flex-1 truncate font-medium text-(color:--mkt-ink)">{row.task}</span>
-          <span className={`rounded-full px-1.5 py-0.5 ${row.queued ? "bg-(color:--mkt-gold)/20 text-(color:--mkt-bronze)" : "bg-(color:--mkt-ink)/[0.06] text-(color:--mkt-muted)"}`}>{row.status}</span>
+          <span className={`rounded-full px-1.5 py-0.5 ${row.queued ? "bg-(color:--mkt-gold)/20 text-[#6B5232]" : "bg-(color:--mkt-ink)/[0.06] text-(color:--mkt-muted-strong)"}`}>{row.status}</span>
           {row.queued && <span className="rounded border border-(color:--mkt-ink)/15 px-1.5 py-0.5 text-(color:--mkt-ink-soft)">Accept</span>}
         </div>
       ))}

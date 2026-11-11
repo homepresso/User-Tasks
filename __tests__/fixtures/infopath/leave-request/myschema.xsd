@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xsd:schema targetNamespace="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-02-03T09:30:00" xmlns:my="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-02-03T09:30:00" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="leaveRequest">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:employee" minOccurs="0"/>
+				<xsd:element ref="my:leaveType" minOccurs="0"/>
+				<xsd:element ref="my:startDate" minOccurs="0"/>
+				<xsd:element ref="my:endDate" minOccurs="0"/>
+				<xsd:element ref="my:days" minOccurs="0"/>
+				<xsd:element ref="my:callTime" minOccurs="0"/>
+				<xsd:element ref="my:reason" minOccurs="0"/>
+				<xsd:element ref="my:medical" minOccurs="0"/>
+				<xsd:element ref="my:status" minOccurs="0"/>
+				<xsd:element ref="my:approval" minOccurs="0"/>
+			</xsd:sequence>
+			<xsd:attribute ref="my:formId"/>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:attribute name="formId" type="xsd:string"/>
+	<xsd:element name="employee">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:fullName" minOccurs="0"/>
+				<xsd:element ref="my:employeeId" minOccurs="0"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="fullName" type="my:requiredString"/>
+	<xsd:element name="employeeId">
+		<xsd:simpleType>
+			<xsd:restriction base="xsd:string">
+				<xsd:pattern value="E\d{5}"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+	</xsd:element>
+	<xsd:element name="leaveType" type="xsd:string"/>
+	<xsd:element name="startDate" type="xsd:date"/>
+	<xsd:element name="endDate" type="xsd:date"/>
+	<xsd:element name="days" nillable="true">
+		<xsd:simpleType>
+			<xsd:restriction base="xsd:decimal">
+				<xsd:minInclusive value="0.5"/>
+				<xsd:maxInclusive value="60"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+	</xsd:element>
+	<xsd:element name="callTime" nillable="true" type="xsd:time"/>
+	<xsd:element name="reason" type="xsd:string"/>
+	<xsd:element name="medical">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:certificate" minOccurs="0"/>
+				<xsd:element ref="my:doctor" minOccurs="0"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="certificate" nillable="true" type="xsd:base64Binary"/>
+	<xsd:element name="doctor" type="xsd:string"/>
+	<xsd:element name="status" type="xsd:string"/>
+	<xsd:element name="approval">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:decision" minOccurs="0"/>
+				<xsd:element ref="my:comments" minOccurs="0"/>
+				<xsd:element ref="my:approvedOn" minOccurs="0"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="decision" type="xsd:string"/>
+	<xsd:element name="comments" type="xsd:string"/>
+	<xsd:element name="approvedOn" nillable="true" type="xsd:date"/>
+	<xsd:simpleType name="requiredString">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

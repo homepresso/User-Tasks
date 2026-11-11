@@ -6,10 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime } from "@/lib/format/date"
 import { serverRead } from "@/lib/server-read"
 import { normalizeTaskFields, valueFields } from "@/lib/task-field-schema"
+import { listStagingKeys } from "@/lib/forms/form-rules"
 import { formatFieldValue } from "@/components/forms/form-renderer"
 import { lookupDisplayValue } from "@/components/forms/lookup-field"
 import { AttachmentList } from "@/components/forms/attachments-field"
 import { DataTableValueView } from "@/components/forms/data-table-field"
+import { ListValueView } from "@/components/forms/list-field"
 import { lookupItemKey } from "@/lib/forms/lookup"
 import { isSectionIncluded, layoutSections, sectionFieldKeys } from "@/lib/forms/sections"
 
@@ -30,7 +32,9 @@ export function SubmissionDialog({ submission, onClose }: { submission: { id: st
       return { sub: sub.data as any, form: form.data as any }
     },
   })
-  const fields = valueFields(normalizeTaskFields(data?.form?.fields ?? []))
+  // Inputs that only stage a List's rows (cleared by an "Add row to list" rule) are left out.
+  const staging = listStagingKeys(data?.form?.layout)
+  const fields = valueFields(normalizeTaskFields(data?.form?.fields ?? [])).filter((f) => !staging.has(f.key))
   const values = (data?.sub?.values ?? {}) as Record<string, unknown>
   const layout = data?.form?.layout
   const sections = layoutSections(layout)
@@ -55,7 +59,7 @@ export function SubmissionDialog({ submission, onClose }: { submission: { id: st
                 {shownFields.map((f) => (
                   <div key={f.key} className="contents">
                     <dt className="text-fg-muted">{f.label}</dt>
-                    <dd className="break-words">{f.type === "data_table" ? <DataTableValueView field={f} value={values[f.key]} /> : f.type === "attachments" ? <AttachmentList value={values[f.key]} /> : f.type === "lookup" ? lookupDisplayValue(f, values[f.key], values[lookupItemKey(f.key)], values[`${f.key}_label`]) : formatFieldValue(f, values[f.key])}</dd>
+                    <dd className="break-words">{f.type === "data_table" ? <DataTableValueView field={f} value={values[f.key]} /> : f.type === "list" ? <ListValueView field={f} value={values[f.key]} narrow /> : f.type === "attachments" ? <AttachmentList value={values[f.key]} /> : f.type === "lookup" ? lookupDisplayValue(f, values[f.key], values[lookupItemKey(f.key)], values[`${f.key}_label`]) : formatFieldValue(f, values[f.key])}</dd>
                   </div>
                 ))}
                 {extraKeys.map((k) => (

@@ -30,6 +30,7 @@
  * query evaluation (API sources), change-set validation and formatting.
  */
 
+import { rowDraftState } from './row-markers'
 import { isPlainObject } from '@/lib/utils/guards'
 import { pathValue } from './lookup'
 import { CONTROLS_KEY, FORM_PARAMS_KEY, FORM_VARS_KEY, formContextPath } from './form-params'
@@ -59,8 +60,14 @@ export interface DataTableColumn {
   sortable?: boolean
   /** End users may filter on it. */
   filterable?: boolean
-  /** Edit mode: people may change it (default true). */
+  /**
+   * Edit mode: read-only when editing — an existing row's cell can't be
+   * changed (inline, by rules, or in what the browser sends: the server keeps
+   * the stored value). A new row gets it only from the column's default.
+   */
   read_only?: boolean
+  /** Edit mode: what a rule's "New row" fills in (a constant or a template: {{form.x}}, {{today}}, {{user.id}}). */
+  default?: string
   /** Edit mode: added / edited rows need a value. */
   required?: boolean
   /** choice: allowed values. */
@@ -72,11 +79,11 @@ export interface DataTableColumn {
   width?: number
 }
 
-export type DataTableOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'starts_with' | 'in' | 'is_set' | 'is_not_set'
-export const DATA_TABLE_OPERATORS: DataTableOperator[] = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'starts_with', 'in', 'is_set', 'is_not_set']
+export type DataTableOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'starts_with' | 'ends_with' | 'in' | 'is_set' | 'is_not_set'
+export const DATA_TABLE_OPERATORS: DataTableOperator[] = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'starts_with', 'ends_with', 'in', 'is_set', 'is_not_set']
 export const DATA_TABLE_OPERATOR_LABELS: Record<DataTableOperator, string> = {
   eq: 'equals', neq: 'does not equal', gt: 'greater than', gte: 'at least', lt: 'less than', lte: 'at most',
-  contains: 'contains', starts_with: 'starts with', in: 'is one of', is_set: 'is not empty', is_not_set: 'is empty',
+  contains: 'contains', starts_with: 'starts with', ends_with: 'ends with', in: 'is one of', is_set: 'is not empty', is_not_set: 'is empty',
 }
 /** Operators an end user's column filter may use (per column type). */
 export function userOperatorsFor(type: DataTableColumnType): DataTableOperator[] {
@@ -157,6 +164,10 @@ export interface DataTableFieldConfig {
    * table always scrolls sideways inside the card when it is wider still.
    */
   full_width?: boolean
+  /** Edit mode: pending rows at submit (rows a rule made / changed and didn't commit) — see ListFieldConfig.on_submit_pending. */
+  on_submit_pending?: 'exclude' | 'block' | 'commit'
+  /** Edit mode: pending rows show ✓ Commit and ✕ Discard on the row. */
+  row_commit_controls?: boolean
 }
 
 export const DATA_TABLE_LIMITS = {
@@ -225,6 +236,7 @@ function normalizeColumn(raw: unknown, source: DataTableSource): DataTableColumn
   if (raw.filterable === true) col.filterable = true
   if (raw.read_only === true) col.read_only = true
   if (raw.required === true) col.required = true
+  { const def = raw.default === true || raw.default === false || typeof raw.default === 'number' ? String(raw.default) : str(raw.default, DATA_TABLE_LIMITS.template); if (def) col.default = def }
   if (type === 'choice' && Array.isArray(raw.options)) {
     const options = [...new Set(raw.options.map((o) => String(o ?? '').trim()).filter(Boolean))].slice(0, DATA_TABLE_LIMITS.options)
     if (options.length) col.options = options.map((o) => o.slice(0, 200))
@@ -337,6 +349,8 @@ export function normalizeDataTableConfig(raw: unknown): DataTableFieldConfig {
   if (mode === 'edit') {
     if (src.allow_add === true) out.allow_add = true
     if (src.allow_delete === true) out.allow_delete = true
+    if (src.on_submit_pending === 'exclude' || src.on_submit_pending === 'commit') out.on_submit_pending = src.on_submit_pending
+    if (src.row_commit_controls === true) out.row_commit_controls = true
   }
   if (mode !== 'display') {
     const cap = mode === 'select' ? DATA_TABLE_LIMITS.maxSelected : DATA_TABLE_LIMITS.maxChanges
@@ -655,9 +669,9 @@ export function conditionTerm(column: string, type: DataTableColumnType, operato
   const bool = type === 'boolean'
   if (operator === 'is_set') return `${cellRef(column, true)}.not.is.null`
   if (operator === 'is_not_set') return `${cellRef(column, true)}.is.null`
-  if (operator === 'contains' || operator === 'starts_with') {
+  if (operator === 'contains' || operator === 'starts_with' || operator === 'ends_with') {
     const term = likeEscape(cleanSearch(value))
-    return `${cellRef(column, false)}.ilike.${quoteValue(operator === 'contains' ? `*${term}*` : `${term}*`)}`
+    return `${cellRef(column, false)}.ilike.${quoteValue(operator === 'contains' ? `*${term}*` : operator === 'ends_with' ? `*${term}` : `${term}*`)}`
   }
   if (operator === 'in') {
     const list = value.split(',').map((v) => v.trim()).filter(Boolean).slice(0, 50)
@@ -812,6 +826,7 @@ export function rowMeets(values: Record<string, unknown>, column: string, type: 
   switch (operator) {
     case 'contains': return left.includes(right)
     case 'starts_with': return left.startsWith(right)
+    case 'ends_with': return left.endsWith(right)
     case 'in': return right.split(',').map((v) => v.trim()).filter(Boolean).includes(left)
     case 'eq':
       if (type === 'number') return !blank && Number(cell) === Number(value)
@@ -887,6 +902,10 @@ export interface DataTableChange {
   before: Record<string, unknown>
   after: Record<string, unknown>
   changed_fields: string[]
+  /** Pending (changed by a rule's "Set row values", not committed yet) — browser state; the server settles it. */
+  draft?: boolean
+  /** A failed "Commit row": column → message (browser state). */
+  errors?: Record<string, string>
 }
 
 export interface DataTableChangeSet {
@@ -977,10 +996,15 @@ export function addableColumns(config: DataTableFieldConfig): DataTableColumn[] 
   return config.columns.filter((c) => !c.read_only && !c.hidden)
 }
 
+/** Columns a new row may carry: the addable ones, plus read-only / hidden columns a default fills ("New row"). */
+export function insertableColumns(config: DataTableFieldConfig): DataTableColumn[] {
+  return config.columns.filter((c) => (!c.read_only && !c.hidden) || c.default !== undefined)
+}
+
 function cleanRow(config: DataTableFieldConfig, raw: unknown, errors: string[], label: string, keep: 'editable' | 'addable' | 'all', requireAll: boolean): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   const row = isPlainObject(raw) ? raw : {}
-  const cols = keep === 'editable' ? editableColumns(config) : keep === 'addable' ? addableColumns(config) : config.columns
+  const cols = keep === 'editable' ? editableColumns(config) : keep === 'addable' ? insertableColumns(config) : config.columns
   for (const col of cols) {
     if (!Object.prototype.hasOwnProperty.call(row, col.key)) {
       if (requireAll && col.required) errors.push(`${label}: ${col.label} is required`)
@@ -1009,16 +1033,44 @@ function cleanKey(raw: unknown): string | null {
  * only as a hint — the server recomputes them from the source where it can
  * (lib/services/form-data-table.ts) and never trusts them for authorisation.
  */
-export function validateChangeSet(config: DataTableFieldConfig, raw: unknown): { changes: DataTableChangeSet; errors: string[] } {
+export function validateChangeSet(config: DataTableFieldConfig, raw: unknown): { changes: DataTableChangeSet; errors: string[]; warnings: string[] } {
   const errors: string[] = []
+  const warnings: string[] = []
   const changes = emptyChangeSet()
-  if (raw === null || raw === undefined || raw === '') return { changes, errors }
-  if (!isPlainObject(raw)) return { changes, errors: ['The table changes are not in the expected shape'] }
-  const added = Array.isArray(raw.added) ? raw.added : []
-  const updated = Array.isArray(raw.updated) ? raw.updated : []
+  if (raw === null || raw === undefined || raw === '') return { changes, errors, warnings }
+  if (!isPlainObject(raw)) return { changes, errors: ['The table changes are not in the expected shape'], warnings }
+  let added = Array.isArray(raw.added) ? raw.added : []
+  let updated = Array.isArray(raw.updated) ? raw.updated : []
   const deleted = Array.isArray(raw.deleted) ? raw.deleted : []
+  // Pending rows (rule-made, not committed — lib/forms/row-rules.ts): block (default), leave out, or take as they are.
+  const pending = added.filter((r) => isPlainObject(r) && rowDraftState(r) !== null).length + updated.filter((u) => isPlainObject(u) && u.draft === true).length
+  const pendingMode = config.on_submit_pending ?? 'block'
+  if (pending && pendingMode === 'block') errors.push(`Commit or discard the ${pending === 1 ? 'pending row' : `${pending} pending rows`} first`)
+  if (pending && pendingMode === 'exclude') {
+    added = added.filter((r) => !(isPlainObject(r) && rowDraftState(r) !== null))
+    updated = updated.filter((u) => !(isPlainObject(u) && u.draft === true))
+  }
+  // Read-only columns (lib/forms/row-rules.ts): an existing row's read-only cell never changes. A change the
+  // browser marked as such (changed_fields naming it) is tampering — refused; any other stray value is dropped (warned).
+  const locked = config.columns.filter((c) => c.read_only || c.hidden).map((c) => c.key)
+  const keyCol = dataTableKeyColumn(config)
+  updated.forEach((entry) => {
+    if (!isPlainObject(entry) || !isPlainObject(entry.after)) return
+    const before = isPlainObject(entry.before) ? entry.before : {}
+    const named = Array.isArray(entry.changed_fields) ? entry.changed_fields.filter((k): k is string => typeof k === 'string') : []
+    for (const col of [...locked, keyCol]) {
+      if (!Object.prototype.hasOwnProperty.call(entry.after, col)) continue
+      if (named.includes(col)) { errors.push(`Row ${String(entry.key ?? '').slice(0, 60)}: ${config.columns.find((c) => c.key === col)?.label ?? col} is read-only`); continue }
+      if (!sameCell(before[col], entry.after[col])) warnings.push(`Row ${String(entry.key ?? '').slice(0, 60)}: a change to read-only column "${col}" was ignored`)
+    }
+  })
+  const insertable = new Set(insertableColumns(config).map((c) => c.key))
+  added.forEach((row, i) => {
+    if (!isPlainObject(row)) return
+    for (const c of config.columns) if (!insertable.has(c.key) && row[c.key] !== undefined && row[c.key] !== null && row[c.key] !== '') warnings.push(`New row ${i + 1}: read-only column "${c.key}" was ignored`)
+  })
   const total = added.length + updated.length + deleted.length
-  if (total > dataTableMaxRows(config)) return { changes, errors: [`At most ${dataTableMaxRows(config)} row changes at a time (${total} sent)`] }
+  if (total > dataTableMaxRows(config)) return { changes, warnings, errors: [`At most ${dataTableMaxRows(config)} row changes at a time (${total} sent)`] }
   if (added.length && !config.allow_add) errors.push('Adding rows is not allowed on this table')
   if (deleted.length && !config.allow_delete) errors.push('Deleting rows is not allowed on this table')
   const keys = new Set<string>()
@@ -1045,7 +1097,7 @@ export function validateChangeSet(config: DataTableFieldConfig, raw: unknown): {
     const before = cleanRow(config, isPlainObject(entry) ? entry.before : null, [], `Row ${key}`, 'all', false)
     changes.deleted.push({ key, before })
   })
-  return { changes, errors }
+  return { changes, errors, warnings }
 }
 
 /** Validate a selection (select mode): rows with keys, unique, within max_rows; cells cleaned to the declared columns. */

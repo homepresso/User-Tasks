@@ -499,23 +499,23 @@ export function ReportHub({
             })}
           </div>
         ) : (
-          <Table>
+          <Table label="Reports" stickyFirstColumn stickyColumns={2}>
             <THead>
               <tr>
                 <TH className="w-10">
                   <Checkbox aria-label={allPageSelected ? "Deselect all on page" : "Select all on page"} checked={allPageSelected} onChange={toggleSelectPage} />
                 </TH>
-                <TH aria-sort={sortBy === "name" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
+                <TH col="title" aria-sort={sortBy === "name" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
                   <button type="button" className="inline-flex items-center gap-1 hover:text-fg" onClick={() => toggleSort("name")}>Name <SortIcon field="name" /></button>
                 </TH>
-                <TH aria-sort={sortBy === "category" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
+                <TH col="status" aria-sort={sortBy === "category" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
                   <button type="button" className="inline-flex items-center gap-1 hover:text-fg" onClick={() => toggleSort("category")}>Category <SortIcon field="category" /></button>
                 </TH>
-                <TH>Sharing</TH>
-                <TH aria-sort={sortBy === "updated_at" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
+                <TH col="status">Sharing</TH>
+                <TH col="date" aria-sort={sortBy === "updated_at" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
                   <button type="button" className="inline-flex items-center gap-1 hover:text-fg" onClick={() => toggleSort("updated_at")}>Updated <SortIcon field="updated_at" /></button>
                 </TH>
-                <TH><span className="sr-only">Actions</span></TH>
+                <TH col="actions"><span className="sr-only">Actions</span></TH>
               </tr>
             </THead>
             <TBody>
@@ -527,15 +527,15 @@ export function ReportHub({
                     <TD className="w-10">
                       <Checkbox aria-label={`Select ${report.name ?? "report"}`} checked={isSelected} onChange={() => toggleSelect(report.id)} />
                     </TD>
-                    <TD className="max-w-[420px]">
+                    <TD className="max-w-0">
                       <Link href={`/reports/${report.id}`} className="flex min-w-0 items-center gap-2">
                         <Icon className="size-3.5 shrink-0 text-fg-muted" aria-hidden />
-                        <span className="truncate font-medium text-fg hover:underline">{report.name}</span>
+                        <span className="truncate font-medium text-fg hover:underline" title={report.name ?? undefined}>{report.name}</span>
                         {report.is_favorite && <Star className="size-3.5 shrink-0 fill-current text-warning" aria-label="Pinned" />}
                       </Link>
                     </TD>
-                    <TD className="capitalize text-fg-muted">{String(report.category ?? "—").replace(/_/g, " ")}</TD>
-                    <TD className="text-fg-muted">{report.is_shared ? "Shared" : "Private"}</TD>
+                    <TD className="whitespace-nowrap capitalize text-fg-muted">{String(report.category ?? "—").replace(/_/g, " ")}</TD>
+                    <TD className="whitespace-nowrap text-fg-muted">{report.is_shared ? "Shared" : "Private"}</TD>
                     <TD className="num whitespace-nowrap text-fg-muted">{formatRelative(report.updated_at)}</TD>
                     <TDActions><RowMenu report={report} /></TDActions>
                   </TR>

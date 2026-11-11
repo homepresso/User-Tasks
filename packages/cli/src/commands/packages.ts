@@ -5,7 +5,7 @@
  * ./package-authoring:
  *
  *   packages remove <package> <type:id>…                       leave artifacts out
- *   packages build <package> [--release 1.2.0 | --bump patch] [--out file.utpkg]
+ *   packages build <package> [--release 1.2.0 | --bump patch] [--out file.utpkg] [--update-install]
  *   packages download <package> [version] -o file.utpkg
  *   packages inspect <file.utpkg>                              offline verify + contents
  *   packages install <file.utpkg> [--dry-run] [--set <req>.<field>=value]…
@@ -280,12 +280,13 @@ export function registerPackageCommands(program: Command, runtime: Runtime) {
     .option('--notes <text>', 'Release notes')
     .option('--out <file>', 'Where to save the file (default <slug>-<version>.utpkg); alias -O')
     .option('-O <file>', 'Alias of --out')
+    .option('--update-install', 'When the package is installed in this workspace (built here): update that install too, so uninstall removes added items and keeps removed ones')
     .addHelpText('after', '\nAPI: POST /api/v1/packages/{id}/versions  (permission: packages.manage)')
-    .action(async (pkg: string, opts: { release?: string; bump: string; notes?: string; out?: string; O?: string }, self: Command) => {
-      const data = await runtime.client(self, { timeoutMs: INSTALL_TIMEOUT_MS }).requestAndWait<{ version: { version: string; checksum: string; signed: boolean; fingerprint: string | null; asset_count: number }; manifest: { requirements: unknown[] }; warnings: string[]; file_name: string; file_base64: string }>('POST', '/packages/{id}/versions', {
+    .action(async (pkg: string, opts: { release?: string; bump: string; notes?: string; out?: string; O?: string; updateInstall?: boolean }, self: Command) => {
+      const data = await runtime.client(self, { timeoutMs: INSTALL_TIMEOUT_MS }).requestAndWait<{ version: { version: string; checksum: string; signed: boolean; fingerprint: string | null; asset_count: number }; manifest: { requirements: unknown[] }; warnings: string[]; file_name: string; file_base64: string; install_sync?: { status: string; note: string } }>('POST', '/packages/{id}/versions', {
         onProgress: (job) => runtime.info(self, jobProgressLine(job)),
         path: { id: pkg },
-        body: { ...(opts.release ? { version: opts.release } : { bump: opts.bump }), ...(opts.notes ? { notes: opts.notes } : {}), include_file: true },
+        body: { ...(opts.release ? { version: opts.release } : { bump: opts.bump }), ...(opts.notes ? { notes: opts.notes } : {}), ...(opts.updateInstall ? { update_install: true } : {}), include_file: true },
       })
       const target = opts.out ?? opts.O ?? data.file_name
       writeFileSync(target, Buffer.from(data.file_base64, 'base64'))
@@ -293,6 +294,7 @@ export function registerPackageCommands(program: Command, runtime: Runtime) {
       const v = data.version
       runtime.io.stdout.write(`Built ${v.version}: ${v.asset_count} assets, ${data.manifest.requirements.length} requirement${data.manifest.requirements.length === 1 ? '' : 's'}, ${v.signed ? `signed ${v.fingerprint}` : 'unsigned'}\n  ${v.checksum}\n  saved ${target}\n`)
       for (const warning of data.warnings) runtime.info(self, `warning: ${warning}`)
+      if (data.install_sync?.status === 'upgraded') runtime.info(self, data.install_sync.note)
     })
 
   packages

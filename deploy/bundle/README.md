@@ -9,7 +9,7 @@ site the app serves at `/docs`).
 | `images/` | OCI images (`docker save`, gzip): the app (`app`) and its dependencies; `images/images.txt` lists them |
 | `charts/` | The Helm chart (`helm install usertasks charts/usertasks-<version>.tgz …`) |
 | `compose/` | Docker Compose files: the standalone stack and the on-premises profile (isolated network, OpenBao KMS) |
-| `npm/` | `@usertasks/sdk` and `@usertasks/cli` (dependencies included: `npm install -g ./npm/usertasks-cli-<version>.tgz`) |
+| `npm/` | `@user-tasks/sdk` and `@user-tasks/cli` (dependencies included: `npm install -g ./npm/usertasks-cli-<version>.tgz`) |
 | `docs/` | The documentation (Markdown) |
 | `sbom/` | SPDX SBOMs of the images (syft) |
 | `manifest.json` | Version, platform, image ids, the signer fingerprint |

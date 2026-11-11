@@ -1,5 +1,5 @@
 /**
- * npm test → compiles harness/run.ts (and the vendored @usertasks/action
+ * npm test → compiles harness/run.ts (and the vendored @user-tasks/action
  * test runner) to .harness/run.mjs, then runs it against dist/action.js.
  * Arguments after `--` are passed through (a name filter, --verbose).
  */

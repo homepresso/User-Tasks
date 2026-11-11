@@ -5,6 +5,8 @@ import { mcpOk, mcpErr } from '../server'
 import { canAccessTable } from '@/lib/api-key-permissions'
 import { fromMcpContext, type ServiceContext } from '@/lib/services/context'
 import * as dataTables from '@/lib/services/data-tables'
+import { decodeBase64, importRowsNow, planImport, type DataImportOptions } from '@/lib/services/data-import'
+import { DATA_IMPORT_LIMITS } from '@/lib/data-import/parse'
 import { messageOf } from './_util'
 
 const columnSchema = z.object({
@@ -343,6 +345,46 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
     const updated: string[] = []
     for (const id of [...new Set(ids as string[])]) { await dataTables.updateRow(writeCtx(), tableId, id, args.data as Record<string, unknown>); updated.push(id) }
     return { updated: updated.length, table_id: tableId, row_ids: updated }
+  }))
+
+  server.tool('data_rows_import', `Import rows into a custom table from a CSV, TSV or .xlsx file (file_base64 + file_name) or from CSV text (csv_text, e.g. data pasted into the chat). Headers are matched to columns by name (case-insensitive, spaces / underscores ignored) unless mapping says otherwise; new_columns adds columns first. Every row is validated (numbers incl. currency such as $1,234.50, dates → YYYY-MM-DD, yes / no, choices, required columns) and errors come back with the spreadsheet row number, column and reason. Use dry_run first. mode: insert (default), upsert (key_column), or replace (deletes every existing row; confirm_replace must be the table name). With errors nothing is written unless skip_invalid. fire_triggers (default true) fires data-table event workflows for created / updated rows. Limits: ${DATA_IMPORT_LIMITS.maxBytes / 1024 / 1024} MB, ${DATA_IMPORT_LIMITS.maxRows.toLocaleString('en-US')} rows; above ${DATA_IMPORT_LIMITS.syncRows.toLocaleString('en-US')} rows the import runs as a background job (the result says which job).`, {
+    table_id: z.string().describe('Table ID, name or system name'),
+    file_base64: z.string().optional().describe('The file, base64 (.csv, .tsv or .xlsx)'),
+    file_name: z.string().optional().describe('File name; the extension picks the reader (default import.csv)'),
+    csv_text: z.string().optional().describe('CSV text with a header row, instead of file_base64'),
+    sheet: z.string().optional().describe('.xlsx: the sheet to read (default the first)'),
+    mapping: z.record(z.string(), z.string().nullable()).optional().describe('File header → column key or name (null skips the header)'),
+    new_columns: z.array(z.object({
+      header: z.string().describe('File header the new column is filled from'),
+      name: z.string().optional().describe('Column name (default the header)'),
+      type: z.enum(['text', 'longtext', 'number', 'date', 'boolean', 'select']).optional().describe('Column type (default text)'),
+      options: z.array(z.string()).optional().describe('Choices, for select columns'),
+    })).optional().describe('Columns to add before importing (needs data.edit_schema)'),
+    mode: z.enum(['insert', 'upsert', 'replace']).optional().describe('insert (default), upsert (match key_column), replace (delete every existing row first)'),
+    key_column: z.string().optional().describe('upsert: the column whose value identifies a row'),
+    confirm_replace: z.string().optional().describe('replace: the table name, to confirm'),
+    date_order: z.enum(['auto', 'dmy', 'mdy', 'ymd']).optional().describe('Day / month order of numeric dates (default auto)'),
+    trim: z.boolean().optional().describe('Trim whitespace (default true)'),
+    empty_cells: z.enum(['empty', 'ignore']).optional().describe('empty (default) clears the column; ignore leaves it unchanged'),
+    skip_invalid: z.boolean().optional().describe('Import the valid rows and skip rows with errors'),
+    fire_triggers: z.boolean().optional().describe('Fire data-table event workflows for created / updated rows (default true)'),
+    dry_run: z.boolean().optional().describe('Validate only and return the report; nothing is written'),
+  }, async (args) => run(async () => {
+    const tableId = await resolveTableRef(writeCtx(), args.table_id)
+    const { table_id: _ref, file_base64, csv_text, ...rest } = args as Record<string, any>
+    if (!file_base64 && typeof csv_text !== 'string') throw new Error('Pass file_base64 (with file_name) or csv_text')
+    const bytes = file_base64 ? decodeBase64(file_base64) : new TextEncoder().encode(String(csv_text))
+    const options: DataImportOptions = { ...rest, file_name: String(rest.file_name ?? '').trim() || 'import.csv' }
+    if (!options.dry_run) {
+      const plan = await planImport(writeCtx(), tableId, bytes, { ...options, dry_run: true })
+      if (plan.validation.valid.length > DATA_IMPORT_LIMITS.syncRows) {
+        // Large imports run in resumable batches as a background job.
+        const { enqueueUserJob } = await import('@/lib/user-jobs/runner')
+        const job = await enqueueUserJob(writeCtx(), 'data.import', { ...options, table_id: tableId, table_name: plan.table.name, dry_run: undefined }, { input: bytes })
+        return { started_job: true, job_id: job.id, status: job.status, rows: plan.validation.valid.length, note: 'The import runs in the background; the job result has the counts and errors.' }
+      }
+    }
+    return importRowsNow(writeCtx(), tableId, bytes, options)
   }))
 
   server.tool('data_rows_delete', 'Delete a row from a custom table. If the table is connected to data_table_event workflows, deleting a row triggers those workflows.', {

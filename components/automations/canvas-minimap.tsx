@@ -108,7 +108,7 @@ export function CanvasMinimap({ items, scrollRef, getView, onNavigate, width = 1
 
   return (
     <div
-      className={cn(position, "group/minimap rounded-lg border border-border bg-elevated shadow-elev-2 overflow-hidden")}
+      className={cn(position, "group/minimap rounded-lg border border-border bg-elevated shadow-elev-2 overflow-hidden opacity-60 transition-opacity hover:opacity-100 focus-within:opacity-100")}
       style={{ width, height }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}

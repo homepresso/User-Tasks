@@ -1,5 +1,5 @@
 {
-  "name": "@usertasks/cli",
+  "name": "@user-tasks/cli",
   "version": "0.1.0",
   "description": "Command-line interface for UserTasks: every REST endpoint as a command, browser login and config as code",
   "keywords": [
@@ -39,7 +39,7 @@
     "generate:check": "tsx scripts/generate.ts --check"
   },
   "dependencies": {
-    "@usertasks/sdk": "0.1.0",
+    "@user-tasks/sdk": "0.1.0",
     "commander": "^14.0.3",
     "yaml": "^2.8.3"
   },

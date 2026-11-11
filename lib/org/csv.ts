@@ -40,9 +40,18 @@ function byteLength(text: string): number {
 
 export type CsvLimits = { maxBytes: number; maxRows: number; maxColumns: number; maxCellLength: number }
 
+export interface CsvParseOptions extends Partial<CsvLimits> {
+  /** Field separator (default ","; data-table imports also read ";" and tab). */
+  delimiter?: string
+  /** Trim unquoted cells (default true). */
+  trim?: boolean
+}
+
 /** Parse CSV text (first row = headers). Throws CsvError on malformed input or a limit breach. */
-export function parseCsv(input: string, limits: Partial<CsvLimits> = {}): ParsedCsv {
+export function parseCsv(input: string, limits: CsvParseOptions = {}): ParsedCsv {
   const lim = { ...CSV_LIMITS, ...limits }
+  const delimiter = limits.delimiter ?? ','
+  const trim = limits.trim ?? true
   if (typeof input !== 'string') throw new CsvError('The file is not text')
   if (input.length > lim.maxBytes || byteLength(input) > lim.maxBytes) {
     throw new CsvError(`The file is larger than ${Math.round(lim.maxBytes / 1024 / 1024)} MB`)
@@ -57,7 +66,7 @@ export function parseCsv(input: string, limits: Partial<CsvLimits> = {}): Parsed
 
   const pushField = () => {
     if (field.length > lim.maxCellLength) throw new CsvError(`Line ${line}: a cell is longer than ${lim.maxCellLength} characters`)
-    record.push(fieldWasQuoted ? field : field.trim())
+    record.push(fieldWasQuoted || !trim ? field : field.trim())
     if (record.length > lim.maxColumns) throw new CsvError(`Line ${line}: more than ${lim.maxColumns} columns`)
     field = ''
     fieldWasQuoted = false
@@ -91,7 +100,7 @@ export function parseCsv(input: string, limits: Partial<CsvLimits> = {}): Parsed
       field += ch
       continue
     }
-    if (ch === ',') { pushField(); continue }
+    if (ch === delimiter) { pushField(); continue }
     if (ch === '\r') {
       if (text[i + 1] === '\n') i++
       pushRecord(); line++
@@ -100,7 +109,7 @@ export function parseCsv(input: string, limits: Partial<CsvLimits> = {}): Parsed
     if (ch === '\n') { pushRecord(); line++; continue }
     if (fieldWasQuoted) {
       // Text after a closing quote ("a"b): only whitespace is allowed.
-      if (ch.trim() === '') continue
+      if (ch.trim() === '' && ch !== delimiter) continue
       throw new CsvError(`Line ${line}: unexpected text after a closing quote`)
     }
     field += ch

@@ -19,8 +19,15 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+  // The app's own pages may use the microphone (the Agent's dictation,
+  // components/assistants/dictation) — on our origin only, never a frame.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=()" },
 ];
+
+// Pages other sites embed and custom control frames: no microphone at all.
+const embedSecurityHeaders = securityHeaders.map((h) =>
+  h.key === "Permissions-Policy" ? { ...h, value: "camera=(), microphone=(), geolocation=(), payment=()" } : h,
+);
 
 // The optionalDependencies (Snowflake, Oracle and MongoDB drivers; storage,
 // email, secrets and KMS provider SDKs; the SAML library; tesseract.js for OCR) are listed in
@@ -80,7 +87,7 @@ const nextConfig: NextConfig = {
   // worktree) traces the outer checkout's node_modules.
   turbopack: { root: process.cwd(), resolveAlias: missingDriverAliases },
   // Workspace package shipped as TypeScript source (the postgres db provider).
-  transpilePackages: ["@usertasks/pg-query"],
+  transpilePackages: ["@user-tasks/pg-query"],
   // The QuickJS sandbox embeds its WebAssembly binary in a JS string; when the
   // production build minifies it, the string becomes a template literal with
   // octal escapes that Node refuses to parse ("Failed to load chunk"). Load
@@ -138,11 +145,11 @@ const nextConfig: NextConfig = {
       // X-Frame-Options; proxy.ts sets their CSP with `frame-ancestors *`.
       ...["/f/:path*", "/form/:path*", "/p/:path*", "/form-login"].map((source) => ({
         source,
-        headers: securityHeaders.filter((h) => h.key !== "X-Frame-Options"),
+        headers: embedSecurityHeaders.filter((h) => h.key !== "X-Frame-Options"),
       })),
       {
         source: "/form-controls/frame/:path*",
-        headers: securityHeaders.filter((h) => h.key !== "Content-Security-Policy" && h.key !== "X-Frame-Options"),
+        headers: embedSecurityHeaders.filter((h) => h.key !== "Content-Security-Policy" && h.key !== "X-Frame-Options"),
       },
     ];
   },

@@ -162,7 +162,7 @@ The harness isn't the sandbox: it doesn't apply the frame's CSP. A build that pa
 
 ## Contract reference
 
-The source of truth is \`lib/forms/custom-controls/contract.ts\` (also exported by the \`@usertasks/form-control\` package once it is published).
+The source of truth is \`lib/forms/custom-controls/contract.ts\` (also exported by the \`@user-tasks/form-control\` package once it is published).
 
 ### manifest.json
 

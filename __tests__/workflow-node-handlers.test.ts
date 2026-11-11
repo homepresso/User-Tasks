@@ -463,6 +463,12 @@ describe('handleSwitchCase', () => {
     expect(result.matched_case).toBe('Escalated')
   })
 
+  it('routes an object case without a label by its value (the documented { value } shape)', () => {
+    const ctx = makeCtx({ region: 'EU' })
+    const result = handleSwitchCase({ field: '{{region}}', cases: [{ value: 'EU' }, { value: 'US' }], has_default: true }, ctx)
+    expect(result.matched_case).toBe('EU')
+  })
+
   it('falls through to default with object-format cases', () => {
     const ctx = makeCtx({ ticket_status: 'unknown' })
     const result = handleSwitchCase({

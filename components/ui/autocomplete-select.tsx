@@ -139,7 +139,7 @@ export function AutocompleteSelect({
         maxHeight={300}
         className="flex flex-col overflow-hidden rounded-lg border shadow-lg bg-panel border-border"
       >
-          <div className="flex items-center gap-1.5 border-b px-2 py-1.5 border-border">
+          <div data-input-shell="" className="flex items-center gap-1.5 border-b px-2 py-1.5 border-border">
             <Search size={12} className="text-fg-muted" />
             <input
               ref={inputRef}

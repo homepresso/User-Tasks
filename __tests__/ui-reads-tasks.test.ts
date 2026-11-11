@@ -198,11 +198,27 @@ describe('task detail reads', () => {
       .toEqual({ ok: true, data: [{ id: 't3', title: 'Other org' }] })
   })
 
-  it('dependency candidates: open, not the task itself, newest first, searchable', async () => {
-    const result = await runUiRead(ctx(memory(seed()), VIEW), { name: 'tasks.dependencyCandidates', args: { excludeTaskId: 't1' } })
+  it('dependency candidates (task oversight): open, not the task itself, newest first, searchable', async () => {
+    const OVERSIGHT = ['tasks.view_all']
+    const result = await runUiRead(ctx(memory(seed()), OVERSIGHT), { name: 'tasks.dependencyCandidates', args: { excludeTaskId: 't1' } })
     expect(result).toMatchObject({ ok: true, data: [{ id: 't7', label: 'Bob queue' }, { id: 't6' }, { id: 't5' }, { id: 't3' }, { id: 's1' }] })
-    expect(await runUiRead(ctx(memory(seed()), VIEW), { name: 'tasks.dependencyCandidates', args: { excludeTaskId: 't1', search: ' team ' } }))
+    expect(await runUiRead(ctx(memory(seed()), OVERSIGHT), { name: 'tasks.dependencyCandidates', args: { excludeTaskId: 't1', search: ' team ' } }))
       .toEqual({ ok: true, data: [{ id: 't6', label: 'Team step' }] })
+  })
+
+  it('dependency candidates (own tasks only): the visible-task search (invites included), never the workspace query', async () => {
+    const db = memory(seed())
+    const calls: any[] = []
+    db.rpc = async (name: string, args: any) => {
+      calls.push({ name, args })
+      return { data: [{ id: 'shared-1', title: 'Shared with me', status: 'todo' }], error: null }
+    }
+    const from = vi.spyOn(db, 'from')
+    const result = await runUiRead(ctx(db, VIEW), { name: 'tasks.dependencyCandidates', args: { excludeTaskId: 't1', search: ' shared ' } })
+    expect(result).toEqual({ ok: true, data: [{ id: 'shared-1', label: 'Shared with me' }] })
+    expect(calls).toEqual([{ name: 'search_visible_tasks', args: { p_user_id: 'u1', p_tenant_id: 'tenant-a', p_search: 'shared', p_exclude: 't1', p_limit: 8 } }])
+    // Only the current-workspace lookup reads a table.
+    expect(from.mock.calls.map(([table]) => table)).toEqual(['users'])
   })
 
   it('subtasks are live children in sequence order', async () => {

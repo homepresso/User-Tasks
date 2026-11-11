@@ -1,13 +1,13 @@
 'use client'
 
 import { FavoriteStar } from '@/components/home/favorite-star'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
-import { ClipboardPen, Copy, Download, FileText, Inbox, Link2, MoreHorizontal, Palette, Plus, QrCode, Settings2, Trash2 } from 'lucide-react'
+import { ChevronDown, ClipboardPen, Copy, Download, FileCode2, FileJson, FileText, Inbox, Link2, MoreHorizontal, Palette, Plus, QrCode, Settings2, Trash2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { Input, SearchInput } from '@/components/ui/input'
@@ -21,17 +21,16 @@ import { Tag } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Table, TBody, TD, TH, THead, TR, TableSkeleton } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { ExportAssetDialog, ImportConfigButton } from '@/components/shared/config-transfer'
+import { ExportAssetDialog, useImportConfig } from '@/components/shared/config-transfer'
+import { InfoPathImportDialog } from './infopath-import-dialog'
 import { usePermissions } from '@/lib/permissions-context'
 import { serverRead } from '@/lib/server-read'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
-import { createForm, createFormTheme, deleteForm, deleteFormTheme, duplicateForm, updateForm, updateFormTheme } from '@/app/actions/forms'
-import { normalizeFormDefinition, type FormDefinition } from '@/lib/forms/definition'
-import { blockingFormThemeIssues, type FormThemeOverrides, type FormThemeRef } from '@/lib/forms/form-theme'
+import { createFormTheme, deleteForm, deleteFormTheme, duplicateForm, updateFormTheme } from '@/app/actions/forms'
+import { blockingFormThemeIssues, type FormThemeRef } from '@/lib/forms/form-theme'
 import { defaultTaskFieldValues, type TaskFieldDef } from '@/lib/task-field-schema'
 import { formatCount } from '@/lib/format/number'
-import { FormDesignerDialog } from './designer/form-designer-dialog'
-import { useAssistantChanges, type AssistantChange } from '@/lib/assistants/client-registry'
+import { formDesignerHref, NEW_FORM_HREF } from '@/lib/forms/designer-links'
 import { ThemeEditor, type SavedFormTheme } from './designer/theme-editor'
 import { FormRenderer } from './form-renderer'
 import { FormSubmissionsPanel } from './form-submissions-panel'
@@ -39,27 +38,17 @@ import { FormThemeScope } from './form-theme-scope'
 import { FormQrDialog } from './form-qr-dialog'
 import { publicFormPageUrl } from '@/lib/forms/form-page-url'
 import { AVAILABLE_FORMS_QUERY_KEY } from '@/lib/forms/available-forms'
-import { ObjectPermissions } from '@/components/governance/object-permissions'
-import { FormGovernanceSection } from '@/components/forms/form-governance-section'
-import { FormAnonymousSection } from '@/components/forms/form-anonymous-section'
-import { FormAvailabilityHint, FormAvailabilityStatus } from './form-availability-hint'
-import { FormSystemNameField } from './form-system-name-field'
-import { FilterMenu, FormDetailsSheet, RelativeDate, THEME_SOURCE_LABELS, type FormDetail, type FormListItem } from './forms-library-parts'
+import { FormAccessSections, FormDetailsEditor } from './form-details-editor'
+import { FilterMenu, FormDetailsSheet, RelativeDate, THEME_SOURCE_LABELS, type FormListItem } from './forms-library-parts'
 
 /**
  * Forms library (Automations → Forms): reusable task forms — list, search,
- * filter by tag / theme / use, create / edit (the designer) / details /
- * duplicate / delete, where each form is used — and the reusable Form themes.
+ * filter by tag / theme / use, create / edit / details / duplicate / delete,
+ * where each form is used — and the reusable Form themes. Edit and New form
+ * open the full-page designer (/automations/forms/<id>, /automations/forms/new).
  */
 
-const EMPTY_FORM: FormDefinition = { fields: [], layout: { rows: [] }, theme: { source: 'workspace' } }
-
 type ThemeEditing = { id: string | null; name: string; ref: FormThemeRef }
-type DetailsState = { form: FormListItem | null; name: string; description: string; tags: string; available: boolean; systemName: string }
-
-function detailsOf(form: FormListItem): DetailsState {
-  return { form, name: form.name, description: form.description ?? '', tags: form.tags.join(', '), available: form.available_in_menu === true, systemName: form.system_name ?? '' }
-}
 
 const USE_FILTERS = [
   { value: 'used', label: 'Used by a workflow' },
@@ -91,10 +80,7 @@ export function FormsLibrary() {
   const [useFilter, setUseFilter] = useState<string[]>([])
   const [notice, setNotice] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
   const [sheetOf, setSheetOf] = useState<FormListItem | null>(null)
-  const [designing, setDesigning] = useState<{ form: FormDetail | null; details?: { name: string; description: string; tags: string[]; available_in_menu: boolean } } | null>(null)
-  const [details, setDetails] = useState<DetailsState | null>(null)
-  const [systemNameOk, setSystemNameOk] = useState(true)
-  const [turningOn, setTurningOn] = useState(false)
+  const [details, setDetails] = useState<FormListItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<FormListItem | null>(null)
   const [submissionsOf, setSubmissionsOf] = useState<FormListItem | null>(null)
   const [qrOf, setQrOf] = useState<FormListItem | null>(null)
@@ -136,21 +122,6 @@ export function FormsLibrary() {
     queryClient.invalidateQueries({ queryKey: AVAILABLE_FORMS_QUERY_KEY }),
   ])
 
-  async function openDesigner(item: FormListItem) {
-    const result = await serverRead('forms.get', { id: item.id })
-    if (!result.data) { setNotice({ tone: 'error', message: 'The form could not be loaded' }); return }
-    setDesigning({ form: result.data as FormDetail })
-  }
-
-  // The Agent changed the form open in the designer (a confirmed change): load the new version into it.
-  const designingId = designing?.form?.id ?? null
-  useAssistantChanges(useCallback((change: AssistantChange) => {
-    if (change.kind !== 'form' || !designingId || change.id !== designingId) return
-    void serverRead('forms.get', { id: designingId }).then((result) => {
-      if (result.data) setDesigning((prev) => (prev?.form?.id === designingId ? { form: result.data as FormDetail } : prev))
-    })
-  }, [designingId]))
-
   async function copyLink(form: FormListItem) {
     // The friendly link (acme.usertasks.com/form/<name>) when the workspace has an address, else /f/<id>.
     const friendly = await serverRead('forms.friendlyLink', { form_id: form.id }).then((r) => r.data?.friendly_url ?? null).catch(() => null)
@@ -163,9 +134,9 @@ export function FormsLibrary() {
     await refresh()
   }
 
-  // Deep links from the header search box: ?q= filters the list, ?open=<id>
-  // opens the form in the designer, ?submissions=<id> its submissions,
-  // ?details=<id> its Details.
+  // Deep links from the header search box: ?q= filters the list,
+  // ?submissions=<id> its submissions, ?details=<id> its Details. (?open=<id>
+  // and ?new=1 are redirected to the designer page by the route.)
   const searchParams = useSearchParams()
   const handledLink = useRef<string | null>(null)
   useEffect(() => {
@@ -174,29 +145,45 @@ export function FormsLibrary() {
     handledLink.current = link
     const q = searchParams.get('q')
     if (q !== null) { setTab('forms'); setSearch(q) }
-    const open = forms.find((f) => f.id === searchParams.get('open'))
-    if (open) void openDesigner(open)
     const submissions = forms.find((f) => f.id === searchParams.get('submissions'))
     if (submissions && canSubmit) setSubmissionsOf(submissions)
     // ?details=<id> (Settings → Governance): the form's Details — access, retention, legal hold.
     const detailsFor = forms.find((f) => f.id === searchParams.get('details'))
-    if (detailsFor && canEdit) setDetails(detailsOf(detailsFor))
+    if (detailsFor && canEdit) setDetails(detailsFor)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per link, after the list loads
   }, [data, searchParams])
 
-  async function saveTheme(name: string, overrides: FormThemeOverrides): Promise<{ id: string } | { error: string }> {
-    const result = await createFormTheme({ name, overrides })
-    if (!result.ok) return { error: result.error }
-    await queryClient.invalidateQueries({ queryKey: ['form-themes'] })
-    return { id: result.data.id }
-  }
+  // Import: a UserTasks export (config-as-code JSON / package) or an InfoPath form template.
+  const importConfig = useImportConfig({ onImported: () => void refresh() })
+  const [infoPathOpen, setInfoPathOpen] = useState(false)
+  const [infoPathFile, setInfoPathFile] = useState<File | null>(null)
+  useEffect(() => {
+    // From the public "Migrate from InfoPath" page: open the importer with the file kept in this browser (if any).
+    if (searchParams.get('import') === 'infopath' && canEdit) {
+      void import('@/lib/infopath/pending-file').then(({ takePendingInfoPath }) => takePendingInfoPath()).then((file) => { setInfoPathFile(file); setInfoPathOpen(true) })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a link opens it once
+  }, [searchParams])
 
-  const newForm = () => setDetails({ form: null, name: '', description: '', tags: '', available: false, systemName: '' })
+  // A blank form: the designer page, named there (and in its Form tab) before it is created.
+  const newForm = () => router.push(NEW_FORM_HREF)
   // With the form wizard (forms.wizard): choose the wizard (recommended) or a blank form in the designer.
   const startNewForm = () => (canWizard ? setChoosing(true) : newForm())
   const headerActions = !canEdit ? undefined : tab === 'forms' ? (
     <>
-      <ImportConfigButton label="Import…" onImported={() => void refresh()} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="secondary" leadingIcon={<Upload />} trailingIcon={<ChevronDown />} data-testid="import-menu">Import</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => importConfig.pick()} data-testid="import-usertasks">
+            <FileJson className="size-4" aria-hidden /> UserTasks form (.json / package)
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setInfoPathOpen(true)} data-testid="import-infopath">
+            <FileCode2 className="size-4" aria-hidden /> InfoPath form (.xsn)
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Button size="sm" leadingIcon={<Plus />} onClick={startNewForm} data-testid="new-form">New form</Button>
     </>
   ) : (
@@ -214,6 +201,8 @@ export function FormsLibrary() {
         className="mb-4"
       />
 
+      {importConfig.element}
+      <InfoPathImportDialog open={infoPathOpen} onOpenChange={(o) => { setInfoPathOpen(o); if (!o) setInfoPathFile(null) }} initialFile={infoPathFile} onImported={() => void refresh()} />
       {notice && <div className="mb-4"><InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} /></div>}
 
       {tab === 'forms' ? (
@@ -233,16 +222,16 @@ export function FormsLibrary() {
               : <EmptyState size="sm" variant="no-results" title={q ? `No forms match “${search.trim()}”` : 'No forms match these filters'} description="Try another search, or clear the filters."
                 action={{ label: 'Clear filters', onClick: clearFilters }} />
           ) : (
-            <Table>
+            <Table label="Forms" stickyFirstColumn stickyColumns={canSubmit ? 2 : 1}>
               <THead>
                 <tr>
                   {canSubmit && <TH className="w-10"><span className="sr-only">Favourite</span></TH>}
-                  <TH>Name</TH>
-                  <TH numeric className="w-20">Fields</TH>
-                  <TH numeric className="w-24">Used by</TH>
-                  <TH className="w-56">Tags</TH>
-                  <TH className="w-28">Updated</TH>
-                  <TH className="w-px"><span className="sr-only">Actions</span></TH>
+                  <TH col="title">Name</TH>
+                  <TH numeric col="number" className="w-20">Fields</TH>
+                  <TH numeric col="number" className="w-24">Used by</TH>
+                  <TH col="text" className="w-56">Tags</TH>
+                  <TH col="date" className="w-28">Updated</TH>
+                  <TH col="actions"><span className="sr-only">Actions</span></TH>
                 </tr>
               </THead>
               <TBody>
@@ -255,12 +244,12 @@ export function FormsLibrary() {
                     )}
                     <TD className="max-w-0 py-2">
                       <div className="flex min-w-0 items-center gap-2 max-sm:flex-wrap max-sm:gap-y-1">
-                        <span className="truncate font-medium max-sm:basis-full">{form.name}</span>
+                        <span className="truncate font-medium max-sm:basis-full" title={form.name}>{form.name}</span>
                         <Tag mono>v{form.version}</Tag>
                         {form.available_in_menu && <Tag className="text-primary-text" data-form-available>In the Forms menu</Tag>}
                         {form.form_page_of && <Tag data-form-page-of={form.form_page_of.workflow_id}>Form page</Tag>}
                       </div>
-                      {form.description && <p className="truncate text-xs text-fg-muted">{form.description}</p>}
+                      {form.description && <p className="truncate text-xs text-fg-muted" title={form.description}>{form.description}</p>}
                     </TD>
                     <TD numeric>{formatCount(form.field_count)}</TD>
                     <TD numeric>{form.usage_count ? formatCount(form.usage_count) : <span className="text-fg-subtle">—</span>}</TD>
@@ -279,7 +268,7 @@ export function FormsLibrary() {
                         </div>
                       ) : <span className="text-fg-subtle">—</span>}
                     </TD>
-                    <TD className="text-fg-muted"><RelativeDate value={form.updated_at} /></TD>
+                    <TD className="whitespace-nowrap text-fg-muted"><RelativeDate value={form.updated_at} /></TD>
                     <TD className="w-px whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <div className="inline-flex items-center gap-1">
                         {canSubmit && (
@@ -287,10 +276,13 @@ export function FormsLibrary() {
                             <Link href={`/fill/${form.id}`} data-testid="open-form">Open</Link>
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => void openDesigner(form)} data-testid="edit-form">{canEdit ? 'Edit' : 'View'}</Button>
+                        <Button size="sm" variant="ghost" asChild>
+                          {/* The designer page (a link: ⌘-click opens it in a new tab). */}
+                          <Link href={formDesignerHref(form.id)} data-testid="edit-form">{canEdit ? 'Edit' : 'View'}</Link>
+                        </Button>
                         <FormRowMenu form={form} canSubmit={canSubmit} canEdit={canEdit} canDelete={canDelete}
                           onCopyLink={() => void copyLink(form)} onQr={() => setQrOf(form)} onSubmissions={() => setSubmissionsOf(form)}
-                          onDuplicate={() => void duplicate(form)} onSettings={() => setDetails(detailsOf(form))} onDetails={() => setSheetOf(form)}
+                          onDuplicate={() => void duplicate(form)} onSettings={() => setDetails(form)} onDetails={() => setSheetOf(form)}
                           onExport={() => setExportOf(form)} onDelete={() => setConfirmDelete(form)} />
                       </div>
                     </TD>
@@ -330,102 +322,23 @@ export function FormsLibrary() {
         </DialogContent>
       </Dialog>
 
-      {/* New form / details */}
+      {/* A form's settings and access (the designer page has them as its Form / Access tabs) */}
       <Dialog open={Boolean(details)} onOpenChange={(open) => { if (!open) setDetails(null) }}>
-        <DialogContent size={details?.form ? 'md' : 'sm'} title={details?.form ? 'Form settings' : 'New form'} data-testid="form-details">
+        <DialogContent size="md" title="Form settings" data-testid="form-details">
           <DialogBody>
             {details && (
-              <form className="space-y-3" onSubmit={async (e) => {
-                e.preventDefault()
-                const tags = details.tags.split(',').map((t) => t.trim()).filter(Boolean)
-                if (!details.form) {
-                  setDetails(null)
-                  setDesigning({ form: null, details: { name: details.name.trim(), description: details.description.trim(), tags, available_in_menu: details.available } })
-                  return
-                }
-                const systemName = details.systemName.trim().toLowerCase()
-                const result = await updateForm(details.form.id, { name: details.name, description: details.description, tags, available_in_menu: details.available, ...(systemName && systemName !== (details.form.system_name ?? '') ? { system_name: systemName } : {}) })
-                setNotice(result.ok ? { tone: 'success', message: 'Details saved' } : { tone: 'error', message: result.error })
-                if (result.ok) { setDetails(null); await refresh() }
-              }}>
-                <Field label="Name"><Input required maxLength={120} value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} data-testid="form-name" /></Field>
-                <Field label="Description" optional><Input maxLength={2000} value={details.description} onChange={(e) => setDetails({ ...details, description: e.target.value })} /></Field>
-                <Field label="Tags" description="Comma separated" optional><Input value={details.tags} onChange={(e) => setDetails({ ...details, tags: e.target.value })} /></Field>
-                {details.form && (
-                  <FormSystemNameField formId={details.form.id} formName={details.name} value={details.systemName} saved={details.form.system_name ?? null}
-                    onChange={(systemName) => setDetails((prev) => (prev ? { ...prev, systemName } : prev))} onValidity={setSystemNameOk} />
-                )}
-                <div className="flex items-start gap-2 rounded-md bg-subtle p-3">
-                  <input id="form-available" type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={details.available}
-                    onChange={(e) => setDetails({ ...details, available: e.target.checked })} aria-describedby="form-available-help" data-testid="form-available" />
-                  <div className="min-w-0">
-                    <label htmlFor="form-available" className="block text-ui font-medium">Available forms</label>
-                    <p id="form-available-help" className="text-xs text-fg-muted">
-                      Show this form in the Forms menu for people who have been given access to it: a person, a team they&apos;re in or a role they hold, under <strong>Access</strong>{details.form ? ' below' : ' (once the form is created)'}. Every form already has its own page, so there&apos;s nothing else to publish.
-                      {details.form && <FormAvailabilityStatus formId={details.form.id} />}
-                    </p>
-                  </div>
-                </div>
-                {details.form && (
-                  <FormAvailabilityHint formId={details.form.id} available={details.available} busy={turningOn}
-                    onTurnOn={async () => {
-                      const form = details.form!
-                      setTurningOn(true)
-                      const result = await updateForm(form.id, { available_in_menu: true })
-                      setTurningOn(false)
-                      if (!result.ok) { setNotice({ tone: 'error', message: result.error }); return }
-                      setDetails((prev) => (prev ? { ...prev, available: true, form: prev.form ? { ...prev.form, available_in_menu: true } : prev.form } : prev))
-                      setNotice({ tone: 'success', message: `${form.name} now shows in the Forms menu of the people with access` })
-                      await refresh()
-                    }} />
-                )}
-                <p className="text-xs text-fg-muted">Name, system name, description, tags and Available forms don&apos;t create a new version; field, layout and theme changes do.</p>
-                <div className="flex justify-end gap-2 pt-1"><Button type="button" variant="secondary" onClick={() => setDetails(null)}>Cancel</Button><Button type="submit" disabled={!details.name.trim() || (Boolean(details.form) && !systemNameOk)}>{details.form ? 'Save settings' : 'Continue to designer'}</Button></div>
-              </form>
+              <FormDetailsEditor key={details.id} form={details} onCancel={() => setDetails(null)}
+                onNotice={setNotice}
+                onSaved={async (message) => { setNotice({ tone: 'success', message }); if (message === 'Details saved') setDetails(null); await refresh() }} />
             )}
-            {details?.form && (
-              <section className="mt-4 border-t pt-4 border-border" aria-label="Access" data-testid="form-access">
-                <ObjectPermissions objectType="form" objectId={details.form.id} objectName={details.form.name} showEditDelete={false} executeLabel="Submit"
-                  copy={{
-                    openBadge: 'No one yet', restrictedBadge: 'Given access',
-                    open: 'No one has been given access to this form yet. Add a role, team or person: with Available forms on, the form shows in their Forms menu (they also need Submit forms).',
-                    restricted: 'These roles, teams and people have been given access. With Available forms on, the form shows in their Forms menu (they also need Submit forms).',
-                  }} />
-              </section>
+            {details && (
+              <div className="mt-4 border-t border-border pt-4">
+                <FormAccessSections formId={details.id} formName={details.name} />
+              </div>
             )}
-            {details?.form && <FormAnonymousSection formId={details.form.id} formName={details.form.name} />}
-            {details?.form && <FormGovernanceSection formId={details.form.id} formName={details.form.name} />}
           </DialogBody>
         </DialogContent>
       </Dialog>
-
-      <FormDesignerDialog
-        // A new version (saved here or by the Agent) reopens the designer on it.
-        key={designing?.form ? `${designing.form.id}:${designing.form.version}` : 'new'}
-        open={Boolean(designing)}
-        onClose={() => setDesigning(null)}
-        title={designing?.form ? designing.form.name : designing?.details?.name || 'New form'}
-        badge={designing?.form ? `Version ${designing.form.version}` : 'New form'}
-        formId={designing?.form?.id}
-        subtitle={designing?.form ? `Saving changes to fields, layout or theme creates version ${designing.form.version + 1}; linked drafts follow it, published workflows keep their pinned version.` : 'Reusable form: link it from any User Task or task trigger.'}
-        initial={designing?.form ? normalizeFormDefinition(designing.form) : EMPTY_FORM}
-        savedThemes={themes}
-        canSaveTheme={canEdit}
-        onSaveTheme={saveTheme}
-        actions={canEdit ? [{
-          id: 'save',
-          label: designing?.form ? `Save version ${designing.form.version + 1}` : 'Create form',
-          run: async (def) => {
-            const result = designing?.form
-              ? await updateForm(designing.form.id, { fields: def.fields, layout: def.layout, theme: def.theme, buttons: def.buttons ?? null, header: def.header ?? null })
-              : await createForm({ ...designing!.details!, fields: def.fields, layout: def.layout, theme: def.theme, buttons: def.buttons ?? null, header: def.header ?? null })
-            if (!result.ok) return result.error
-            setNotice({ tone: 'success', message: designing?.form ? `Saved version ${result.data.version}` : `Created "${result.data.name}"` })
-            await refresh()
-            return null
-          },
-        }] : []}
-      />
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}

@@ -14,6 +14,8 @@ import { FormSignInCard } from "./form-sign-in-card"
 import { FormAccessibilityCard } from "./form-accessibility-card"
 import { TaskCompletionCard } from "./task-completion-card"
 import { SettingsSection, SettingsSections } from "./settings-section"
+import { InstallSelfTestButton } from "@/components/automations/install-self-test-button"
+import { OnboardingSettingsCard } from "@/components/onboarding/getting-started/onboarding-settings-card"
 import { settingsTabFrom, type SettingsTab } from "./settings-frame"
 
 interface SettingsTabsProps {
@@ -61,12 +63,20 @@ export function SettingsTabs({ profile, tenantId, logoUrl }: SettingsTabsProps) 
           <SettingsSection title="Workspace address" description="The workspace's own web address. Friendly form links use it.">
             <WorkspaceAddressCard readOnly={!can("settings.edit")} />
           </SettingsSection>
-          <SettingsSection title="Workspace logo" description="Shown at the top of the sidebar for everyone in the workspace.">
+          <SettingsSection tour="logo-upload" title="Workspace logo" description="Shown at the top of the sidebar for everyone in the workspace.">
             <LogoUpload tenantId={tenantId} currentLogoUrl={logoUrl} readOnly={!can("settings.edit")} />
           </SettingsSection>
-          <SettingsSection title="Workspace theme" description="The brand theme everyone in this workspace sees.">
+          <SettingsSection tour="theme-card" title="Workspace theme" description="The brand theme everyone in this workspace sees.">
             <WorkspaceThemeCard />
           </SettingsSection>
+          <SettingsSection tour="onboarding-settings" title="Getting started guide" description="The welcome and checklist new admins and members see in their first 30 days.">
+            <OnboardingSettingsCard readOnly={!can("settings.edit")} />
+          </SettingsSection>
+          {can("settings.edit") && can("workflows.create") && can("workflows.activate") && (
+            <SettingsSection tour="self-test" title="Platform self-test" description="Install the kitchen sink workflow, which runs every built-in workflow step and checks the results. Run it after upgrades to confirm everything works.">
+              <InstallSelfTestButton />
+            </SettingsSection>
+          )}
         </SettingsSections>
       )}
 

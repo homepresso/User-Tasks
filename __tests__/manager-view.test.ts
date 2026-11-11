@@ -101,7 +101,7 @@ describe('reassignReportTask', () => {
     await expect(reassignReportTask(ctxAs('mia'), 'a2', { target_user_id: 'mia' })).resolves.toMatchObject({ assignee_id: 'mia' })
     await expect(reassignReportTask(ctxAs('mia'), 'b1', { target_user_id: 'alice' })).resolves.toMatchObject({ assignee_id: 'alice' })
     await expect(reassignReportTask(ctxAs('mia'), 'bob1', { target_user_id: 'mia' })).rejects.toMatchObject({ status: 403 })
-    await expect(reassignReportTask(ctxAs('mia'), 'a1', { target_user_id: 'bob' })).rejects.toMatchObject({ status: 400 })
+    await expect(reassignReportTask(ctxAs('mia'), 'a1', { target_user_id: 'bob' })).resolves.toMatchObject({ assignee_id: 'bob' }) // anyone in the workspace
     await expect(reassignReportTask(ctxAs('mia'), 'x1', { target_user_id: 'ben' })).rejects.toMatchObject({ status: 404 })
     await expect(reassignReportTask(ctxAs('mia', ['tasks.view_own']), 'a1', { target_user_id: 'ben' })).rejects.toMatchObject({ status: 403 })
   })

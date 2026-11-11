@@ -1,113 +1,177 @@
+import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Cloud, Server, Workflow } from 'lucide-react'
-import type { SeoPage } from '@/lib/seo-pages'
-import { MarketingHeader } from '@/components/marketing/marketing-ui'
+import { ArrowRight, BookOpen, Check, CalendarClock, ExternalLink, FileStack, GitBranch, ListChecks, Server, Workflow, Layers } from 'lucide-react'
+import { seoPageJsonLd, type SeoPage } from '@/lib/seo-pages'
+import { MarketingFooter, MarketingHeader, SectionHeading } from '@/components/marketing/marketing-ui'
+import { ProductHero } from '@/components/marketing/product-hero'
+import { publicBaseUrl } from '@/lib/deployment'
+import { displayDate, jsonLdHtml } from '@/lib/seo/site'
+import { START_HREF } from '@/lib/marketing-nav'
 
-const SITE_URL = 'https://usertasks.com'
+/**
+ * Solution and guide pages (lib/seo-pages.ts): a dark hero, an "In short"
+ * definition card, sections, an optional dated timeline with sources, an
+ * optional table, steps, an FAQ with question headings and visible answers,
+ * and further reading. Everything is server-rendered so crawlers and answer
+ * engines read the same text people do.
+ */
+
+const ICONS: Record<string, typeof Workflow> = {
+  'workflow-automation': Workflow,
+  'bpm-workflow-automation': Layers,
+  'on-premises-workflow-automation': Server,
+  'sharepoint-workflow-migration': ListChecks,
+  'infopath-migration-guide': FileStack,
+  'open-source-workflow-engine': GitBranch,
+}
+
+const THEME = {
+  '--theme-card-bg': 'var(--mkt-white)',
+  '--theme-card-text': 'var(--mkt-ink)',
+  '--theme-surface': 'var(--mkt-canvas)',
+  '--theme-surface-border': 'var(--mkt-line)',
+  '--theme-muted-text': 'var(--mkt-muted)',
+} as CSSProperties
 
 export function SeoSolutionPage({ page }: { page: SeoPage }) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': `${SITE_URL}/${page.slug}#webpage`,
-        url: `${SITE_URL}/${page.slug}`,
-        name: page.title,
-        description: page.description,
-        isPartOf: { '@id': `${SITE_URL}/#website` },
-        about: { '@id': `${SITE_URL}/#software` },
-      },
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'UserTasks', item: SITE_URL },
-          { '@type': 'ListItem', position: 2, name: page.title, item: `${SITE_URL}/${page.slug}` },
-        ],
-      },
-      {
-        '@type': 'FAQPage',
-        mainEntity: page.faqs.map((faq) => ({
-          '@type': 'Question',
-          name: faq.question,
-          acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-        })),
-      },
-    ],
-  }
+  const Icon = ICONS[page.slug] ?? Workflow
+  const updated = displayDate(page.updated)
 
   return (
-    <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)">
-      {/* Fixed full-viewport backdrop so the page's dark theme covers overscroll
-          and never lets the dashboard body background (var(--theme-surface),
-          light by default) bleed through — matches the landing page pattern. */}
+    <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
-      <MarketingHeader />
-
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(seoPageJsonLd(page, publicBaseUrl())) }} />
+      <MarketingHeader tone="night" />
       <main>
-        <section className="border-b border-(color:--mkt-ink)/[0.06] bg-[radial-gradient(circle_at_50%_0%,rgba(23,21,15,0.14),transparent_42%)]">
-          <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span>{page.eyebrow}</nav>
-            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.22em] text-(color:--mkt-bronze)">{page.eyebrow}</p>
-            <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl">{page.title}</h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">{page.intro}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3.5 font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover)">Build your first workflow <ArrowRight size={16} /></Link>
-              {page.related
-                ? <Link href={page.related.href} className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3.5 font-medium text-(color:--mkt-ink-soft) hover:bg-(color:--mkt-ink)/[0.05]">{page.related.label}</Link>
-                : <Link href="/docs/workflows" className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3.5 font-medium text-(color:--mkt-ink-soft) hover:bg-(color:--mkt-ink)/[0.05]">Explore workflow documentation</Link>}
+        <ProductHero
+          crumb={page.eyebrow}
+          eyebrow={page.eyebrow}
+          icon={Icon}
+          title={page.title}
+          intro={page.intro}
+          primary={page.related ? { href: page.related.href, label: page.related.label } : { href: START_HREF, label: 'Start free' }}
+          secondary={page.related ? { href: START_HREF, label: 'Start free' } : { href: '/docs', label: 'Read the docs' }}
+          visual={
+            <div className="rounded-3xl border border-white/10 bg-(color:--mkt-paper) p-6 text-(color:--mkt-ink) shadow-2xl sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">In short</p>
+              <p className="mt-3 max-w-4xl text-[17px] leading-8 text-(color:--mkt-ink)">{page.definition}</p>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {page.outcomes.map((outcome) => (
+                  <li key={outcome} className="flex items-start gap-2 rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-3 text-sm leading-6 text-(color:--mkt-text)"><Check size={16} className="mt-1 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{outcome}</li>
+                ))}
+              </ul>
+              <p className="mt-5 flex items-center gap-2 text-xs text-(color:--mkt-muted)"><CalendarClock size={14} aria-hidden="true" />Last updated <time dateTime={page.updated}>{updated}</time></p>
             </div>
-            <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {page.outcomes.map((outcome) => <li key={outcome} className="flex items-start gap-2 rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-ink)/[0.03] p-4 text-sm text-(color:--mkt-text)"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" />{outcome}</li>)}
-            </ul>
-          </div>
-        </section>
+          }
+        />
 
-        <section className="mx-auto max-w-6xl space-y-6 px-6 py-20">
+        <section className="mx-auto max-w-6xl space-y-6 px-4 py-16 sm:px-6 sm:py-20">
           {page.sections.map((section, index) => (
-            <article key={section.title} className="grid gap-6 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-7 lg:grid-cols-[1fr_1.1fr] lg:p-10">
-              <div><p className="text-xs font-bold text-(color:--mkt-bronze)">0{index + 1}</p><h2 className="mt-3 text-2xl font-bold sm:text-3xl">{section.title}</h2><p className="mt-4 leading-7 text-(color:--mkt-muted)">{section.body}</p></div>
-              <ul className="space-y-3 self-center">{section.points.map((point) => <li key={point} className="flex items-start gap-3 rounded-lg border border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-ink)/[0.03] p-4 text-sm leading-6 text-(color:--mkt-text)"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" />{point}</li>)}</ul>
+            <article key={section.title} className="grid gap-6 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-7 lg:grid-cols-[1fr_1.1fr] lg:p-10" data-reveal>
+              <div>
+                <p className="text-xs font-bold text-(color:--mkt-bronze)">0{index + 1}</p>
+                <h2 className="mt-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">{section.title}</h2>
+                <p className="mt-4 leading-7 text-(color:--mkt-text)">{section.body}</p>
+              </div>
+              <ul className="space-y-3 self-center">
+                {section.points.map((point) => <li key={point} className="flex items-start gap-3 rounded-lg border border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-sand) p-4 text-sm leading-6 text-(color:--mkt-text)"><Check size={16} className="mt-1 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{point}</li>)}
+              </ul>
             </article>
           ))}
         </section>
 
-        <section className="border-y border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-canvas)">
-          <div className="mx-auto max-w-6xl px-6 py-20">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">Implementation path</p>
-            <h2 className="mt-3 text-3xl font-bold">Move from evaluation to a working process</h2>
-            <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">{page.steps.map((step, index) => <article key={step.title} className="rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-ink)/[0.03] p-5"><span className="text-xs font-bold text-(color:--mkt-bronze)">STEP {index + 1}</span><h3 className="mt-3 font-semibold">{step.title}</h3><p className="mt-2 text-sm leading-6 text-(color:--mkt-muted)">{step.body}</p></article>)}</div>
-          </div>
-        </section>
+        {page.timeline && (
+          <section className="border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
+            <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+              <SectionHeading eyebrow="Dates and sources" title={page.timeline.title}>{page.timeline.body}</SectionHeading>
+              <ol className="mt-10 space-y-3">
+                {page.timeline.events.map((event) => (
+                  <li key={`${event.date}-${event.text}`} className="grid gap-1 rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-4 sm:grid-cols-[11rem_1fr] sm:gap-6">
+                    <span className="font-semibold text-(color:--mkt-bronze)">{event.date}</span>
+                    <span className="text-sm leading-6 text-(color:--mkt-text)">{event.text}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-6 text-sm text-(color:--mkt-muted)">Sources:</p>
+              <ul className="mt-2 space-y-1 text-sm">
+                {page.timeline.sources.map((source) => <li key={source.href}><a href={source.href} rel="noopener" className="inline-flex items-center gap-1 text-(color:--mkt-bronze) hover:underline">{source.label} <ExternalLink size={12} aria-hidden="true" /></a></li>)}
+              </ul>
+            </div>
+          </section>
+        )}
 
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <div className="grid gap-5 lg:grid-cols-2">
-            <article className="rounded-2xl border border-(color:--mkt-primary)/20 bg-(color:--mkt-primary)/[0.05] p-7"><Cloud className="text-(color:--mkt-bronze)" /><h2 className="mt-4 text-2xl font-bold">UserTasks Cloud</h2><p className="mt-3 leading-7 text-(color:--mkt-muted)">Start with a managed, tenant-isolated workspace and move quickly from design to production operation.</p></article>
-            <article className="rounded-2xl border border-(color:--mkt-bronze)/20 bg-(color:--mkt-bronze)/[0.05] p-7"><Server className="text-[#A0946C]" /><h2 className="mt-4 text-2xl font-bold">Private or on premises</h2><p className="mt-3 leading-7 text-(color:--mkt-muted)">Plan an organization-controlled deployment for private networking, infrastructure ownership, and data-location requirements: start on Supabase, our recommended platform, and move any area to AWS, Azure, Google Cloud or your own servers whenever you're ready.</p><Link href="/deploy-anywhere" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">See the deployment topologies <ArrowRight size={14} /></Link></article>
+        {page.comparison && (
+          <section className="border-t border-(color:--mkt-ink)/[0.07]">
+            <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+              <SectionHeading eyebrow="Side by side" title={page.comparison.title}>{page.comparison.body}</SectionHeading>
+              <div className="mt-10 overflow-x-auto rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)">
+                <table className="w-full min-w-[36rem] text-left text-sm">
+                  <thead className="bg-(color:--mkt-sand) text-xs uppercase tracking-wider text-(color:--mkt-muted)">
+                    <tr>{page.comparison.columns.map((column, index) => <th key={index} scope="col" className="px-4 py-3">{column}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {page.comparison.rows.map((row) => (
+                      <tr key={row[0]} className="border-t border-(color:--mkt-ink)/[0.06] align-top">
+                        {row.map((cell, index) => index === 0
+                          ? <th key={index} scope="row" className="px-4 py-3 font-semibold">{cell}</th>
+                          : <td key={index} className="px-4 py-3 text-(color:--mkt-text)">{cell}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {page.comparison.note && <p className="mt-4 text-sm text-(color:--mkt-muted)">{page.comparison.note}</p>}
+            </div>
+          </section>
+        )}
+
+        <section className="border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+            <SectionHeading eyebrow={page.howTo ? 'Step by step' : 'Implementation path'} title={page.stepsTitle ?? 'Move from evaluation to a working process'} />
+            <ol className={`mt-10 grid gap-4 md:grid-cols-2 ${page.steps.length % 3 === 0 ? 'lg:grid-cols-3' : page.steps.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+              {page.steps.map((step, index) => (
+                <li key={step.title} className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/80 p-5" data-reveal>
+                  <span className="flex size-8 items-center justify-center rounded-full bg-(color:--mkt-ink) text-sm font-semibold text-white">{index + 1}</span>
+                  <h3 className="mt-4 font-semibold">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-(color:--mkt-text)">{step.body}</p>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
         {page.related && (
-          <section className="mx-auto max-w-6xl px-6 pb-16">
+          <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6">
             <Link href={page.related.href} className="group flex flex-col gap-2 rounded-2xl border border-(color:--mkt-bronze)/25 bg-(color:--mkt-gold)/[0.08] p-7 transition hover:border-(color:--mkt-bronze)/50 sm:flex-row sm:items-center sm:justify-between">
               <span><span className="block text-xl font-bold">{page.related.label}</span><span className="mt-1 block text-sm leading-6 text-(color:--mkt-text)">{page.related.body}</span></span>
-              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) group-hover:underline">Open <ArrowRight size={14} /></span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) group-hover:underline">Open <ArrowRight size={14} aria-hidden="true" /></span>
             </Link>
           </section>
         )}
 
-        <section className="mx-auto max-w-4xl px-6 pb-20">
-          <div className="text-center"><Workflow className="mx-auto text-(color:--mkt-bronze)" /><h2 className="mt-4 text-3xl font-bold">Frequently asked questions</h2></div>
-          <div className="mt-8 space-y-3">{page.faqs.map((faq) => <details key={faq.question} className="group rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5"><summary className="cursor-pointer list-none font-semibold">{faq.question}</summary><p className="mt-3 text-sm leading-7 text-(color:--mkt-muted)">{faq.answer}</p></details>)}</div>
+        <section id="faq" className="mx-auto max-w-4xl scroll-mt-8 px-4 py-16 sm:px-6 sm:py-20">
+          <SectionHeading eyebrow="FAQ" title="Frequently asked questions" align="center" />
+          <div className="mt-10 space-y-4">
+            {page.faqs.map((faq) => (
+              <article key={faq.question} className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/80 p-6">
+                <h3 className="text-lg font-semibold">{faq.question}</h3>
+                <p className="mt-2 text-[15px] leading-7 text-(color:--mkt-text)">{faq.answer}</p>
+              </article>
+            ))}
+          </div>
         </section>
 
-        <section className="border-t border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-sand)">
-          <div className="mx-auto max-w-6xl px-6 py-16 text-center"><h2 className="text-3xl font-bold">Build the process you actually need</h2><p className="mx-auto mt-3 max-w-2xl text-(color:--mkt-muted)">Model workflows, human tasks, integrations, decision tables, and reports in one private workspace — then drive them from your own applications through the API and MCP server.</p><Link href="/login" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover)">Start free beta <ArrowRight size={16} /></Link></div>
+        <section className="border-t border-(color:--mkt-ink)/[0.07]">
+          <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold"><BookOpen size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />Read next</h2>
+            <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              {page.links.map((link) => <li key={link.href}><Link href={link.href} className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">{link.label} <ArrowRight size={14} aria-hidden="true" /></Link></li>)}
+            </ul>
+            {page.disclaimer && <p className="mt-8 max-w-3xl text-xs leading-5 text-(color:--mkt-subtle)">{page.disclaimer}</p>}
+          </div>
         </section>
       </main>
-
-      <footer className="border-t border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-paper)"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-(color:--mkt-subtle)"><span>© {new Date().getFullYear()} UserTasks</span><div className="flex flex-wrap gap-4"><Link href="/workflows">Workflows</Link><Link href="/connectors">Integrations</Link><Link href="/workflow-automation">Workflow automation</Link><Link href="/bpm-workflow-automation">BPM</Link><Link href="/on-premises-workflow-automation">On premises</Link><Link href="/deploy-anywhere">Deploy anywhere</Link><Link href="/use-cases">Use cases</Link><Link href="/use-cases/k2-migration">K2 migration</Link><Link href="/use-cases/nintex-migration">Nintex migration</Link><Link href="/contact">Contact</Link></div></div></footer>
+      <MarketingFooter />
     </div>
   )
 }

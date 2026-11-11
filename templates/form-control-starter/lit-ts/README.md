@@ -110,8 +110,8 @@ and `entry` in `manifest.json`, the `TAG` constant and file names in `src/`,
 `ENTRY` in `scripts/options.mjs` and the module path in
 `harness/index.html`.
 
-## Later: @usertasks/form-control
+## Later: @user-tasks/form-control
 
 The helpers in `src/ut-control.ts` will be available as the
-`@usertasks/form-control` package (`UserTasksControlMixin(LitElement)` and the
+`@user-tasks/form-control` package (`UserTasksControlMixin(LitElement)` and the
 contract types). Until it is published, this starter keeps them inline.

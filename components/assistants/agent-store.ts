@@ -61,6 +61,8 @@ interface AgentState {
   view: AgentView
   /** Opened to build from a process (Home): process starters, and the attach control is focused (counter). */
   processIntent: number
+  /** Opened with a starter prompt in the composer (the getting-started guide): the text, and a counter so the same prompt can be placed again. */
+  draftIntent: { text: string; n: number } | null
   /** The turn in progress as a server job: watched live in this tab, or followed (a reload, another tab). */
   job: AgentJobState | null
   /** This conversation's id, the turns already in it and the turn in flight (persisted with it). */
@@ -84,7 +86,7 @@ export interface AgentView { label: string | null; starters: string[]; dirty: bo
 
 let state: AgentState = {
   key: null, items: [], messages: [], busy: false, status: '', open: readOpen(), availability: null, docks: 0,
-  pending: [], uploading: false, lastScreen: null, view: { label: null, starters: [], dirty: false }, processIntent: 0,
+  pending: [], uploading: false, lastScreen: null, view: { label: null, starters: [], dirty: false }, processIntent: 0, draftIntent: null,
   job: null, conversationId: null, merged: [], pendingTurn: null,
 }
 const listeners = new Set<() => void>()
@@ -207,6 +209,14 @@ export function openAgentForProcess() {
   set({ open: true, processIntent: state.processIntent + 1 })
 }
 
+/** Open the panel with a starter prompt in the composer, for the person to edit and send (nothing is sent). */
+export function openAgentWithPrompt(text: string) {
+  try { window.sessionStorage.setItem(OPEN_STATE_KEY, '1') } catch { /* ignore */ }
+  const was = state.open
+  set({ open: true, draftIntent: { text, n: (state.draftIntent?.n ?? 0) + 1 } })
+  if (!was) panelOpened()
+}
+
 /** The form designer dialog hosts the panel while it is open (returns the unregister). */
 export function registerAgentDock(): () => void {
   set({ docks: state.docks + 1 })
@@ -224,7 +234,9 @@ export async function attachFiles(files: File[]): Promise<void> {
   if (files.length > room) errors.push(`Only ${ATTACHMENT_LIMITS.maxFilesPerMessage} files per message — the rest were left out`)
   const form = new FormData()
   for (const f of chosen) {
-    if (f.size > ATTACHMENT_LIMITS.maxFileBytes) { errors.push(`${f.name}: larger than ${ATTACHMENT_LIMITS.maxFileBytes / 1024 / 1024} MB`); continue }
+    // PDFs may be larger for a model that reads PDFs itself (the server decides).
+    const max = /\.pdf$/i.test(f.name) || f.type === 'application/pdf' ? ATTACHMENT_LIMITS.maxPdfBytes : ATTACHMENT_LIMITS.maxFileBytes
+    if (f.size > max) { errors.push(`${f.name}: larger than ${max / 1024 / 1024} MB`); continue }
     form.append('files', f, f.name)
   }
   if (form.has('files')) {
@@ -359,6 +371,13 @@ function createEventHandler(taskId: string | null) {
         assistantId = null
         setItems((prev) => [...prev, { kind: 'outcome', id: `outcome-${event.id}`, outcome: event.outcome, reason: event.reason }])
         return true
+      case 'info_card': {
+        assistantId = null
+        const { type, ...card } = event
+        void type
+        setItems((prev) => [...prev, { ...card, kind: 'info', id: `info-${event.id}` }])
+        return true
+      }
       case 'confirm':
         assistantId = null
         setItems((prev) => [...prev, { kind: 'confirm', id: `confirm-${event.card.tool_call_id}`, card: event.card, state: 'pending', at: Date.now() }])
@@ -463,7 +482,7 @@ async function run(body: { text?: string; display?: string; decision?: { tool_ca
     const newItems: ChatItem[] = []
     // A divider when the conversation continues on another screen.
     if (screenLabel && state.lastScreen && screenLabel !== state.lastScreen && state.items.length) newItems.push({ kind: 'screen', id: uid('s'), label: screenLabel })
-    newItems.push({ kind: 'user', id: uid('u'), text: body.display ?? body.text, ...(attachments.length ? { attachments: attachments.map((a) => ({ name: a.name, mime_type: a.mime_type, size: a.size })) } : {}) })
+    newItems.push({ kind: 'user', id: uid('u'), text: body.display ?? body.text, ...(attachments.length ? { attachments: attachments.map((a) => ({ name: a.name, mime_type: a.mime_type, size: a.size, ...(a.kind === 'failed' && a.error ? { error: a.error } : {}) })) } : {}) })
     set({
       messages: [...state.messages, { role: 'user', content: body.text, ...(attachments.length ? { attachments } : {}) }],
       items: [...state.items, ...newItems],
@@ -574,15 +593,28 @@ function newTurnId(): string {
   }
 }
 
-/** Image bytes go with the latest two user messages that carry images; older ones are sent as "no longer available". */
+/**
+ * Image bytes go with the latest two user messages that carry images; PDF
+ * bytes (and page images) with the latest user message that carries a PDF,
+ * so follow-up questions in this session still see it (the provider caches
+ * it). Older ones are sent as their stored form: a PDF's text, or "no longer
+ * available — re-attach it". Nothing of this is in the stored history.
+ */
 function withRecentImages(messages: ChatMessage[]): ChatMessage[] {
-  let kept = 0
+  let keptImages = 0
+  let keptPdf = false
   const out = [...messages]
   for (let i = out.length - 1; i >= 0; i--) {
     const m = out[i]
-    if (m.role !== 'user' || !m.attachments?.some((a) => a.kind === 'image')) continue
-    if (kept < 2) { kept++; continue }
-    out[i] = { ...m, attachments: m.attachments.map(attachmentForStorage) }
+    if (m.role !== 'user' || !m.attachments?.some((a) => a.kind === 'image' || a.kind === 'document')) continue
+    const hasImage = m.attachments.some((a) => a.kind === 'image')
+    const hasPdf = m.attachments.some((a) => a.kind === 'document')
+    const keepImages = hasImage && keptImages < 2
+    const keepPdf = hasPdf && !keptPdf
+    if (hasImage && keepImages) keptImages++
+    if (hasPdf && keepPdf) keptPdf = true
+    if ((!hasImage || keepImages) && (!hasPdf || keepPdf)) continue
+    out[i] = { ...m, attachments: m.attachments.map((a) => ((a.kind === 'image' && !keepImages) || (a.kind === 'document' && !keepPdf) ? attachmentForStorage(a) : a)) }
   }
   return out
 }

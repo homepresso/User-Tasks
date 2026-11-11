@@ -14,7 +14,7 @@ Full guide and contract reference:
 | `src/action.ts` | The action: `export default defineAction({ operations: { calculate, invoice_totals } })` |
 | `test/cases.json` | Test cases: inputs and the outputs (or error code) you expect |
 | `harness/run.ts` | The local test harness behind `npm test` |
-| `vendor/usertasks-action/` | A copy of `@usertasks/action`: contract types, `defineAction`, and `runAction` (the app's sandbox with mocks) |
+| `vendor/usertasks-action/` | A copy of `@user-tasks/action`: contract types, `defineAction`, and `runAction` (the app's sandbox with mocks) |
 | `scripts/` | `build`, `test` and `package` (esbuild, the upload checks and a tiny zip writer) |
 
 You need Node.js 20 or later.
@@ -82,7 +82,7 @@ each case in `test/cases.json`:
 
 `expect_error` takes an error code (`action`, `invalid`, `capability`,
 `host`, `timeout`, `memory`). Actions with capabilities get `mocks`, the
-same as `runAction` from `@usertasks/action/testing`:
+same as `runAction` from `@user-tasks/action/testing`:
 
 ```json
 { "operation": "lookup", "inputs": { "id": "42" },

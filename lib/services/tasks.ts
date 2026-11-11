@@ -14,7 +14,8 @@ import { canAccessTaskAsUser } from '@/lib/api-key-permissions'
 import { mergeTaskFieldValuesChecked } from '@/lib/forms/task-values'
 import { normalizeTaskFieldValue, UPDATABLE_TASK_FIELDS, validateTaskFieldValue } from '@/lib/task-fields'
 import { withDescriptionText } from '@/lib/task-description-format'
-import { requirePerm, ServiceError, type ServiceContext } from './context'
+import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './context'
+import { SUBTASK_MAX_DEPTH, validateSubtaskInput, type SubtaskInput } from '@/lib/tasks/subtask-input'
 import { dbError } from './_shared'
 import { canReachTask } from '@/lib/task-authz'
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
@@ -135,7 +136,7 @@ async function loadScopedTask(ctx: ServiceContext, taskId: string, columns: stri
  * complete through completeWorkflowTask, which records the response and
  * resumes the run; they are refused here.
  */
-export async function completeStandardTask(ctx: ServiceContext, taskId: string, input: { outcome: string; notes?: string | null }) {
+export async function completeStandardTask(ctx: ServiceContext, taskId: string, input: { outcome: string; notes?: string | null; via?: 'agent' | null; onBehalf?: { of: string | null; note: string | null; basis: string | null } | null }) {
   const outcome = typeof input.outcome === 'string' ? input.outcome.trim() : ''
   if (!outcome || outcome.length > 200) throw ServiceError.validation('outcome is required (at most 200 characters)')
   const task = await loadScopedTask(ctx, taskId, 'id, tenant_id, is_workflow_task, event_id')
@@ -146,7 +147,12 @@ export async function completeStandardTask(ctx: ServiceContext, taskId: string, 
     .update({ status: 'completed', outcome, outcome_notes: notes })
     .eq('id', taskId).eq('tenant_id', ctx.tenantId)
   if (error) throw dbError(error, 'Failed to complete the task')
-  await writeLifecycleEvent({ supabase: ctx.supabase, tenantId: task.tenant_id, taskId, eventType: 'completed', actorId: ctx.actorId, metadata: { outcome, notes } })
+  // The Agent (on the person's confirmation) and acting for the assignee are recorded in the history.
+  const extra = {
+    ...(input.via === 'agent' ? { via: 'agent' } : {}),
+    ...(input.onBehalf ? { on_behalf_of: input.onBehalf.of, on_behalf_note: input.onBehalf.note, on_behalf_basis: input.onBehalf.basis } : {}),
+  }
+  await writeLifecycleEvent({ supabase: ctx.supabase, tenantId: task.tenant_id, taskId, eventType: 'completed', actorId: ctx.actorId, metadata: { outcome, notes, ...extra } })
   return { status: 'completed' as const, outcome }
 }
 
@@ -182,29 +188,105 @@ export async function setSubtaskCompleted(ctx: ServiceContext, subtaskId: string
   return { status }
 }
 
-export const SUBTASK_TITLE_MAX = 500
+export { SUBTASK_TITLE_MAX } from '@/lib/tasks/subtask-input'
+
+/** The columns a subtask comes back with (service, REST, MCP, Agent). */
+const SUBTASK_COLUMNS = 'id, tenant_id, parent_task_id, title, subtitle, description, status, priority, due_date, sequence, tags, assignee_id, assigner_id, estimated_effort_assigner, estimated_effort_assignee, actual_effort, child_count, completed_child_count, completed_at, created_at'
+
+export interface SubtaskRecord {
+  id: string
+  parent_task_id: string
+  title: string
+  subtitle: string | null
+  description: string | null
+  status: string
+  priority: string
+  due_date: string | null
+  sequence: number
+  tags: string[]
+  assignee_id: string | null
+  /** The working estimate in minutes (the assignee's, else the creator's), null when none. */
+  estimated_effort_minutes: number | null
+  /** Effort logged, in minutes. */
+  actual_effort_minutes: number
+  child_count: number
+  completed_child_count: number
+  created_at: string | null
+}
+
+export function toSubtaskRecord(row: Record<string, any>): SubtaskRecord {
+  return {
+    id: String(row.id),
+    parent_task_id: String(row.parent_task_id ?? ''),
+    title: String(row.title ?? ''),
+    subtitle: row.subtitle ?? null,
+    description: row.description ?? null,
+    status: String(row.status ?? 'todo'),
+    priority: String(row.priority ?? 'medium'),
+    due_date: row.due_date ?? null,
+    sequence: Number(row.sequence ?? 0),
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
+    assignee_id: row.assignee_id ?? null,
+    estimated_effort_minutes: Number(row.estimated_effort_assignee || 0) || Number(row.estimated_effort_assigner || 0) || null,
+    actual_effort_minutes: Number(row.actual_effort ?? 0) || 0,
+    child_count: Number(row.child_count ?? 0) || 0,
+    completed_child_count: Number(row.completed_child_count ?? 0) || 0,
+    created_at: row.created_at ?? null,
+  }
+}
 
 /**
- * Add a subtask to an open task (the task lists' detail panel). Same rule as
- * ticking one: tasks.complete and a task the person can reach (assignee,
- * collaborator, team member, the assignee's manager, the assigner, or
- * tasks.view_all). The subtask goes to the parent's assignee (else the
- * caller), with the parent's priority, at the end of its subtasks, already
- * accepted (it is part of work they have). The parent's timeline records it.
+ * Who may add subtasks (the rule every surface shows and the service
+ * enforces): someone who can work on the task — tasks.complete AND able to
+ * reach it (assignee, collaborator, member of its team, the assignee's
+ * manager acting on their behalf, its assigner / creator, or tasks.view_all
+ * oversight such as an admin; lib/task-authz canReachTask) — while it is
+ * open and not already SUBTASK_MAX_DEPTH levels down. Workflow tasks
+ * included: subtasks are a personal checklist under them and never touch the
+ * workflow (they aren't workflow tasks, and the parent never auto-completes
+ * from them — 20270104000000_task_subtask_fields.sql). Viewers (no
+ * tasks.complete) and people who can't reach the task cannot.
  */
-export async function addSubtask(ctx: ServiceContext, parentTaskId: string, input: { title: string; due_date?: string | null }) {
-  const title = typeof input?.title === 'string' ? input.title.trim() : ''
-  if (!title) throw ServiceError.validation('Give the subtask a title')
-  if (title.length > SUBTASK_TITLE_MAX) throw ServiceError.validation(`A subtask title is at most ${SUBTASK_TITLE_MAX} characters`)
-  let dueDate: string | null = null
-  if (input.due_date) {
-    const due = new Date(String(input.due_date))
-    if (Number.isNaN(due.getTime())) throw ServiceError.validation('due_date must be a date')
-    dueDate = due.toISOString()
+export function canAddSubtask(input: { canComplete: boolean; reachable: boolean; closed: boolean; depth?: number }): boolean {
+  return input.canComplete && input.reachable && !input.closed && (input.depth ?? 0) < SUBTASK_MAX_DEPTH
+}
+
+/** How many levels down a task is (0 = a top-level task). */
+export async function taskDepth(ctx: ServiceContext, task: { tenant_id: string; parent_task_id?: string | null }): Promise<number> {
+  let depth = 0
+  let parentId = task.parent_task_id ?? null
+  while (parentId && depth <= SUBTASK_MAX_DEPTH) {
+    depth += 1
+    const { data } = await (ctx.supabase as any).from('tasks').select('parent_task_id')
+      .eq('id', parentId).eq('tenant_id', task.tenant_id).maybeSingle()
+    parentId = data?.parent_task_id ?? null
   }
+  return depth
+}
+
+function invalidSubtask(errors: Record<string, string>): never {
+  throw ServiceError.validation(`Invalid subtask: ${Object.values(errors).join('; ')}`, { errors })
+}
+
+/**
+ * Add a subtask (canAddSubtask decides who): title plus optional subtitle,
+ * description, estimate, due date, priority and tags (lib/tasks/subtask-input).
+ * The subtask goes to the parent's assignee (else the caller), with the
+ * parent's priority unless one is given, at the end of its subtasks, already
+ * accepted (it is part of work they have). The parent's timeline records it;
+ * its progress (child_count / completed_child_count) follows from the
+ * tasks trigger.
+ */
+export async function addSubtask(ctx: ServiceContext, parentTaskId: string, input: SubtaskInput) {
+  const checked = validateSubtaskInput(input)
+  if (!checked.ok) invalidSubtask(checked.errors)
+  const values = checked.values
   if (!ctx.actorId) throw ServiceError.forbidden('Forbidden: subtasks are added by a user')
-  const parent = await loadScopedTask(ctx, parentTaskId, 'id, tenant_id, status, priority, assignee_id')
+  const parent = await loadScopedTask(ctx, parentTaskId, 'id, tenant_id, status, priority, assignee_id, parent_task_id')
   if (parent.status === 'completed' || parent.status === 'cancelled') throw ServiceError.conflict('This task is closed — reopen it to add subtasks')
+  if (parent.parent_task_id && (await taskDepth(ctx, parent as any)) >= SUBTASK_MAX_DEPTH) {
+    throw ServiceError.validation(`Subtasks go at most ${SUBTASK_MAX_DEPTH} levels deep`)
+  }
 
   const { data: last } = await (ctx.supabase as any).from('tasks').select('sequence')
     .eq('tenant_id', parent.tenant_id).eq('parent_task_id', parentTaskId).is('deleted_at', null)
@@ -214,21 +296,67 @@ export async function addSubtask(ctx: ServiceContext, parentTaskId: string, inpu
   const { data, error } = await (ctx.supabase as any).from('tasks').insert({
     tenant_id: parent.tenant_id,
     parent_task_id: parentTaskId,
-    title,
+    title: values.title,
+    subtitle: values.subtitle ?? null,
+    description: values.description ?? null,
     status: 'todo',
-    priority: parent.priority ?? 'medium',
+    priority: values.priority ?? parent.priority ?? 'medium',
+    // Assigning subtasks to other people comes later (SubtaskInput.assignee_id).
     assignee_id: parent.assignee_id ?? ctx.actorId,
     assigner_id: ctx.actorId,
     acceptance_status: 'accepted',
     sequence,
-    due_date: dueDate,
-  }).select('id, title, status, priority, due_date, sequence').single()
+    due_date: values.due_date ?? null,
+    estimated_effort_assigner: values.estimated_effort_assigner ?? null,
+    tags: values.tags ?? null,
+  }).select(SUBTASK_COLUMNS).single()
   if (error) throw dbError(error, 'Failed to add the subtask')
   await writeLifecycleEvent({
     supabase: ctx.supabase, tenantId: parent.tenant_id, taskId: parentTaskId, eventType: 'comment_added', actorId: ctx.actorId,
-    metadata: { message: `Added subtask “${title}”`, subtask_id: data.id, source: 'subtask_added' },
+    metadata: { message: `Added subtask “${values.title}”`, subtask_id: data.id, source: 'subtask_added' },
   })
-  return data as { id: string; title: string; status: string; priority: string; due_date: string | null; sequence: number }
+  return toSubtaskRecord(data)
+}
+
+/**
+ * Edit a subtask's fields (any of addSubtask's; the estimate is the
+ * creator's estimate). Same people as adding: tasks.complete and a task they
+ * can reach (reaching the parent reaches its subtasks).
+ */
+export async function updateSubtask(ctx: ServiceContext, subtaskId: string, input: SubtaskInput, options: { parentTaskId?: string } = {}) {
+  const checked = validateSubtaskInput(input, { partial: true })
+  if (!checked.ok) invalidSubtask(checked.errors)
+  if (Object.keys(checked.values).length === 0) throw ServiceError.validation('No fields to update')
+  const subtask = await loadScopedTask(ctx, subtaskId, 'id, tenant_id, parent_task_id')
+  if (!subtask.parent_task_id || (options.parentTaskId && subtask.parent_task_id !== options.parentTaskId)) throw ServiceError.notFound('Subtask not found')
+  const { data, error } = await (ctx.supabase as any).from('tasks')
+    .update({ ...checked.values, updated_at: new Date().toISOString() })
+    .eq('id', subtaskId).eq('tenant_id', subtask.tenant_id).select(SUBTASK_COLUMNS).single()
+  if (error || !data) throw dbError(error, 'Failed to update the subtask')
+  return toSubtaskRecord(data)
+}
+
+/** A task's direct subtasks, in order, with whether the caller may add more. */
+export async function listSubtasks(ctx: ServiceContext, parentTaskId: string) {
+  requirePerm(ctx, 'tasks.view_own')
+  const { data: parent, error: parentError } = await (ctx.supabase as any).from('tasks').select('id, tenant_id, status, parent_task_id')
+    .eq('id', parentTaskId).eq('tenant_id', ctx.tenantId).is('deleted_at', null).maybeSingle()
+  if (parentError) throw dbError(parentError)
+  if (!parent) throw ServiceError.notFound('Task not found')
+  await requireTaskReach(ctx, parentTaskId)
+  const { data, error } = await (ctx.supabase as any).from('tasks').select(SUBTASK_COLUMNS)
+    .eq('tenant_id', parent.tenant_id).eq('parent_task_id', parentTaskId).is('deleted_at', null)
+    .order('sequence', { ascending: true }).order('created_at', { ascending: true }).limit(500)
+  if (error) throw dbError(error)
+  const subtasks = ((data ?? []) as any[]).map(toSubtaskRecord)
+  const depth = parent.parent_task_id ? await taskDepth(ctx, parent) : 0
+  return {
+    task_id: parentTaskId,
+    subtasks,
+    total: subtasks.length,
+    completed: subtasks.filter((s) => s.status === 'completed').length,
+    can_add: canAddSubtask({ canComplete: hasPerm(ctx, 'tasks.complete'), reachable: true, closed: parent.status === 'completed' || parent.status === 'cancelled', depth }),
+  }
 }
 
 /** Activity timeline comment. */
@@ -237,7 +365,12 @@ export async function addTaskComment(ctx: ServiceContext, taskId: string, messag
   if (!text) throw ServiceError.validation('Comment cannot be empty')
   if (text.length > 10_000) throw ServiceError.validation('Comment is too long (10,000 characters at most)')
   if (!ctx.actorId) throw ServiceError.forbidden('Forbidden: comments are posted by a user')
-  const task = await loadScopedTask(ctx, taskId, 'id, tenant_id')
+  // Workers on the task (tasks.complete + reach) and invited viewers (read + comment): lib/services/task-viewers.
+  const { data: task, error: taskError } = await (ctx.supabase as any).from('tasks')
+    .select('id, tenant_id').eq('id', taskId).eq('tenant_id', ctx.tenantId).is('deleted_at', null).maybeSingle()
+  if (taskError) throw dbError(taskError)
+  if (!task) throw ServiceError.notFound('Task not found')
+  await (await import('./task-viewers')).requireTaskComment(ctx, taskId)
   // Inserted directly (not writeLifecycleEvent, which swallows errors): the
   // UI keeps the draft when the comment isn't saved.
   const { error } = await (ctx.supabase as any).from('lifecycle_events').insert({
@@ -259,7 +392,8 @@ export async function getTaskTree(ctx: ServiceContext, taskId: string) {
   // get_task_tree only checks workspace membership: a person with own-task
   // access sees their own tasks (and subtasks of them); tasks.view_all sees any.
   if (!ctx.permissions?.has('tasks.view_own') && !ctx.permissions?.has('tasks.view_all') && ctx.permissions !== null) return null
-  try { await requireTaskReach(ctx, taskId) } catch { return null }
+  // Read access: anyone who can reach it, or an invited viewer (read only).
+  try { await (await import('./task-viewers')).requireTaskView(ctx, taskId) } catch { return null }
   const { data, error } = await (ctx.supabase as any).rpc('get_task_tree', { p_task_id: taskId })
   if (error) throw dbError(error)
   const tree = data as { task: Record<string, any> | null; subtasks: Record<string, any>[]; total_count: number; completed_count: number } | null

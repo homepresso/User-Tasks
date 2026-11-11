@@ -32,8 +32,8 @@ working and now run sandboxed too.
   *Acme tax calculator* in TypeScript and in plain JavaScript, with
   `npm test` running every sample and test case in the same sandbox the app
   uses, and `npm run package` (optionally signed).
-- **`@usertasks/action`** (in the repository, not yet on npm): the contract
-  types, `defineAction`, and `runAction` from `@usertasks/action/testing` —
+- **`@user-tasks/action`** (in the repository, not yet on npm): the contract
+  types, `defineAction`, and `runAction` from `@user-tasks/action/testing` —
   the app's sandbox with mocks for HTTP, data tables, files and secrets.
 - **Six official actions** in the gallery (`/gallery/actions`, and **Packages
   → Browse gallery → Workflow actions**): Math & statistics, Text toolkit,

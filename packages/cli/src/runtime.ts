@@ -1,7 +1,7 @@
 /** Per-invocation services shared by every command. */
 
 import type { Command } from 'commander'
-import { UsertasksClient, apiKeyAuth, oauthAuth, type TokenProvider } from '@usertasks/sdk'
+import { UsertasksClient, apiKeyAuth, oauthAuth, type TokenProvider } from '@user-tasks/sdk'
 import { ConfigStore, defaultConfigPath } from './config'
 import { CliAuthError, CliUsageError } from './exit-codes'
 import type { Io } from './io'

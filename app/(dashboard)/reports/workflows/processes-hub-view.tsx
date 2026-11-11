@@ -15,7 +15,7 @@ import { StatCard, StatGrid } from '@/components/ui/stat-card'
 import { Badge, StatusPill } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/list-controls'
-import { Table, THead, TBody, TR, TH, TD, TableEmpty, TableSkeleton } from '@/components/ui/table'
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, TableSkeleton, type ColumnKind } from '@/components/ui/table'
 import { AXIS_TICK, BASE_AXIS, ChartFrame, ChartTooltip, GRID_PROPS, VALUE_AXIS, useSeriesColors } from '@/components/reports/chart-kit'
 import { useRunDurationStats, useWorkflowHub } from '@/hooks/use-workflow-reports'
 import { formatDuration } from '@/lib/format'
@@ -497,14 +497,14 @@ export function ProcessesHubView({ embedded = false, range: rangeProp }: Props) 
           </span>
         </div>
 
-        <Table>
+        <Table label="Processes" stickyFirstColumn>
           <THead>
             <tr>
-              <SortableHeader label="Process" field="name" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Process" field="name" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="title" />
               <SortableHeader label="Runs" field="total" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
               <SortableHeader label="Active" field="active" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
-              <SortableHeader label="Last started" field="lastStarted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-              <SortableHeader label="Last completed" field="lastCompleted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <SortableHeader label="Last started" field="lastStarted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="date" />
+              <SortableHeader label="Last completed" field="lastCompleted" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="date" />
               <SortableHeader label="Avg duration" field="avgDuration" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
               <SortableHeader label="Avg visits" field="avgNodeVisits" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
               <SortableHeader label="Avg traversals" field="avgEdgeTraversals" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
@@ -570,7 +570,7 @@ export function ProcessesHubView({ embedded = false, range: rangeProp }: Props) 
 }
 
 function SortableHeader({
-  label, field, sortField, sortDir, onClick, numeric = false,
+  label, field, sortField, sortDir, onClick, numeric = false, col,
 }: {
   label: string
   field: SortField
@@ -578,10 +578,11 @@ function SortableHeader({
   sortDir: SortDir
   onClick: (f: SortField) => void
   numeric?: boolean
+  col?: ColumnKind
 }) {
   const active = sortField === field
   return (
-    <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+    <TH numeric={numeric} col={col ?? (numeric ? 'number' : undefined)} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button type="button" onClick={() => onClick(field)} className={cn('inline-flex items-center gap-1 whitespace-nowrap hover:text-fg', numeric && 'flex-row-reverse')}>
         {label}
         {active ? (sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />) : <ArrowUpDown className="size-3 opacity-40" />}

@@ -19,6 +19,7 @@ import type { SummaryLookups } from "@/lib/workflow-utils"
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-schema"
 import { FollowButton, HOME_QUERY_KEY, ProgressPill, When } from "./shared"
 import { SubmissionDialog } from "./submission-dialog"
+import { TimelineButton } from "@/components/timeline/timeline-sheet"
 import { RunStepTasks, RunTaskOpenLink, RunTaskSteps, RunWaitingChip, runStepBadges } from "@/components/automations/run-task-links"
 
 const RuntimeCanvas = dynamic(() => import("@/components/automations/runtime-canvas").then((m) => m.RuntimeCanvas), {
@@ -77,6 +78,7 @@ export function RunProgressView({ runId }: { runId: string }) {
         </span>}
         actions={<>
           {data.submission && <Button size="sm" variant="ghost" leadingIcon={<Eye />} onClick={() => setViewing(true)}>View submission</Button>}
+          <TimelineButton target={{ runId }} />
           <FollowButton runId={runId} following={data.following} />
           {data.can_view_full && (
             <Button size="sm" variant="secondary" asChild><Link href={`/automations/runs/${runId}`}><ExternalLink className="size-3.5" aria-hidden /> Full run view</Link></Button>

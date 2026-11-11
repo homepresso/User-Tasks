@@ -19,6 +19,13 @@
  *
  * Every workflow write card (workflows_create / workflows_update /
  * build_plan) also lists each User Task's assignee by name.
+ *
+ * Redirect: every User Task the Agent creates lets the assignee redirect it
+ * (config.allow_redirect: true — the engine copies it to the task's
+ * allow_reassign) unless the arguments say otherwise: an explicit
+ * allow_redirect (true or false — "no redirect" is kept) is never changed,
+ * and on workflows_update the steps that already exist in the workflow keep
+ * what they have. The card says "redirect allowed" per task.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AssistantToolDef } from './engine'
@@ -98,6 +105,21 @@ export function resolveMeAssignee(tool: string, args: Record<string, any>, meId:
   })
 }
 
+/**
+ * User Tasks the Agent creates allow redirect by default; an explicit
+ * allow_redirect is kept, and so are steps that already exist (existingIds:
+ * the node ids of the workflow being updated).
+ */
+export function applyRedirectDefault(tool: string, args: Record<string, any>, existingIds: ReadonlySet<string> = new Set()): Record<string, any> {
+  if (!ASSIGNMENT_TOOLS.has(tool)) return args
+  return mapWorkflowNodes(tool, args, (n) => {
+    if (n?.type !== 'user_task') return n
+    const c = n.config && typeof n.config === 'object' ? n.config : {}
+    if (typeof c.allow_redirect === 'boolean' || (n.id !== undefined && existingIds.has(String(n.id)))) return n
+    return { ...n, config: { ...c, allow_redirect: true } }
+  })
+}
+
 export interface AssigneeNames { users: Map<string, string>; teams: Map<string, string> }
 
 /** One line: who a User Task goes to. */
@@ -123,6 +145,17 @@ export interface AssignmentDeps {
   meId: string
   /** Names of people and teams by id (tenant-scoped). */
   names: (ids: { users: string[]; teams: string[] }) => Promise<AssigneeNames>
+  /** The node ids a workflow has now (workflows_update: existing steps keep their redirect setting). */
+  existingNodeIds?: (workflowId: string) => Promise<Set<string>>
+}
+
+/** A workflow write's arguments with "@me" resolved and the redirect default applied (the card and the run use the same). */
+export async function prepareAssignment(tool: string, args: Record<string, any>, deps: AssignmentDeps): Promise<Record<string, any>> {
+  const resolved = resolveMeAssignee(tool, args, deps.meId)
+  const existing = tool === 'workflows_update' && deps.existingNodeIds && typeof args.workflow_id === 'string'
+    ? await deps.existingNodeIds(args.workflow_id).catch(() => new Set<string>())
+    : new Set<string>()
+  return applyRedirectDefault(tool, resolved, existing)
 }
 
 /** Card lines and warnings for the User Tasks of a workflow write. */
@@ -133,7 +166,7 @@ export async function assignmentCardParts(tool: string, resolved: Record<string,
   const teams = tasks.map((t) => t.config.team_id).filter((v) => typeof v === 'string' && v)
   const names = await deps.names({ users: [...new Set([deps.meId, ...users])], teams: [...new Set(teams)] }).catch(() => ({ users: new Map(), teams: new Map() }))
   const multiWorkflow = new Set(tasks.map((t) => t.workflow)).size > 1
-  const lines = tasks.slice(0, 12).map((t) => `Assignee of “${t.label}”${multiWorkflow && t.workflow ? ` (${t.workflow})` : ''}: ${describeAssignee(t.config, names, deps.meId)}`)
+  const lines = tasks.slice(0, 12).map((t) => `Assignee of “${t.label}”${multiWorkflow && t.workflow ? ` (${t.workflow})` : ''}: ${describeAssignee(t.config, names, deps.meId)}${t.config.allow_redirect === true ? ' · redirect allowed' : ''}`)
   if (tasks.length > 12) lines.push(`…and ${tasks.length - 12} more User Tasks`)
   const testing = tasks.filter((t) => t.config._assigned_for_testing === true && t.config.assignee_id === deps.meId).map((t) => t.label)
   const unassigned = tasks.filter((t) => userTaskIsUnassigned(t.config)).map((t) => t.label)
@@ -153,13 +186,13 @@ export function withAssignmentHelp(tool: AssistantToolDef, deps: AssignmentDeps)
   return {
     ...tool,
     confirm: async (args) => {
-      const resolved = resolveMeAssignee(tool.name, args, deps.meId)
+      const resolved = await prepareAssignment(tool.name, args, deps)
       const card = tool.confirm ? await tool.confirm(resolved) : { title: tool.label(resolved), lines: [], warnings: [] }
       const parts = await assignmentCardParts(tool.name, resolved, deps)
       return { ...card, lines: [...card.lines, ...parts.lines], warnings: [...parts.warnings, ...card.warnings] }
     },
     run: async (args, env) => {
-      const resolved = resolveMeAssignee(tool.name, args, deps.meId)
+      const resolved = await prepareAssignment(tool.name, args, deps)
       const outcome = await tool.run(resolved, env)
       const testing = userTasksOf(tool.name, resolved).filter((t) => t.config._assigned_for_testing === true).map((t) => t.label)
       const r = outcome.result
@@ -192,6 +225,16 @@ export function assigneeNameLookup(db: SupabaseClient, tenantId: string): Assign
       users: new Map(((people ?? []) as any[]).map((u) => [String(u.id), String(u.display_name || u.email || 'Someone')])),
       teams: new Map(((teamRows.data ?? []) as any[]).map((t) => [String(t.id), String(t.name ?? 'Team')])),
     }
+  }
+}
+
+/** The node ids of a workflow's draft (tenant-scoped). */
+export function workflowNodeIds(db: SupabaseClient, tenantId: string): (workflowId: string) => Promise<Set<string>> {
+  return async (workflowId) => {
+    if (!/^[0-9a-f-]{36}$/i.test(workflowId)) return new Set()
+    const { data } = await (db as any).from('workflows').select('nodes').eq('id', workflowId).eq('tenant_id', tenantId).maybeSingle()
+    const nodes = Array.isArray(data?.nodes) ? data.nodes : []
+    return new Set(nodes.map((n: any) => String(n?.id ?? '')).filter(Boolean))
   }
 }
 
@@ -248,7 +291,7 @@ export function assigneesLookupTool(params: { db: SupabaseClient; tenantId: stri
  */
 export function withAssignmentTools(tools: AssistantToolDef[], params: { db: SupabaseClient; tenantId: string; meId: string }): AssistantToolDef[] {
   if (!tools.some((t) => t.mode === 'write' && ASSIGNMENT_TOOLS.has(t.name))) return tools
-  const deps: AssignmentDeps = { meId: params.meId, names: assigneeNameLookup(params.db, params.tenantId) }
+  const deps: AssignmentDeps = { meId: params.meId, names: assigneeNameLookup(params.db, params.tenantId), existingNodeIds: workflowNodeIds(params.db, params.tenantId) }
   const out = tools.map((t) => withAssignmentHelp(t, deps))
   if (!out.some((t) => t.name === 'assignees_lookup')) out.push(assigneesLookupTool(params))
   return out

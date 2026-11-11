@@ -1,5 +1,7 @@
 'use client'
 
+import { LIST_PENDING_MODES, LIST_PENDING_MODE_LABELS } from '@/lib/forms/list-field'
+import { RowCommitKitPanel } from './list-properties'
 import { isWriteReference, referencePickerHint } from '@/lib/custom-references/types'
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -222,7 +224,9 @@ export function GroupEditor({ group, depth, columns, placeholders, onChange, onR
 
 /* ── The panel ───────────────────────────────────────────────────────── */
 
-export function DataTableProperties({ state, field, onPatch }: {
+export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
+  /** "New row → fill → Save row" (lib/forms/designer-state.ts addRowCommitKit). */
+  onAddCommitKit?: (options: { apply: 'change' | 'button'; save: 'stage' | 'save_now' }) => void
   state: DesignerState
   field: DesignerField
   onPatch: (config: DataTableFieldConfig, tag?: string) => void
@@ -408,9 +412,13 @@ export function DataTableProperties({ state, field, onPatch }: {
                     <div className="flex flex-wrap gap-x-3 gap-y-1">
                       <Toggle checked={col.sortable === true} onChange={(v) => patchColumn(i, { sortable: v || undefined })}>People can sort</Toggle>
                       <Toggle checked={col.filterable === true} onChange={(v) => patchColumn(i, { filterable: v || undefined })}>People can filter</Toggle>
-                      {config.mode === 'edit' && <Toggle checked={col.read_only === true} onChange={(v) => patchColumn(i, { read_only: v || undefined })}>Read-only</Toggle>}
+                      {config.mode === 'edit' && <Toggle checked={col.read_only === true} onChange={(v) => patchColumn(i, { read_only: v || undefined })}>Read-only when editing</Toggle>}
                       {config.mode === 'edit' && <Toggle checked={col.required === true} onChange={(v) => patchColumn(i, { required: v || undefined })}>Required</Toggle>}
                     </div>
+                    {config.mode === 'edit' && col.read_only && <p className="text-2xs text-fg-muted" data-readonly-help>An existing row keeps this value: the cell can&apos;t be edited, rules leave it alone and the server ignores a changed value. A new row gets it only from the default below.</p>}
+                    {config.mode === 'edit' && (
+                      <div><Label>Default for a new row (rules&apos; New row)</Label><input className={inputClass} value={col.default ?? ''} placeholder="A value, or {{form.x}}, {{today}}, {{user.id}}" onChange={(e) => patchColumn(i, { default: e.target.value || undefined }, `dt-col-def-${i}`)} /></div>
+                    )}
                     {col.type === 'choice' && (
                       <div><Label>Choices (comma-separated)</Label><input className={inputClass} value={(col.options ?? []).join(', ')} onChange={(e) => patchColumn(i, { options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) }, `dt-col-opt-${i}`)} /></div>
                     )}
@@ -447,6 +455,15 @@ export function DataTableProperties({ state, field, onPatch }: {
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             <Toggle checked={config.allow_add === true} onChange={(v) => set({ allow_add: v || undefined })}>Add rows</Toggle>
             <Toggle checked={config.allow_delete === true} onChange={(v) => set({ allow_delete: v || undefined })}>Delete rows</Toggle>
+            <Toggle checked={config.row_commit_controls === true} onChange={(v) => set({ row_commit_controls: v || undefined })}>✓ / ✕ on pending rows</Toggle>
+          </div>
+        )}
+        {config.mode === 'edit' && config.allow_add && onAddCommitKit && <RowCommitKitPanel table onAdd={onAddCommitKit} />}
+        {config.mode === 'edit' && (
+          <div><Label>Pending rows at submit (made by a rule&apos;s New row / Set row values, not committed)</Label>
+            <select className={inputClass} value={config.on_submit_pending ?? 'block'} onChange={(e) => set({ on_submit_pending: e.target.value === 'block' ? undefined : e.target.value as 'exclude' | 'commit' })}>
+              {LIST_PENDING_MODES.map((m) => <option key={m} value={m}>{LIST_PENDING_MODE_LABELS[m]}</option>)}
+            </select>
           </div>
         )}
         {config.mode !== 'display' && (

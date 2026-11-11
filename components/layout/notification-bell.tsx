@@ -227,6 +227,7 @@ export function NotificationBell() {
           ref={triggerRef}
           type="button"
           onClick={() => setOpen(!open)}
+          data-tour="notification-bell"
           aria-label={label}
           aria-expanded={open}
           aria-haspopup="dialog"

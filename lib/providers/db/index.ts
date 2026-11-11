@@ -10,7 +10,7 @@ import type { Database } from '@/lib/database.types'
  * the default Supabase provider these are the same supabase-js clients the
  * call sites used to build themselves. With DB_PROVIDER=postgres they are
  * still supabase-js clients (same API, auth and storage still on Supabase),
- * but their REST requests are served in-process by @usertasks/pg-query over
+ * but their REST requests are served in-process by @user-tasks/pg-query over
  * DATABASE_URL (./postgres) instead of by PostgREST.
  *
  *  - getServiceDb()  service-role client (bypasses RLS). Internal jobs,

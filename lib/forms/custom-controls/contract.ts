@@ -5,7 +5,7 @@
  * form (the app's page) and the sandboxed frame the control runs in.
  *
  * Pure and isomorphic — shared by the app, the frame runtime, the starter
- * kit and the @usertasks/form-control package (packages/form-control keeps
+ * kit and the @user-tasks/form-control package (packages/form-control keeps
  * a copy of the types; __tests__/form-control-contract checks they agree).
  *
  * ── Manifest (manifest.json beside the ES module) ─────────────────────────

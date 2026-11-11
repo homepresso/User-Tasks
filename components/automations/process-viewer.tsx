@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, ClipboardCheck, Crosshair } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import type { RunViewTab } from '@/lib/automations/run-view-tabs'
 import { type WorkflowEdge, type WorkflowNode } from '@/lib/workflow-schema'
 import { cn } from '@/lib/utils'
 import { formatCount } from '@/lib/format/number'
@@ -32,7 +34,15 @@ interface ProcessViewerProps {
   compareRun?: any
   /** The run's User Tasks with the viewer's access (automations.processView). */
   tasks?: RunTask[]
+  /** The tab to open on: Timeline for people who don't build workflows, Process view for builders (the run page decides; ?tab=). */
+  initialTab?: RunViewTab
+  /** Timeline first in the tab bar (non-builders). */
+  timelineFirst?: boolean
 }
+
+
+// The timeline's own chunk (lib/services/run-timeline → components/timeline).
+const RunTimeline = dynamic(() => import('@/components/timeline/run-timeline').then((m) => m.RunTimeline), { ssr: false })
 
 function countNodeVisits(run: any) {
   const trace = parseJsonField<any[]>(run?.execution_trace, [])
@@ -64,9 +74,9 @@ const LOG_LEVEL_TONE: Record<string, { text: string; dot: string }> = {
   debug: { text: 'text-fg-muted', dot: 'bg-fg-subtle' },
 }
 
-export function ProcessViewer({ workflow, run, logs, focus, compareRun, tasks = [] }: ProcessViewerProps) {
+export function ProcessViewer({ workflow, run, logs, focus, compareRun, tasks = [], initialTab = 'canvas', timelineFirst = false }: ProcessViewerProps) {
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
-  const [tab, setTab] = useState<'canvas' | 'compare' | 'logs' | 'variables'>('canvas')
+  const [tab, setTab] = useState<RunViewTab>(initialTab)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [copiedAll, setCopiedAll] = useState(false)
   const [selectedSuspectNodeId, setSelectedSuspectNodeId] = useState<string | null>(null)
@@ -350,7 +360,9 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun, tasks = 
         value={tab}
         onValueChange={setTab}
         items={[
+          ...(timelineFirst && run?.id ? [{ value: 'timeline' as const, label: 'Timeline' }] : []),
           { value: 'canvas' as const, label: 'Process view' },
+          ...(!timelineFirst && run?.id ? [{ value: 'timeline' as const, label: 'Timeline' }] : []),
           ...(compareRun ? [{ value: 'compare' as const, label: 'Compare' }] : []),
           { value: 'variables' as const, label: 'Variables', count: variableCount > 0 ? variableCount : undefined },
           { value: 'logs' as const, label: visibleLogs.length !== logs.length ? `Logs (${visibleLogs.length}/${logs.length})` : 'Logs', count: visibleLogs.length !== logs.length ? undefined : logs.length },
@@ -370,6 +382,12 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun, tasks = 
           with" which was the key ask from the reports work. */}
       {tab === 'variables' && (
         <VariablesTab workflow={workflow} run={run} />
+      )}
+
+      {tab === 'timeline' && run?.id && (
+        <div className="mx-auto max-w-3xl" data-run-timeline-tab>
+          <RunTimeline target={{ runId: run.id }} showLinks={false} />
+        </div>
       )}
 
       {tab === 'compare' && compareRun && (
@@ -583,13 +601,13 @@ function VariablesTab({ workflow, run }: { workflow: any; run: any }) {
   }
 
   return (
-    <Table>
+    <Table label="Process variables">
       <THead>
         <tr>
-          <TH className="w-1/4">Variable</TH>
-          <TH className="w-24">Type</TH>
-          <TH>Value</TH>
-          <TH className="w-24">Source</TH>
+          <TH col="name" className="w-1/4">Variable</TH>
+          <TH col="number" className="w-24">Type</TH>
+          <TH col="text">Value</TH>
+          <TH col="number" className="w-24">Source</TH>
         </tr>
       </THead>
       <TBody>
@@ -835,12 +853,12 @@ function CompareTab({ workflow, run, compareRun }: { workflow: any; run: any; co
           </div>
         ) : (
           <div className="border-t border-border-subtle">
-            <Table bare>
+            <Table bare label="Node differences">
               <THead>
                 <tr>
-                  <TH>Node</TH>
-                  <TH>Current</TH>
-                  <TH>Baseline</TH>
+                  <TH col="name">Node</TH>
+                  <TH col="status">Current</TH>
+                  <TH col="status">Baseline</TH>
                   <TH numeric>Duration Δ</TH>
                   <TH numeric>Visits Δ</TH>
                   <TH numeric>Output</TH>

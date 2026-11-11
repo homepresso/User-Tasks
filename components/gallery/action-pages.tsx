@@ -156,7 +156,7 @@ export function ActionsIndexPage() {
               </li>
             ))}
           </ol>
-          <p className="mt-8 text-sm text-[#4A463E]">Need something else? <Link href="/workflows#actions" className="font-semibold text-[#8A6D45] hover:underline">Build any action</Link> with the starter kit and the <code className="font-mono">@usertasks/action</code> helper.</p>
+          <p className="mt-8 text-sm text-[#4A463E]">Need something else? <Link href="/workflows#actions" className="font-semibold text-[#8A6D45] hover:underline">Build any action</Link> with the starter kit and the <code className="font-mono">@user-tasks/action</code> helper.</p>
         </section>
       </main>
     </UseCaseShell>

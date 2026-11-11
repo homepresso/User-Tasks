@@ -203,7 +203,7 @@ export async function completeWorkflowTaskAction(ctx: ServiceContext, taskId: st
  * Save draft values of a workflow task's form (partial; refused once the
  * task is closed). Managers may save on behalf (no note needed for a draft).
  */
-export async function saveWorkflowTaskValues(ctx: ServiceContext, taskId: string, values: Record<string, unknown>, input: OnBehalfInput = {}): Promise<{ success: true } | { success: false; errors: Record<string, string> }> {
+export async function saveWorkflowTaskValues(ctx: ServiceContext, taskId: string, values: Record<string, unknown>, input: OnBehalfInput & { via?: TaskActionVia } = {}): Promise<{ success: true } | { success: false; errors: Record<string, string> }> {
   requirePerm(ctx, 'tasks.complete')
   const db = await serviceRoleClient(ctx)
   const access = await authorizeTaskForContext(ctx, db, taskId, { ...input, requireNote: false, columns: 'metadata, title' })
@@ -218,7 +218,7 @@ export async function saveWorkflowTaskValues(ctx: ServiceContext, taskId: string
   const onBehalf = behalfOf(access, ctx.actorId)
   await writeLifecycleEvent({
     supabase: db as any, tenantId: String(task.tenant_id), taskId, eventType: 'task_data_saved', actorId: ctx.actorId,
-    metadata: { fields: Object.keys(values), ...(onBehalf ? { on_behalf_of: access.onBehalfOf, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs, on_behalf_basis: onBehalf.basis } : {}) },
+    metadata: { fields: Object.keys(values), ...(input.via ? { via: input.via } : {}), ...(onBehalf ? { on_behalf_of: access.onBehalfOf, on_behalf_note: onBehalf.note, acted_as: onBehalf.actedAs, on_behalf_basis: onBehalf.basis } : {}) },
   })
   return { success: true }
 }

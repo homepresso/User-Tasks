@@ -10,8 +10,9 @@ import type { UseCaseIcon } from "@/lib/use-cases"
 import { Wordmark } from "@/components/brand/logo"
 import { ScreenshotFrame } from "@/components/marketing/screenshot-frame"
 import { LanguageTag } from "@/components/docs/copy-button"
-import { MobileMenu, type NavLink } from "@/components/marketing/mobile-menu"
-import { repositoryUrl } from "@/lib/site-links"
+import { SiteHeader, type HeaderTone } from "@/components/marketing/site-header"
+import { repositoryUrl, SOURCE_RELEASE_NOTE } from "@/lib/site-links"
+import { DEMO_HREF, GUIDES, PRODUCT_MORE, PRODUCT_TILES, RESOURCES, SOLUTIONS_BY_TEAM, SOLUTIONS_BY_USE_CASE, START_HREF } from "@/lib/marketing-nav"
 
 /**
  * Shared building blocks of the public site (landing and use-case pages):
@@ -40,21 +41,23 @@ export const USE_CASE_ICONS: Record<UseCaseIcon, typeof Inbox> = {
   signature: FileSignature,
 }
 
-export function SectionHeading({ eyebrow, title, children, as: Heading = "h2" }: { eyebrow: string; title: ReactNode; children?: ReactNode; as?: "h1" | "h2" }) {
+export function SectionHeading({ eyebrow, title, children, as: Heading = "h2", align = "left" }: { eyebrow: string; title: ReactNode; children?: ReactNode; as?: "h1" | "h2"; align?: "left" | "center" }) {
   return (
-    <div className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">{eyebrow}</p>
-      <Heading className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</Heading>
-      {children && <p className="mt-4 mkt-body text-(color:--mkt-text)">{children}</p>}
+    <div className={align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-2xl"} data-reveal>
+      <p className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze) ${align === "center" ? "justify-center" : ""}`}><span aria-hidden="true" className="h-px w-6 bg-gradient-to-r from-transparent to-(color:--mkt-gold)" />{eyebrow}</p>
+      <Heading className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-[2.75rem] sm:leading-[1.08]">{title}</Heading>
+      {children && <p className="mt-4 mkt-body text-pretty text-(color:--mkt-text)">{children}</p>}
     </div>
   )
 }
 
 export function Shot({ name, alt, sizes, priority = false }: { name: ScreenshotName; alt: string; sizes: string; priority?: boolean }) {
   return (
-    <ScreenshotFrame>
-      <Image src={SCREENSHOTS[name]} alt={alt} sizes={sizes} priority={priority} placeholder="blur" className="h-auto w-full" />
-    </ScreenshotFrame>
+    <div className="mkt-glow" data-reveal>
+      <ScreenshotFrame>
+        <Image src={SCREENSHOTS[name]} alt={alt} sizes={sizes} priority={priority} placeholder="blur" className="h-auto w-full" />
+      </ScreenshotFrame>
+    </div>
   )
 }
 
@@ -70,81 +73,68 @@ export function Snippet({ code, language = "shell" }: { code: string; language?:
   )
 }
 
-const NAV_ITEM = "whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-(color:--mkt-text) hover:text-(color:--mkt-ink) xl:px-3"
-
 /**
- * Main navigation of every public page: Workflows, Forms, Documents, Media,
- * Agent, Integrations, Gallery, Deploy, Docs (GitHub from xl). Below lg a Menu
- * button opens all of them plus Use cases and Contact; Docs and Sign in stay
- * visible at every width.
+ * Header of every public page: the announcement bar and the sticky header
+ * with the Product, Solutions and Resources mega menus (site-header.tsx).
+ * `tone="night"` for pages whose hero is a dark stage.
  */
-export function SiteNav() {
+export function MarketingHeader({ tone = "paper" }: { tone?: HeaderTone }) {
+  return <SiteHeader repoUrl={repositoryUrl()} tone={tone} />
+}
+
+/** @deprecated Kept for older imports: the same header. */
+export const SiteNav = MarketingHeader
+
+const FOOTER_COLUMNS: Array<{ title: string; links: Array<{ href: string; label: string }> }> = [
+  { title: "Product", links: [...PRODUCT_TILES.map((tile) => ({ href: tile.href, label: tile.title })), ...PRODUCT_MORE.map((item) => ({ href: item.href, label: item.title }))] },
+  { title: "Solutions", links: [...SOLUTIONS_BY_USE_CASE.map((item) => ({ href: item.href, label: item.title })), { href: "/use-cases", label: "All use cases" }] },
+  { title: "By team", links: SOLUTIONS_BY_TEAM.map((item) => ({ href: item.href, label: item.title })) },
+  { title: "Guides", links: GUIDES },
+  { title: "Resources", links: [...RESOURCES.map((item) => ({ href: item.href, label: item.title })), { href: "/docs/api-explorer", label: "API Explorer" }] },
+]
+
+/** Footer of every public page: a closing call to action, the site map and the legal line. */
+export function MarketingFooter({ cta = true }: { cta?: boolean }) {
   const repoUrl = repositoryUrl()
-  const links: NavLink[] = [
-    { href: "/workflows", label: "Workflows" },
-    { href: "/forms", label: "Forms" },
-    { href: "/documents", label: "Documents" },
-    { href: "/media", label: "Media" },
-    { href: "/ai-assistants", label: "Agent" },
-    { href: "/connectors", label: "Integrations" },
-    { href: "/gallery", label: "Gallery" },
-    { href: "/deploy-anywhere", label: "Deploy" },
-    { href: "/docs", label: "Docs" },
-    { href: "/use-cases", label: "Use cases" },
-    { href: "/contact", label: "Contact" },
-    ...(repoUrl ? [{ href: repoUrl, label: "GitHub", external: true }] : []),
-  ]
   return (
-    <nav className="relative mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-5 sm:px-6" aria-label="Main">
-      <Link href="/" aria-label="UserTasks home"><Wordmark size={34} /></Link>
-      <div className="flex items-center gap-1 sm:gap-1.5">
-        <Link href="/workflows" className={`hidden lg:inline ${NAV_ITEM}`}>Workflows</Link>
-        <Link href="/forms" className={`hidden lg:inline ${NAV_ITEM}`}>Forms</Link>
-        <Link href="/documents" className={`hidden lg:inline ${NAV_ITEM}`}>Documents</Link>
-        <Link href="/media" className={`hidden lg:inline ${NAV_ITEM}`}>Media</Link>
-        <Link href="/ai-assistants" className={`hidden lg:inline ${NAV_ITEM}`}>Agent</Link>
-        <Link href="/connectors" className={`hidden lg:inline ${NAV_ITEM}`}>Integrations</Link>
-        <Link href="/gallery" className={`hidden sm:inline ${NAV_ITEM}`}>Gallery</Link>
-        <Link href="/deploy-anywhere" className={`hidden lg:inline ${NAV_ITEM}`}>Deploy</Link>
-        <Link href="/docs" className={NAV_ITEM}>Docs</Link>
-        {repoUrl && <a href={repoUrl} className={`hidden xl:inline ${NAV_ITEM}`}>GitHub</a>}
-        <MobileMenu links={links} />
-        <Link href="/login" className="ml-1 whitespace-nowrap rounded-lg bg-(color:--mkt-primary) px-3 py-2 text-sm font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover) sm:px-4">Sign in</Link>
-      </div>
-    </nav>
-  )
-}
-
-/** Header for public pages other than the landing page. */
-export function MarketingHeader() {
-  return (
-    <header className="relative z-20 border-b border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper)/95">
-      <SiteNav />
-    </header>
-  )
-}
-
-export function MarketingFooter() {
-  return (
-    <footer className="border-t border-(color:--mkt-ink)/[0.07]">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
-        <Wordmark size={26} />
-        <p className="text-xs text-(color:--mkt-subtle)">Open-source headless workflow engine · Apache-2.0 · © {new Date().getFullYear()} UserTasks</p>
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-(color:--mkt-muted)">
-          <Link href="/workflows" className="hover:text-(color:--mkt-ink)">Workflows</Link>
-          <Link href="/forms" className="hover:text-(color:--mkt-ink)">Forms</Link>
-          <Link href="/documents" className="hover:text-(color:--mkt-ink)">Documents</Link>
-          <Link href="/media" className="hover:text-(color:--mkt-ink)">Media</Link>
-          <Link href="/ai-assistants" className="hover:text-(color:--mkt-ink)">Agent</Link>
-          <Link href="/connectors" className="hover:text-(color:--mkt-ink)">Integrations</Link>
-          <Link href="/use-cases" className="hover:text-(color:--mkt-ink)">Use cases</Link>
-          <Link href="/gallery" className="hover:text-(color:--mkt-ink)">Package gallery</Link>
-          <Link href="/deploy-anywhere" className="hover:text-(color:--mkt-ink)">Deploy anywhere</Link>
-          <Link href="/docs" className="hover:text-(color:--mkt-ink)">Docs</Link>
-          <Link href="/docs/api-explorer" className="hover:text-(color:--mkt-ink)">API Explorer</Link>
-          <Link href="/open-source" className="hover:text-(color:--mkt-ink)">Why open source</Link>
-          <Link href="/contact" className="hover:text-(color:--mkt-ink)">Contact</Link>
-          <Link href="/login" className="hover:text-(color:--mkt-ink)">Sign in</Link>
+    <footer className="mkt-night relative overflow-hidden">
+      <div aria-hidden="true" className="mkt-grid pointer-events-none absolute inset-0 opacity-60" />
+      <div aria-hidden="true" className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[60rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(232,178,102,0.22),transparent)]" />
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        {cta && (
+          <div className="flex flex-col items-start justify-between gap-6 border-b border-white/10 py-14 md:flex-row md:items-end">
+            <div>
+              <p className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">The open source <span className="mkt-gradient-text">process platform.</span></p>
+              <p className="mt-2 text-[#C9BFAE]">Open source, on your cloud or ours.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link href={START_HREF} className="mkt-btn-ember inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold">Start free <ArrowRight size={16} aria-hidden="true" /></Link>
+              <Link href={DEMO_HREF} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-3 font-semibold text-[#F4EFE4] hover:border-white/35">See a demo</Link>
+            </div>
+          </div>
+        )}
+        <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
+          <div>
+            <Wordmark size={30} tone="light" />
+            <p className="mt-4 max-w-xs text-sm leading-6 text-[#C9BFAE]">Workflows, forms, tasks and an AI Agent in one open-source platform. Run it in our cloud, or anywhere you like.</p>
+            {repoUrl ? (
+              <a href={repoUrl} className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#F4EFE4] hover:border-white/35">GitHub <ArrowRight size={14} aria-hidden="true" /></a>
+            ) : (
+              <p className="mt-5 inline-flex rounded-lg border border-white/10 px-3 py-2 text-xs text-[#C9BFAE]">{SOURCE_RELEASE_NOTE}</p>
+            )}
+          </div>
+          {FOOTER_COLUMNS.map((column) => (
+            <div key={column.title}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#F0C27B]">{column.title}</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                {column.links.map((link) => <li key={link.href}><Link href={link.href} className="text-[#D9D0BF] hover:text-white">{link.label}</Link></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col items-start justify-between gap-3 border-t border-white/10 py-6 text-xs text-[#A89E8C] sm:flex-row sm:items-center">
+          <p>© {new Date().getFullYear()} UserTasks · Apache-2.0</p>
+          <p className="flex flex-wrap gap-x-5 gap-y-1"><Link href="/contact" className="hover:text-white">Contact</Link><Link href="/login" className="hover:text-white">Sign in</Link><a href="/sitemap.xml" className="hover:text-white">Sitemap</a></p>
         </div>
       </div>
     </footer>
@@ -154,8 +144,8 @@ export function MarketingFooter() {
 /** Bronze pill above a page title. */
 export function Pill({ icon: Icon, children }: { icon: typeof Inbox; children: ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-gold)/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">
-      <Icon size={13} aria-hidden="true" /> {children}
+    <p className="inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-white)/70 py-1 pl-1 pr-3 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze) shadow-sm backdrop-blur">
+      <span className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-[#F3C77F] to-[#D99A52] text-[#1B1406]"><Icon size={13} aria-hidden="true" /></span> {children}
     </p>
   )
 }
@@ -190,13 +180,16 @@ export function InlineCode({ children }: { children: ReactNode }) {
 /** FAQ accordion (the questions also go into the page's FAQPage JSON-LD). */
 export function FaqList({ faqs }: { faqs: Array<{ question: string; answer: string }> }) {
   return (
-    <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
-      <h2 className="text-center font-display text-3xl font-bold tracking-tight">Questions</h2>
-      <div className="mt-8 space-y-3">
+    <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6 sm:py-24">
+      <SectionHeading eyebrow="FAQ" title="Questions, answered." align="center" />
+      <div className="mt-10 divide-y divide-(color:--mkt-ink)/[0.08] overflow-hidden rounded-3xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/80 shadow-[0_20px_60px_-30px_rgba(27,25,22,0.25)]">
         {faqs.map((faq) => (
-          <details key={faq.question} className="group rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5">
-            <summary className="cursor-pointer list-none font-semibold">{faq.question}</summary>
-            <p className="mt-3 text-sm leading-7 text-(color:--mkt-muted)">{faq.answer}</p>
+          <details key={faq.question} className="group px-6 py-5 open:bg-(color:--mkt-paper)">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
+              <h3 className="text-base font-semibold">{faq.question}</h3>
+              <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-full border border-(color:--mkt-ink)/10 text-(color:--mkt-bronze) transition-transform duration-300 group-open:rotate-45">+</span>
+            </summary>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-(color:--mkt-text)">{faq.answer}</p>
           </details>
         ))}
       </div>
@@ -207,9 +200,10 @@ export function FaqList({ faqs }: { faqs: Array<{ question: string; answer: stri
 /** One card in a grid of building blocks. */
 export function FeatureCard({ icon: Icon, title, children }: { icon: typeof Inbox; title: string; children: ReactNode }) {
   return (
-    <article className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-5">
-      <Icon size={20} className="text-(color:--mkt-bronze)" aria-hidden="true" />
-      <h3 className="mt-3 font-semibold">{title}</h3>
+    <article className="mkt-lift group relative overflow-hidden rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/80 p-5 hover:border-(color:--mkt-bronze)/35" data-reveal>
+      <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-10 size-28 rounded-full bg-[radial-gradient(closest-side,rgba(232,178,102,0.25),transparent)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <span className="flex size-10 items-center justify-center rounded-xl border border-(color:--mkt-bronze)/20 bg-gradient-to-br from-[#FFF6E6] to-[#F5EBDA] text-(color:--mkt-bronze)"><Icon size={19} aria-hidden="true" /></span>
+      <h3 className="mt-4 font-semibold">{title}</h3>
       <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">{children}</p>
     </article>
   )

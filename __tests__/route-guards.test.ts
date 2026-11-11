@@ -60,11 +60,11 @@ describe('page guards', () => {
   })
 
   const BUILD_OR_ADMIN = [
-    '/automations', '/automations/[id]', '/automations/forms', '/automations/rules', '/automations/schedules', '/automations/email-templates',
+    '/automations', '/automations/[id]', '/automations/forms', '/automations/forms/[id]', '/automations/forms/new', '/automations/rules', '/automations/schedules', '/automations/email-templates',
     '/integrations', '/agents', '/extensibility', '/packages', '/activity', '/settings/governance', '/settings/api-keys',
     '/settings/oauth-apps', '/settings/webhooks', '/settings/mcp', '/settings/logs', '/settings/log-export', '/settings/sso',
     '/settings/github-sync', '/settings/theme', '/settings/document-ocr', '/settings/assistants', '/settings/packages', '/settings/invitations',
-    '/org/manage', '/tasks/assigned', '/reports/tasks', '/reports/workflows', '/reports/integrations', '/reports/business-rules',
+    '/org/manage', '/reports/tasks', '/reports/workflows', '/reports/integrations', '/reports/business-rules',
     '/reports/retention', '/automations/queue', '/automations/runs/[id]',
   ]
 
@@ -80,6 +80,10 @@ describe('page guards', () => {
     }
     expect(canAccessPath('/reports/builder', viewer)).toBe(false)
     expect(canAccessPath('/tasks/new', viewer)).toBe(false)
+  })
+
+  it('everyone with task access opens the Task tracker (Following: followed and shared-with-me tasks; the other tabs need tasks.view_all)', () => {
+    for (const role of ['viewer', 'member', 'manager', 'owner']) expect(canAccessPath('/tasks/assigned', perms(role)), role).toBe(true)
   })
 
   it('a Member opens the queue and run pages (involved-only, scoped server-side) but no build page', () => {
@@ -115,7 +119,7 @@ function menuFor(slug: string) {
 describe('side menu per system role', () => {
   it('Viewer: no Build, no Govern, no Settings — data under Operate, the directory under People', () => {
     expect(menuFor('viewer')).toEqual({
-      primary: ['Home', 'My tasks'],
+      primary: ['Home', 'My tasks', 'Task tracker'],
       groups: { Operate: ['Data', 'Reports'], People: ['Organization', 'Team'] },
       settings: false,
     })
@@ -123,7 +127,7 @@ describe('side menu per system role', () => {
 
   it('Member: the same plus their queue and the forms they build with the wizard; still no Build or Govern', () => {
     expect(menuFor('member')).toEqual({
-      primary: ['Home', 'My tasks', 'My forms'],
+      primary: ['Home', 'My tasks', 'Task tracker', 'My forms'],
       groups: { Operate: ['Data', 'Queue', 'Reports'], People: ['Organization', 'Team'] },
       settings: false,
     })

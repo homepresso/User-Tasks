@@ -1,11 +1,13 @@
 'use server'
 
 import { headers } from 'next/headers'
+import { after } from 'next/server'
 import { createServiceClient } from '@/lib/cron-auth'
 import { isCloud } from '@/lib/deployment'
 import { provisionTenant } from '@/lib/tenant-provisioning'
 import { getAuthProvider } from '@/lib/providers/auth'
 import { rateLimit } from '@/lib/rate-limit'
+import { notifyBetaSignup } from '@/lib/contact/beta-signup-chirp'
 
 /**
  * Public beta signup (cloud edition only) — rate-limits, filters bots, then
@@ -74,7 +76,16 @@ export async function betaSignup(input: BetaSignupInput): Promise<BetaSignupResu
       },
     },
   }, (await getAuthProvider()).admin)
-  if (result.ok) return { ok: true, slug: result.slug }
+  if (result.ok) {
+    // Tell the team (ChirpMe) once the response has gone; never blocks or fails the signup.
+    after(() => notifyBetaSignup({
+      fullName, email, company,
+      companySize: input.companySize ?? null,
+      useCase: String(input.useCase ?? '').slice(0, 2000) || null,
+      slug: result.slug ?? null,
+    }))
+    return { ok: true, slug: result.slug }
+  }
   if (result.reason === 'user_exists') {
     return { ok: false, error: 'An account with this email already exists — try signing in instead.' }
   }

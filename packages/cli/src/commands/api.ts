@@ -1,7 +1,7 @@
 /** `usertasks api <METHOD> <path>`: raw authenticated request, prints the response body. */
 
 import type { Command } from 'commander'
-import type { HttpMethod } from '@usertasks/sdk'
+import type { HttpMethod } from '@user-tasks/sdk'
 import { CliUsageError } from '../exit-codes'
 import { buildBody, collect, parseQueryPairs } from '../input'
 import type { Runtime } from '../runtime'

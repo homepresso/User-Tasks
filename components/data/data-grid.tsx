@@ -369,7 +369,12 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
         <div
           ref={scrollRef}
           onScroll={updateScroll}
-          className="scrollbar-thin max-h-[calc(100vh-280px)] min-h-48 overflow-auto rounded-lg border border-border bg-panel"
+          // A focusable region: keyboard users scroll the grid with the arrow keys.
+          role="region"
+          aria-label="Table rows"
+          tabIndex={0}
+          data-table-scroll
+          className="scrollbar-thin max-h-[calc(100vh-280px)] min-h-48 overflow-auto overscroll-x-contain rounded-lg border border-border bg-panel [-webkit-overflow-scrolling:touch]"
         >
           <table className="w-full border-separate border-spacing-0 text-left text-ui text-fg">
             <thead className="sticky top-0 z-[3]">

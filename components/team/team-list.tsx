@@ -90,11 +90,11 @@ export function TeamList({ teams, canManage }: TeamListProps) {
             {team.colour
               ? <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: team.colour }} />
               : <Users className="size-3.5 shrink-0 text-fg-muted" aria-hidden />}
-            <span className="truncate font-medium text-fg">{team.name}</span>
+            <span className="truncate font-medium text-fg" title={team.name}>{team.name}</span>
             {team.kind && team.kind !== 'team' && <span className="shrink-0 rounded bg-muted px-1.5 text-2xs capitalize text-fg-muted">{team.kind}</span>}
           </div>
         </TD>
-        <TD className="max-w-0 text-fg-muted max-md:hidden"><span className="block truncate">{team.description || '—'}</span></TD>
+        <TD className="max-w-0 text-fg-muted max-md:hidden"><span className="block truncate" title={team.description || undefined}>{team.description || '—'}</span></TD>
         <TD numeric className="w-24">{formatCount(memberCount)}</TD>
         {canManage ? (
           <TDActions>
@@ -119,13 +119,13 @@ export function TeamList({ teams, canManage }: TeamListProps) {
       )}
 
       <div className={cn('grid grid-cols-1 gap-4', selectedTeamId && 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]')}>
-        <Table aria-label="Teams">
+        <Table aria-label="Teams" stickyFirstColumn>
           <THead>
             <tr>
-              <TH>Team</TH>
-              <TH className="max-md:hidden">Description</TH>
-              <TH numeric className="w-24">Members</TH>
-              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+              <TH col="title">Team</TH>
+              <TH col="text" className="max-md:hidden">Description</TH>
+              <TH numeric col="number" className="w-24">Members</TH>
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>

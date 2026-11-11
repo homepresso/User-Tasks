@@ -264,6 +264,15 @@ export function newAction(type: FieldButtonActionType): FieldButtonAction {
     case 'block_submit': return { type, text: 'The form cannot be submitted yet.' }
     case 'copy_values': return { type, assign: {} }
     case 'load_part': return { type, targets: [] }
+    case 'add_list_row': return { type, values: {} }
+    case 'remove_list_row': return { type, row: 'last' }
+    case 'update_list_row': return { type, row: '{{event.row_number}}', values: {} }
+    case 'new_row': return { type, position: 'end' }
+    case 'set_row_values': return { type, row: 'current', values: {} }
+    case 'commit_row': case 'discard_row': case 'revert_row': return { type, row: 'current' }
+    case 'delete_row': return { type, row: 'selected' }
+    case 'table_list': return { type, limit: 50 }
+    case 'table_create': case 'table_update': return { type, column_values: {} }
     default: return { type }
   }
 }
@@ -362,6 +371,15 @@ export function ButtonProperties({ state, field, onPatch, onChangeState }: {
         <Hint>Steps run in order. Validate and Next stop on errors; Submit ends the click.</Hint>
       </Section>
 
+      {state.fields.some((f) => f.type === 'list' && f.list?.selectable) && (
+        <Section title="Needs a selected row">
+          <select className={inputClass} value={config.requires_selection ?? ''} aria-label="Enabled only when a row is selected" data-button-requires-selection
+            onChange={(e) => set({ requires_selection: e.target.value || undefined })}>
+            <option value="">Always enabled</option>
+            {state.fields.filter((f) => f.type === 'list' && f.list?.selectable).map((f) => <option key={f.key} value={f.key}>Enabled only when a row in {f.label || f.key} is selected</option>)}
+          </select>
+        </Section>
+      )}
       {(otherFields.length > 0 || flags.length > 0) && (
         <Section title="Disabled when">
           <VisibleWhenEditor rule={config.disabled_when} fields={otherFields} flags={flags} emptyLabel="Never"

@@ -66,7 +66,7 @@ export function DnsRecordsTable({ records, caption }: { records: DnsRecord[]; ca
     <div className="space-y-1">
       <Table aria-label={caption} data-testid="dns-records">
         <THead>
-          <TR><TH>Type</TH><TH>Host / Name</TH><TH>Value / Points to</TH><TH>TTL</TH></TR>
+          <TR><TH col="number">Type</TH><TH col="name">Host / Name</TH><TH className="min-w-72">Value / Points to</TH><TH col="number">TTL</TH></TR>
         </THead>
         <TBody>
           {records.map((r, i) => (

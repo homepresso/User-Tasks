@@ -16,7 +16,7 @@ import { Select } from '@/components/ui/select'
 import { Field } from '@/components/ui/field'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { StatCard, StatGrid } from '@/components/ui/stat-card'
-import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table'
+import { Table, TableScroll, THead, TBody, TR, TH, TD } from '@/components/ui/table'
 import { formatCount } from '@/lib/format/number'
 import { plural } from '@/lib/format/plural'
 import { formatCost, type ModelPrice } from '@/lib/agents/pricing'
@@ -35,7 +35,7 @@ export function PriceTableEditor({ value, onChange, disabled }: { value: ModelPr
   const num = (v: string) => (v === '' ? null : Number(v))
   return (
     <div className="space-y-2" data-testid="price-table-editor">
-      <div className="overflow-x-auto">
+      <TableScroll bare label="Model prices">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-fg-muted">
@@ -67,7 +67,7 @@ export function PriceTableEditor({ value, onChange, disabled }: { value: ModelPr
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       {!disabled && (
         <Button type="button" size="sm" variant="secondary" leadingIcon={<Plus />}
           onClick={() => onChange([...value, { provider: 'openai', model: '', input_per_1m: 0, output_per_1m: 0, cached_input_per_1m: null, currency: 'USD', effective_date: new Date().toISOString().slice(0, 10) }])}>
@@ -84,7 +84,8 @@ function PriceList({ title, rows, note }: { title: string; rows: readonly ModelP
     <div>
       <p className="mb-1 text-xs font-medium text-fg">{title}</p>
       {note && <p className="mb-1 text-xs text-fg-muted">{note}</p>}
-      <table className="w-full text-xs">
+      <TableScroll bare label={title}>
+      <table className="w-full whitespace-nowrap text-xs">
         <tbody>
           {rows.map((p) => (
             <tr key={`${p.provider}:${p.model}:${p.effective_date}`} className="border-t border-border-subtle">
@@ -98,6 +99,7 @@ function PriceList({ title, rows, note }: { title: string; rows: readonly ModelP
           ))}
         </tbody>
       </table>
+      </TableScroll>
     </div>
   )
 }
@@ -158,8 +160,8 @@ export function PriceUpdates({ actions, onApplied }: { actions: PriceUpdateActio
           </table>
           {diff.more_new > 0 && <p className="text-xs text-fg-muted">{diff.more_new} more new models are not listed (dated snapshots first left out).</p>}
           <Input size="sm" aria-label="Filter models" placeholder="Filter models" value={filter} onChange={(e) => setFilter(e.target.value)} className="max-w-xs text-xs" />
-          <div className="max-h-96 overflow-auto">
-            <table className="w-full text-xs" data-testid="price-updates-rows">
+          <TableScroll bare label="Price updates" className="max-h-96 overflow-y-auto">
+            <table className="w-full min-w-[40rem] text-xs" data-testid="price-updates-rows">
               <thead><tr className="text-fg-muted"><th /><th className="text-left font-medium">Provider</th><th className="text-left font-medium">Model</th><th className="text-left font-medium">Now (in / out per 1M)</th><th className="text-left font-medium">Latest</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
@@ -176,7 +178,7 @@ export function PriceUpdates({ actions, onApplied }: { actions: PriceUpdateActio
                 {rows.length === 0 && <tr><td colSpan={5} className="py-2 text-fg-muted">Everything matches the latest prices.</td></tr>}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
           <div className="flex items-center gap-2">
             <Button size="sm" disabled={!selected.size} loading={busy === 'apply'} onClick={async () => {
               setBusy('apply'); setStatus(null)
@@ -255,21 +257,21 @@ export function WorkspaceCosts({ data, onSave, priceUpdates, onPricesChanged }: 
         </CardBody>
         {data.agents.length > 0 && (
           <div className="border-t border-border-subtle">
-            <Table bare>
+            <Table bare label="Agent costs" stickyFirstColumn>
               <THead>
                 <tr>
-                  <TH>Agent</TH>
-                  <TH>Model</TH>
-                  <TH numeric>Runs</TH>
-                  <TH numeric>Tokens this month</TH>
-                  <TH numeric>Cost this month</TH>
+                  <TH col="name">Agent</TH>
+                  <TH col="name">Model</TH>
+                  <TH numeric col="number">Runs</TH>
+                  <TH numeric col="number">Tokens this month</TH>
+                  <TH numeric col="number">Cost this month</TH>
                 </tr>
               </THead>
               <TBody>
                 {data.agents.map((a) => (
                   <TR key={a.agent_id}>
-                    <TD className="font-medium">{a.name}</TD>
-                    <TD className="font-mono text-xs text-fg-muted">{a.model || 'default'}</TD>
+                    <TD className="whitespace-nowrap font-medium">{a.name}</TD>
+                    <TD className="whitespace-nowrap font-mono text-xs text-fg-muted">{a.model || 'default'}</TD>
                     <TD numeric>{formatCount(a.runs)}</TD>
                     <TD numeric>{formatCount(a.tokens_this_month)}</TD>
                     <TD numeric>

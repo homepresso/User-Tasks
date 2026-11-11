@@ -14,6 +14,29 @@ Open [/login](/login) and sign in with your workspace slug, email and password, 
 
 The first time a workspace owner signs in, \`/onboarding\` asks for the organisation profile (name, URL identifier, industry and size).
 
+## The getting-started guide
+
+The first time you sign in to a new workspace, a short guide opens: a welcome, then a checklist of the things worth doing first. Each item has a button that takes you there and **Show me**, a spotlight tour that highlights the real buttons on the page step by step (→ / ← to move, Esc to leave). On a phone the checklist is a bottom sheet and **How to** lists the steps instead.
+
+| Item | Done when |
+|------|-----------|
+| Set up the Agent (Settings → Agent: add an AI provider key, then turn it on) | The Agent is available to you |
+| Browse the Gallery (ready-made solutions) | Any package is installed |
+| Make it yours: theme and logo (Settings → General) | A logo is uploaded or the theme is changed |
+| Invite your team (Settings → Members & invites) | An invitation was sent, or there is more than one member |
+| Set up single sign-on (Settings → SSO & directory) | A directory (Entra ID, Okta, Google, LDAP or SCIM) is connected |
+| Build your first form or workflow (the form wizard, or **Build from a process with Agent**) | A form or workflow exists that isn't from a package or the self-test |
+| Optional: run the platform self-test, read the [tutorials](/docs/tutorials) | The self-test workflow is installed; you opened the tutorials |
+
+You only see what your role lets you do. With the Agent on, **Ask the Agent to set this up for you** opens it with the remaining items as a starter prompt.
+
+- **Remind me later** closes it; it comes back the next day, and the **Getting started** launcher in the side menu shows your progress meanwhile.
+- **Close** (or Esc) hides it for this session only.
+- **Don't show again** stops it opening by itself. **Help → Getting started** (the avatar menu) opens it any time, and you can turn it back on from there.
+- When everything is done you get a small celebration and the launcher goes away.
+
+Your choices are saved to your account for each workspace, so they follow you between devices. Admins see this guide for a workspace's first 30 days. People who join later get a shorter checklist (find your tasks, fill in a form, meet the Agent, set your preferences) for their first 30 days; turn that off under **Settings → General → Getting started guide**. **Help → Send feedback** sends a note straight to the UserTasks team, with your workspace attached.
+
 ## 2. Build a workflow
 
 1. Go to **Build › Workflows → New workflow**.
@@ -31,7 +54,7 @@ Start the workflow from the designer, by calling its webhook, or from the API. O
 ## 4. Do the same from a terminal
 
 \`\`\`bash
-npm install -g @usertasks/cli          # Node.js 20+
+npm install -g @user-tasks/cli          # Node.js 20+
 usertasks login --url https://usertasks.com   # opens your browser
 usertasks workflows list
 usertasks workflows start --set workflow_id=<id> --set variables:='{"amount": 1200}'

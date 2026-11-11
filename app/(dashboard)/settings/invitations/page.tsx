@@ -23,7 +23,7 @@ export default function InvitationsPage() {
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold">Invite Users</h1>
 
-      <div className="rounded-lg border p-6 bg-panel border-border">
+      <div className="rounded-lg border p-6 bg-panel border-border" data-tour="invite-form">
         <h2 className="text-lg font-semibold mb-4">Send Invitation</h2>
         <InviteForm />
       </div>

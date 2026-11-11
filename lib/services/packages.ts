@@ -83,7 +83,7 @@ export interface PackageRow {
   updated_at: string
 }
 
-const PACKAGE_COLUMNS = 'id, package_uid, name, slug, description, author, icon, readme, roots, items, excluded, data_modes, latest_version, created_by, created_at, updated_at'
+export const PACKAGE_COLUMNS = 'id, package_uid, name, slug, description, author, icon, readme, roots, items, excluded, data_modes, latest_version, created_by, created_at, updated_at'
 const VERSION_COLUMNS = 'id, package_id, version, checksum, signed, fingerprint, size_bytes, asset_count, notes, created_by, created_at'
 
 async function admin(ctx: ServiceContext): Promise<AnySupabaseClient> {
@@ -92,7 +92,7 @@ async function admin(ctx: ServiceContext): Promise<AnySupabaseClient> {
 
 function refKey(ref: { type: string; id: string }) { return `${ref.type}:${ref.id}` }
 
-function normalizeItems(value: unknown, field: string): PackageItemInput[] {
+export function normalizeItems(value: unknown, field: string): PackageItemInput[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value)) throw ServiceError.validation(`${field} must be an array of { type, id }`)
   const seen = new Set<string>()
@@ -120,7 +120,7 @@ function normalizeDataModes(value: unknown): Record<string, DataMode> {
   return out
 }
 
-function presentPackage(row: any): PackageRow {
+export function presentPackage(row: any): PackageRow {
   return {
     ...row,
     roots: Array.isArray(row.roots) ? row.roots : [],
@@ -130,7 +130,7 @@ function presentPackage(row: any): PackageRow {
   }
 }
 
-async function loadPackage(ctx: ServiceContext, db: AnySupabaseClient, packageId: string): Promise<PackageRow> {
+export async function loadPackage(ctx: ServiceContext, db: AnySupabaseClient, packageId: string): Promise<PackageRow> {
   const column = /^[0-9a-f-]{36}$/i.test(packageId) ? 'id' : 'slug'
   const { data, error } = await (db as any).from('packages').select(PACKAGE_COLUMNS).eq('tenant_id', ctx.tenantId).eq(column, packageId).maybeSingle()
   if (error) throw dbError(error)
@@ -139,7 +139,7 @@ async function loadPackage(ctx: ServiceContext, db: AnySupabaseClient, packageId
 }
 
 /** Only ids that exist in this workspace, with their type checked. */
-async function assertItemsExist(ctx: ServiceContext, db: AnySupabaseClient, items: PackageItemInput[]) {
+export async function assertItemsExist(ctx: ServiceContext, db: AnySupabaseClient, items: PackageItemInput[]) {
   const TABLE: Record<DependencyAssetType, string> = {
     workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations',
     connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports',
@@ -380,6 +380,13 @@ export interface BuildVersionInput {
   dependencies?: PackageDependency[]
   /** Return the .utpkg bytes (base64) with the result. */
   include_file?: boolean
+  /**
+   * When the package is installed in this workspace (built and installed
+   * here, e.g. an Agent-packaged solution): update that install to this
+   * version, so uninstall removes items added since and keeps items removed
+   * (lib/services/package-installs syncSelfInstall). Needs packages.install.
+   */
+  update_install?: boolean
 }
 
 export interface BuiltVersion {
@@ -388,6 +395,8 @@ export interface BuiltVersion {
   warnings: string[]
   file_base64?: string
   file_name: string
+  /** With update_install: what happened to the install in this workspace. */
+  install_sync?: import('./package-installs').SelfInstallSync
 }
 
 export function packageFileName(slug: string, version: string) {
@@ -489,10 +498,20 @@ export async function buildPackageVersion(ctx: ServiceContext, packageId: string
     summary: `Built ${pkg.name} ${version} (${countAssets(assets)} assets${packed.manifest.signature ? ', signed' : ', unsigned'})`,
     metadata: { version, checksum: packed.manifest.checksum, requirements: requirements.length, fingerprint: packed.manifest.signature?.fingerprint ?? null },
   })
+  let installSync: BuiltVersion['install_sync']
+  if (input.update_install) {
+    const { syncSelfInstall } = await import('./package-installs')
+    const contentsList = Object.entries(assets).flatMap(([section, list]) => (Array.isArray(list) ? list : []).filter((asset: any) => asset?.id).map((asset: any) => ({ section, id: String(asset.id) })))
+    installSync = await syncSelfInstall(ctx, pkg, version, contentsList).catch((error) => ({
+      status: 'skipped' as const, adopted: 0, released: [], note: `The install here was not updated: ${error instanceof Error ? error.message : 'failed'}`,
+    }))
+    if (installSync.status === 'skipped' || installSync.status === 'ownership') warnings.push(installSync.note)
+  }
   return {
     version: row,
     manifest: packed.manifest,
     warnings,
+    ...(installSync ? { install_sync: installSync } : {}),
     file_name: packageFileName(pkg.slug, version),
     ...(input.include_file ? { file_base64: Buffer.from(packed.bytes).toString('base64') } : {}),
   }

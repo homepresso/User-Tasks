@@ -375,6 +375,56 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "listTaskViewers",
+    "method": "GET",
+    "path": "/tasks/{id}/viewers",
+    "envelope": true,
+    "listKey": "viewers"
+  },
+  {
+    "operationId": "addTaskViewers",
+    "method": "POST",
+    "path": "/tasks/{id}/viewers",
+    "envelope": true
+  },
+  {
+    "operationId": "removeTaskViewer",
+    "method": "DELETE",
+    "path": "/tasks/{id}/viewers/{viewerId}",
+    "envelope": true
+  },
+  {
+    "operationId": "listSubtasks",
+    "method": "GET",
+    "path": "/tasks/{id}/subtasks",
+    "envelope": true,
+    "listKey": "subtasks"
+  },
+  {
+    "operationId": "addSubtask",
+    "method": "POST",
+    "path": "/tasks/{id}/subtasks",
+    "envelope": true
+  },
+  {
+    "operationId": "updateSubtask",
+    "method": "PATCH",
+    "path": "/tasks/{id}/subtasks/{subtaskId}",
+    "envelope": true
+  },
+  {
+    "operationId": "getRunTimeline",
+    "method": "GET",
+    "path": "/workflows/runs/{id}/timeline",
+    "envelope": true
+  },
+  {
+    "operationId": "getTaskTimeline",
+    "method": "GET",
+    "path": "/tasks/{id}/timeline",
+    "envelope": true
+  },
+  {
     "operationId": "listAgents",
     "method": "GET",
     "path": "/agents",
@@ -639,6 +689,13 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "bulkDeleteDataRows",
     "method": "POST",
     "path": "/data-tables/{id}/rows/bulk-delete",
+    "envelope": true,
+    "async": true
+  },
+  {
+    "operationId": "importDataRows",
+    "method": "POST",
+    "path": "/data-tables/{id}/rows/import",
     "envelope": true,
     "async": true
   },
@@ -1005,6 +1062,12 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "getFormLinks",
     "method": "GET",
     "path": "/forms/{id}/links",
+    "envelope": true
+  },
+  {
+    "operationId": "importInfoPathForm",
+    "method": "POST",
+    "path": "/forms/import/infopath",
     "envelope": true
   },
   {
@@ -2182,6 +2245,37 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "getPackageEvent",
     "method": "GET",
     "path": "/package-events/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "listPackageItems",
+    "method": "GET",
+    "path": "/packages/{id}/items",
+    "envelope": true,
+    "listKey": "items"
+  },
+  {
+    "operationId": "addPackageItems",
+    "method": "POST",
+    "path": "/packages/{id}/items",
+    "envelope": true
+  },
+  {
+    "operationId": "removePackageItems",
+    "method": "POST",
+    "path": "/packages/{id}/items/remove",
+    "envelope": true
+  },
+  {
+    "operationId": "detachInstallItems",
+    "method": "POST",
+    "path": "/package-installs/{id}/detach",
+    "envelope": true
+  },
+  {
+    "operationId": "adoptInstallItems",
+    "method": "POST",
+    "path": "/package-installs/{id}/adopt",
     "envelope": true
   },
   {

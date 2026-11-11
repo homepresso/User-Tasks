@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { BusyBar } from '@/components/ui/busy-bar'
 import { JobsProvider } from '@/components/jobs/jobs-provider'
 import { AssistantHost } from '@/components/assistants/assistant-host'
+import { OnboardingProvider } from '@/components/onboarding/getting-started/onboarding-provider'
 
 /**
  * The dashboard frame (docs/design/ui-polish-spec.md §4.4): sidebar, top bar
@@ -58,6 +59,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <LastSeenHeartbeat userId={userId} />
         <ShellDocumentTitle />
         <JobsProvider>
+          <OnboardingProvider userId={userId}>
           <div className="flex h-dvh overflow-hidden">
             <Sidebar user={profile} currentTenantId={profile.current_tenant_id} userRole={userRole} />
             <MobileNavSheet
@@ -82,6 +84,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <AssistantHost />
           </div>
           <GlobalSearch />
+          </OnboardingProvider>
         </JobsProvider>
       </BreadcrumbsProvider>
     </PermissionsProvider>

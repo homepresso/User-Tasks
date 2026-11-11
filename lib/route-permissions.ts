@@ -42,6 +42,9 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: '/automations/queue', allOf: ['workflows.view_queue'] },
   { prefix: '/automations/runs', allOf: ['workflows.view_queue'] },
   { prefix: '/automations/rules', allOf: ['workflows.view'] },
+  // A new form is created in the designer page (forms.edit); a saved form's page opens with
+  // forms.view (read only without forms.edit, which the services enforce on save).
+  { prefix: '/automations/forms/new', allOf: ['forms.view', 'forms.edit'] },
   { prefix: '/automations/forms', allOf: ['forms.view'] },
   // The form wizard (build) and a wizard form's results page (the owner and
   // the people chosen in the wizard — checked server-side, lib/services/form-wizard).
@@ -60,7 +63,8 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: '/reports/builder', allOf: ['reports.view', 'reports.create'] },
   { prefix: '/reports', allOf: ['reports.view'] },
   { prefix: '/data', allOf: ['data.view'] },
-  { prefix: '/tasks/assigned', allOf: ['tasks.view_all'] },
+  // Task tracker: Following for everyone with task access (followed and shared-with-me tasks); its other tabs read tasks.assigned (tasks.view_all).
+  { prefix: '/tasks/assigned', anyOf: ['tasks.view_own', 'tasks.view_all'] },
   { prefix: '/tasks/new', allOf: ['tasks.create'] },
   { prefix: '/tasks', anyOf: ['tasks.view_own', 'tasks.view_all'] },
 ]
@@ -72,6 +76,7 @@ export const ROUTE_RULES: RouteRule[] = [
 export const OPEN_ROUTES: Readonly<Record<string, string>> = {
   '/home': 'Landing page: own tasks, followed runs, own submissions (services scope to the person)',
   '/home/runs/[id]': "A run's progress: visibleRun / can_view_run_progress (started it, own submission, own task, or workflows.view_runs)",
+  '/timeline/[runId]': "A run's timeline: run scope or can_view_run_progress (lib/services/run-timeline) — not found otherwise",
   '/onboarding': 'First-run workspace setup; its writes need settings.edit',
   '/settings': 'Settings home: personal profile and preferences; workspace tabs gate on settings.view / settings.edit',
   '/settings/infrastructure': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure), not a workspace permission',

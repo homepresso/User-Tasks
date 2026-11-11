@@ -12,7 +12,7 @@ import { Search, GitBranch, Clock, AlertCircle, ArrowDown, ArrowUp } from 'lucid
 import { Badge, StatusPill, Tag, type Tone } from '@/components/ui/badge'
 import { StatCard, StatGrid } from '@/components/ui/stat-card'
 import { PageHeader } from '@/components/ui/page-header'
-import { Table, TBody, TD, TH, THead, TR, TableEmpty, TableSkeleton } from '@/components/ui/table'
+import { Table, TBody, TD, TH, THead, TR, TableEmpty, TableSkeleton, type ColumnKind } from '@/components/ui/table'
 import { Tooltip } from '@/components/ui/tooltip'
 import { formatCount } from '@/lib/format/number'
 import { formatDurationMs } from '@/lib/format/duration'
@@ -190,14 +190,15 @@ export default function WorkflowRunsListPage({ params }: { params: Promise<{ id:
 
         {/* Table */}
         <div>
-          <Table>
+          {/* Readable columns that scroll sideways when narrow; status and the run's name stay in view. */}
+          <Table label="Run history" stickyFirstColumn stickyColumns={2}>
             <THead>
               <tr>
-                <SortHeader {...sortProps} k="status" label="Status" />
-                <TH>Run</TH>
-                <TH>Trigger</TH>
-                <SortHeader {...sortProps} k="started_at" label="Started" />
-                <SortHeader {...sortProps} k="duration" label="Duration" numeric />
+                <SortHeader {...sortProps} k="status" label="Status" col="status" />
+                <TH col="title">Run</TH>
+                <TH col="name">Trigger</TH>
+                <SortHeader {...sortProps} k="started_at" label="Started" col="date" />
+                <SortHeader {...sortProps} k="duration" label="Duration" numeric col="number" />
               </tr>
             </THead>
             <TBody>
@@ -219,7 +220,7 @@ export default function WorkflowRunsListPage({ params }: { params: Promise<{ id:
                     <TR key={run.id} interactive onClick={() => router.push(href)}>
                       <TD className="w-px whitespace-nowrap"><StatusPill status={run.status} /></TD>
                       <TD className="max-w-0 py-2">
-                        <Link href={href} onClick={(e) => e.stopPropagation()} className="block truncate text-ui text-fg hover:underline">
+                        <Link href={href} onClick={(e) => e.stopPropagation()} className="block truncate text-ui text-fg hover:underline" title={run.title ?? undefined}>
                           {run.title ?? <span className="font-mono text-xs text-fg-muted">{String(run.id).slice(0, 12)}</span>}
                         </Link>
                         {run.sla_due_at && (
@@ -235,7 +236,7 @@ export default function WorkflowRunsListPage({ params }: { params: Promise<{ id:
                         {run.error && (
                           <div className="mt-0.5 flex items-center gap-1 truncate font-mono text-2xs text-danger">
                             <AlertCircle size={12} className="shrink-0" aria-hidden="true" />
-                            <span className="truncate">{run.error}</span>
+                            <span className="truncate" title={run.error}>{run.error}</span>
                           </div>
                         )}
                       </TD>
@@ -280,10 +281,10 @@ export default function WorkflowRunsListPage({ params }: { params: Promise<{ id:
   )
 }
 
-function SortHeader({ k, label, numeric, sortKey, sortDir, onSort }: { k: SortKey; label: string; numeric?: boolean; sortKey: SortKey; sortDir: 'asc' | 'desc'; onSort: (key: SortKey) => void }) {
+function SortHeader({ k, label, numeric, col, sortKey, sortDir, onSort }: { k: SortKey; label: string; numeric?: boolean; col?: ColumnKind; sortKey: SortKey; sortDir: 'asc' | 'desc'; onSort: (key: SortKey) => void }) {
   const active = sortKey === k
   return (
-    <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+    <TH numeric={numeric} col={col} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button
         type="button"
         onClick={() => onSort(k)}

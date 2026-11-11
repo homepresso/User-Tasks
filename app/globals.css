@@ -375,6 +375,12 @@
     border-color: var(--theme-focus-ring);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus-ring) 22%, transparent);
   }
+  /* An input inside a box that draws the focus ring itself (search shells,
+     comboboxes): no second ring on the bare input. */
+  :where([data-input-shell] input:not([type="checkbox"], [type="radio"])):focus-visible {
+    box-shadow: none;
+    border-color: transparent;
+  }
   :where(input[type="checkbox"], input[type="radio"]):focus-visible {
     outline: 2px solid var(--theme-focus-ring);
     outline-offset: 2px;
@@ -399,6 +405,149 @@
 /* Thin scrollbars on scroll containers. */
 @utility scrollbar-thin {
   scrollbar-width: thin;
+}
+
+/* Scrolling tables (components/ui/table.tsx TableScroll). Below the wide
+   desktop, a table keeps readable columns and scrolls sideways inside its
+   own frame instead of squashing them. In the components layer: utilities
+   on a cell (min-w-*, max-w-0 …) still win. */
+@layer components {
+  .ds-table-frame {
+    --ds-table-shadow: color-mix(in srgb, var(--theme-card-text) 16%, transparent);
+  }
+  .ds-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ds-border-strong) transparent;
+  }
+  .ds-table-scroll:focus-visible {
+    outline: 2px solid var(--theme-focus-ring);
+    outline-offset: -2px;
+  }
+  /* A truncating cell (max-w-0 + truncate) takes the room that's left but
+     never less than 10rem, at every width — the table scrolls instead. */
+  .ds-table-scroll td.max-w-0 {
+    min-width: 10rem;
+  }
+  /* Dates and times stay on one line. */
+  .ds-table-scroll :is(td, th) time {
+    white-space: nowrap;
+  }
+
+  /* Edge shadows: shown on the side with more to scroll. */
+  .ds-table-edge {
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 3;
+    width: 1.25rem;
+    opacity: 0;
+    transition: opacity var(--ds-dur-fast) ease-out;
+  }
+  .ds-table-edge-start {
+    left: 0;
+    border-start-start-radius: inherit;
+    border-end-start-radius: inherit;
+    background: linear-gradient(to right, var(--ds-table-shadow), transparent);
+  }
+  .ds-table-edge-end {
+    right: 0;
+    border-start-end-radius: inherit;
+    border-end-end-radius: inherit;
+    background: linear-gradient(to left, var(--ds-table-shadow), transparent);
+  }
+  .ds-table-frame[data-scroll-start] > .ds-table-edge-start,
+  .ds-table-frame[data-scroll-end] > .ds-table-edge-end {
+    opacity: 1;
+  }
+
+  /* Rows that span the table (details, empty states): their content stays
+     as wide as the visible region and pinned to its left edge. */
+  .ds-table-detail {
+    position: sticky;
+    left: 0;
+    width: var(--table-viewport, auto);
+  }
+
+  .ds-table-frame[data-sticky-first] > .ds-table-edge-start {
+    display: none;
+  }
+
+  /* Grid lists (Home): the same sticky first cell, on rows built from divs. */
+  .ds-table-frame[data-sticky-first] [data-sticky-cell] {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: var(--color-panel);
+    transition: box-shadow var(--ds-dur-fast) ease-out;
+  }
+  .ds-table-frame[data-sticky-first] :hover > [data-sticky-cell] {
+    background-color: var(--color-subtle);
+  }
+  .ds-table-frame[data-sticky-first][data-scroll-start] [data-sticky-cell] {
+    box-shadow: 8px 0 8px -8px var(--ds-table-shadow);
+  }
+}
+
+/* Sticky first column(s) of a scrolling table (opt-in: Table stickyFirstColumn).
+   Unlayered so the sticky header cells sit above the header's other sticky
+   (top-0, z-[1]) cells while the table scrolls sideways. */
+/* Sticky first column (opt-in): the item's name stays in view, with a
+   shadow on its edge once the table has scrolled. */
+.ds-table-frame[data-sticky-first] .ds-table-scroll tr {
+  --ds-row-bg: transparent;
+}
+.ds-table-frame[data-sticky-first] .ds-table-scroll tr:is(:hover, .bg-subtle) {
+  --ds-row-bg: var(--color-subtle);
+}
+.ds-table-frame[data-sticky-first] .ds-table-scroll tr[data-selected="true"] {
+  --ds-row-bg: var(--color-primary-wash);
+}
+.ds-table-frame[data-sticky-first] .ds-table-scroll :is(th, td):first-child:not([colspan]) {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(var(--ds-row-bg), var(--ds-row-bg)), var(--color-panel);
+  transition: box-shadow var(--ds-dur-fast) ease-out;
+}
+.ds-table-frame[data-sticky-first] .ds-table-scroll th:first-child:not([colspan]) {
+  z-index: 2;
+  background: var(--color-subtle);
+}
+.ds-table-frame[data-sticky-first] .ds-table-scroll tr[data-selected="true"] > td:first-child {
+  box-shadow: inset 2px 0 0 var(--theme-primary);
+}
+.ds-table-frame[data-sticky-first][data-scroll-start] .ds-table-scroll :is(th, td):first-child:not([colspan]) {
+  box-shadow: 8px 0 8px -8px var(--ds-table-shadow);
+}
+.ds-table-frame[data-sticky-first][data-scroll-start] .ds-table-scroll tr[data-selected="true"] > td:first-child {
+  box-shadow: inset 2px 0 0 var(--theme-primary), 8px 0 8px -8px var(--ds-table-shadow);
+}
+/* Two sticky columns: the lead column, then the name just right of it
+   (--ds-sticky-lead is the lead column's measured width). The shadow sits
+   on the name's edge. */
+.ds-table-frame[data-sticky-first="2"] .ds-table-scroll :is(th, td):nth-child(2):not([colspan]) {
+  position: sticky;
+  left: var(--ds-sticky-lead, 2.5rem);
+  z-index: 1;
+  background: linear-gradient(var(--ds-row-bg), var(--ds-row-bg)), var(--color-panel);
+  transition: box-shadow var(--ds-dur-fast) ease-out;
+}
+.ds-table-frame[data-sticky-first="2"] .ds-table-scroll th:nth-child(2):not([colspan]) {
+  z-index: 2;
+  background: var(--color-subtle);
+}
+.ds-table-frame[data-sticky-first="2"][data-scroll-start] .ds-table-scroll :is(th, td):first-child:not([colspan]) {
+  box-shadow: none;
+}
+.ds-table-frame[data-sticky-first="2"][data-scroll-start] .ds-table-scroll tr[data-selected="true"] > td:first-child {
+  box-shadow: inset 2px 0 0 var(--theme-primary);
+}
+.ds-table-frame[data-sticky-first="2"][data-scroll-start] .ds-table-scroll :is(th, td):nth-child(2):not([colspan]) {
+  box-shadow: 8px 0 8px -8px var(--ds-table-shadow);
 }
 
 /* Skeleton with a real shimmer (§3.11). */
@@ -988,4 +1137,47 @@ textarea {
    form; a focused input scrolls clear of them instead of hiding underneath. */
 [data-form-messages] :is(input, select, textarea, button, [tabindex]) {
   scroll-margin-top: calc(var(--form-banner-offset, 0px) + 8px);
+}
+
+/* Getting-started guide (components/onboarding/getting-started): the welcome
+   hero wash, the celebration confetti and the spotlight ring. Every motion
+   stops under prefers-reduced-motion. */
+.guide-hero {
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--theme-primary) 16%, transparent) 0%, transparent 55%),
+    radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 12%, transparent) 0%, transparent 60%);
+}
+.guide-hero-glow {
+  position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 9999px;
+  background: color-mix(in srgb, var(--theme-primary) 14%, transparent); filter: blur(40px);
+  animation: guide-float 8s ease-in-out infinite alternate;
+}
+@keyframes guide-float { from { transform: translate(0, 0); } to { transform: translate(-24px, 18px); } }
+.guide-confetti { position: absolute; inset: 0; pointer-events: none; }
+.guide-confetti span {
+  position: absolute; top: -12px; left: calc(4% + var(--i) * 5.3%); width: 7px; height: 11px; border-radius: 2px;
+  background: var(--theme-primary); opacity: 0;
+  animation: guide-confetti 1.9s cubic-bezier(.2,.7,.3,1) calc(var(--i) * 45ms) 1 forwards;
+}
+.guide-confetti span:nth-child(3n) { background: var(--theme-success); }
+.guide-confetti span:nth-child(3n+1) { background: var(--theme-accent, var(--theme-warning)); }
+@keyframes guide-confetti {
+  0% { opacity: 0; transform: translateY(0) rotate(0); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(220px) rotate(540deg); }
+}
+.guide-spotlight-ring {
+  box-shadow: 0 0 0 2px var(--theme-primary), 0 0 0 6px color-mix(in srgb, var(--theme-primary) 28%, transparent);
+  transition: top var(--ds-dur-base) var(--ds-ease-standard), left var(--ds-dur-base) var(--ds-ease-standard),
+    width var(--ds-dur-base) var(--ds-ease-standard), height var(--ds-dur-base) var(--ds-ease-standard);
+}
+.guide-hint-ring { animation: guide-pulse 1.6s ease-out infinite; }
+@keyframes guide-pulse {
+  0% { box-shadow: 0 0 0 2px var(--theme-primary), 0 0 0 0 color-mix(in srgb, var(--theme-primary) 45%, transparent); }
+  100% { box-shadow: 0 0 0 2px var(--theme-primary), 0 0 0 14px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-hero-glow, .guide-confetti span, .guide-hint-ring { animation: none !important; }
+  .guide-confetti { display: none; }
+  .guide-spotlight-ring { transition: none; }
 }

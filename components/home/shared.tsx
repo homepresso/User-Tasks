@@ -95,7 +95,7 @@ export function StagePopover({ stages, fallback = "—" }: { stages: RunStage[];
 export function People({ names }: { names: string[] }) {
   if (!names.length) return <span className="text-fg-muted">—</span>
   const shown = names.slice(0, 2).join(", ")
-  const text = <span className="truncate">{shown}{names.length > 2 ? ` +${names.length - 2}` : ""}</span>
+  const text = <span className="truncate" title={names.join(", ")}>{shown}{names.length > 2 ? ` +${names.length - 2}` : ""}</span>
   return names.length > 2 ? <Tooltip content={names.join(", ")}><span tabIndex={0} className="truncate">{text}</span></Tooltip> : text
 }
 
@@ -178,11 +178,15 @@ export function Pager({ offset, limit, total, onChange }: { offset: number; limi
   )
 }
 
-/** A responsive row: a grid of columns on wide screens, stacked on phones. */
+/**
+ * A responsive row: a grid of columns from md up (the list scrolls sideways
+ * when narrower than its columns), stacked on phones. `data-list-row` lets
+ * the sticky first cell take the row's hover background.
+ */
 export function rowClass(extra?: string) {
   return cn(
     "flex flex-col gap-1.5 px-4 py-2.5 text-ui text-fg transition-colors duration-[var(--ds-dur-fast)] hover:bg-subtle",
-    "@2xl:grid @2xl:min-h-[var(--theme-density-row-height)] @2xl:items-center @2xl:gap-3 @2xl:py-1.5",
+    "md:grid md:min-h-[var(--theme-density-row-height)] md:items-center md:gap-3 md:py-1.5",
     extra,
   )
 }

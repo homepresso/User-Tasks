@@ -55,3 +55,15 @@ export async function setWorkspaceSubdomain(subdomain: string | null): Promise<{
     return { error: 'Could not save the address. Please try again.' }
   }
 }
+
+/** Settings → General: show the getting-started guide to new members (settings.edit; audited). */
+export async function setOnboardingSettings(input: { show_to_members: boolean }): Promise<{ ok: true; settings: import('@/lib/services/onboarding').OnboardingSettings } | { error: string }> {
+  try {
+    const { setOnboardingSettings: save } = await import('@/lib/services/onboarding')
+    return { ok: true, settings: await save(await fromSession(), input) }
+  } catch (error) {
+    if (isServiceError(error)) return { error: error.message }
+    console.error('[setOnboardingSettings]', error)
+    return { error: 'Could not save the setting. Please try again.' }
+  }
+}

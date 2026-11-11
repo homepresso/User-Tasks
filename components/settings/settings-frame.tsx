@@ -33,6 +33,7 @@ import { Select } from "@/components/ui/select"
 import { usePermissions } from "@/lib/permissions-context"
 import type { Permission } from "@/lib/permissions"
 import { canViewInfrastructureAction } from "@/app/actions/infrastructure"
+import { settingsTourId } from "@/lib/onboarding/tours"
 
 /**
  * The Settings frame (§5.14): a 200px grouped sub-nav beside the page, which
@@ -198,6 +199,7 @@ export function SettingsFrame({ children }: { children: React.ReactNode }) {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        data-tour={settingsTourId(item.href)}
                         aria-current={active ? "page" : undefined}
                         className={cn(
                           "flex h-[var(--ds-nav-item-h)] items-center gap-2 rounded-md px-2 text-ui",

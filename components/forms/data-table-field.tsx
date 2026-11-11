@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Filter, Loader2, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronLeft, ChevronRight, Filter, Loader2, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import {
   DATA_TABLE_OPERATOR_LABELS, addableColumns, changeCount, changedFields, coerceCell, columnFormat, dataTableDependencies, dataTableKeyColumn,
   dataTablePageSize, editableColumns, emptyChangeSet, formatCell, isChangeSet, userOperatorsFor,
@@ -15,6 +15,8 @@ import { FormattedCellView } from './data-table-cell'
 import { useFormRules } from './form-rules-runtime'
 import type { FormRuleEventType } from '@/lib/forms/form-rules'
 import { CONTROLS_KEY } from '@/lib/forms/form-params'
+import { ROW_ID_KEY, rowCellErrors, rowDraftState } from '@/lib/forms/row-markers'
+import { commitRow, currentRowRef, discardRow, newRowId, type RowTarget } from '@/lib/forms/row-rules'
 import { CONTROL_LIMITS } from '@/lib/forms/rule-variables'
 
 /**
@@ -112,13 +114,14 @@ function rawEditorValue(col: DataTableColumn, v: unknown): string {
 }
 
 /** The in-place editor of one cell (type-matched input). */
-function CellEditor({ col, value, label, onCommit, onCancel }: { col: DataTableColumn; value: unknown; label: string; onCommit: (raw: unknown) => void; onCancel: () => void }) {
+function CellEditor({ col, value, label, onCommit, onCancel }: { col: DataTableColumn; value: unknown; label: string; onCommit: (raw: unknown, next?: boolean) => void; onCancel: () => void }) {
   const [text, setText] = useState(() => rawEditorValue(col, value))
   const ref = useRef<HTMLInputElement & HTMLSelectElement>(null)
   useEffect(() => { ref.current?.focus(); if (ref.current && 'select' in ref.current && col.type !== 'choice') (ref.current as HTMLInputElement).select?.() }, [col.type])
-  const commit = () => onCommit(col.type === 'datetime' && text ? new Date(text).toISOString() : text)
+  const commit = (next?: boolean) => onCommit(col.type === 'datetime' && text ? new Date(text).toISOString() : text, next)
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); commit() }
+    // Enter: keep the value and move to the row's next editable cell (read-only cells are skipped).
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); commit(true) }
     else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onCancel() }
     else e.stopPropagation()
   }
@@ -127,7 +130,7 @@ function CellEditor({ col, value, label, onCommit, onCancel }: { col: DataTableC
   }
   if (col.type === 'choice') {
     return (
-      <select ref={ref} aria-label={label} className={inputBase} value={text} onChange={(e) => { setText(e.target.value); onCommit(e.target.value) }} onKeyDown={onKeyDown} onBlur={commit}>
+      <select ref={ref} aria-label={label} className={inputBase} value={text} onChange={(e) => { setText(e.target.value); onCommit(e.target.value) }} onKeyDown={onKeyDown} onBlur={() => commit()}>
         <option value="">—</option>
         {(col.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -140,7 +143,7 @@ function CellEditor({ col, value, label, onCommit, onCancel }: { col: DataTableC
     <input ref={ref} type={type} aria-label={label} className={inputBase} value={text}
       step={col.type === 'number' ? (decimals !== undefined ? (decimals === 0 ? '1' : String(1 / 10 ** decimals)) : 'any') : undefined}
       min={col.min} max={col.max} maxLength={col.max_length}
-      onChange={(e) => setText(e.target.value)} onKeyDown={onKeyDown} onBlur={commit} />
+      onChange={(e) => setText(e.target.value)} onKeyDown={onKeyDown} onBlur={() => commit()} />
   )
 }
 
@@ -203,6 +206,18 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   const selected = mode === 'select' && Array.isArray(value) ? value as Array<Record<string, unknown>> : []
   const selectedKeys = new Set(selected.map((r) => String(r[keyColumn] ?? '')))
   const fmt = { locale: config?.locale }
+  // Editable table rules (lib/forms/row-rules.ts): the current row, and the rows on screen for rules that find rows by number / key.
+  const currentRef = mode === 'edit' ? currentRowRef(values, field.key) : null
+  const rowsForRules = useRef<Array<{ key: string; values: Record<string, unknown> }>>([])
+  const registerRows = rules?.registerRows
+  useEffect(() => (registerRows && mode === 'edit' ? registerRows(field.key, () => rowsForRules.current) : undefined), [registerRows, mode, field.key])
+  // A rule made a row current (New row): bring it into view.
+  const currentKey = currentRef ? JSON.stringify('rid' in currentRef ? currentRef.rid : 'key' in currentRef ? currentRef.key : '') : ''
+  useEffect(() => {
+    if (!currentKey) return
+    const t = requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-data-table-field="${CSS.escape(field.key)}"] tr[data-current]`)?.scrollIntoView?.({ block: 'nearest' }))
+    return () => cancelAnimationFrame(t)
+  }, [currentKey, field.key])
 
   // Search: debounced into the query.
   useEffect(() => {
@@ -280,6 +295,7 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
       const added = changes.added.map((r, i) => (i === addedIndex ? { ...r, [col.key]: coerced.value } : r))
       setChanges({ ...changes, added })
       emit('cell_edit', { row: added[addedIndex], column: col.key, value: coerced.value, previous: changes.added[addedIndex]?.[col.key] ?? null })
+      emit('cell_change', { row: added[addedIndex], row_number: addedIndex + 1, column: col.key, value: coerced.value, previous: changes.added[addedIndex]?.[col.key] ?? null })
       return true
     }
     if (!row) return false
@@ -288,15 +304,20 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
     const changed = changedFields(config!, row.values, after)
     const kept = Object.fromEntries(changed.map((k) => [k, after[k]]))
     const updated = changes.updated.filter((x) => x.key !== row.key)
-    if (changed.length) updated.push({ key: row.key, before: row.values, after: kept, changed_fields: changed })
+    // A pending row (a rule's Set row values) stays pending; its cell's commit message goes once the cell changes.
+    const errors = { ...(existing?.errors ?? {}) }
+    delete errors[col.key]
+    if (changed.length) updated.push({ key: row.key, before: row.values, after: kept, changed_fields: changed, ...(existing?.draft ? { draft: true } : {}), ...(Object.keys(errors).length ? { errors } : {}) })
     setChanges({ ...changes, updated })
     emit('cell_edit', { row: { ...row.values, ...after }, key: row.key, column: col.key, value: coerced.value, previous: displayed(row)[col.key] ?? null })
+    emit('cell_change', { row: { ...row.values, ...after }, key: row.key, row_number: null, column: col.key, value: coerced.value, previous: displayed(row)[col.key] ?? null })
     return true
   }
 
   function addRow() {
     const blank: Record<string, unknown> = {}
     for (const c of addableColumns(config!)) blank[c.key] = c.type === 'boolean' ? false : null
+    blank[ROW_ID_KEY] = newRowId()
     setChanges({ ...changes, added: [blank, ...changes.added] })
     setFocus({ r: 0, c: 0 })
     emit('row_add', { row: blank })
@@ -355,8 +376,25 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   ]
   const editableKeys = new Set(editableColumns(config).map((c) => c.key))
   const addableKeys = new Set(addableColumns(config).map((c) => c.key))
+  rowsForRules.current = rows.map((row) => ({ key: row.key, values: displayed(row) }))
+  // Pending rows (a rule's New row / Set row values, not committed), their commit messages, the current row.
+  const pendingOf = (line: Line): 'new' | 'edited' | null => (line.kind === 'added' ? rowDraftState(line.values) : changes.updated.find((u) => u.key === line.row.key)?.draft ? 'edited' : null)
+  const commitErrorsOf = (line: Line): Record<string, string> => (line.kind === 'added' ? rowCellErrors(line.values) : changes.updated.find((u) => u.key === line.row.key)?.errors ?? {})
+  const isCurrent = (line: Line) => Boolean(currentRef && (line.kind === 'added' ? 'rid' in currentRef && currentRef.rid === line.values[ROW_ID_KEY] : 'key' in currentRef && currentRef.key === line.row.key))
+  const targetOf = (line: Line): RowTarget => (line.kind === 'added' ? { kind: 'added', rid: String(line.values[ROW_ID_KEY] ?? ''), index: line.index } : { kind: 'existing', key: line.row.key, row: line.row.values })
+  function commitLine(line: Line) {
+    const scope = { [field.key]: changes }
+    const target = targetOf(line)
+    const outcome = commitRow(field, scope, target)
+    onChange(outcome.value)
+    const ctx = { row: outcome.row, row_number: line.kind === 'added' ? line.index + 1 : null, key: line.kind === 'row' ? line.row.key : null }
+    if (outcome.ok) emit('row_committed', { ...ctx, saved: false })
+    else emit('row_commit_failed', { ...ctx, errors: outcome.errors, error: Object.values(outcome.errors)[0] ?? null })
+  }
+  const discardLine = (line: Line) => onChange(discardRow(field, { [field.key]: changes }, targetOf(line), 'discard').value)
+  const controls = mode === 'edit' && Boolean(config.row_commit_controls) && !disabled
   const leadCols = mode === 'select' ? 1 : 0
-  const trailCols = mode === 'edit' && config.allow_delete ? 1 : 0
+  const trailCols = mode === 'edit' && (config.allow_delete || controls) ? 1 : 0
   const colCount = leadCols + visibleCols.length + trailCols
 
   function focusCell(r: number, c: number) {
@@ -493,10 +531,14 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
               {lines.map((line, r) => {
                 const lid = lineId(line)
                 const isSelected = line.kind === 'row' && selectedKeys.has(line.row.key)
+                const pendingState = mode === 'edit' ? pendingOf(line) : null
+                const commitErrors = mode === 'edit' ? commitErrorsOf(line) : {}
+                const current = isCurrent(line)
                 return (
-                  <tr key={lid} aria-selected={mode === 'select' ? isSelected : undefined} className="border-t border-border"
-                    style={line.kind === 'row' && line.deleted ? { opacity: 0.55 } : undefined}
-                    data-dt-row={lid} data-dt-state={line.kind === 'added' ? 'added' : line.deleted ? 'deleted' : line.changed.length ? 'changed' : undefined}>
+                  <tr key={lid} aria-selected={mode === 'select' ? isSelected : undefined} aria-current={current || undefined} className="border-t border-border"
+                    style={{ ...(line.kind === 'row' && line.deleted ? { opacity: 0.55 } : {}), ...(current ? { boxShadow: 'inset 3px 0 0 var(--theme-primary)' } : {}) }}
+                    data-dt-row={lid} data-dt-state={line.kind === 'added' ? 'added' : line.deleted ? 'deleted' : line.changed.length ? 'changed' : undefined}
+                    data-row-state={pendingState ?? undefined} data-current={current || undefined}>
                     {mode === 'select' && line.kind === 'row' && (
                       <td role="gridcell" className={cn(cellPad, STICKY)} style={selectColStyle(isSelected ? HEAD_WASH : undefined)} data-cell={`${r}:0`} tabIndex={focus.r === r && focus.c === 0 ? 0 : -1} onKeyDown={(e) => onGridKey(e, r, 0, line)} onFocus={() => setFocus({ r, c: 0 })}>
                         <input className="accent-primary" type={config.multiple ? 'checkbox' : 'radio'} name={`${id}-select`} tabIndex={-1} checked={isSelected} disabled={disabled}
@@ -507,7 +549,7 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                       const c = ci + leadCols
                       const cell = formatCell(col, line.values[col.key], fmt)
                       const isEditing = editing?.row === lid && editing.col === col.key
-                      const err = cellErrors[`${lid}:${col.key}`]
+                      const err = cellErrors[`${lid}:${col.key}`] ?? commitErrors[col.key]
                       const changed = line.kind === 'added' || (line.kind === 'row' && line.changed.includes(col.key))
                       const missing = line.kind === 'added' && col.required && (line.values[col.key] === null || line.values[col.key] === undefined || line.values[col.key] === '')
                       return (
@@ -525,7 +567,8 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                             if (canEdit(line, col)) setEditing({ row: lid, col: col.key })
                             emit('row_double_click', { row: line.values, key: line.kind === 'row' ? line.row.key : null, column: col.key })
                           }}
-                          className={cn(cellPad, alignClass(cell.align), !columnFormat(col).wrap && 'whitespace-nowrap', mode === 'select' && !disabled && 'cursor-pointer', canEdit(line, col) && 'cursor-text', line.kind === 'row' && line.deleted && 'line-through', ci === 0 && STICKY)}
+                          className={cn(cellPad, alignClass(cell.align), !columnFormat(col).wrap && 'whitespace-nowrap', mode === 'select' && !disabled && 'cursor-pointer', canEdit(line, col) && 'cursor-text', mode === 'edit' && !disabled && !canEdit(line, col) && 'text-fg-muted', line.kind === 'row' && line.deleted && 'line-through', ci === 0 && STICKY)}
+                          data-dt-readonly={mode === 'edit' && !canEdit(line, col) ? true : undefined}
                           style={{
                             ...(changed && mode === 'edit' ? { backgroundColor: CHANGED_WASH } : {}),
                             ...(ci === 0 ? stickyStyle(firstLeft, changed && mode === 'edit' ? CHANGED_WASH : isSelected ? HEAD_WASH : undefined) : {}),
@@ -535,21 +578,36 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                           data-col={col.key}>
                           {isEditing ? (
                             <CellEditor col={col} value={line.values[col.key]} label={`${col.label}, row ${r + 1}`}
-                              onCommit={(raw) => { if (editCell(line.kind === 'row' ? line.row : null, line.kind === 'added' ? line.index : null, col, raw)) { setEditing(null); focusCell(r, c) } }}
+                              onCommit={(raw, next) => {
+                                if (!editCell(line.kind === 'row' ? line.row : null, line.kind === 'added' ? line.index : null, col, raw)) return
+                                setEditing(null)
+                                // Enter: on to the row's next editable cell (read-only ones skipped).
+                                const after = next ? visibleCols.findIndex((x, xi) => xi > ci && canEdit(line, x)) : -1
+                                focusCell(r, after >= 0 ? after + leadCols : c)
+                              }}
                               onCancel={() => { setEditing(null); setCellErrors((e) => { const n = { ...e }; delete n[`${lid}:${col.key}`]; return n }) }} />
                           ) : (
                             <>
                               <FormattedCellView cell={cell} wrap={columnFormat(col).wrap} />
+                              {ci === 0 && pendingState && <span className="ml-1 rounded-full border border-primary px-1.5 py-0.5 text-2xs font-medium text-primary-text" data-row-badge={pendingState}>{pendingState === 'new' ? 'New' : 'Edited'}</span>}
                               {canEdit(line, col) && <span className="sr-only">, editable — press Enter</span>}
+                              {mode === 'edit' && !canEdit(line, col) && <span className="sr-only">, read-only</span>}
+                              {commitErrors[col.key] && <span className="block text-2xs text-(--status-blocked)" data-dt-cell-error={col.key}>{commitErrors[col.key]}</span>}
                             </>
                           )}
                         </td>
                       )
                     })}
                     {trailCols > 0 && (
-                      <td role={interactive ? 'gridcell' : undefined} className={cellPad} data-cell={`${r}:${colCount - 1}`} tabIndex={interactive ? (focus.r === r && focus.c === colCount - 1 ? 0 : -1) : undefined}
+                      <td role={interactive ? 'gridcell' : undefined} className={cn(cellPad, 'whitespace-nowrap')} data-cell={`${r}:${colCount - 1}`} tabIndex={interactive ? (focus.r === r && focus.c === colCount - 1 ? 0 : -1) : undefined}
                         onKeyDown={interactive ? (e) => onGridKey(e, r, colCount - 1, line) : undefined}>
-                        {!disabled && (
+                        {controls && pendingState && (
+                          <span className="inline-flex" data-row-commit-controls>
+                            <button type="button" tabIndex={-1} aria-label={`Commit row ${r + 1}`} className="rounded p-1" onClick={() => commitLine(line)}><Check size={12} aria-hidden /></button>
+                            <button type="button" tabIndex={-1} aria-label={`Discard row ${r + 1}`} className="rounded p-1" onClick={() => discardLine(line)}><X size={12} aria-hidden /></button>
+                          </span>
+                        )}
+                        {!disabled && config.allow_delete && (
                           line.kind === 'added' ? (
                             <button type="button" tabIndex={-1} aria-label="Remove new row" className="rounded p-1" onClick={() => setChanges({ ...changes, added: changes.added.filter((_, i) => i !== line.index) })}><X size={12} aria-hidden /></button>
                           ) : (

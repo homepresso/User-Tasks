@@ -36,9 +36,10 @@ export function registerTaskFollowTools(server: McpToolServer, ctx: McpContext) 
     status: z.array(z.string()).optional().describe('Task statuses (todo, in_progress, blocked, completed, cancelled)'),
     priority: z.array(z.string()).optional().describe('Priorities (critical, high, medium, low)'),
     hide_completed: z.boolean().optional().describe('true: leave out completed and cancelled tasks'),
+    shared_only: z.boolean().optional().describe('true: only tasks shared with the person by an invite (read only)'),
     limit: z.number().optional().describe('Page size (1-100, default 25)'),
     offset: z.number().optional(),
   }, async (args) => run(async () => (await load()).pageFollowedTasks(svc(), {
-    search: args.search, status: args.status, priority: args.priority, hideCompleted: args.hide_completed,
+    search: args.search, status: args.status, priority: args.priority, hideCompleted: args.hide_completed, sharedOnly: args.shared_only,
   }, { limit: Math.max(1, Math.min(args.limit ?? 25, 100)), offset: Math.max(0, args.offset ?? 0) })))
 }

@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 
 import Link from 'next/link'
 import * as RadixDialog from '@radix-ui/react-dialog'
 import {
-  AlertTriangle, Check, CheckCheck, Copy, ExternalLink, Eye, FileText, Image as ImageIcon, Loader2, MessageSquarePlus, Paperclip, Send, Sparkles, Square, X, XCircle,
+  AlertTriangle, ArrowRight, Check, CheckCheck, Copy, ExternalLink, Eye, FileText, Image as ImageIcon, Loader2, MessageSquarePlus, Paperclip, Send, ShieldAlert, Sparkles, Square, UserCheck, X, XCircle,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import type { TaskActionCard } from '@/lib/assistants/types'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { cn } from '@/lib/utils'
@@ -16,6 +18,8 @@ import { ATTACHMENT_ACCEPT, formatBytes } from '@/lib/assistants/attachments-cor
 import { choiceStatus, type ChatItem } from '@/lib/assistants/history'
 import { ChatMarkdown } from './chat-markdown'
 import { ChoiceCard } from './choice-card'
+import { DictationButton, DictationStatus, isDictationShortcut, useDictation } from './dictation-button'
+import { composeDictation } from '@/lib/assistants/dictation'
 import {
   applyProposedValues, attachFiles, clearAgentConversation, decideAgentChange, dismissProposal, registerAgentDock,
   removePendingAttachment, requestRerunTest, sendAgentMessage, setAgentOpen, stopAgent, useAgentState,
@@ -133,6 +137,15 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   const { view } = agent
   const starters = agent.processIntent && !agent.items.length ? PROCESS_STARTERS : view.starters
 
+  // Opened with a starter prompt (the getting-started guide): it goes in the composer, focused, to edit and send.
+  useEffect(() => {
+    if (!agent.draftIntent) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hand-off from the store
+    setDraft(agent.draftIntent.text)
+    const t = window.setTimeout(() => { const el = inputRef.current; if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length) } }, 50)
+    return () => window.clearTimeout(t)
+  }, [agent.draftIntent])
+
   // Opened from Home to build from a process: the attach control has the focus.
   useEffect(() => {
     if (!agent.processIntent) return
@@ -147,8 +160,34 @@ function ChatBody({ onClose }: { onClose: () => void }) {
 
   const submit = () => {
     if ((!draft.trim() && !agent.pending.length) || agent.busy || agent.uploading) return
+    if (dictation.active) { dictationDetached.current = true; dictation.stop() }
     sendAgentMessage(draft)
     setDraft('')
+  }
+
+  // Dictation: the words stream into the box after what was already typed; the
+  // text stays there to edit (sent at once only with "Send automatically").
+  // Typing while dictating stops it; the words heard are then added to what was typed.
+  const dictationBase = useRef('')
+  const dictationDetached = useRef(false)
+  const dictationConfig = agent.availability?.dictation ?? null
+  const dictation = useDictation({
+    config: dictationConfig,
+    onText: ({ finals, interim }) => { if (!dictationDetached.current) setDraft(composeDictation(dictationBase.current, finals, interim)) },
+    onDone: (text) => {
+      if (dictationDetached.current) { if (text) setDraft((d) => composeDictation(d, text)); return }
+      const next = composeDictation(dictationBase.current, text)
+      setDraft(next)
+      inputRef.current?.focus()
+      if (text && dictationConfig?.auto_send && next.trim() && !agent.busy && !agent.uploading) {
+        sendAgentMessage(next)
+        setDraft('')
+      }
+    },
+  })
+  const toggleDictation = () => {
+    if (!dictation.active) { dictationBase.current = draft; dictationDetached.current = false }
+    dictation.toggle()
   }
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() }
@@ -163,6 +202,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="relative flex min-h-0 flex-1 flex-col"
+      onKeyDown={(e) => { if (isDictationShortcut(e) && dictation.enabled) { e.preventDefault(); toggleDictation() } }}
       onDragOver={(e) => { if (e.dataTransfer?.types?.includes('Files')) { e.preventDefault(); setDragging(true) } }}
       onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false) }}
       onDrop={onDrop}
@@ -223,25 +263,39 @@ function ChatBody({ onClose }: { onClose: () => void }) {
         {(agent.pending.length > 0 || agent.uploading) && (
           <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Attached files" data-testid="agent-pending-attachments">
             {agent.pending.map((a, i) => (
-              <li key={`${a.name}-${i}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-panel px-2 py-0.5 text-2xs">
-                {a.kind === 'image' ? <ImageIcon className="size-3 shrink-0" aria-hidden="true" /> : <FileText className="size-3 shrink-0" aria-hidden="true" />}
-                <span className="truncate">{a.name}</span><span className="text-fg-muted">{formatBytes(a.size)}</span>
+              <li key={`${a.name}-${i}`} className={`inline-flex max-w-full items-center gap-1 rounded-md border bg-panel px-2 py-0.5 text-2xs ${a.kind === 'failed' ? 'border-danger text-danger' : 'border-border'}`} title={a.error ?? a.note} data-attachment-failed={a.kind === 'failed' || undefined}>
+                {a.kind === 'failed' ? <AlertTriangle className="size-3 shrink-0" aria-hidden="true" /> : a.kind === 'image' ? <ImageIcon className="size-3 shrink-0" aria-hidden="true" /> : <FileText className="size-3 shrink-0" aria-hidden="true" />}
+                <span className="truncate">{a.name}</span>{a.kind === 'failed' ? <span className="truncate">— {a.error}</span> : <span className="text-fg-muted">{formatBytes(a.size)}</span>}
                 <button type="button" className="rounded-sm text-fg-muted hover:text-fg" onClick={() => removePendingAttachment(i)} aria-label={`Remove ${a.name}`}><X className="size-3" /></button>
               </li>
             ))}
             {agent.uploading && <li className="inline-flex items-center gap-1 text-2xs text-fg-muted"><Loader2 className="size-3 animate-spin" aria-hidden="true" />Reading…</li>}
           </ul>
         )}
+        {agent.pending.some((a) => a.infopath) && !agent.busy && !agent.uploading && (
+          <div className="mb-2 flex flex-wrap gap-1.5" data-testid="agent-infopath-actions">
+            <button type="button" className="rounded-full border border-primary px-2.5 py-1 text-2xs font-medium text-primary-text hover:bg-primary-wash"
+              onClick={() => { sendAgentMessage(`Import this InfoPath form (${agent.pending.find((a) => a.infopath)?.name}) into UserTasks.`); setDraft('') }}>
+              Import this InfoPath form
+            </button>
+            <button type="button" className="rounded-full border border-border px-2.5 py-1 text-2xs hover:bg-panel"
+              onClick={() => { sendAgentMessage('Explain what in this InfoPath form converts to UserTasks and what needs attention.'); setDraft('') }}>
+              What converts?
+            </button>
+          </div>
+        )}
+        <DictationStatus control={dictation} />
         <div className="flex items-end gap-2">
           <input ref={fileRef} type="file" multiple accept={ATTACHMENT_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true"
             onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; if (files.length) void attachFiles(files) }} data-testid="agent-file-input" />
-          <IconButton ref={attachRef} label="Attach files" icon={<Paperclip />} variant="ghost" onClick={() => fileRef.current?.click()} disabled={agent.uploading || agent.busy} data-testid="agent-attach" />
+          <IconButton ref={attachRef} type="button" label="Attach files" icon={<Paperclip />} variant="ghost" onClick={() => fileRef.current?.click()} disabled={agent.uploading || agent.busy} data-testid="agent-attach" />
+          <DictationButton control={{ ...dictation, toggle: toggleDictation }} disabled={agent.busy || agent.uploading} />
           <label htmlFor="assistant-input" className="sr-only">Message the {AGENT_NAME}</label>
           <textarea
             id="assistant-input"
             ref={inputRef}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => { setDraft(e.target.value); if (dictation.active) { dictationDetached.current = true; dictation.stop() } }}
             onKeyDown={onKey}
             onPaste={(e) => {
               const files = Array.from(e.clipboardData?.files ?? [])
@@ -249,7 +303,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
             }}
             rows={2}
             maxLength={4000}
-            placeholder={`Ask the ${AGENT_NAME}…`}
+            placeholder={dictation.phase === 'listening' ? 'Listening…' : `Ask the ${AGENT_NAME}…`}
             className="max-h-40 min-h-[2.5rem] flex-1 resize-none rounded-md border border-border bg-panel px-2.5 py-2 text-ui text-fg placeholder:text-fg-subtle focus:border-primary focus:outline-none"
             data-testid="assistant-input"
           />
@@ -270,8 +324,8 @@ function Item({ item, busy, dirty }: { item: ChatItem; busy: boolean; dirty: boo
           {item.attachments?.length ? (
             <ul className="mb-1 flex flex-wrap gap-1" aria-label="Attached files">
               {item.attachments.map((a, i) => (
-                <li key={i} className="inline-flex items-center gap-1 rounded border border-border bg-panel px-1.5 py-0.5 text-2xs" data-assistant-attachment>
-                  {a.mime_type.startsWith('image/') ? <ImageIcon className="size-3" aria-hidden="true" /> : <FileText className="size-3" aria-hidden="true" />}{a.name} <span className="text-fg-muted">{formatBytes(a.size)}</span>
+                <li key={i} className={`inline-flex items-center gap-1 rounded border bg-panel px-1.5 py-0.5 text-2xs ${a.error ? 'border-danger text-danger' : 'border-border'}`} title={a.error} data-assistant-attachment>
+                  {a.error ? <AlertTriangle className="size-3" aria-hidden="true" /> : a.mime_type.startsWith('image/') ? <ImageIcon className="size-3" aria-hidden="true" /> : <FileText className="size-3" aria-hidden="true" />}{a.name} {a.error ? <span>— could not be read: {a.error}</span> : <span className="text-fg-muted">{formatBytes(a.size)}</span>}
                 </li>
               ))}
             </ul>
@@ -307,6 +361,7 @@ function Item({ item, busy, dirty }: { item: ChatItem; busy: boolean; dirty: boo
           <p className="mt-2 text-2xs text-fg-muted">Only a suggestion — choose the outcome yourself with the task&apos;s buttons when you&apos;re ready.</p>
         </div>
       )
+    case 'info': return <InfoCardView item={item} />
     case 'choice': return null // rendered by ChoiceCard (needs the list for its status)
     case 'confirm': return <ConfirmCardView item={item} busy={busy} dirty={dirty} />
     case 'changed':
@@ -413,9 +468,11 @@ function ConfirmCardView({ item, busy, dirty }: { item: Extract<ChatItem, { kind
   return (
     <div className={cn('rounded-lg border bg-panel', card.danger ? 'border-danger' : 'border-primary')} data-assistant-item="confirm" data-confirm-state={item.state}>
       <p className="border-b border-border px-3 py-2 text-xs font-semibold">{card.title}</p>
-      <ul className="list-disc space-y-0.5 px-3 py-2 pl-7 text-xs">
-        {card.lines.map((line, i) => <li key={i}>{line}</li>)}
-      </ul>
+      {card.task ? <TaskActionSummary task={card.task} /> : (
+        <ul className="list-disc space-y-0.5 px-3 py-2 pl-7 text-xs">
+          {card.lines.map((line, i) => <li key={i}>{line}</li>)}
+        </ul>
+      )}
       {card.preview && card.preview.columns.length > 0 && (
         <div className="border-t border-border px-3 py-2">
           {card.preview.caption && <p className="mb-1 text-2xs text-fg-muted">{card.preview.caption}</p>}
@@ -450,6 +507,94 @@ function ConfirmCardView({ item, busy, dirty }: { item: Extract<ChatItem, { kind
           <span className="text-2xs text-fg-muted">{item.state === 'approved' ? 'Confirmed' : item.state === 'expired' ? 'Expired — nothing was changed' : 'Cancelled'}</span>
         )}
       </div>
+    </div>
+  )
+}
+
+const TASK_ACTION_LABELS: Record<TaskActionCard['action'], string> = { complete: 'Outcome', accept: 'Response', hold: 'Response', decline: 'Response', save: 'Save' }
+const RESPONSE_LABELS: Partial<Record<TaskActionCard['action'], string>> = { accept: 'Accept', hold: 'Hold', decline: 'Decline' }
+
+/** A task action's confirmation card body: outcome (in its colour), comment, values (changed ones marked), on behalf, what happens next. */
+function TaskActionSummary({ task }: { task: TaskActionCard }) {
+  const breakGlass = task.basis === 'break_glass'
+  const label = task.action === 'complete' ? task.outcome : RESPONSE_LABELS[task.action]
+  return (
+    <div className="space-y-2 px-3 py-2 text-xs" data-agent-task-action={task.action}>
+      {task.on_behalf_of && (
+        <div className={cn('flex items-start gap-1.5 rounded-md border px-2 py-1.5', breakGlass ? 'border-danger bg-danger-wash text-danger' : 'border-border bg-info-wash text-fg')} data-agent-on-behalf={task.basis ?? 'manager'}>
+          {breakGlass ? <ShieldAlert className="mt-px size-3.5 shrink-0" aria-hidden="true" /> : <UserCheck className="mt-px size-3.5 shrink-0 text-info" aria-hidden="true" />}
+          <div className="min-w-0">
+            <p className="font-semibold">{breakGlass ? `Break-glass: on behalf of ${task.on_behalf_of}` : `On behalf of ${task.on_behalf_of}`}</p>
+            {task.on_behalf_note && <p className="text-fg-muted">Reason: {task.on_behalf_note}</p>}
+          </div>
+        </div>
+      )}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        {label && (
+          <>
+            <dt className="text-fg-muted">{TASK_ACTION_LABELS[task.action]}</dt>
+            <dd><Badge tone={task.tone ?? 'brand'} pill dot data-agent-outcome={label}>{label}</Badge>{task.accept_first && <span className="ml-1.5 text-2xs text-fg-muted">accepted first</span>}</dd>
+          </>
+        )}
+        {task.comment && (
+          <>
+            <dt className="text-fg-muted">{task.action === 'complete' ? 'Comment' : 'Reason'}</dt>
+            <dd className="whitespace-pre-wrap break-words">{task.comment}</dd>
+          </>
+        )}
+      </dl>
+      {task.values && task.values.length > 0 && (
+        <div>
+          <p className="mb-0.5 text-2xs font-medium uppercase tracking-wide text-fg-muted">Field values</p>
+          <dl className="grid grid-cols-[minmax(0,40%)_1fr] gap-x-3 gap-y-0.5 rounded border border-border px-2 py-1" data-agent-task-values>
+            {task.values.map((v, i) => (
+              <div key={i} className="contents" data-changed={v.changed || undefined}>
+                <dt className="truncate text-fg-muted" title={v.label}>{v.label}</dt>
+                <dd className={cn('break-words', v.changed && 'font-semibold text-primary-text')}>{v.value}{v.changed && <span className="sr-only"> (changed)</span>}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+      {task.next && (
+        <p className="flex items-start gap-1.5 text-fg-muted" data-agent-task-next><ArrowRight className="mt-px size-3 shrink-0" aria-hidden="true" />{task.next}</p>
+      )}
+    </div>
+  )
+}
+
+/** A task's form at a glance (task_get_form): label → value, required-but-empty fields flagged, its outcome buttons. Values are data written by people. */
+function InfoCardView({ item }: { item: Extract<ChatItem, { kind: 'info' }> }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel" data-assistant-item="info">
+      <div className="flex items-start gap-2 border-b border-border px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold" title={item.title}>{item.title}</p>
+          {item.subtitle && <p className="truncate text-2xs text-fg-muted">{item.subtitle}</p>}
+        </div>
+        {item.href && <Link href={item.href} className="inline-flex shrink-0 items-center gap-1 text-2xs font-medium text-primary-text underline-offset-2 hover:underline">Open <ExternalLink className="size-3" aria-hidden="true" /></Link>}
+      </div>
+      <dl className="grid grid-cols-[minmax(0,40%)_1fr] gap-x-3 gap-y-1 px-3 py-2 text-xs" data-agent-info-rows>
+        {item.rows.map((r, i) => (
+          <div key={i} className="contents" data-flag={r.flag ?? undefined}>
+            <dt className={cn('truncate text-fg-muted', r.flag === 'required_empty' && 'text-danger')} title={r.label}>{r.label}{r.flag === 'required_empty' && <span aria-hidden="true"> *</span>}</dt>
+            <dd className={cn('break-words', r.flag === 'required_empty' && 'text-danger', r.flag === 'invalid' && 'text-danger')}>
+              {r.flag === 'required_empty' ? <span className="inline-flex items-center gap-1"><AlertTriangle className="size-3" aria-hidden="true" />Required — empty</span> : r.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {item.outcomes && item.outcomes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-1.5" aria-label="Outcomes">
+          <span className="mr-1 text-2xs text-fg-muted">Outcomes</span>
+          {item.outcomes.map((o) => <Badge key={o.label} tone={o.tone} pill dot>{o.label}</Badge>)}
+        </div>
+      )}
+      {item.notes && item.notes.length > 0 && (
+        <ul className="space-y-0.5 border-t border-border px-3 py-1.5 text-2xs text-fg-muted">
+          {item.notes.map((n, i) => <li key={i}>{n}</li>)}
+        </ul>
+      )}
     </div>
   )
 }

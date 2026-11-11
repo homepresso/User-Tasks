@@ -92,15 +92,15 @@ export default function ScheduledWorkflowsPage() {
             />
           </div>
         ) : (
-          <Table containerClassName="max-lg:overflow-x-auto" className="max-lg:min-w-[860px]">
+          <Table label="Scheduled workflows" stickyFirstColumn>
             <THead>
               <tr>
-                <TH>Workflow</TH>
-                <TH>Schedule</TH>
-                <TH>Next run</TH>
-                <TH>Last fired</TH>
-                <TH>Status</TH>
-                <TH><span className="sr-only">Actions</span></TH>
+                <TH col="title">Workflow</TH>
+                <TH col="text" className="min-w-48">Schedule</TH>
+                <TH col="date">Next run</TH>
+                <TH col="date">Last fired</TH>
+                <TH col="status">Status</TH>
+                <TH col="actions"><span className="sr-only">Actions</span></TH>
               </tr>
             </THead>
             <TBody>
@@ -109,7 +109,7 @@ export default function ScheduledWorkflowsPage() {
                 return (
                   <TR key={workflow.id}>
                     <TD className="max-w-0">
-                      <Link href={`/automations/${workflow.id}`} className="block truncate text-ui font-medium text-fg hover:underline">
+                      <Link href={`/automations/${workflow.id}`} className="block truncate text-ui font-medium text-fg hover:underline" title={workflow.name}>
                         {workflow.name}
                       </Link>
                     </TD>
@@ -140,7 +140,7 @@ export default function ScheduledWorkflowsPage() {
                       <StatusPill status={workflow.is_active ? 'active' : 'paused'} />
                     </TD>
                     <TD className="w-px whitespace-nowrap text-right">
-                      <div className="inline-flex items-center gap-1">
+                      <div className="inline-flex flex-nowrap items-center gap-1">
                       {can('workflows.activate') && (
                         <Button
                           type="button"

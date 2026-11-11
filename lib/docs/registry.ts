@@ -6,6 +6,7 @@ import { MEDIA_PAGES } from './content/media'
 import { TASK_PAGES } from './content/tasks'
 import { FORM_WIZARD_PAGE } from './content/form-wizard'
 import { SURVEY_CONTROLS_PAGE } from './content/survey-controls'
+import { INFOPATH_IMPORT_PAGE } from './content/infopath-import'
 import { INTEGRATION_PAGES } from './content/integrations'
 import { BUILDING_BLOCK_PAGES } from './content/building-blocks'
 import { GOVERNANCE_PAGES } from './content/governance'
@@ -15,10 +16,10 @@ import { API_PAGES, CLI_PAGES, SDK_PAGES } from './content/developers'
 import { OBSERVABILITY_PAGES, PROJECT_PAGES, SELF_HOSTING_PAGES } from './content/operations'
 import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
 
-/** The form wizard and survey controls pages right after Forms. */
+/** The form wizard, survey controls and InfoPath import pages right after Forms. */
 function withFormWizard(pages: DocPageDef[]): DocPageDef[] {
   const at = pages.findIndex((page) => page.slug === 'tasks/forms')
-  const extra = [FORM_WIZARD_PAGE, SURVEY_CONTROLS_PAGE]
+  const extra = [FORM_WIZARD_PAGE, SURVEY_CONTROLS_PAGE, INFOPATH_IMPORT_PAGE]
   return at < 0 ? [...pages, ...extra] : [...pages.slice(0, at + 1), ...extra, ...pages.slice(at + 1)]
 }
 

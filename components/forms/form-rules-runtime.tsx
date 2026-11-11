@@ -11,7 +11,7 @@ import { readFormState, withFormState } from '@/lib/forms/form-state'
 import { formContextScope } from '@/lib/forms/form-params'
 import { enrichEventContext } from '@/lib/forms/rule-variables'
 import {
-  FORM_ERROR_KEY, alwaysRuleEffects, conditionPaths, disabledFieldKeys, layoutFormRules, readOnlyFieldKeys, ruleConditionsMet, rulesForEvent,
+  FORM_ERROR_KEY, alwaysRuleEffects, listEditLockedInputs, conditionPaths, disabledFieldKeys, layoutFormRules, readOnlyFieldKeys, ruleConditionsMet, rulesForEvent, resumeOptionEvents, RuleChainGuard,
   type FormRule, type RuleEvent,
 } from '@/lib/forms/form-rules'
 import type { FormLayout } from '@/lib/forms/layout'
@@ -59,6 +59,8 @@ export interface FormRulesApi {
   refreshTick: (key: string) => number
   /** A field's value changed by the person (or a rule): Value changes rules. */
   notifyChange: (key: string, value: unknown, previous: unknown) => void
+  /** An editable Data table reports the rows on screen (row rules find rows by number / key); returns the unregister. */
+  registerRows: (key: string, rows: () => Array<{ key: string; values: Record<string, unknown> }>) => () => void
 }
 
 const RulesContext = createContext<FormRulesApi | null>(null)
@@ -98,7 +100,12 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
   const [ticks, setTicks] = useState<Record<string, number>>({})
   const live = useRef<ActionLive>({ values, pager, runtime, onChange })
   useLayoutEffect(() => { live.current = { values, pager, runtime, onChange } })
-  const depth = useRef(0)
+  const guard = useRef(new RuleChainGuard(MAX_DEPTH))
+  const rowSources = useRef(new Map<string, () => Array<{ key: string; values: Record<string, unknown> }>>())
+  const registerRows = useCallback((key: string, rows: () => Array<{ key: string; values: Record<string, unknown> }>) => {
+    rowSources.current.set(key, rows)
+    return () => { if (rowSources.current.get(key) === rows) rowSources.current.delete(key) }
+  }, [])
   const userRef = useRef<User>(user)
   useLayoutEffect(() => { userRef.current = user })
 
@@ -115,11 +122,17 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
     if (!ruleConditionsMet(rule.if, { values: live.current.values, user: scopeUser, event: context })) return { blocked: false }
     const host = buildActionHost({
       live, fields, layout, idPrefix, source, message,
-      owner: { kind: 'rule', ruleId: rule.id, event: context, onRefresh: (key) => setTicks((t) => ({ ...t, [key]: (t[key] ?? 0) + 1 })) },
+      owner: {
+        kind: 'rule', ruleId: rule.id, event: context, onRefresh: (key) => setTicks((t) => ({ ...t, [key]: (t[key] ?? 0) + 1 })),
+        // Row rules' own events (row_created, row_committed…): dispatched once React has the new rows.
+        onEmit: (type, target, ctx) => { setTimeout(() => dispatchRef.current({ type: type as RuleEvent['type'], target, context: ctx }), 0) },
+        tableRows: (key) => rowSources.current.get(key)?.() ?? [],
+      },
       ...(centerRef.current ? { ask: centerRef.current.ask } : {}),
       answered: ({ id, response, label }) => dispatchRef.current({ type: 'message_answered', ...(id ? { target: id } : {}), context: { message: id ?? null, response, label } }),
     })
-    const extras = { event: context, user: scopeUser }
+    // {{row.*}}: the List row a row button was pressed on (lib/forms/data-actions.ts).
+    const extras = { event: context, user: scopeUser, ...((context as Record<string, unknown>).row !== undefined ? { row: (context as Record<string, unknown>).row } : {}) }
     const result = await runFieldButton({ actions: rule.then }, host, {
       extras,
       resolve: async (template, vals, ex) => {
@@ -141,8 +154,8 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
     const event: RuleEvent = { ...raw, context: enrichEventContext(raw.type, raw.context) }
     if (clearBlock.current && event.type !== 'before_submit') { clearBlock.current = false; setMessages([]) }
     const matched = rulesForEvent(rules, event)
-    if (!matched.length || depth.current >= MAX_DEPTH) return { blocked: false }
-    depth.current += 1
+    // Rule chains (a cascade of any depth, a rule changing its own source): at most MAX_DEPTH runs nest.
+    if (!matched.length || !guard.current.enter()) return { blocked: false }
     let blocked = false
     try {
       for (const rule of matched) {
@@ -152,7 +165,7 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
         await new Promise((resolve) => setTimeout(resolve, 0))
       }
     } finally {
-      depth.current -= 1
+      guard.current.leave()
     }
     return { blocked }
   }, [rules, runRule])
@@ -190,6 +203,9 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
     if (loaded.current) return
     loaded.current = true
     dispatch({ type: 'form_load' })
+    // A draft / prefill whose choices take their options from rules (cascades): load those options for the saved values.
+    for (const event of resumeOptionEvents(rules, values)) dispatch(event)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once, with the values the form opened with
   }, [dispatch])
   const page = pager?.currentId ?? null
   const prevPage = useRef(page)
@@ -222,13 +238,14 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
     const always = alwaysRuleEffects(layout, values, { user: user as Record<string, unknown> | null, rules })
     return {
       disabledKeys: disabledFieldKeys(layout, fields, [...(state.disabled ?? []), ...always.disabled]),
-      readOnlyKeys: readOnlyFieldKeys(layout, fields, [...(state.read_only ?? []), ...always.readOnly]),
+      // An "Edit row" in progress: the inputs mapped to the List's read-only columns are locked (lib/forms/form-rules.ts).
+      readOnlyKeys: new Set([...readOnlyFieldKeys(layout, fields, [...(state.read_only ?? []), ...always.readOnly]), ...listEditLockedInputs(rules, fields, values)]),
     }
   }, [layout, values, user, rules, fields])
 
   const api = useMemo<FormRulesApi>(() => ({
-    dispatch, run, disabledKeys, readOnlyKeys, notifyChange, refreshTick: (key) => ticks[key] ?? 0,
-  }), [dispatch, run, disabledKeys, readOnlyKeys, notifyChange, ticks])
+    dispatch, run, disabledKeys, readOnlyKeys, notifyChange, refreshTick: (key) => ticks[key] ?? 0, registerRows,
+  }), [dispatch, run, disabledKeys, readOnlyKeys, notifyChange, ticks, registerRows])
 
   // "Until the next action" inline messages go once the person does something after them.
   const actionTick = center?.actionTick ?? 0

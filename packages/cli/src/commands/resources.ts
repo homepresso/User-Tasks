@@ -16,7 +16,7 @@
  */
 
 import { Option, type Command } from 'commander'
-import type { QueryValue } from '@usertasks/sdk'
+import type { QueryValue } from '@user-tasks/sdk'
 import { CliUsageError } from '../exit-codes'
 import { buildBody, collect } from '../input'
 import type { Runtime } from '../runtime'

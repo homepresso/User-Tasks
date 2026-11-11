@@ -17,7 +17,9 @@ import type { FormLayout } from '@/lib/forms/layout'
 import { isPaged } from '@/lib/forms/layout'
 import { FORM_ACTION_LABELS, allowedActions, type FormAction, type FormActionType, type FormButton } from '@/lib/forms/buttons'
 import { loadableTargets } from '@/lib/forms/lazy-load'
-import { RULE_ONLY_ACTION_TYPES, type FieldButtonAction, type FieldButtonActionType, type RuleOnlyActionType } from '@/lib/forms/field-buttons'
+import { CallReferenceExtras, TableActionEditor } from './data-action-editor'
+import { ConfirmTextEditor, EditRowEditor, RowActionEditor, RowTargetEditor } from './list-action-editor'
+import { ROW_ACTION_TYPES, RULE_ONLY_ACTION_TYPES, listClearFields, type RowActionType, listSourceField, type FieldButtonAction, type FieldButtonActionType, type RuleOnlyActionType } from '@/lib/forms/field-buttons'
 import { FORM_TARGET_LABELS, FORM_WHOLE_TARGET } from '@/lib/forms/form-state'
 import {
   AFTER_SUBMIT_ACTIONS, ALWAYS_ACTIONS, EVENT_CONTEXT, EVENT_TARGET, FORM_RULE_EVENTS, FORM_RULE_EVENT_LABELS, RULE_ACTION_GROUPS, RULE_ACTION_LABELS,
@@ -130,6 +132,8 @@ function targetChoices(state: DesignerState, event: FormRuleEventType): Array<{ 
     case 'field': return of((t) => !DISPLAY_FIELD_TYPES.has(t))
     case 'button': return of((t) => t === 'button')
     case 'table': return of((t) => t === 'data_table')
+    case 'list': return of((t) => t === 'list')
+    case 'rows': return state.fields.filter((f) => f.type === 'list' || (f.type === 'data_table' && f.data_table?.mode === 'edit')).map((f) => ({ value: f.key, label: f.label || f.key }))
     case 'lookup': return of((t) => t === 'lookup')
     case 'label': return of((t) => t === 'label')
     case 'page': return isPaged(state.layout) ? state.layout.pages.map((p) => ({ value: p.id, label: p.title })) : []
@@ -151,7 +155,9 @@ function actionAllowed(event: FormRuleEventType, type: FieldButtonActionType, pa
 
 /* ── Rule-only action editors ───────────────────────────────────────── */
 
-function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onMove, onRemove, placeholders, eventPaths }: {
+function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onMove, onRemove, placeholders, eventPaths, renderBranch }: {
+  /** A server step's own on-success / on-failure steps (top-level steps only; one level). */
+  renderBranch?: (actions: FieldButtonAction[], onChange: (next: FieldButtonAction[], tag?: string) => void) => React.ReactNode
   action: FieldButtonAction
   index: number
   count: number
@@ -339,7 +345,112 @@ function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onM
           )}
         </>
       )}
+      {ROW_ACTION_TYPES.includes(action.type as RowActionType) && <RowActionEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />}
+      {(action.type === 'commit_row' || action.type === 'delete_row') && action.commit_mode === 'save_now' && (
+        <AnonymousStepToggle checked={action.allow_anonymous === true} onChange={(v) => onChange({ ...action, allow_anonymous: v || undefined })} />
+      )}
+      {(action.type === 'edit_list_row' || action.type === 'cancel_list_edit') && <EditRowEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />}
+      {action.type === 'update_list_row' && (() => {
+        const lists = state.fields.filter((f) => f.type === 'list')
+        const list = lists.find((f) => f.key === action.list_field)
+        const values = action.values ?? {}
+        return (
+          <>
+            <AutocompleteSelect value={action.list_field ?? ''} placeholder="Which List…" options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))} onChange={(v) => onChange({ ...action, list_field: v || undefined })} />
+            <RowTargetEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} fallback="last" />
+            {(list?.list?.columns ?? []).filter((c) => c.type !== 'calculated').map((c) => (
+              <div key={c.key} className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-1 text-2xs">
+                <span className="truncate">{c.label}</span>
+                <VariableInput value={values[c.key] ?? ''} extraVariables={formPlaceholders} placeholder="{{result.row_id}}, {{form.x}} — empty: unchanged" ariaLabel={`New ${c.label}`}
+                  onChange={(v) => { const next = { ...values }; if (v) next[c.key] = v; else delete next[c.key]; onChange({ ...action, values: next }, `list-up-${c.key}`) }} />
+              </div>
+            ))}
+          </>
+        )
+      })()}
+      {(action.type === 'add_list_row' || action.type === 'remove_list_row' || action.type === 'clear_list') && (() => {
+        // List fields (lib/forms/list-field.ts): the list, then (Add row) each column's value from the form's inputs.
+        const lists = state.fields.filter((f) => f.type === 'list')
+        const list = lists.find((f) => f.key === action.list_field)
+        const columns = (list?.list?.columns ?? []).filter((c) => c.type !== 'calculated')
+        const inputs = valueFields.filter((f) => f.type !== 'list')
+        const inputOptions = inputs.map((f) => ({ value: f.key, label: f.label || f.key }))
+        const values = action.values ?? {}
+        const clear = listClearFields(action)
+        const toggle = (list: string[], key: string) => (list.includes(key) ? list.filter((k) => k !== key) : [...list, key])
+        return (
+          <>
+            <AutocompleteSelect value={action.list_field ?? ''} placeholder={lists.length ? 'Which List…' : 'Add a List field to the form first'} options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))}
+              onChange={(v) => {
+                if (action.type !== 'add_list_row') { onChange({ ...action, list_field: v || undefined }); return }
+                // Guess each column's input: a field named like the column (<list>_<column>, <column>, …).
+                const target = lists.find((f) => f.key === v)
+                const guessed: Record<string, string> = {}
+                for (const c of (target?.list?.columns ?? []).filter((c) => c.type !== 'calculated')) {
+                  const match = inputs.find((f) => f.key === `${v}_${c.key}` || f.key === c.key || f.key.endsWith(`_${c.key}`))
+                  if (match) guessed[c.key] = `{{${match.key}}}`
+                }
+                onChange({ ...action, list_field: v || undefined, values: Object.keys(values).length ? values : guessed })
+              }} />
+            {action.type === 'add_list_row' && list && (
+              <div className="space-y-1" data-list-row-values>
+                {columns.map((c) => (
+                  <div key={c.key} className="space-y-0.5">
+                    <p className="text-2xs font-medium">{c.label}{c.required ? ' *' : ''} ←</p>
+                    <AutocompleteSelect value={listSourceField(values[c.key]) ?? ''} placeholder="From an input…" clearable options={inputOptions}
+                      onChange={(v) => { const next = { ...values }; if (v) next[c.key] = `{{${v}}}`; else delete next[c.key]; onChange({ ...action, values: next }) }} />
+                    {!listSourceField(values[c.key]) && (
+                      <VariableInput value={values[c.key] ?? ''} extraVariables={formPlaceholders} placeholder="Or a value / {{expression}}"
+                        onChange={(v) => { const next = { ...values }; if (v) next[c.key] = v; else delete next[c.key]; onChange({ ...action, values: next }, `list-val-${c.key}`) }} />
+                    )}
+                  </div>
+                ))}
+                <p className="pt-1 text-2xs font-medium">Must be filled in</p>
+                <div className="flex flex-wrap gap-1">
+                  {inputs.filter((f) => Object.values(values).some((t) => listSourceField(t) === f.key)).map((f) => (
+                    <label key={f.key} className="flex items-center gap-1 text-2xs">
+                      <input type="checkbox" className="accent-primary" checked={(action.require ?? []).includes(f.key)} onChange={() => { const next = toggle(action.require ?? [], f.key); onChange({ ...action, require: next.length ? next : undefined }) }} />
+                      {f.label || f.key}
+                    </label>
+                  ))}
+                </div>
+                <p className="pt-1 text-2xs font-medium">Clear after adding</p>
+                <div className="flex flex-wrap gap-1">
+                  {inputs.filter((f) => Object.values(values).some((t) => listSourceField(t) === f.key) || clear.includes(f.key)).map((f) => (
+                    <label key={f.key} className="flex items-center gap-1 text-2xs">
+                      <input type="checkbox" className="accent-primary" checked={clear.includes(f.key)} onChange={() => onChange({ ...action, clear_fields: toggle(clear, f.key) })} />
+                      {f.label || f.key}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-2xs text-fg-muted">The row is checked against the columns (required, types, bounds) and the list&apos;s maximum; problems show on the inputs and nothing is added.</p>
+              </div>
+            )}
+            {action.type === 'remove_list_row' && <RowTargetEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} fallback="last" />}
+            {(action.type === 'remove_list_row' || action.type === 'clear_list') && <ConfirmTextEditor action={action} placeholders={formPlaceholders} onChange={onChange} />}
+          </>
+        )
+      })()}
       {action.type === 'call_reference' && <CallReferenceEditor action={action} state={state} references={references} placeholders={formPlaceholders} onChange={onChange} />}
+      {action.type === 'call_reference' && action.reference_id && <CallReferenceExtras action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />}
+      {(action.type === 'table_read' || action.type === 'table_list' || action.type === 'table_create' || action.type === 'table_update' || action.type === 'table_delete') && (
+        <TableActionEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />
+      )}
+      {(action.type === 'table_read' || action.type === 'table_list' || action.type === 'table_create' || action.type === 'table_update' || action.type === 'table_delete') && (
+        <AnonymousStepToggle checked={action.allow_anonymous === true} onChange={(v) => onChange({ ...action, allow_anonymous: v || undefined })} />
+      )}
+      {renderBranch && (action.type === 'call_reference' ? action.wait !== false : action.type.startsWith('table_') || action.type === 'commit_row' || action.type === 'delete_row') && (
+        <div className="space-y-1.5" data-action-branches>
+          <div className="rounded border border-border p-1.5" data-branch="success">
+            <p className="text-2xs font-semibold text-fg-muted">When it works <span className="font-normal">— {'{{result.*}}'} is the result{action.type === 'commit_row' ? ' (the row; Save now: result.id)' : ''}</span></p>
+            {renderBranch(action.on_success ?? [], (next, tag) => onChange({ ...action, on_success: next.length ? next : undefined }, tag))}
+          </div>
+          <div className="rounded border border-border p-1.5" data-branch="failure">
+            <p className="text-2xs font-semibold text-fg-muted">If it fails <span className="font-normal">— {'{{error.message}}'} says why{action.type === 'commit_row' ? ' ({{error.errors.<column>}} per cell)' : ''}; the rule then stops</span></p>
+            {renderBranch(action.on_failure ?? [], (next, tag) => onChange({ ...action, on_failure: next.length ? next : undefined }, tag))}
+          </div>
+        </div>
+      )}
       {action.type === 'set_variable' && <SetVariableEditor action={action} layout={state.layout} rowPaths={rowPaths} placeholders={formPlaceholders} onChange={onChange} />}
       {action.type === 'start_workflow' && (() => {
         const wf = workflows.find((w) => String(w.id) === action.workflow_id)
@@ -417,6 +528,12 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
         <Label htmlFor={`rule-name-${unified.key}`}>Name</Label>
         <input id={`rule-name-${unified.key}`} className={inputClass} value={rule.name ?? ''} placeholder="e.g. Fill customer from the clicked row" onChange={(e) => set({ name: e.target.value || undefined }, 'rule-name')} data-testid="rule-name" />
       </div>
+      {(rule.description !== undefined || unified.home.kind === 'rules') && (
+        <div>
+          <Label htmlFor={`rule-notes-${unified.key}`}>Notes</Label>
+          <textarea id={`rule-notes-${unified.key}`} rows={rule.description && rule.description.length > 120 ? 4 : 2} className={inputClass} value={rule.description ?? ''} placeholder="Why this rule exists, or what is left to do" onChange={(e) => set({ description: e.target.value || undefined }, 'rule-notes')} data-testid="rule-notes" />
+        </div>
+      )}
       <fieldset className="space-y-1.5 rounded-lg border p-2 border-border">
         <legend className="px-1 text-2xs font-semibold text-primary-text">When</legend>
         <select aria-label="Event" className={inputClass} value={rule.event} data-testid="rule-event"
@@ -471,8 +588,17 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
             onMove: (delta: number) => { const next = [...rule.then]; const [a] = next.splice(i, 1); next.splice(Math.max(0, Math.min(next.length, i + delta)), 0, a); setActions(next) },
             onRemove: () => setActions(rule.then.filter((_, j) => j !== i)),
           }
+          // A data / API step's own steps: the same editors (no questions, one level).
+          const stepBranch = (actions: FieldButtonAction[], setBranch: (next: FieldButtonAction[], tag?: string) => void) => (
+            <BranchActions actions={actions} onChange={setBranch} create={(t) => newAction(t as FieldButtonActionType)}
+              options={RULE_ACTION_GROUPS.map((g) => ({ group: g.label, items: g.types.filter((t) => t !== 'prompt' && actionAllowed(rule.event, t, paged)).map((t) => ({ value: t, label: RULE_ACTION_LABELS[t] })) })).filter((g) => g.items.length)}
+              renderAction={(a, j, inner) => (RULE_ONLY_ACTION_TYPES.includes(a.type as RuleOnlyActionType)
+                ? <RuleOnlyActionEditor key={j} {...inner} state={state} action={a} rule={rule} placeholders={[...placeholders, { name: 'result', group: 'This step', label: 'The result' }, { name: 'error.message', group: 'This step', label: 'Why it failed' }]} eventPaths={eventPaths} />
+                : <ActionEditor key={j} {...inner} state={state} action={a} field={{ _id: '', key: '', label: 'rule', type: 'button' }} label={RULE_ACTION_LABELS[a.type]} extraPlaceholders={placeholders}
+                    onToggleStartHidden={() => {}} onAddFlag={() => {}} />)} />
+          )
           return RULE_ONLY_ACTION_TYPES.includes(action.type as RuleOnlyActionType)
-            ? <RuleOnlyActionEditor key={i} {...common} action={action} rule={rule} placeholders={placeholders} eventPaths={eventPaths} />
+            ? <RuleOnlyActionEditor key={i} {...common} action={action} rule={rule} placeholders={placeholders} eventPaths={eventPaths} renderBranch={stepBranch} />
             : <ActionEditor key={i} {...common} action={action} field={{ _id: '', key: '', label: 'rule', type: 'button' }} label={RULE_ACTION_LABELS[action.type]} extraPlaceholders={placeholders}
                 renderBranch={(actions, setBranch) => (
                   <BranchActions actions={actions} onChange={setBranch} create={(t) => newAction(t as FieldButtonActionType)}
@@ -765,6 +891,7 @@ export function RulesPanel({ state, onChange }: {
                     {' → '}<strong>If</strong> {describeConditions(def, u.rule.if)}
                     {' → '}<strong>Then</strong> {u.barActions ? u.barActions.map((a) => FORM_ACTION_LABELS[a.type as FormActionType] ?? String(a.type)).join(', ') || '—' : u.rule.then.map((a) => describeRuleAction(def, a)).join('; ') || '—'}
                   </span>
+                  {u.rule.description && <span className="mt-0.5 block whitespace-pre-line text-2xs text-fg-muted line-clamp-3" data-rule-notes>{u.rule.description}</span>}
                 </button>
                 {native && (
                   <>

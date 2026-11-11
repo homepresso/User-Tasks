@@ -401,6 +401,24 @@ export function validateWorkflowWiring(input: WiringInput): WiringWarning[] {
     const target = node.type === 'goto_activity' ? String(node.config?.target_node_id ?? '') : ''
     if (target) graphEdges.push({ source: node.id, target })
   }
+  // A Parallel's Done step (an edge labelled Done, or unlabelled) runs after
+  // every branch, with what the branches set: scope it after them.
+  for (const node of nodes) {
+    if (node.type !== 'parallel') continue
+    const isDone = (e: PickerEdgeLike) => ['done', ''].includes((e.label ?? '').toLowerCase().trim())
+    const out = edges.filter((e) => e.source === node.id)
+    const doneTargets = new Set(out.filter(isDone).map((e) => e.target))
+    if (!doneTargets.size) continue
+    const branchIds = new Set<string>()
+    const queue = out.filter((e) => !isDone(e)).map((e) => e.target)
+    while (queue.length) {
+      const id = queue.pop()!
+      if (branchIds.has(id) || doneTargets.has(id) || id === node.id) continue
+      branchIds.add(id)
+      for (const e of edges) if (e.source === id) queue.push(e.target)
+    }
+    for (const target of doneTargets) for (const source of branchIds) graphEdges.push({ source, target })
+  }
   const incoming = new Map<string, string[]>()
   for (const edge of graphEdges) {
     const list = incoming.get(edge.target) ?? []

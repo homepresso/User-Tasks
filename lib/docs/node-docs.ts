@@ -102,7 +102,7 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
     settings: '`date` is an ISO date/time or expression. The run pauses and resumes from the queue at that time.',
     example: { date: '{{=ADD_DAYS(NOW(), 1)}}' },
   },
-  end_workflow: { settings: 'Stops the run immediately with status completed. Optional `reason` is written to the run log.' },
+  end_workflow: { settings: 'Stops the run immediately with status completed. Optional `reason` is written to the run log. `status: "failed"` ends the run as failed instead: the step fails with the reason as the run\'s error (red in the process view and run history) and Workflow Error triggers fire — e.g. a self-test whose checks failed. Not for Middleware responses.', example: { status: 'failed', reason: 'Checks failed: {{failed_list}}' } },
   goto_activity: {
     settings: '`target_node_id` is the activity to jump to; `input_overrides` can reset variables first. Useful for rework loops (send back to the requester, then re-approve).',
     example: { target_node_id: '<node-id>', target_node_label: 'Manager approval' },
@@ -168,7 +168,7 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
     settings: '`custom_activity_id` (and `custom_activity_key`) picks an enabled [custom workflow action](/docs/workflows/custom-actions); `operation` picks its function; `input_mappings` fill the function\'s typed inputs. `timeout_ms`, `retry_attempts` (default 2, retryable failures only, with exponential backoff) and an optional pinned `custom_activity_version`. The code is always read from the workspace library and runs in the QuickJS WebAssembly sandbox.',
     outputs: 'The function\'s declared outputs as `{{<prefix>_<output>}}` and `{{<output>}}` (typed in the data picker); `<prefix>_outputs` holds them all.',
   },
-  create_subtask: { settings: '`title`, optional `assignee` and `parent_task_id` (defaults to the workflow\'s task).', example: { title: 'Collect W-9 from {{vendor.name}}', assignee: '{{requester_id}}' } },
+  create_subtask: { settings: '`title`, optional `assignee` and `parent_task_id` (defaults to the workflow\'s task).', outputs: '`subtask_id` (also `<prefix>_subtask_id`): the new subtask, e.g. for an Auto Action.', example: { title: 'Collect W-9 from {{vendor.name}}', assignee: '{{requester_id}}' } },
   add_task_attachment: {
     settings: '`file` (a file object from Download File, an HTTP Request, a document step or `{{item}}` in a Loop; a `storage://` reference; a URL; base64 or a data URL), `name`, `type` (e.g. Contract, Invoice, Receipt, Evidence, Image, Other) and `description` (expressions allowed), optional `file_name`, and `task_id` (defaults to the run\'s task, else the latest User Task\'s `{{user_task_id}}`). The file goes through the same checks as uploads (size, content type, blocked types, virus scan) and appears on the task\'s Attachments tab — see /docs/tasks/attachments.',
     outputs: '`attachment` and `<prefix>_attachment`: the attachment `{ id, name, type, description, file_name, mime, size, url, storage_ref, uploaded_by, created_at }`.',

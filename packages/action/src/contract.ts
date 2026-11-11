@@ -3,7 +3,7 @@
  * its manifest, the module it ships, and the `ctx` the sandbox gives it.
  *
  * Pure and isomorphic — shared by the app, the starter kit and the
- * @usertasks/action package (packages/action keeps a copy of the constants
+ * @user-tasks/action package (packages/action keeps a copy of the constants
  * and types; __tests__/custom-action-contract checks they agree).
  *
  * ── Manifest (manifest.json beside the module) ────────────────────────────

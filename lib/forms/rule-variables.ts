@@ -97,7 +97,7 @@ export function enrichEventContext(type: FormRuleEventType, context: Record<stri
     if (type !== 'row_add' && !('row_id' in out)) out.row_id = out.key ?? null
     if (!isPlainObject(out.row)) out.row = {}
   }
-  if ((type === 'value_change' || type === 'cell_edit' || type === 'label_change') && !('previous_value' in out)) out.previous_value = out.previous ?? null
+  if ((type === 'value_change' || type === 'cell_edit' || type === 'label_change' || type === 'cell_change') && !('previous_value' in out)) out.previous_value = out.previous ?? null
   if (type === 'item_select') {
     const item = isPlainObject(out.item) ? out.item : {}
     const fields = isPlainObject(item.fields) ? item.fields : {}
@@ -152,6 +152,21 @@ export function eventVariables(type: FormRuleEventType, target: string | undefin
       return [v('part', 'Section / tab (section:<key> or page:<id>)', 'text')]
     case 'message_answered':
       return [v('message', 'Question (id)', 'text'), v('response', 'Response (value)', 'text'), v('label', 'Response (label)', 'text')]
+    case 'row_created':
+    case 'row_values_changed':
+    case 'row_committed':
+    case 'row_commit_failed':
+    case 'cell_change': {
+      // Editable table rules (lib/forms/row-rules.ts): a List's or an editable Data table's row.
+      out.push(v('field', 'List / Data table (key)', 'text'), v('row', 'The whole row', 'object'), v('row_number', 'Row number (1 = first)', 'number'), v('key', 'Row key (an existing Data table row)', 'text'))
+      const columns = (field as { list?: { columns?: Array<{ key: string; label?: string }> } } | undefined)?.list?.columns ?? field?.data_table?.columns ?? []
+      for (const c of columns) out.push(v(`row.${c.key}`, `Row: ${c.label || c.key}`, 'any'))
+      if (type === 'row_values_changed') out.push(v('columns', 'Columns set', 'list'))
+      if (type === 'row_committed') out.push(v('saved', 'Saved to the table now', 'boolean'), v('result', 'Saved row (Save now: result.id)', 'object'))
+      if (type === 'row_commit_failed') out.push(v('error', 'The first problem', 'text'), v('errors', 'Problems by column', 'object'))
+      if (type === 'cell_change') out.push(v('column', 'Column (key)', 'text'), v('value', 'New value', 'any'), v('previous_value', 'Previous value', 'any'))
+      return out
+    }
     default:
       return []
   }

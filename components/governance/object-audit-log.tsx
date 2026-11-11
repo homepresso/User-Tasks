@@ -9,6 +9,7 @@ import { AUDIT_ACTION_LABELS, AUDIT_OBJECT_TYPE_LABELS, auditActionLabel, auditO
 import { hrefForObject } from '@/components/activity/activity-feed'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { TableScroll } from '@/components/ui/table'
 
 const PAGE_SIZE = 50
 const selectStyle = { borderColor: 'var(--theme-surface-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-card-text)' }
@@ -57,12 +58,12 @@ export function ObjectAuditLog({ initialType = '' }: { initialType?: string }) {
       </div>
 
       <div className="rounded-xl border overflow-hidden border-border">
-        <div className="overflow-x-auto">
+        <TableScroll bare label="Object changes" stickyFirstColumn>
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr style={{ backgroundColor: 'var(--theme-surface)' }}>
+              <tr className="bg-subtle">
                 {['Object', 'Action', 'Summary', 'Actor', 'When'].map((h) => (
-                  <th key={h} className={`px-4 py-2.5 text-xs font-semibold ${h === 'When' ? 'text-right' : 'text-left'}`} style={{ color: 'var(--theme-muted-text)' }}>{h}</th>
+                  <th key={h} className={`whitespace-nowrap px-4 py-2.5 text-xs font-semibold ${h === 'When' ? 'text-right' : 'text-left'} ${h === 'Summary' ? 'min-w-64' : ''}`} style={{ color: 'var(--theme-muted-text)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -91,7 +92,7 @@ export function ObjectAuditLog({ initialType = '' }: { initialType?: string }) {
               })}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </div>
 
       {(data?.total ?? 0) > PAGE_SIZE && (

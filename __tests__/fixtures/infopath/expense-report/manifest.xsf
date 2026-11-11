@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A sample InfoPath 2013 form template written for UserTasks' importer tests (not from Microsoft). -->
+<xsf:xDocumentClass solutionFormatVersion="3.0.0.0" solutionVersion="1.0.0.4" productVersion="15.0.0" name="urn:schemas-microsoft-com:office:infopath:Expense-Report:-myXSD-2026-01-12T10-00-00" xmlns:xsf="http://schemas.microsoft.com/office/infopath/2003/solutionDefinition" xmlns:xsf2="http://schemas.microsoft.com/office/infopath/2006/solutionDefinition/extensions" xmlns:xsf3="http://schemas.microsoft.com/office/infopath/2009/solutionDefinition/extensions" xmlns:msxsl="urn:schemas-microsoft-com:xslt" xmlns:xd="http://schemas.microsoft.com/office/infopath/2003" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xdXDocument="http://schemas.microsoft.com/office/infopath/2003/xslt/xDocument" xmlns:xdDate="http://schemas.microsoft.com/office/infopath/2003/xslt/Date" xmlns:xdMath="http://schemas.microsoft.com/office/infopath/2003/xslt/Math" xmlns:my="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-01-12T10:00:00">
+	<xsf:package>
+		<xsf:files>
+			<xsf:file name="myschema.xsd">
+				<xsf:fileProperties>
+					<xsf:property name="namespace" type="string" value="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-01-12T10:00:00"></xsf:property>
+					<xsf:property name="rootElement" type="string" value="expenseReport"></xsf:property>
+				</xsf:fileProperties>
+			</xsf:file>
+			<xsf:file name="template.xml"></xsf:file>
+			<xsf:file name="view1.xsl"></xsf:file>
+		</xsf:files>
+	</xsf:package>
+	<xsf:extensions>
+		<xsf:extension name="SolutionDefinitionExtensions">
+			<xsf2:solutionDefinition runtimeCompatibility="client server" allowClientOnlyCode="no"></xsf2:solutionDefinition>
+			<xsf3:solutionDefinition>
+				<xsf3:customValidation>
+					<xsf3:errorBlank match="/my:expenseReport/my:email" expressionContext="." expression=". = &quot;&quot;"></xsf3:errorBlank>
+				</xsf3:customValidation>
+			</xsf3:solutionDefinition>
+		</xsf:extension>
+	</xsf:extensions>
+	<xsf:views default="Expense Report">
+		<xsf:view name="Expense Report" caption="Expense Report" showMenuItem="yes">
+			<xsf:mainpane transform="view1.xsl"></xsf:mainpane>
+			<xsf:editing>
+				<xsf:xmlToEdit name="purpose_1" item="/my:expenseReport/my:purpose">
+					<xsf:editWith type="rich" component="xField"></xsf:editWith>
+				</xsf:xmlToEdit>
+				<xsf:xmlToEdit name="item_2" item="/my:expenseReport/my:items/my:item" container="/my:expenseReport/my:items">
+					<xsf:editWith caption="line item" component="xCollection"></xsf:editWith>
+				</xsf:xmlToEdit>
+			</xsf:editing>
+			<xsf:unboundControls>
+				<xsf:button name="CTRL20">
+					<xsf:ruleSetAction ruleSet="ruleSet_2"></xsf:ruleSetAction>
+				</xsf:button>
+				<xsf:button name="CTRL21">
+					<xsf:ruleSetAction ruleSet="ruleSet_3"></xsf:ruleSetAction>
+				</xsf:button>
+			</xsf:unboundControls>
+		</xsf:view>
+	</xsf:views>
+	<xsf:documentSchemas>
+		<xsf:documentSchema rootSchema="yes" location="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-01-12T10:00:00 myschema.xsd"></xsf:documentSchema>
+	</xsf:documentSchemas>
+	<xsf:fileNew>
+		<xsf:initialXmlDocument caption="Expense Report" href="template.xml"></xsf:initialXmlDocument>
+	</xsf:fileNew>
+	<xsf:roles default="Employee">
+		<xsf:role name="Employee"></xsf:role>
+		<xsf:role name="Manager"></xsf:role>
+	</xsf:roles>
+	<xsf:calculations>
+		<xsf:calculatedField target="/my:expenseReport/my:reportDate" expression="xdDate:Today()" refresh="onInit"></xsf:calculatedField>
+		<xsf:calculatedField target="/my:expenseReport/my:items/my:item/my:lineTotal" expression="../my:quantity * ../my:unitPrice" refresh="onChange"></xsf:calculatedField>
+		<xsf:calculatedField target="/my:expenseReport/my:total" expression="sum(../my:items/my:item/my:lineTotal)" refresh="onChange"></xsf:calculatedField>
+	</xsf:calculations>
+	<xsf:dataObjects>
+		<xsf:dataObject name="Projects" schema="Projects.xsd" initOnLoad="yes">
+			<xsf:query>
+				<xsf:sharepointListAdapterRW queryAllowed="yes" submitAllowed="no" siteURL="../" sharePointListID="{00000000-0000-0000-0000-000000000001}" name="Projects" relativeListUrl="../Lists/Projects/">
+					<xsf:field internalName="Title" required="no" type="Text"></xsf:field>
+					<xsf:field internalName="Code" required="no" type="Text"></xsf:field>
+				</xsf:sharepointListAdapterRW>
+			</xsf:query>
+		</xsf:dataObject>
+	</xsf:dataObjects>
+	<xsf:submit caption="Submit" onAfterSubmit="close">
+		<xsf:davAdapter name="Main submit" overwriteAllowed="yes">
+			<xsf:folderURL value="../Expense%20Reports/"></xsf:folderURL>
+			<xsf:fileName value="concat(my:employeeName, &quot; - &quot;, my:reportDate)" valueType="expression"></xsf:fileName>
+		</xsf:davAdapter>
+	</xsf:submit>
+	<xsf:ruleSets>
+		<xsf:ruleSet name="ruleSet_1">
+			<xsf:rule caption="Sales cost center" condition=". = &quot;Sales&quot;" isEnabled="yes">
+				<xsf:assignmentAction targetField="../my:costCenter" expression="&quot;SA-1000&quot;"></xsf:assignmentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_2">
+			<xsf:rule caption="Large report warning" condition="my:total &gt; 5000" isEnabled="yes">
+				<xsf:dialogBoxMessageAction>Reports over USD 5,000 need director approval.</xsf:dialogBoxMessageAction>
+			</xsf:rule>
+			<xsf:rule caption="Submit the report" isEnabled="yes">
+				<xsf:assignmentAction targetField="my:status" expression="&quot;Submitted&quot;"></xsf:assignmentAction>
+				<xsf:submitAction adapter="Main submit"></xsf:submitAction>
+				<xsf:closeDocumentAction promptToSaveChanges="no"></xsf:closeDocumentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_3">
+			<xsf:rule caption="Refresh projects" isEnabled="yes">
+				<xsf:queryAction adapter="Projects"></xsf:queryAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_4">
+			<xsf:rule caption="Managers see status" condition="xdXDocument:get-Role() = &quot;Manager&quot;" isEnabled="yes">
+				<xsf:assignmentAction targetField="my:status" expression="&quot;In review&quot;"></xsf:assignmentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+	</xsf:ruleSets>
+	<xsf:domEventHandlers>
+		<xsf:domEventHandler match="/my:expenseReport/my:department">
+			<xsf:ruleSetAction ruleSet="ruleSet_1"></xsf:ruleSetAction>
+		</xsf:domEventHandler>
+	</xsf:domEventHandlers>
+	<xsf:onLoad>
+		<xsf:ruleSetAction ruleSet="ruleSet_4"></xsf:ruleSetAction>
+	</xsf:onLoad>
+	<xsf:customValidation>
+		<xsf:errorCondition match="/my:expenseReport/my:email" expressionContext="." expression="not(contains(., &quot;@&quot;)) and . != &quot;&quot;">
+			<xsf:errorMessage type="modeless" shortMessage="Enter a valid email address">The email address must contain @.</xsf:errorMessage>
+		</xsf:errorCondition>
+		<xsf:errorCondition match="/my:expenseReport/my:items/my:item" expressionContext="my:unitPrice" expression=". &lt; 0">
+			<xsf:errorMessage type="modeless" shortMessage="Prices cannot be negative"></xsf:errorMessage>
+		</xsf:errorCondition>
+	</xsf:customValidation>
+</xsf:xDocumentClass>

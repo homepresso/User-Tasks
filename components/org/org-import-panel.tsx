@@ -243,13 +243,13 @@ export function OrgImportPanel({ canManage }: { canManage: boolean }) {
             </InlineNotice>
           )}
 
-          <Table aria-label="Import rows">
+          <Table aria-label="Import rows" stickyFirstColumn stickyColumns={2}>
             <THead>
               <tr>
                 <TH numeric>Row</TH>
-                <TH>Person</TH>
-                <TH>Result</TH>
-                <TH>Changes</TH>
+                <TH col="name">Person</TH>
+                <TH col="status">Result</TH>
+                <TH col="text" className="min-w-64">Changes</TH>
               </tr>
             </THead>
             <TBody>

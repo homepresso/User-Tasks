@@ -18,7 +18,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Badge, StatusPill, Tag } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/list-controls'
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from '@/components/ui/table'
+import { Table, THead, TBody, TR, TH, TD, TableEmpty, type ColumnKind } from '@/components/ui/table'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import {
   AXIS_TICK, BAND_GAP, BAR_MAX, BASE_AXIS, CURSOR_FILL, ChartFrame, ChartTooltip, GRID_PROPS, LEGEND_PROPS, VALUE_AXIS, useSeriesColors,
@@ -605,16 +605,16 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
           </span>
         </div>
 
-        <Table>
+        <Table label="Process instances">
           <THead>
             <tr>
               <SortableHeader label="ID" field="id" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-              <TH>Title</TH>
-              <SortableHeader label="Originator" field="originator" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-              <SortableHeader label="Work done by" field="workers" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-              <SortableHeader label="Status" field="status" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-              <SortableHeader label="Started" field="started" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
-              <SortableHeader label="Finished" field="finished" sortField={sortField} sortDir={sortDir} onClick={toggleSort} />
+              <TH col="title">Title</TH>
+              <SortableHeader label="Originator" field="originator" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="people" />
+              <SortableHeader label="Work done by" field="workers" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="people" />
+              <SortableHeader label="Status" field="status" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="status" />
+              <SortableHeader label="Started" field="started" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="date" />
+              <SortableHeader label="Finished" field="finished" sortField={sortField} sortDir={sortDir} onClick={toggleSort} col="date" />
               <SortableHeader label="Duration" field="duration" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
               <SortableHeader label="Duration spike" field="durationSpike" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
               <SortableHeader label="Traversal spike" field="traversalSpike" sortField={sortField} sortDir={sortDir} onClick={toggleSort} numeric />
@@ -637,7 +637,7 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
                       {row.shortId}
                     </Link>
                   </TD>
-                  <TD className="max-w-[280px] py-2">
+                  <TD className="max-w-0 py-2">
                     <div className="truncate text-fg" title={row.title}>{row.title}</div>
                     <div className="num mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
                       <span>{formatCount(row.nodeVisits)} visits · {formatCount(row.edgeTraversals)} traversals</span>
@@ -660,7 +660,7 @@ export function ProcessOverviewView({ workflow, runs, flowStats, queueStats, tas
                       </div>
                     )}
                   </TD>
-                  <TD className="text-fg-muted">{row.originator}</TD>
+                  <TD className="whitespace-nowrap text-fg-muted">{row.originator}</TD>
                   <TD className="text-fg-muted">
                     <div className="max-w-[220px] truncate" title={row.workers}>{row.workers}</div>
                     {row.workerCount > 0 && (
@@ -776,7 +776,7 @@ function AggregateProcessMap({
 }
 
 function SortableHeader({
-  label, field, sortField, sortDir, onClick, numeric = false,
+  label, field, sortField, sortDir, onClick, numeric = false, col,
 }: {
   label: string
   field: SortField
@@ -784,10 +784,11 @@ function SortableHeader({
   sortDir: SortDir
   onClick: (f: SortField) => void
   numeric?: boolean
+  col?: ColumnKind
 }) {
   const active = sortField === field
   return (
-    <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+    <TH numeric={numeric} col={col ?? (numeric ? 'number' : undefined)} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button type="button" onClick={() => onClick(field)} className={cn('inline-flex items-center gap-1 whitespace-nowrap hover:text-fg', numeric && 'flex-row-reverse')}>
         {label}
         {active ? (sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />) : <ArrowUpDown className="size-3 opacity-40" />}

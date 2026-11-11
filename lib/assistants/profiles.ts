@@ -79,6 +79,8 @@ export interface AgentProfile extends Omit<ModelRule, 'label'> {
   areas: ProfileArea[]
   /** Help groups; null = the Default profile's. Never more than the person's permissions allow. */
   tools: Record<AgentToolGroup, boolean> | null
+  /** Let the Agent complete tasks (with confirmation): true / false, or null / absent = the Default profile's. */
+  task_actions?: boolean | null
   /** Admin-written guidance appended after the Agent's own rules (admins only; never sent to the browser). */
   instructions: string | null
   starters: string[]
@@ -134,6 +136,7 @@ export function normalizeProfile(raw: unknown, index = 0): AgentProfile | null {
     panel_label: text(r.panel_label, MAX_PANEL_LABEL),
     areas: Array.isArray(r.areas) ? PROFILE_AREAS.filter((a) => (r.areas as unknown[]).includes(a)) : [],
     tools: normalizeTools(r.tools),
+    task_actions: r.task_actions === true ? true : r.task_actions === false ? false : null,
     instructions: text(r.instructions, MAX_PROFILE_INSTRUCTIONS),
     starters,
     limits: normalizeProfileLimits(r.limits),
@@ -167,7 +170,7 @@ export function profilesFromModelRules(rules: readonly ModelRule[]): AgentProfil
     return {
       ...model,
       name: label || (rule.model ? `Model: ${rule.model}` : `Model rule ${i + 1}`),
-      description: null, color: null, panel_label: null, areas: [], tools: null, instructions: null, starters: [],
+      description: null, color: null, panel_label: null, areas: [], tools: null, task_actions: null, instructions: null, starters: [],
       limits: { messages_per_user_per_day: null, max_request_tokens: null, monthly_cost_cap: null },
     }
   })
@@ -213,6 +216,12 @@ export function screenArea(screen: { taskId?: string | null; formId?: string | n
 /** The help groups a person's profile turns on (before their permissions narrow them). */
 export function profileTools(defaults: Record<AgentToolGroup, boolean>, profile: Pick<AgentProfile, 'tools'> | null): Record<AgentToolGroup, boolean> {
   return profile?.tools ? { ...profile.tools } : { ...defaults }
+}
+
+/** May the Agent complete tasks for this person (with confirmation)? The profile's choice, else the Default profile's (absent = on). */
+export function profileTaskActions(defaults: boolean | undefined, profile: Pick<AgentProfile, 'task_actions'> | null): boolean {
+  if (typeof profile?.task_actions === 'boolean') return profile.task_actions
+  return defaults !== false
 }
 
 /** The limits a person's request runs under: the profile's overrides over the workspace's. */

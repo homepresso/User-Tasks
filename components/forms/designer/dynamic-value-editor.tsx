@@ -146,6 +146,7 @@ export function BindingEditor({ state, field, prop, expects, binding, onChange }
         {isSourceBinding(binding) && (
           <div className="space-y-1 border-t pt-2 border-border">
             {prop === 'options' && <Toggle checked={binding.restrict !== false} onChange={(v) => onChange({ ...binding, restrict: v ? undefined : false })}>Restrict to the list (the server checks each submitted value)</Toggle>}
+            {prop === 'options' && <Toggle checked={binding.when_inputs_blank === 'keep'} onChange={(v) => onChange({ ...binding, when_inputs_blank: v ? 'keep' : undefined })}>When a field it reads is empty, keep the options (default: offer none — a cascade waiting for its parent)</Toggle>}
             <Toggle checked={binding.anonymous_read === true} onChange={(v) => onChange({ ...binding, anonymous_read: v || undefined })} testId="dyn-anonymous-read">Allow anonymous read</Toggle>
             {binding.anonymous_read !== true
               ? <p className="flex items-start gap-1 text-2xs text-danger" data-testid="dyn-anonymous-warning"><AlertTriangle size={11} className="mt-px shrink-0" aria-hidden /> On a public link (anonymous form) this resolves empty — turn on &ldquo;Allow anonymous read&rdquo; to let visitors read it.</p>

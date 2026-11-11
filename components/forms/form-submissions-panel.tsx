@@ -1,6 +1,7 @@
 'use client'
 
 import { DataTableValueView } from './data-table-field'
+import { ListValueView } from './list-field'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -10,6 +11,7 @@ import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { useJobs } from '@/components/jobs/jobs-provider'
 import { serverRead } from '@/lib/server-read'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
+import { listStagingKeys } from '@/lib/forms/form-rules'
 import { formatFieldValue } from './form-renderer'
 import { lookupDisplayValue } from './lookup-field'
 import { AttachmentList } from './attachments-field'
@@ -17,6 +19,7 @@ import { lookupItemKey } from '@/lib/forms/lookup'
 import { isSectionIncluded, layoutSections, sectionFieldKeys } from '@/lib/forms/sections'
 import { formatRelativeDate } from '@/lib/utils'
 import { SUBMISSION_SOURCE_LABELS, submissionSurface, type SubmissionSurface } from '@/lib/forms/submission-meta'
+import { TableScroll } from '@/components/ui/table'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- submission rows */
 
@@ -54,7 +57,10 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
     enabled: Boolean(form),
     queryFn: async () => (await serverRead('forms.get', { id: form!.id })).data as any,
   })
-  const fields = valueFields(normalizeTaskFields(full?.fields ?? form?.fields ?? []))
+  const allFields = valueFields(normalizeTaskFields(full?.fields ?? form?.fields ?? []))
+  // Inputs that only stage a List's rows (an "Add row to list" rule clears them) are empty once submitted: left out.
+  const staging = listStagingKeys(full?.layout)
+  const fields = allFields.filter((f) => !staging.has(f.key))
   // Sections (lib/forms/sections.ts): the detail shows each one's title; one left out shows "Not included".
   const sections = layoutSections(full?.layout)
   const sectionByField = new Map(sections.flatMap((s) => sectionFieldKeys(full?.layout, s.key).map((k) => [k, s] as const)))
@@ -109,7 +115,7 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
                     )}
                     {included && (<>
                     <dt className="text-fg-muted">{f.label}</dt>
-                    <dd className="break-words">{f.type === 'data_table' ? <DataTableValueView field={f} value={selected.values?.[f.key]} /> : f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)], selected.values?.[`${f.key}_label`]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
+                    <dd className="break-words">{f.type === 'data_table' ? <DataTableValueView field={f} value={selected.values?.[f.key]} /> : f.type === 'list' ? <ListValueView field={f} value={selected.values?.[f.key]} narrow /> : f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)], selected.values?.[`${f.key}_label`]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
                     </>)}
                   </div>
                   )
@@ -125,23 +131,23 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
               : error ? <p className="text-danger" role="alert">{(error as Error).message}</p>
                 : rows.length === 0 ? <p className="text-fg-muted">No submissions yet. Share the form&apos;s link (Open form) or link it to a User Task.</p>
                   : (
-                    <div className="overflow-x-auto">
+                    <TableScroll bare label="Submissions">
                       <table className="w-full text-left">
                         <thead>
                           <tr className="text-fg-muted">
-                            <th className="py-1.5 pr-3 font-medium">Reference</th>
-                            <th className="py-1.5 pr-3 font-medium">Submitted</th>
-                            <th className="py-1.5 pr-3 font-medium">By</th>
-                            <th className="py-1.5 pr-3 font-medium">Where</th>
-                            {fields.slice(0, 3).map((f) => <th key={f.key} className="py-1.5 pr-3 font-medium">{f.label}</th>)}
+                            <th className="whitespace-nowrap py-1.5 pr-3 font-medium">Reference</th>
+                            <th className="min-w-28 whitespace-nowrap py-1.5 pr-3 font-medium">Submitted</th>
+                            <th className="min-w-32 whitespace-nowrap py-1.5 pr-3 font-medium">By</th>
+                            <th className="min-w-32 whitespace-nowrap py-1.5 pr-3 font-medium">Where</th>
+                            {fields.slice(0, 3).map((f) => <th key={f.key} className="min-w-32 whitespace-nowrap py-1.5 pr-3 font-medium">{f.label}</th>)}
                           </tr>
                         </thead>
                         <tbody>
                           {rows.map((r) => (
                             <tr key={r.id} className="cursor-pointer border-t hover:opacity-80 border-border" onClick={() => setSelected(r)} data-submission-id={r.id}>
-                              <td className="py-1.5 pr-3 font-mono">{r.submission?.reference ?? r.id.slice(0, 8)}</td>
+                              <td className="whitespace-nowrap py-1.5 pr-3 font-mono">{r.submission?.reference ?? r.id.slice(0, 8)}</td>
                               <td className="py-1.5 pr-3 whitespace-nowrap">{formatRelativeDate(r.created_at)}</td>
-                              <td className="py-1.5 pr-3">{r.submitted_by_name ?? '—'}</td>
+                              <td className="whitespace-nowrap py-1.5 pr-3">{r.submitted_by_name ?? '—'}</td>
                               <td className="py-1.5 pr-3">{sourceLabel(r)}{r.outcome ? ` · ${r.outcome}` : ''}</td>
                               {fields.slice(0, 3).map((f) => (
                                 <td key={f.key} className="max-w-[14rem] truncate py-1.5 pr-3">{f.type === 'lookup' ? lookupDisplayValue(f, r.values?.[f.key], r.values?.[lookupItemKey(f.key)], r.values?.[`${f.key}_label`]) : formatFieldValue(f, r.values?.[f.key])}</td>
@@ -150,7 +156,7 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </TableScroll>
                   )}
           </div>
           {!selected && total > PAGE && (

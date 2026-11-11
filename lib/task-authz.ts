@@ -447,17 +447,35 @@ export interface TaskAccessSummary {
   canTakeOwnership?: boolean
   /** May (re)assign to someone else as manager / workflow manager / admin (the assignee's own redirect stays on the redirect panel). */
   canReassign?: boolean
+  /** May invite viewers (read only) and remove them: decideViewerManagement. */
+  canManageViewers?: boolean
+  /**
+   * Here only through an invite (read only — mode 'none'): who invited them,
+   * and whether through a team / role or a parent task. They may comment.
+   */
+  viewer?: { invitedBy: string | null; principalType: ViewerPrincipalType; inherited: boolean } | null
 }
 
 /** What the task screen should offer the signed-in user (the server re-checks on every action). */
 export async function describeTaskAccess(db: any, params: { tenantId: string; taskId: string; actorId: string; permissions: ReadonlySet<string> | null }): Promise<TaskAccessSummary | null> {
-  const { data: task } = await db.from('tasks').select(AUTHZ_TASK_COLUMNS)
+  const { data: task } = await db.from('tasks').select(`${AUTHZ_TASK_COLUMNS}, assigner_id`)
     .eq('id', params.taskId).eq('tenant_id', params.tenantId).is('deleted_at', null).maybeSingle()
   if (!task) return null
   const facts = await loadTaskActorFacts(db, task, params.actorId)
+  const summary = describeFromFacts(task, facts, params.actorId, params.permissions)
+  summary.canManageViewers = decideViewerManagement({ actorId: params.actorId, permissions: params.permissions, facts, assignerId: task.assigner_id ?? null }).allowed
+  // Nothing else lets them in: an invite (read only) — the task screen's banner.
+  if (summary.mode === 'none' && !summary.canManageViewers && !hasPermission(params.permissions, 'tasks.view_all')) {
+    const grant = await findTaskViewerGrant(db, params.tenantId, params.actorId, params.taskId)
+    summary.viewer = grant ? { invitedBy: grant.invited_by, principalType: grant.principal_type, inherited: grant.inherited } : null
+  }
+  return summary
+}
+
+function describeFromFacts(task: AuthzTask, facts: TaskActorFacts, actorId: string, permissions: ReadonlySet<string> | null): TaskAccessSummary {
   const unassigned = isUnassignedTask(task, facts)
-  const take = decideTaskAssignment({ task, actorId: params.actorId, permissions: params.permissions, facts, action: 'take' })
-  const assign = decideTaskAssignment({ task, actorId: params.actorId, permissions: params.permissions, facts, action: 'assign' })
+  const take = decideTaskAssignment({ task, actorId, permissions, facts, action: 'take' })
+  const assign = decideTaskAssignment({ task, actorId, permissions, facts, action: 'assign' })
   const base = {
     workflowTask: isWorkflowTask(task), closed: isClosedTask(task), unassigned,
     canTakeOwnership: take.allowed, canReassign: assign.allowed && assign.basis !== 'assignee',
@@ -468,6 +486,147 @@ export async function describeTaskAccess(db: any, params: { tenantId: string; ta
   const target = facts.managedAssigneeId ?? facts.assigneeIds[0] ?? null
   if (facts.managedAssigneeId) return { ...base, mode: 'on_behalf', onBehalfOf: facts.managedAssigneeId, basis: 'manager' }
   if (target && facts.isWorkflowManager) return { ...base, mode: 'on_behalf', onBehalfOf: target, basis: 'workflow_manager' }
-  if (target && hasPermission(params.permissions, COMPLETE_ANY_PERMISSION)) return { ...base, mode: 'break_glass', onBehalfOf: target, basis: 'break_glass' }
+  if (target && hasPermission(permissions, COMPLETE_ANY_PERMISSION)) return { ...base, mode: 'break_glass', onBehalfOf: target, basis: 'break_glass' }
   return { ...base, mode: 'none', onBehalfOf: null, basis: null }
+}
+
+/* ── Invite (read only): task viewers ─────────────────────────────────────
+ *
+ * People who can act on a task may share it, read only, with a person, a
+ * team or a role (task_viewers, migration 20270105000000). Everyone the
+ * invite names may open the task (and its subtasks when include_subtasks),
+ * its comments, attachments, history and the process view of its run, and
+ * may COMMENT on it. Nothing else: an invite never makes someone an assignee,
+ * so decideTaskAction / decideTaskAssignment / canReachTask (every write
+ * check) ignore it — completing, outcomes, form saves, subtasks, effort,
+ * reassigning and inviting others stay with the people working on it.
+ */
+
+export type ViewerPrincipalType = 'user' | 'team' | 'role'
+export const VIEWER_PRINCIPAL_TYPES: readonly ViewerPrincipalType[] = ['user', 'team', 'role']
+
+export interface TaskViewerGrant {
+  /** The task_viewers row. */
+  id: string
+  /** The task the invite is on (a parent task when inherited through include_subtasks). */
+  task_id: string
+  principal_type: ViewerPrincipalType
+  principal_id: string
+  invited_by: string | null
+  /** Invited to a parent task (include_subtasks), not this one. */
+  inherited: boolean
+}
+
+/**
+ * The invite that lets this person view the task (task_viewer_grant: on the
+ * task or a parent with include_subtasks, naming them, a team of the
+ * workspace they are in or a role they hold there), or null. `db` is the
+ * service-role client, or the person's own RLS client (the function answers
+ * a signed-in caller about themselves only).
+ */
+export async function findTaskViewerGrant(db: any, tenantId: string, userId: string | null, taskId: string): Promise<TaskViewerGrant | null> {
+  if (!userId || !taskId || typeof db?.rpc !== 'function') return null
+  let grantId: unknown = null
+  try {
+    const { data, error } = await db.rpc('task_viewer_grant', { p_task_id: taskId, p_user_id: userId })
+    // Not applied yet (no such function) or not allowed: no invite.
+    if (error) return null
+    grantId = data
+  } catch {
+    return null
+  }
+  if (typeof grantId !== 'string' || !grantId) return null
+  const { data: row } = await db.from('task_viewers')
+    .select('id, task_id, principal_type, principal_id, invited_by')
+    .eq('id', grantId).eq('tenant_id', tenantId).maybeSingle()
+  if (!row) return null
+  return {
+    id: String(row.id), task_id: String(row.task_id), principal_type: row.principal_type as ViewerPrincipalType,
+    principal_id: String(row.principal_id), invited_by: row.invited_by ? String(row.invited_by) : null,
+    inherited: String(row.task_id) !== taskId,
+  }
+}
+
+/**
+ * Read access to a task: anyone who can reach it (canReachTask — assignee,
+ * collaborator, team member, the assignee's managers, a manager of the
+ * workflow, the assigner, tasks.view_all, or the parent of a subtask they
+ * can reach) or an invited viewer. Reads only — writes keep canReachTask.
+ */
+export async function canViewTask(db: any, params: { tenantId: string; taskId: string; actorId: string | null; permissions: ReadonlySet<string> | null }): Promise<boolean> {
+  if (await canReachTask(db, params)) return true
+  return Boolean(await findTaskViewerGrant(db, params.tenantId, params.actorId, params.taskId))
+}
+
+/** Who may invite viewers to a task and remove them. */
+export type ViewerManageBasis = 'assignee' | 'assigner' | 'manager' | 'workflow_manager' | 'admin' | 'credential'
+
+export type ViewerManageDecision =
+  | { allowed: true; basis: ViewerManageBasis }
+  | { allowed: false; status: 403; code: 'forbidden'; message: string }
+
+/**
+ * Invite viewers / remove them (pure): the people who can act on the task —
+ * the assignee or a collaborator, a member of the assigned team (team task),
+ * the assigner (who created / assigned it), anyone in the assignee's manager
+ * chain, a manager of the workflow, or an admin (tasks.complete_any; also a
+ * credential with no person behind it). An invited viewer cannot invite
+ * others (an invite is never one of these facts).
+ */
+export function decideViewerManagement(input: {
+  actorId: string | null
+  permissions: ReadonlySet<string> | null
+  facts: TaskActorFacts
+  assignerId?: string | null
+}): ViewerManageDecision {
+  const { actorId, permissions, facts } = input
+  if (!actorId) {
+    if (hasPermission(permissions, COMPLETE_ANY_PERMISSION)) return { allowed: true, basis: 'credential' }
+    return { allowed: false, status: 403, code: 'forbidden', message: `Forbidden: inviting viewers needs a signed-in person (or the '${COMPLETE_ANY_PERMISSION}' permission)` }
+  }
+  if (facts.isAssignee || facts.isTeamMember) return { allowed: true, basis: 'assignee' }
+  if (input.assignerId && input.assignerId === actorId) return { allowed: true, basis: 'assigner' }
+  if (facts.managedAssigneeId) return { allowed: true, basis: 'manager' }
+  if (facts.isWorkflowManager === true) return { allowed: true, basis: 'workflow_manager' }
+  if (hasPermission(permissions, COMPLETE_ANY_PERMISSION)) return { allowed: true, basis: 'admin' }
+  return {
+    allowed: false, status: 403, code: 'forbidden',
+    message: 'Forbidden: only the people working on this task (assignee, collaborators, the assigner, their managers, a manager of the workflow or an admin) can invite viewers',
+  }
+}
+
+/**
+ * May this person comment on the task (pure)? Everyone who may change it
+ * (tasks.complete on a task they can reach — the earlier rule), and invited
+ * viewers (they read and comment; nothing else).
+ */
+export function decideTaskComment(input: { permissions: ReadonlySet<string> | null; reachable: boolean; viewer: boolean }): boolean {
+  if (input.reachable && hasPermission(input.permissions, 'tasks.complete')) return true
+  if (input.viewer) return hasPermission(input.permissions, 'tasks.view_own') || hasPermission(input.permissions, 'tasks.view_all')
+  return false
+}
+
+/** Load the task and apply decideViewerManagement (throws TaskAuthzError). */
+export async function authorizeViewerManagement(db: any, params: {
+  tenantId: string
+  taskId: string
+  actorId: string | null
+  permissions: ReadonlySet<string> | null
+  columns?: string
+}): Promise<{ task: AuthzTask & Record<string, any>; basis: ViewerManageBasis }> {
+  const columns = params.columns ? `${AUTHZ_TASK_COLUMNS}, assigner_id, title, ${params.columns}` : `${AUTHZ_TASK_COLUMNS}, assigner_id, title`
+  const { data: task, error } = await db.from('tasks').select(columns)
+    .eq('id', params.taskId).eq('tenant_id', params.tenantId).is('deleted_at', null).maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!task) throw new TaskAuthzError(404, 'not_found', 'Task not found')
+  const facts = await loadTaskActorFacts(db, task, params.actorId)
+  const decision = decideViewerManagement({ actorId: params.actorId, permissions: params.permissions, facts, assignerId: task.assigner_id ?? null })
+  if (!decision.allowed) {
+    // Someone who can't even see the task gets 404 (no probing).
+    if (params.actorId && !(await canViewTask(db, { tenantId: params.tenantId, taskId: params.taskId, actorId: params.actorId, permissions: params.permissions }))) {
+      throw new TaskAuthzError(404, 'not_found', 'Task not found')
+    }
+    throw new TaskAuthzError(decision.status, decision.code, decision.message)
+  }
+  return { task, basis: decision.basis }
 }

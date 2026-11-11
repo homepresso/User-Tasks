@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import type { Command } from 'commander'
-import type { UploadedFile, UsertasksClient } from '@usertasks/sdk'
+import type { UploadedFile, UsertasksClient } from '@user-tasks/sdk'
 import { CliUsageError } from '../exit-codes'
 import type { Runtime } from '../runtime'
 

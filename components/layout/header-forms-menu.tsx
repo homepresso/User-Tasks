@@ -65,6 +65,7 @@ export function HeaderFormsTrigger({ open, collapsed, panelId, count, onClick, t
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       aria-label={collapsed ? `Forms (${count})` : undefined}
+      data-tour="forms-menu"
       className={cn(
         "flex h-8 w-full items-center rounded-md text-ui font-medium text-[color:var(--theme-sidebar-text)] transition-colors hover:bg-[var(--sidebar-hover-bg)]",
         collapsed ? "justify-center" : "gap-2 px-2",

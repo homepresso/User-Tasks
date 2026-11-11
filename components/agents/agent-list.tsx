@@ -17,7 +17,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/list-controls'
 import { Tooltip } from '@/components/ui/tooltip'
-import { Table, THead, TBody, TR, TH, TD, TDActions } from '@/components/ui/table'
+import { Table, THead, TBody, TR, TH, TD, TDActions, type ColumnKind } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
@@ -231,10 +231,10 @@ export function AgentList({ agents }: AgentListProps) {
   const allVisibleSelected = pageRows.length > 0 && pageRows.every(agent => selected.has(agent.id))
   const someVisibleSelected = pageRows.some(agent => selected.has(agent.id)) && !allVisibleSelected
 
-  function sortHeader(field: SortField, label: string, numeric?: boolean) {
+  function sortHeader(field: SortField, label: string, numeric?: boolean, col?: ColumnKind) {
     const active = sortBy === field
     return (
-      <TH numeric={numeric} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      <TH numeric={numeric} col={col} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
         <button
           type="button"
           onClick={() => toggleSort(field)}
@@ -432,7 +432,7 @@ export function AgentList({ agents }: AgentListProps) {
             })}
           </div>
         ) : (
-          <Table>
+          <Table label="Agents" stickyFirstColumn stickyColumns={2}>
             <THead>
               <tr>
                 <TH className="w-10">
@@ -443,12 +443,12 @@ export function AgentList({ agents }: AgentListProps) {
                     onChange={toggleSelectAllVisible}
                   />
                 </TH>
-                {sortHeader('name', 'Name')}
-                {sortHeader('model', 'Model')}
-                {sortHeader('tools', 'Tools', true)}
-                <TH>Status</TH>
-                {sortHeader('updated_at', 'Updated')}
-                <TH className="w-12"><span className="sr-only">Actions</span></TH>
+                {sortHeader('name', 'Name', false, 'title')}
+                {sortHeader('model', 'Model', false, 'name')}
+                {sortHeader('tools', 'Tools', true, 'number')}
+                <TH col="status">Status</TH>
+                {sortHeader('updated_at', 'Updated', false, 'date')}
+                <TH col="actions" className="w-12"><span className="sr-only">Actions</span></TH>
               </tr>
             </THead>
             <TBody>
@@ -465,19 +465,19 @@ export function AgentList({ agents }: AgentListProps) {
                         />
                       </span>
                     </TD>
-                    <TD className="w-[40%] max-w-0">
+                    <TD className="max-w-0">
                       <Link href={`/agents/${agent.id}`} className="flex min-w-0 items-center gap-2">
                         <Bot size={14} className="shrink-0 text-primary-text" aria-hidden="true" />
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-fg hover:underline">{agent.name}</span>
-                          {agent.description && <span className="block truncate text-xs text-fg-muted">{agent.description}</span>}
+                          <span className="block truncate font-medium text-fg hover:underline" title={agent.name}>{agent.name}</span>
+                          {agent.description && <span className="block truncate text-xs text-fg-muted" title={agent.description}>{agent.description}</span>}
                         </span>
                       </Link>
                     </TD>
                     <TD>{agent.model ? <Tag mono>{agent.model}</Tag> : <span className="text-fg-muted">—</span>}</TD>
                     <TD numeric className="text-fg-muted">{formatCount((agent.tools as any[])?.length ?? 0)}</TD>
                     <TD><StatusPill status={agent.is_active ? 'active' : 'inactive'} /></TD>
-                    <TD className="text-xs text-fg-muted">
+                    <TD className="whitespace-nowrap text-xs text-fg-muted">
                       {agent.updated_at ? (
                         <Tooltip content={formatAbsolute(agent.updated_at)}>
                           <span className="num">{formatRelative(agent.updated_at)}</span>

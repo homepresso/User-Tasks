@@ -193,7 +193,10 @@ export const reads = {
       const treeData = tree as any
       const db = getDb(ctx) as any
       const task = treeData.task
-      const [tenantResult, assigneeResult, assignerResult, wsResult] = await Promise.all([
+      // getTaskTree also opens tasks shared by an invite (read only): adding subtasks needs real reach.
+      const reachable = tasksService.requireTaskReach({ ...ctx, tenantId: String(task.tenant_id) }, id).then(() => true, () => false)
+      const [depth, tenantResult, assigneeResult, assignerResult, wsResult, canReach] = await Promise.all([
+        task.parent_task_id ? tasksService.taskDepth(ctx, task) : Promise.resolve(0),
         db.from('tenants').select('id, name, slug, branding').eq('id', task.tenant_id).maybeSingle(),
         task.assignee_id
           ? db.from('users').select('display_name').eq('id', task.assignee_id).maybeSingle()
@@ -204,6 +207,7 @@ export const reads = {
         task.workflow_source_id
           ? db.from('workflow_sources').select('engine_type, display_name').eq('id', task.workflow_source_id).maybeSingle()
           : Promise.resolve({ data: null }),
+        reachable,
       ])
       return {
         treeData,
@@ -211,6 +215,12 @@ export const reads = {
         assigneeName: (assigneeResult.data?.display_name ?? null) as string | null,
         assignerName: (assignerResult.data?.display_name ?? null) as string | null,
         workflowSource: wsResult.data as any,
+        /** How many levels down this task is, and whether the person may add subtasks here (lib/services/tasks canAddSubtask). */
+        subtaskDepth: depth,
+        canAddSubtasks: tasksService.canAddSubtask({
+          canComplete: hasPerm(ctx, 'tasks.complete'), reachable: canReach,
+          closed: task.status === 'completed' || task.status === 'cancelled', depth,
+        }),
       }
     },
   }),
@@ -281,11 +291,28 @@ export const reads = {
     },
   }),
 
-  /** Open tasks to link as a dependency (picker, 8 newest matching). */
+  /**
+   * Open tasks to link as a dependency (picker, 8 newest matching). People
+   * with task oversight (tasks.view_all / tasks.manage_queue) search the
+   * workspace; everyone else the tasks they can see (search_visible_tasks →
+   * task_view_access: their own, their team's and reports', ones they
+   * assigned, and ones shared with them by an invite).
+   */
   'tasks.dependencyCandidates': defineRead({
     args: z.object({ excludeTaskId: id, search: search.optional() }),
     perm: TASK_VIEW,
     run: async (ctx, { excludeTaskId, search }) => {
+      const broad = ctx.permissions === null || ctx.permissions.has('tasks.view_all') || ctx.permissions.has('tasks.manage_queue')
+      if (!broad && ctx.actorId) {
+        const db = getDb(ctx) as any
+        // Until 20270105000000 is applied (no such function) the workspace search below answers.
+        const { data, error } = typeof db.rpc === 'function'
+          ? await db.rpc('search_visible_tasks', {
+            p_user_id: ctx.actorId, p_tenant_id: await currentTenantId(ctx), p_search: search?.trim() || null, p_exclude: excludeTaskId, p_limit: 8,
+          })
+          : { data: null, error: { message: 'no rpc' } }
+        if (!error) return (Array.isArray(data) ? data : []).map((t: any) => ({ id: String(t.id), label: String(t.title ?? '') }))
+      }
       let q = (getDb(ctx) as any)
         .from('tasks')
         .select('id, title, status')

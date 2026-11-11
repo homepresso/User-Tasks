@@ -13,11 +13,14 @@ import {
 import { customOutputEntries, customOutputError, nativeCustomValue } from '@/lib/forms/custom-controls/output'
 import { normalizeAutocomplete } from '@/lib/forms/autocomplete'
 import { normalizeFieldButton, type FieldButtonConfig } from '@/lib/forms/field-buttons'
-import { ruleClaimGate, ruleHiddenFieldKeys, ruleReadOnlyFieldKeys, ruleValidationErrors, ruleWrittenReadOnlyValues } from '@/lib/forms/form-rules'
+import { layoutFormRules, ruleClaimGate, ruleHiddenFieldKeys, ruleReadOnlyFieldKeys, ruleValidationErrors, ruleWrittenReadOnlyValues } from '@/lib/forms/form-rules'
 import { excludedSectionFieldKeys, isSectionIncluded, layoutSections, sectionConditionValue, sectionIncludedKeys, sectionInclusionPatch, sectionRuleHiddenFieldKeys } from '@/lib/forms/sections'
 import {
   changeCount, dataTableConfigProblem, isChangeSet, normalizeDataTableConfig, validateChangeSet, validateSelection, type DataTableFieldConfig,
 } from '@/lib/forms/data-table'
+import { allActions } from '@/lib/forms/field-buttons'
+import { ruleOptionFields } from '@/lib/forms/data-actions'
+import { checkListValue, coerceListRows, keepReadOnlyListColumns, listConfigProblem, listDerivedKeys, listDerivedValues, normalizeListConfig, type ListFieldConfig } from '@/lib/forms/list-field'
 import {
   FORM_STATE_KEY, formStateConfig, hiddenPageIds, normalizeStateRuleField, sanitizeFormState, stateHiddenFieldKeys, stateRuleFlag, type FormUiState,
 } from '@/lib/forms/form-state'
@@ -46,13 +49,15 @@ export type TaskFieldType =
   | 'text' | 'textarea' | 'number' | 'currency' | 'email' | 'phone' | 'url'
   | 'date' | 'datetime' | 'boolean' | 'choice' | 'multi_choice' | 'user'
   | 'lookup' | 'attachments' | 'heading' | 'divider' | 'custom' | 'button' | 'data_table' | 'label'
+  /** Repeating rows kept in the submission (lib/forms/list-field.ts). */
+  | 'list'
   /** Survey controls (lib/forms/survey/controls.ts). */
   | 'rating' | 'nps' | 'likert' | 'matrix' | 'slider' | 'csat' | 'ranking' | 'image_choice' | 'yes_no_maybe'
 
 export const TASK_FIELD_TYPES: TaskFieldType[] = [
   'text', 'textarea', 'number', 'currency', 'email', 'phone', 'url',
   'date', 'datetime', 'boolean', 'choice', 'multi_choice', 'user',
-  'lookup', 'attachments', 'heading', 'divider', 'custom', 'button', 'data_table', 'label',
+  'lookup', 'attachments', 'heading', 'divider', 'custom', 'button', 'data_table', 'label', 'list',
   ...SURVEY_FIELD_TYPES,
 ]
 
@@ -81,6 +86,7 @@ export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
   button: 'Button',
   data_table: 'Data table',
   label: 'Label',
+  list: 'List (repeating rows)',
   ...SURVEY_FIELD_LABELS,
 }
 
@@ -155,6 +161,12 @@ export interface TaskFieldDef {
   button?: FieldButtonConfig
   /** data_table only: rows from a data table / API reference, the query the author set up, the mode (lib/forms/data-table.ts). */
   data_table?: DataTableFieldConfig
+  /**
+   * list only: the columns of the rows people add on the form, row limits,
+   * entry mode (inputs + Add, or an editable table), totals and display
+   * (lib/forms/list-field.ts). The value is an array of row objects.
+   */
+  list?: ListFieldConfig
   /**
    * label only: display text whose value comes from an expression, rules or
    * the default — format, prefix / suffix, "Include in submission"
@@ -269,10 +281,19 @@ function cleanString(value: unknown, max = 500): string | undefined {
   return s ? s.slice(0, max) : undefined
 }
 
-function normalizeOptions(raw: unknown): { options: string[]; labels: Record<string, string> } {
+function normalizeOptions(raw: unknown, storedLabels?: unknown): { options: string[]; labels: Record<string, string> } {
   const options: string[] = []
   const labels: Record<string, string> = {}
   if (!Array.isArray(raw)) return { options, labels }
+  // Labels stored beside plain options (`option_labels`, as a saved field keeps them) are kept on a re-read.
+  if (isPlainObject(storedLabels)) {
+    const out = normalizeOptions(raw)
+    for (const [value, label] of Object.entries(storedLabels)) {
+      const text = typeof label === 'string' ? label.trim() : ''
+      if (out.options.includes(value) && text && text !== value && !out.labels[value]) out.labels[value] = text.slice(0, 200)
+    }
+    return out
+  }
   for (const entry of raw) {
     let value: string
     let label: string | undefined
@@ -341,7 +362,7 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
     }
     if (entry.required === true) field.required = true
     if (CHOICE_TYPES.has(type)) {
-      const { options, labels } = normalizeOptions(entry.options)
+      const { options, labels } = normalizeOptions(entry.options, entry.option_labels)
       field.options = options
       if (Object.keys(labels).length) field.option_labels = labels
       if (isPlainObject(entry.options_source) && typeof entry.options_source.table_id === 'string' && typeof entry.options_source.column === 'string'
@@ -352,13 +373,26 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
     }
     if (SURVEY_OPTION_TYPES.has(type)) {
       // Survey controls with options (lib/forms/survey/controls.ts): a fixed list, no table / dynamic source.
-      const { options, labels } = normalizeOptions(entry.options)
+      const { options, labels } = normalizeOptions(entry.options, entry.option_labels)
       field.options = options.slice(0, 50)
       const kept = Object.fromEntries(Object.entries(labels).filter(([v]) => field.options!.includes(v)))
       if (Object.keys(kept).length) field.option_labels = kept
     }
     if (type === 'lookup') field.lookup = normalizeLookupConfig(entry.lookup)
     if (type === 'data_table') field.data_table = normalizeDataTableConfig(entry.data_table)
+    if (type === 'list') {
+      // Repeating rows (lib/forms/list-field.ts): the config, help, visibility and rules — no placeholder, default or bounds.
+      field.list = normalizeListConfig(entry.list)
+      const help = cleanString(entry.help_text, 2000)
+      if (help) field.help_text = help
+      if (entry.read_only === true) field.read_only = true
+      const visible = normalizeVisibleWhen(entry.visible_when)
+      if (visible && visible.field !== key) field.visible_when = visible
+      const dynamic = normalizeDynamicBindings(entry.dynamic, field)
+      if (dynamic) field.dynamic = dynamic
+      out.push(field)
+      continue
+    }
     if (type === 'label') {
       // Display text (lib/forms/label-field.ts): no input properties; its caption, help, default, visibility and config.
       delete field.required
@@ -461,6 +495,9 @@ export function fieldDefinitionProblems(fields: TaskFieldDef[]): Record<string, 
       problems[field.key] = labelProblem(field, fields)!
     } else if (field.type === 'data_table' && dataTableConfigProblem(field.data_table)) {
       problems[field.key] = dataTableConfigProblem(field.data_table)!
+    } else if (field.type === 'list' && (listConfigProblem(field.list) || listDerivedKeys(field.key, field.list).some((k) => keys.has(k)))) {
+      const clash = listDerivedKeys(field.key, field.list).find((k) => keys.has(k))
+      problems[field.key] = listConfigProblem(field.list) ?? `Another field uses the key "${clash}" (this list stores its row count / totals there)`
     } else if (field.type === 'custom' && customControlConfigProblem(field.custom, valueKeys.filter((k) => k !== field.key))) {
       problems[field.key] = customControlConfigProblem(field.custom, valueKeys.filter((k) => k !== field.key))!
     } else if (isSurveyType(field.type) && surveyConfigProblem(field)) {
@@ -561,7 +598,8 @@ export function isRuleMet(cond: VisibleWhen | null | undefined, values: Record<s
   const state = flag ? (values ?? {})[FORM_STATE_KEY] : undefined
   const raw = flag ? (isPlainObject(state) && isPlainObject(state.flags) ? state.flags[flag] === true : false) : (values ?? {})[cond.field]
   // A Data table's change set reads as its number of changes ("has a value" = something changed).
-  const other = isChangeSet(raw) ? (changeCount(raw) || null) : raw
+  // A List's rows (objects) read as how many rows there are ("has a value" = at least one row; "equals 3").
+  const other = isChangeSet(raw) ? (changeCount(raw) || null) : Array.isArray(raw) && raw.length > 0 && raw.every(isPlainObject) && !raw.some((r) => 'storage_ref' in r) ? raw.length : raw
   const target = String(cond.value ?? '').trim().toLowerCase()
   const asText = (v: unknown) => (typeof v === 'boolean' ? String(v) : String(v ?? '').trim().toLowerCase())
   switch (cond.operator) {
@@ -630,6 +668,8 @@ export interface ValidateOptions {
    * and no error on a field of another step.
    */
   step?: { keys: ReadonlySet<string> } | null
+  /** Choice fields whose options a rule loads from a table / API (any value of theirs is taken; lib/forms/data-actions.ts). */
+  looseOptions?: ReadonlySet<string> | null
 }
 
 /** Fields hidden for these values (with the sanitized state): hidden pages, state targets, Always rules, sections. */
@@ -731,6 +771,12 @@ export function validateTaskFieldValues(
       else if (required && !changeCount(changes)) errors[field.key] = `${field.label}: make at least one change`
       continue
     }
+    if (field.type === 'list') {
+      // Repeating rows (lib/forms/list-field.ts): every row's columns, min / max rows; required = at least one row.
+      const check = checkListValue(field.list, value, Boolean(required))
+      if (check.errors.length && visible) errors[field.key] = `${field.label}: ${check.errors.slice(0, 3).join('; ')}`
+      continue
+    }
     if (field.type === 'boolean') {
       if (!isBlank(value) && toBoolean(value) === null) {
         errors[field.key] = `${field.label} must be true or false`
@@ -755,7 +801,7 @@ export function validateTaskFieldValues(
       continue
     }
     if (!visible) continue
-    const error = valueError(field, value)
+    const error = valueError(field, value, Boolean(options.looseOptions?.has(field.key)))
     if (error) errors[field.key] = error
   }
   // Validate rules (field errors, blocked submits) — the same check the server runs at submit.
@@ -770,7 +816,7 @@ export function validateTaskFieldValues(
   return errors
 }
 
-function valueError(field: TaskFieldDef, value: unknown): string | null {
+function valueError(field: TaskFieldDef, value: unknown, looseOptions = false): string | null {
   const label = field.label
   if (field.type === 'attachments') return attachmentsValueError(field, value)
   if (field.type === 'lookup') {
@@ -789,7 +835,7 @@ function valueError(field: TaskFieldDef, value: unknown): string | null {
     const allowed = field.options ?? []
     // Options from a binding not resolved here (the browser before they load): the server resolves them
     // for the submission and judges against those (lib/services/form-dynamic-values.ts), never this list.
-    const bad = hasUnresolvedOptions(field) ? [] : list.filter((v) => !allowed.includes(v))
+    const bad = hasUnresolvedOptions(field) || looseOptions ? [] : list.filter((v) => !allowed.includes(v))
     if (bad.length) return `${label} must be from: ${allowed.join(', ')}`
     if (field.min !== undefined && list.length < field.min) return `${label}: choose at least ${field.min}`
     if (field.max !== undefined && list.length > field.max) return `${label}: choose at most ${field.max}`
@@ -815,7 +861,7 @@ function valueError(field: TaskFieldDef, value: unknown): string | null {
     }
     case 'choice': {
       const options = field.options ?? []
-      if (!hasUnresolvedOptions(field) && !options.includes(s)) return `${label} must be one of: ${options.join(', ')}`
+      if (!hasUnresolvedOptions(field) && !looseOptions && !options.includes(s)) return `${label} must be one of: ${options.join(', ')}`
       return null
     }
     case 'user':
@@ -879,6 +925,7 @@ function coerceOne(field: TaskFieldDef, value: unknown): TaskFieldValue {
     return (typed === undefined || (typeof typed === 'string' && typed.trim() === '') ? null : typed) as TaskFieldValue
   }
   if (isSurveyType(field.type)) return coerceSurveyValue(field, value) as TaskFieldValue
+  if (field.type === 'list') return coerceListRows(field.list, value) as unknown as TaskFieldValue
   if (field.type === 'boolean') return toBoolean(value) ?? false
   if (field.type === 'multi_choice') return toStringArray(value)
   if (field.type === 'lookup' && field.lookup?.multiple) return lookupValues(value, true)
@@ -904,8 +951,9 @@ export function defaultTaskFieldValues(
   const raw: Record<string, unknown> = {}
   for (const field of fields) {
     if (isDisplayField(field)) continue
-    if (field.default !== undefined) raw[field.key] = resolve(field.default)
+    if (field.default !== undefined && field.type !== 'list') raw[field.key] = resolve(field.default)
     else if (field.type === 'data_table') raw[field.key] = field.data_table?.mode === 'select' ? [] : null
+    else if (field.type === 'list') raw[field.key] = []
     else raw[field.key] = field.type === 'boolean' ? false : field.type === 'multi_choice' || field.type === 'attachments' || (field.type === 'lookup' && field.lookup?.multiple) || (isSurveyType(field.type) && isMultiSurvey(field)) ? [] : null
   }
   return coerceTaskFieldValues(fields, raw)
@@ -970,6 +1018,13 @@ export function mergeTaskFieldValues(
       submitted[field.key] = field.type === 'custom' && field.custom?.output ? nativeCustomValue(field.custom, field.key, values, existing) : values[field.key]
     }
   }
+  // List rows the form opened with (matched by the List's key column) keep their read-only columns (lib/forms/list-field.ts).
+  for (const field of editable) {
+    if (field.type !== 'list' || !Object.prototype.hasOwnProperty.call(submitted, field.key)) continue
+    const kept = keepReadOnlyListColumns(field.list, submitted[field.key], existing[field.key])
+    if (kept.restored.length) console.warn(`[forms.list] ${field.key}: read-only column(s) ${kept.restored.join(', ')} kept their stored values`)
+    submitted[field.key] = kept.rows
+  }
   // A steps / tabs form: fields on a hidden page are not required (judged on the full values).
   // The in-form buttons' state is judged as declared (sanitizeFormState); it is never stored.
   const layout = meta.form_layout
@@ -993,9 +1048,11 @@ export function mergeTaskFieldValues(
     ? serverLabelValues(fields, layout, base, { sent: values, stored: existing, rows: options.labelRows })
     : {}
   const judged = { ...base, ...labelValues }
+  // Choice fields a rule fills with options from a table / API: their value is taken like a click (the options aren't known here).
+  const looseOptions = ruleOptionFields(layoutFormRules(layout).flatMap((r) => allActions(r.then)))
   const errors = options.partial
-    ? validateTaskFieldValues(fields, submitted, { partial: true })
-    : validateTaskFieldValues(fields, judged, { layout, buttonIds: options.buttonIds ?? null })
+    ? validateTaskFieldValues(fields, submitted, { partial: true, looseOptions })
+    : validateTaskFieldValues(fields, judged, { layout, buttonIds: options.buttonIds ?? null, looseOptions })
   const templateValues: Record<string, unknown> = {
     ...existing,
     ...coerceTaskFieldValues(editable, submitted),
@@ -1009,6 +1066,11 @@ export function mergeTaskFieldValues(
     const patch = sectionInclusionPatch(layout, judged)
     const blanked = fields.filter((f) => patch.blank.includes(f.key) && !isDisplayField(f))
     Object.assign(templateValues, coerceTaskFieldValues(blanked, Object.fromEntries(blanked.map((f) => [f.key, null]))), patch.included)
+  }
+  // List fields (lib/forms/list-field.ts): `<key>_count` and the totals, recomputed from the checked rows.
+  for (const field of fields) {
+    if (field.type !== 'list' || !Object.prototype.hasOwnProperty.call(templateValues, field.key)) continue
+    Object.assign(templateValues, listDerivedValues(field.key, field.list, templateValues[field.key]))
   }
   // Custom control outputs (lib/forms/custom-controls/output.ts): `<key>` becomes the main output
   // (typed, HTML sanitised), the value stays under `<key>_raw`, extras beside it — recomputed here
@@ -1026,7 +1088,7 @@ export function mergeTaskFieldValues(
 export function fieldValueSchemaType(type: TaskFieldType): 'string' | 'number' | 'boolean' | 'array' | 'object' {
   if (type === 'number' || type === 'currency' || type === 'rating' || type === 'nps' || type === 'slider' || type === 'csat') return 'number'
   if (type === 'boolean') return 'boolean'
-  if (type === 'multi_choice' || type === 'attachments' || type === 'ranking') return 'array'
+  if (type === 'multi_choice' || type === 'attachments' || type === 'ranking' || type === 'list') return 'array'
   if (type === 'data_table' || type === 'matrix') return 'object'
   return 'string'
 }

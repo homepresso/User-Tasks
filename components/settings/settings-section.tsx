@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
  * title (16/600) and description (13 muted) in a 240px left column, the
  * controls on the right, a hairline between sections. Stacks below lg.
  */
-export function SettingsSection({ title, description, children, className, id, aside }: {
+export function SettingsSection({ title, description, children, className, id, aside, tour }: {
   title: ReactNode
   description?: ReactNode
   children: ReactNode
@@ -18,10 +18,13 @@ export function SettingsSection({ title, description, children, className, id, a
   id?: string
   /** Extra content under the description (a docs link, a status pill). */
   aside?: ReactNode
+  /** data-tour name for the getting-started guide's spotlight (lib/onboarding/tours.ts). */
+  tour?: string
 }) {
   return (
     <section
       id={id}
+      data-tour={tour}
       aria-labelledby={id ? `${id}-title` : undefined}
       className={cn(
         "grid gap-x-8 gap-y-4 border-b border-border-subtle py-6 first:pt-0 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)]",

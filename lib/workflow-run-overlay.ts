@@ -59,9 +59,11 @@ export interface RunOverlay {
  * that also have a result. Results of unreachable steps (stale entries from
  * a previous version) are ignored.
  */
-export function executedNodeIds(input: Pick<RunOverlayInput, 'nodes' | 'edges' | 'nodeResults' | 'pausedNodeId' | 'entryNodeId'>): Set<string> {
-  const { nodes, edges, nodeResults, pausedNodeId, entryNodeId } = input
-  const has = (id: string) => !!nodeResults[id] || id === pausedNodeId
+export function executedNodeIds(input: Pick<RunOverlayInput, 'nodes' | 'edges' | 'nodeResults' | 'pausedNodeId' | 'entryNodeId' | 'visits'>): Set<string> {
+  const { nodes, edges, nodeResults, pausedNodeId, entryNodeId, visits } = input
+  // A step counts when it has a result, is the paused step, or the run's trace visited it
+  // (a User Task that waited and resumed may have no stored result of its own).
+  const has = (id: string) => !!nodeResults[id] || id === pausedNodeId || (visits?.[id] ?? 0) > 0
   const targets = new Set(edges.map((e) => e.target))
   const executed = new Set<string>()
   for (const n of nodes) if (has(n.id) && !targets.has(n.id)) executed.add(n.id)
@@ -124,7 +126,7 @@ export function computeRunOverlay(input: RunOverlayInput): RunOverlay {
     const join = joinWaitingOf(r)
     if (activeNodeId === n.id) status = 'running'
     else if (runWaiting && pausedNodeId === n.id) status = 'waiting'
-    else if (!r) status = 'not_run'
+    else if (!r) status = executed.has(n.id) && (visits?.[n.id] ?? 0) > 0 ? 'completed' : 'not_run'
     // A Parallel join (or another branch's wait) the paused run is still waiting on.
     else if (join || r.output?._parallel_wait) status = runWaiting ? 'waiting' : 'not_run'
     else if (r.status === 'error') status = 'failed'

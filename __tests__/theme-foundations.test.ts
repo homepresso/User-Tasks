@@ -57,7 +57,9 @@ describe('fonts', () => {
 describe('Gallery and Atelier follow the device into dark', () => {
   it.each(['basecamp', 'trailside'])('%s has its own dark palette on a dark canvas', (id) => {
     const t = presetToWorkspaceTheme(id)!
-    expect(t.meta.mode).toBe('auto')
+    // Gallery (the platform default) starts in light mode; Follow device turns its dark palette on.
+    expect(t.meta.mode).toBe(id === 'basecamp' ? 'light' : 'auto')
+    t.meta.mode = 'auto'
     expect(t.colors.dark).not.toEqual(t.colors.light)
     expect(isDarkColor(t.colors.dark.surface)).toBe(true)
     expect(isDarkColor(t.colors.dark.cardBg)).toBe(true)
@@ -203,6 +205,7 @@ describe('stored-theme migration (20261221000000_theme_defaults_refresh)', () =>
   it('a pre-foundations Gallery theme, rewritten as the migration does, is valid and renders dark', () => {
     // The stored copy of Gallery before this change: DM Sans / Space Mono, Fraunces headings, dark = light.
     const old: WorkspaceTheme = defaultWorkspaceTheme()
+    old.meta.mode = 'auto'
     old.typography.sans = { source: 'google', family: 'DM Sans' }
     old.typography.mono = { source: 'google', family: 'Space Mono' }
     old.typography.headingFont = 'display'

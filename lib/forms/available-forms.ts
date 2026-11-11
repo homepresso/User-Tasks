@@ -18,6 +18,8 @@ export interface AvailableForm {
   description: string | null
   /** The friendly link name (/form/<system_name> on a workspace address). */
   system_name?: string | null
+  /** The form's tags (lower-case), searchable in the menus. */
+  tags?: string[]
 }
 
 /** More forms than this and the sidebar menu gets a search box. */
@@ -85,10 +87,24 @@ function foldChars(text: string): string | null {
 }
 
 /** The forms whose name (or description) contains the query, keeping their order. */
-export function filterAvailableForms<T extends Pick<AvailableForm, 'name' | 'description'>>(forms: readonly T[], query: string): T[] {
-  const q = fold(query.trim())
+export function filterAvailableForms<T extends Pick<AvailableForm, 'name' | 'description' | 'tags'>>(forms: readonly T[], query: string): T[] {
+  const raw = query.trim()
+  // "#tag" (or "tag:tag") matches that tag exactly; plain text matches the name, the description or a tag.
+  const tagOnly = /^(?:#|tag:)\s*(.+)$/i.exec(raw)
+  if (tagOnly) {
+    const t = fold(tagOnly[1].trim())
+    return forms.filter((form) => (form.tags ?? []).some((tag) => fold(tag) === t))
+  }
+  const q = fold(raw)
   if (!q) return [...forms]
-  return forms.filter((form) => fold(form.name).includes(q) || fold(form.description ?? '').includes(q))
+  return forms.filter((form) => fold(form.name).includes(q) || fold(form.description ?? '').includes(q) || (form.tags ?? []).some((tag) => fold(tag).includes(q)))
+}
+
+/** The tags used by these forms, most common first (ties alphabetical). */
+export function availableFormTags(forms: readonly Pick<AvailableForm, 'tags'>[], limit = 12): string[] {
+  const counts = new Map<string, number>()
+  for (const form of forms) for (const tag of form.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, limit).map(([tag]) => tag)
 }
 
 /** The name split around the first match of the query, for highlighting. */

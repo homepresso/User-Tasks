@@ -17,6 +17,7 @@
  * the search box filters them in the browser (lib/search/pages).
  */
 
+import { formDesignerHref } from '@/lib/forms/designer-links'
 import { escapeLikePattern } from '@/lib/utils'
 import { formPageOf } from '@/lib/forms/form-page'
 import { rankByMatch } from '@/lib/search/rank'
@@ -187,7 +188,7 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
             title: f.name,
             subtitle: page ? join('Form page', page.workflow_name && `starts ${page.workflow_name}`) : join(`Form v${f.version ?? 1}`, f.description),
             // Search opens the form to fill in (runtime); only people who can't submit land in the library.
-            href: can('forms.submit') ? `/fill/${f.id}` : `/automations/forms?q=${enc(f.name)}&open=${f.id}`,
+            href: can('forms.submit') ? `/fill/${f.id}` : formDesignerHref(f.id),
             ...(can('forms.submit') && f.system_name ? { friendly_href: `/form/${enc(f.system_name)}` } : {}),
           }
         },

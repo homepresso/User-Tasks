@@ -2,9 +2,10 @@
  * The Agent's task help tools (server side). The task and its history are read as
  * the signed-in person (session client: RLS decides what they can see) and
  * passed to the model as untrusted data. Drafts and suggestions are events
- * the browser shows; there is deliberately no tool that completes, approves,
- * rejects or escalates a task, or posts a comment. Taking ownership,
- * reassigning and claiming (confirmed writes) live in ./task-assign.ts.
+ * the browser shows; nothing here completes, approves, rejects or escalates
+ * a task, or posts a comment. Completing / responding (confirmed writes,
+ * when the workspace allows it) live in ./task-actions.ts; taking ownership,
+ * reassigning and claiming in ./task-assign.ts.
  */
 import type { AssistantToolDef } from '../engine'
 import type { FormSnapshot } from '../types'
@@ -86,7 +87,7 @@ export function taskTools(task: TaskContext, snapshot: FormSnapshot | null, load
   if (canAct && task.outcomes.length) {
     tools.push({
       name: 'suggest_outcome',
-      description: `Suggest which outcome the person might choose, with your reasoning. They decide and choose it themselves — this never completes the task. Options: ${task.outcomes.join(', ')}.`,
+      description: `Suggest which outcome the person might choose, with your reasoning. They decide — this never completes the task (only task_complete does, when they explicitly ask). Options: ${task.outcomes.join(', ')}.`,
       parameters: {
         type: 'object',
         properties: {

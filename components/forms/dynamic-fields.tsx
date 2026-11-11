@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { serverRead } from '@/lib/server-read'
 import {
-  applyDynamicValues, bindingInputs, bindingReadsUser, coerceDynamicValue, expectedType, isSourceBinding, resolveExpression,
+  applyDynamicValues, bindingInputs, bindingReadsUser, blankInputsBehaviour, coerceDynamicValue, expectedType, isSourceBinding, resolveExpression, restrictsToList, staleChoiceValue,
   type DynamicBinding, type DynamicValueType,
 } from '@/lib/forms/dynamic-values'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
@@ -115,7 +115,8 @@ export function useDynamicFields(fields: TaskFieldDef[], values: Record<string, 
   const sourceKey = source ? (source.kind === 'task' ? `task:${source.taskId}` : source.kind === 'form' ? `form:${source.formId}${anonymous ? ':anon' : ''}` : 'preview') : 'none'
   const results = useQueries({
     queries: sources.map((b, i) => {
-      const blocked = anonymous && isSourceBinding(b.binding) && b.binding.anonymous_read !== true
+      // A cascade's parent not chosen yet: options aren't asked for (cleared or kept).
+      const blocked = (anonymous && isSourceBinding(b.binding) && b.binding.anonymous_read !== true) || (b.prop === 'options' && blankInputsBehaviour(b.binding, deps[i] ?? EMPTY) !== null)
       const req: SourceRequest = { ...b, deps: deps[i] ?? EMPTY }
       return {
         queryKey: ['form-dynamic-value', sourceKey, b.field.key, b.prop, source?.kind === 'preview' ? JSON.stringify(b.binding) : '', JSON.stringify(req.deps)],
@@ -147,6 +148,9 @@ export function useDynamicFields(fields: TaskFieldDef[], values: Record<string, 
         mark(b.field.key, b.prop, { empty: true })
         return
       }
+      const blank = b.prop === 'options' ? blankInputsBehaviour(b.binding, values) : null
+      if (blank === 'clear') { set(b.field.key, b.prop, []); mark(b.field.key, b.prop, { empty: true }); return }
+      if (blank === 'keep') return
       const r = results[i]
       if (r?.data) {
         set(b.field.key, b.prop, r.data.value)
@@ -167,7 +171,8 @@ export function useDynamicFields(fields: TaskFieldDef[], values: Record<string, 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- statusKey stands for resolved.status
   const status = useMemo(() => resolved.status, [statusKey])
 
-  // Bound defaults: fill an empty field (or one still holding the previous bound default).
+  // Bound defaults: fill an empty field (or one still holding the previous bound default) — again after it is emptied (a List's Add resets its inputs).
+  const emptiedKey = Object.keys(resolved.out).filter((k) => Object.prototype.hasOwnProperty.call(resolved.out[k], 'default') && isBlank(values[k])).join('|')
   const applied = useRef<Record<string, string>>({})
   const valuesRef = useRef(values)
   valuesRef.current = values
@@ -178,14 +183,31 @@ export function useDynamicFields(fields: TaskFieldDef[], values: Record<string, 
       const text = JSON.stringify(props.default)
       const current = valuesRef.current[key]
       const previous = applied.current[key]
-      if (previous === text) continue
+      // Applied before and still there (or changed by the person): leave it. Emptied (an "Add row" reset): apply again.
+      if (previous === text && !isBlank(current)) continue
       if (isBlank(current) || (previous !== undefined && JSON.stringify(current) === previous)) {
         applied.current[key] = text
         onChange(key, props.default)
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- resolvedKey stands for resolved.out
-  }, [resolvedKey, onChange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- resolvedKey stands for resolved.out; emptiedKey re-runs it when a bound field is emptied
+  }, [resolvedKey, onChange, emptiedKey])
+
+  // Cascades: a dependent choice's value its new options no longer offer is cleared (a valid one — a draft's,
+  // a prefilled one — is kept). Only once the options are in (never while they load or failed).
+  useEffect(() => {
+    if (!onChange) return
+    for (const b of sources) {
+      if (b.prop !== 'options' || (b.field.type !== 'choice' && b.field.type !== 'multi_choice') || !restrictsToList(b.binding)) continue
+      const s = resolved.status[b.field.key]?.options
+      if (s?.loading || s?.error) continue
+      const options = resolved.out[b.field.key]?.options
+      if (options === undefined) continue
+      const fixed = staleChoiceValue(b.field.type, valuesRef.current[b.field.key], options)
+      if (fixed !== undefined) onChange(b.field.key, fixed)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- resolvedKey / statusKey stand for resolved
+  }, [resolvedKey, statusKey, onChange])
 
   return { fields: next, status }
 }

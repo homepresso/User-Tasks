@@ -1,5 +1,5 @@
 /**
- * @usertasks/pg-query — PostgREST, in-process.
+ * @user-tasks/pg-query — PostgREST, in-process.
  *
  * supabase-js / postgrest-js clients keep their whole API; their REST
  * requests are answered by this package over a `pg` Pool instead of by a

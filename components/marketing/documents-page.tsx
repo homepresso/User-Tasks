@@ -21,6 +21,7 @@ import {
   Upload,
   Zap,
 } from "lucide-react"
+import { ProductHero } from "@/components/marketing/product-hero"
 import { MarketingFooter, MarketingHeader, SectionHeading, Shot, Snippet } from "@/components/marketing/marketing-ui"
 import { SCREENSHOTS } from "@/lib/docs/screenshots"
 import { DOCUMENTS_PAGE } from "@/lib/marketing-pages"
@@ -138,28 +139,21 @@ export function DocumentsPage() {
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <MarketingHeader />
+      <MarketingHeader tone="night" />
 
       <main>
         {/* Hero */}
-        <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
-          <div className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span><span aria-current="page">{DOCUMENTS_PAGE.eyebrow}</span></nav>
-            <p className="mt-8 inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-gold)/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">
-              <Files size={13} aria-hidden="true" /> {DOCUMENTS_PAGE.eyebrow}
-            </p>
-            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">Read, compare and transform documents inside your workflows.</h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
-              Seven workflow steps work with <strong className="text-(color:--mkt-ink)">Word, Excel, PowerPoint, PDF, Markdown and HTML</strong> files right in the run: read them into text and rows, redline two versions, convert and split, pull values into a data table, remove personal data. No document service to buy or host — scanned PDFs and pixel-perfect Office to PDF are optional add-ons.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href={DOC} className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Document actions guide <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <a href="#how-tos" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                Four how-to guides
-              </a>
-            </div>
+        <ProductHero
+          crumb="Documents"
+          eyebrow="Documents"
+          icon={Files}
+          title={<>Read, compare and transform documents <span className="mkt-gradient-text">inside your workflows.</span></>}
+          intro={<>Seven workflow steps work with <strong className="text-white">Word, Excel, PowerPoint, PDF, Markdown and HTML</strong> files right in the run: read them into text and rows, redline two versions, convert and split, pull values into a data table, remove personal data. No document service to buy or host — scanned PDFs and pixel-perfect Office to PDF are optional add-ons.</>}
+          primary={{ href: DOC, label: "Document actions guide" }}
+          secondary={{ href: "#how-tos", label: "Four how-to guides" }}
+        />
+        <section className="relative">
+          <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
             <div className="mt-12">
               <Shot name="documents-read" alt="The workflow designer with the document actions in the palette and Read Document reading an uploaded Excel workbook" sizes="(min-width: 1152px) 1104px, 100vw" priority />
             </div>
@@ -355,7 +349,7 @@ export function DocumentsPage() {
           <div className="mt-8 space-y-3">
             {FAQS.map((faq) => (
               <details key={faq.question} className="group rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5">
-                <summary className="cursor-pointer list-none font-semibold">{faq.question}</summary>
+                <summary className="cursor-pointer list-none"><h3 className="inline font-semibold">{faq.question}</h3></summary>
                 <p className="mt-3 text-sm leading-7 text-(color:--mkt-muted)">{faq.answer}</p>
               </details>
             ))}

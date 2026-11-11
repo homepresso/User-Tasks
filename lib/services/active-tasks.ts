@@ -43,6 +43,8 @@ export interface ActiveTask {
   waiting_since: string | null
   workflow: { id: string; name: string } | null
   run_id: string | null
+  /** When the workflow run behind the task was started. */
+  run_started_at: string | null
   assignee: { id: string; name: string } | null
   team: { id: string; name: string } | null
   /** Collaborators / claim candidates besides the assignee. */
@@ -140,11 +142,14 @@ export async function listActiveTasks(ctx: ServiceContext, filters: Partial<Acti
   const tasks = (rows ?? []) as any[]
   const workflowIds = [...new Set([...((wfRows.data ?? []) as any[]).map((r) => r.workflow_id).filter(Boolean), ...tasks.map((t) => t.workflow_id)].filter(Boolean).map(String))]
   const taskIds = tasks.map((t) => String(t.id))
-  const [workflowsResult, collabResult, reporting] = await Promise.all([
+  const runIds = [...new Set(tasks.map((t) => t.workflow_run_id).filter(Boolean).map(String))]
+  const [workflowsResult, collabResult, reporting, runsResult] = await Promise.all([
     workflowIds.length ? db.from('workflows').select('id, name').eq('tenant_id', ctx.tenantId).in('id', workflowIds) : Promise.resolve({ data: [] }),
     taskIds.length ? db.from('task_assignees').select('task_id, user_id, role').eq('tenant_id', ctx.tenantId).in('task_id', taskIds) : Promise.resolve({ data: [] }),
     loadReportingIndex(db, ctx.tenantId),
+    runIds.length ? db.from('workflow_runs').select('id, started_at').in('id', runIds) : Promise.resolve({ data: [] }),
   ])
+  const runStarted = new Map(((runsResult.data ?? []) as any[]).map((r) => [String(r.id), r.started_at ? String(r.started_at) : null]))
   const collabs = new Map<string, any[]>()
   for (const c of (collabResult.data ?? []) as any[]) collabs.set(String(c.task_id), [...(collabs.get(String(c.task_id)) ?? []), c])
   const teamIds = [...new Set(tasks.map((t) => t.assigned_team_id).filter(Boolean).map(String))]
@@ -185,6 +190,7 @@ export async function listActiveTasks(ctx: ServiceContext, filters: Partial<Acti
       waiting_since: t.created_at ?? null,
       workflow: t.workflow_id ? { id: String(t.workflow_id), name: wfNames.get(String(t.workflow_id)) ?? 'Workflow' } : null,
       run_id: t.workflow_run_id ? String(t.workflow_run_id) : null,
+      run_started_at: t.workflow_run_id ? runStarted.get(String(t.workflow_run_id)) ?? null : null,
       assignee: t.assignee_id ? { id: String(t.assignee_id), name: names.get(String(t.assignee_id)) ?? 'Someone' } : null,
       team: t.assigned_team_id ? { id: String(t.assigned_team_id), name: teamNames.get(String(t.assigned_team_id)) ?? 'A team' } : null,
       others: Math.max(0, assigneeIds.length + candidates.length - (t.assignee_id ? 1 : 0)),

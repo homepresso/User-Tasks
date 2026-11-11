@@ -1,4 +1,4 @@
-import { UsertasksApiError, UsertasksNetworkError, UsertasksOAuthError } from '@usertasks/sdk'
+import { UsertasksApiError, UsertasksNetworkError, UsertasksOAuthError } from '@user-tasks/sdk'
 
 /** Process exit codes (documented contract; scripts depend on them). */
 export const EXIT = {

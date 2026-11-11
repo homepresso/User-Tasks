@@ -1,16 +1,16 @@
-# @usertasks/sdk
+# @user-tasks/sdk
 
 TypeScript client for the UserTasks REST API (`/api/v1`).
 Its types are generated from the server's OpenAPI 3.1 document, which ships with the package as
-`@usertasks/sdk/openapi.json`. It is ESM-only and needs Node.js 20 or later (or any runtime with
+`@user-tasks/sdk/openapi.json`. It is ESM-only and needs Node.js 20 or later (or any runtime with
 `fetch`).
 
 ```bash
-npm install @usertasks/sdk
+npm install @user-tasks/sdk
 ```
 
 ```ts
-import { apiKeyAuth, createClient, isUsertasksApiError } from '@usertasks/sdk'
+import { apiKeyAuth, createClient, isUsertasksApiError } from '@user-tasks/sdk'
 
 const client = createClient({
   baseUrl: 'https://tasks.example.com',

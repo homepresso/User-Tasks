@@ -1,4 +1,4 @@
-import { canUserSeeTask } from '@/lib/task-authz'
+import { canUserSeeTask, findTaskViewerGrant } from '@/lib/task-authz'
 import type { ApiKeyScopes, ApiKeySuccessResult } from '@/lib/api-auth'
 
 function uniqueIds(values: unknown): string[] {
@@ -48,4 +48,14 @@ export async function getAccessibleTaskIdsForUser(supabase: any, tenantId: strin
  */
 export async function canAccessTaskAsUser(supabase: any, tenantId: string, userId: string, taskId: string) {
   return canUserSeeTask(supabase, tenantId, userId, taskId)
+}
+
+/**
+ * Read only (GET a task, tasks_get): canAccessTaskAsUser, or an invite to
+ * view it (task_viewers — directly, through a team or a role). Never for
+ * writes.
+ */
+export async function canViewTaskAsUser(supabase: any, tenantId: string, userId: string, taskId: string) {
+  if (await canUserSeeTask(supabase, tenantId, userId, taskId)) return true
+  return Boolean(await findTaskViewerGrant(supabase, tenantId, userId, taskId))
 }

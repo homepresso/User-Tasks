@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge, type Tone } from '@/components/ui/badge'
-import { thClass } from '@/components/ui/table'
+import { columnClass, thClass, type ColumnKind } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { personName, type PersonLike } from './types'
 
@@ -98,11 +98,11 @@ export function useSorted<T, K extends string>(rows: readonly T[], getters: Reco
 }
 
 /** A column header that sorts (aria-sort for screen readers). */
-export function SortTH<K extends string>({ label, column, sort, onSort, numeric }: { label: string; column: K; sort: { key: K; dir: SortDir }; onSort: (key: K) => void; numeric?: boolean }) {
+export function SortTH<K extends string>({ label, column, sort, onSort, numeric, col }: { label: string; column: K; sort: { key: K; dir: SortDir }; onSort: (key: K) => void; numeric?: boolean; col?: ColumnKind }) {
   const active = sort.key === column
   const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown
   return (
-    <th className={cn(thClass, numeric && 'text-right')} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} scope="col">
+    <th className={cn(thClass, col && columnClass[col], numeric && 'text-right')} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} scope="col">
       <button type="button" onClick={() => onSort(column)} className={cn('inline-flex items-center gap-1 hover:text-fg', active && 'text-fg')}>
         {label}
         <Icon className="size-3" aria-hidden />

@@ -14,7 +14,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client, Pool } from 'pg'
-import { createPgQuery } from '@usertasks/pg-query'
+import { createPgQuery } from '@user-tasks/pg-query'
 import { createClient } from './helpers/db-test-client'
 import { createWizardForm, updateWizardForm } from '@/lib/services/form-wizard'
 import { submitForm } from '@/lib/services/form-submissions'

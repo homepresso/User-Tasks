@@ -9,7 +9,7 @@
 import { isPlainObject } from '@/lib/utils/guards'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { layoutFormRules, conditionPaths } from './form-rules'
-import { allActions, SERVER_RULE_ACTIONS } from './field-buttons'
+import { allActions, isServerRuleAction } from './field-buttons'
 import { normalizeFormButtons } from './buttons'
 import { anonymousDynamicSources } from './dynamic-values'
 
@@ -144,14 +144,14 @@ export function anonymousReadiness(def: { fields: TaskFieldDef[]; layout?: unkno
     }
     if (field.type === 'button' && field.button) {
       for (const a of allActions(field.button.actions)) {
-        if (SERVER_RULE_ACTIONS.has(a.type)) out.server_actions.push({ where: `Button "${label(field)}"`, type: a.type, allowed: a.allow_anonymous === true })
+        if (isServerRuleAction(a)) out.server_actions.push({ where: `Button "${label(field)}"`, type: a.type, allowed: a.allow_anonymous === true })
       }
     }
   }
   for (const rule of layoutFormRules(def.layout)) {
     if (rule.disabled) continue
     for (const a of allActions(rule.then)) {
-      if (SERVER_RULE_ACTIONS.has(a.type)) out.server_actions.push({ where: `Rule "${rule.name || rule.id}"`, type: a.type, allowed: a.allow_anonymous === true })
+      if (isServerRuleAction(a)) out.server_actions.push({ where: `Rule "${rule.name || rule.id}"`, type: a.type, allowed: a.allow_anonymous === true })
     }
   }
   for (const button of normalizeFormButtons(def.buttons ?? null)) {

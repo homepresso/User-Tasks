@@ -58,6 +58,11 @@ disallows all crawling, the sitemap is empty, and `/` redirects to `/tasks`
 set `DEPLOYMENT_MODE` (and the app URL, used for Open Graph and sitemap
 links) at build time as well as at runtime.
 
+`USERTASKS_BETA` (`on` / `off`, read at runtime) controls the beta lines in
+the getting-started welcome ("thank you for joining the beta"). Unset, they
+show in cloud mode only. In-app **Send feedback** is offered only when the
+contact pipeline (`CHIRPME_API_KEY`, `CHIRPME_CHANNEL_ID`) is configured.
+
 ### Workspace addresses (optional)
 
 Each workspace can have its own address, `acme.example.com`, and every

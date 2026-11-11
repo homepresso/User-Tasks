@@ -72,15 +72,17 @@ export function ReportDataTable({ columns, data, pageSize = 10, title, onRowClic
   const colCount = columns.length + (clickable ? 1 : 0)
   const numeric = (c: Column) => c.type === 'number'
   const content = (row: any, col: Column) => col.render ? col.render(getReportValue(row, col.key), row) : formatCell(getReportValue(row, col.key), col.type)
+  // Cells cut at 320px: the whole value in a native tooltip.
+  const fullText = (row: any, col: Column) => { if (col.render) return undefined; const v = formatCell(getReportValue(row, col.key), col.type); return typeof v === 'string' ? v : undefined }
 
   return (
     <section className="space-y-2">
       {title && <h3 className="text-sm font-semibold text-fg">{title}</h3>}
-      <Table>
+      <Table label={title ?? 'Report results'} stickyFirstColumn>
         <THead>
           <tr>
-            {columns.map(col => (
-              <TH key={col.key} numeric={numeric(col)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+            {columns.map((col, ci) => (
+              <TH key={col.key} numeric={numeric(col)} col={ci === 0 ? 'name' : col.type === 'date' ? 'date' : numeric(col) ? 'number' : undefined} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
                 <button type="button" onClick={() => toggleSort(col.key)} className={cn('inline-flex items-center gap-1 hover:text-fg', numeric(col) && 'flex-row-reverse')}>
                   {col.label}
                   {sortKey === col.key && (sortDir === 'asc' ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />)}
@@ -99,7 +101,7 @@ export function ReportDataTable({ columns, data, pageSize = 10, title, onRowClic
               return (
                 <TR key={ri} interactive>
                   {columns.map((col, ci) => (
-                    <TD key={col.key} numeric={numeric(col)} className="max-w-[320px] truncate">
+                    <TD key={col.key} numeric={numeric(col)} className="max-w-[320px] truncate" title={fullText(row, col)}>
                       {ci === 0 ? <Link href={href} className="font-medium text-fg hover:underline">{content(row, col)}</Link> : content(row, col)}
                     </TD>
                   ))}
@@ -112,7 +114,7 @@ export function ReportDataTable({ columns, data, pageSize = 10, title, onRowClic
             return (
               <TR key={ri} interactive={clickable} onClick={clickable && onRowClick ? () => onRowClick(row) : undefined}>
                 {columns.map(col => (
-                  <TD key={col.key} numeric={numeric(col)} className="max-w-[320px] truncate">{content(row, col)}</TD>
+                  <TD key={col.key} numeric={numeric(col)} className="max-w-[320px] truncate" title={fullText(row, col)}>{content(row, col)}</TD>
                 ))}
                 {clickable && <TD className="w-8 text-right"><ChevronRight className="inline size-3.5 text-fg-muted" /></TD>}
               </TR>

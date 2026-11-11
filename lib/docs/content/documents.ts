@@ -1361,6 +1361,8 @@ export interface OcrProvider {
     body: `
 Northwind's sales team sends a monthly order export as an Excel workbook. This workflow takes the file from a start form, reads the **Orders** sheet and adds every order to an **Orders** [data table](/docs/data-tables).
 
+For a one-off load you don't need a workflow: **Import** on the table reads a CSV or .xlsx file directly (see [Import from CSV or Excel](/docs/data-tables#import-from-csv-or-excel)). Use this workflow when the file arrives again and again, or needs reshaping first.
+
 The workbook has a title row and a blank row above the table, a formula column and a date column:
 
 | | A | B | C | D | E | F |

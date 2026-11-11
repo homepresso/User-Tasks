@@ -32,7 +32,7 @@ export function NewMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button ref={triggerRef} variant="secondary" size="sm" leadingIcon={<Plus />} trailingIcon={<ChevronDown className="text-fg-muted max-sm:hidden" />} className="max-sm:w-8 max-sm:gap-0 max-sm:px-0" data-new-menu-trigger>
+          <Button ref={triggerRef} variant="secondary" size="sm" leadingIcon={<Plus />} trailingIcon={<ChevronDown className="text-fg-muted max-sm:hidden" />} className="max-sm:w-8 max-sm:gap-0 max-sm:px-0" data-new-menu-trigger data-tour="new-menu">
             <span className="max-sm:sr-only">New</span>
           </Button>
         </DropdownMenuTrigger>

@@ -9,18 +9,20 @@ import { ASSIGNED_TASK_COLUMNS, AssignedTaskRow } from "@/components/tasks/assig
 import { Pagination } from "@/components/ui/list-controls"
 import { SearchInput } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
-import { Bell, ChevronDown, ChevronRight, ListChecks, Loader2 } from "lucide-react"
+import { Bell, ChevronDown, ChevronRight, Eye, ListChecks, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { PageSkeleton } from "@/components/ui/page-skeleton"
 import { PageHeader } from "@/components/ui/page-header"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Tabs } from "@/components/ui/tabs"
 import { StatCard, StatGrid } from "@/components/ui/stat-card"
-import { Table, TBody, TH, THead, TableEmpty, TableSkeleton } from "@/components/ui/table"
+import { Table, TBody, TH, THead, TableDetailCell, TableEmpty, TableSkeleton } from "@/components/ui/table"
 import { formatCount, formatPercent } from "@/lib/format/number"
 import { plural } from "@/lib/format/plural"
 import { useQuery } from "@tanstack/react-query"
 import { serverRead } from "@/lib/server-read"
+import { usePermissions } from "@/lib/permissions-context"
 import { FilterMenu } from "@/components/tasks/filter-menu"
 import { StatusFilterControls } from "@/components/tasks/status-filter-controls"
 import { FollowPreferenceSwitch } from "@/components/tasks/follow-preferences"
@@ -92,8 +94,12 @@ export default function AssignedTasksPage() {
   const rememberedTab = storedTab === undefined && userIdTimedOut ? null : storedTab
 
   const followingCount = useFollowingCount()
+  // Without task oversight (tasks.view_all) the tracker is Following only: tasks they follow and tasks shared with them.
+  const { can } = usePermissions()
+  const oversight = can('tasks.view_all')
+  const [sharedOnly, setSharedOnly] = useState(false)
   // Following first: opened when remembered, or by default when the person follows something.
-  const tab: TrackerTab | null = pickedTab
+  const tab: TrackerTab | null = !oversight ? 'following' : pickedTab
     ?? (rememberedTab === undefined
       ? null
       : rememberedTab ?? (followingCount.isPending ? null : defaultTrackerTab(null, followingCount.data?.total)))
@@ -117,6 +123,7 @@ export default function AssignedTasksPage() {
     priority: priorityFilter,
     search: debouncedSearch || undefined,
     hideCompleted: !statusFilter.showCompleted,
+    sharedOnly: sharedOnly || undefined,
   }, { enabled: onFollowing })
   const active = onFollowing ? followed : assigned
   // Sorted before paging (and within groups) so every page follows the sort.
@@ -134,7 +141,7 @@ export default function AssignedTasksPage() {
   const sortKey = sort ? `${sort.key}:${sort.dir}` : ""
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, statusesKey, priorityFilter, tab, teamId, sortKey])
+  }, [debouncedSearch, statusesKey, priorityFilter, tab, teamId, sortKey, sharedOnly])
 
   const { data: teams } = useQuery({
     queryKey: ['assigned-task-teams'],
@@ -228,7 +235,7 @@ export default function AssignedTasksPage() {
         aria-label="Task tracker views"
         value={tab ?? 'following'}
         onValueChange={selectTab}
-        items={TRACKER_TABS.map((item) => item.value === 'following'
+        items={TRACKER_TABS.filter((item) => oversight || item.value === 'following').map((item) => item.value === 'following'
           ? { ...item, icon: <Bell />, count: followingCount.data?.total }
           : item)}
       />
@@ -280,6 +287,12 @@ export default function AssignedTasksPage() {
             wrapperClassName="flex-1"
           />
           <FilterMenu label="Priority" options={PRIORITY_OPTIONS} selected={priorityFilter} onChange={setPriorityFilter} />
+          {onFollowing && (
+            <Button size="sm" variant={sharedOnly ? "secondary" : "ghost"} leadingIcon={<Eye />} aria-pressed={sharedOnly}
+              onClick={() => setSharedOnly((v) => !v)} data-tracker-shared-only={sharedOnly ? "on" : "off"}>
+              Shared with me
+            </Button>
+          )}
           {onFollowing && <FollowPreferenceSwitch name="auto_follow_acted_runs" />}
           <StatusFilterControls options={STATUS_OPTIONS} selected={statusFilter.selected} onSelectedChange={statusFilter.setSelected}
             showCompleted={statusFilter.showCompleted} onShowCompletedChange={statusFilter.setShowCompleted} />
@@ -292,19 +305,19 @@ export default function AssignedTasksPage() {
           filters={{ status: statuses, includeClosed: statusFilter.showCompleted, priority: priorityFilter, search: debouncedSearch }} />
       ) : (
       <>
-      <Table className={cn("transition-opacity duration-[var(--ds-dur-base)]", isFetching && tasks?.length ? "opacity-80" : "opacity-100")}>
+      <Table label="Tracked tasks" stickyFirstColumn stickyColumns={2} className={cn("transition-opacity duration-[var(--ds-dur-base)]", isFetching && tasks?.length ? "opacity-80" : "opacity-100")}>
         <THead className={isMobile ? "hidden" : undefined}>
           <tr>
             <TH className="w-8"><span className="sr-only">Follow</span></TH>
-            <SortableTH sortKey="title" sort={sort} onSort={toggleSort}>Task</SortableTH>
-            <SortableTH sortKey="assignee" sort={sort} onSort={toggleSort} className="w-36">Assignee</SortableTH>
-            <SortableTH sortKey="status" sort={sort} onSort={toggleSort} className="w-32">Status</SortableTH>
-            <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} className="w-28">Priority</SortableTH>
-            <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28">Progress</SortableTH>
-            <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric className="w-28">Due</SortableTH>
-            <SortableTH sortKey="updated" sort={sort} onSort={toggleSort} numeric className="w-28">Updated</SortableTH>
-            <TH className="w-16"><span className="sr-only">Open</span></TH>
-            <TH className="w-24"><span className="sr-only">Actions</span></TH>
+            <SortableTH sortKey="title" sort={sort} onSort={toggleSort} col="title" className="min-w-72">Task</SortableTH>
+            <SortableTH sortKey="assignee" sort={sort} onSort={toggleSort} col="people" className="w-36">Assignee</SortableTH>
+            <SortableTH sortKey="status" sort={sort} onSort={toggleSort} col="status" className="w-32">Status</SortableTH>
+            <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} col="status" className="w-28">Priority</SortableTH>
+            <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28 min-w-28">Progress</SortableTH>
+            <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric col="date" className="w-28">Due</SortableTH>
+            <SortableTH sortKey="updated" sort={sort} onSort={toggleSort} numeric col="date" className="w-28">Updated</SortableTH>
+            <TH col="actions"><span className="sr-only">Open</span></TH>
+            <TH col="actions"><span className="sr-only">Actions</span></TH>
           </tr>
         </THead>
         <TBody>
@@ -314,8 +327,8 @@ export default function AssignedTasksPage() {
             <TableEmpty
               colSpan={ASSIGNED_TASK_COLUMNS}
               icon={Bell}
-              title={debouncedSearch || isStatusFiltered(statusFilter.state) || priorityFilter.length ? "No followed tasks match these filters" : "You're not following any open tasks"}
-              description="Click the bell on any task in the tracker (or Follow on a task's page) to follow it here. The open tasks of processes you follow — ones you started or acted on — show here too."
+              title={sharedOnly ? "Nothing is shared with you" : debouncedSearch || isStatusFiltered(statusFilter.state) || priorityFilter.length ? "No followed tasks match these filters" : "You're not following any open tasks"}
+              description={sharedOnly ? "Tasks people invite you to view (you, your team or your role) show here, read only." : "Click the bell on any task in the tracker (or Follow on a task's page) to follow it here. The open tasks of processes you follow — ones you started or acted on — and tasks shared with you show here too."}
             />
           ) : !tasks?.length ? (
             <TableEmpty
@@ -333,7 +346,7 @@ export default function AssignedTasksPage() {
               return (
                 <Fragment key={group.label}>
                   <tr className="border-b border-border-subtle bg-subtle">
-                    <td colSpan={ASSIGNED_TASK_COLUMNS} className="p-0">
+                    <TableDetailCell colSpan={ASSIGNED_TASK_COLUMNS}>
                       <button
                         type="button"
                         aria-expanded={!collapsedGroups[group.label]}
@@ -351,7 +364,7 @@ export default function AssignedTasksPage() {
                           <span>{formatPercent(groupAvg, { fromPercent: true })} avg</span>
                         </span>
                       </button>
-                    </td>
+                    </TableDetailCell>
                   </tr>
                   {!collapsedGroups[group.label] && group.rows.map((task: any) => (
                     <AssignedTaskRow key={task.id} task={task} following={followingOf(task.id)} />

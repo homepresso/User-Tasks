@@ -33,11 +33,13 @@ export const NAV_ITEMS = [
     requiredPermission: "tasks.view_own" as const,
   },
   {
+    // Everyone with task access: Following (tasks they follow or that are shared with them by an invite);
+    // the assigned / team / all tabs need tasks.view_all.
     label: "Task tracker",
     href: "/tasks/assigned",
     icon: "Eye" as const,
     enabled: true,
-    requiredPermission: "tasks.view_all" as const,
+    requiredPermission: "tasks.view_own" as const,
   },
   {
     // Forms, surveys and questionnaires the person built with the form wizard (and drafts).

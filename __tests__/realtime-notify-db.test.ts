@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client, Pool } from 'pg'
-import { createPgQuery } from '@usertasks/pg-query'
+import { createPgQuery } from '@user-tasks/pg-query'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
 

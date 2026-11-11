@@ -29,6 +29,7 @@ import {
 import { lookupItemFields, lookupItemKey, lookupLabelKey } from './forms/lookup'
 import { runAgentOutputPrefix } from './agent-knowledge'
 import { attachmentsCountKey } from './forms/attachments'
+import { isNumericColumn, listCountKey, listTotalKey, listTotalLabel, type ListColumn } from './forms/list-field'
 import { customValueSchemaType } from './forms/custom-controls/field'
 import { activeOutput, keepsRaw, outputExtraKeys } from './forms/custom-controls/output'
 import type { ControlValueSchema } from './forms/custom-controls/contract'
@@ -250,6 +251,7 @@ export function fieldSchema(field: TaskFieldDef): SchemaNode {
       : { type: 'string', description: `Selected value (from a ${what})` }
   }
   if (field.type === 'data_table') return dataTableValueSchema(field)
+  if (field.type === 'list') return listValueSchema(field)
   if (field.type === 'custom') {
     if (field.custom?.value_type === 'files') return { type: 'array', items: ATTACHMENT_FILE_SCHEMA, description: `Uploaded files (${field.custom.name ?? 'custom control'})` }
     const output = field.custom ? activeOutput(field.custom) : null
@@ -292,6 +294,24 @@ function valueSchemaAt(schema: ControlValueSchema | undefined, path: string): Sc
     else cursor = cursor?.properties?.[part]
   }
   return valueSchemaNode(cursor)
+}
+
+function listColumnSchema(column: ListColumn): SchemaNode & { name: string } {
+  const type: SchemaNode['type'] = isNumericColumn(column) ? 'number' : column.type === 'boolean' ? 'boolean' : 'string'
+  const what = column.type === 'date' ? ' (YYYY-MM-DD)' : column.type === 'currency' ? ` (${column.currency ?? 'USD'})` : column.type === 'calculated' && column.formula ? ` (= ${column.formula})` : column.type === 'choice' && column.options?.length ? ` (${column.options.slice(0, 6).join(', ')})` : ''
+  return { name: column.key, type, ...(column.type === 'boolean' ? {} : { nullable: true }), description: `${column.label}${what}` }
+}
+
+/**
+ * A List field's value (lib/forms/list-field.ts): the rows people added, an
+ * array of row objects typed by the columns — a Loop over it gives
+ * `{{item.<column>}}` per row.
+ */
+export function listValueSchema(field: TaskFieldDef): SchemaNode {
+  const columns = field.list?.columns ?? []
+  // A lookup column's display label travels beside its value (`product` → `product_label`).
+  const fields = columns.flatMap((c) => (c.type === 'lookup' ? [listColumnSchema(c), { name: `${c.key}_label`, type: 'string' as const, nullable: true, description: `${c.label} (display label)` }] : [listColumnSchema(c)]))
+  return { type: 'array', items: { type: 'object', fields }, description: 'The rows added on the form (loop over them: {{item.<column>}})' }
 }
 
 const DT_TYPE: Record<string, SchemaNode['type']> = { text: 'string', number: 'number', date: 'string', datetime: 'string', choice: 'string', boolean: 'boolean' }
@@ -373,6 +393,13 @@ function formFieldEntries(fields: TaskFieldDef[]): FormFieldEntry[] {
       })
     }
     if (field.type === 'attachments') out.push({ key: attachmentsCountKey(field.key), label: `${field.label || field.key} (number of files)`, schema: { type: 'integer', description: 'Number of files' }, typeLabel: 'Number' })
+    if (field.type === 'list') {
+      // The row count and the configured totals (lib/forms/list-field.ts listDerivedValues).
+      out.push({ key: listCountKey(field.key), label: `${field.label || field.key} (number of rows)`, schema: { type: 'integer', description: 'Number of rows' }, typeLabel: 'Number' })
+      for (const total of field.list?.totals ?? []) {
+        out.push({ key: listTotalKey(field.key, total), label: `${field.label || field.key} (${listTotalLabel(field.list!, total).toLowerCase()})`, schema: { type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: listTotalLabel(field.list!, total) }, typeLabel: 'Number' })
+      }
+    }
     if (field.type === 'custom' && field.custom?.output) {
       // A control's other outputs: the whole value (`<key>_raw`) and its extras (`<key>_<suffix>`).
       for (const { suffix, path } of outputExtraKeys(field.custom)) {

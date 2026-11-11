@@ -38,6 +38,7 @@ import { applySubmittedPage } from '@/lib/forms/submitted-page'
 import { buildFormSubmittedPayload, readFormSubmittedConfig, triggerMatchesButton, FORM_SUBMITTED_TRIGGER } from '@/lib/forms/submitted-trigger'
 import { lookupItemKey, lookupLabelKey } from '@/lib/forms/lookup'
 import { attachmentNames, attachmentsCountKey } from '@/lib/forms/attachments'
+import { listCountKey, listDerivedValues } from '@/lib/forms/list-field'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
@@ -303,6 +304,8 @@ export function storedValues(fields: TaskFieldDef[], values: Record<string, unkn
     if (field.type === 'lookup' && Object.prototype.hasOwnProperty.call(values, lookupItemKey(field.key))) out[lookupItemKey(field.key)] = values[lookupItemKey(field.key)]
     if (field.type === 'lookup' && !Object.prototype.hasOwnProperty.call(out, lookupLabelKey(field.key)) && Object.prototype.hasOwnProperty.call(values, lookupLabelKey(field.key))) out[lookupLabelKey(field.key)] = values[lookupLabelKey(field.key)]
     if (field.type === 'attachments' && Object.prototype.hasOwnProperty.call(values, attachmentsCountKey(field.key))) out[attachmentsCountKey(field.key)] = values[attachmentsCountKey(field.key)]
+    // List fields: `<key>_count` and the totals, recomputed from the rows (never as sent).
+    if (field.type === 'list' && Object.prototype.hasOwnProperty.call(values, field.key)) Object.assign(out, listDerivedValues(field.key, field.list, values[field.key]))
     // Custom control outputs: the whole value and the extras beside the main output.
     for (const key of customOutputSiblingKeys(field)) if (Object.prototype.hasOwnProperty.call(values, key)) out[key] = values[key]
   }
@@ -369,6 +372,7 @@ async function checkSubmissionValues(ctx: ServiceContext, db: AnySupabaseClient,
     ctx,
     contextFromValues: true,
     buttonIds: buttonId ? [buttonId] : null,
+    ruleTarget: { form_id: formId },
   })
   if (Object.keys(errors).length) throw ServiceError.validation(`Invalid field values: ${Object.values(errors).join('; ')}`, { fields: errors })
   return { ...storedValues(fields, templateValues, layout), ...context.included }
@@ -683,7 +687,11 @@ export async function formSubmissionsCsv(ctx: ServiceContext, filters: Submissio
   const people = await userProfiles(db, rows.map((r) => r.submitted_by))
   // The submission metadata first (as {{submission.*}}), then one column per field.
   // One column per field; survey controls by surveyCsvColumns (a matrix: one per statement, a ranking "A > B > C").
-  const cells = fields.flatMap((f) => (isSurveyType(f.type) ? surveyCsvColumns(f) : [{ header: f.key, cell: (values: Record<string, unknown>) => (f.type === 'attachments' ? attachmentNames(values[f.key]) : values[f.key]) }]))
+  // A List: its rows as JSON and the row count beside them.
+  const cells = fields.flatMap((f) => (isSurveyType(f.type) ? surveyCsvColumns(f) : f.type === 'list' ? [
+    { header: f.key, cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) && (values[f.key] as unknown[]).length ? values[f.key] : '') },
+    { header: listCountKey(f.key), cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) ? (values[f.key] as unknown[]).length : 0) },
+  ] : [{ header: f.key, cell: (values: Record<string, unknown>) => (f.type === 'attachments' ? attachmentNames(values[f.key]) : values[f.key]) }]))
   const header = ['submission_id', 'reference', 'submitted_at', 'submitted_by', 'submitted_by_email', 'submitted_by_id', 'form_version', 'source', 'submission_source', 'button', 'outcome', 'task_id', ...cells.map((c) => c.header)]
   const lines = [header.map(csvCell).join(',')]
   for (const r of rows) {

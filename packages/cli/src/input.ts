@@ -54,13 +54,23 @@ async function readValueFile(path: string, assignment: string): Promise<string> 
  *   key:=json     raw JSON value (numbers, booleans, null, arrays, objects)
  *   key=@path     the file's text as a string (e.g. html_body=@template.html)
  *   key:=@path    the file parsed as JSON or YAML (e.g. manifest:=@manifest.json)
+ *   key=@@path    the file's bytes, base64 (binary uploads: file_base64=@@form.xsn)
  * A leading `\@` keeps a literal `@` (`handle=\@me`). Dotted keys set nested
  * fields: `config.limit:=10`.
  */
+async function readBase64File(path: string, assignment: string): Promise<string> {
+  try {
+    return (await readFile(path)).toString('base64')
+  } catch (error) {
+    throw new CliUsageError(`Cannot read ${path} for --set ${assignment}: ${(error as NodeJS.ErrnoException).code ?? (error as Error).message}`)
+  }
+}
+
 export async function applyAssignments(
   body: unknown,
   assignments: readonly string[],
   readText: (path: string, assignment: string) => Promise<string> = readValueFile,
+  readBase64: (path: string, assignment: string) => Promise<string> = readBase64File,
 ): Promise<unknown> {
   if (!assignments.length) return body
   if (body !== undefined && (typeof body !== 'object' || body === null || Array.isArray(body))) {
@@ -75,7 +85,9 @@ export async function applyAssignments(
     if (path.some((part) => !part)) throw new CliUsageError(`Invalid key in --set "${assignment}"`)
 
     let value: unknown
-    if (rawValue.startsWith('@') && rawValue.length > 1) {
+    if (operator === '=' && rawValue.startsWith('@@') && rawValue.length > 2) {
+      value = await readBase64(rawValue.slice(2), assignment)
+    } else if (rawValue.startsWith('@') && rawValue.length > 1) {
       const file = rawValue.slice(1)
       const text = await readText(file, assignment)
       value = operator === ':=' ? parseDocument(text, file) : text

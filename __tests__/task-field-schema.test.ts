@@ -142,3 +142,12 @@ describe('mergeTaskFieldValues', () => {
     expect(mergeTaskFieldValues(null, undefined)).toEqual({ errors: {}, templateValues: {} })
   })
 })
+
+describe('option labels survive a save and a re-read', () => {
+  it('keeps `option_labels` stored beside plain options (only for options the field has)', () => {
+    const once = normalizeTaskFields([{ key: 'c', label: 'C', type: 'choice', options: [{ value: 'NZ', label: 'New Zealand' }, 'AU'] }])
+    expect(once[0].option_labels).toEqual({ NZ: 'New Zealand' })
+    const again = normalizeTaskFields(JSON.parse(JSON.stringify([{ ...once[0], option_labels: { ...once[0].option_labels, XX: 'Gone' } }])))
+    expect(again[0]).toMatchObject({ options: ['NZ', 'AU'], option_labels: { NZ: 'New Zealand' } })
+  })
+})

@@ -38,7 +38,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- manifests and rows are free-form JSON */
 
 import { buildManifestExport } from '@/lib/portability/export'
-import { scanAssetReferences } from '@/lib/portability/dependencies'
+import { scanAssetReferences, type DependencyAssetType } from '@/lib/portability/dependencies'
+import { itemDependencyGraph } from '@/lib/packages/items'
 import { createEmptyAssetIdMaps, type AssetIdMaps } from '@/lib/portability/id-maps'
 import { isUuid, type AssetPlan, type ConfigPlan } from '@/lib/portability/plan'
 import { scrubSecretsForExport, SECRET_PLACEHOLDER } from '@/lib/portability/scrub'
@@ -52,7 +53,7 @@ import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type Servic
 import { applyPage, audit, dbError, serviceRoleClient, type Page } from './_shared'
 import { eventChannel, recordPackageEvent, requirementChanges, type PackageEventAction } from './package-events'
 import { actOnWorkflowRun } from './workflow-runs'
-import { decodePackageFile, downloadPackageVersion, readPackageFile, summarizePackage, type ReadPackageResult } from './packages'
+import { assertItemsExist, decodePackageFile, downloadPackageVersion, normalizeItems, PACKAGE_ASSET_TYPES, readPackageFile, summarizePackage, type PackageItemInput, type ReadPackageResult } from './packages'
 import { deleteConnector } from './connectors'
 import { deleteDataTable } from './data-tables'
 import { deleteDecisionTable } from './decision-tables'
@@ -407,8 +408,19 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
   }
   const bySource = new Map<string, any>(installAssets.map((row) => [`${row.section}:${row.source_id}`, row]))
 
+  // Items detached from this install ("Remove from package"): never touched again by an
+  // upgrade — they keep their local copy, and package items that use them point at it.
+  const detached = detachedEntries(existing)
+  const detachedKeys = new Set(detached.map((entry) => `${entry.section}:${entry.source_id}`))
+  for (const entry of detached) {
+    const key = MAP_KEY[SECTION_ASSET_TYPE[entry.section]]
+    if (key) (seed[key] ??= {})[entry.source_id] = entry.local_id
+  }
   const manifest: Record<string, any> = { format_version: 3, ...structuredClone(contents.assets) }
-  const requirements = contents.requirements
+  for (const section of PACKAGE_SECTIONS) {
+    if (detachedKeys.size && Array.isArray(manifest[section])) manifest[section] = manifest[section].filter((asset: any) => !detachedKeys.has(`${section}:${sourceIdOf(section, asset)}`))
+  }
+  const requirements = contents.requirements.filter((requirement) => !detachedKeys.has(`${requirement.ref.section}:${requirement.ref.asset_id}`))
 
   // Locally stored values: the mapped local rows (secrets) + stored non-secret values.
   const mappedLocal = installAssets.filter((row) => row.asset_type !== 'data_row')
@@ -507,7 +519,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
   // Data rows.
   const tableNames = new Map<string, string>((contents.assets.data_tables ?? []).map((t: any) => [String(t.id), String(t.name)]))
   const data: InstallPlanResult['data'] = Object.entries(contents.data)
-    .filter(([, entry]) => entry.mode === 'rows')
+    .filter(([tableId, entry]) => entry.mode === 'rows' && !detachedKeys.has(`data_tables:${tableId}`))
     .map(([tableId, entry]) => ({ table_id: tableId, name: tableNames.get(tableId) ?? tableId, rows: entry.rows?.length ?? 0, mode: input.data?.[tableId] ?? 'merge' }))
   if (data.some((d) => d.mode !== 'skip') && !hasPerm(ctx, 'data.manage_rows')) blockers.push("Writing table rows needs 'data.manage_rows' (or skip them)")
 
@@ -588,6 +600,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
       activate,
       asset_count: incomingKeys.size,
       trust: verification.trust,
+      ...(detached.length ? { detached } : {}),
     },
     installed_by: ctx.actorId,
     installed_at: new Date().toISOString(),
@@ -601,7 +614,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     for (const asset of contents.assets[section] ?? []) {
       const sourceId = sourceIdOf(section, asset)
       const localId = localIdFor(section, sourceId)
-      if (!sourceId || !localId) continue
+      if (!sourceId || !localId || detachedKeys.has(`${section}:${sourceId}`)) continue
       const key = `${section}:${sourceId}`
       assetRows.push({
         tenant_id: ctx.tenantId, install_id: saved.id, asset_type: SECTION_ASSET_TYPE[section], section, source_id: sourceId, local_id: localId,
@@ -779,7 +792,8 @@ export async function getPackageInstall(ctx: ServiceContext, installId: string) 
   const install = await loadInstall(ctx, db, installId)
   const assets = (await loadInstallAssets(db, ctx.tenantId, install.id)).filter((row) => row.asset_type !== 'data_row')
   const { count: rowCount } = await (db as any).from('package_install_assets').select('id', { count: 'exact', head: true }).eq('tenant_id', ctx.tenantId).eq('install_id', install.id).eq('asset_type', 'data_row')
-  return { install: presentInstall(install), assets, data_rows: rowCount ?? 0 }
+  const authored = await authoredPackageOf(ctx, db, install)
+  return { install: presentInstall(install), assets, data_rows: rowCount ?? 0, authored_package: authored, detached: detachedEntries(install) }
 }
 
 // ─── Complete setup ─────────────────────────────────────────────────────────
@@ -1137,3 +1151,283 @@ export async function inspectAgainstWorkspace(ctx: ServiceContext, input: { file
   return { ...summarizePackage(read), installed: existing ? { id: existing.id, version: existing.version, status: existing.status } : null }
 }
 
+
+// ─── Package items on an install: detach / adopt, and the self-install sync ─
+
+/** An item taken out of an install ("Remove from package"): kept in the workspace, never removed or overwritten by the package. */
+export interface DetachedEntry { section: string; asset_type: string; source_id: string; local_id: string; name: string | null; detached_at: string }
+
+function detachedEntries(install: any): DetachedEntry[] {
+  const list = install?.manifest?.detached
+  return Array.isArray(list) ? list.filter((e: any) => e && typeof e.section === 'string' && typeof e.source_id === 'string' && typeof e.local_id === 'string') : []
+}
+
+/** The package this install was built from, when it was authored in this workspace (self-installed). */
+async function authoredPackageOf(ctx: ServiceContext, db: AnySupabaseClient, install: any): Promise<{ id: string; name: string; slug: string; latest_version: string | null } | null> {
+  const { data } = await (db as any).from('packages').select('id, name, slug, latest_version').eq('tenant_id', ctx.tenantId).eq('package_uid', install.package_uid).maybeSingle()
+  return data ? { id: String(data.id), name: String(data.name), slug: String(data.slug), latest_version: data.latest_version ? String(data.latest_version) : null } : null
+}
+
+const OWNED_SECTIONS = new Set(UNINSTALL_ORDER)
+const assetName = (asset: any) => (asset ? String(asset.name ?? asset.display_name ?? '') : '')
+
+async function saveDetached(ctx: ServiceContext, db: AnySupabaseClient, install: any, detached: DetachedEntry[]) {
+  const manifest = { ...(install.manifest ?? {}) }
+  if (detached.length) manifest.detached = detached
+  else delete manifest.detached
+  const { error } = await (db as any).from('package_installs').update({ manifest }).eq('id', install.id).eq('tenant_id', ctx.tenantId)
+  if (error) throw dbError(error)
+}
+
+/** Ownership rows for workspace items an install takes on (self-installs: package id = local id). */
+async function ownershipRows(ctx: ServiceContext, db: AnySupabaseClient, installId: string, refs: Array<{ type: string; id: string }>) {
+  const exported = await localExports(db, ctx.tenantId, refs.map((ref) => ({ asset_type: ref.type, local_id: ref.id })))
+  return refs.map((ref) => {
+    const section = PACKAGE_ASSET_TYPES[ref.type as DependencyAssetType].section
+    const local = exported.get(`${section}:${ref.id}`)
+    return {
+      tenant_id: ctx.tenantId, install_id: installId, asset_type: ref.type, section, source_id: ref.id, local_id: ref.id,
+      name: assetName(local) || null, status: 'ok', blocked_by: [], content_hash: local ? assetContentHash(local) : null,
+    }
+  })
+}
+
+export interface InstallItemsInput {
+  /** Items by type and their id in this workspace. */
+  items: PackageItemInput[]
+  dry_run?: boolean
+  /**
+   * Self-installed packages (authored here): also change the package itself
+   * (detach → removed from it; adopt → added to it), so the next build keeps
+   * the change. Default true; needs packages.manage.
+   */
+  update_package?: boolean
+}
+
+export interface InstallItemsResult {
+  dry_run: boolean
+  install_id: string
+  items: Array<{ type: string; id: string; section: string; name: string | null }>
+  /** Items already in the requested state (owned for adopt; not owned is an error for detach). */
+  skipped: Array<{ type: string; id: string; name: string | null; reason: string }>
+  /** Detach: items still owned by the install that use a detached item (uninstall removes them but keeps it). */
+  used_by: Array<{ item: { type: string; id: string; name: string | null }; used_by: Array<{ type: string; id: string; name: string | null }> }>
+  /** The package authored here that this install came from (self-installed), or null (gallery / file from elsewhere). */
+  authored_package: { id: string; name: string; slug: string; latest_version: string | null } | null
+  package_updated: boolean
+  warnings: string[]
+}
+
+/**
+ * "Remove from package" on an install: the items stay in the workspace and
+ * uninstalling no longer removes them; later upgrades leave them alone (the
+ * package's other items keep pointing at them). Any install.
+ */
+export async function detachInstallItems(ctx: ServiceContext, installId: string, input: InstallItemsInput): Promise<InstallItemsResult> {
+  requirePerm(ctx, input.dry_run ? 'packages.view' : 'packages.install')
+  const refs = normalizeItems(input.items, 'items')
+  if (!refs.length) throw ServiceError.validation('items must name at least one item ({ type, id })')
+  const db = await admin(ctx)
+  const install = await loadInstall(ctx, db, installId)
+  const rows = await loadInstallAssets(db, ctx.tenantId, install.id)
+  const owned = rows.filter((row) => OWNED_SECTIONS.has(row.section))
+  const picked = refs.map((ref) => ({ ref, row: owned.find((row) => row.asset_type === ref.type && String(row.local_id) === ref.id) }))
+  const notOwned = picked.filter((p) => !p.row)
+  if (notOwned.length) throw ServiceError.notFound(`Not part of the installed package: ${notOwned.map((p) => `${PACKAGE_ASSET_TYPES[p.ref.type].label.toLowerCase()} ${p.ref.id}`).join(', ')}`)
+  const authored = await authoredPackageOf(ctx, db, install)
+
+  // What still owned uses the detached items (uninstall would remove those and keep these).
+  const keys = new Set(refs.map((ref) => `${ref.type}:${ref.id}`))
+  const exported = await buildManifestExport(db, ctx.tenantId, owned.reduce((acc: Record<string, string[]>, row) => { (acc[row.asset_type] ??= []).push(String(row.local_id)); return acc }, {}))
+  const graph = itemDependencyGraph(exported as Record<string, unknown>)
+  const nameOf = new Map(owned.map((row) => [`${row.asset_type}:${row.local_id}`, row.name ?? null]))
+  const usedBy: InstallItemsResult['used_by'] = []
+  for (const ref of refs) {
+    const users = [...(graph.usedBy.get(`${ref.type}:${ref.id}`) ?? [])].filter((key) => nameOf.has(key) && !keys.has(key)).map((key) => {
+      const cut = key.indexOf(':')
+      return { type: key.slice(0, cut), id: key.slice(cut + 1), name: nameOf.get(key) ?? null }
+    })
+    if (users.length) usedBy.push({ item: { type: ref.type, id: ref.id, name: nameOf.get(`${ref.type}:${ref.id}`) ?? null }, used_by: users })
+  }
+  const updatePackage = Boolean(authored) && input.update_package !== false
+  const warnings: string[] = []
+  if (updatePackage && !hasPerm(ctx, 'packages.manage')) warnings.push(`The package “${authored!.name}” itself is not changed: that needs 'packages.manage' (until it is, its next build includes ${refs.length === 1 ? 'this item' : 'these items'} again)`)
+  if (!authored) warnings.push('A later upgrade of this package leaves detached items alone: they keep your copy')
+  const result: InstallItemsResult = {
+    dry_run: Boolean(input.dry_run), install_id: String(install.id),
+    items: picked.map((p) => ({ type: p.ref.type, id: p.ref.id, section: String(p.row!.section), name: p.row!.name ?? null })),
+    skipped: [], used_by: usedBy, authored_package: authored, package_updated: false, warnings,
+  }
+  if (input.dry_run) return result
+
+  const ids = picked.map((p) => String(p.row!.id))
+  // An integration's references go with it.
+  const integrationIds = refs.filter((ref) => ref.type === 'integration').map((ref) => ref.id)
+  if (integrationIds.length) {
+    const { data: refRows } = await (db as any).from('integration_references').select('id').eq('tenant_id', ctx.tenantId).in('integration_id', integrationIds)
+    const refIds = new Set(((refRows ?? []) as any[]).map((r) => String(r.id)))
+    for (const row of rows) if (row.asset_type === 'reference' && refIds.has(String(row.local_id))) ids.push(String(row.id))
+  }
+  const { error } = await (db as any).from('package_install_assets').delete().eq('tenant_id', ctx.tenantId).eq('install_id', install.id).in('id', ids)
+  if (error) throw dbError(error)
+
+  let packageUpdated = false
+  if (updatePackage && hasPerm(ctx, 'packages.manage')) {
+    const { removePackageItems } = await import('./package-items')
+    try {
+      await removePackageItems(ctx, authored!.id, { items: refs, force: true })
+      packageUpdated = true
+    } catch (removeError) {
+      if (!(removeError instanceof ServiceError && removeError.code === 'not_found')) warnings.push(`The package itself was not changed: ${errorMessage(removeError)}`)
+    }
+  }
+  // Remembered on the install so upgrades leave the items alone — unless the package itself dropped them.
+  if (!packageUpdated) {
+    const now = new Date().toISOString()
+    const current = detachedEntries(install).filter((e) => !picked.some((p) => e.section === p.row!.section && e.source_id === String(p.row!.source_id)))
+    await saveDetached(ctx, db, install, [...current, ...picked.map((p) => ({ section: String(p.row!.section), asset_type: p.ref.type, source_id: String(p.row!.source_id), local_id: p.ref.id, name: p.row!.name ?? null, detached_at: now }))])
+  }
+  const names = result.items.map((i) => `${PACKAGE_ASSET_TYPES[i.type as DependencyAssetType].label.toLowerCase()} "${i.name ?? i.id}"`)
+  await audit({ ...ctx, supabase: db }, {
+    objectType: 'package_install', objectId: String(install.id), action: 'update',
+    summary: `Removed ${names.join(', ')} from installed package "${install.name}": uninstall keeps ${refs.length === 1 ? 'it' : 'them'}${packageUpdated ? ' (and the package no longer contains it)' : ''}`,
+    metadata: { detached: refs.map((ref) => `${ref.type}:${ref.id}`), package_updated: packageUpdated },
+  })
+  return { ...result, package_updated: packageUpdated }
+}
+
+/**
+ * "Add to package" on an install: the install takes on existing workspace
+ * items, so uninstalling removes them. Only for packages authored in this
+ * workspace (self-installed) — a gallery or third-party package can't take
+ * on items it never shipped.
+ */
+export async function adoptInstallItems(ctx: ServiceContext, installId: string, input: InstallItemsInput): Promise<InstallItemsResult> {
+  requirePerm(ctx, input.dry_run ? 'packages.view' : 'packages.install')
+  const refs = normalizeItems(input.items, 'items')
+  if (!refs.length) throw ServiceError.validation('items must name at least one item ({ type, id })')
+  const hidden = [...new Set(refs.map((ref) => PACKAGE_ASSET_TYPES[ref.type].view))].filter((perm) => !hasPerm(ctx, perm))
+  if (hidden.length) throw ServiceError.forbidden(`Forbidden: adding these items needs ${hidden.map((p) => `'${p}'`).join(', ')}`)
+  const db = await admin(ctx)
+  const install = await loadInstall(ctx, db, installId)
+  const authored = await authoredPackageOf(ctx, db, install)
+  if (!authored) throw ServiceError.forbidden(`“${install.name}” was not authored in this workspace: only packages built here can take on items (you can still remove items from it)`)
+  await assertItemsExist(ctx, db, refs)
+  const rows = await loadInstallAssets(db, ctx.tenantId, install.id)
+  const ownedKeys = new Set(rows.filter((row) => OWNED_SECTIONS.has(row.section)).map((row) => `${row.asset_type}:${row.local_id}`))
+  const exported = await localExports(db, ctx.tenantId, refs.map((ref) => ({ asset_type: ref.type, local_id: ref.id })))
+  const nameOf = (ref: PackageItemInput) => assetName(exported.get(`${PACKAGE_ASSET_TYPES[ref.type].section}:${ref.id}`)) || null
+  const fresh = refs.filter((ref) => !ownedKeys.has(`${ref.type}:${ref.id}`))
+  const skipped = refs.filter((ref) => ownedKeys.has(`${ref.type}:${ref.id}`)).map((ref) => ({ type: ref.type, id: ref.id, name: nameOf(ref), reason: 'already part of the package' }))
+  const updatePackage = input.update_package !== false
+  const warnings: string[] = []
+  if (updatePackage && !hasPerm(ctx, 'packages.manage')) warnings.push(`The package “${authored.name}” itself is not changed: that needs 'packages.manage' (its next build would leave ${fresh.length === 1 ? 'this item' : 'these items'} out again)`)
+  const result: InstallItemsResult = {
+    dry_run: Boolean(input.dry_run), install_id: String(install.id),
+    items: fresh.map((ref) => ({ type: ref.type, id: ref.id, section: PACKAGE_ASSET_TYPES[ref.type].section, name: nameOf(ref) })),
+    skipped, used_by: [], authored_package: authored, package_updated: false, warnings,
+  }
+  if (input.dry_run || !fresh.length) return result
+
+  const newRows = await ownershipRows(ctx, db, String(install.id), fresh)
+  const { error } = await (db as any).from('package_install_assets').upsert(newRows, { onConflict: 'install_id,asset_type,source_id' })
+  if (error) throw dbError(error)
+  const freshKeys = new Set(fresh.map((ref) => `${PACKAGE_ASSET_TYPES[ref.type].section}:${ref.id}`))
+  const detached = detachedEntries(install)
+  if (detached.some((e) => freshKeys.has(`${e.section}:${e.local_id}`))) await saveDetached(ctx, db, install, detached.filter((e) => !freshKeys.has(`${e.section}:${e.local_id}`)))
+
+  let packageUpdated = false
+  if (updatePackage && hasPerm(ctx, 'packages.manage')) {
+    const { addPackageItems } = await import('./package-items')
+    try {
+      await addPackageItems(ctx, authored.id, { items: fresh, with_dependencies: true })
+      packageUpdated = true
+    } catch (addError) {
+      warnings.push(`The package itself was not changed: ${errorMessage(addError)}`)
+    }
+  }
+  const names = result.items.map((i) => `${PACKAGE_ASSET_TYPES[i.type as DependencyAssetType].label.toLowerCase()} "${i.name ?? i.id}"`)
+  await audit({ ...ctx, supabase: db }, {
+    objectType: 'package_install', objectId: String(install.id), action: 'update',
+    summary: `Added ${names.join(', ')} to installed package "${install.name}": uninstall now removes ${fresh.length === 1 ? 'it' : 'them'}`,
+    metadata: { adopted: fresh.map((ref) => `${ref.type}:${ref.id}`), package_updated: packageUpdated },
+  })
+  return { ...result, package_updated: packageUpdated }
+}
+
+export interface SelfInstallSync {
+  /** upgraded: the install moved to the new version (the existing upgrade path); ownership: only its owned-item list was updated; not_installed / skipped: nothing to do. */
+  status: 'upgraded' | 'ownership' | 'not_installed' | 'skipped'
+  install_id?: string
+  version?: string
+  /** Items the install took on (new in this version). */
+  adopted: number
+  /** Items no longer in the package: the install lets go of them (uninstall keeps them). */
+  released: Array<{ section: string; local_id: string; name: string | null }>
+  note: string
+}
+
+/**
+ * After building a version of a package that is installed in this same
+ * workspace (the Agent's self-installed solutions): make the install own
+ * exactly what the new version contains.
+ *
+ *  1. items new in this version are recorded as owned first (package id =
+ *     local id here; content hash of the item now), so the upgrade maps them
+ *     onto themselves and finds their settings in place;
+ *  2. the existing upgrade path installs the version (nothing changes in the
+ *     items — the version was just exported from them); when its dry run is
+ *     blocked (e.g. a requirement it can't see as met) the install keeps its
+ *     version and only the ownership record is updated;
+ *  3. items the author removed are released (never deleted): uninstall then
+ *     keeps them. Items detached from the install stay detached.
+ */
+export async function syncSelfInstall(ctx: ServiceContext, pkg: { id: string; package_uid: string; name: string }, version: string, contents: Array<{ section: string; id: string }>): Promise<SelfInstallSync> {
+  const db = await admin(ctx)
+  const install = await loadInstallByUid(db, ctx.tenantId, pkg.package_uid)
+  if (!install) return { status: 'not_installed', adopted: 0, released: [], note: 'The package is not installed in this workspace' }
+  if (!hasPerm(ctx, 'packages.install')) return { status: 'skipped', install_id: String(install.id), adopted: 0, released: [], note: "The install here was not updated: that needs 'packages.install'" }
+
+  const inVersion = new Set(contents.filter((c) => OWNED_SECTIONS.has(c.section)).map((c) => `${c.section}:${c.id}`))
+  const detachedKeys = new Set(detachedEntries(install).map((e) => `${e.section}:${e.source_id}`))
+  const before = await loadInstallAssets(db, ctx.tenantId, install.id)
+  const ownedKeys = new Set(before.map((row) => `${row.section}:${row.source_id}`))
+  const toAdopt = contents.filter((c) => OWNED_SECTIONS.has(c.section) && !ownedKeys.has(`${c.section}:${c.id}`) && !detachedKeys.has(`${c.section}:${c.id}`))
+    .map((c) => ({ type: SECTION_ASSET_TYPE[c.section], id: c.id }))
+  if (toAdopt.length) {
+    const { error } = await (db as any).from('package_install_assets').upsert(await ownershipRows(ctx, db, String(install.id), toAdopt), { onConflict: 'install_id,asset_type,source_id' })
+    if (error) throw dbError(error)
+  }
+
+  let status: SelfInstallSync['status'] = 'ownership'
+  let note = ''
+  const source = (['file', 'library', 'api', 'cli', 'mcp'] as const).find((s) => s === install.source) ?? 'library'
+  try {
+    const plan = await runInstall(ctx, { package_id: pkg.id, version, source, source_label: install.source_label ?? undefined }, true)
+    if (plan.blockers.length) {
+      note = `The install stays at ${install.version} (${plan.blockers.join('; ')}); it now owns what ${version} contains`
+    } else {
+      await installPackage(ctx, { package_id: pkg.id, version, source, source_label: install.source_label ?? undefined })
+      status = 'upgraded'
+    }
+  } catch (error) {
+    note = `The install stays at ${install.version} (${errorMessage(error)}); it now owns what ${version} contains`
+  }
+
+  const after = await loadInstallAssets(db, ctx.tenantId, install.id)
+  const release = after.filter((row) => OWNED_SECTIONS.has(row.section) && !inVersion.has(`${row.section}:${row.source_id}`))
+  if (release.length) {
+    const { error } = await (db as any).from('package_install_assets').delete().eq('tenant_id', ctx.tenantId).eq('install_id', install.id).in('id', release.map((row) => String(row.id)))
+    if (error) throw dbError(error)
+  }
+  const released = release.map((row) => ({ section: String(row.section), local_id: String(row.local_id), name: row.name ?? null }))
+  if (status === 'upgraded') note = `The install here is now ${version}: uninstalling removes ${plural(inVersion.size, 'item')}${released.length ? ` and keeps the ${plural(released.length, 'removed item')}` : ''}`
+  await audit({ ...ctx, supabase: db }, {
+    objectType: 'package_install', objectId: String(install.id), action: 'update',
+    summary: `Updated the install of "${pkg.name}" to match ${version} (built here): ${toAdopt.length} taken on, ${released.length} released`,
+    metadata: { version, status, adopted: toAdopt.map((r) => `${r.type}:${r.id}`), released: released.map((r) => `${r.section}:${r.local_id}`) },
+  })
+  return { status, install_id: String(install.id), version: status === 'upgraded' ? version : String(install.version), adopted: toAdopt.length, released, note }
+}
+
+function plural(n: number, word: string) { return `${n} ${word}${n === 1 ? '' : 's'}` }

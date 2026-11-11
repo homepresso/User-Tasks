@@ -20,9 +20,10 @@
  * are never stored (attachments-core attachmentForStorage).
  */
 import { attachmentForStorage } from './attachments-core'
-import type { ChatMessage, ChoiceOption, ConfirmCard, ProposedValue } from './types'
+import type { ChatMessage, ChoiceOption, ConfirmCard, InfoCard, ProposedValue } from './types'
 
-export type AttachmentChip = { name: string; mime_type: string; size: number }
+/** What a sent message shows for a file (never its content); `error`: it could not be read. */
+export type AttachmentChip = { name: string; mime_type: string; size: number; error?: string }
 
 export type ChatItem =
   | { kind: 'user'; id: string; text: string; attachments?: AttachmentChip[] }
@@ -31,6 +32,8 @@ export type ChatItem =
   | { kind: 'proposal'; id: string; values: ProposedValue[]; skipped: Array<{ key: string; reason: string }>; applied: Record<string, 'applied' | string>; dismissed: boolean }
   | { kind: 'draft'; id: string; draft: 'comment' | 'outcome_note'; text: string; taskId?: string | null }
   | { kind: 'outcome'; id: string; outcome: string; reason: string }
+  /** A compact label → value card (task_get_form: a task's form at a glance). */
+  | ({ kind: 'info' } & InfoCard)
   | { kind: 'confirm'; id: string; card: ConfirmCard; state: 'pending' | 'approved' | 'declined' | 'expired'; at?: number }
   /** answered: the label(s) chosen, or '—' when the person moved on without answering (expired). */
   | { kind: 'choice'; id: string; question: string; options: ChoiceOption[]; allow_other?: boolean; multi?: boolean; answered?: string | null }

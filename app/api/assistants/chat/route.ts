@@ -12,8 +12,9 @@ import { AgentJob, ProgressTracker, TranscriptRecorder, buildPlanTotal, isUuid, 
 // A designer turn can make several model and tool calls (the engine's own budget is 240s).
 export const maxDuration = 300
 
-// Attached images travel as data URLs (lib/assistants/attachments-core caps each; the panel sends image bytes only for its latest messages).
-const MAX_BODY_BYTES = 30_000_000
+// Attached images and PDFs travel as data URLs (lib/assistants/attachments-core caps each — a PDF up to 20 MB, ≈ 27 MB as base64;
+// the panel sends image bytes only for its latest two image messages and PDF bytes only for its latest PDF message).
+const MAX_BODY_BYTES = 40_000_000
 
 /**
  * The Agent's chat (the Agent panel — one assistant; form, task and building

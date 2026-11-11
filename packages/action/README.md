@@ -1,4 +1,4 @@
-# @usertasks/action
+# @user-tasks/action
 
 Build **custom workflow actions** for UserTasks: typed workflow steps written
 in JavaScript or TypeScript that run in the UserTasks QuickJS WebAssembly
@@ -9,7 +9,7 @@ sandbox.
   uses).
 - **`defineAction`** — a typed identity helper for the module's default
   export.
-- **`@usertasks/action/testing`** — `runAction`: run an operation locally in
+- **`@user-tasks/action/testing`** — `runAction`: run an operation locally in
   **the same sandbox** the app uses (a verbatim copy of its `sandbox.ts`),
   with mocks for HTTP, data tables, files and secrets. Capabilities are
   enforced as in the app.
@@ -23,7 +23,7 @@ Guide: <https://usertasks.com/docs/workflows/custom-actions>
 ## Write an action
 
 ```ts
-import { defineAction } from '@usertasks/action'
+import { defineAction } from '@user-tasks/action'
 
 export default defineAction({
   operations: {
@@ -86,7 +86,7 @@ of outputs, 1 MB module.
 
 ```ts
 import { readFileSync } from 'node:fs'
-import { runAction } from '@usertasks/action/testing'
+import { runAction } from '@user-tasks/action/testing'
 
 const result = await runAction({
   module: readFileSync('dist/action.js', 'utf8'),

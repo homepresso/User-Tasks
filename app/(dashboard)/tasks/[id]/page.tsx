@@ -2,6 +2,8 @@
 
 import { use, useEffect, useMemo, useState } from 'react'
 import { serverRead } from '@/lib/server-read'
+import { RecentActivity } from '@/components/timeline/run-timeline'
+import { TimelineSheet } from '@/components/timeline/timeline-sheet'
 import { listTaskEvents } from '@/app/actions/activity'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { TaskHeader } from '@/components/tasks/task-header'
@@ -16,6 +18,7 @@ import { FormHeaderBlock } from '@/components/forms/form-shell'
 import { TaskFormButtons } from '@/components/tasks/task-form-buttons'
 import { OnBehalfBanner, OnBehalfProvider, useOnBehalf, type TaskActMode } from '@/components/tasks/on-behalf'
 import { UnassignedTaskBanner } from '@/components/tasks/assign-task'
+import { ViewerBanner } from '@/components/tasks/invite-viewers'
 import { normalizeFormHeader } from '@/lib/forms/header'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { ProgressOverride } from '@/components/tasks/progress-override'
@@ -28,6 +31,7 @@ import { TimerWidget } from '@/components/tasks/timer-widget'
 import { ManualEffortEntry } from '@/components/tasks/manual-effort-entry'
 import { useAppStore } from '@/stores/app-store'
 import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { InlineNotice } from '@/components/ui/inline-notice'
@@ -90,6 +94,16 @@ export default function TaskDetailPage({
     enabled: Boolean(data?.treeData?.task?.id),
     queryFn: async () => (await serverRead('tasks.actAccess', { taskId: id })).data ?? null,
   })
+  // Who invited a viewer (the banner): from the invite list, which a viewer can read.
+  const { data: viewerInviter } = useQuery({
+    queryKey: ['task-viewer-inviter', id, access?.viewer?.invitedBy ?? null],
+    enabled: Boolean(access?.viewer?.invitedBy),
+    queryFn: async () => {
+      const list = (await serverRead('tasks.viewers', { taskId: id })).data
+      const inviter = access?.viewer?.invitedBy
+      return list?.viewers.find((v) => v.invited_by?.id === inviter)?.invited_by?.name ?? null
+    },
+  })
   const [onBehalfNote, setOnBehalfNote] = useState('')
   // The AI task assistant (shown only when available: components/assistants/assistant-host).
   useAssistantSurface(data?.treeData?.task?.id ? { kind: 'task', taskId: id, title: data.treeData.task.title ?? null } : null)
@@ -109,15 +123,22 @@ export default function TaskDetailPage({
   const workflowTask = Boolean(data.treeData.task.is_workflow_task && data.treeData.task.event_id)
   const mode = (access?.mode ?? null) as TaskActMode | null
   const open = !['completed', 'cancelled'].includes(data.treeData.task.status)
+  // Here only through an invite (lib/services/task-viewers): read only, comments allowed.
+  const viewer = access?.viewer ?? null
   return (
-    <OnBehalfProvider mode={mode} workflowTask={workflowTask} note={onBehalfNote}>
+    <OnBehalfProvider mode={mode} workflowTask={workflowTask} note={onBehalfNote} viewer={Boolean(viewer)}>
+      {viewer && (
+        <div className="w-full">
+          <ViewerBanner invitedByName={viewerInviter ?? null} via={viewer.principalType} inherited={viewer.inherited} />
+        </div>
+      )}
       {open && access?.unassigned && (
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full">
           <UnassignedTaskBanner taskId={id} canTakeOwnership={access.canTakeOwnership === true} canReassign={access.canReassign === true} />
         </div>
       )}
-      {workflowTask && open && mode && mode !== 'assignee' && !access?.unassigned && (
-        <div className="max-w-4xl mx-auto">
+      {workflowTask && open && mode && mode !== 'assignee' && !access?.unassigned && !viewer && (
+        <div className="w-full">
           <OnBehalfBanner mode={mode} basis={access?.basis ?? null} assigneeName={data.assigneeName ?? null} note={onBehalfNote} onNoteChange={setOnBehalfNote} />
         </div>
       )}
@@ -127,6 +148,7 @@ export default function TaskDetailPage({
         data={data}
         events={events ?? []}
         collaborators={collaborators}
+        viewer={Boolean(viewer)}
       />
     </OnBehalfProvider>
   )
@@ -137,11 +159,14 @@ function TaskDetailContent({
   data,
   events,
   collaborators,
+  viewer = false,
 }: {
   id: string
   data: TaskDetailData
   events: Parameters<typeof ActivityTimeline>[0]['events']
   collaborators: Parameters<typeof TaskHeader>[0]['collaborators']
+  /** An invited viewer: everything read only (comments stay open). */
+  viewer?: boolean
 }) {
   const { treeData, tenant, assigneeName, assignerName, workflowSource } = data
   const metadata = (treeData.task.metadata ?? {}) as Record<string, unknown>
@@ -158,9 +183,14 @@ function TaskDetailContent({
   )
   const isOpen = !['completed', 'cancelled'].includes(treeData.task.status)
   const onBehalf = useOnBehalf()
-  const { userId } = usePermissions()
+  const { userId, can } = usePermissions()
   const attachmentCount = useTaskAttachmentCount(id)
   const [mobileBar, setMobileBar] = useState<HTMLDivElement | null>(null)
+  // Timeline sheet (header button, Details → Recent activity, ?timeline=1 links).
+  const [timelineOpen, setTimelineOpen] = useState(false)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('timeline') === '1') setTimelineOpen(true)
+  }, [])
   // The Task completed screen (lib/tasks/completion-screen.ts): shown in place of the tabs once the task is actioned here.
   const [completed, setCompleted] = useState<TaskCompletedEvent | null>(null)
   const { data: completionSettings } = useQuery({
@@ -252,26 +282,22 @@ function TaskDetailContent({
   // Normal / narrow forms: a 720px main column and a 320px rail (dependencies, activity) from xl.
   // Wide / full / custom forms keep one stacked column so the form isn't squeezed.
   const withRail = formWidth === 'normal' || formWidth === 'narrow'
+  // Progress follows the task's direct subtasks (child_count / completed_child_count, kept by the
+  // tasks trigger — nested subtasks roll up into their own parent). A stored progress that differs
+  // from that is a manual override.
+  const directTotal = Number(treeData.task.child_count ?? 0) || (treeData.subtasks ?? []).filter((s: { parent_task_id?: string | null }) => s.parent_task_id === treeData.task.id).length
+  const directDone = treeData.task.child_count != null
+    ? Number(treeData.task.completed_child_count ?? 0)
+    : (treeData.subtasks ?? []).filter((s: { parent_task_id?: string | null; status?: string }) => s.parent_task_id === treeData.task.id && s.status === 'completed').length
+  const subtaskPct = directTotal > 0 ? Math.round((directDone / directTotal) * 100) : 0
+  const storedPct = treeData.task.progress_pct == null ? null : Number(treeData.task.progress_pct)
   const progressOverride = (
     <ProgressOverride
       taskId={id}
-      subtaskProgress={
-        treeData.total_count > 1
-          ? Math.round((treeData.completed_count / Math.max(treeData.total_count - 1, 1)) * 100)
-          : 0
-      }
-      overridePct={(() => {
-        if (treeData.task.progress_pct == null) return null
-        if (treeData.total_count <= 1) return Number(treeData.task.progress_pct)
-        const computedSubtaskProgress = Math.round(
-          (treeData.completed_count / Math.max(treeData.total_count - 1, 1)) * 100
-        )
-        return Math.abs(Number(treeData.task.progress_pct) - computedSubtaskProgress) > 0
-          ? Number(treeData.task.progress_pct)
-          : null
-      })()}
-      totalSubtasks={treeData.total_count > 1 ? treeData.total_count - 1 : 0}
-      completedSubtasks={treeData.completed_count}
+      subtaskProgress={subtaskPct}
+      overridePct={storedPct == null ? null : directTotal === 0 ? storedPct : Math.abs(storedPct - (directDone / directTotal) * 100) >= 0.5 ? storedPct : null}
+      totalSubtasks={directTotal}
+      completedSubtasks={directDone}
     />
   )
   const taskTree = (
@@ -280,13 +306,17 @@ function TaskDetailContent({
       subtasks={treeData.subtasks ?? []}
       totalCount={treeData.total_count}
       completedCount={treeData.completed_count}
+      canAdd={data.canAddSubtasks === true}
+      canEdit={can('tasks.complete')}
+      depth={data.subtaskDepth ?? 0}
     />
   )
-  const links = <TaskLinksPanel taskId={id} />
+  const links = <TaskLinksPanel taskId={id} readOnly={viewer} />
   const timeline = <ActivityTimeline events={events} taskId={id} tenantId={treeData.task.tenant_id} />
   const externalFormUrl = typeof metadata.form_url === 'string' && metadata.form_url ? metadata.form_url : null
   const hasForm = hasTaskData || Boolean(externalFormUrl)
-  const commentCount = events.filter((e: { event_type?: string }) => e.event_type === 'comment_added').length
+  // Subtask additions are logged as comment events (with source 'subtask_added'); they aren't comments.
+  const commentCount = events.filter((e: { event_type?: string; metadata?: { source?: string } | null }) => e.event_type === 'comment_added' && e.metadata?.source !== 'subtask_added').length
 
   const details = (
     <div className={withRail ? 'grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-8' : 'space-y-5'}>
@@ -301,22 +331,28 @@ function TaskDetailContent({
             position={treeData.task.workflow_position}
           />
         )}
-        <EffortBox
-          task={treeData.task}
-          actions={<TimerWidget taskId={id} tenantId={treeData.task.tenant_id} />}
-          footer={<ManualEffortEntry taskId={id} tenantId={treeData.task.tenant_id} />}
-        />
-        {progressOverride}
-        {taskTree}
+        {/* An invited viewer reads effort, progress and subtasks; every control is disabled. */}
+        <fieldset disabled={viewer} className="m-0 min-w-0 space-y-5 border-0 p-0" data-task-read-only={viewer ? '' : undefined}>
+          <EffortBox
+            task={treeData.task}
+            actions={viewer ? null : <TimerWidget taskId={id} tenantId={treeData.task.tenant_id} />}
+            footer={viewer ? null : <ManualEffortEntry taskId={id} tenantId={treeData.task.tenant_id} />}
+          />
+          {!viewer && progressOverride}
+          {taskTree}
+        </fieldset>
       </div>
-      <aside className="min-w-0 space-y-5" aria-label="Dependencies">
+      <aside className="min-w-0 space-y-5" aria-label="Recent activity and dependencies">
+        <RecentActivity target={{ taskId: id }} onOpen={() => setTimelineOpen(true)} />
         {links}
       </aside>
     </div>
   )
 
+  // A themed form (page background, header or buttons) frames itself: no second card around it.
+  const themedForm = Boolean(formTheme) || normalizeFormHeader(metadata.form_header)?.enabled === true || hasFormButtons
   const form = (
-    <div className={withRail ? 'max-w-3xl space-y-5' : 'space-y-5'}>
+    <div className={formWidth === 'narrow' ? 'mx-auto max-w-xl space-y-5' : 'space-y-5'}>
       {externalFormUrl && (
         <div>
           <Button variant="secondary" asChild trailingIcon={<ExternalLink />}>
@@ -326,8 +362,8 @@ function TaskDetailContent({
         </div>
       )}
       {hasTaskData && (
-        <Card padding="lg" id="task-form" className="scroll-mt-4 max-sm:-mx-1 max-sm:p-4" data-task-details>
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <Card padding={themedForm ? "none" : "md"} id="task-form" className={cn("scroll-mt-4", themedForm ? "border-0 bg-transparent shadow-none" : "max-sm:-mx-1 max-sm:p-4")} data-task-details>
+          <div className={cn("mb-3 flex items-center justify-between gap-3", themedForm && "px-1")}>
             <h2 className="text-base font-semibold text-fg">Task form</h2>
             {canEditFields && (
               <Button
@@ -392,8 +428,8 @@ function TaskDetailContent({
   return (
     <TaskDetailRealtime taskId={id}>
       <div
-        className={withRail ? 'mx-auto max-w-4xl xl:max-w-[1072px]' : `${taskWidth.className} mx-auto`}
-        style={withRail ? undefined : (taskWidth.style as React.CSSProperties)}
+        className={withRail || formWidth === 'full' ? 'w-full' : `${taskWidth.className} mx-auto`}
+        style={withRail || formWidth === 'full' ? undefined : (taskWidth.style as React.CSSProperties)}
         data-task-form-width={formWidth}
         data-task-layout={withRail ? 'rail' : 'stacked'}
       >
@@ -433,6 +469,7 @@ function TaskDetailContent({
           className="sticky -bottom-6 z-20 -mx-4 mt-4 flex flex-nowrap items-center gap-2 overflow-x-auto border-t border-border bg-panel px-4 py-2 shadow-elev-1 [scrollbar-width:none] empty:hidden md:hidden [&>*]:shrink-0"
           data-task-mobile-actions
         />
+        <TimelineSheet target={{ taskId: id }} open={timelineOpen} onOpenChange={setTimelineOpen} />
       </div>
     </TaskDetailRealtime>
   )

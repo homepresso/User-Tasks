@@ -28,10 +28,11 @@ import { addUsage, callModel, type AgentUsage, type StreamState } from '@/lib/ag
 import { chatBodyParams, providerFileSupport, type AgentProviderKind } from '@/lib/agents/provider'
 import { rememberThinkingRejected, thinkingParams, thinkingRejected, withoutThinking } from '@/lib/agents/reasoning'
 import { messagesHeaders, messagesUrl, toMessagesBody, useAnthropicNative } from '@/lib/agents/anthropic-messages'
+import { pdfInputSupport, supportsPdfInput } from '@/lib/agents/pdf-input'
 import { SAFETY_PREAMBLE, redactSecrets, wrapUntrusted } from '@/lib/agents/safety'
 import type { AssistantConnection } from './settings'
-import { attachmentBlock, sanitizeAttachments } from './attachments-core'
-import type { AssistantEvent, ChatMessage, ChatToolCall, ConfirmCard } from './types'
+import { ATTACHMENT_LIMITS, SCANNED_PDF_UNREADABLE, attachmentBlock, sanitizeAttachments, type PdfDelivery } from './attachments-core'
+import type { AssistantEvent, ChatAttachment, ChatMessage, ChatToolCall, ConfirmCard } from './types'
 
 export interface ToolEnv {
   emit: (event: AssistantEvent) => void
@@ -70,6 +71,19 @@ export interface AssistantToolDef {
    * still runs if called by name.
    */
   group?: string
+}
+
+/**
+ * Thrown by a write tool's `confirm` when the change can't be shown yet and
+ * the model needs details to continue (e.g. the task's required fields that
+ * are still empty, or the reason an on-behalf action needs): no card is
+ * shown; the model gets `{ error: message, ...result }` and carries on.
+ */
+export class ToolPrecheck extends Error {
+  constructor(message: string, readonly result: Record<string, unknown>) {
+    super(message)
+    this.name = 'ToolPrecheck'
+  }
 }
 
 export interface TurnLimits {
@@ -234,14 +248,81 @@ export function modelAcceptsImages(provider: AgentProviderKind, model: string): 
   return /(vision|-vl|llava|pixtral|gpt-4o|gpt-4\.1|gpt-5|claude|gemini|grok-4|qwen2\.5-vl|llama3\.2-vision|minicpm-v)/.test(m)
 }
 
-/** One user message for the provider: its attachments as delimited untrusted blocks (and image parts), then the text. */
-function userContent(m: ChatMessage, prefix: string | null, vision: boolean): unknown {
+/** How PDFs reach the model this call (buildModelMessages `pdf`). */
+export interface PdfSendOptions {
+  /** The model reads PDFs itself (lib/agents/pdf-input), up to this many pages; null: it doesn't. */
+  native: { maxPages: number } | null
+  /** Why PDFs can't be sent whole this turn (the provider refused one) — given to the model with the fallback. */
+  refused?: string | null
+}
+
+/** Which PDFs go whole: the newest first, within the model's page limit and maxPdfDataUrlChars for the whole request. */
+function nativePdfs(history: ChatMessage[], pdf: PdfSendOptions | undefined): Set<ChatAttachment> {
+  const out = new Set<ChatAttachment>()
+  if (!pdf?.native || pdf.refused) return out
+  let chars = 0
+  for (let i = history.length - 1; i >= 0; i--) {
+    for (const a of history[i].role === 'user' ? history[i].attachments ?? [] : []) {
+      if (a.kind !== 'document' || !a.data_url) continue
+      if (a.pages && a.pages > pdf.native.maxPages) continue
+      if (chars + a.data_url.length > ATTACHMENT_LIMITS.maxPdfDataUrlChars) continue
+      chars += a.data_url.length
+      out.add(a)
+    }
+  }
+  return out
+}
+
+/** How one PDF reaches the model: whole, scanned pages as images, its text, or not at all (with why). */
+function pdfDelivery(a: ChatAttachment, whole: boolean, vision: boolean, pdf: PdfSendOptions | undefined): PdfDelivery {
+  if (whole) return { as: 'file' }
+  if (vision && a.page_images?.length) return { as: 'images', pages: a.page_images.map((p) => p.page) }
+  if (a.text) return { as: 'text' }
+  if (pdf?.refused) return { as: 'none', reason: `the AI provider refused the PDF (${pdf.refused}), and it has no text layer to fall back on.` }
+  if (a.data_url && a.pages && pdf?.native && a.pages > pdf.native.maxPages) return { as: 'none', reason: `it has ${a.pages} pages — more than the ${pdf.native.maxPages} this model reads at once — and no text layer. Ask for a shorter extract.` }
+  return { as: 'none', reason: SCANNED_PDF_UNREADABLE }
+}
+
+/** One user message for the provider: PDFs sent whole (file parts) first, then its attachments as delimited untrusted blocks and the text, then image parts. */
+function userContent(m: ChatMessage, prefix: string | null, vision: boolean, whole: Set<ChatAttachment> = new Set(), pdf?: PdfSendOptions): unknown {
   const atts = m.attachments ?? []
   const images = vision ? atts.filter((a) => a.kind === 'image' && a.data_url) : []
-  const blocks = atts.map((a) => attachmentBlock(a, images.includes(a)))
+  const files: Array<Record<string, unknown>> = []
+  const imageUrls: string[] = []
+  const blocks = atts.map((a) => {
+    if (a.kind === 'image') { if (images.includes(a)) imageUrls.push(a.data_url!); return attachmentBlock(a, images.includes(a)) }
+    if (a.kind !== 'document') return attachmentBlock(a, false)
+    const d = pdfDelivery(a, whole.has(a), vision, pdf)
+    if (d.as === 'file') files.push({ type: 'file', file: { filename: a.name, file_data: a.data_url } })
+    if (d.as === 'images') imageUrls.push(...a.page_images!.map((p) => p.data_url))
+    return attachmentBlock(a, false, d)
+  })
   const text = [prefix, ...blocks, prefix || blocks.length ? `The person's message:\n${m.content ?? ''}` : (m.content ?? '')].filter(Boolean).join('\n\n')
-  if (!images.length) return text
-  return [{ type: 'text', text }, ...images.map((a) => ({ type: 'image_url', image_url: { url: a.data_url! } }))]
+  if (!imageUrls.length && !files.length) return text
+  return [...files, { type: 'text', text }, ...imageUrls.map((url) => ({ type: 'image_url', image_url: { url } }))]
+}
+
+/**
+ * The request's size for the token-budget estimate (characters ≈ 4 per
+ * token), with file and image data counted as their rough token cost
+ * instead of their base64 length: an image ≈ 1,600 tokens, a PDF ≈ one
+ * token per 100 base64 characters (≈ 2–3k per scanned page).
+ */
+export function promptChars(messages: Array<Record<string, unknown>>): number {
+  let extra = 0
+  const json = JSON.stringify(messages, (key, value) => {
+    if ((key === 'file_data' || key === 'url') && typeof value === 'string' && value.startsWith('data:')) {
+      extra += key === 'file_data' ? Math.ceil(value.length / 100) * 4 : 1_600 * 4
+      return ''
+    }
+    return value
+  })
+  return json.length + extra
+}
+
+/** Did this request carry a PDF sent whole? */
+export function sentPdf(messages: Array<Record<string, unknown>>): boolean {
+  return messages.some((m) => Array.isArray(m.content) && (m.content as any[]).some((p) => p?.type === 'file'))
 }
 
 /**
@@ -306,11 +387,12 @@ export function toolResultStub(name: string, content: string, args: string): str
 }
 
 /** The messages sent to the provider: our system message, the history (compacted), the context on the last user message. */
-export function buildModelMessages(instructions: string, history: ChatMessage[], context: Record<string, unknown> | null, options: { vision?: boolean; compact?: HistoryCompaction } = {}): Array<Record<string, unknown>> {
+export function buildModelMessages(instructions: string, history: ChatMessage[], context: Record<string, unknown> | null, options: { vision?: boolean; compact?: HistoryCompaction; pdf?: PdfSendOptions } = {}): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = [{ role: 'system', content: [SAFETY_PREAMBLE, instructions].join('\n\n') }]
   let lastUser = -1
   history.forEach((m, i) => { if (m.role === 'user') lastUser = i })
   const compact = options.compact
+  const whole = nativePdfs(history, options.pdf)
   // Tool results: which stay in full (the latest keepRecent), call id → arguments, call id → its reply.
   const keep = new Set<number>()
   const calls = new Map<string, { name: string; args: string }>()
@@ -325,7 +407,7 @@ export function buildModelMessages(instructions: string, history: ChatMessage[],
   }
   history.forEach((m, i) => {
     const msg: Record<string, unknown> = { role: m.role, content: m.content }
-    if (m.role === 'user') msg.content = userContent(m, i === lastUser && context ? contextBlock(context) : null, options.vision === true)
+    if (m.role === 'user') msg.content = userContent(m, i === lastUser && context ? contextBlock(context) : null, options.vision === true, whole, options.pdf)
     if (m.tool_calls) {
       msg.tool_calls = m.tool_calls.map((c) => {
         let args = safeToolArguments(c.function?.arguments)
@@ -414,13 +496,16 @@ export async function runAssistantTurn(input: TurnInput): Promise<TurnResult> {
       let content: unknown
       if (!tool) content = { error: `Unknown tool: ${call.function.name}` }
       else if (argError) content = { error: argError }
-      else if (tool.mode === 'write' && !decided) {
+      else if (tool.mode === 'write' && !decided && stopAfter) {
+        // A question was just put to the person in this step: no change is offered before their answer.
+        content = { error: 'Not shown: you asked the person a question in this step. Wait for their answer, then call this again.' }
+      } else if (tool.mode === 'write' && !decided) {
         // Never in the turn that asks: show what it would do and wait for the person.
         let card: Omit<ConfirmCard, 'tool_call_id' | 'tool'>
         try {
           card = tool.confirm ? await tool.confirm(args) : { title: tool.label(args), lines: [], warnings: [] }
         } catch (error) {
-          content = { error: (error as Error)?.message || 'This change is not allowed' }
+          content = error instanceof ToolPrecheck ? { error: error.message, ...error.result } : { error: (error as Error)?.message || 'This change is not allowed' }
           push({ role: 'tool', tool_call_id: call.id, name: call.function.name, content: wrapUntrusted(call.function.name, content, resultMax(call.function.name)) })
           continue
         }
@@ -485,13 +570,21 @@ export async function runAssistantTurn(input: TurnInput): Promise<TurnResult> {
     },
   }
   const toolChars = providerTools ? JSON.stringify(providerTools).length : 0
+  // PDFs whole for models that read them (lib/agents/pdf-input; Claude only over the native API); refused once → the fallbacks for the rest of the turn.
+  const pdfSupport = pdfInputSupport(input.connection.provider, input.connection.model)
+  let pdfRefused: string | null = null
+  const pdfOptions = (): PdfSendOptions => ({
+    native: pdfSupport && supportsPdfInput(input.connection.provider, input.connection.model, { native }) ? { maxPages: pdfSupport.maxPages } : null,
+    refused: pdfRefused,
+  })
+  const messagesNow = () => buildModelMessages(input.instructions, working, input.context, { vision: input.vision, compact, pdf: pdfOptions() })
   let lastPrompt = 0
   let lastChars = 0
   for (let iteration = 1; iteration <= limits.maxIterations; iteration++) {
     if (input.signal?.aborted) return result('cancelled', 'Stopped')
     if (Date.now() >= deadline) return result('failed', 'The Agent ran out of time — try a smaller request')
-    const messages = buildModelMessages(input.instructions, working, input.context, { vision: input.vision, compact })
-    const chars = JSON.stringify(messages).length
+    const messages = messagesNow()
+    const chars = promptChars(messages)
     // A token budget (when one is set): stop BEFORE a call that would go over it — resumably, with the work so far kept.
     if (limits.maxTokens > 0) {
       const nextPrompt = llmCalls ? lastPrompt + Math.max(0, Math.ceil((chars - lastChars) / 4)) : Math.ceil((chars + toolChars) / 4)
@@ -525,10 +618,18 @@ export async function runAssistantTurn(input: TurnInput): Promise<TurnResult> {
       thinking = {}
       call = await send(body)
     }
+    // A PDF the provider refused (too many pages, encrypted, damaged…): again without PDFs sent whole — the model gets their text or a note.
+    if (!call.ok && call.kind === 'bad_request' && sentPdf(body.messages as Array<Record<string, unknown>>)) {
+      console.warn('[assistants] the provider rejected a PDF; retrying with the fallbacks:', call.error)
+      pdfRefused = String(call.error ?? 'rejected').replace(/\s+/g, ' ').slice(0, 200)
+      body.messages = messagesNow()
+      call = await send({ ...body, ...thinking })
+    }
     if (native && !call.ok && (call.kind === 'bad_request' || call.kind === 'not_found')) {
       console.warn('[assistants] native Messages request rejected; using the compatibility endpoint for this turn:', call.error)
       native = false
-      call = await callModel(input.connection.url, input.connection.headers, withoutThinking(body), opts)
+      // Claude's document blocks are native-only: the compatibility endpoint gets the PDFs' fallbacks.
+      call = await callModel(input.connection.url, input.connection.headers, { ...withoutThinking(body), messages: messagesNow() }, opts)
     }
     if (!call.ok) return result(call.kind === 'cancelled' ? 'cancelled' : 'failed', call.error)
     const step = addUsage(usage, call.json?.usage)

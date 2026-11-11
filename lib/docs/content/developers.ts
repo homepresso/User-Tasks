@@ -154,7 +154,7 @@ export const CLI_PAGES: DocPageDef[] = [
 ## Install
 
 \`\`\`bash
-npm install -g @usertasks/cli     # Node.js 20+
+npm install -g @user-tasks/cli     # Node.js 20+
 usertasks --version
 \`\`\`
 
@@ -297,7 +297,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm install -g @usertasks/cli
+      - run: npm install -g @user-tasks/cli
       - run: usertasks config diff ./config --source-label dev --exit-code   # exit 7 = changes
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -351,14 +351,14 @@ export const SDK_PAGES: DocPageDef[] = [
     title: 'TypeScript SDK',
     description: 'A typed client for the REST API, generated from the OpenAPI document, with retries, pagination, events and OAuth helpers.',
     body: `
-\`@usertasks/sdk\` is a typed TypeScript client for \`/api/v1\`. Its types are generated from the server's OpenAPI 3.1 document, which ships with the package as \`@usertasks/sdk/openapi.json\`. It is ESM-only and runs on Node.js 20+ or any runtime with \`fetch\`.
+\`@user-tasks/sdk\` is a typed TypeScript client for \`/api/v1\`. Its types are generated from the server's OpenAPI 3.1 document, which ships with the package as \`@user-tasks/sdk/openapi.json\`. It is ESM-only and runs on Node.js 20+ or any runtime with \`fetch\`.
 
 \`\`\`bash
-npm install @usertasks/sdk
+npm install @user-tasks/sdk
 \`\`\`
 
 \`\`\`ts
-import { apiKeyAuth, createClient, isUsertasksApiError } from '@usertasks/sdk'
+import { apiKeyAuth, createClient, isUsertasksApiError } from '@user-tasks/sdk'
 
 const client = createClient({
   baseUrl: 'https://tasks.example.com',
@@ -537,6 +537,28 @@ usertasks packages build invoice-approval --bump minor --notes "Clearer approval
 usertasks packages inspect invoice-approval-1.1.0.utpkg      # offline: checksum, file hashes, signature
 \`\`\`
 
+## Changing what a package contains
+
+Open a package under **Packages → Authored here** and expand **Items**: everything the package contains now, grouped by type (workflows, forms, data tables, decision tables, reports, …), each with why it is there (*Root*, *Added*, *Used by …*) and what uses it.
+
+- **Add items** opens the same server-side picker. When an item uses things the package does not contain yet — a workflow's forms, tables, decision tables — they are listed before anything changes, with **Add with dependencies** ticked. Untick it to leave them out (they must then exist wherever the package is installed). Items you left out earlier come back when you add them again.
+- **Remove** (the × on an item) asks first. When another item in the package uses it, the dialog says so — *Workflow “Approve” uses form “Request”* — and **Remove anyway** leaves it out of the package. Nothing in the workspace is ever deleted.
+- Changes edit the package's draft. The section shows **Unpublished changes** (*2 added, 1 removed* since the last version) until you **Build new version**: choose **Patch** or **Minor** (or an exact version) and build — the same signed build as always.
+
+**Packages installed in the same workspace.** A package the [Agent](/docs/ai-assistants) built for a solution is installed in the workspace it was made in, so one **Uninstall** removes the whole solution. When such a package is built again, **Update the install in this workspace** (ticked by default; needs \`packages.install\`) keeps that install in step: it moves to the new version through the normal upgrade path — nothing in the items changes, the version was just exported from them — so uninstall then removes the items you added and **keeps the items you removed**. Items new in the version are recorded as owned before the upgrade, so its settings are found in place; if the upgrade is blocked anyway, the install keeps its version and only its list of owned items is updated (the build result says why).
+
+From the CLI, REST and MCP:
+
+\`\`\`bash
+usertasks packages items purchase-requests                          # grouped, uses / used by, unpublished changes
+usertasks packages add-items purchase-requests --set 'items:=[{"type":"workflow","id":"…"}]' --set dry_run:=true   # what it brings in
+usertasks packages add-items purchase-requests --set 'items:=[{"type":"workflow","id":"…"}]'
+usertasks packages remove-items purchase-requests --set 'items:=[{"type":"form","id":"…"}]' --set dry_run:=true    # what still uses it
+usertasks packages build purchase-requests --bump minor --update-install
+\`\`\`
+
+\`GET /api/v1/packages/{id}/items\`, \`POST /api/v1/packages/{id}/items\` (\`with_dependencies\`, \`dry_run\`), \`POST /api/v1/packages/{id}/items/remove\` (409 while other items use them, unless \`force\`), \`POST /api/v1/packages/{id}/versions\` with \`update_install\`; MCP \`packages_items_list\`, \`packages_items_add\`, \`packages_items_remove\` and \`packages_build\` with \`update_install\`. In the Agent panel, ask for it in words (*“add the expense workflow to Purchase requests”*): the **package_items** card shows what an add brings with it and what still uses a removed item before you confirm, then builds the next version.
+
 ## Requirements
 
 Requirements are derived from the package itself, so every secret becomes one — nothing secret is ever written to a package file (builds refuse to complete if one is found).
@@ -642,6 +664,15 @@ usertasks packages uninstall invoice-approval --dry-run                       # 
 usertasks packages uninstall invoice-approval --delete-data --force --cancel-runs --yes
 \`\`\`
 
+### Items on an installed package
+
+Expand an installed package to see the items it owns — the ones **Uninstall** removes.
+
+- **Remove from package** (on each item): the item stays in the workspace and uninstalling no longer deletes it. Later upgrades of the package leave it alone (the package's other items keep pointing at it). Allowed on any install, including gallery packages. For a package authored in this workspace, the package itself drops the item too, so its next version leaves it out.
+- **Add to package**: pick existing workspace items for the install to own, so uninstalling removes them. Only for packages **authored in this workspace** (the Agent's solutions, or ones you built and installed here) — a gallery or third-party package can only have items removed. The items are added to the package itself too, so its next version includes them.
+
+Both ask for confirmation and are recorded in the audit log. API: \`POST /api/v1/package-installs/{id}/detach\` and \`/adopt\` (\`items\`, \`dry_run\`, \`update_package\`); MCP \`packages_install_detach\`, \`packages_install_adopt\`; CLI \`usertasks package-installs detach|adopt <install> --set 'items:=[…]'\`.
+
 ## History
 
 The **History** tab (also **History** on an installed package) is the timeline of every install, upgrade, reinstall, downgrade, reconfigure (**Complete setup**) and uninstall in the workspace — including attempts that failed, such as a refused downgrade, a tampered file or an uninstall blocked by running workflows. Uninstalled packages keep their history.
@@ -701,9 +732,10 @@ A \`.utpkg\` is a ZIP archive:
 | To… | You need |
 |---|---|
 | See packages, versions, the library and the history; plan an install or uninstall | \`packages.view\` (OAuth \`packages:read\` or \`config:read\`) |
-| Create and edit packages, build and download versions | \`packages.manage\` (OAuth \`packages:write\` or \`config:write\`) |
+| Create and edit packages, add and remove their items, build and download versions | \`packages.manage\` (OAuth \`packages:write\` or \`config:write\`) — adding an item also needs view permission on its type |
 | Install, upgrade, complete setup | \`packages.install\` (OAuth \`packages:write\` or \`config:write\`) — and the create / edit permission of every section the package writes, as for config apply |
 | Uninstall | \`packages.install\` and the delete permission of every section it removes (plus \`workflows.activate\` to cancel runs) |
+| Remove items from / add items to an installed package | \`packages.install\` (adding: only packages authored here; \`packages.manage\` to change the package itself too) |
 
 Owner, Admin and Manager have all three by default.
 

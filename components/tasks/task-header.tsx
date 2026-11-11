@@ -26,6 +26,7 @@ import { usePermissions } from '@/lib/permissions-context'
 import { TaskOutcomeDialog, outcomeLabel } from './task-outcome-dialog'
 import { TaskAcceptanceBanner } from './task-acceptance-banner'
 import { useOnBehalf } from './on-behalf'
+import { TaskInviteControls } from './invite-viewers'
 import { CollaboratorBar } from './collaborator-bar'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
 import { useEffect, useState } from 'react'
@@ -35,11 +36,13 @@ import { useTenantUsers } from '@/hooks/use-tenant-users'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { TaskDescription } from '@/components/tasks/task-description'
 import { getTaskCode } from '@/components/tasks/timesheet-helpers'
+import { TimelineButton } from '@/components/timeline/timeline-sheet'
 
 interface TaskHeaderProps {
   task: {
     id: string
     title: string
+    subtitle?: string | null
     description: string | null
     status: string
     priority: string
@@ -215,13 +218,24 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
       <Link href={can('workflows.view_runs') ? `/automations/runs/${runId}` : `/home/runs/${runId}`}>Process view</Link>
     </Button>
   ) : null
+  // Timeline: what has happened on this request (its run's story, else the task's own history).
+  const timelineButton = <TimelineButton target={{ taskId: task.id }} />
 
   // Follow (Task tracker → Following): open or closed, a task can be followed from its page.
-  const follow = <TaskFollowToggle taskId={task.id} />
+  // Invite (read only) and the "Shared with N" chip: lib/services/task-viewers.
+  const follow = (
+    <>
+      <TaskFollowToggle taskId={task.id} />
+      <TaskInviteControls taskId={task.id} />
+    </>
+  )
+  // An invited viewer reads the task; reopening is for the people working on it.
+  const viewerOnly = Boolean(access?.viewer)
   const actions = !isDone ? (
     <>
       {follow}
       {viewFlow}
+      {timelineButton}
       <TaskOutcomeDialog
         taskId={task.id}
         taskTitle={task.title}
@@ -262,10 +276,13 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
     <>
       {follow}
       {viewFlow}
+      {timelineButton}
       {task.outcome && <Badge tone={outcomeTone(task.outcome)} pill dot>{outcomeLabel(task.outcome)}</Badge>}
-      <Button variant="secondary" size="sm" onClick={handleReopen} loading={completing} leadingIcon={<RotateCcw />}>
-        Reopen
-      </Button>
+      {!viewerOnly && (
+        <Button variant="secondary" size="sm" onClick={handleReopen} loading={completing} leadingIcon={<RotateCcw />}>
+          Reopen
+        </Button>
+      )}
     </>
   )
 
@@ -304,6 +321,7 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
         title={<span className="line-clamp-2 whitespace-normal">{task.title}</span>}
         description={
           <>
+            {task.subtitle && <span className="mb-0.5 block text-sm text-fg" data-task-subtitle>{task.subtitle}</span>}
             {assignerName ? `Assigned by ${assignerName}` : 'Self-assigned'}
             {' · '}Created{' '}
             <Tooltip content={formatAbsolute(task.created_at)}>

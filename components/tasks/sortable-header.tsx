@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
-import { TH } from "@/components/ui/table"
+import { TH, type ColumnKind } from "@/components/ui/table"
 import { ariaSortFor, type SortState } from "@/lib/tasks/list-sort"
 import { cn } from "@/lib/utils"
 
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
  * descending → none (lib/tasks/list-sort nextSort). The arrow shows the
  * direction; an idle column shows a faint up/down hint on hover / focus.
  */
-export function SortableTH<K extends string>({ sortKey, sort, onSort, children, numeric, className, label }: {
+export function SortableTH<K extends string>({ sortKey, sort, onSort, children, numeric, className, label, col }: {
   sortKey: K
   sort: SortState<K> | null
   onSort: (key: K) => void
@@ -20,10 +20,12 @@ export function SortableTH<K extends string>({ sortKey, sort, onSort, children, 
   className?: string
   /** Accessible column name when `children` isn't plain text. */
   label?: string
+  /** The column's kind: its readable minimum width (components/ui/table columnClass). */
+  col?: ColumnKind
 }) {
   const ariaSort = ariaSortFor(sort, sortKey)
   return (
-    <TH numeric={numeric} className={className} aria-sort={ariaSort} data-sort-key={sortKey}>
+    <TH numeric={numeric} col={col} className={className} aria-sort={ariaSort} data-sort-key={sortKey}>
       <SortButton sortKey={sortKey} sort={sort} onSort={onSort} numeric={numeric} label={label}>{children}</SortButton>
     </TH>
   )

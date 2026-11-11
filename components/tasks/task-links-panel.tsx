@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils'
 /**
  * Task detail panel: blocking dependencies in both directions. "Blocked" is
  * derived — shown here and as badges in lists; completion shows a
- * warn-with-override.
+ * warn-with-override. `readOnly` (an invited viewer): the links only.
  */
-export function TaskLinksPanel({ taskId }: { taskId: string }) {
+export function TaskLinksPanel({ taskId, readOnly = false }: { taskId: string; readOnly?: boolean }) {
   const queryClient = useQueryClient()
   const [depPickerFor, setDepPickerFor] = useState<'blockedBy' | 'blocks' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +54,7 @@ export function TaskLinksPanel({ taskId }: { taskId: string }) {
         }
       />
       <div className="space-y-3 px-4 pb-4">
-        <div className="flex flex-wrap items-center gap-1">
+        {!readOnly && <div className="flex flex-wrap items-center gap-1">
           <Button size="sm" variant="secondary" leadingIcon={<Plus />} aria-pressed={depPickerFor === 'blockedBy'}
             onClick={() => { setDepPickerFor(depPickerFor === 'blockedBy' ? null : 'blockedBy') }}>
             Blocked by
@@ -63,11 +63,11 @@ export function TaskLinksPanel({ taskId }: { taskId: string }) {
             onClick={() => { setDepPickerFor(depPickerFor === 'blocks' ? null : 'blocks') }}>
             Blocks
           </Button>
-        </div>
+        </div>}
 
         {error && <InlineNotice tone="danger">{error}</InlineNotice>}
 
-        {depPickerFor && (
+        {depPickerFor && !readOnly && (
           <TaskPicker
             excludeTaskId={taskId}
             onPick={async (id) => {
@@ -80,7 +80,7 @@ export function TaskLinksPanel({ taskId }: { taskId: string }) {
 
         {!hasAnything && !depPickerFor && (
           <p className="text-ui text-fg-muted">
-            Standalone task — add blocking dependencies if it waits on other work.
+            {readOnly ? 'No blocking dependencies.' : 'Standalone task — add blocking dependencies if it waits on other work.'}
           </p>
         )}
 
@@ -88,14 +88,14 @@ export function TaskLinksPanel({ taskId }: { taskId: string }) {
           <DepList
             label="Blocked by"
             items={deps!.blockedBy}
-            onRemove={(id) => run(() => removeTaskDependency(taskId, id))}
+            onRemove={readOnly ? undefined : (id) => run(() => removeTaskDependency(taskId, id))}
           />
         )}
         {(deps?.blocks?.length ?? 0) > 0 && (
           <DepList
             label="Blocks"
             items={deps!.blocks}
-            onRemove={(id) => run(() => removeTaskDependency(id, taskId))}
+            onRemove={readOnly ? undefined : (id) => run(() => removeTaskDependency(id, taskId))}
           />
         )}
       </div>
@@ -106,7 +106,7 @@ export function TaskLinksPanel({ taskId }: { taskId: string }) {
 function DepList({ label, items, onRemove }: {
   label: string
   items: Array<{ id: string; title: string; status: string }>
-  onRemove: (id: string) => void
+  onRemove?: (id: string) => void
 }) {
   return (
     <div>
@@ -120,7 +120,7 @@ function DepList({ label, items, onRemove }: {
                 {t.title}
               </Link>
               <StatusPill status={t.status} />
-              <IconButton size="sm" label="Remove link" icon={<X />} onClick={() => onRemove(t.id)} />
+              {onRemove && <IconButton size="sm" label="Remove link" icon={<X />} onClick={() => onRemove(t.id)} />}
             </li>
           )
         })}

@@ -179,7 +179,7 @@ export function capTranscript(t: AgentTranscript): AgentTranscript {
   let out = t
   if (JSON.stringify(out.events).length > MAX_TRANSCRIPT_EVENTS_CHARS) {
     // Keep the cards (confirmations, changes, questions) and the final text; drop the rest.
-    const keep = out.events.filter((e) => e.type === 'confirm' || e.type === 'changed' || e.type === 'choice' || e.type === 'proposal' || e.type === 'draft' || e.type === 'outcome_suggestion')
+    const keep = out.events.filter((e) => e.type === 'confirm' || e.type === 'changed' || e.type === 'choice' || e.type === 'proposal' || e.type === 'draft' || e.type === 'outcome_suggestion' || e.type === 'info_card')
     const events = JSON.stringify(keep).length > MAX_TRANSCRIPT_EVENTS_CHARS ? keep.filter((e) => e.type === 'confirm') : keep
     out = { ...out, events, truncated: true }
   }

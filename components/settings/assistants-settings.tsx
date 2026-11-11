@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, KeyRound, PlugZap, Sparkles, Trash2 } from 'lucide-react'
+import { CheckCircle2, KeyRound, Mic, PlugZap, Sparkles, Trash2 } from 'lucide-react'
 import { usePermissions } from '@/lib/permissions-context'
 import { useDashboardAuth } from '@/lib/dashboard-auth-context'
 import { serverQuery, serverRead } from '@/lib/server-read'
@@ -27,6 +27,7 @@ import {
   AGENT_TOOL_GROUPS, ASSISTANT_PROVIDERS, PROVIDER_PRESETS, TOOL_GROUP_LABELS,
   type AgentSettings, type AgentToolGroup, type AssistantProvider, type AssistantSettingsView,
 } from '@/lib/assistants/types'
+import { DICTATION_ENGINES, DICTATION_ENGINE_LABELS, DICTATION_LANGUAGES, type DictationEngine, type DictationSettings } from '@/lib/assistants/dictation'
 
 /**
  * Settings → Agent (assistants.manage): the provider, key and model the
@@ -39,14 +40,15 @@ import {
 
 const QUERY_KEY = ['assistants-settings']
 type Notice = { tone: 'success' | 'warning' | 'error'; message: string }
-type View = AssistantSettingsView & { integrations: Array<{ id: string; name: string; type: string }> }
+type Option = { id: string; name: string; type: string }
+type View = AssistantSettingsView & { integrations: Option[]; transcription_integrations?: Option[]; agent_transcribes?: boolean }
 
 const muted = { color: 'var(--theme-muted-text)' }
 const fieldStyle = { borderColor: 'var(--theme-surface-border)' }
 
 const CAPABILITY_HINTS: Record<AgentToolGroup, string> = {
   form: 'On a form being filled: explains fields and proposes values (people with Submit forms). People apply each value themselves; it never submits.',
-  task: 'On a task: summarises it and its comments, explains the outcomes, drafts comments and suggests an outcome. It never completes, approves or redirects a task.',
+  task: 'On a task: summarises it, its form and its comments, explains the outcomes, drafts comments and suggests an outcome. It completes, approves or declines a task only when asked, after the person confirms (see below).',
   designer: 'Everywhere: looks up workflows, forms, tables and rules (with view permissions) and, for people who can build, builds and edits them, adds / changes / deletes data rows, and builds from attached files. Every change is confirmed first; workflows are saved as drafts.',
   admin: 'For people with admin permissions: explains settings, who has access and why, audit, usage and workspace health, and makes admin changes (invite, roles, teams, managers, org, theme, sign-in page, retention) with each change\'s own permission, confirmed first. Never secrets, SSO, the workspace address, billing, its own settings, or the person\'s own access.',
 }
@@ -199,7 +201,7 @@ export function AssistantsSettings() {
       {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
 
       {/* ── Connection ── */}
-      <Card className="p-5 space-y-5">
+      <Card className="p-5 space-y-5" data-tour="agent-provider">
         <h2 className="text-base font-semibold">Provider (default model)</h2>
         <div className="space-y-1">
           <label htmlFor="assistants-provider" className="block text-sm font-medium">AI provider</label>
@@ -303,11 +305,15 @@ export function AssistantsSettings() {
       {/* ── The Agent ── */}
       <AgentCard value={agent} disabled={disabled} roleOptions={roleOptions} teamOptions={teamOptions} onChange={patchAgent} />
 
+      {/* ── Dictation ── */}
+      <DictationCard value={agent.dictation} disabled={disabled} integrations={data.transcription_integrations ?? []} agentTranscribes={Boolean(data.agent_transcribes)}
+        onChange={(patch) => patchAgent({ dictation: { ...agent.dictation, ...patch } })} />
+
       {/* ── Profiles: who gets which Agent; the Default profile is the settings on this page ── */}
       <AgentProfiles profiles={profilesDraft} onChange={setProfilesDraft} disabled={disabled} saved={data.agent.profiles} tenantId={tenantId}
         defaults={{
           modelLabel: `${PROVIDER_PRESETS[data.provider].label}${data.model || PROVIDER_PRESETS[data.provider].defaultModel ? ` · ${data.model || PROVIDER_PRESETS[data.provider].defaultModel}` : ''}`,
-          thinking: agent.thinking_level, tools: agent.tools,
+          thinking: agent.thinking_level, tools: agent.tools, taskActions: agent.task_actions !== false,
           limits: { messages_per_user_per_day: Number(perDay) || 0, monthly_cost_cap: Number(costCap) || 0, cost_currency: currency.trim().toUpperCase() || 'USD', max_request_tokens: Number(requestTokens) || 0 },
         }}
         roleOptions={roleOptions} teamOptions={teamOptions} userOptions={userOptions} integrations={data.integrations} defaultProvider={provider} defaultModel={model.trim() || preset.defaultModel} />
@@ -361,6 +367,10 @@ export function AssistantsSettings() {
           treats screen and file content as data (not instructions), and every request is recorded with its tokens and cost. Attached files are read once and not stored on the server.
           The conversation is kept in the person&apos;s browser (per person and workspace, size-capped) so it follows them between screens, and is removed when they sign out.
         </p>
+        <p style={muted}>
+          Dictation with browser speech recognition is done by the person&apos;s browser: Chrome and Edge send the audio to their vendor&apos;s speech service (Google, Microsoft), Safari to Apple&apos;s
+          (or on the device). With a transcription provider, the recording goes from this server to that provider only — it is held in memory for the call and never stored.
+        </p>
       </Card>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -398,7 +408,7 @@ function AgentCard({ value, disabled, roleOptions, teamOptions, onChange }: {
   const restricted = value.roles.length > 0 || value.teams.length > 0
   const [limit, setLimit] = useState(restricted)
   return (
-    <Card className="p-5 space-y-4" data-testid="assistants-agent">
+    <Card className="p-5 space-y-4" data-testid="assistants-agent" data-tour="agent-enable">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">Agent</h2>
@@ -448,6 +458,18 @@ function AgentCard({ value, disabled, roleOptions, teamOptions, onChange }: {
                   <Switch checked={value.tools[group]} onCheckedChange={(on) => onChange({ tools: { ...value.tools, [group]: on } })} disabled={disabled} aria-label={TOOL_GROUP_LABELS[group]} data-testid={`assistants-tools-${group}`} />
                 </div>
               ))}
+              {value.tools.task && (
+                <div className="flex items-start justify-between gap-3 border-t pt-3" style={fieldStyle}>
+                  <div>
+                    <p className="text-sm font-medium">Let the Agent complete tasks (with confirmation)</p>
+                    <p className="text-xs" style={muted}>
+                      Task help can complete, approve, decline and accept tasks the person is allowed to action — always after showing a confirmation card they confirm. It checks required fields first and asks for them;
+                      managers acting for someone else are asked for the reason. Off: the Agent still reads and explains tasks and their forms, and people use the task&apos;s own buttons. A profile can choose its own.
+                    </p>
+                  </div>
+                  <Switch checked={value.task_actions !== false} onCheckedChange={(on) => onChange({ task_actions: on })} disabled={disabled} aria-label="Let the Agent complete tasks (with confirmation)" data-testid="assistants-task-actions" />
+                </div>
+              )}
               {value.tools.form && (
                 <fieldset disabled={disabled} className="space-y-1.5">
                   <legend className="text-xs font-medium mb-1">Form help on</legend>
@@ -468,4 +490,78 @@ function AgentCard({ value, disabled, roleOptions, teamOptions, onChange }: {
       )}
     </Card>
   )
+}
+
+function DictationCard({ value, disabled, integrations, agentTranscribes, onChange }: {
+  value: DictationSettings
+  disabled: boolean
+  integrations: Option[]
+  /** The Agent's own connection can transcribe (an OpenAI key or connection). */
+  agentTranscribes: boolean
+  onChange: (patch: Partial<DictationSettings>) => void
+}) {
+  const usesProvider = value.engine !== 'browser'
+  const providerMissing = usesProvider && !value.integration_id && !agentTranscribes
+  const knownLanguage = DICTATION_LANGUAGES.some(([code]) => code === value.language)
+  return (
+    <Card className="p-5 space-y-4" data-testid="assistants-dictation">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold flex items-center gap-2"><Mic size={16} /> Dictation</h2>
+          <p className="text-xs mt-0.5" style={muted}>
+            A microphone button in the Agent panel: people talk and the words appear in the message box, ready to edit before sending (Ctrl / ⌘ + Shift + Space).
+          </p>
+        </div>
+        <Switch checked={value.enabled} onCheckedChange={(enabled) => onChange({ enabled })} disabled={disabled} aria-label="Turn on dictation" data-testid="assistants-dictation-enabled" />
+      </div>
+      {value.enabled && (
+        <div className="space-y-4 border-t pt-4" style={fieldStyle}>
+          <fieldset disabled={disabled} className="space-y-1.5">
+            <legend className="text-sm font-medium mb-1">Speech to text</legend>
+            {DICTATION_ENGINES.map((engine) => (
+              <label key={engine} className="flex items-start gap-2 text-sm">
+                <input type="radio" name="assistants-dictation-engine" checked={value.engine === engine} onChange={() => onChange({ engine: engine as DictationEngine })} className="mt-1" style={{ accentColor: 'var(--theme-primary)' }} data-testid={`assistants-dictation-engine-${engine}`} />
+                <span>
+                  <span className="font-medium">{DICTATION_ENGINE_LABELS[engine]}</span>
+                  <span className="block text-xs" style={muted}>{ENGINE_HINTS[engine]}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          {usesProvider && (
+            <div className="space-y-1">
+              <label htmlFor="assistants-dictation-provider" className="block text-sm font-medium">Transcription provider</label>
+              <Select id="assistants-dictation-provider" data-testid="assistants-dictation-provider" value={value.integration_id ?? ''} disabled={disabled}
+                onChange={(e) => onChange({ integration_id: e.target.value || null })} className="max-w-80">
+                <option value="">{agentTranscribes ? 'The Agent\'s own OpenAI connection (Whisper)' : 'Choose a media connection…'}</option>
+                {integrations.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.type})</option>)}
+              </Select>
+              <p className="text-xs" style={muted}>A media connection from Integrations that can transcribe (OpenAI, Google Gemini, Azure AI Speech, AWS, Deepgram, AssemblyAI, ElevenLabs). Recordings are at most 2 minutes; they are not stored.</p>
+              {providerMissing && <p className="text-xs" role="alert" style={{ color: 'var(--color-warning, #d97706)' }} data-testid="assistants-dictation-no-provider">No transcription provider yet: add a media connection in Integrations{value.engine === 'auto' ? ' — until then only browsers with speech recognition can dictate' : ' — until then the microphone is unavailable'}.</p>}
+            </div>
+          )}
+          <div className="space-y-1">
+            <label htmlFor="assistants-dictation-language" className="block text-sm font-medium">Language</label>
+            <Select id="assistants-dictation-language" data-testid="assistants-dictation-language" value={value.language} disabled={disabled} onChange={(e) => onChange({ language: e.target.value })} className="max-w-80">
+              {!knownLanguage && <option value={value.language}>{value.language}</option>}
+              {DICTATION_LANGUAGES.map(([code, label]) => <option key={code || 'auto'} value={code}>{label}</option>)}
+            </Select>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Send automatically after dictation</p>
+              <p className="text-xs" style={muted}>Off: the words stay in the message box to check and edit. On: the message is sent as soon as the person stops talking.</p>
+            </div>
+            <Switch checked={value.auto_send} onCheckedChange={(auto_send) => onChange({ auto_send })} disabled={disabled} aria-label="Send automatically after dictation" data-testid="assistants-dictation-auto-send" />
+          </div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+const ENGINE_HINTS: Record<DictationEngine, string> = {
+  browser: 'Free; done by the browser (Chrome, Edge, Safari). Chrome and Edge send the audio to their speech service. Not available in Firefox.',
+  provider: 'Every browser records and this server transcribes with the provider below (costs per minute; the audio stays between this server and the provider).',
+  auto: 'Browser speech recognition where the browser has it; elsewhere (Firefox, some in-app browsers) the provider below.',
 }

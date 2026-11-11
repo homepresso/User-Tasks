@@ -15,8 +15,8 @@
  * unassigned tasks go to admins and workflow managers, team members claim.
  * Audit, task history, notifications and the process view follow.
  *
- * There is still no tool that completes, approves, declines or otherwise
- * actions a task.
+ * Completing, approving, declining and responding are separate confirmed
+ * tools (./task-actions.ts).
  */
 import type { AssistantToolDef } from '../engine'
 import type { ServiceContext } from '@/lib/services/context'
@@ -95,16 +95,17 @@ export function taskAssignTools({ ctx, taskId = null }: TaskAssignDeps): Assista
   return [
     {
       name: 'find_active_tasks',
-      description: 'List open tasks waiting for people that the person can see (their own, their reports\', workflows they manage; everything for admins), with who has each, how long it has waited, and whether the person may take ownership or reassign it. Use it to find a task id by title.',
-      parameters: { type: 'object', properties: { query: { type: 'string', description: 'Part of the task title' }, unassigned_only: { type: 'boolean' } }, required: [] },
+      description: 'List open tasks waiting for people that the person can see (is_mine marks the signed-in person\'s own; mine_only lists just theirs) (their own, their reports\', workflows they manage; everything for admins), with who has each, how long it has waited, and whether the person may take ownership or reassign it. Use it to find a task id by title.',
+      parameters: { type: 'object', properties: { query: { type: 'string', description: 'Part of the task title' }, unassigned_only: { type: 'boolean' }, mine_only: { type: 'boolean', description: 'Only tasks assigned to the signed-in person' } }, required: [] },
       mode: 'read',
       label: () => 'Looking up active tasks',
       run: async (args) => {
-        const page = await listActiveTasks(ctx, { search: typeof args.query === 'string' ? args.query.slice(0, 200) : '', unassigned: args.unassigned_only === true, pageSize: 20 })
+        const page = await listActiveTasks(ctx, { search: typeof args.query === 'string' ? args.query.slice(0, 200) : '', unassigned: args.unassigned_only === true, ...(args.mine_only === true && ctx.actorId ? { assignee: ctx.actorId } : {}), pageSize: 20 })
         return {
           result: {
             tasks: page.tasks.map((t) => ({
               id: t.id, title: t.title, workflow: t.workflow?.name ?? null,
+              is_mine: Boolean(ctx.actorId && t.assignee?.id === ctx.actorId),
               with: t.assignee?.name ?? (t.team ? `${t.team.name} team` : t.state === 'claim' ? 'queue (claimable)' : 'unassigned'),
               state: t.state, waiting_since: t.waiting_since, due: t.due_date, sla: t.sla,
               can_take_ownership: t.can_take_ownership, can_reassign: t.can_reassign,
@@ -159,7 +160,7 @@ export function taskAssignTools({ ctx, taskId = null }: TaskAssignDeps): Assista
         const id = taskIdOf(args)
         const result = await takeTaskOwnership(agentCtx, id, { reason: reasonOf(args), via: 'agent' })
         env.emit(changed(id, result.title))
-        return { result: { ...result, note: 'Done: the task is now assigned to the person. They act on it themselves (you never complete it).' } }
+        return { result: { ...result, note: 'Done: the task is now assigned to the person. Complete it only if they explicitly ask (task_complete, confirmed).' } }
       },
     },
     {

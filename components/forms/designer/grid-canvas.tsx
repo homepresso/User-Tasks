@@ -208,7 +208,7 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
                         {field.required && <span className="ml-0.5 text-danger">*</span>}
                       </p>
                       <p className="truncate font-mono text-2xs text-fg-muted">
-                        {field.type === 'button' ? `Button · ${describeFieldButton(field.button)}` : field.type === 'heading' || field.type === 'divider' ? TASK_FIELD_TYPE_LABELS[field.type] : field.key}
+                        {field.type === 'button' ? `Button · ${!field.button?.actions.length && (state.layout.rules ?? []).some((r) => r.event === 'button_click' && r.target === field.key && !r.disabled) ? 'Runs its click rules' : describeFieldButton(field.button)}` : field.type === 'heading' || field.type === 'divider' ? TASK_FIELD_TYPE_LABELS[field.type] : field.key}
                         {cell.span > 1 && ` · span ${cell.span}`}
                       </p>
                       {problem && <p className="mt-0.5 text-2xs text-danger">{problem}</p>}

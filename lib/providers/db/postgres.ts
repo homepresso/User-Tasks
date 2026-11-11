@@ -1,5 +1,5 @@
 import { Pool } from 'pg'
-import { createPgQuery, decodeJwtPayload, JwtVerifier, type Identity, type PgQuery } from '@usertasks/pg-query'
+import { createPgQuery, decodeJwtPayload, JwtVerifier, type Identity, type PgQuery } from '@user-tasks/pg-query'
 import { databaseUrl, readEnv, supabaseAnonKey, supabaseJwtSecret, supabaseServiceRoleKey, supabaseUrl } from '@/lib/config/bootstrap'
 import { ConfigError } from '@/lib/config/schema'
 import { pgConnectionConfig } from './pg-auth'
@@ -9,7 +9,7 @@ import { pgConnectionConfig } from './pg-auth'
  * never reaches a client bundle).
  *
  * The supabase-js clients stay — their `.from()` / `.rpc()` requests are
- * answered in-process by @usertasks/pg-query over a `pg` Pool on
+ * answered in-process by @user-tasks/pg-query over a `pg` Pool on
  * DATABASE_URL instead of over HTTP by PostgREST. Every query runs in its
  * own transaction as the same role with the same JWT claims PostgREST would
  * use, so RLS policies and auth.uid() apply unchanged:

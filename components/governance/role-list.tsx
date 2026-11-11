@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { SearchInput } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { Table, TBody, TD, TDActions, TH, THead, TR, TableEmpty } from '@/components/ui/table'
+import { Table, TBody, TD, TDActions, TH, THead, TR, TableEmpty, type ColumnKind } from '@/components/ui/table'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -150,8 +150,8 @@ export function RoleList({ roles, users }: Props) {
   }
 
   const detail = detailId ? localRoles.find((r) => r.id === detailId) ?? null : null
-  const sortable = (field: RoleSortField, label: string, numeric = false) => (
-    <TH numeric={numeric} aria-sort={sortBy === field ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+  const sortable = (field: RoleSortField, label: string, numeric = false, col?: ColumnKind) => (
+    <TH numeric={numeric} col={col} aria-sort={sortBy === field ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button type="button" onClick={() => toggleSort(field)} className="inline-flex items-center gap-1 hover:text-fg">
         {label}
         {sortBy === field && (sortDir === 'asc' ? <ArrowUp className="size-3" aria-hidden /> : <ArrowDown className="size-3" aria-hidden />)}
@@ -204,14 +204,14 @@ export function RoleList({ roles, users }: Props) {
         </div>
       </div>
 
-      <Table>
+      <Table label="Roles" stickyFirstColumn>
         <THead>
           <tr>
-            {sortable('name', 'Role')}
-            {sortable('users', 'Users', true)}
-            {sortable('permissions', 'Permissions', true)}
-            {sortable('retention', 'Retention')}
-            <TH><span className="sr-only">Actions</span></TH>
+            {sortable('name', 'Role', false, 'title')}
+            {sortable('users', 'Users', true, 'number')}
+            {sortable('permissions', 'Permissions', true, 'number')}
+            {sortable('retention', 'Retention', false, 'name')}
+            <TH col="actions"><span className="sr-only">Actions</span></TH>
           </tr>
         </THead>
         <TBody>
@@ -235,10 +235,10 @@ export function RoleList({ roles, users }: Props) {
                     </span>
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-medium text-fg">{role.name}</span>
+                        <span className="truncate font-medium text-fg" title={role.name}>{role.name}</span>
                         {role.is_system && <Tag>System</Tag>}
                       </div>
-                      {role.description && <p className="truncate text-xs text-fg-muted">{role.description}</p>}
+                      {role.description && <p className="truncate text-xs text-fg-muted" title={role.description}>{role.description}</p>}
                     </div>
                   </div>
                 </TD>

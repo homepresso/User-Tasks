@@ -56,12 +56,12 @@ export function ReportingLines({ canEdit }: { canEdit: boolean }) {
         className="flex-wrap"
       />
       {error && <InlineNotice tone="danger" message={error} className="mx-4 mb-3" onDismiss={() => setError(null)} />}
-      <Table bare containerClassName="border-t border-border-subtle">
+      <Table bare containerClassName="border-t border-border-subtle" label="Reporting lines" stickyFirstColumn>
         <THead>
           <tr>
-            <TH>Member</TH>
-            <TH>Manager</TH>
-            <TH>Reports</TH>
+            <TH col="title">Member</TH>
+            <TH col="people" className="min-w-56">Manager</TH>
+            <TH col="text">Reports</TH>
           </tr>
         </THead>
         <TBody>

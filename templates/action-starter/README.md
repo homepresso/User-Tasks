@@ -44,7 +44,7 @@ The sandbox has no Node or browser APIs, no `fetch`, timers or `Intl`:
 everything outside pure JavaScript goes through `ctx`, and only for the
 capabilities the manifest declares and an administrator grants.
 
-`vendor/usertasks-action/` is a copy of the `@usertasks/action` package
+`vendor/usertasks-action/` is a copy of the `@user-tasks/action` package
 sources (the types, `defineAction` and the `runAction` test runner). When the
-package is published you can `npm install -D @usertasks/action` and import
+package is published you can `npm install -D @user-tasks/action` and import
 from it instead.

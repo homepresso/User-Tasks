@@ -44,15 +44,15 @@ export function ProjectsEditor() {
         <Button leadingIcon={<Plus />} onClick={() => setEditing(EMPTY_PROJECT)}>New project</Button>
       </div>
       {error && <InlineNotice tone="danger" message={error} onDismiss={() => setError(null)} />}
-      <Table aria-label="Projects">
+      <Table aria-label="Projects" stickyFirstColumn>
         <THead>
           <tr>
-            <SortTH label="Project" column="name" sort={sort} onSort={toggle} />
-            <SortTH label="Status" column="status" sort={sort} onSort={toggle} />
-            <SortTH label="Owner" column="owner" sort={sort} onSort={toggle} />
-            <TH>Dates</TH>
-            <SortTH label="People" column="people" sort={sort} onSort={toggle} numeric />
-            <TH><span className="sr-only">Actions</span></TH>
+            <SortTH label="Project" column="name" sort={sort} onSort={toggle} col="title" />
+            <SortTH label="Status" column="status" sort={sort} onSort={toggle} col="status" />
+            <SortTH label="Owner" column="owner" sort={sort} onSort={toggle} col="people" />
+            <TH col="date" className="min-w-48">Dates</TH>
+            <SortTH label="People" column="people" sort={sort} onSort={toggle} numeric col="number" />
+            <TH col="actions"><span className="sr-only">Actions</span></TH>
           </tr>
         </THead>
         <TBody>

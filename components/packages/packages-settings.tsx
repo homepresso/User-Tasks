@@ -38,7 +38,7 @@ import { Field } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Tooltip } from '@/components/ui/tooltip'
-import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table'
+import { Table, THead, TBody, TR, TH, TD, TableDetailCell } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   deletePackageAction,
@@ -56,6 +56,10 @@ import { PackageEditor } from './package-editor'
 import { PackageHistory, type HistoryFilters } from './package-history'
 import { cleanValues, missingCount, Modal, RequirementsForm, type RequirementValues, type RequirementView } from './requirements-form'
 import { UninstallDialog } from './uninstall-dialog'
+import { InstallItemsList, PackageItemsSection, usePackageItems } from './package-items'
+import { Checkbox } from '@/components/ui/checkbox'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { bumpSemver } from '@/lib/packages/semver'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- install / version rows from the services are loose JSON */
 
@@ -102,6 +106,12 @@ export function PackagesSettings() {
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryTab, setGalleryTab] = useState<GalleryPickerTab>('packages')
   // ?gallery=form-controls / workflow-actions (Extensibility → Browse gallery) opens the picker on that tab.
+  // ?tab=library / authored / history (the Agent links a packaged solution here).
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('tab')
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of the URL after hydration */
+    if (wanted === 'library' || wanted === 'authored' || wanted === 'history') setTab(wanted)
+  }, [])
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('gallery')
     if (!wanted) return
@@ -119,7 +129,7 @@ export function PackagesSettings() {
   if (installs.isLoading && !installs.data) return <PageSkeleton variant="settings" />
   const refresh = () => {
     // An install can add form controls (Extensibility → Form controls) as well as workflows.
-    for (const key of ['package-installs', 'packages', 'package-events', 'form-controls-library']) void queryClient.invalidateQueries({ queryKey: [key] })
+    for (const key of ['package-installs', 'package-install', 'packages', 'package', 'package-items', 'package-events', 'form-controls-library']) void queryClient.invalidateQueries({ queryKey: [key] })
   }
   const importFile = async (file: File) => {
     if (!/\.utpkg$/i.test(file.name) && file.type !== 'application/zip') { setNotice({ tone: 'error', message: `“${file.name}” is not a .utpkg package file.` }); return }
@@ -137,7 +147,7 @@ export function PackagesSettings() {
         description={<>Import a process — a workflow and everything it uses — as one signed package, keep it up to date, and remove it with all its artifacts. Credentials never travel: imports ask for them, or stay incomplete until you add them. <Link href="/docs/packages" className="text-primary-text underline underline-offset-2">Read the docs</Link></>}
         actions={<>
           {canManage && <Button variant="secondary" leadingIcon={<PackagePlus />} onClick={newPackage}>New package</Button>}
-          {canInstall && <Button variant="secondary" leadingIcon={<LayoutGrid />} onClick={() => { setGalleryTab('packages'); setGalleryOpen(true) }} data-testid="browse-gallery">Browse gallery</Button>}
+          {canInstall && <Button variant="secondary" leadingIcon={<LayoutGrid />} onClick={() => { setGalleryTab('packages'); setGalleryOpen(true) }} data-testid="browse-gallery" data-tour="browse-gallery">Browse gallery</Button>}
           {canInstall && <Button leadingIcon={<Upload />} onClick={() => setWizard({ open: true, source: 'file' })} data-testid="install-package">Import package</Button>}
         </>}
         tabs={<Tabs aria-label="Packages" value={tab} onValueChange={(next) => { if (next === 'history') showHistory(); else setTab(next) }}
@@ -163,15 +173,15 @@ export function PackagesSettings() {
                   action={canInstall ? { label: 'Browse gallery', onClick: () => { setGalleryTab('packages'); setGalleryOpen(true) } } : undefined} />
               </Card>
             ) : (
-              <Table>
+              <Table label="Installed packages">
                 <THead>
                   <tr>
-                    <TH>Package</TH>
-                    <TH>Source</TH>
-                    <TH>Signature</TH>
-                    <TH>Installed</TH>
-                    <TH>Status</TH>
-                    <TH><span className="sr-only">Actions</span></TH>
+                    <TH col="title">Package</TH>
+                    <TH col="text">Source</TH>
+                    <TH col="status">Signature</TH>
+                    <TH col="date">Installed</TH>
+                    <TH col="status">Status</TH>
+                    <TH col="actions"><span className="sr-only">Actions</span></TH>
                   </tr>
                 </THead>
                 <TBody>
@@ -201,7 +211,7 @@ export function PackagesSettings() {
           ) : (
             <div className="space-y-3">
               {authoredList.map((pkg) => (
-                <AuthoredCard key={pkg.id} pkg={pkg} canManage={canManage} targets={targets.data ?? []} onEdit={() => setEditor({ open: true, pkg })} onChanged={refresh} onNotice={setNotice}
+                <AuthoredCard key={pkg.id} pkg={pkg} canManage={canManage} canInstall={canInstall} targets={targets.data ?? []} onEdit={() => setEditor({ open: true, pkg })} onChanged={refresh} onNotice={setNotice}
                   onInstallElsewhere={(file, target) => setWizard({ open: true, file, target, source: 'library' })} />
               ))}
             </div>
@@ -236,15 +246,15 @@ function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHis
   return (
     <Fragment>
       <TR data-testid="install-card" className={cn(expanded && 'border-b-0')}>
-        <TD className="max-w-[18rem]">
+        <TD className="max-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <IconButton size="sm" label={expanded ? `Hide details of ${install.name}` : `Show details of ${install.name}`} icon={expanded ? <ChevronDown /> : <ChevronRight />} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)} className="-ml-1.5" />
-            <span className="truncate font-medium text-fg">{install.name}</span>
+            <span className="truncate font-medium text-fg" title={install.name}>{install.name}</span>
             <Tag mono>v{install.version}</Tag>
           </div>
           {install.previous_version && <p className="pl-7 text-xs text-fg-muted">Upgraded from {install.previous_version}</p>}
         </TD>
-        <TD className="max-w-[14rem]"><span className="block truncate font-mono text-xs text-fg-muted" title={sourceLabel(install)}>{sourceLabel(install)}</span></TD>
+        <TD className="max-w-0"><span className="block truncate font-mono text-xs text-fg-muted" title={sourceLabel(install)}>{sourceLabel(install)}</span></TD>
         <TD>
           {install.signed
             ? <Tooltip content={fingerprint ? <span className="font-mono">{fingerprint}</span> : 'Signed'}><span><Badge tone="success">Signed</Badge></span></Tooltip>
@@ -276,7 +286,7 @@ function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHis
       </TR>
       {expanded && (
         <tr className="border-b border-border-subtle">
-          <td colSpan={LIBRARY_COLUMNS} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
+          <TableDetailCell colSpan={LIBRARY_COLUMNS} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
             <div className="grid gap-6 rounded-md bg-subtle p-4 md:grid-cols-2">
               <div>
                 <p className="mb-2 text-xs font-medium text-fg-muted">Setup checklist</p>
@@ -291,22 +301,9 @@ function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHis
                   </ul>
                 )}
               </div>
-              <div>
-                <p className="mb-2 text-xs font-medium text-fg-muted">Installed assets</p>
-                <ul className="max-h-48 space-y-1 overflow-y-auto scrollbar-thin text-ui">
-                  {(details.data?.assets ?? []).filter((a: any) => a.section !== 'references').map((asset: any) => (
-                    <li key={asset.id} className="flex items-center gap-2">
-                      <span className="w-28 shrink-0 text-xs text-fg-muted first-letter:uppercase">{String(asset.section).replace(/_/g, ' ')}</span>
-                      <span className="truncate text-fg">{asset.name}</span>
-                      {asset.status === 'needs_config' && <Badge tone="warning">Needs configuration</Badge>}
-                      {asset.status === 'removed_upstream' && <Badge>Not in this version</Badge>}
-                    </li>
-                  ))}
-                  {details.data && details.data.data_rows > 0 && <li className="num text-xs text-fg-muted">{plural(details.data.data_rows, 'table row')}</li>}
-                </ul>
-              </div>
+              <InstallItemsList install={install} details={details.data as any} canInstall={canInstall} onChanged={() => { void details.refetch(); onChanged() }} onNotice={onNotice} />
             </div>
-          </td>
+          </TableDetailCell>
         </tr>
       )}
     </Fragment>
@@ -352,8 +349,8 @@ function CompleteSetupDialog({ open, onOpenChange, install, onDone }: { open: bo
   )
 }
 
-function AuthoredCard({ pkg, canManage, targets, onEdit, onChanged, onNotice, onInstallElsewhere }: {
-  pkg: Pkg; canManage: boolean; targets: Array<{ id: string; name: string }>; onEdit: () => void; onChanged: () => void; onNotice: (n: Notice) => void
+function AuthoredCard({ pkg, canManage, canInstall, targets, onEdit, onChanged, onNotice, onInstallElsewhere }: {
+  pkg: Pkg; canManage: boolean; canInstall: boolean; targets: Array<{ id: string; name: string }>; onEdit: () => void; onChanged: () => void; onNotice: (n: Notice) => void
   onInstallElsewhere: (file: WizardFile, target: { tenantId: string; name: string }) => void
 }) {
   const [elsewhereOpen, setElsewhereOpen] = useState(false)
@@ -364,10 +361,15 @@ function AuthoredCard({ pkg, canManage, targets, onEdit, onChanged, onNotice, on
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [version, setVersion] = useState('')
+  const [bump, setBump] = useState<'patch' | 'minor'>('patch')
+  const [updateInstall, setUpdateInstall] = useState(true)
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const detail = useQuery({ queryKey: ['package', pkg.id], queryFn: async () => { const r = await getPackageAction(pkg.id); if (!r.ok) throw new Error(r.error); return r.data } })
+  const items = usePackageItems(pkg.id)
+  const selfInstall = items.data?.install ?? null
+  const willUpdateInstall = Boolean(selfInstall && canInstall && updateInstall)
   // Synchronous guard: two clicks in one frame both see busy === false.
   const buildGuard = useSubmitGuard()
   // Build + sign + download as a background job: the popup offers the .utpkg.
@@ -376,15 +378,17 @@ function AuthoredCard({ pkg, canManage, targets, onEdit, onChanged, onNotice, on
       setBusy(true)
       setError(null)
       try {
-        await jobs.start('package.build', { package_id: pkg.id, name: pkg.name, ...(version.trim() ? { version: version.trim() } : { bump: 'patch' }), notes }, {
+        await jobs.start('package.build', { package_id: pkg.id, name: pkg.name, ...(version.trim() ? { version: version.trim() } : { bump }), notes, ...(willUpdateInstall ? { update_install: true } : {}) }, {
           effect: 'download',
           pendingMessage: `Building ${pkg.name}…`,
           onSuccess: (done) => {
-            const data = done.result?.data as { version?: { version?: string }; warnings?: string[]; requirements?: number } | undefined
+            const data = done.result?.data as { version?: { version?: string }; warnings?: string[]; requirements?: number; install_sync?: { status: string; note: string } } | undefined
             const warnings = data?.warnings ?? []
-            onNotice({ tone: warnings.length ? 'warning' : 'success', message: `Built ${pkg.name} ${data?.version?.version ?? ''} (${data?.requirements ?? 0} requirements)${warnings.length ? ` — ${warnings.join('; ')}` : ''}.` })
+            const synced = data?.install_sync?.status === 'upgraded' ? ` ${data.install_sync.note}.` : ''
+            onNotice({ tone: warnings.length ? 'warning' : 'success', message: `Built ${pkg.name} ${data?.version?.version ?? ''} (${data?.requirements ?? 0} requirements)${warnings.length ? ` — ${warnings.join('; ')}` : ''}.${synced}` })
             onChanged()
             void detail.refetch()
+            void items.refetch()
           },
         })
         setBuildOpen(false)
@@ -433,7 +437,7 @@ function AuthoredCard({ pkg, canManage, targets, onEdit, onChanged, onNotice, on
         {canManage && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" leadingIcon={<Pencil />} onClick={onEdit}>Edit</Button>
-            <Button size="sm" leadingIcon={<Hammer />} onClick={() => setBuildOpen(true)} data-testid="build-version">Build version</Button>
+            {!items.data?.changes.unpublished && <Button size="sm" leadingIcon={<Hammer />} onClick={() => setBuildOpen(true)} data-testid="build-version">Build version</Button>}
             <DropdownMenu>
               <DropdownMenuTrigger asChild><IconButton size="sm" label={`More actions for ${pkg.name}`} icon={<MoreHorizontal />} /></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -447,6 +451,8 @@ function AuthoredCard({ pkg, canManage, targets, onEdit, onChanged, onNotice, on
           </div>
         )}
       </div>
+      <PackageItemsSection packageId={pkg.id} data={items.data} isLoading={items.isLoading} canManage={canManage}
+        onChanged={() => { void items.refetch(); onChanged() }} onNotice={onNotice} onBuild={() => setBuildOpen(true)} />
       {versions.length > 0 && (
         <ul className="divide-y divide-border-subtle border-t border-border-subtle">
           {versions.slice(0, 5).map((v) => (
@@ -487,9 +493,20 @@ function AuthoredCard({ pkg, canManage, targets, onEdit, onChanged, onNotice, on
         </>}>
         {error && <InlineNotice tone="error" message={error} className="mb-3" />}
         <div className="space-y-4">
-          <Field label="Version" optional description={pkg.latest_version ? `Leave empty for the next patch after ${pkg.latest_version}.` : undefined}>
-            <Input placeholder={pkg.latest_version ? 'Next patch' : '1.0.0'} value={version} onChange={(e) => setVersion(e.target.value)} className="font-mono" />
+          {pkg.latest_version && (
+            <Field label="New version" description={`After ${pkg.latest_version}: ${bumpSemver(pkg.latest_version, bump)} — patch for fixes, minor for added items.`}>
+              <SegmentedControl aria-label="Version bump" value={bump} onValueChange={(v) => setBump(v as 'patch' | 'minor')} options={[{ value: 'patch', text: `Patch · ${bumpSemver(pkg.latest_version, 'patch')}` }, { value: 'minor', text: `Minor · ${bumpSemver(pkg.latest_version, 'minor')}` }]} />
+            </Field>
+          )}
+          <Field label={pkg.latest_version ? 'Exact version' : 'Version'} optional description={pkg.latest_version ? 'Overrides the choice above.' : undefined}>
+            <Input placeholder={pkg.latest_version ? bumpSemver(pkg.latest_version, bump) : '1.0.0'} value={version} onChange={(e) => setVersion(e.target.value)} className="font-mono" />
           </Field>
+          {selfInstall && (
+            canInstall
+              ? <Checkbox checked={updateInstall} onChange={(e) => setUpdateInstall(e.target.checked)} data-testid="build-update-install" label={`Update the install in this workspace (v${selfInstall.version})`}
+                  description="The package is installed here: the install moves to the new version, so uninstall removes the items you added and keeps the ones you removed. Nothing in the items changes." />
+              : <p className="text-xs text-fg-muted">The package is installed here (v{selfInstall.version}); updating that install needs the Install packages permission.</p>
+          )}
           <Field label="Release notes" optional>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>

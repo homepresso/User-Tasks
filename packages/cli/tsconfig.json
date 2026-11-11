@@ -13,7 +13,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@usertasks/sdk": ["../sdk/src/index.ts"]
+      "@user-tasks/sdk": ["../sdk/src/index.ts"]
     }
   },
   "include": ["src", "scripts", "test", "tsup.config.ts"]

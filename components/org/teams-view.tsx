@@ -104,15 +104,15 @@ function TeamsTable({ teams, byId }: { teams: TeamNode[]; byId: Map<string, Team
     members: (t) => t.total_member_count,
   }, 'name')
   return (
-    <Table aria-label="Teams">
+    <Table aria-label="Teams" stickyFirstColumn>
       <THead>
         <tr>
-          <SortTH label="Team" column="name" sort={sort} onSort={toggle} />
-          <SortTH label="Kind" column="kind" sort={sort} onSort={toggle} />
-          <SortTH label="Parent" column="parent" sort={sort} onSort={toggle} />
-          <SortTH label="Lead" column="lead" sort={sort} onSort={toggle} />
-          <SortTH label="Org unit" column="unit" sort={sort} onSort={toggle} />
-          <SortTH label="Members" column="members" sort={sort} onSort={toggle} numeric />
+          <SortTH label="Team" column="name" sort={sort} onSort={toggle} col="title" />
+          <SortTH label="Kind" column="kind" sort={sort} onSort={toggle} col="status" />
+          <SortTH label="Parent" column="parent" sort={sort} onSort={toggle} col="name" />
+          <SortTH label="Lead" column="lead" sort={sort} onSort={toggle} col="people" />
+          <SortTH label="Org unit" column="unit" sort={sort} onSort={toggle} col="name" />
+          <SortTH label="Members" column="members" sort={sort} onSort={toggle} numeric col="number" />
         </tr>
       </THead>
       <TBody>

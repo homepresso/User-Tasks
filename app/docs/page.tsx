@@ -1,20 +1,16 @@
 import type { Metadata } from 'next'
+import { pageMetadata } from '@/lib/seo/site'
 import Link from 'next/link'
 import { ArrowRight, BookOpen, Cloud, Server, Terminal } from 'lucide-react'
 import { DOC_SECTIONS, docHref } from '@/lib/docs/registry'
 import { Screenshot } from '@/components/docs/doc-blocks'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: '/docs',
   title: 'UserTasks documentation — headless workflow engine',
   description: 'Guides and reference for the UserTasks workflow engine: designer, nodes, expressions, tasks, integrations, decision tables, agents, governance, REST API, MCP, CLI, log export and self-hosting.',
-  alternates: { canonical: '/docs' },
-  openGraph: {
-    title: 'UserTasks documentation',
-    description: 'Build workflows, human tasks, integrations and rules, and drive them from the API, MCP or CLI. Ship logs to Splunk, Datadog or OpenTelemetry.',
-    url: '/docs',
-    type: 'website',
-  },
-}
+  socialTitle: 'UserTasks documentation',
+})
 
 /** Deep links into long guides that are easy to miss from the section list. */
 const POPULAR = [

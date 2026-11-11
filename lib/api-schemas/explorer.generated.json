@@ -980,7 +980,7 @@
     "method": "GET",
     "path": "/api/v1/tasks/following",
     "label": "Tasks I follow (the Task tracker's Following tab)",
-    "description": "Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at, sorted by due date (none last), then most recently followed. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
+    "description": "Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
     "params": [
      {
       "name": "limit",
@@ -1018,6 +1018,16 @@
        "true",
        "false"
       ]
+     },
+     {
+      "name": "shared_only",
+      "type": "query",
+      "placeholder": "true",
+      "description": "true: only tasks shared with you by an invite (read only)",
+      "options": [
+       "true",
+       "false"
+      ]
      }
     ],
     "permission": "tasks.view_own"
@@ -1051,6 +1061,213 @@
      }
     ],
     "permission": "tasks.view_own"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tasks/{id}/viewers",
+    "label": "Who a task is shared with (read only invites)",
+    "description": "The task's invites, oldest first, and can_manage (whether you may invite and remove). Anyone who can see the task reads them; anyone else gets 404. Invite and remove: the assignee or a collaborator, a member of the assigned team, the assigner, a manager of an assignee, a manager of the workflow, or tasks.complete_any (an invited viewer cannot invite others). Requires tasks.view_own.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/tasks/{id}/viewers",
+    "label": "Invite people, teams or roles to view a task (read only)",
+    "description": "Shares the task, read only: everyone the invite names (directly, as a member of the team or a holder of the role) can open it (and its subtasks unless include_subtasks is false), its comments, attachments, history and process view, and comment. People invited directly follow it (Task tracker → Following) and get a notification and an email; members of an invited team or role get a notification when it has at most 25 people. Already-invited ones are left as they are. Recorded in the task history and the audit log. Invite and remove: the assignee or a collaborator, a member of the assigned team, the assigner, a manager of an assignee, a manager of the workflow, or tasks.complete_any (an invited viewer cannot invite others). Requires tasks.view_own.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     },
+     {
+      "name": "viewers",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "People, teams and roles to invite (at most 50)"
+     },
+     {
+      "name": "note",
+      "type": "body",
+      "description": "A note for them (shown in the notification)"
+     },
+     {
+      "name": "include_subtasks",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Also its subtasks (default true)"
+     }
+    ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/tasks/{id}/viewers/{viewerId}",
+    "label": "Stop sharing a task with a person, team or role",
+    "description": "Removes one invite (its id from GET /tasks/{id}/viewers): its people lose access unless something else lets them see the task, and the follow the invite created is removed. Recorded in the task history and the audit log. Invite and remove: the assignee or a collaborator, a member of the assigned team, the assigner, a manager of an assignee, a manager of the workflow, or tasks.complete_any (an invited viewer cannot invite others). Requires tasks.view_own.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Task id"
+     },
+     {
+      "name": "viewerId",
+      "type": "path",
+      "required": true,
+      "description": "Invite id"
+     }
+    ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tasks/{id}/subtasks",
+    "label": "List a task's subtasks",
+    "description": "Direct subtasks in order, with `total`, `completed` and `can_add` (whether you may add subtasks here). Visible to anyone who can reach the task (404 otherwise). Requires tasks.view_own.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/tasks/{id}/subtasks",
+    "label": "Add a subtask",
+    "description": "Title plus optional subtitle, description, estimate, due date, priority and tags. Anyone who can work on the task: tasks.complete and the task within reach — assignee, collaborator, member of its team, the assignee's manager (on their behalf), its assigner / creator, or tasks.view_all (e.g. an admin). Viewers and people who can't reach the task get 403 / 404. Needs a user-bound credential. Workflow tasks included (the subtask is not a workflow task and never completes or resumes the workflow). The subtask goes to the parent's assignee (else you), already accepted, at the end of the list; the parent's progress counts it. 409 when the task is closed; subtasks go at most 4 levels deep. Requires tasks.complete.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     },
+     {
+      "name": "title",
+      "type": "body",
+      "required": true
+     },
+     {
+      "name": "subtitle",
+      "type": "body",
+      "description": "A short summary shown under the title"
+     },
+     {
+      "name": "description",
+      "type": "body",
+      "description": "Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images)."
+     },
+     {
+      "name": "estimated_effort_minutes",
+      "type": "body",
+      "placeholder": "0",
+      "description": "Estimate in whole minutes (the unit of actual_effort); stored as the creator's estimate. 0 or null = none"
+     },
+     {
+      "name": "due_date",
+      "type": "body",
+      "description": "ISO 8601 date or date-time (years 2000–2100)"
+     },
+     {
+      "name": "priority",
+      "type": "body",
+      "placeholder": "critical",
+      "description": "Default: the parent's priority",
+      "options": [
+       "critical",
+       "high",
+       "medium",
+       "low",
+       "none"
+      ]
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]"
+     }
+    ],
+    "permission": "tasks.complete"
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/tasks/{id}/subtasks/{subtaskId}",
+    "label": "Edit a subtask",
+    "description": "Any of the create fields (only those sent change). Anyone who can work on the task: tasks.complete and the task within reach — assignee, collaborator, member of its team, the assignee's manager (on their behalf), its assigner / creator, or tasks.view_all (e.g. an admin). Viewers and people who can't reach the task get 403 / 404. Needs a user-bound credential. Tick / untick a subtask with PATCH /tasks/{subtaskId} (status) or complete it through POST /tasks/{subtaskId}/action. Requires tasks.complete.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Parent task id"
+     },
+     {
+      "name": "subtaskId",
+      "type": "path",
+      "required": true,
+      "description": "Subtask id"
+     },
+     {
+      "name": "title",
+      "type": "body"
+     },
+     {
+      "name": "subtitle",
+      "type": "body",
+      "description": "A short summary shown under the title"
+     },
+     {
+      "name": "description",
+      "type": "body",
+      "description": "Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images)."
+     },
+     {
+      "name": "estimated_effort_minutes",
+      "type": "body",
+      "placeholder": "0",
+      "description": "Estimate in whole minutes (the unit of actual_effort); stored as the creator's estimate. 0 or null = none"
+     },
+     {
+      "name": "due_date",
+      "type": "body",
+      "description": "ISO 8601 date or date-time (years 2000–2100)"
+     },
+     {
+      "name": "priority",
+      "type": "body",
+      "placeholder": "critical",
+      "description": "Default: the parent's priority",
+      "options": [
+       "critical",
+       "high",
+       "medium",
+       "low",
+       "none"
+      ]
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]"
+     }
+    ],
+    "permission": "tasks.complete"
    }
   ]
  },
@@ -1718,6 +1935,41 @@
      }
     ],
     "permission": "workflows.manage_runs"
+   }
+  ]
+ },
+ {
+  "label": "Timeline",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/workflows/runs/{id}/timeline",
+    "label": "A run's timeline: who did what and when, in plain words",
+    "description": "For a run you can see: in your run scope (workflows.view_runs, or workflows.view_queue and involved / an explicit workflow View grant), or one whose progress you may follow (you started it, your form submission started it, you have a task in it, or you are invited to view one of its tasks). Not found otherwise; API-key workflow allowlists apply. Returns timeline { kind (run / task), run_id, task_id, focus_task_id, detail (full: the run is in your run scope — every step, error text and resolved values; progress: you may follow its progress — people and steps only, the submitter named only to the submitter; task: one task's own history), header { workflow, title, reference, status, status_label, started_at, ended_at, duration_ms, started_by, started_how, current, version, sla_due_at }, events [{ id, kind (started, task_created, accepted, held, declined, reassigned, redirected, escalated, took_ownership, comment, outcome, task_closed, attachment, subtask, shared, form_saved, effort, system, system_group, subworkflow, error, run_paused, run_resumed, run_cancelled, ended, now), category (decisions / comments / people / system), at, actor { id, name, avatar_url }, on_behalf_of, via, icon, tone, title, step, body, note, badge { label, tone }, fields [{ label, value }], links [{ kind, label, href }], task_id, node_id, due_date, since_previous_ms, children (a collapsed group of automatic steps or a sub-workflow's steps), highlight }] oldest first, ending with the result (ended) or where it is now (now), live, links { process, timeline, task } }. Comments, notes, form values and reassignment lines appear only for tasks you can open or are invited to view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tasks/{id}/timeline",
+    "label": "A task's timeline: its run's story, or the task's own history",
+    "description": "A workflow task opens its run's timeline (focus_task_id set) when you may see the run; otherwise — and for a standalone task — the task's own history (created, assigned, accepted, comments, subtasks, attachments, invites, completed) when you can view the task (its people, their managers, a workflow manager, the assigner, tasks.view_all or an invited viewer). Not found otherwise. Returns timeline { kind (run / task), run_id, task_id, focus_task_id, detail (full: the run is in your run scope — every step, error text and resolved values; progress: you may follow its progress — people and steps only, the submitter named only to the submitter; task: one task's own history), header { workflow, title, reference, status, status_label, started_at, ended_at, duration_ms, started_by, started_how, current, version, sla_due_at }, events [{ id, kind (started, task_created, accepted, held, declined, reassigned, redirected, escalated, took_ownership, comment, outcome, task_closed, attachment, subtask, shared, form_saved, effort, system, system_group, subworkflow, error, run_paused, run_resumed, run_cancelled, ended, now), category (decisions / comments / people / system), at, actor { id, name, avatar_url }, on_behalf_of, via, icon, tone, title, step, body, note, badge { label, tone }, fields [{ label, value }], links [{ kind, label, href }], task_id, node_id, due_date, since_previous_ms, children (a collapsed group of automatic steps or a sub-workflow's steps), highlight }] oldest first, ending with the result (ended) or where it is now (now), live, links { process, timeline, task } }. Comments, notes, form values and reassignment lines appear only for tasks you can open or are invited to view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": null
    }
   ]
  },
@@ -2943,6 +3195,136 @@
      }
     ],
     "permission": "data.manage_rows"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/data-tables/{id}/rows/import",
+    "label": "Import rows from a CSV, TSV or .xlsx file (insert, upsert or replace)",
+    "description": "Reads the file (BOM, quoted fields with embedded newlines, comma / semicolon / tab, UTF-8 / UTF-16 / Windows-1252, an .xlsx sheet), matches headers to columns (or `mapping`; `new_columns` adds columns), validates every row (numbers incl. currency like $1,234.50, dates → YYYY-MM-DD, yes / no, choices, required columns) and writes in batches of 500. Row errors carry the spreadsheet row number (header = row 1), the column and the reason; with errors nothing is written unless skip_invalid. Values are stored as plain text / numbers and never evaluated. Limits: 10 MB, 50,000 rows, 200 columns; more than 5,000 rows need the async variant. Replace deletes the existing rows through the deletion queue (stored files removed; audited). Created and updated rows fire data_table_event workflows unless fire_triggers is false. Requires data.manage_rows.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     },
+     {
+      "name": "file_base64",
+      "type": "body",
+      "required": true,
+      "description": "The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field."
+     },
+     {
+      "name": "file_name",
+      "type": "body",
+      "required": true,
+      "description": "File name; its extension (.csv, .tsv, .xlsx) picks the reader"
+     },
+     {
+      "name": "sheet",
+      "type": "body",
+      "description": ".xlsx: the sheet to read (default the first)"
+     },
+     {
+      "name": "delimiter",
+      "type": "body",
+      "placeholder": "auto",
+      "description": "CSV delimiter (default auto: comma, semicolon or tab, detected)",
+      "options": [
+       "auto",
+       ",",
+       ";",
+       "\t"
+      ]
+     },
+     {
+      "name": "encoding",
+      "type": "body",
+      "placeholder": "auto",
+      "description": "Text encoding (default auto: UTF-8 with or without BOM, UTF-16 with BOM, else Windows-1252)",
+      "options": [
+       "auto",
+       "utf-8",
+       "utf-16le",
+       "utf-16be",
+       "windows-1252"
+      ]
+     },
+     {
+      "name": "mapping",
+      "type": "body",
+      "description": "File header → column key or name; null skips the header. Headers left out are matched to columns by name (case-insensitive; spaces, underscores and hyphens ignored)"
+     },
+     {
+      "name": "new_columns",
+      "type": "body",
+      "description": "Columns to add to the table before importing (needs data.edit_schema)"
+     },
+     {
+      "name": "mode",
+      "type": "body",
+      "placeholder": "insert",
+      "description": "insert (default): add every row; upsert: update rows whose key_column value matches, insert the rest; replace: delete every existing row first (confirm_replace)",
+      "options": [
+       "insert",
+       "upsert",
+       "replace"
+      ]
+     },
+     {
+      "name": "key_column",
+      "type": "body",
+      "description": "upsert: the column (key or name) whose value identifies a row"
+     },
+     {
+      "name": "confirm_replace",
+      "type": "body",
+      "description": "replace: the table name, typed, to confirm deleting every existing row"
+     },
+     {
+      "name": "date_order",
+      "type": "body",
+      "placeholder": "auto",
+      "description": "Day / month order of numeric dates such as 03/04/2026 (default auto: detected from the values; month/day when undecidable)",
+      "options": [
+       "auto",
+       "dmy",
+       "mdy",
+       "ymd"
+      ]
+     },
+     {
+      "name": "trim",
+      "type": "body",
+      "description": "Trim leading / trailing whitespace (default true)"
+     },
+     {
+      "name": "empty_cells",
+      "type": "body",
+      "placeholder": "empty",
+      "description": "empty (default): an empty cell clears the column; ignore: it leaves the column out (an upsert keeps the stored value)",
+      "options": [
+       "empty",
+       "ignore"
+      ]
+     },
+     {
+      "name": "skip_invalid",
+      "type": "body",
+      "description": "Import the valid rows and skip rows with errors (default false: any error stops the import, nothing is written)"
+     },
+     {
+      "name": "fire_triggers",
+      "type": "body",
+      "description": "Fire data_table_event workflows for created / updated rows (default true, like POST /data-tables/{id}/rows)"
+     },
+     {
+      "name": "dry_run",
+      "type": "body",
+      "description": "Validate only: the report (mapping, counts, row errors, preview), nothing written"
+     }
+    ],
+    "permission": "data.manage_rows"
    }
   ]
  },
@@ -3973,7 +4355,7 @@
     "method": "POST",
     "path": "/api/v1/forms",
     "label": "Create a reusable task form (version 1)",
-    "description": "fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: \"steps\" | \"tabs\", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form; a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: \"workspace\" } (default), { source: \"custom\", overrides } or { source: \"saved\", theme_id }. Requires forms.edit.",
+    "description": "fields is the User Task field list (key, label, type, required, options, bounds, ...; type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated, required?, options?, min?, max?, formula? }], min_rows?, max_rows?, entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: \"{{<input>}}\" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: \"steps\" | \"tabs\", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row \"selected\", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: \"workspace\" } (default), { source: \"custom\", overrides } or { source: \"saved\", theme_id }. Requires forms.edit.",
     "params": [
      {
       "name": "name",
@@ -4060,7 +4442,7 @@
     "method": "PATCH",
     "path": "/api/v1/forms/{id}",
     "label": "Update a form",
-    "description": "A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: \"steps\" | \"tabs\", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form; a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: \"workspace\" } (default), { source: \"custom\", overrides } or { source: \"saved\", theme_id }. Requires forms.edit.",
+    "description": "A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. fields is the User Task field list (key, label, type, required, options, bounds, ...; type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated, required?, options?, min?, max?, formula? }], min_rows?, max_rows?, entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: \"{{<input>}}\" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: \"steps\" | \"tabs\", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row \"selected\", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: \"workspace\" } (default), { source: \"custom\", overrides } or { source: \"saved\", theme_id }. Requires forms.edit.",
     "params": [
      {
       "name": "id",
@@ -4323,6 +4705,76 @@
       "type": "path",
       "required": true,
       "description": "Resource id"
+     }
+    ],
+    "permission": "forms.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/forms/import/infopath",
+    "label": "Import an InfoPath form (.xsn): analyse it (dry_run) or create one UserTasks form per view, with its rules and validation",
+    "description": "Reads the .xsn (a CAB archive; MSZIP or uncompressed — LZX is refused with a message) or a .zip of its source files: views, controls, labels, repeating tables (→ List fields), sections, defaults, rules (→ form rules), data validation, calculations, conditional formatting, data connections, buttons and roles. Anything that cannot be converted is kept as a disabled rule with the original XPath in its notes and listed in the report (report.items; report_markdown). The file is never stored. Up to 20 MB (INFOPATH_MAX_MB); hosted instances accept request bodies up to about 4.5 MB. Created forms carry layout.source { kind: infopath, file_name, view, hash } so a re-import can update them (existing: update). dry_run needs forms.view; an import needs forms.edit. Requires forms.view.",
+    "params": [
+     {
+      "name": "file_base64",
+      "type": "body",
+      "required": true,
+      "description": "The InfoPath form template (.xsn), or a .zip of its extracted source files, base64. With multipart/form-data: the `file` field."
+     },
+     {
+      "name": "file_name",
+      "type": "body",
+      "description": "The file name (default form.xsn); re-imports are matched by it"
+     },
+     {
+      "name": "dry_run",
+      "type": "body",
+      "description": "true = analyse only: the report and the forms that would be made; nothing is stored"
+     },
+     {
+      "name": "mode",
+      "type": "body",
+      "placeholder": "per_view",
+      "description": "per_view (default): one form per InfoPath view, \"<Form> — <View>\"; combined: one form with each view as a step",
+      "options": [
+       "per_view",
+       "combined"
+      ]
+     },
+     {
+      "name": "views",
+      "type": "body",
+      "description": "Views to import (names; default all)"
+     },
+     {
+      "name": "name",
+      "type": "body",
+      "description": "Base form name (default the InfoPath form's title)"
+     },
+     {
+      "name": "tag",
+      "type": "body",
+      "description": "An extra tag (the form name and \"infopath\" are always added)"
+     },
+     {
+      "name": "existing",
+      "type": "body",
+      "placeholder": "new",
+      "description": "Forms an earlier import of this file made (matched by file name + view): update them (a new version each) or create new forms (default)",
+      "options": [
+       "new",
+       "update"
+      ]
+     },
+     {
+      "name": "create_table",
+      "type": "body",
+      "description": "Also create a data table for the submissions (a child table per repeating table) and a draft \"save submissions\" workflow (data.create and workflows.create / edit)"
+     },
+     {
+      "name": "available_in_menu",
+      "type": "body",
+      "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
      }
     ],
     "permission": "forms.view"
@@ -4617,7 +5069,7 @@
       "name": "values",
       "type": "body",
       "placeholder": "{}",
-      "description": "Field values keyed by field key (validated like a task form: types, required, rules, people, lookup values against their source)"
+      "description": "Field values keyed by field key (validated like a task form: types, required, rules, people, lookup values against their source; a list field takes an array of row objects keyed by its column keys)"
      },
      {
       "name": "button_id",
@@ -9226,7 +9678,7 @@
      {
       "name": "type",
       "type": "query",
-      "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme (default every type you may view) (comma-separated)"
+      "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control (default every type you may view) (comma-separated)"
      },
      {
       "name": "tag",
@@ -9459,6 +9911,12 @@
       "type": "body",
       "placeholder": "false",
       "description": "Return the .utpkg as file_base64"
+     },
+     {
+      "name": "update_install",
+      "type": "body",
+      "placeholder": "false",
+      "description": "When the package is installed in this workspace (built and installed here): update that install to the new version, so uninstall removes items added since and keeps items removed. Needs packages.install"
      }
     ],
     "permission": "packages.manage"
@@ -9964,6 +10422,155 @@
      }
     ],
     "permission": "packages.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/packages/{id}/items",
+    "label": "The items in a package, grouped by type, with what each uses / is used by and the changes since the last built version",
+    "description": "`changes.unpublished` is true when items were added or removed since `changes.since_version` (or it was never built): build a new version to publish them. `install` is set when the package is installed in this workspace (built and installed here): build with update_install to keep that install in step. Requires packages.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Package id or slug"
+     }
+    ],
+    "permission": "packages.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/packages/{id}/items",
+    "label": "Add workspace items to a package (and, by default, what they use)",
+    "description": "dry_run lists `dependencies`: what the items use that is not in the package yet (left_out: the author left it out earlier). with_dependencies (default true) adds them too; false leaves them out (they must then exist where the package is installed). Changes the draft only — build a new version to publish. Requires packages.manage.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Package id or slug"
+     },
+     {
+      "name": "items",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "Workspace items to add (find them with GET /packages/assets)"
+     },
+     {
+      "name": "with_dependencies",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Also add what they use that is not in the package yet (default true); false leaves those out"
+     },
+     {
+      "name": "dry_run",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Only list the items and the dependencies they would bring in"
+     }
+    ],
+    "permission": "packages.manage"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/packages/{id}/items/remove",
+    "label": "Remove items from a package (refused while other items use them, unless force)",
+    "description": "Nothing in the workspace is deleted. When another item in the package uses one (\"Workflow X uses this form\") the request is refused with 409 unless force; dry_run lists `dependents` and `warnings` first. Items something still pulls in are left out (excluded). Build a new version to publish. Requires packages.manage.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Package id or slug"
+     },
+     {
+      "name": "items",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "Items in the package to remove (nothing in the workspace is deleted)"
+     },
+     {
+      "name": "force",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Remove even when other items in the package use them"
+     },
+     {
+      "name": "dry_run",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Only list the items and what in the package still uses them"
+     }
+    ],
+    "permission": "packages.manage"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/package-installs/{id}/detach",
+    "label": "Remove items from an installed package: they stay in the workspace and uninstall keeps them",
+    "description": "Any install (gallery, file or built here). Later upgrades leave detached items alone. `used_by` lists items still owned by the install that use them. For a package authored here the package itself drops them too (update_package, default true). Audited. Requires packages.install.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Install id or package slug"
+     },
+     {
+      "name": "items",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "Items by type and their id in this workspace"
+     },
+     {
+      "name": "dry_run",
+      "type": "body",
+      "placeholder": "false"
+     },
+     {
+      "name": "update_package",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage)"
+     }
+    ],
+    "permission": "packages.install"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/package-installs/{id}/adopt",
+    "label": "Add existing workspace items to an installed package, so uninstall removes them (packages authored here only)",
+    "description": "Only for an install of a package authored in this workspace (self-installed); a gallery or third-party install answers 403 (detach is allowed there). The package itself gains them too (update_package, default true) so its next build keeps them. Audited. Requires packages.install.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Install id or package slug"
+     },
+     {
+      "name": "items",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "Items by type and their id in this workspace"
+     },
+     {
+      "name": "dry_run",
+      "type": "body",
+      "placeholder": "false"
+     },
+     {
+      "name": "update_package",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage)"
+     }
+    ],
+    "permission": "packages.install"
    }
   ]
  },

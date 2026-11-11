@@ -5,6 +5,7 @@ import { fromSession, isServiceError, requirePerm } from '@/lib/services/context
 import * as packages from '@/lib/services/packages'
 import { searchPackageAssets, type AssetSearchInput } from '@/lib/services/package-assets'
 import * as installs from '@/lib/services/package-installs'
+import * as packageItems from '@/lib/services/package-items'
 import * as history from '@/lib/services/package-events'
 import type { RequirementValues } from '@/lib/packages/requirements'
 
@@ -61,6 +62,32 @@ export async function createPackageAction(input: packages.PackageCreateInput) {
 
 export async function updatePackageAction(id: string, input: packages.PackageUpdateInput) {
   return run(async () => (await packages.updatePackage(await fromSession(), id, input)).package)
+}
+
+export async function listPackageItemsAction(id: string) {
+  return run(async () => packageItems.listPackageItems(await fromSession(), id))
+}
+
+export async function addPackageItemsAction(id: string, input: packageItems.AddPackageItemsInput) {
+  return run(async () => {
+    const { package: pkg, ...rest } = await packageItems.addPackageItems(await fromSession(), id, input)
+    return { ...rest, package_id: pkg?.id ?? null }
+  })
+}
+
+export async function removePackageItemsAction(id: string, input: packageItems.RemovePackageItemsInput) {
+  return run(async () => {
+    const { package: pkg, ...rest } = await packageItems.removePackageItems(await fromSession(), id, input)
+    return { ...rest, package_id: pkg?.id ?? null }
+  })
+}
+
+export async function detachInstallItemsAction(installId: string, input: installs.InstallItemsInput) {
+  return run(async () => installs.detachInstallItems(await fromSession(), installId, input))
+}
+
+export async function adoptInstallItemsAction(installId: string, input: installs.InstallItemsInput) {
+  return run(async () => installs.adoptInstallItems(await fromSession(), installId, input))
 }
 
 export async function deletePackageAction(id: string) {

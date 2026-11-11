@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import {
   ArrowLeft, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, Eye, EyeOff, Info, List, Minus, Pencil, Plus,
-  Printer, RotateCcw, Save, Send, X, type LucideIcon,
+  Loader2, Printer, RotateCcw, Save, Send, X, type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
@@ -93,7 +93,9 @@ export function FieldButtonCell({ field, fields, layout, values, onChange, idPre
   const toggles = toggleTargets(config)
   const flag = toggledFlag(config)
   const expanded = toggles ? toggles.every((t) => isTargetShown(state, t)) : flag ? state.flags[flag] === true : undefined
-  const isDisabled = Boolean(disabled || !onChange || guard.pending || isRuleMet(config.disabled_when ?? null, values) && Boolean(config.disabled_when))
+  // "Enabled only when a row in <list> is selected" (list.selectable): the count rules read.
+  const noSelection = Boolean(config.requires_selection) && !(Number(values[`${config.requires_selection}_selected_count`]) > 0)
+  const isDisabled = Boolean(disabled || !onChange || guard.pending || noSelection || isRuleMet(config.disabled_when ?? null, values) && Boolean(config.disabled_when))
   const look = STYLE[config.style]
   const size = config.size === 'sm' ? 'sm' : config.size === 'lg' ? 'lg' : 'default'
 
@@ -114,7 +116,8 @@ export function FieldButtonCell({ field, fields, layout, values, onChange, idPre
     await guard.run(async () => {
       const result = await runFieldButton(config!, host)
       // Form rules on "Button clicked" run after the button's own steps.
-      if (!result.stopped) rules?.dispatch({ type: 'button_click', target: field.key, context: { button: field.key } })
+      // Awaited: the button shows it is busy while its rules run (a table / API step waiting for the server).
+      if (!result.stopped && rules) await rules.run({ type: 'button_click', target: field.key, context: { button: field.key } })
       if (result.stopped === 'submit_unavailable') setMessages((prev) => [...prev, { text: 'Submitting is not available here.', tone: 'info' }])
       if (result.stopped === 'draft_unavailable') setMessages((prev) => [...prev, { text: 'Saving a draft is not available on this form.', tone: 'info' }])
       if (result.stopped === 'link_not_allowed') setMessages((prev) => [...prev, { text: 'That link is not allowed.', tone: 'info' }])
@@ -143,7 +146,7 @@ export function FieldButtonCell({ field, fields, layout, values, onChange, idPre
           onClick={() => { if (config.confirm) setConfirming(true); else void run() }}
           data-field-button-style={config.style}
         >
-          {!config.icon_after && icon}
+          {guard.pending ? <Loader2 size={size === 'sm' ? 12 : 14} className="animate-spin" aria-hidden data-field-button-busy /> : !config.icon_after && icon}
           {field.label}
           {config.icon_after && icon}
         </Button>

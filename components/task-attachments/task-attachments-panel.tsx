@@ -104,7 +104,7 @@ export function TaskAttachmentsPanel({ taskId, canEdit = true }: { taskId: strin
       {error ? (
         <EmptyState size="sm" variant="error" title="Couldn't load the attachments" description={error instanceof Error ? error.message : undefined} action={{ label: "Try again", onClick: () => void refetch() }} />
       ) : isLoading ? (
-        <Table><TBody><TableSkeleton columns={5} rows={3} /></TBody></Table>
+        <Table label="Attachments"><TBody><TableSkeleton columns={5} rows={3} /></TBody></Table>
       ) : rows.length === 0 ? (
         <div className="rounded-lg border border-border bg-panel">
           <EmptyState
@@ -119,20 +119,20 @@ export function TaskAttachmentsPanel({ taskId, canEdit = true }: { taskId: strin
         <>
           {/* 640px and up: a table. */}
           <div className="hidden sm:block">
-            <Table>
+            <Table label="Attachments">
               <THead>
-                <tr><TH>Name</TH><TH>Type</TH><TH>File</TH><TH>Added</TH><TH><span className="sr-only">Actions</span></TH></tr>
+                <tr><TH col="name">Name</TH><TH col="status">Type</TH><TH col="text">File</TH><TH col="date">Added</TH><TH col="actions"><span className="sr-only">Actions</span></TH></tr>
               </THead>
               <TBody>
                 {rows.map((row) => (
                   <TR key={row.id} data-testid="attachment-row">
-                    <TD className="max-w-[260px]">
-                      <div className="truncate font-medium text-fg">{row.name}</div>
+                    <TD className="max-w-0">
+                      <div className="truncate font-medium text-fg" title={row.name}>{row.name}</div>
                       {row.description && <div className="truncate text-xs text-fg-muted" title={row.description}>{row.description}</div>}
                     </TD>
                     <TD><TypeBadge type={row.type} /></TD>
-                    <TD className="max-w-[200px]">
-                      <div className="truncate text-fg">{row.file_name}</div>
+                    <TD className="max-w-0">
+                      <div className="truncate text-fg" title={row.file_name}>{row.file_name}</div>
                       <div className="num text-xs text-fg-muted">{formatBytes(row.size)}</div>
                     </TD>
                     <TD className="whitespace-nowrap">

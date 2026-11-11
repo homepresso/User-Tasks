@@ -6,12 +6,14 @@ import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { VariableInput } from '@/components/automations/variable-input'
 import { serverRead } from '@/lib/server-read'
 import { findCell, pageGrid, setCellSpan } from '@/lib/forms/layout'
-import { keyProblemFor, type DesignerField, type DesignerState } from '@/lib/forms/designer-state'
+import { addListEntryKit, addRowCommitKit, keyProblemFor, type DesignerField, type DesignerState } from '@/lib/forms/designer-state'
 import { LookupProperties } from './lookup-properties'
 import { AttachmentsProperties } from './attachments-properties'
 import { CustomControlProperties } from './custom-control-properties'
 import { ButtonProperties } from './button-properties'
 import { DataTableProperties } from './data-table-properties'
+import { ListProperties } from './list-properties'
+import { DEFAULT_LIST_CONFIG } from '@/lib/forms/list-field'
 import { LabelProperties } from './label-properties'
 import { SurveyProperties } from './survey-properties'
 import { isSurveyType, surveyFieldDefaults } from '@/lib/forms/survey/controls'
@@ -138,6 +140,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
               if (type === 'lookup' && !field.lookup) patch.lookup = { source: 'table' }
               if (type === 'attachments' && !field.attachments) patch.attachments = { max_files: 10, max_file_mb: 10, types: ['any'] }
               if (type === 'data_table' && !field.data_table) patch.data_table = { source: 'table', mode: 'display', columns: [] }
+              if (type === 'list' && !field.list) patch.list = structuredClone(DEFAULT_LIST_CONFIG)
               // A survey control: its own starting scale / options (the choices' options are kept when they fit).
               if (isSurveyType(type)) {
                 const defaults = structuredClone(surveyFieldDefaults(type))
@@ -182,7 +185,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         </DynamicProp>
       )}
 
-      {!display && !isLabelField && !isSurveyType(field.type) && field.type !== 'boolean' && field.type !== 'multi_choice' && field.type !== 'attachments' && field.type !== 'custom' && !(field.type === 'choice' && field.display === 'radio') && (
+      {!display && !isLabelField && !isSurveyType(field.type) && field.type !== 'boolean' && field.type !== 'multi_choice' && field.type !== 'attachments' && field.type !== 'custom' && field.type !== 'list' && !(field.type === 'choice' && field.display === 'radio') && (
         fieldPropType(field, 'placeholder') ? (
           <DynamicProp state={state} field={field} prop="placeholder" label="Placeholder" expects="string" onPatch={onPatch} htmlFor={id('placeholder')}>
             <input id={id('placeholder')} className={inputClass} value={field.placeholder ?? ''} onChange={(e) => onPatch({ placeholder: e.target.value || undefined }, `ph-${field._id}`)} />
@@ -229,7 +232,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         </DynamicProp>
       )}
 
-      {!display && field.type !== 'attachments' && field.type !== 'custom' && field.type !== 'data_table' && field.type !== 'matrix' && field.type !== 'ranking' && !(isLabelField && field.label_config?.expression) && (
+      {!display && field.type !== 'attachments' && field.type !== 'custom' && field.type !== 'data_table' && field.type !== 'list' && field.type !== 'matrix' && field.type !== 'ranking' && !(isLabelField && field.label_config?.expression) && (
         <DynamicProp state={state} field={field} prop="default" label={isLabelField ? 'Default value (until a rule sets it)' : 'Default value'} expects={fieldPropType(field, 'default') ?? 'string'} onPatch={onPatch}>
           {field.type === 'boolean' ? (
             <AutocompleteSelect
@@ -284,7 +287,19 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
       )}
 
       {field.type === 'data_table' && (
-        <DataTableProperties state={state} field={field} onPatch={(data_table, tag) => onPatch({ data_table }, tag)} />
+        <DataTableProperties state={state} field={field} onPatch={(data_table, tag) => onPatch({ data_table }, tag)}
+          onAddCommitKit={(options) => { const kit = addRowCommitKit(state, field._id, options); if (kit) onChangeState(kit.state) }} />
+      )}
+
+      {field.type === 'list' && (
+        <ListProperties field={field} onPatch={(list, tag) => onPatch({ list }, tag)}
+          ruleCount={(state.layout.rules ?? []).filter((r) => r.then.some((x) => x.type === 'add_list_row' && x.list_field === field.key)).length}
+          onAddEntryKit={(edit, selection) => { const kit = addListEntryKit(state, field._id, { edit, selection }); if (kit) onChangeState(kit.state) }}
+          onAddCommitKit={(options) => { const kit = addRowCommitKit(state, field._id, options); if (kit) onChangeState(kit.state) }}
+          renderLookup={(column, onLookup) => (
+            <LookupProperties state={state} field={{ _id: `${field._id}-${column.key}`, key: `${field.key}.${column.key}`, label: column.label, type: 'lookup', lookup: column.lookup ?? { source: 'table' } }}
+              onPatch={(lookup) => onLookup({ ...lookup, multiple: undefined })} />
+          )} />
       )}
 
       {field.type === 'lookup' && (

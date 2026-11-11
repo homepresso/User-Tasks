@@ -1636,6 +1636,18 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
               Stops the workflow. All nodes after this will not execute.
             </p>
           </div>
+          {triggerType !== 'middleware_received' && (
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium">End the run as</label>
+              <Select
+                value={node.config.status === 'failed' ? 'failed' : 'completed'}
+                onChange={(e) => updateConfig('status', e.target.value === 'failed' ? 'failed' : undefined)}
+              >
+                <option value="completed">Completed</option>
+                <option value="failed">Failed (the reason is the run&apos;s error)</option>
+              </Select>
+            </div>
+          )}
           {triggerType === 'middleware_received' && (
             <>
               <div className="pt-2 border-t border-border-subtle">

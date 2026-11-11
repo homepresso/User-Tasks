@@ -718,6 +718,9 @@ export async function authorizeFileDownload(ctx: ServiceContext, row: FormFileRo
       if (hasPerm(ctx, 'tasks.view_all') || hasPerm(ctx, 'tasks.manage_queue')) return true
       const { canUserSeeTask } = await import('@/lib/task-authz')
       if (await canUserSeeTask(db, row.tenant_id, ctx.actorId, row.task_id)) return true
+      // Invited viewers (read only) see the task's form files too.
+      const { findTaskViewerGrant } = await import('@/lib/task-authz')
+      if (await findTaskViewerGrant(db, row.tenant_id, ctx.actorId, row.task_id)) return true
     }
   }
   if (row.submission_id) {

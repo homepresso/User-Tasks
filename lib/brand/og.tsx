@@ -14,7 +14,7 @@ import { join } from 'node:path'
 
 export const OG_SIZE = { width: 1200, height: 630 }
 export const OG_CONTENT_TYPE = 'image/png'
-export const OG_DEFAULT_ALT = 'UserTasks — the headless workflow engine. API · MCP · CLI · open source.'
+export const OG_DEFAULT_ALT = 'UserTasks — the open source process platform. Workflows · Forms · Tasks · AI Agent.'
 
 const INK = '#17150F'
 const CREAM = '#FAF8F3'
@@ -103,11 +103,11 @@ export async function renderHomeOgImage(): Promise<ImageResponse> {
           <Brand mark={76} text={56} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 44, fontFamily: 'Fraunces', fontWeight: 700, fontSize: 88, lineHeight: 1.04, letterSpacing: -2, color: INK }}>
-          <span>The headless</span>
-          <span>workflow engine</span>
+          <span>The open source</span>
+          <span>process platform</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 34, fontFamily: 'Inter', fontWeight: 500, fontSize: 32, color: MUTED }}>
-          {['API', 'MCP', 'CLI', 'open source'].flatMap((label, i) => [
+          {['Workflows', 'Forms', 'Tasks', 'AI Agent'].flatMap((label, i) => [
             ...(i ? [<div key={`dot-${label}`} style={{ width: 8, height: 8, borderRadius: 8, background: BRONZE }} />] : []),
             <span key={label}>{label}</span>,
           ])}

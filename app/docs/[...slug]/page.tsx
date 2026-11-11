@@ -5,6 +5,8 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { DocBlocks } from '@/components/docs/doc-blocks'
 import { ALL_DOC_PAGES, docHref, getDocPage, neighbours, sectionOf } from '@/lib/docs/registry'
 import { pageBlocks, tableOfContents } from '@/lib/docs/render'
+import { publicBaseUrl } from '@/lib/deployment'
+import { breadcrumbNode, DOCS_UPDATED, jsonLdHtml, webPageNode } from '@/lib/seo/site'
 
 type Props = { params: Promise<{ slug: string[] }> }
 
@@ -24,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description: page.description,
     alternates: { canonical: docHref(page.slug) },
-    openGraph: { title, description: page.description, url: docHref(page.slug), type: 'article', images: [image] },
+    openGraph: { title, description: page.description, url: docHref(page.slug), type: 'article', siteName: 'UserTasks', images: [image] },
     twitter: { card: 'summary_large_image', title, description: page.description, images: [image] },
   }
 }
@@ -36,9 +38,15 @@ export default async function DocPage({ params }: Props) {
   const toc = tableOfContents(page, blocks)
   const section = sectionOf(page.slug)
   const { prev, next } = neighbours(page.slug)
+  const baseUrl = publicBaseUrl()
+  const jsonLd = [
+    { ...webPageNode(baseUrl, docHref(page.slug), { name: page.title, description: page.description, updated: DOCS_UPDATED, type: 'TechArticle' }), headline: page.title, publisher: { '@id': `${baseUrl}/#organization` } },
+    breadcrumbNode(baseUrl, [{ name: 'Docs', path: '/docs' }, ...(section ? [{ name: section.title, path: docHref(section.pages[0].slug) }] : []), { name: page.title, path: docHref(page.slug) }].filter((crumb, index, all) => all.findIndex((other) => other.path === crumb.path) === index)),
+  ]
 
   return (
     <div className="flex gap-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       <article className="min-w-0 max-w-[720px] flex-1 pb-24 pt-10">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(color:--mkt-bronze)">{section?.title}</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-(color:--mkt-ink) sm:text-4xl">{page.title}</h1>

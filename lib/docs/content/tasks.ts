@@ -16,7 +16,7 @@ A task is a unit of work for a person. Most tasks are created by **User Task** n
 
 - **My tasks** — the signed-in user's one task list, with filters and saved views. Tasks waiting for your response are in it with the status **Queued** (see [Queued tasks](#queued-tasks)).
 - **My team** — for managers: the open tasks of the people who report to you (see [Manager view](/docs/tasks/manager-view)).
-- **Task tracker** — the work you assigned to others, your team members' work, or every task, in tabs: **Following**, **Assigned by me**, **Team members** and **All tasks** (see [Following tasks](#following-tasks)).
+- **Task tracker** — the work you assigned to others, your team members' work, or every task, in tabs: **Following**, **Assigned by me**, **Team members** and **All tasks** (see [Following tasks](#following-tasks)). Everyone with task access opens it: without **View all tasks** it shows **Following** only — the tasks you follow and the ones [shared with you](#invite-read-only).
 - **Task detail** — description, fields, outcome buttons, notes, files, subtasks and history.
 
 ## Task lists: sorting, status and details
@@ -32,7 +32,7 @@ My tasks, My team, the Task tracker and the **My tasks** list on Home work the s
 - **Summary** — status, priority, due date, assignee and requester.
 - **Progress** — a slider (5% steps) and the percentage. When the task has subtasks, its progress follows them until you set it yourself; **Use subtask progress** goes back.
 - **Effort** — hours logged against the estimate (the assignee's estimate, else the assigner's), the latest entries, and **Log effort**: hours, minutes, date and a note. Each entry adds to the task's actual effort and goes on its timeline.
-- **Subtasks** — tick them off, or **Add subtask**: it goes to the task's assignee, with the task's priority, at the end of the list.
+- **Subtasks** — tick them off, or **Add subtask**: type a title and press **Enter** (the box stays open for the next one), or open **More details** for a subtitle, description, estimate, due date, priority and tags. Each row shows its subtitle and estimate. See [Subtasks](/docs/tasks#subtasks-and-dependencies).
 - **Latest comment or activity**, the number of **attachments**, and links to **Open task**, **Open form** (tasks with a form) and **Process view** (workflow tasks).
 
 **Status** can be set to To do, In progress or Blocked. You complete a task with **Complete** in the row's **Actions** (the quick actions) or on the task page. A workflow task's status follows its workflow step, so it isn't offered there.
@@ -48,10 +48,11 @@ Click the bell on any task in the Task tracker — or **Follow** at the top of a
 - The list has the tracker's columns, sorting, search, **Status** and **Priority** filters, grouping and pages. Completed and cancelled tasks are hidden unless **Show completed** is on (the same switch as the other tabs).
 - **Processes you follow show here too.** When you complete or respond to a workflow task, you follow its process (run). This includes acting on someone's behalf, and it works from the app, the API, MCP or the CLI. The open tasks of the processes you follow are listed in **Following**, labelled **Via {workflow} · {run}**, with the Process view icon, so you can watch the request move through its later steps. Processes you started (Home → Following) count too. A task you follow directly and through its process is listed once. When a process finishes, its tasks drop out unless **Show completed** is on. You only see the tasks of processes you can still see in the Process view. To turn this off, switch off **Follow processes I act on** in **Settings → Preferences → Following** or on the Following tab. It is on by default, and processes you already follow stay followed.
 - A completed task stays in the list, with its status, until you unfollow it. A deleted task drops out. So does a task you can no longer see.
-- You can follow a task you can see: you're its assignee or a collaborator, you're in the team it's assigned to (before anyone claims it), you manage an assignee, you assigned it, or you have **View all tasks** or **Manage queue** in its workspace.
+- **Tasks shared with you show here too.** A task someone [invited you to view](#invite-read-only) — you, a team you're in or a role you hold — is listed with a **Shared with me** badge (with the team or role, and who shared it). **Shared with me** next to the filters narrows the list to them. People invited directly also follow the task; team and role invites need no follow (the list adds them while the invite lasts).
+- You can follow a task you can see: you're its assignee or a collaborator, you're in the team it's assigned to (before anyone claims it), you manage an assignee, you assigned it, it's shared with you, or you have **View all tasks** or **Manage queue** in its workspace.
 - The bell is filled when you follow the task. Click it again to unfollow.
 - The tracker opens on the tab you used last, in this browser. If you haven't picked one yet, it opens on **Following** when you follow something, and on **Assigned by me** otherwise.
-- API: \`GET /api/v1/tasks/following\`, \`PUT\` / \`DELETE /api/v1/tasks/{id}/follow\`. MCP: \`tasks_following\`, \`tasks_follow\`, \`tasks_unfollow\`. CLI: \`usertasks tasks following\`, \`usertasks tasks follow <id>\`, \`usertasks tasks unfollow <id>\`. These are personal, so they need a credential bound to a user.
+- API: \`GET /api/v1/tasks/following\` (\`shared_only=true\` for the shared ones; rows carry \`shared_with_me\`), \`PUT\` / \`DELETE /api/v1/tasks/{id}/follow\`. MCP: \`tasks_following\`, \`tasks_follow\`, \`tasks_unfollow\`. CLI: \`usertasks tasks following\`, \`usertasks tasks follow <id>\`, \`usertasks tasks unfollow <id>\`. These are personal, so they need a credential bound to a user.
 
 ## Descriptions: plain text or HTML
 
@@ -90,6 +91,8 @@ A task a workflow is waiting on (a **User Task**) is actioned by its **assignee 
 - a holder of **Complete any task (break-glass)** (\`tasks.complete_any\`, Owner and Admin by default), also on behalf and with a reason, recorded as break-glass.
 
 Everyone else — admins included — sees the task read-only. Standard tasks you create by hand keep the usual rule (anyone with **Complete tasks** in the workspace).
+
+The [Agent](/docs/ai-assistants/using#complete-approve-or-decline-a-task) follows the same rule when you ask it to complete, approve or decline a task: it checks required fields first and asks for any that are empty, asks a manager for their on-behalf reason, shows a confirmation card (outcome, comment, values, on behalf or break-glass, what happens next) and acts only when you select **Confirm**. The history records it as done through the Agent.
 
 ## Unassigned tasks: take ownership
 
@@ -162,6 +165,24 @@ The override is stored in the form's layout, so it travels with versions, export
 
 Completing a workflow task with \`POST /api/v1/tasks/{id}/action\` (\`action: "complete"\`) or the MCP tool \`tasks_complete_workflow\` returns the same summary as \`next\`: \`state\` (\`assigned\`, \`waiting\`, \`complete\`, \`processing\`, \`stopped\`, \`none\` or \`unknown\`), \`steps\` (step names with the people and team), \`process\` and \`run_id\`. The response waits up to about three seconds for the queue. If \`state\` is still \`processing\`, ask again with \`GET /api/v1/tasks/{id}/next\`, the MCP tool \`tasks_next_step\` or \`usertasks tasks next <id>\`.
 
+## Timeline
+
+The **Timeline** tells a request's story in plain words, newest last: when it started and by whom, who each step went to, accepts and holds (with the reason), reassignments, redirects, escalations and **took ownership** (from → to, with the comment), comments, approvals and declines (the outcome as a coloured badge, who acted, on whose behalf and why, via the Agent, the outcome notes and a few of the values they entered, with **View form**), attachments, subtasks and invites, and how it ended (**Completed — Approved**, **Failed: …**, **Cancelled by …**) with the total time. While the process is still moving the last line is highlighted: **Now: waiting for Priya Shah — Finance approval**, with how long it has waited. Each line shows its time (hover for the full date), the person, and how long after the previous human step it happened (*2 h 15 m later*). It updates by itself while the run is active.
+
+Automatic steps are summarised so they don't drown the people: emails (*Emailed james@example.com*), data writes (*Recorded in Purchase requests*), decisions that took a named path (*Decision: Over 20,000? → Yes*), decision tables, waits (*Waited 2 d — until the start date*), sub-workflows (their own steps nested and collapsed), integration calls and errors (*Error in “Email requester” (continued)*). Routine steps — setting variables, building JSON, string and date helpers, conditions that fell through — are collapsed into **N automatic steps**; expand it to see them. Labels with \`{{…}}\` placeholders show the run's values, with secrets as ••••.
+
+**Filters.** **All**, **Approvals & decisions**, **Comments**, **People & assignments** and **System**. **Copy as text** copies the whole timeline (for an email or a ticket); **Print** prints it.
+
+**Where to find it.**
+
+- **Task lists** — the **Timeline** icon (a clock with an arrow) next to **Process view** on My tasks, Home, the Task tracker, My team, the queue's **Active tasks** and the queue rows; the row's details have a **Timeline** link. It opens in a side sheet (a bottom sheet on a phone) over the list.
+- **Task page** — **Timeline** in the header, and **Recent activity** (the last three events and **View full timeline**) on the Details tab. A standalone task's timeline is its own history: created, assigned, accepted, comments, subtasks, attachments, invites and completed.
+- **Process view** — a **Timeline** tab next to Process view, Variables and Logs. It is the first tab for people who don't build workflows (no **Edit workflows**); builders open on the Process view. \`?tab=timeline\` links straight to it, and **/timeline/<run id>** opens it on its own page. Home's progress view has a **Timeline** button.
+
+**What you see.** Only what you may see, by the same rules as the process views: a run in your run scope (you can see all runs, or you are involved in it or hold a View grant on its workflow) shows everything, error text and values included; a run whose progress you may follow (you started it, your submission started it, you have a task in it, or you are invited to view one of its tasks) shows the people and steps but no internal values or error text, and names who submitted the form only to the submitter. Comments, notes, form values and reassignment lines appear only for tasks you can open or are [invited to view](#invite-read-only). A workflow task whose run you can't see shows the task's own history. Anything else isn't found — the Timeline button simply doesn't show where there is nothing for you.
+
+**API, MCP, CLI and the Agent.** \`GET /api/v1/workflows/runs/{id}/timeline\` and \`GET /api/v1/tasks/{id}/timeline\`, the MCP tools \`workflows_run_timeline\` and \`tasks_timeline\`, \`usertasks runs timeline <id>\` and \`usertasks tasks timeline <id>\`. Ask the Agent *“what's happened on this request?”* on a task or a run: it reads the same timeline (\`get_timeline\`).
+
 ## Queued tasks
 
 There is one task list. When a task is assigned to you, it is either **added** straight to **My tasks** or **queued**: it is in **My tasks** too, with the status **Queued**, until you respond. Choose **Queued** in the **Status** filter to see only these (old links to \`/tasks/queue\` open \`/tasks?status=queued\`). The side menu's **My tasks** count includes them.
@@ -169,8 +190,23 @@ There is one task list. When a task is assigned to you, it is either **added** s
 - **Accept** makes the task yours (it moves to *In progress*); **Decline** asks for a short reason, cancels it for you and fires **Task Rejected** triggers so a workflow can reroute it.
 - A task assigned to a **team** with no assignee yet is queued for every member, with **Claim**: the first member to claim it becomes its assignee. An **AAD group** task in claim mode works the same way for the group's members.
 - **Hold**, **Redirect**, **Escalate** and completing with an outcome are on the task page, and in each row's **Actions** (below).
+- You can also ask the Agent: *"accept the contract review"*, *"hold it until Monday — waiting on legal"*, or *"accept and approve it"* (one **Accept and complete** card).
 
 ::image tasks-queue | The task list | The task list with priorities, due dates and SLA state.
+
+## Invite (read only)
+
+**Invite** shares a task with people, teams and roles who only need to watch it — a stakeholder, the finance team, everyone with an *Auditor* role. It's on the task page (next to **Follow**) and in the list's **Actions** panel (**Invite…**).
+
+- **What they get.** Everyone the invite names — directly, as a member of the team, or as a holder of the role — can open the task, its subtasks (unless you untick **Include its subtasks**), comments, attachments and history, and the [Process view](/docs/home#process-view) of its workflow run. They can **follow** it and **add comments**. The task appears in their [Task tracker → Following](#following-tasks) with a **Shared with me** badge, and in the task search when they link [dependencies](#subtasks-and-dependencies) on their own tasks.
+- **What they can't do.** Complete it or choose an outcome, fill in or save its form, add or tick subtasks, log effort, change progress, add attachments, change its dependencies, reassign, redirect or escalate it, or invite anyone else. Their task page says *You're invited to view this task (read only) by …*, and those controls are hidden or disabled; the server refuses them anyway.
+- **Who can invite and remove.** The people working on the task (the assignee, collaborators, members of the assigned team), the person who assigned it, the assignee's managers, managers of its workflow, and admins (**Complete any task**). Anyone who can see the task sees the **Shared with N people / groups** chip and the list of invites.
+- **Notifications.** People invited directly get a bell notification and an email, with your note. Members of an invited team or role get a bell notification when the group has at most 25 people; larger groups aren't notified (it would be noise), but the task is still in their tracker.
+- **Removing an invite** takes access away unless something else lets them see the task, and removes the follow the invite created.
+- **History and audit.** The task history says *Andy Hayes invited Finance (team) to view* (and *stopped sharing with …*); each change is in the audit log (\`share\` / \`unshare\`).
+- **Not the same as Add collaborator…** — that puts people *on* the task to work on it (and is limited to tasks that allow several people). Invite never makes anyone an assignee.
+
+API: \`GET\` / \`POST /api/v1/tasks/{id}/viewers\` and \`DELETE /api/v1/tasks/{id}/viewers/{viewerId}\`. MCP: \`tasks_viewers_list\`, \`tasks_viewers_add\`, \`tasks_viewers_remove\`. CLI: \`usertasks tasks viewers <id>\`, \`usertasks tasks viewers-add <id>\`, \`usertasks tasks viewers-remove <id> <viewerId>\`. A body names who to invite: \`{ "viewers": [{ "type": "team", "id": "…" }], "note": "…", "include_subtasks": true }\`.
 
 ## Quick actions from the task list
 
@@ -185,7 +221,8 @@ The panel offers only what the server allows for that task and for you:
 | **Open task to act** | You're a manager acting on behalf of the assignee: the task page asks for your reason first. |
 | **Hold…** | The task is queued for you. Holding needs a reason. **Resume** appears on a task you've put on hold. |
 | **Redirect…** | You're the assignee and the task allows redirecting. Pick one person, or several when the task allows many (up to its limit); **Invite by email** appears when the task allows inviting people who aren't in the organisation yet (the task stays with you until they join). |
-| **Invite someone…** | You're the assignee and the task allows several people (redirect to *many*). The people you pick join the task as collaborators; you stay on it. The task's people limit counts everyone on it. |
+| **Add collaborator…** | You're the assignee and the task allows several people (redirect to *many*). The people you pick join the task as collaborators and work on it with you; you stay on it. The task's people limit counts everyone on it. |
+| **Invite…** | You may share the task, read only, with people, teams or roles (see [Invite](#invite-read-only)). |
 | **Escalate…** | You're the assignee and the task doesn't turn escalation off. Your manager is chosen to start with; pick someone else if needed. A comment is optional. |
 | **Accept** / **Decline** / **Claim** | The task is queued for you (or unclaimed in one of your teams). Claim a team task before acting on it. |
 | **Open task**, **Process view** | Always; **Process view** for workflow tasks. |
@@ -274,6 +311,27 @@ Nothing to migrate: rules saved in the earlier shape (\`{ "default", "rules": [{
 ## Subtasks and dependencies
 
 Tasks can have subtasks (created by hand, by the **Create Subtask** node, or in the ingest payload) with their own assignees and completion state.
+
+**Adding subtasks.** Anyone who can work on a task can break it into subtasks: its assignee or a collaborator, a member of its team, the assignee's manager (on their behalf), the person who assigned or created it, or someone with **View all tasks** such as an admin — with **Complete tasks** in their role. Viewers (including people [invited to view](#invite-read-only)), and people who can see a task but aren't working on it, can't. The task must be open. This works on **workflow tasks** too: their subtasks are a personal checklist and never change the workflow — the task still completes only through its outcome buttons, even when every subtask is ticked.
+
+- **Where:** the **Subtasks** card on the task page (**Add subtask**, and the list icon on a subtask row to add one under it), and the details panel of a row on Home, **My tasks** and the Task tracker.
+- **Quick add:** type the title and press **Enter**. The box stays open and clears, so you can add several in a row. **Add** adds and closes; **Add another** adds and clears for the next one; **Esc** closes.
+- **More details** (all optional):
+
+| Field | |
+|---|---|
+| **Subtitle** | A short summary shown under the title (at most 200 characters) |
+| **Description** | Plain text or HTML, like a task description (at most 20,000 characters) |
+| **Estimate (h)** | Hours (\`1.5\`) or hours and minutes (\`1h 30m\`); stored in minutes, like logged effort (at most a year) |
+| **Due date** | A day between 2000 and 2100 |
+| **Priority** | Starts as the task's |
+| **Tags** | Comma separated (at most 20, 50 characters each) |
+
+A new subtask goes to the task's assignee (or to you when nobody has the task), already accepted, at the end of the list. Subtasks can have subtasks, up to 4 levels below a task. Ticking subtasks moves the task's progress (2 of 4 done = 50%), unless someone has set the progress by hand. To change a subtask later, use the pencil on its row on the task page, or open it.
+
+**API, CLI, MCP and the Agent.** \`GET /api/v1/tasks/{id}/subtasks\` (\`usertasks tasks subtasks <id>\`, MCP \`tasks_subtasks_list\`) lists a task's subtasks with \`can_add\`. \`POST /api/v1/tasks/{id}/subtasks\` (\`usertasks tasks add-subtask <id>\`, MCP \`tasks_add_subtask\`) adds one with \`title\` and optional \`subtitle\`, \`description\`, \`estimated_effort_minutes\`, \`due_date\`, \`priority\` and \`tags\`; \`PATCH /api/v1/tasks/{id}/subtasks/{subtaskId}\` (\`usertasks tasks update-subtask\`, MCP \`tasks_update_subtask\`) changes only the fields sent. All need a credential bound to a person and follow the same rule as the app. In task help, ask the Agent to "break this into steps": it shows the subtasks it would add on a confirmation card first.
+
+**Dependencies.** On a task's **Details** tab, **Blocked by** and **Blocks** link it to other open tasks. The search lists tasks you can see: your own, your team's and your reports', ones you assigned, and ones [shared with you](#invite-read-only) — people with **View all tasks** or **Manage queue** search the whole workspace. A dependency belongs to the blocked task, so you change it only on a task you work on (or oversee); a task shared with you read only shows its links without the controls.
 
 ## Tasks from other systems
 
@@ -379,25 +437,30 @@ A form is a set of typed fields placed on a grid, with an optional header, butto
 - **Start forms** — a workflow's inputs on a grid with a theme, shown by the Run dialog and **Save & Test**; **Publish as form page** gives one its own page.
 - **Task trigger forms** — the fields a triggering task carries (\`{{task.data.<key>}}\`).
 
-::image forms-designer | The form designer: field palette on the left, a grid of rows with one to four columns, and the Attachments field's settings on the right | The designer: drag types from the palette onto a grid of 1–4 column rows; the selected field's settings are on the right.
+::image forms-designer | The form designer page: a toolbar with the form's name, version, Design and Preview, Open form and Save version 2; the field palette and outline on the left; a grid of rows with one to three columns and a status bar with fields, rules, submissions and the accessibility score; the selected button's settings on the right | The designer page: drag types from the palette onto a grid of 1–4 column rows; the selected field's settings are on the right.
 
 > [!TIP]
 > Want a form, a responses table, an approval and a results page without the designer? Use the [form wizard](/docs/tasks/form-wizard). For a guided walk-through of the designer, follow the tutorial [Build your first form](/docs/tutorials/first-form).
 
 ## Build your first form in 5 minutes
 
-1. **Create it.** Open **Build › Forms → New form**, choose **Start blank** if you are offered the wizard, name it (for example *Customer return*) and choose **Continue to designer**.
+1. **Create it.** Open **Build › Forms → New form** and choose **Start blank** if you are offered the wizard. The designer opens on its own page; select **Untitled form** in the toolbar and name it (for example *Customer return*).
 2. **Add fields.** Drag **Text**, **Email**, **Currency**, **Single select** and **Attachments** from the palette onto the grid (or select one and press **Enter**). Set each field's label; the key follows it in snake_case (\`contact_email\`).
 3. **Lay it out.** Give a row 2 or 3 columns with the buttons beside **ROW n**, then drag fields side by side. Set **Width** on a field to span columns. Add a **Section** to group fields (optional and collapsible ones too), or **Section heading** and **Divider** for lighter structure.
 4. **Validate.** Tick **Required**, set min / max, a pattern with a message, or **Visible when** on the fields that need it. **Preview → Check validation** tries the rules; **Phone** shows the one-column mobile layout.
 5. **Buttons and look.** In the **Header** tab, turn on the header, rename **Submit** and add **Show success screen**. In the **Theme** tab, pick **Custom** and set an accent colour. Choose **Create form**.
-6. **Use it.** **Open** the form in the library, or use **⋯ → Copy link** or **QR code** to share its page; add a **Form submitted** trigger to a workflow to run it on every submission, or link the form from a User Task with **Use a saved form**. Every field is in the workflow's **Data** panel as \`{{form.<key>}}\` / \`{{task_data.<key>}}\`.
+6. **Use it.** **Open form** in the toolbar opens its page; **⋯ → Copy link** or **QR code & embed** shares it; add a **Form submitted** trigger to a workflow to run it on every submission, or link the form from a User Task with **Use a saved form**. Every field is in the workflow's **Data** panel as \`{{form.<key>}}\` / \`{{task_data.<key>}}\`.
 
 Prefer code? \`usertasks forms create -f customer-return.json\` (or \`POST /api/v1/forms\`) takes the same \`fields\`, \`layout\`, \`theme\`, \`header\` and \`buttons\` — see [Reusable forms](#reusable-forms).
 
 ## The form designer
 
-Open a **User Task** and choose **Form → Design form**. The dialog has three parts:
+The same designer opens in two places:
+
+- **A reusable form** (**Build › Forms**, then **Edit** on a form, or **New form**) opens on its own page, \`/automations/forms/<id>\`, like the workflow designer. The toolbar has the way back to **Forms**, the form's name (select it to rename; renaming doesn't create a version), its version, **In menu** and its tags, **Undo** / **Redo**, **Design** | **Preview**, **Open form**, **Save version N** (**⌘S** / **Ctrl+S**) and **⋯** (copy link, QR code & embed, submissions, access and sharing, form settings, **Edit with the wizard** for a wizard form, duplicate, export, delete). The **Outline** under the palette lists the steps or tabs, fields and sections; select one to select it on the grid. A status bar under the grid shows the fields, rules and submissions, the accessibility score and whether there are unsaved changes. The properties panel adds a **Form** tab (name, description, tags, friendly link name, **Available forms**) and an **Access** tab (who may submit it, the public link, retention). Without **Edit forms** the page is read only. When the Agent is open, it docks beside the designer and works on the open form; a change you confirm reloads the designer on the new version. On a phone the page says **Open on desktop to edit** and shows the form read only.
+- **A workflow's own forms** (a User Task's form, a start form) open in a dialog over the workflow designer: open a **User Task** and choose **Form → Design form**.
+
+Either way, the designer has three parts:
 
 - **Palette** (left): text, long text, number, currency, email, phone, URL, date, date and time, checkbox, single select, multi-select, person, autocomplete / lookup, data table, attachments, label (display text with an expression), section heading, divider and button. Drag a type onto the grid, or select it and press Enter to add it in a new row.
 - **Grid** (centre): rows of 1 to 4 columns. Choose the column count per row, add, move and remove rows, drag fields between cells, and set how many columns a field spans. Dropping onto a full row puts the field in a new row below it.
@@ -405,7 +468,7 @@ Open a **User Task** and choose **Form → Design form**. The dialog has three p
 
 **Preview** shows exactly what the assignee sees, in light or dark mode and at desktop or phone width, with **Check validation** to try the rules. On phones every row collapses to one column.
 
-The designer has undo and redo (**Ctrl+Z**, **Ctrl+Shift+Z** or **Ctrl+Y** outside text boxes) and asks before closing with unsaved changes.
+The designer has undo and redo (**Ctrl+Z**, **Ctrl+Shift+Z** or **Ctrl+Y** outside text boxes) and asks before you leave unsaved changes: closing the dialog, or following a link away from the page (reloading or closing the tab asks too).
 
 ### Keyboard
 
@@ -638,6 +701,7 @@ Every field has \`key\`, \`label\`, \`type\`, and optionally \`required\`, \`hel
 | Section heading | \`heading\` | — | none | — |
 | Divider | \`divider\` | — | none | — |
 | Data table | \`data_table\` | \`data_table\`: a data table or API reference, columns and formats, base filter, sort, page size, mode — see [Data table fields](#data-table-fields) | the selected rows, or the changes \`{ added, updated, deleted }\` | — |
+| List (repeating rows) | \`list\` | \`list\`: \`columns\` (key, label, type, required, options, min / max, default, formula), \`min_rows\` / \`max_rows\`, \`totals\`, \`display\`, \`entry_mode\` — see [List fields](#list-fields-repeating-rows) | array of row objects | \`<key>_count\` and one key per total |
 | Button | \`button\` | \`button\`: style, size, icon, alignment, tooltip, confirm prompt, \`disabled_when\`, On click \`actions\` — see [Buttons anywhere](#buttons-anywhere-and-form-state) | none | — |
 | Label | \`label\` | \`label_config\`: \`expression\`, \`format\`, \`prefix\` / \`suffix\`, size, alignment, \`include\` — see [Label and expressions](#label-and-expressions) | display text; stored only with \`include\` (recomputed by the server) | — |
 
@@ -768,6 +832,102 @@ A real \`<table>\` labelled by the field; a grid with arrow-key navigation (Home
 - Rate limited per user; page size ≤ 100; API rows ≤ 1,000; friendly errors without internal detail.
 
 API clients read rows with \`POST /api/v1/forms/{id}/data-table\` or \`POST /api/v1/tasks/{id}/data-table\` (\`{ "field_key", "query": { "search", "filters", "sort", "page", "page_size" }, "values" }\`), the MCP tools \`forms_data_table\` / \`tasks_data_table\`, or \`usertasks forms data-table <id>\` / \`usertasks tasks data-table <id>\`.
+
+## List fields (repeating rows)
+
+A **List** field (palette group **Data**, *List (repeating rows)*) holds rows the person adds on the form itself — line items, attendees, expenses, milestones. The rows live in the submission (no data table behind them) and reach the workflow as an **array of objects** it can loop over. A form can have as many Lists as it needs; each has its own inputs, rule, totals and workflow variable (\`{{form.line_items}}\`, \`{{form.attendees}}\`…).
+
+**Columns.** Each column has a key (snake_case, the row object's key), a label and a type: Text, Long text, Number, Currency, Date, Choice (with options), Yes / no, Email, **Lookup** (rows of a data table or an API reference, searched on the server like an Autocomplete field) or **Calculated** — a formula over the row's number columns such as \`quantity * unit_price\` (numbers, column keys, \`+ - * /\` and brackets; worked out on the server too, never taken from the browser). Columns can be required, and have a default, a placeholder, help text and min / max (a value for numbers, a length for text). **At least / at most (rows)** bound the row count; **Totals** add a sum, average or count of a column under the list.
+
+**The list view.** The field shows the rows as a table — cards on phones (**Show rows as**: table with cards on phones, always a table, always cards) — with **Remove** on each row and the totals underneath. It has no input row or Add button of its own: rows come from the form's own inputs through a rule.
+
+**Add rows with a rule.** The rule action **Add row to list** (Rules → Then → *Transfer data*) maps each column to a value — usually one of the form's inputs (\`{{line_items_item}}\`) — checks the inputs you mark as **Must be filled in**, checks the row against the columns (required, types, bounds, options) and the list's maximum, appends it and clears the inputs (**Clear after adding**; by default the inputs the values read). A problem shows on the input it came from and nothing is added. It runs on any trigger; typically a **Button** field (*Add item*) placed under the inputs, with a *Button clicked* rule. **Remove row from list** (the last, the first, a row number or an expression) and **Clear list** go with it.
+
+**One click in the designer.** Select a new List and choose **Add inputs and an "Add" button with a rule**: the designer creates one input per column (above the list), an *Add item* button and the Add row rule wired to it — and, unless you choose *No editing*, the editing pattern below (an **Edit** button on each row, or *Click a row to edit it*, plus a **Cancel editing** button). Change any of it afterwards.
+
+**After Add.** The inputs go back to their **defaults** — a default with a placeholder (\`{{site_qty}}\`) is worked out again, and a bound (dynamic) default applies again — not to blank.
+
+**Lookup columns.** A Lookup column stores the chosen value (the row id, or the value column / field you pick) and its display label beside it: \`{{item.product}}\` is the value and \`{{item.product_label}}\` the label in a workflow loop. Its suggestions come from the column's own source on the server (the saved form decides — like an Autocomplete field), and its filters and inputs may read the same row (\`{{row.country}}\`) or the form (\`{{task_data.site}}\`): a cascade inside the row. In an editable table, changing a cell clears the lookup cells that read it. On submit every lookup cell is confirmed in its source for its row, and the label is taken from the source. The Add row rule maps a lookup column from an Autocomplete input and takes its label too.
+
+**Selecting rows.** **Row selection** (\`list.selectable\`) lets people select rows in the list view: *One row* — a click, a tap or Space / Enter on a row — or *Several rows* with checkboxes and a select-all box. Selected rows are highlighted (\`aria-selected\`), on phones' cards too. With selection on, a click selects; a row click doesn't fire, so editing stays a button. The selection is not part of the answer — it's never submitted — but rules read it: \`{{form.lines_selected}}\` (the selected row numbers), \`{{form.lines_selected_row.item}}\` (the first selected row) and \`{{form.lines_selected_count}}\`, and react to *List: row selected / unselected* and *List: selection changed*.
+
+Rule actions aim at the selection with the row **Selected row(s)** (\`row: "selected"\`): *Remove row from list* deletes every selected row, *Edit a row* loads the selected one (with several selected, the first — and says so), *Update a row of a list* changes every selected row (\`{{row.<column>}}\` is each row). When nothing is selected the action shows its message (*Select a row first*, or yours) and the rule stops. *Remove row* and *Clear list* can **ask first** (\`confirm_text\`, \`{{count}}\` = the rows they remove: *Delete 2 rows?*); after a delete the selection clears, and the editing ends if its row was deleted. A data table step can run **once for each selected row** (\`each_selected\`) — for example *Delete a table row* with \`{{row.product_id}}\`. A Button's **Needs a selected row** (\`button.requires_selection\`) keeps it disabled until a row of that List is selected; rule conditions on \`{{form.lines_selected_count}}\` can hide or disable anything else. The one-click kit's **Row selection** choice adds *Edit selected*, *Delete selected* (asks first) and *Clear list* (asks first), wired and disabled while nothing is selected.
+
+**Editing rows already in the list.** *Edit a row* (\`edit_list_row\`) loads a row back into the inputs — fired by a row button (\`event.button\` = \`edit\`) or *List: row clicked* (\`list.row_click\`) — and the List marks it **Editing**. The next *Add row to list* updates that row instead of adding one; *Cancel editing* (\`cancel_list_edit\`) forgets it and puts the inputs back to their defaults. Removing the row being edited ends the editing. **Edit cells in place** (\`list.inline_edit\`) makes the list view's cells editable directly while rows still come from rules. *Update a row of a list* stays for rules that change cells without the inputs.
+
+**Read-only columns.** Tick **Read-only when editing** on a column (\`read_only\`, on a List column or an editable Data table column) and a row that is already there keeps its value: the cell shows the value, not an input (muted, \`aria-readonly\`, skipped by Enter between cells); an *Edit a row* input loaded from it is locked while that row is being edited and the row keeps its value on update; *Set row values*, *Update a row of a list* and a rule's update of the selected rows leave it alone (the designer warns, the browser console notes it). A new row takes it from the column's default — or a *New row* / *Set row values* rule — until its first commit. The server checks it too: in a Data table's changes a read-only value that differs is dropped (logged), and a change that names the column in \`changed_fields\` is refused; a List with a **row key column** (\`list.key_column\`) keeps the stored read-only values of the rows the form opened with.
+
+### Editable tables: create, fill and commit rows
+
+Rules can build a row step by step in a **List** or an **editable Data table** — the same actions for both (*Editable tables* group in the rule's Then):
+
+| Action | What it does |
+|---|---|
+| **New row** (\`new_row\`) | Adds a pending row with each column's default (placeholders and \`{{= }}\` expressions worked out) plus the rule's own values, at the end, the top or after the selected row. It becomes the **current row** — selected, outlined and scrolled into view; \`focus_column\` puts the cursor in a cell. |
+| **Set row values** (\`set_row_values\`) | Column ← value on the *current* row (default), the *selected* row(s), a row number, \`{{event.row_number}}\` or a row by key (\`row_key\`: a Data table's key / row id, a List's key column). Values are checked against the column type; the row turns pending (*Edited*). |
+| **Commit row** (\`commit_row\`) | Checks the row (required, types, bounds, options). If it fails, the cells show why, *Editable table: row commit failed* fires and the rule's **If it fails** steps run (\`{{error.message}}\`, \`{{error.errors.<column>}}\`). Otherwise the row is no longer pending. A Data table commits **Stage** (default: the row stays in the changes, written with the form) or **Save now**: the row is written to the table at once on the server — the saved form's step and field, the person's *Manage rows* permission (or *Everyone who fills the form in may write*), checked and audited — it leaves the changes, the table re-reads, and \`{{result.id}}\` is the stored row's id. \`row: "all_pending"\` commits every pending row. |
+| **Discard a pending row** / **Revert a row** | Discard drops a new row and puts an edited row back as it was at its last commit; Revert puts an edited row back, and a new row back to its defaults. |
+| **Delete row(s)** (\`delete_row\`) | The selected / current / numbered row: a List row goes; a Data table row is staged for deletion, or deleted now (**Save now**). It can ask first (\`confirm_text\`, \`{{count}}\`). |
+| **Refresh a table** (\`refresh_table\`) | A Data table reads its rows again; pending rows are kept, or (\`keep_pending: "ask"\`) the person is asked whether to drop them. |
+
+Pending rows show a **New** or **Edited** badge; **✓ / ✕ on pending rows** (\`row_commit_controls\`) adds Commit and Discard on the row itself. Rules read \`{{form.<field>_current_row.<column>}}\`, \`{{form.<field>_current_index}}\` (the row number), \`{{form.<field>_current_key}}\`, \`{{form.<field>_current_pending}}\` and \`{{form.<field>_pending_count}}\` — UI state, never submitted — and react to *row created*, *row values set*, *row committed*, *row commit failed* and *cell changed* (\`event.column\`, \`event.value\`, \`event.previous_value\`, \`event.row_number\`) on either field.
+
+**At submit**, pending rows follow the field's **Pending rows at submit** (\`on_submit_pending\`): *Stop the submission* (default — "commit or discard the pending row first"), *Leave them out* (new rows dropped, edited rows back to their last commit) or *Submit them as they are*. The server applies the same rule.
+
+**One click: New → fill → Save row.** On a List or an editable Data table (with *Add rows*) choose **Add a "New row → fill → Save row" pattern**: inputs for the columns people fill (read-only ones keep their defaults), a **New row** button, the inputs filling the current row as they change (or with an **Apply** button), and a **Save row** button that commits the row — staged or saved now — and clears the inputs.
+
+\`\`\`json title="New row → fill → Save now on an editable Data table (layout.rules)"
+[
+  { "id": "r_new", "event": "button_click", "target": "new_product", "then": [{ "type": "new_row", "field": "products" }] },
+  { "id": "r_fill", "event": "value_change", "target": "product_name", "if": { "match": "all", "conditions": [{ "column": "products_current_pending", "operator": "eq", "value": "true" }] },
+    "then": [{ "type": "set_row_values", "field": "products", "row": "current", "values": { "name": "{{form.product_name}}" } }] },
+  { "id": "r_save", "event": "button_click", "target": "save_product", "then": [{ "type": "commit_row", "field": "products", "row": "current", "commit_mode": "save_now",
+    "on_success": [{ "type": "message", "text": "Saved {{result.id}}" }], "on_failure": [{ "type": "message", "text": "{{error.message}}" }] }] }
+]
+\`\`\`
+
+\`\`\`json title="Line items: inputs, an Add item button, its rule and the List (fields + layout.rules)"
+{
+  "fields": [
+    { "key": "line_items_item", "label": "Item", "type": "text" },
+    { "key": "line_items_quantity", "label": "Quantity", "type": "number", "default": "1" },
+    { "key": "line_items_unit_price", "label": "Unit price", "type": "currency", "currency": "NZD" },
+    { "key": "add_item", "label": "Add item", "type": "button", "button": { "style": "primary", "icon": "plus", "actions": [] } },
+    { "key": "line_items", "label": "Line items", "type": "list", "required": true, "list": {
+      "columns": [
+        { "key": "item", "label": "Item", "type": "text", "required": true },
+        { "key": "quantity", "label": "Quantity", "type": "number", "required": true, "min": 1 },
+        { "key": "unit_price", "label": "Unit price", "type": "currency", "currency": "NZD" },
+        { "key": "total", "label": "Total", "type": "calculated", "formula": "quantity * unit_price", "currency": "NZD" }
+      ],
+      "totals": [{ "column": "total", "fn": "sum" }], "max_rows": 50 } }
+  ],
+  "layout": { "rules": [{ "id": "r_add_item", "event": "button_click", "target": "add_item", "then": [
+    { "type": "add_list_row", "list_field": "line_items",
+      "values": { "item": "{{line_items_item}}", "quantity": "{{line_items_quantity}}", "unit_price": "{{line_items_unit_price}}" },
+      "require": ["line_items_item", "line_items_quantity"] }
+  ] }] }
+}
+\`\`\`
+
+**Editable table instead.** \`entry_mode: "inline"\` makes the rows editable in place: **Add row** appends a blank row and focuses it; Enter moves to the next cell and adds a row from the last one.
+
+**The value.** An array of row objects typed by the columns: numbers as numbers, dates as \`YYYY-MM-DD\`, yes / no as true / false, calculated columns worked out. Blank rows are dropped. Like every value it is kept in drafts and autosave until the form is submitted; the server checks it again on submit (required columns, types, bounds, options, min / max rows; a required List needs at least one row). Rules read a List as its number of rows (*has a value* = at least one row; *equals 3*).
+
+\`\`\`json title="{{form.line_items}}"
+[
+  { "item": "Laptop", "quantity": 2, "unit_price": 1250, "total": 2500 },
+  { "item": "Mouse", "quantity": 1, "unit_price": 25, "total": 25 }
+]
+\`\`\`
+
+Beside the rows the run gets \`{{form.line_items_count}}\` (the number of rows) and per total \`{{form.line_items_total_<column>}}\` (sum), \`_avg_<column>\` or \`_count_<column>\` — recomputed by the server. After a User Task they are \`{{task_data.line_items}}\`, \`{{task_data.line_items_count}}\`…
+
+**Loop over it in the workflow.** A **Loop** step with **Items** \`{{form.line_items}}\` runs its *Each item* branch once per row: \`{{item.<column>}}\` is the row's value and \`{{index}}\` its position (0-based; both names are the Loop's *item* / *index* settings). The data picker lists the field as a list with its columns, and inside the loop the **Current item** group shows them. To save parent and child rows: insert the parent with a Data step (**Output row id** \`parent_id\`), then loop and insert each child row with \`{{item.item}}\`, \`{{item.quantity}}\` and \`{{parent_id}}\` in the link column.
+
+**Prefill a List.** A User Task's prefill (\`field_values\`) takes an array from a workflow variable — \`{ "line_items": "{{order_lines}}" }\` — or JSON text of one; the rows are typed by the columns.
+
+**Where rows show.** Read-only views (completed tasks, submissions, the review step) show the rows and totals; tables of submissions, reports over submissions and the timeline say *3 rows*; the submissions CSV has the rows as JSON plus a \`<key>_count\` column.
 
 ## For each changed row
 
@@ -1245,6 +1405,67 @@ A message saved before banners existed keeps its original inline look; nothing c
 
 Rules are part of the layout, so they travel with versions, exports, packages, the REST API (\`layout.rules\`), MCP (\`forms_create\` / \`forms_update\`) and the CLI's config-as-code.
 
+## Form rules: data and API actions
+
+Rules can read and write data, and call your APIs, while the person fills the form in — usually from a **Button** you place (a *Button clicked* rule), a field change, the form loading or a List's row button. Every step runs **on the server**, read from the **saved** form: the browser only sends the form's values, never a table, a filter or a reference.
+
+| Step (Then → *Data tables* / *Integrations*) | What it does | Result ({{result.*}}) |
+|---|---|---|
+| **Read a table row** \`table_read\` | One row by id (\`{{row.row_id}}\`, a field) or by a filter | the row (\`row_id\` and its columns) |
+| **List table rows** \`table_list\` | Rows matching a filter, sorted, limited | the rows (a list) |
+| **Create a table row** \`table_create\` | Inserts a row from column values | \`{ row_id, row }\` |
+| **Update table rows** \`table_update\` | Updates the row with an id, or the rows a filter finds (at most 50) | \`{ count, row_ids }\` |
+| **Delete a table row** \`table_delete\` | Deletes a row by id — optionally after a confirmation question | \`{ count, row_ids }\` |
+| **Call an API reference** \`call_reference\` | Calls an Integrations reference; waits for the answer, or **sends without waiting** (queued, the form shows *Sent*) | the response |
+
+**Inputs.** Column values, filter values, row ids and reference inputs are templates over the form (\`{{form.email}}\`), the List row a row button was pressed on (\`{{row.sku}}\`), parameters and variables (\`{{param.x}}\`, \`{{var.x}}\`), the person (\`{{user.id}}\`, \`{{user.email}}\`, \`{{user.name}}\`), dates (\`{{today}}\`, \`{{today+7d}}\`, \`{{now}}\`) and the event (\`{{event.*}}\`); anything else is a constant.
+
+**Filter and sort.** A filter is AND / OR groups of conditions with the Data step's operators (equals, not equal, greater / less than, contains — \`like\` / \`ilike\`, starts with, ends with, is empty, is not empty, is one of). Tables add a sort on up to three columns, a limit and a skip. An API reference's response rows can be filtered, sorted and limited too (**Rows at** names the list in the response), evaluated like a Data table field's API rows.
+
+**Outputs** ("Then write the result") map a result path — \`name\`, \`customer.address.city\`, \`items[0].sku\`, empty for the whole result — to:
+
+- an input field (its value, converted to the field's type), a **Label** or a read-only field;
+- a form variable (\`var.<name>\`) later rules can read;
+- a **List field** — every item becomes a row, each column from the item's field of the same name or a path you give (\`sku\` ← \`product.sku\`), replacing the rows or adding to them;
+- a single or multi-select's **options** (*Load the list as this field's options*: a value path and a label path per item).
+
+Visibility, required and read-only follow with a rule on the written value (for example *Always: show Address when Customer has a value*).
+
+> **TOP 1.** A step that returns a list (List table rows, or an API list) mapped into **one** value — an input, a Label, a variable — uses only the **first row**. The designer says so on the mapping (*This returns a list. Only the first row is used (TOP 1)*) with a shortcut to the filter: filter by the row's id or sort (newest first) to get the right one. Lists and options take the whole list. When every output takes one value, a table step fetches a single row.
+
+**Then, or if it fails.** A step has its own **When it works** steps — \`{{result.*}}\` is the result, with indexes and every-item paths too (\`{{result[0].name}}\`, \`{{result[*].sku}}\` — a list); only the paths those steps read reach the browser — and **If it fails** steps, with \`{{error.message}}\`; the rule stops after them. Without failure steps the person sees the error (or the author's message for an API call).
+
+**Test.** *Test with sample values* in the rule runs a read or a read-only API call as you have it (your own rights; nothing is written), shows the result and its paths — click one to map it — and says how many rows came back.
+
+**Security.** Steps run only as saved: a rule id and step position name the step, and a forged event or step reaches nothing. Reads need the person's **View data**, writes **Manage rows** (and a credential's table allowlist applies) — unless the author ticks *Everyone who fills in the form may read / write through this step*. Public forms run a step only when it is marked *Allow for anonymous*. Writes are audited, everything is rate limited, an API call goes through the reference executor (credentials and URLs never reach the browser) with a timeout (1–30 s, default 10 s). Saving a form with a table step needs the author's own data rights.
+
+\`\`\`json title="Find the customer by email, fill the address; list the products into a List"
+{ "rules": [
+  { "id": "r_find", "event": "button_click", "target": "find_customer", "then": [
+    { "type": "call_reference", "reference_id": "<CRM reference>", "inputs": { "email": "{{form.email}}" },
+      "outputs": [{ "path": "customer.name", "to": "customer_name" }, { "path": "customer.address", "to": "address" }],
+      "on_failure": [{ "type": "message", "text": "No customer with {{form.email}}: {{error.message}}" }] } ] },
+  { "id": "r_products", "event": "form_load", "then": [
+    { "type": "table_list", "table_id": "<Products table>", "filter": { "match": "all", "conditions": [{ "column": "active", "operator": "eq", "value": "true" }] },
+      "sort": [{ "column": "name", "direction": "asc" }], "limit": 100,
+      "outputs": [{ "path": "", "to": "products", "columns": { "product_id": "row_id" } }] } ] }
+] }
+\`\`\`
+
+### List rows
+
+Besides **Add row to list**, **Update a row of a list** changes columns of one row (the last, the first, a number or \`{{event.row_number}}\`), **Remove row from list** and **Clear list** go with it. A List can show **buttons on each row** (*Buttons on each row* in its properties): a press fires *List: row button clicked* with \`{{row.<column>}}\`, \`{{event.row_number}}\` and \`event.button\` — for example *Delete*: Delete a table row with \`{{row.product_id}}\`, then Remove row \`{{event.row_number}}\`. A column can be **hidden**: kept in the row (a table row id, or a link key to another List's row, so a workflow can relate two Lists) but not shown.
+
+## Cascading drop-downs
+
+Dependent controls — Country → State → City — fill each other's options from a data table or an API reference:
+
+- **On the field (recommended).** Give the dependent single / multi-select a **dynamic options** source (*Options → Dynamic*): a data table query (value and label columns, a filter such as *country equals \`{{form.country}}\`*, a sort) or an API reference (inputs such as \`{{form.country}}\`, the rows path, value and label). It loads again whenever a field it reads changes, shows *Loading options…* (and waits) meanwhile, and **clears a value the new options no longer offer** — a valid value (a draft's, a prefilled one) is kept. While the parent is empty it offers nothing (*When the inputs are empty: keep* keeps the options instead). Cascades go as deep as you like; on submit the server resolves the options again for the submitted parent and checks the value.
+- **With a rule.** *Field value changes* on the parent → *Call an API reference* or *List table rows* with an output *Load the list as this field's options*. The dependent shows *Loading options…* while the step runs and a value the new options don't offer is cleared. When a draft or a prefilled task opens, these rules run again by themselves for the saved parents, so saved children keep their options (no *Form loads* rule needed). On submit the value must be one the person was offered: the options a step served are remembered for that person and form, and checked (the step runs again when they aren't remembered). Rules nest at most three changes deep, so a rule that changes its own source can't loop.
+- **Autocompletes** cascade through their own source: a lookup's filter (*state equals \`{{task_data.country}}\`*) or an API reference input mapped to the parent; what the person types is the search, so suggestions are always constrained by the parent. When the parent changes, the selection is checked again under the new parent: kept when the source still offers it, cleared when not (or when the parent is emptied).
+
+The sources run on the server from the saved form, with the same rights as a Data table field (view data, or the source's *open access*; public forms only with *Allow anonymous read*).
+
 ## Parameters and variables
 
 A form can take **parameters** — inputs it is opened with — and keep **variables** — values it remembers while it is open. Use them anywhere placeholders are accepted as \`{{param.<name>}}\` and \`{{var.<name>}}\`: rule conditions and actions, default values, a Data table's base filter and API request mappings, autocomplete filters and request mappings, headings, headers and messages. Declare both on the designer's **Data** tab (next to **Rules**): type a name (\`customer_id\`), pick the type and press **Add**. A name that is reserved (\`param\`, \`var\`, \`user\`, \`id\`…), already taken or not a plain lower-case name is explained under the box. Every placeholder menu lists them under **Parameters** and **Variables**, with their types.
@@ -1453,7 +1674,7 @@ Every reusable form has its own page, \`/f/<form id>\`, for signed-in members wi
 
 ## Available forms in the menu
 
-Give people a menu of the forms they fill in. Turn on **Available forms** on a form (Forms library → the form's **Details** ⚙), then under **Access** add the people, teams or roles who should have it. Each of them gets the form in two places:
+Give people a menu of the forms they fill in. Turn on **Available forms** on a form (the designer's **Form** tab, or **⋯ → Settings** in the Forms library), then under **Access** add the people, teams or roles who should have it. Each of them gets the form in two places:
 
 - the **Forms** dropdown at the top of the side menu: click **Forms** and pick a form to open its page;
 - under **Forms** in the side menu: click the arrow next to **Forms**.
@@ -1586,7 +1807,7 @@ When a workflow starts from a form, testing and running it uses that form, not a
 
 ## Reusable forms
 
-**Build › Forms** is the library: search and filter by tag, create, edit, duplicate and delete forms, and see which workflow steps use each one. In the designer, **Save as reusable form** saves the form to the library and links the step to it; **Use a saved form** links an existing one.
+**Build › Forms** is the library: search and filter by tag, create, edit, duplicate and delete forms, and see which workflow steps use each one. **Edit** opens the form's designer page. In a step's designer dialog, **Save as reusable form** saves the form to the library and links the step to it; **Use a saved form** links an existing one.
 
 - A linked step shows **Linked to form "…" vN**. Saving in the designer can create a new version of the form or **Detach and save here** (the step keeps a local copy). **Detach** on the step does the same without opening the designer.
 - Every change to a form's fields, layout or theme creates a new version; name, description and tag changes don't.

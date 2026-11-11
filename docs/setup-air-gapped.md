@@ -14,7 +14,7 @@ on a host that can't reach the internet.
 | `images/` | OCI images saved with `docker save` for one platform (gzip): the app (web, worker, migrations and `usertasks-admin` share one image) and its dependencies — PostgreSQL 16, MinIO, Valkey, Mailpit, OpenBao, Node.js (smoke test); optionally PgBouncer, Keycloak, local-kms. `images/images.txt` lists them |
 | `charts/usertasks-<version>.tgz` | The [Helm chart](setup-kubernetes.md) |
 | `compose/` | `docker-compose.yml` and the on-premises profile (`deploy/compose/onprem.yml`: an isolated network; `kms.yml`: OpenBao Transit), Keycloak realm, smoke test, env template |
-| `npm/` | `@usertasks/sdk` and `@usertasks/cli`; the CLI tarball carries its dependencies, so `npm install -g` needs no registry |
+| `npm/` | `@user-tasks/sdk` and `@user-tasks/cli`; the CLI tarball carries its dependencies, so `npm install -g` needs no registry |
 | `docs/` | This documentation (Markdown) |
 | `sbom/` | An SPDX SBOM per image (syft) |
 | `manifest.json` | Version, platform, git commit, image ids, signer fingerprint |

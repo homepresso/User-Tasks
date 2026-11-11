@@ -192,12 +192,12 @@ describe('the detail panel permissions', () => {
 
 function panelData(over: Partial<TaskPanelData> = {}): TaskPanelData {
   return {
-    id: 'task-1', title: 'Review contract', status: 'in_progress', priority: 'high', due_date: '2026-11-20T00:00:00Z',
+    id: 'task-1', title: 'Review contract', subtitle: null, status: 'in_progress', priority: 'high', due_date: '2026-11-20T00:00:00Z',
     created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-05T00:00:00Z', description: 'Check clause 4', workflow: false, closed: false,
     assignee: { id: 'u2', name: 'Priya Nair' }, requester: { id: 'u1', name: 'Andy' }, team: null,
     progress: { pct: 50, manual: null, fromSubtasks: true },
     effort: { loggedMinutes: 150, estimateMinutes: 240, entries: [{ id: 'e1', minutes: 90, notes: 'Drafting', at: '2026-11-04T00:00:00Z', by: 'Priya Nair' }] },
-    subtasks: { items: [{ id: 's1', title: 'Read draft', status: 'completed', priority: 'high', due_date: null, assignee: 'Priya Nair' }, { id: 's2', title: 'Send notes', status: 'todo', priority: 'high', due_date: null, assignee: null }], total: 2, completed: 1 },
+    subtasks: { items: [{ id: 's1', title: 'Read draft', subtitle: 'Clauses 1–6', status: 'completed', priority: 'high', due_date: null, assignee: 'Priya Nair', estimateMinutes: 90, childCount: 0 }, { id: 's2', title: 'Send notes', subtitle: null, status: 'todo', priority: 'high', due_date: null, assignee: null, estimateMinutes: null, childCount: 0 }], total: 2, completed: 1 },
     latest: { kind: 'comment', text: 'Looks good so far', by: 'Andy', at: '2026-11-05T00:00:00Z' },
     attachments: 3,
     links: { task: '/tasks/task-1', form: '/tasks/task-1?tab=form', process: '/home/runs/run-1' },
@@ -279,7 +279,8 @@ describe('the detail panel', () => {
     expect(src).toContain('updateTaskField(data.id, "status", value)')
     expect(src).toContain('updateTaskField(data.id, "progress_pct", pct)')
     expect(src).toContain('setSubtaskCompleted(sub.id, done, data.id)')
-    expect(src).toContain('addSubtask(data.id, { title: text })')
+    expect(src).toContain('<SubtaskForm parentTaskId={data.id} defaultPriority={data.priority} compact')
+    expect(read('components/tasks/subtask-form.tsx')).toContain('actions.addSubtask(parentTaskId, built.input)')
     expect(src).toContain('<ManualEffortEntry taskId={data.id}')
   })
 })

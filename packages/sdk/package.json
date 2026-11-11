@@ -1,5 +1,5 @@
 {
-  "name": "@usertasks/sdk",
+  "name": "@user-tasks/sdk",
   "version": "0.1.0",
   "description": "TypeScript client for the UserTasks REST API (/api/v1)",
   "keywords": [

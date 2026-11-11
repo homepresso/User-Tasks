@@ -26,6 +26,7 @@ import {
   Workflow,
   Zap,
 } from "lucide-react"
+import { ProductHero } from "@/components/marketing/product-hero"
 import { CheckList, DocLinks, FaqList, FeatureCard, InlineCode, MarketingFooter, MarketingHeader, Pill, SectionHeading, Shot, Snippet } from "@/components/marketing/marketing-ui"
 import { OFFICIAL_ACTIONS } from "@/lib/docs/content/custom-actions"
 import { SCREENSHOTS } from "@/lib/docs/screenshots"
@@ -63,8 +64,8 @@ const FAQS = [
   { question: "Can I build workflows from code or with an AI assistant?", answer: "Yes. The designer and the API share one JSON definition. Create, update, publish and migrate workflows with the REST API, the usertasks CLI or config as code, or let Claude, ChatGPT and other MCP clients build them through the MCP server." },
   { question: "Is it safe to run our own code in a custom action?", answer: "Custom actions run in QuickJS compiled to WebAssembly, a separate JavaScript engine created fresh for every run, with capped memory, stack and time. The code has no access to the server process, its environment, the file system or the network. It can only call the host through ctx, and every call is checked against what the manifest declares and what an administrator approved. node:vm and new Function are not used: they are not a security boundary." },
   { question: "Can a custom action read our database?", answer: "Only the data tables an administrator grants it, with read or write access, and only if its manifest declares the data capability. It never gets a database connection or credentials; queries go through the data table service, limited to the granted tables. HTTP is limited to approved hosts through the egress guard, files to the ones passed in as inputs, and secrets to the names it declares." },
-  { question: "Which languages can I write actions in?", answer: "JavaScript or TypeScript (or anything that compiles to one self-contained ES module). The starter kit has both: TypeScript with defineAction types from @usertasks/action, and plain JavaScript. Pure-JavaScript npm packages are bundled into the module; packages that need Node built-ins will not run in the sandbox." },
-  { question: "How do I test an action before uploading it?", answer: "npm test in the starter kit runs every operation's sample inputs and your test cases in the same QuickJS sandbox the app uses, with the same limits. runAction from @usertasks/action/testing does the same from any test framework, with mocks for HTTP, data tables, files and secrets. After uploading, Test runs an operation in the workspace, and Save & Test shows it in a real run with its logs." },
+  { question: "Which languages can I write actions in?", answer: "JavaScript or TypeScript (or anything that compiles to one self-contained ES module). The starter kit has both: TypeScript with defineAction types from @user-tasks/action, and plain JavaScript. Pure-JavaScript npm packages are bundled into the module; packages that need Node built-ins will not run in the sandbox." },
+  { question: "How do I test an action before uploading it?", answer: "npm test in the starter kit runs every operation's sample inputs and your test cases in the same QuickJS sandbox the app uses, with the same limits. runAction from @user-tasks/action/testing does the same from any test framework, with mocks for HTTP, data tables, files and secrets. After uploading, Test runs an operation in the workspace, and Save & Test shows it in a real run with its logs." },
   { question: "What are the limits?", answer: "10 seconds per run by default (up to 60), 32 MB of memory by default (up to 128), a 256 KB stack, 200 host calls per run, 5 MB of inputs and of outputs, and a 1 MB module. Operators can lower the time ceiling or switch custom actions off on a server; each action has its own kill switch." },
   { question: "How do I share actions between workspaces?", answer: "Upload the same package (versions are immutable and checksummed, optionally signed with ed25519), or move actions with packages and config as code alongside the workflows that use them. Approvals and secrets never travel: an administrator reviews them in each workspace." },
 ]
@@ -87,26 +88,23 @@ export function WorkflowsPage() {
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <MarketingHeader />
+      <MarketingHeader tone="night" />
 
       <main>
         {/* Hero */}
-        <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
-          <div className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span><span aria-current="page">Workflows</span></nav>
-            <div className="mt-8"><Pill icon={Workflow}>{page.eyebrow}</Pill></div>
-            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">Complex workflows, built visually — without limits.</h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
-              Real processes branch, loop, wait for people, run steps side by side, call other processes and fail in interesting ways. Model all of it on one canvas — or as JSON — test it with the real forms, publish it as a version and move live runs forward when the process changes. <strong className="text-(color:--mkt-ink)">{WORKFLOW_NODE_COUNT} node types</strong>, durable runs, every step recorded.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/docs/workflows" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Read the workflow guide <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link href="/gallery" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                Start from a package
-              </Link>
-            </div>
+        <ProductHero
+          crumb="Workflows"
+          eyebrow="Workflows"
+          icon={Workflow}
+          title={<>Processes you can <span className="mkt-gradient-text">actually see.</span></>}
+          intro={<>Real processes branch, loop, wait for people, run steps side by side, call other processes and fail in interesting ways. Model all of it on one canvas — or as JSON — test it with the real forms, publish it as a version and move live runs forward when the process changes. <strong className="text-white">{WORKFLOW_NODE_COUNT} node types</strong>, durable runs, every step recorded.</>}
+          primary={{ href: "/docs/workflows", label: "Read the workflow guide" }}
+          secondary={{ href: "/gallery", label: "Start from a package" }}
+          scenes={["canvas", "process", "deploy"]}
+          bullets={["Branches, loops, parallel paths and sub-workflows", "People, rules, timers and events in one flow", "Tested with real forms, versioned, migrated live"]}
+        />
+        <section className="relative">
+          <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
             <div className="mt-12">
               <Shot name="workflows-designer" alt="The designer with a supplier invoice workflow: a loop over invoice lines, an approval policy, a four-way branch by approver with finance manager and CFO tasks, a rework loop, vendor onboarding as a sub-workflow, payment and notification in parallel, and a payment error path; the Branch by Value settings are open" sizes="(min-width: 1152px) 1104px, 100vw" priority />
             </div>
@@ -305,7 +303,7 @@ usertasks workflows migrate-instances <id> --to <version-id> --all --dry-run`} /
             </SectionHeading>
             <div className="mt-10 grid grid-cols-1 items-start gap-10 lg:grid-cols-2">
               <div className="min-w-0">
-                <Snippet language="typescript" code={`import { defineAction } from '@usertasks/action'
+                <Snippet language="typescript" code={`import { defineAction } from '@user-tasks/action'
 
 export default defineAction({
   operations: {
@@ -348,7 +346,7 @@ export default defineAction({
                 Browse official actions
               </Link>
             </div>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-(color:--mkt-muted)">The kit has the same action in TypeScript and plain JavaScript, a test harness that runs your samples in the real sandbox, and a package script. <InlineCode>@usertasks/action</InlineCode> brings the types, <InlineCode>defineAction</InlineCode> and <InlineCode>runAction</InlineCode> for your own tests.</p>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-(color:--mkt-muted)">The kit has the same action in TypeScript and plain JavaScript, a test harness that runs your samples in the real sandbox, and a package script. <InlineCode>@user-tasks/action</InlineCode> brings the types, <InlineCode>defineAction</InlineCode> and <InlineCode>runAction</InlineCode> for your own tests.</p>
             <DocLinks links={[{ href: "/docs/workflows/custom-actions", label: "Custom workflow actions" }, { href: "/docs/workflows/custom-actions#security-model", label: "Security model" }, { href: "/docs/workflows/official-actions", label: "Official actions reference" }]} />
           </div>
         </section>

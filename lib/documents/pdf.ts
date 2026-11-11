@@ -380,3 +380,42 @@ export async function pageImagePng(pdf: PdfProxy, pageNumber: number): Promise<B
   if (best.width * best.height > 60_000_000) throw new DocumentLimitError(`Page ${pageNumber}: the scanned image is too large to OCR`)
   return encodePng(best.data, best.width, best.height, best.channels)
 }
+
+/** Box-filter downscale of raw pixels so the longer side is at most `maxSide` (no native code). */
+export function downscalePixels(data: Uint8Array | Uint8ClampedArray, width: number, height: number, channels: number, maxSide: number): { data: Uint8Array; width: number; height: number } {
+  const scale = Math.max(width, height) / maxSide
+  if (scale <= 1) return { data: data instanceof Uint8Array ? data : new Uint8Array(data.buffer, data.byteOffset, data.byteLength), width, height }
+  const w = Math.max(1, Math.round(width / scale))
+  const h = Math.max(1, Math.round(height / scale))
+  const out = new Uint8Array(w * h * channels)
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.floor(y * height / h); const y1 = Math.max(y0 + 1, Math.floor((y + 1) * height / h))
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.floor(x * width / w); const x1 = Math.max(x0 + 1, Math.floor((x + 1) * width / w))
+      for (let c = 0; c < channels; c++) {
+        let sum = 0
+        for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) sum += data[(yy * width + xx) * channels + c]
+        out[(y * w + x) * channels + c] = Math.round(sum / ((y1 - y0) * (x1 - x0)))
+      }
+    }
+  }
+  return { data: out, width: w, height: h }
+}
+
+/**
+ * A scanned page as a PNG for a vision model: the largest image painted on
+ * the page (a scan is one big image), scaled so its longer side is at most
+ * `maxSide` px (models downscale larger images anyway). Null when the page
+ * paints no image. pdf.js only — no canvas / native renderer, so vector
+ * drawings and text are not rendered.
+ */
+export async function pageImageForModel(pdf: PdfProxy, pageNumber: number, maxSide = 1568): Promise<Buffer | null> {
+  polyfillArrayBuffer()
+  const { extractImages } = await import('unpdf')
+  const images = await extractImages(pdf, pageNumber).catch(() => [])
+  if (!images.length) return null
+  const best = images.reduce((a, b) => (a.width * a.height >= b.width * b.height ? a : b))
+  if (best.width * best.height > 60_000_000 || best.width < 16 || best.height < 16) return null
+  const small = downscalePixels(best.data, best.width, best.height, best.channels, maxSide)
+  return encodePng(small.data, small.width, small.height, best.channels)
+}

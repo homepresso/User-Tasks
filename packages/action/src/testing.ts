@@ -1,10 +1,10 @@
 /**
- * @usertasks/action/testing — run an action locally in the same QuickJS
+ * @user-tasks/action/testing — run an action locally in the same QuickJS
  * sandbox UserTasks uses (sandbox.ts here is a verbatim copy of the app's),
  * with mocked host services:
  *
  *   import { readFileSync } from 'node:fs'
- *   import { runAction } from '@usertasks/action/testing'
+ *   import { runAction } from '@user-tasks/action/testing'
  *
  *   const result = await runAction({
  *     module: readFileSync('dist/action.js', 'utf8'),

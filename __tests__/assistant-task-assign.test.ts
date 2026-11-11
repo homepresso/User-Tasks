@@ -124,11 +124,12 @@ describe('Agent task assignment tools', () => {
     expect((await read('tasks', { id: REPORT_TASK }))[0].assignee_id).toBe(BEN)
   })
 
-  it('the task-help prompt allows assigning through the tools and still never completing', () => {
+  it('the task-help prompt allows assigning through the tools; completing only through the confirmed task action tools', () => {
     const text = assistantInstructions('task')
     expect(text).toContain('task_take_ownership')
     expect(text).toContain('task_assign')
     expect(text).not.toMatch(/NEVER complete, approve, reject, redirect, reassign/)
-    expect(text).toMatch(/You can NEVER complete, approve, reject or decline the task/)
+    expect(text).not.toMatch(/NEVER complete, approve, reject or decline/)
+    expect(text).toMatch(/only with the task action tools/)
   })
 })

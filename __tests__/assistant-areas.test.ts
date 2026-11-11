@@ -24,6 +24,11 @@ describe('screen context per area', () => {
     expect(designerAreaForPath(`/integrations/${ID}`)).toEqual({ area: 'integration', item_id: ID })
     expect(designerAreaForPath('/automations/email-templates')).toEqual({ area: 'email_template' })
     expect(designerAreaForPath(`/automations/${ID}`)).toEqual({ area: 'workflow', item_id: ID })
+    // The form designer page: the form is the open item (the page also registers its name and draft).
+    expect(designerAreaForPath(`/automations/forms/${ID}`)).toEqual({ area: 'form', item_id: ID })
+    expect(designerAreaForPath('/automations/forms/new')).toEqual({ area: 'form' })
+    expect(designerAreaForPath('/automations/forms')).toEqual({ area: 'form' })
+    expect(screenLabel({ pathname: `/automations/forms/${ID}`, surface: null, designer: { area: 'form', item_id: ID, item_name: 'Expense claim' } })).toBe('Form “Expense claim” (designer)')
     expect(designerAreaForPath('/home')).toBeNull()
     expect(screenLabel({ pathname: '/reports/builder', surface: null, designer: { area: 'report', item_id: ID, item_name: 'Requests' } })).toBe('Report “Requests”')
   })

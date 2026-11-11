@@ -6,7 +6,7 @@ import { getSessionDb } from './session'
 /**
  * DbProvider: where server code gets its database clients. Supabase (the
  * supabase-js service/cookie clients over PostgREST) or postgres (the same
- * clients, served in-process by @usertasks/pg-query over DATABASE_URL). The
+ * clients, served in-process by @user-tasks/pg-query over DATABASE_URL). The
  * switch itself happens inside getServiceDb / getSessionDb (DB_PROVIDER), so
  * both providers expose the same factories.
  */

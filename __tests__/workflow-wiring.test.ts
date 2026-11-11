@@ -305,3 +305,26 @@ describe('performance', () => {
     expect(w).toEqual([])
   })
 })
+
+describe('Parallel Done steps', () => {
+  it('see what the branches set (the Done edge runs after every branch)', () => {
+    const nodes = [
+      { id: 't', type: 'schedule', label: 'Nightly', config: {} },
+      { id: 'par', type: 'parallel', label: 'Fan out', config: { mode: 'parallel', branches: [{ label: 'A' }, { label: 'B' }] } },
+      { id: 'a', type: 'set_variable', label: 'A', config: { assignments: [{ name: 'from_a', expression: '1' }] } },
+      { id: 'b', type: 'math', label: 'B', config: { expression: '2', output_var: 'from_b' } },
+      { id: 'after', type: 'log', label: 'After', config: { message: '{{from_a}} {{from_b}}' } },
+      { id: 'beside', type: 'log', label: 'Beside', config: { message: '{{from_b}}' } },
+    ]
+    const edges = [
+      { id: 'e1', source: 't', target: 'par' },
+      { id: 'e2', source: 'par', target: 'a', label: 'A' },
+      { id: 'e3', source: 'par', target: 'b', label: 'B' },
+      { id: 'e4', source: 'par', target: 'after', label: 'Done' },
+      { id: 'e5', source: 'a', target: 'beside' },
+    ]
+    const warnings = validateWorkflowWiring({ nodes, edges })
+    // After Done: both branches' variables. On branch A: branch B's variable is still unknown.
+    expect(warnings.map((w) => `${w.node_id}: ${w.reference}`)).toEqual(['beside: {{from_b}}'])
+  })
+})

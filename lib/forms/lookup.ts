@@ -485,7 +485,37 @@ const TEMPLATE_RE = /\{\{\s*([\w.\-[\]]+)\s*\}\}/g
 
 /** Paths resolved at lookup time (the form's own values, the search text, the task); everything else is a workflow variable resolved when the task is created. */
 export function isLookupTimePath(path: string): boolean {
-  return /^(search|query|task_data|task|form|param|var|control)(\.|$)/.test(path)
+  return /^(search|query|task_data|task|form|param|var|control|row)(\.|$)/.test(path)
+}
+
+/** Where a List lookup column's row travels in the lookup's values ({{row.<column>}} — the row being edited). */
+export const LOOKUP_ROW_KEY = '__row'
+
+/** The templates a lookup reads its inputs from (filter values, reference inputs). */
+function lookupTemplates(config: LookupConfig | undefined): string[] {
+  if (!config) return []
+  return [...(config.filters ?? []).map((f) => f.value ?? ''), ...Object.values(config.input_mappings ?? {})]
+}
+
+/**
+ * The form fields a lookup depends on (its parents: {{task_data.x}} /
+ * {{form.x}} in a filter or an input) — a cascade: when one changes, the
+ * selection is checked again and cleared when the source no longer offers it.
+ */
+export function lookupDependencyKeys(config: LookupConfig | undefined): string[] {
+  const out: string[] = []
+  for (const t of lookupTemplates(config)) for (const k of templateFieldKeys(t)) if (!out.includes(k)) out.push(k)
+  return out
+}
+
+/** The columns of the same List row a List lookup column depends on ({{row.<column>}}). */
+export function lookupRowDependencies(config: LookupConfig | undefined): string[] {
+  const out: string[] = []
+  for (const t of lookupTemplates(config)) for (const m of String(t).matchAll(TEMPLATE_RE)) {
+    const hit = /^row\.([A-Za-z0-9_]+)/.exec(m[1])
+    if (hit && !out.includes(hit[1])) out.push(hit[1])
+  }
+  return out
 }
 
 /** Field keys a template refers to as {{task_data.<key>}} / {{form.<key>}} / {{task.data.<key>}}. */
@@ -539,6 +569,9 @@ export function resolveLookupTemplate(text: string, scope: { search: string; val
     // {{param.x}} / {{var.x}}: the form's parameters and variables, validated by the server (lib/forms/form-params.ts).
     const context = contextPath(path)
     if (context) return pathValue(scope.values, context)
+    // {{row.<column>}}: the List row a lookup column is edited in (a cascade inside the row).
+    m = /^row\.(.+)$/.exec(path)
+    if (m) return pathValue(scope.values[LOOKUP_ROW_KEY], m[1])
     m = /^task\.(.+)$/.exec(path)
     if (m && scope.task) return pathValue(scope.task, m[1])
     return undefined
@@ -584,4 +617,13 @@ export function storedItemsByValue(config: LookupConfig | undefined, stored: unk
     if (v !== undefined && v !== null && typeof v !== 'object') out.set(String(v), entry)
   }
   return out
+}
+
+/**
+ * After a parent changed: the selected values the source still offers
+ * (`offered` = what a re-check by value returned); null = all still valid.
+ */
+export function recheckedSelection(selected: string[], offered: string[]): string[] | null {
+  const kept = selected.filter((v) => offered.includes(v))
+  return kept.length === selected.length ? null : kept
 }

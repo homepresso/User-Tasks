@@ -168,13 +168,13 @@ export function TableDesigner({ tableId, columns: initialColumns }: TableDesigne
 
       {error && <InlineNotice tone="danger" message={error} onDismiss={() => setError(null)} />}
 
-      <Table>
+      <Table label="Columns" minWidth="36rem">
         <THead>
           <tr>
-            <TH>Name</TH>
-            <TH className="w-48">Type</TH>
+            <TH col="name">Name</TH>
+            <TH col="name" className="w-48">Type</TH>
             <TH className="w-28">Required</TH>
-            <TH className="w-px"><span className="sr-only">Remove</span></TH>
+            <TH col="actions"><span className="sr-only">Remove</span></TH>
           </tr>
         </THead>
         <TBody>

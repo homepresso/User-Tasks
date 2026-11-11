@@ -20,6 +20,7 @@ import {
   Webhook,
   Wrench,
 } from "lucide-react"
+import { ProductHero } from "@/components/marketing/product-hero"
 import { CheckList, DocLinks, FaqList, FeatureCard, InlineCode, MarketingFooter, MarketingHeader, Pill, SectionHeading, Shot, Snippet } from "@/components/marketing/marketing-ui"
 import { SCREENSHOTS } from "@/lib/docs/screenshots"
 import { GALLERY_PACKAGES } from "@/lib/gallery/site"
@@ -64,26 +65,22 @@ export function IntegrationsPage() {
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <MarketingHeader />
+      <MarketingHeader tone="night" />
 
       <main>
         {/* Hero */}
-        <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
-          <div className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span><span aria-current="page">Integrations</span></nav>
-            <div className="mt-8"><Pill icon={Plug}>{INTEGRATIONS_PAGE.eyebrow}</Pill></div>
-            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">Connect to any system and any AI service.</h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
-              Import an API from its OpenAPI document, connect a database, start from a ready-made connector or call any endpoint — once, with encrypted credentials — and use those operations in every workflow, agent, report and MCP client. Then put <strong className="text-(color:--mkt-ink)">any AI model</strong> to work on the same governed connections.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/docs/integrations" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Integration guide <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <a href="#connectors" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                Browse {CONNECTOR_COUNT} connectors
-              </a>
-            </div>
+        <ProductHero
+          crumb="Integrations"
+          eyebrow="Integrations and AI"
+          icon={Plug}
+          title={<>Systems that <span className="mkt-gradient-text">finally talk.</span></>}
+          intro={<>Import an API from its OpenAPI document, connect a database, start from a ready-made connector or call any endpoint — once, with encrypted credentials — and use those operations in every workflow, agent, report and MCP client. Then put <strong className="text-white">any AI model</strong> to work on the same governed connections.</>}
+          primary={{ href: "/docs/integrations", label: "Integration guide" }}
+          secondary={{ href: "#connectors", label: `Browse ${CONNECTOR_COUNT} connectors` }}
+          scenes={["cli", "table"]}
+        />
+        <section className="relative">
+          <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
             <dl className="mt-12 grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
                 [String(CONNECTOR_COUNT), "ready-made connectors"],
@@ -305,7 +302,7 @@ usertasks agents execute <agent-id> --set message="…" --set async:=true`} />
               <FeatureCard icon={Radio} title="Log export">Runs, steps, integration calls, agent runs and audit events to Splunk, Datadog, OpenTelemetry or a signed webhook.</FeatureCard>
             </div>
             <div className="mt-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
-              <Snippet language="ts" code={`import { apiKeyAuth, createClient } from '@usertasks/sdk'
+              <Snippet language="ts" code={`import { apiKeyAuth, createClient } from '@user-tasks/sdk'
 
 const client = createClient({ baseUrl: 'https://tasks.example.com',
   auth: apiKeyAuth(process.env.USERTASKS_API_KEY!) })

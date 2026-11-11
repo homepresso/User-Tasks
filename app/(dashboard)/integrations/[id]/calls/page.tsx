@@ -11,6 +11,7 @@ import { PageSkeleton } from '@/components/ui/page-skeleton'
 import { ChevronLeft, Search, Network, ArrowRight, Clock } from 'lucide-react'
 import { formatRelativeDate } from '@/lib/utils'
 import { StatCard } from '@/components/ui/stat-card'
+import { TableScroll } from '@/components/ui/table'
 
 const PAGE_SIZE = 30
 
@@ -119,10 +120,12 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
             </p>
           </div>
         ) : (
-          <>
+          // Readable columns; narrower windows scroll the list sideways.
+          <TableScroll bare label="API calls">
+            <div className="min-w-[46rem]">
             <div className="grid text-2xs font-semibold select-none px-4 py-2"
               style={{
-                gridTemplateColumns: '60px 1fr 60px 80px 110px 120px 32px',
+                gridTemplateColumns: '60px minmax(14rem,1fr) 60px 80px 110px 120px 32px',
                 backgroundColor: 'var(--theme-row-highlight)',
                 color: 'var(--theme-muted-text)',
                 borderBottom: '1px solid var(--theme-surface-border)',
@@ -144,14 +147,14 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
                   href={`/integrations/${integrationId}/calls/${call.id}`}
                   className="grid items-center px-4 py-3 text-xs transition-colors hover:bg-[var(--theme-row-highlight)]"
                   style={{
-                    gridTemplateColumns: '60px 1fr 60px 80px 110px 120px 32px',
+                    gridTemplateColumns: '60px minmax(14rem,1fr) 60px 80px 110px 120px 32px',
                     borderBottom: '1px solid var(--theme-surface-border)',
                   }}
                 >
                   <div className="font-mono font-semibold text-fg-muted">
                     {call.method ?? '—'}
                   </div>
-                  <div className="truncate pr-4 font-mono text-2xs text-fg">
+                  <div className="truncate pr-4 font-mono text-2xs text-fg" title={call.url ?? undefined}>
                     {call.url ?? <span className="text-danger">{call.error?.slice(0, 80) ?? '(error)'}</span>}
                   </div>
                   <div className="font-mono font-semibold text-2xs"
@@ -164,14 +167,15 @@ export default function IntegrationCallsPage({ params }: { params: Promise<{ id:
                   <div className="truncate capitalize text-fg-muted">
                     {call.caller_type?.replace('_', ' ') ?? '—'}
                   </div>
-                  <div className="text-fg-muted">
+                  <div className="whitespace-nowrap text-fg-muted">
                     {formatRelativeDate(call.started_at)}
                   </div>
                   <ArrowRight size={12} className="text-fg-muted" />
                 </Link>
               )
             })}
-          </>
+            </div>
+          </TableScroll>
         )}
 
         {(callsData?.total ?? 0) > PAGE_SIZE && (

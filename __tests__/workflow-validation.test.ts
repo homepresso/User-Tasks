@@ -567,3 +567,13 @@ describe('validateWorkflow', () => {
     expect(result.totalErrors).toBe(4)
   })
 })
+
+describe('CSV / Excel write mode', () => {
+  it('needs data_var, not file_url, when writing', () => {
+    for (const type of ['read_csv', 'read_excel'] as const) {
+      expect(validateNode(makeNode(type, { mode: 'write', data_var: '{{rows}}', file_name: 'out' }))).toEqual([])
+      expect(validateNode(makeNode(type, { mode: 'write' }))).toEqual(['Data (a list variable) required'])
+      expect(validateNode(makeNode(type, { mode: 'read' }))).toEqual(['File URL required'])
+    }
+  })
+})

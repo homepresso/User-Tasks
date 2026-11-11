@@ -29,6 +29,7 @@ import type { ThinkingGroup, ThinkingLevel } from '@/lib/agents/reasoning'
 import type { AgentProviderKind } from '@/lib/agents/provider'
 import type { ModelRule } from './model-rules'
 import type { AgentProfile, ClientProfile } from './profiles'
+import type { ClientDictation, DictationSettings } from './dictation'
 
 /** The Agent's tool groups (also the `capability` recorded on each usage row). */
 export const ASSISTANT_CAPABILITIES = ['form', 'task', 'designer'] as const
@@ -149,6 +150,13 @@ export interface AgentSettings extends CapabilityAccess {
   /** Form help on every form unless a form turns it off (true), or only on forms that turn it on (false). */
   all_forms: boolean
   /**
+   * "Let the Agent complete tasks (with confirmation)": task help may complete,
+   * approve, decline and respond to tasks the person can action, each behind a
+   * confirmation card (lib/assistants/tools/task-actions.ts). Absent = on.
+   * Off: the action tools are not offered; reading a task's form still works.
+   */
+  task_actions?: boolean
+  /**
    * Ordered profiles (lib/assistants/profiles.ts): who gets which Agent
    * configuration (model, help groups, instructions, starters, limits); first
    * match wins, none → the Default profile (these top-level settings).
@@ -159,6 +167,8 @@ export interface AgentSettings extends CapabilityAccess {
   thinking_level: ThinkingLevel
   /** Per help group overrides (Advanced): building, form, task help. A profile's own level wins over these. */
   thinking_levels: Partial<Record<ThinkingGroup, ThinkingLevel>>
+  /** Dictation (microphone → text) in the Agent panel (lib/assistants/dictation.ts); absent in a stored row = on, browser. */
+  dictation: DictationSettings
 }
 
 /** A rule as the settings page sends it: `api_key` sets a new key for a `key` rule ('' / '__SECRET__' keep the saved one). */
@@ -168,7 +178,7 @@ export type ModelRuleInput = Partial<ModelRule> & { api_key?: string }
 export type ProfileInput = Partial<AgentProfile> & { api_key?: string }
 
 /** `model_rules` (version 2 input) is still accepted: mapped to model-only profiles. */
-export type AgentSettingsInput = Partial<Omit<AgentSettings, 'tools' | 'profiles'>> & { tools?: Partial<AgentSettings['tools']>; profiles?: ProfileInput[]; model_rules?: ModelRuleInput[] }
+export type AgentSettingsInput = Partial<Omit<AgentSettings, 'tools' | 'profiles' | 'dictation'>> & { tools?: Partial<AgentSettings['tools']>; profiles?: ProfileInput[]; model_rules?: ModelRuleInput[]; dictation?: Partial<DictationSettings> }
 
 export interface AssistantLimits {
   /** Messages one person may send per day (rolling 24 hours); 0 = no limit. */
@@ -243,6 +253,8 @@ export interface AssistantAvailability {
   history_key?: string | null
   /** The person's Agent profile here (panel header and starters only), or null for the Default profile. */
   profile?: ClientProfile | null
+  /** Dictation in the panel (null / absent: off). Engine and language only — never a connection. */
+  dictation?: ClientDictation | null
 }
 
 export const NO_ASSISTANTS: AssistantAvailability = { agent: false, form_read: false, form: false, task: false, designer: false, admin: false }
@@ -306,11 +318,26 @@ export interface ChatAttachment {
   name: string
   mime_type: string
   size: number
-  kind: 'text' | 'image' | 'unavailable'
+  /**
+   * text: extracted text · image: a data URL for a vision model ·
+   * document: a PDF — its bytes (data_url, for models that read PDFs) and
+   * the fallbacks for those that don't (text, page_images) · unavailable:
+   * attached earlier, no longer kept · failed: received but could not be
+   * read (`error` says why; the model is told).
+   */
+  kind: 'text' | 'image' | 'document' | 'unavailable' | 'failed'
   text?: string
   data_url?: string
   /** How it was read ("Text of a PDF, truncated at 60,000 characters", "BPMN process: 7 tasks…"). */
   note?: string
+  /** document: the PDF's page count (when known). */
+  pages?: number
+  /** document: scanned pages as PNG data URLs (for a vision model that can't read PDFs). */
+  page_images?: Array<{ page: number; data_url: string }>
+  /** failed: why it could not be read (shown on the chip and given to the model). */
+  error?: string
+  /** An InfoPath template (.xsn): the file, base64, for the import_infopath_form tool — never sent to the model. */
+  infopath?: { file_base64: string }
 }
 
 export interface ChatMessage {
@@ -387,6 +414,42 @@ export interface ConfirmCard {
   confirm_label?: string
   /** The person must type this text to confirm (bulk deletes). */
   typed_confirm?: string
+  /** A task action (complete / respond / save values): the panel shows it as a task summary (lib/assistants/tools/task-actions.ts). */
+  task?: TaskActionCard | null
+}
+
+/** What a task action's confirmation card shows (the lines carry the same, for older panels and transcripts). */
+export interface TaskActionCard {
+  action: 'complete' | 'accept' | 'hold' | 'decline' | 'save'
+  task_title: string
+  href?: string | null
+  outcome?: string | null
+  /** The outcome's colour (lib/assistants/task-form.ts outcomeTone). */
+  tone?: 'success' | 'danger' | 'warning' | 'brand' | null
+  comment?: string | null
+  /** Field values submitted with it; `changed`: differs from what the task holds now. */
+  values?: Array<{ label: string; value: string; changed: boolean }>
+  /** Acting for the assignee: their name, why it is allowed, and the reason given. */
+  on_behalf_of?: string | null
+  basis?: 'manager' | 'workflow_manager' | 'break_glass' | null
+  on_behalf_note?: string | null
+  /** The task waits for the person's acceptance: confirming accepts it first. */
+  accept_first?: boolean
+  /** One line: what happens next (get_process_context), e.g. "Next: goes to Priya Shah (CFO) for approval". */
+  next?: string | null
+}
+
+/** A compact label → value card in the chat (task_get_form: a task's form at a glance). Every value is data written by people. */
+export interface InfoCard {
+  id: string
+  title: string
+  subtitle?: string | null
+  href?: string | null
+  rows: Array<{ label: string; value: string; flag?: 'required_empty' | 'invalid' | 'changed' | null }>
+  /** The task's outcome buttons, with their colour. */
+  outcomes?: Array<{ label: string; tone: 'success' | 'danger' | 'warning' | 'brand' }>
+  /** Short notes under the table (e.g. "2 required fields are empty", "Read only for you"). */
+  notes?: string[]
 }
 
 /** One answer button: its label, the reply sent as the person's message, an optional hint under it. */
@@ -400,6 +463,7 @@ export type AssistantEvent =
   | { type: 'proposal'; id: string; values: ProposedValue[]; skipped: Array<{ key: string; reason: string }> }
   | { type: 'draft'; id: string; kind: 'comment' | 'outcome_note'; text: string }
   | { type: 'outcome_suggestion'; id: string; outcome: string; reason: string }
+  | ({ type: 'info_card' } & InfoCard)
   | { type: 'confirm'; card: ConfirmCard }
   /** A question shown as answer buttons (ask_user, ask_where_to_build): the click is the person's next message. */
   | { type: 'choice'; id: string; question: string; options: ChoiceOption[]; allow_other?: boolean; multi?: boolean }
@@ -418,7 +482,7 @@ export const DESIGNER_WRITE_TOOLS = [
   'decision_tables_create', 'decision_tables_update',
   'workflow_activities_create', 'workflow_activities_update',
   'form_controls_create', 'form_controls_update',
-  'data_rows_create', 'data_rows_update', 'data_rows_bulk_delete',
+  'data_rows_create', 'data_rows_update', 'data_rows_bulk_delete', 'data_rows_import',
   'reports_create', 'reports_update',
   'agents_create', 'agents_update',
   'email_templates_create', 'email_templates_update',

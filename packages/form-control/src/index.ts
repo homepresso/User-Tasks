@@ -1,5 +1,5 @@
 /**
- * @usertasks/form-control — build UserTasks custom form controls.
+ * @user-tasks/form-control — build UserTasks custom form controls.
  *
  * - The contract: manifest, element API, events, theme tokens, bridge
  *   messages and limits (the same types the app uses).

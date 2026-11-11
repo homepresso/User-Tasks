@@ -9,7 +9,7 @@ export const TUTORIAL_PAGES: DocPageDef[] = [
   {
     slug: 'tutorials',
     title: 'Tutorials',
-    description: 'Step-by-step tutorials: build a form, a form with the wizard, an approval workflow, an AI agent, an integration, and data and decision tables.',
+    description: 'Step-by-step tutorials: build a form, a form with the wizard, an approval workflow, an AI agent, an integration, data and decision tables, and migrate an InfoPath form.',
     tocDepth: 2,
     body: `
 Each tutorial builds one working thing from start to finish. They take 10 to 30 minutes and use only the app (no code). Every tutorial lists the permissions you need, numbered steps with the labels you will see on screen, and links to the reference pages.
@@ -23,6 +23,7 @@ Each tutorial builds one working thing from start to finish. They take 10 to 30 
 | [Connect an integration](/docs/tutorials/integration) | A REST API and a Slack connection, called from a workflow | 20 min |
 | [Data tables and decision tables](/docs/tutorials/data-and-decision-tables) | A table that stores requests and a decision table that picks the approver | 20 min |
 | [Use the Agent to build a form and workflow](/docs/tutorials/agent-build-form-and-workflow) | A form and its workflow, built by asking the built-in Agent, in one conversation | 15 min |
+| [Migrate an InfoPath form](/docs/tutorials/migrate-infopath) | An InfoPath expense report rebuilt as a UserTasks form with its line items, totals, rules and a submissions table | 10 min |
 | [Build a complete process from a document](/docs/tutorials/agent-build-from-process) | A leave request process (tables, forms, a decision table, the workflow and a report) planned and built by the Agent from a written procedure | 15 min |
 
 ## Before you start
@@ -62,11 +63,11 @@ Each tutorial builds one working thing from start to finish. They take 10 to 30 
 
 1. Go to **Build › Forms** and select **New form**.
 2. If you are offered a choice, pick **Start blank**. (**Use the wizard (recommended)** opens the wizard instead.)
-3. Enter the **Name** *Equipment request* and an optional **Description**, then select **Continue to designer**.
+3. The designer opens on its own page with an empty grid. Select the name **Untitled form** in the toolbar, type *Equipment request* and press Enter. An optional **Description** and tags go in the **Form** tab on the right.
 
-The designer opens with an empty grid. The **Field palette** is on the left, the properties panel on the right, and **Design** | **Preview** at the top.
+The designer is a full page, like the workflow designer. The toolbar has the way back to **Forms**, the name, **Undo** / **Redo**, **Design** | **Preview**, the save button and **⋯**. Below it are the **Field palette** and the **Outline** on the left, the grid in the middle with a status bar under it (fields, rules, submissions, the accessibility score and whether there are unsaved changes), and the properties panel on the right. When the Agent is open, it docks beside the designer.
 
-::image forms-designer | The form designer with the field palette, the grid and the properties panel | The form designer: drag fields from the palette onto the grid and set them up on the right.
+::image forms-designer | The form designer page: the toolbar, the field palette and outline, the grid with its status bar and the properties panel | The form designer: drag fields from the palette onto the grid and set them up on the right.
 
 ## 2. Add fields
 
@@ -138,24 +139,24 @@ If the form declares parameters or variables (in the **Data** tab), **Inputs (n)
 
 ## 8. Save
 
-Select **Create form**. Later saves show **Save version N**: every change to fields, layout or theme makes a new version. Workflow drafts follow the latest version, and a published workflow keeps the version it was published with. See [Reusable forms](/docs/tasks/forms#reusable-forms).
+Select **Create form** in the toolbar (or press **⌘S** / **Ctrl+S**). The page now belongs to the saved form, and later saves show **Save version N**: every change to fields, layout or theme makes a new version, and the designer stays open. If you leave the page with unsaved changes, it asks first. Workflow drafts follow the latest version, and a published workflow keeps the version it was published with. See [Reusable forms](/docs/tasks/forms#reusable-forms).
 
 ## 9. Share it
 
-In the forms library, open the form's **⋯** menu:
+In the designer's toolbar, **Open form** opens the form's page in a new tab. The **⋯** menu (also on the form's row in the forms library) has:
 
 - **Copy link** copies the form's own page, \`/f/<id>\`. People in your workspace with **Submit forms** sign in and fill it in.
-- **QR code** opens the share dialog: build a **Link with parameters**, download the QR code, and open **Embed in a website** for **Copy embed code**.
+- **QR code & embed** (**QR code** in the library) opens the share dialog: build a **Link with parameters**, download the QR code, and open **Embed in a website** for **Copy embed code**.
 
 To let people fill the form **without signing in** (and to embed it on a public website):
 
 1. An admin turns on **Settings → Forms → Anonymous forms → Allow anonymous forms**.
-2. In the form's **⋯ → Settings**, turn on **Anonymous responses → Allow anonymous responses**.
+2. In the designer's **Access** tab (or **⋯ → Settings** in the library), turn on **Anonymous responses → Allow anonymous responses**.
 3. Copy the public link (\`/p/<token>\`) or the embed code.
 
 The embed code is an \`<iframe>\` that points at the link with \`?embed=1\`. A form that needs sign-in cannot be filled inside a frame, so embed the public link.
 
-To put the form in people's **Forms** menu, tick **Available forms** in its settings and grant access. People who must sign in see your **form sign-in page**; brand it at **Settings → Forms → Form sign-in page**. See [Sharing and embedding forms](/docs/tasks/forms#sharing-and-embedding-forms) and [Form sign-in page](/docs/tasks/forms#form-sign-in-page).
+To put the form in people's **Forms** menu, tick **Available forms** in the **Form** tab and grant access in the **Access** tab. People who must sign in see your **form sign-in page**; brand it at **Settings → Forms → Form sign-in page**. See [Sharing and embedding forms](/docs/tasks/forms#sharing-and-embedding-forms) and [Form sign-in page](/docs/tasks/forms#form-sign-in-page).
 
 ## What you built
 
@@ -747,6 +748,58 @@ Changing the rules takes effect at once for every workflow that uses the table. 
 `,
   },
   {
+    slug: 'tutorials/migrate-infopath',
+    title: 'Migrate an InfoPath form',
+    description: 'Upload an InfoPath expense report (.xsn), check the analysis, import it as a UserTasks form with its line items, totals and rules, and finish what did not convert.',
+    body: `
+**Goal:** rebuild an InfoPath expense report (a repeating table of line items, a total and a few rules) as a UserTasks form. Reference: [Import InfoPath forms](/docs/tasks/import-infopath).
+
+**You need:** **forms.edit**. For step 4's data table you also need **data.create** and **workflows.create**.
+
+**Time:** 10 minutes.
+
+## 1. Upload the template
+
+1. Go to **Build › Forms** and select **Import → InfoPath form (.xsn)**.
+2. Drop *Expense Report.xsn* on the box. If the file is over 4 MB, export the source files from InfoPath Designer, zip them and upload the .zip instead.
+
+UserTasks unpacks the template and reads its views, data source, rules and validation. Nothing is stored.
+
+## 2. Read the review
+
+- **Views → forms** shows *1 → 1*: the form has one view.
+- **Fields** includes *1 repeating → Lists*. The *Line items* table becomes a List with Date, Description, Category, Qty, Unit price and a calculated Line total (\`quantity * unit_price\`).
+- **Rules converted** shows, for example, *3 of 5*. Open **Full report** to see each one: the cost center rule, the large-report warning (over USD 5,000) and the submit button convert. A role check and a query of the *Projects* SharePoint list need attention.
+- The **Preview** shows the form as it will look.
+
+## 3. Import
+
+Leave **One form per view** selected, then select **Import** and **Open in the designer**.
+
+## 4. Keep the submissions (optional)
+
+Import again with **Create a data table for the submissions** ticked, and choose **Update the form made then** when asked. You get an *Expense Report submissions* table, a child table for the line items, and a draft workflow *Expense Report: save submissions*. Open the workflow in **Automations → Workflows**, check it, and publish it.
+
+## 5. Finish what didn't convert
+
+1. In the designer, open the **Rules** tab. Turned-off rules show what InfoPath did in their **Notes**.
+2. *Refresh projects* queried a SharePoint list. Export the list from SharePoint as CSV or Excel and import it as a data table named **Projects** (**New table → Create from file**; see [Import from CSV or Excel](/docs/data-tables#import-from-csv-or-excel)), then import the form again: the rule becomes a **Table list** step. Or give the *Project* field options from the table.
+3. *Managers see status* used an InfoPath role. Replace it with a condition on \`{{user.email}}\`, or share the form with a role instead.
+4. Select **Preview**, add two line items (for example 2 × USD 45.00 and 1 × USD 120.00) and check the total is USD 210.00.
+
+## What you built
+
+- A UserTasks form rebuilt from the InfoPath template: fields, a line-items List with a calculated column, a total, defaults and rules.
+- Optionally, a submissions table, a line-items child table and a draft save workflow.
+- A list of what still needs a person, with the original InfoPath expressions in the rules' notes.
+
+## Next steps
+
+- [Build an approval workflow](/docs/tutorials/approval-workflow) to send the report for approval.
+- [Form rules](/docs/tasks/forms) for everything the Rules tab can do.
+`,
+  },
+  {
     slug: 'tutorials/agent-build-form-and-workflow',
     title: 'Tutorial: use the Agent to build a form and workflow',
     description: 'Ask the built-in Agent to build a leave request form, then move to the workflow builder and have it build the approval workflow in the same conversation. Every change is confirmed first.',
@@ -835,9 +888,9 @@ If a test step fails, select **Ask Agent to fix** next to the error. The Agent a
   {
     slug: 'tutorials/agent-build-from-process',
     title: 'Tutorial: build a complete process from a document with the Agent',
-    description: 'Give the Agent a written leave request procedure, review its build plan of tables, forms, a decision table, a workflow and a report, then build everything as drafts in one step.',
+    description: 'Give the Agent a written leave request procedure, review its build plan of tables, forms, admin forms, a decision table, a workflow and reports, package it, then build everything as drafts in one step.',
     body: `
-**Goal:** a complete leave request process, built by the Agent from a written procedure: a table of requests, a start form, an approval task form, a decision table, the workflow that links them, and a report.
+**Goal:** a complete leave request solution, built by the Agent from a written procedure: a table of requests, a leave types configuration table with its admin form, a start form, approval task forms, a decision table, the workflow that links them, and a report, all in one package you can remove in one go.
 
 **You need:** the Agent turned on in your workspace (see [Setting up the Agent](/docs/ai-assistants)), and permission to create what the plan contains: **Create tables**, **Edit forms**, **Create workflows** and **Edit workflows**. Owner, Admin and Manager have them. Items you can't create are marked **Skipped** on the plan.
 
@@ -853,21 +906,28 @@ Any written or drawn process works: a Word or PDF procedure, a text file, a flow
 
 1. On **Home**, select **Build from a process with Agent**. (Or open the **Agent** button on any screen; it is on every screen.)
 2. Paste the text above, or attach the document, and type *"Build this process."*
+3. If the Agent asks **Just a form** or **A full solution**, choose **A full solution**.
+4. The Agent asks *Package the solution?* Choose **Package this solution**. A package lets you remove everything in one go, keep versions and share it (see [Package a solution](/docs/ai-assistants/using#package-a-solution)).
 
 ## 3. Review the build plan
 
-The Agent answers with a **build plan** card, titled **Build plan: …**. For this example it lists something like:
+The Agent answers with a **build plan** card, titled **Build plan: …**, grouped by section. For this example it lists something like:
 
-| Item | What it is |
-|---|---|
-| Data table *Leave requests* | Employee, leave type, start date, end date, days, reason, status |
-| Start form *Leave request* | The fields the employee fills in |
-| Task forms | *Manager approval* and *HR approval*, showing the request with a comment box |
-| Decision table *Leave approval policy* | Days over 10 → HR approval needed |
-| Workflow *Leave request approval* | Starts from the form, saves the row, asks the manager, checks the policy, asks HR if needed, updates the status, emails the employee |
-| Report *Approved leave by type* | Approved requests, charted by leave type and month |
+| Section | Item | What it is |
+|---|---|---|
+| Data model | Configuration table *Leave types* | Annual, Sick, Unpaid (admins can add more) |
+| Data model | Main table *Leave requests* | Reference, employee, leave type (lookup to *Leave types*), start date, end date, days, reason, status |
+| Forms | Application form *Leave request* | The fields the employee fills in; leave type is a lookup |
+| Forms | Task forms | *Manager approval* and *HR approval*, showing the request (prefilled) with a comment box |
+| Forms | Admin form *Manage leave types* | An editable grid on *Leave types*; **Save** writes the changes back |
+| Rules | Decision table *Leave approval policy* | Days over 10 → HR approval needed |
+| Workflows | *Leave request approval* | Starts from the form, saves the row, asks the manager, checks the policy, asks HR if needed, updates the status, emails the employee |
+| Reports | *Leave requests* | Charts by status, by leave type and by month |
+| Package | *Leave requests* | Every item above, version 1.0.0 |
 
-The plan also shows how the items link: which form starts the workflow, which table it writes to and which decision table it calls. Anything you lack permission for is marked **Skipped**.
+The plan also shows how the items link: which form starts the workflow, which table it writes to and which decision table it calls. Each task lists its assignee and *redirect allowed*. Anything you lack permission for is marked **Skipped**.
+
+A process with lines (a purchase request with line items, an expense claim with receipts) also gets a **child table** linked to the main table. On the application form the lines are a **List** field: inputs for one line (*Item*, *Quantity*, *Unit price*), an **Add item** button and an *Add row to list* rule that moves the inputs into the list below, with a calculated line total and a total underneath (see [List fields](/docs/tasks/forms#list-fields-repeating-rows)). The workflow saves the request, then loops over \`{{form.line_items}}\` and adds one child row per line with \`{{item.item}}\`, \`{{item.quantity}}\` and the request's id.
 
 ## 4. Adjust it in chat
 
@@ -876,12 +936,15 @@ Ask for changes before anything is made, for example:
 - *Add a "Cover arranged by" person field to the start form.*
 - *Make the HR threshold 15 days.*
 - *Skip the report for now.*
+- *Skip the admin forms.*
 
 The Agent shows an updated plan each time.
 
 ## 5. Build all
 
-Select **Build all**. The Agent creates the items in order (tables, forms, the decision table, the workflow, then the report) and wires them together. The card shows each item's progress and a link to open it.
+Select **Build all**. The Agent creates the items in order (tables, forms, the decision table, the workflow, the report, then the package) and wires them together. The card shows each item's progress and a link to open it.
+
+The summary links to the package. Under **Packages → Installed**, expand it to see every item it owns. **Uninstall** removes the whole solution, and shows exactly what it will remove first.
 
 Everything is a draft. The workflow is saved inactive, so nothing runs yet.
 
@@ -898,6 +961,8 @@ If an item fails (for example a name already taken), the Agent stops and lists w
 
 - A full leave request solution (table, forms, decision table, workflow and report) from one paragraph of text.
 - A plan you reviewed and changed before anything was created.
+- An admin form, so your admins maintain the leave types without editing the table.
+- One package that holds it all: remove it in one go, build new versions, or share it to the community gallery (the Agent can submit it for review).
 - Drafts that you tested and published yourself.
 
 ## Next steps

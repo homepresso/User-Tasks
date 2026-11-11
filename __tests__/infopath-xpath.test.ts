@@ -1,0 +1,91 @@
+import { describe, expect, it } from 'vitest'
+import { parseXPath, resolveBinding, toCondition, toExpression, type Ref, type TranslateEnv } from '@/lib/infopath/xpath'
+import { serverLabelValues } from '@/lib/forms/label-field'
+
+const FIELDS: Record<string, Ref> = {
+  '/r/status': { kind: 'field', key: 'status' },
+  '/r/total': { kind: 'field', key: 'total' },
+  '/r/email': { kind: 'field', key: 'email' },
+  '/r/start': { kind: 'field', key: 'start_date' },
+  '/r/end': { kind: 'field', key: 'end_date' },
+  '/r/items/item': { kind: 'list', key: 'items' },
+  '/r/items/item/qty': { kind: 'column', list: 'items', column: 'qty' },
+  '/r/items/item/price': { kind: 'column', list: 'items', column: 'price' },
+}
+const env = (context = '/r', row: string | null = null): TranslateEnv => ({ context, row, resolve: (p) => FIELDS[p] ?? null })
+
+describe('XPath parsing', () => {
+  it('parses paths, functions, operators and predicates', () => {
+    expect(parseXPath('../my:a/my:b')).toMatchObject({ t: 'path', abs: false, steps: ['..', 'my:a', 'my:b'] })
+    expect(parseXPath('my:a[1]/my:b')).toMatchObject({ t: 'path', filtered: true })
+    expect(parseXPath('xdDate:AddDays(., 3)')).toMatchObject({ t: 'fn', name: 'xdDate:AddDays' })
+    expect(parseXPath('a = "x" or b != 2 and not(c)')).toMatchObject({ t: 'bin', op: 'or' })
+    expect(parseXPath('my:a * my:b div 2')).toMatchObject({ t: 'bin', op: 'div' })
+    expect(() => parseXPath('a = "unterminated')).toThrow()
+  })
+
+  it('resolves bindings against a context node', () => {
+    expect(resolveBinding('/r/items/item', '../../my:status')).toBe('/r/status')
+    expect(resolveBinding('/r', 'my:items/my:item/my:qty')).toBe('/r/items/item/qty')
+    expect(resolveBinding('/r', '/my:r/my:total')).toBe('/r/total')
+  })
+})
+
+describe('XPath → rule conditions', () => {
+  it('translates comparisons, blanks, and / or and not()', () => {
+    expect(toCondition('my:status = "Draft"', env())).toEqual({ ok: true, notes: [], value: { match: 'all', conditions: [{ column: 'status', operator: 'eq', value: 'Draft' }] } })
+    expect(toCondition('my:status = ""', env())).toMatchObject({ ok: true, value: { conditions: [{ column: 'status', operator: 'is_not_set' }] } })
+    expect(toCondition('string-length(my:email) > 0', env())).toMatchObject({ ok: true, value: { conditions: [{ column: 'email', operator: 'is_set' }] } })
+    expect(toCondition('1000 < my:total', env())).toMatchObject({ ok: true, value: { conditions: [{ column: 'total', operator: 'gt', value: '1000' }] } })
+    const c = toCondition('not(my:status = "A" or my:total >= 5)', env())
+    expect(c).toMatchObject({ ok: true, value: { match: 'all', conditions: [{ column: 'status', operator: 'neq', value: 'A' }, { column: 'total', operator: 'lt', value: '5' }] } })
+    expect(toCondition('contains(., "@")', env('/r/email'))).toMatchObject({ ok: true, value: { conditions: [{ column: 'email', operator: 'contains', value: '@' }] } })
+  })
+
+  it('compares two fields with a template and reads msxsl:string-compare', () => {
+    expect(toCondition('msxsl:string-compare(., ../my:start) < 0', env('/r/end'))).toMatchObject({ ok: true, value: { conditions: [{ column: 'end_date', operator: 'lt', value: '{{form.start_date}}' }] } })
+  })
+
+  it('reads a List row inside its row, and refuses outside', () => {
+    expect(toCondition('../my:qty > 2', env('/r/items/item/price', 'items'))).toMatchObject({ ok: true, value: { conditions: [{ column: 'row.qty', operator: 'gt', value: '2' }] } })
+    expect(toCondition('my:items/my:item/my:qty > 2', env())).toMatchObject({ ok: false })
+  })
+
+  it('says why when there is no equivalent', () => {
+    expect(toCondition('xdXDocument:get-Role() = "Manager"', env())).toEqual({ ok: false, reason: expect.stringMatching(/user role/) })
+    expect(toCondition('count(xdXDocument:GetDOM("Projects")/a) > 0', env())).toMatchObject({ ok: false })
+    expect(toCondition('not(contains(my:email, "@"))', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/not/) })
+    expect(toCondition('my:unknown = 1', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/not on the form/) })
+  })
+})
+
+describe('XPath → formulas', () => {
+  it('maps functions and arithmetic', () => {
+    expect(toExpression('concat(my:status, " - ", my:total)', env())).toMatchObject({ ok: true, value: 'CONCAT({{form.status}}, " - ", {{form.total}})' })
+    expect(toExpression('sum(my:items/my:item/my:price)', env())).toMatchObject({ ok: true, value: 'SUM(PLUCK({{form.items}}, "price"))' })
+    expect(toExpression('count(my:items/my:item)', env())).toMatchObject({ ok: true, value: 'COUNT({{form.items}})' })
+    expect(toExpression('xdDate:Today()', env())).toMatchObject({ ok: true, value: 'TODAY()' })
+    expect(toExpression('xdDate:AddDays(my:start, 14)', env())).toMatchObject({ ok: true, value: 'ADD_DAYS({{form.start_date}}, 14)' })
+    expect(toExpression('my:total * 1.1 div 2', env())).toMatchObject({ ok: true, value: '(({{form.total}} * 1.1) / 2)' })
+    expect(toExpression('../my:qty * ../my:price', env('/r/items/item/total', 'items'))).toMatchObject({ ok: true, value: '({{row.qty}} * {{row.price}})' })
+    expect(toExpression('translate(my:status, "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ")', env())).toMatchObject({ ok: true, value: 'UPPER({{form.status}})' })
+  })
+
+  it('refuses what has no equivalent with a reason', () => {
+    expect(toExpression('substring-before(my:email, "@")', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/no direct UserTasks function/) })
+    expect(toExpression('xdMath:Eval(my:items/my:item, "my:qty")', env())).toMatchObject({ ok: false })
+  })
+
+  it('produces formulas the Label engine evaluates', () => {
+    const total = toExpression('sum(my:items/my:item/my:price)', env())
+    const both = toExpression('concat(my:status, " (", my:total, ")")', env())
+    if (!total.ok || !both.ok) throw new Error('not translated')
+    const fields = [
+      { key: 'items', label: 'Items', type: 'list', list: { columns: [{ key: 'price', label: 'Price', type: 'number' }] } },
+      { key: 'sum', label: 'Sum', type: 'label', label_config: { expression: total.value, include: true } },
+      { key: 'both', label: 'Both', type: 'label', label_config: { expression: both.value, include: true } },
+      { key: 'status', label: 'Status', type: 'text' }, { key: 'total', label: 'Total', type: 'number' },
+    ]
+    expect(serverLabelValues(fields as never, null, { items: [{ price: 10.5 }, { price: 4 }], status: 'Open', total: 3 }, { sent: {} })).toMatchObject({ sum: 14.5, both: 'Open (3)' })
+  })
+})

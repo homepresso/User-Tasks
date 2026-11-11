@@ -10,6 +10,7 @@ import type { ConnectorCategory } from "@/lib/connectors/registry"
 import { useRouter } from "next/navigation"
 import { deleteConnector } from "@/app/actions/connectors"
 import { InlineNotice } from "@/components/ui/inline-notice"
+import { TableScroll } from '@/components/ui/table'
 
 interface TenantConnector {
   id: string
@@ -367,10 +368,13 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
         </div>
         ) : (
           <div className="rounded-xl border overflow-hidden border-border bg-panel">
+            {/* Readable columns; narrower windows scroll the list sideways. */}
+            <TableScroll bare label="Connectors">
+            <div className="min-w-[40rem]">
             <div
               className="grid items-center text-2xs font-semibold"
               style={{
-                gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,0.8fr) 110px 110px 56px',
+                gridTemplateColumns: 'minmax(14rem,1.2fr) minmax(8rem,0.8fr) 110px 110px 56px',
                 backgroundColor: 'var(--theme-row-highlight-strong)',
                 color: 'var(--theme-muted-text)',
                 borderBottom: '1px solid var(--theme-surface-border)',
@@ -398,14 +402,14 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                   onClick={() => handleCardClick(def.key)}
                   className="grid w-full items-center text-left hover:opacity-90"
                   style={{
-                    gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,0.8fr) 110px 110px 56px',
+                    gridTemplateColumns: 'minmax(14rem,1.2fr) minmax(8rem,0.8fr) 110px 110px 56px',
                     backgroundColor: index % 2 === 0 ? 'var(--theme-card-bg)' : 'var(--theme-surface)',
                     borderBottom: index < sorted.length - 1 ? '1px solid var(--theme-surface-border)' : undefined,
                   }}
                 >
                   <div className="px-4 py-3 min-w-0">
-                    <div className="text-sm font-semibold truncate text-fg">{def.name}</div>
-                    <div className="text-2xs truncate text-fg-muted">{def.description}</div>
+                    <div className="text-sm font-semibold truncate text-fg" title={def.name}>{def.name}</div>
+                    <div className="text-2xs truncate text-fg-muted" title={def.description}>{def.description}</div>
                   </div>
                   <div className="px-3 py-3 text-xs capitalize text-fg-muted">{def.category}</div>
                   <div className="px-3 py-3 text-xs text-fg-muted">{statusLabel}</div>
@@ -416,6 +420,8 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
                 </button>
               )
             })}
+            </div>
+            </TableScroll>
           </div>
         )
       )}

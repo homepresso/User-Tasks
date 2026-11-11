@@ -146,7 +146,7 @@ describe('solution builder', () => {
   it('dependency order: tables → forms → decision tables → workflows (and refs)', () => {
     expect(orderPlan(normalizePlan(PLAN)).map((i) => i.key)).toEqual(['table', 'approval_form', 'start_form', 'workflow'])
     expect(() => normalizePlan([{ key: 'a', kind: 'form', name: 'A', args: { x: '{{ref:nope.id}}' } }])).toThrow(/not in the plan/)
-    expect(() => normalizePlan(Array.from({ length: MAX_PLAN_ITEMS + 1 }, (_, i) => ({ key: `k${i}`, kind: 'form', name: `F${i}`, args: {} })))).toThrow(/at most 15/)
+    expect(() => normalizePlan(Array.from({ length: MAX_PLAN_ITEMS + 1 }, (_, i) => ({ key: `k${i}`, kind: 'form', name: `F${i}`, args: {} })))).toThrow(/at most 30/)
     expect(substituteRefs({ a: 'x {{ref:k.id}}', b: ['{{ref:k.name}}'] }, { k: { id: '7', name: 'K' } })).toEqual({ a: 'x 7', b: ['K'] })
   })
 
@@ -155,8 +155,9 @@ describe('solution builder', () => {
     const card = await tools[0].confirm!({ title: 'Leave request process', items: PLAN })
     expect(card.title).toBe('Build plan: Leave request process')
     expect(card.confirm_label).toBe('Build all')
-    expect(card.preview!.rows.map((r) => r[2])).toEqual(['Leave records', 'Leave approval', 'Leave request', 'Leave request'])
-    expect(card.preview!.rows[3][3]).toContain('uses “Leave request”, “Leave approval”, “Leave records”')
+    expect(card.preview!.rows.map((r) => r[3])).toEqual(['Leave records', 'Leave approval', 'Leave request', 'Leave request'])
+    expect(card.preview!.rows.map((r) => r[1])).toEqual(['Data model', 'Forms', 'Forms', 'Workflows'])
+    expect(card.preview!.rows[3][4]).toContain('uses “Leave request”, “Leave approval”, “Leave records”')
   })
 
   it('Build all creates in order and wires the real ids (form_submitted form_id, user_task form_id, table_id)', async () => {
@@ -168,10 +169,11 @@ describe('solution builder', () => {
     expect(calls.map((c) => c.tool)).toEqual(['data_tables_create', 'forms_create', 'forms_create', 'workflows_create'])
     const wf = calls[3].args
     expect(wf.is_active).toBe(false) // drafts only
-    expect(wf.nodes[0].config).toEqual({ form_id: 'id-3', form_name: 'Leave request' })
-    expect(wf.nodes[1].config.form_id).toBe('id-2')
-    expect(wf.nodes[2].config.table_id).toBe('id-1')
-    expect(events.filter((e) => e.type === 'changed').map((e: any) => e.href)).toEqual(['/data/id-1', '/automations/forms?open=id-2', '/automations/forms?open=id-3', '/automations/id-4'])
+    const nodes = JSON.parse(wf.nodes) // the create tool takes nodes as JSON text
+    expect(nodes[0].config).toEqual({ form_id: 'id-3', form_name: 'Leave request' })
+    expect(nodes[1].config.form_id).toBe('id-2')
+    expect(nodes[2].config.table_id).toBe('id-1')
+    expect(events.filter((e) => e.type === 'changed').map((e: any) => e.href)).toEqual(['/data/id-1', '/automations/forms/id-2', '/automations/forms/id-3', '/automations/id-4'])
   })
 
   it('stops on failure with a summary of what was created and what is left; resumes with build_plan_continue', async () => {
@@ -185,13 +187,13 @@ describe('solution builder', () => {
     // Fixed name, continue: only the rest is created, using the earlier ids.
     const fixed = PLAN.map((p) => (p.key === 'start_form' ? { ...p, name: 'Leave request form', args: { ...p.args, name: 'Leave request form' } } : p))
     const card = await tools[1].confirm!({ items: fixed, created: result.created })
-    expect(card.preview!.rows.filter((r) => r[3] === '✓ already built')).toHaveLength(2)
+    expect(card.preview!.rows.filter((r) => r[4] === '✓ already built')).toHaveLength(2)
     const second = fakeCalls()
     const tools2 = buildPlanTools({ call: second.fn, allowedTools: ALL, draftOnly: draftOnlyArgs })
     const resumed = (await tools2[1].run({ items: fixed, created: result.created }, env([])) as any).result
     expect(resumed.status).toBe('completed')
     expect(second.calls.map((c) => c.tool)).toEqual(['forms_create', 'workflows_create'])
-    expect(second.calls[1].args.nodes[2].config.table_id).toBe('id-1') // from the first request
+    expect(JSON.parse(second.calls[1].args.nodes)[2].config.table_id).toBe('id-1') // from the first request
   })
 
   it('pauses before the time budget and can continue (interrupted build)', async () => {

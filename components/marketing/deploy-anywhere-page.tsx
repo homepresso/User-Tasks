@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react"
 import Link from "next/link"
+import { ProductHero } from "@/components/marketing/product-hero"
 import { ArrowRight, Check, CloudCog, GitCompareArrows, History, RotateCcw, ShieldCheck, Undo2, Zap } from "lucide-react"
 import { MarketingFooter, MarketingHeader, SectionHeading, Snippet } from "@/components/marketing/marketing-ui"
 import { TopologyDiagram } from "@/components/topology/topology-diagram"
@@ -153,30 +154,21 @@ export function DeployAnywherePage() {
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <MarketingHeader />
+      <MarketingHeader tone="night" />
 
       <main>
         {/* Hero */}
-        <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
-          <div className="mx-auto max-w-6xl px-4 pb-14 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span>{DEPLOY_ANYWHERE.eyebrow}</nav>
-            <p className="mt-8 inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-gold)/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">
-              <CloudCog size={13} aria-hidden="true" /> {DEPLOY_ANYWHERE.eyebrow}
-            </p>
-            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">
-              Start on Supabase. Move each piece when you&rsquo;re ready.
-            </h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
-              UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-(color:--mkt-ink)">AWS</strong>, <strong className="text-(color:--mkt-ink)">Azure</strong>, <strong className="text-(color:--mkt-ink)">Google Cloud</strong> or <strong className="text-(color:--mkt-ink)">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/docs/topologies" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Choose your topology <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link href="/docs/quickstart/self-host" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                Self-host quickstart
-              </Link>
-            </div>
+        <ProductHero
+          crumb="Deploy anywhere"
+          eyebrow="Deploy anywhere"
+          icon={CloudCog}
+          title={<>Start on Supabase. <span className="mkt-gradient-text">Move each piece when you’re ready.</span></>}
+          intro={<>UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-white">AWS</strong>, <strong className="text-white">Azure</strong>, <strong className="text-white">Google Cloud</strong> or <strong className="text-white">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.</>}
+          primary={{ href: "/docs/topologies", label: "Choose your topology" }}
+          secondary={{ href: "/docs/quickstart/self-host", label: "Self-host quickstart" }}
+        />
+        <section className="relative">
+          <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
             <nav aria-label="Topologies on this page" className="mt-10">
               <ol className="flex flex-wrap gap-2">
                 {NAV.map((item, index) => (
@@ -340,7 +332,7 @@ export function DeployAnywherePage() {
           <div className="mt-8 space-y-3">
             {FAQS.map((faq) => (
               <details key={faq.question} className="group rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5">
-                <summary className="cursor-pointer list-none font-semibold">{faq.question}</summary>
+                <summary className="cursor-pointer list-none"><h3 className="inline font-semibold">{faq.question}</h3></summary>
                 <p className="mt-3 text-sm leading-7 text-(color:--mkt-muted)">{faq.answer}</p>
               </details>
             ))}

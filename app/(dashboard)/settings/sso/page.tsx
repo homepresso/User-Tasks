@@ -90,6 +90,7 @@ export default function SsoDirectoryPage() {
 
       {activeRun && <ActiveSyncBar run={activeRun} />}
 
+      <div className="space-y-6" data-tour="sso-providers">
       {PULL_PROVIDERS.map((provider) => {
         const connection = connectionFor(provider)
         if (connection) {
@@ -111,6 +112,7 @@ export default function SsoDirectoryPage() {
         if (provider === 'ldap') return <CollapsedConnect key={provider} provider={provider}><LdapForm initial={null} onDone={refresh} /></CollapsedConnect>
         return <CollapsedConnect key={provider} provider={provider}><GoogleConnectCard onConnected={refresh} /></CollapsedConnect>
       })}
+      </div>
 
       {(data?.canViewSettings || scimConnection?.isEnabled) && (
         <ScimCard

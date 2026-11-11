@@ -165,7 +165,7 @@ function WorkflowsTab({ tabs }: { tabs: React.ReactNode }) {
           {queue.error && !data && <InlineNotice tone="error" message={queue.error.message || 'Could not load the queue.'} />}
 
           {!data ? (
-            queue.error ? null : <Table><TBody><TableSkeleton columns={6} /></TBody></Table>
+            queue.error ? null : <Table label="Queue items"><TBody><TableSkeleton columns={6} /></TBody></Table>
           ) : (
             <QueueList
               rows={data.rows}

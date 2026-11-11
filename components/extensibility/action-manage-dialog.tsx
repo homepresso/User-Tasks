@@ -133,7 +133,7 @@ function ActionManageDialogInner({ activityId, canEdit, onClose }: { activityId:
                 }} />}
                 {tab === 'test' && manifest && <TestRunner manifest={manifest} activityId={activityId!} canEdit={canEdit} />}
                 {tab === 'versions' && (
-                  <Table>
+                  <Table label="Versions" className="whitespace-nowrap">
                     <THead>
                       <tr><TH>Version</TH><TH>Origin</TH><TH numeric>Size</TH><TH>SHA-256</TH><TH>Signature</TH><TH>Added</TH></tr>
                     </THead>

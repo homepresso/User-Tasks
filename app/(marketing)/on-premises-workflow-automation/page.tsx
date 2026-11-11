@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { SeoSolutionPage } from '@/components/marketing/seo-solution-page'
-import { getSeoPage } from '@/lib/seo-pages'
+import { getSeoPage, seoPageMetadataInput } from '@/lib/seo-pages'
+import { pageMetadata } from '@/lib/seo/site'
 
 const page = getSeoPage('on-premises-workflow-automation')!
-export const metadata: Metadata = { title: 'On-Premises Workflow Automation Software | UserTasks', description: page.description, keywords: ['on premises workflow automation', 'on prem automation', 'self hosted workflow automation', 'private workflow automation'], alternates: { canonical: '/on-premises-workflow-automation' }, openGraph: { title: page.title, description: page.description, url: '/on-premises-workflow-automation', type: 'website' } }
-export default function OnPremisesWorkflowAutomationPage() { return <SeoSolutionPage page={page} /> }
+export const metadata: Metadata = pageMetadata(seoPageMetadataInput(page))
+export default function Page() { return <SeoSolutionPage page={page} /> }

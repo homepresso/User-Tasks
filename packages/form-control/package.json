@@ -1,5 +1,5 @@
 {
-  "name": "@usertasks/form-control",
+  "name": "@user-tasks/form-control",
   "version": "0.1.0",
   "description": "Build UserTasks custom form controls: the contract types, a vanilla base element and a Lit mixin",
   "keywords": [

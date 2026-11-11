@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tooltip } from "@/components/ui/tooltip"
 import { formatNavBadge, navBadgeLabel } from "@/lib/nav-badges"
+import { navTourId } from "@/lib/onboarding/tours"
 
 /** `neutral` for plain counts; `accent` where the count asks for action (your own open tasks). */
 export type NavBadgeTone = "neutral" | "accent"
@@ -143,6 +144,7 @@ export function SidebarNavItem({
       aria-current={isActive ? "page" : undefined}
       aria-label={showBadge || collapsed ? accessibleName : undefined}
       data-nav-href={href}
+      data-tour={navTourId(href)}
     >
       {content}
     </Link>

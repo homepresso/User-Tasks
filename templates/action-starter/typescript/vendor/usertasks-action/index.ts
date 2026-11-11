@@ -1,7 +1,7 @@
 /**
- * @usertasks/action — build custom workflow actions for UserTasks.
+ * @user-tasks/action — build custom workflow actions for UserTasks.
  *
- *   import { defineAction } from '@usertasks/action'
+ *   import { defineAction } from '@user-tasks/action'
  *
  *   export default defineAction({
  *     operations: {
@@ -11,7 +11,7 @@
  *
  * The module runs in the UserTasks QuickJS sandbox: plain JavaScript (ES2023),
  * no Node or browser APIs, no imports at run time (bundle dependencies), and
- * only `ctx` to reach the outside world. See `@usertasks/action/testing` to run
+ * only `ctx` to reach the outside world. See `@user-tasks/action/testing` to run
  * it locally in the same sandbox.
  */
 

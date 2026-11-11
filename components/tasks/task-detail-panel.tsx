@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, ClipboardList, Clock, ExternalLink, Loader2, MessageSquare, Paperclip, Plus, RotateCcw, Workflow } from "lucide-react"
+import { Check, ClipboardList, Clock, ExternalLink, History, Loader2, MessageSquare, Paperclip, Plus, RotateCcw, Workflow } from "lucide-react"
 import { StatusPill, statusLabel } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { PriorityBadge } from "@/components/ui/priority-badge"
 import { ProgressBar } from "@/components/ui/progress-bar"
@@ -15,11 +14,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip } from "@/components/ui/tooltip"
 import { RelativeTime } from "@/components/activity/relative-time"
 import { ManualEffortEntry } from "@/components/tasks/manual-effort-entry"
+import { SubtaskForm } from "@/components/tasks/subtask-form"
 import { serverQuery } from "@/lib/server-read"
 import { formatAbsolute, formatDay } from "@/lib/format/date"
 import { plural } from "@/lib/format/plural"
 import { cn } from "@/lib/utils"
 import type { TaskPanelData, TaskPanelSubtask } from "@/lib/services/task-panel"
+import { TimelineSheet } from "@/components/timeline/timeline-sheet"
 
 /**
  * The task lists' detail panel — one experience on the Task tracker, My
@@ -316,10 +317,7 @@ function SubtasksSection({ data, compact }: { data: TaskPanelData; compact: bool
   const [overrides, setOverrides] = useState<Record<string, string>>({})
   const [toggling, setToggling] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
-  const [title, setTitle] = useState("")
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const items = compact ? data.subtasks.items.slice(0, 8) : data.subtasks.items
 
   async function toggle(sub: TaskPanelSubtask) {
@@ -339,23 +337,6 @@ function SubtasksSection({ data, compact }: { data: TaskPanelData; compact: bool
       setOverrides((o) => { const next = { ...o }; delete next[sub.id]; return next })
     }
     setToggling(null)
-  }
-
-  async function add(e: React.FormEvent) {
-    e.preventDefault()
-    const text = title.trim()
-    if (!text || busy) return
-    setBusy(true)
-    setError(null)
-    const { addSubtask } = await import("@/app/actions/tasks")
-    const result = await addSubtask(data.id, { title: text })
-    if (!result.ok) setError(result.error)
-    else {
-      setTitle("")
-      await refresh()
-      inputRef.current?.focus()
-    }
-    setBusy(false)
   }
 
   return (
@@ -381,7 +362,12 @@ function SubtasksSection({ data, compact }: { data: TaskPanelData; compact: bool
                 ) : (
                   <StatusPill status={status} />
                 )}
-                <Link href={`/tasks/${sub.id}`} className={cn("min-w-0 flex-1 truncate text-xs hover:underline", done ? "text-fg-muted line-through" : "text-fg")}>{sub.title || "Untitled task"}</Link>
+                <span className="min-w-0 flex-1">
+                  <Link href={`/tasks/${sub.id}`} className={cn("block truncate text-xs hover:underline", done ? "text-fg-muted line-through" : "text-fg")}>{sub.title || "Untitled task"}</Link>
+                  {sub.subtitle && <span className="block truncate text-[11px] leading-4 text-fg-muted" data-task-panel-subtask-subtitle>{sub.subtitle}</span>}
+                </span>
+                {sub.childCount > 0 && <span className="num shrink-0 text-xs text-fg-muted" title={`${plural(sub.childCount, "subtask")}`}>+{sub.childCount}</span>}
+                {sub.estimateMinutes != null && <span className="num shrink-0 text-xs text-fg-muted" title="Estimate" data-task-panel-subtask-effort>{formatMinutes(sub.estimateMinutes)}</span>}
                 {!compact && sub.assignee && <span className="hidden max-w-[8rem] truncate text-xs text-fg-muted sm:inline">{sub.assignee}</span>}
                 {sub.due_date && <span className="num shrink-0 text-xs text-fg-muted">{formatDay(sub.due_date)}</span>}
               </li>
@@ -393,12 +379,9 @@ function SubtasksSection({ data, compact }: { data: TaskPanelData; compact: bool
         <Link href={`/tasks/${data.id}`} className="block text-xs font-medium text-primary-text hover:underline">View all {data.subtasks.total} subtasks</Link>
       )}
       {data.can.addSubtask && (adding ? (
-        <form onSubmit={(e) => void add(e)} className="flex items-center gap-1.5" data-task-panel-add-subtask-form>
-          <Input ref={inputRef} size="sm" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Subtask title" aria-label="New subtask title" maxLength={500} autoFocus
-            onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setAdding(false); setTitle("") } }} className="min-w-0 flex-1" />
-          <Button type="submit" size="sm" loading={busy} disabled={!title.trim()}>Add</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => { setAdding(false); setTitle("") }}>Cancel</Button>
-        </form>
+        <SubtaskForm parentTaskId={data.id} defaultPriority={data.priority} compact
+          onSaved={async (_sub, { closed }) => { if (closed) setAdding(false); await refresh() }}
+          onCancel={() => setAdding(false)} />
       ) : (
         <Button type="button" size="sm" variant="ghost" leadingIcon={<Plus />} onClick={() => setAdding(true)} data-task-panel-add-subtask>Add subtask</Button>
       ))}
@@ -443,10 +426,24 @@ function Footer({ data }: { data: TaskPanelData }) {
           <Workflow className="size-3.5" aria-hidden="true" /> Process view
         </Link>
       )}
+      {data.links.process && <PanelTimelineLink taskId={data.id} />}
       <Link href={`${data.links.task}?tab=attachments`} className="inline-flex items-center gap-1 text-fg-muted hover:text-fg hover:underline" data-task-panel-attachments>
         <Paperclip className="size-3.5" aria-hidden="true" /> {plural(data.attachments, "attachment")}
       </Link>
       {data.readOnlyReason && <span className="text-fg-muted" data-task-panel-readonly>{data.readOnlyReason}</span>}
     </div>
+  )
+}
+
+/** The panel's "Timeline" link: opens the timeline sheet over the list. */
+function PanelTimelineLink({ taskId }: { taskId: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1 font-medium text-primary-text hover:underline" data-task-panel-timeline>
+        <History className="size-3.5" aria-hidden="true" /> Timeline
+      </button>
+      {open && <span className="contents" onClick={(e) => e.stopPropagation()}><TimelineSheet target={{ taskId }} open={open} onOpenChange={setOpen} /></span>}
+    </>
   )
 }

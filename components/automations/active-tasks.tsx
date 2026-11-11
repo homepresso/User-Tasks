@@ -28,6 +28,7 @@ import {
   type ActiveTaskFilters,
 } from '@/lib/automations/active-task-filters'
 import type { ActiveTask } from '@/lib/services/active-tasks'
+import { TimelineIconButton } from '@/components/timeline/timeline-sheet'
 
 /*
  * The workflow queue page's "Active tasks" tab (?tab=tasks): every open
@@ -108,6 +109,7 @@ export function ActiveTasksTab() {
       )}
       <LinkIconButton href={`/tasks/${t.id}`} label="Open task" icon={<ExternalLink />} />
       {t.run_id && <LinkIconButton href={runHref(t.run_id)} label="Process view" icon={<Workflow />} />}
+      {t.run_id && <TimelineIconButton target={{ taskId: t.id }} title={t.title} />}
     </div>
   )
 
@@ -154,23 +156,25 @@ export function ActiveTasksTab() {
       )}
 
       {!data ? (
-        error ? null : <Table><TBody><TableSkeleton columns={6} /></TBody></Table>
+        error ? null : <Table label="Active tasks"><TBody><TableSkeleton columns={6} /></TBody></Table>
       ) : rows.length === 0 ? (
         filtered
           ? <EmptyState variant="no-results" title="No active tasks match your filters" description="Try a different search, or clear the filters." action={{ label: 'Clear filters', onClick: () => { setSearchText(''); replace({ ...filters, search: '', assignee: null, workflow: null, waiting: null, sla: null, priority: null, unassigned: false, page: 1 }) } }} />
           : <EmptyState icon={Hourglass} title="No tasks are waiting" description="Open tasks people need to act on show here." />
       ) : (
         <>
-          <Table containerClassName="max-md:hidden">
+          {/* Tablet / desktop: readable columns that scroll sideways when the space is narrow; the task's name stays in view. */}
+          <Table containerClassName="max-md:hidden" label="Active tasks" stickyFirstColumn stickyColumns={bulk ? 2 : 1}>
             <THead>
               <tr>
                 {bulk && <TH className="w-10"><span className="sr-only">Select</span></TH>}
-                <TH>Task</TH>
-                <TH>Assignee</TH>
-                <TH className="whitespace-nowrap">Waiting</TH>
-                <TH className="whitespace-nowrap">Due</TH>
-                <TH className="max-lg:hidden">Priority</TH>
-                <TH><span className="sr-only">Actions</span></TH>
+                <TH col="title">Task</TH>
+                <TH col="people">Assignee</TH>
+                <TH col="date">Started</TH>
+                <TH col="date">Waiting</TH>
+                <TH col="date">Due</TH>
+                <TH col="status">Priority</TH>
+                <TH col="actions"><span className="sr-only">Actions</span></TH>
               </tr>
             </THead>
             <TBody>
@@ -178,20 +182,26 @@ export function ActiveTasksTab() {
                 <TR key={t.id} selected={selected.has(t.id)} data-waiting-row={t.id}>
                   {bulk && <TD className="w-10"><Checkbox checked={selected.has(t.id)} aria-label={`Select ${t.title}`} onChange={() => toggle(t.id)} /></TD>}
                   <TD className="min-w-48 max-w-0 py-2">
-                    <Link href={`/tasks/${t.id}`} className="block truncate text-ui font-medium text-fg hover:underline">{t.title}</Link>
-                    <span className="block truncate text-xs text-fg-muted">
+                    <Link href={`/tasks/${t.id}`} className="block truncate text-ui font-medium text-fg hover:underline" title={t.title}>{t.title}</Link>
+                    <span className="block truncate text-xs text-fg-muted" title={t.workflow?.name ?? undefined}>
                       {t.workflow?.name ?? 'Workflow'}
                       {t.run_id && <> · <Link href={runHref(t.run_id)} className="text-primary-text hover:underline">Process view</Link></>}
+                      {t.run_started_at && <span className="md:hidden"> · started {formatRelative(t.run_started_at)}</span>}
                     </span>
                   </TD>
-                  <TD className="max-w-48 text-ui"><WhoCell t={t} /></TD>
+                  <TD className="max-w-60 text-ui"><WhoCell t={t} /></TD>
+                  <TD className="whitespace-nowrap text-ui text-fg-muted" data-active-run-started="">
+                    {t.run_started_at
+                      ? <Tooltip content={`Workflow started ${formatAbsolute(t.run_started_at)}`}><span>{formatRelative(t.run_started_at)}</span></Tooltip>
+                      : <span>—</span>}
+                  </TD>
                   <TD className="whitespace-nowrap text-ui text-fg-muted">
                     <Tooltip content={t.waiting_since ? `Since ${formatAbsolute(t.waiting_since)}` : ''}><span>{waitingFor(t.waiting_since)}</span></Tooltip>
                   </TD>
                   <TD className="whitespace-nowrap text-ui">
                     {t.due_date ? <Badge tone={SLA_TONE[t.sla]} pill>{t.sla === 'overdue' ? 'Overdue' : formatRelative(t.due_date)}</Badge> : <span className="text-fg-muted">—</span>}
                   </TD>
-                  <TD className="max-lg:hidden">{t.priority ? <PriorityBadge priority={t.priority} /> : '—'}</TD>
+                  <TD className="whitespace-nowrap">{t.priority ? <PriorityBadge priority={t.priority} /> : '—'}</TD>
                   <TD className="w-px whitespace-nowrap text-right">{actions(t)}</TD>
                 </TR>
               ))}

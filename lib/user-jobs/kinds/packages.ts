@@ -26,6 +26,8 @@ export const packageBuildJob = defineJobKind({
     version: z.string().max(64).optional(),
     bump: z.enum(['major', 'minor', 'patch']).optional(),
     notes: z.string().max(5000).nullable().optional(),
+    /** Also update this workspace's install of the package (self-installed). */
+    update_install: z.boolean().optional(),
   }),
   title: (p) => `Build package “${p.name}”`,
   authorize: (ctx) => requirePerm(ctx, 'packages.manage'),
@@ -36,11 +38,12 @@ export const packageBuildJob = defineJobKind({
       ...(params.bump ? { bump: params.bump } : {}),
       notes: params.notes ?? null,
       include_file: true,
+      ...(params.update_install ? { update_install: true } : {}),
     })
     const version = String(built.version?.version ?? '')
     return {
       file: { name: built.file_name, contentType: 'application/zip', body: packages.decodePackageFile(built.file_base64 ?? '') },
-      data: { version: built.version, warnings: built.warnings, file_name: built.file_name, requirements: built.manifest.requirements.length },
+      data: { version: built.version, warnings: built.warnings, file_name: built.file_name, requirements: built.manifest.requirements.length, ...(built.install_sync ? { install_sync: built.install_sync } : {}) },
       summary: `Version ${version} built${built.warnings.length ? ` (${built.warnings.length} warning${built.warnings.length === 1 ? '' : 's'})` : ''}`,
     }
   },

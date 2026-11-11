@@ -45,7 +45,7 @@ jobs:
       - name: Build and pack SDK + CLI
         run: |
           npm run cli:build
-          npm pack --dry-run -w @usertasks/sdk -w @usertasks/cli
+          npm pack --dry-run -w @user-tasks/sdk -w @user-tasks/cli
           node packages/cli/dist/bin.js --version
 
       # The build needs no database: Supabase is only contacted at request
@@ -65,7 +65,7 @@ jobs:
 
   # The full suite against a local Supabase stack, once per database provider:
   # `supabase` (supabase-js → PostgREST, the production default) and
-  # `postgres` (the same clients served in-process by @usertasks/pg-query over
+  # `postgres` (the same clients served in-process by @user-tasks/pg-query over
   # DATABASE_URL). DB-gated tests run here (they skip in `check`), including
   # the pg-query conformance suite (PostgREST vs pg-query, same role/claims).
   # Plain PostgreSQL (no Supabase stack) is the plain-postgres job below.

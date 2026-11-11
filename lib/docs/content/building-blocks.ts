@@ -127,6 +127,55 @@ usertasks rows upsert <table-id> --set data:='{"vendor_id":"V-311","name":"Acme 
 usertasks rows list <table-id> --all -o json
 \`\`\`
 
+## Import from CSV or Excel
+
+Fill a table straight from a file — for example a SharePoint list exported to CSV or Excel.
+
+- **Import** on a table's page adds rows to that table.
+- **Create from file** (in **New table**) makes a new table with columns inferred from the file, then imports its rows.
+
+**Files and limits:** \`.csv\`, \`.tsv\` and \`.xlsx\`, up to 10 MB, 50,000 rows and 200 columns. CSV files may have a byte-order mark, quoted cells with line breaks, and comma, semicolon or tab delimiters (detected); text is read as UTF-8, UTF-16 or Windows-1252. For a workbook you pick the sheet. Older \`.xls\` files must be saved as \`.xlsx\` or CSV first.
+
+**Columns.** File headers are matched to columns by name, ignoring case, spaces and underscores (\`Order No\`, \`order_no\` and \`ORDERNO\` all match). Change any match, skip a column, or create a new column from it (that needs \`data.edit_schema\`). The system **ID** and **Date Created** columns are filled by the table. When a table is created from a file, each column's type is inferred from its values:
+
+| Values look like | Column type |
+|---|---|
+| \`1,234.50\`, \`$1,200.00\`, \`USD 35.50\`, \`(12.00)\` | Number (currency symbols are dropped) |
+| \`2026-03-31\`, \`03/31/2026\`, \`31 Mar 2026\` | Date (stored as YYYY-MM-DD) |
+| Dates with a time | Text (the original value) |
+| \`yes\` / \`no\`, \`true\` / \`false\` | Yes / no |
+| A few values that repeat | Choice (select, with those options) |
+| Emails, URLs | Text |
+| Long values or line breaks | Long text |
+
+From 20 values on, a column keeps its type when up to 5% of its values don't fit (\`TBC\` in an amount column): those cells are reported as row errors instead of turning the whole column into text.
+
+**Options.**
+
+- **Mode:** *insert* adds every row; *upsert* updates the rows whose key column matches (cells not in the file are kept) and adds the rest; *replace* deletes every existing row first. Replace asks you to type the table name and is recorded in the audit log.
+- **Dates:** the day / month order of dates like \`03/04/2026\` is detected from the values; override it when every date is ambiguous.
+- **Trim whitespace** (on by default), and **empty cells**: clear the column, or leave it unchanged (useful with upsert).
+- **Run workflows:** on by default, as for rows added through the API — created and updated rows fire **Data Table Event** workflows. Turn it off to load data without starting workflows. With *replace*, the deleted rows go through the deletion queue, which removes their stored files and, when workflows run, fires the \`deleted\` event.
+
+**Validation before anything is written.** Every row is checked: numbers, dates, yes / no values, choices and required columns. Errors list the row number (the header is row 1), the column and the reason. Import the valid rows only, or cancel and fix the file; **Download error rows** gives you a CSV of the rows that failed.
+
+**Importing.** Rows are written in batches of 500 by a background job, so a large file never times out; follow its progress in the Jobs panel. The summary shows rows **inserted**, **updated**, **skipped** and **failed** (failed rows are listed in a downloadable error report). Each import is audited.
+
+Values are stored as plain text, numbers, dates and yes / no — a cell like \`=SUM(A1:A9)\` is kept as that text and never evaluated. Exported error reports prefix cells that start with \`=\`, \`+\`, \`-\` or \`@\` with \`'\` so a spreadsheet does not run them.
+
+**API, CLI and MCP.** \`POST /api/v1/data-tables/{id}/rows/import\` takes the file as multipart \`file\` or as \`file_base64\` + \`file_name\`, with the same options (\`mapping\`, \`new_columns\`, \`mode\`, \`key_column\`, \`confirm_replace\`, \`date_order\`, \`trim\`, \`empty_cells\`, \`skip_invalid\`, \`fire_triggers\`, \`dry_run\`). Send \`dry_run=true\` first to see the mapping, counts and row errors. Above 5,000 rows add \`?async=true\` (or \`Prefer: respond-async\`) and follow the job (\`GET /api/v1/jobs/{id}\`).
+
+\`\`\`bash
+curl -X POST "$USERTASKS_URL/api/v1/data-tables/<table-id>/rows/import?async=true" \\
+  -H "Authorization: Bearer $USERTASKS_API_KEY" \\
+  -F file=@orders.csv -F mode=upsert -F key_column=order_no
+
+usertasks rows import <table-id> --set file_name=orders.csv --set file_base64=@@orders.csv \\
+  --set mode=upsert --set key_column=order_no
+\`\`\`
+
+The CLI waits for the job and prints the summary. MCP clients and the Agent use \`data_rows_import\`, which also accepts \`csv_text\` (for example data pasted into a chat); the Agent shows a preview of what will be imported and waits for your confirmation.
+
 ## Using tables
 
 - **Workflows** — the **Data** node inserts, gets, updates, deletes and lists rows; **Data Table Event** triggers start a run when rows change (\`row\`, \`row_id\` and one variable per column).

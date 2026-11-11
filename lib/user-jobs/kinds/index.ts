@@ -8,6 +8,7 @@ import { directorySyncJob, syncWatchJob } from './sync'
 import { API_JOB_KINDS } from './api'
 import { formAccessibilityReportJob, formSubmissionsCsvJob } from './forms'
 import { agentTurnJob } from './agent'
+import { dataImportJob } from './data'
 
 /** Every job kind, by name (lib/user-jobs/runner.ts looks kinds up here). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each kind has its own params type
@@ -34,6 +35,7 @@ export const JOB_KINDS: ReadonlyArray<JobKind<any>> = [
   syncWatchJob,
   directorySyncJob,
   agentTurnJob,
+  dataImportJob,
   ...API_JOB_KINDS,
 ]
 

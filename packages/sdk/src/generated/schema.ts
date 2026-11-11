@@ -887,7 +887,7 @@ export interface paths {
         };
         /**
          * Tasks I follow (the Task tracker's Following tab)
-         * @description Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at, sorted by due date (none last), then most recently followed. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         * @description Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403).
          */
         get: operations["listFollowedTasks"];
         put?: never;
@@ -917,6 +917,134 @@ export interface paths {
          * @description Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
          */
         delete: operations["unfollowTask"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/viewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who a task is shared with (read only invites)
+         * @description The task's invites, oldest first, and can_manage (whether you may invite and remove). Anyone who can see the task reads them; anyone else gets 404. Invite and remove: the assignee or a collaborator, a member of the assigned team, the assigner, a manager of an assignee, a manager of the workflow, or tasks.complete_any (an invited viewer cannot invite others).
+         */
+        get: operations["listTaskViewers"];
+        put?: never;
+        /**
+         * Invite people, teams or roles to view a task (read only)
+         * @description Shares the task, read only: everyone the invite names (directly, as a member of the team or a holder of the role) can open it (and its subtasks unless include_subtasks is false), its comments, attachments, history and process view, and comment. People invited directly follow it (Task tracker → Following) and get a notification and an email; members of an invited team or role get a notification when it has at most 25 people. Already-invited ones are left as they are. Recorded in the task history and the audit log. Invite and remove: the assignee or a collaborator, a member of the assigned team, the assigner, a manager of an assignee, a manager of the workflow, or tasks.complete_any (an invited viewer cannot invite others).
+         */
+        post: operations["addTaskViewers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/viewers/{viewerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Stop sharing a task with a person, team or role
+         * @description Removes one invite (its id from GET /tasks/{id}/viewers): its people lose access unless something else lets them see the task, and the follow the invite created is removed. Recorded in the task history and the audit log. Invite and remove: the assignee or a collaborator, a member of the assigned team, the assigner, a manager of an assignee, a manager of the workflow, or tasks.complete_any (an invited viewer cannot invite others).
+         */
+        delete: operations["removeTaskViewer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/subtasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a task's subtasks
+         * @description Direct subtasks in order, with `total`, `completed` and `can_add` (whether you may add subtasks here). Visible to anyone who can reach the task (404 otherwise).
+         */
+        get: operations["listSubtasks"];
+        put?: never;
+        /**
+         * Add a subtask
+         * @description Title plus optional subtitle, description, estimate, due date, priority and tags. Anyone who can work on the task: tasks.complete and the task within reach — assignee, collaborator, member of its team, the assignee's manager (on their behalf), its assigner / creator, or tasks.view_all (e.g. an admin). Viewers and people who can't reach the task get 403 / 404. Needs a user-bound credential. Workflow tasks included (the subtask is not a workflow task and never completes or resumes the workflow). The subtask goes to the parent's assignee (else you), already accepted, at the end of the list; the parent's progress counts it. 409 when the task is closed; subtasks go at most 4 levels deep.
+         */
+        post: operations["addSubtask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/subtasks/{subtaskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a subtask
+         * @description Any of the create fields (only those sent change). Anyone who can work on the task: tasks.complete and the task within reach — assignee, collaborator, member of its team, the assignee's manager (on their behalf), its assigner / creator, or tasks.view_all (e.g. an admin). Viewers and people who can't reach the task get 403 / 404. Needs a user-bound credential. Tick / untick a subtask with PATCH /tasks/{subtaskId} (status) or complete it through POST /tasks/{subtaskId}/action.
+         */
+        patch: operations["updateSubtask"];
+        trace?: never;
+    };
+    "/workflows/runs/{id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A run's timeline: who did what and when, in plain words
+         * @description For a run you can see: in your run scope (workflows.view_runs, or workflows.view_queue and involved / an explicit workflow View grant), or one whose progress you may follow (you started it, your form submission started it, you have a task in it, or you are invited to view one of its tasks). Not found otherwise; API-key workflow allowlists apply. Returns timeline { kind (run / task), run_id, task_id, focus_task_id, detail (full: the run is in your run scope — every step, error text and resolved values; progress: you may follow its progress — people and steps only, the submitter named only to the submitter; task: one task's own history), header { workflow, title, reference, status, status_label, started_at, ended_at, duration_ms, started_by, started_how, current, version, sla_due_at }, events [{ id, kind (started, task_created, accepted, held, declined, reassigned, redirected, escalated, took_ownership, comment, outcome, task_closed, attachment, subtask, shared, form_saved, effort, system, system_group, subworkflow, error, run_paused, run_resumed, run_cancelled, ended, now), category (decisions / comments / people / system), at, actor { id, name, avatar_url }, on_behalf_of, via, icon, tone, title, step, body, note, badge { label, tone }, fields [{ label, value }], links [{ kind, label, href }], task_id, node_id, due_date, since_previous_ms, children (a collapsed group of automatic steps or a sub-workflow's steps), highlight }] oldest first, ending with the result (ended) or where it is now (now), live, links { process, timeline, task } }. Comments, notes, form values and reassignment lines appear only for tasks you can open or are invited to view.
+         */
+        get: operations["getRunTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A task's timeline: its run's story, or the task's own history
+         * @description A workflow task opens its run's timeline (focus_task_id set) when you may see the run; otherwise — and for a standalone task — the task's own history (created, assigned, accepted, comments, subtasks, attachments, invites, completed) when you can view the task (its people, their managers, a workflow manager, the assigner, tasks.view_all or an invited viewer). Not found otherwise. Returns timeline { kind (run / task), run_id, task_id, focus_task_id, detail (full: the run is in your run scope — every step, error text and resolved values; progress: you may follow its progress — people and steps only, the submitter named only to the submitter; task: one task's own history), header { workflow, title, reference, status, status_label, started_at, ended_at, duration_ms, started_by, started_how, current, version, sla_due_at }, events [{ id, kind (started, task_created, accepted, held, declined, reassigned, redirected, escalated, took_ownership, comment, outcome, task_closed, attachment, subtask, shared, form_saved, effort, system, system_group, subworkflow, error, run_paused, run_resumed, run_cancelled, ended, now), category (decisions / comments / people / system), at, actor { id, name, avatar_url }, on_behalf_of, via, icon, tone, title, step, body, note, badge { label, tone }, fields [{ label, value }], links [{ kind, label, href }], task_id, node_id, due_date, since_previous_ms, children (a collapsed group of automatic steps or a sub-workflow's steps), highlight }] oldest first, ending with the result (ended) or where it is now (now), live, links { process, timeline, task } }. Comments, notes, form values and reassignment lines appear only for tasks you can open or are invited to view.
+         */
+        get: operations["getTaskTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1414,6 +1542,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data-tables/{id}/rows/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import rows from a CSV, TSV or .xlsx file (insert, upsert or replace)
+         * @description Reads the file (BOM, quoted fields with embedded newlines, comma / semicolon / tab, UTF-8 / UTF-16 / Windows-1252, an .xlsx sheet), matches headers to columns (or `mapping`; `new_columns` adds columns), validates every row (numbers incl. currency like $1,234.50, dates → YYYY-MM-DD, yes / no, choices, required columns) and writes in batches of 500. Row errors carry the spreadsheet row number (header = row 1), the column and the reason; with errors nothing is written unless skip_invalid. Values are stored as plain text / numbers and never evaluated. Limits: 10 MB, 50,000 rows, 200 columns; more than 5,000 rows need the async variant. Replace deletes the existing rows through the deletion queue (stored files removed; audited). Created and updated rows fire data_table_event workflows unless fire_triggers is false.
+         */
+        post: operations["importDataRows"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/integrations": {
         parameters: {
             query?: never;
@@ -1811,7 +1959,7 @@ export interface paths {
         put?: never;
         /**
          * Create a reusable task form (version 1)
-         * @description fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form; a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
+         * @description fields is the User Task field list (key, label, type, required, options, bounds, ...; type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated, required?, options?, min?, max?, formula? }], min_rows?, max_rows?, entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
          */
         post: operations["createForm"];
         delete?: never;
@@ -1840,7 +1988,7 @@ export interface paths {
         head?: never;
         /**
          * Update a form
-         * @description A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. fields is the User Task field list (key, label, type, required, options, bounds, ...); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form; a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         * @description A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. fields is the User Task field list (key, label, type, required, options, bounds, ...; type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated, required?, options?, min?, max?, formula? }], min_rows?, max_rows?, entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
          */
         patch: operations["updateForm"];
         trace?: never;
@@ -2156,6 +2304,26 @@ export interface paths {
         get: operations["getFormLinks"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/import/infopath": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import an InfoPath form (.xsn): analyse it (dry_run) or create one UserTasks form per view, with its rules and validation
+         * @description Reads the .xsn (a CAB archive; MSZIP or uncompressed — LZX is refused with a message) or a .zip of its source files: views, controls, labels, repeating tables (→ List fields), sections, defaults, rules (→ form rules), data validation, calculations, conditional formatting, data connections, buttons and roles. Anything that cannot be converted is kept as a disabled rule with the original XPath in its notes and listed in the report (report.items; report_markdown). The file is never stored. Up to 20 MB (INFOPATH_MAX_MB); hosted instances accept request bodies up to about 4.5 MB. Created forms carry layout.source { kind: infopath, file_name, view, hash } so a re-import can update them (existing: update). dry_run needs forms.view; an import needs forms.edit.
+         */
+        post: operations["importInfoPathForm"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4634,6 +4802,90 @@ export interface paths {
         get: operations["getPackageEvent"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/packages/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The items in a package, grouped by type, with what each uses / is used by and the changes since the last built version
+         * @description `changes.unpublished` is true when items were added or removed since `changes.since_version` (or it was never built): build a new version to publish them. `install` is set when the package is installed in this workspace (built and installed here): build with update_install to keep that install in step.
+         */
+        get: operations["listPackageItems"];
+        put?: never;
+        /**
+         * Add workspace items to a package (and, by default, what they use)
+         * @description dry_run lists `dependencies`: what the items use that is not in the package yet (left_out: the author left it out earlier). with_dependencies (default true) adds them too; false leaves them out (they must then exist where the package is installed). Changes the draft only — build a new version to publish.
+         */
+        post: operations["addPackageItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/packages/{id}/items/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove items from a package (refused while other items use them, unless force)
+         * @description Nothing in the workspace is deleted. When another item in the package uses one ("Workflow X uses this form") the request is refused with 409 unless force; dry_run lists `dependents` and `warnings` first. Items something still pulls in are left out (excluded). Build a new version to publish.
+         */
+        post: operations["removePackageItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/package-installs/{id}/detach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove items from an installed package: they stay in the workspace and uninstall keeps them
+         * @description Any install (gallery, file or built here). Later upgrades leave detached items alone. `used_by` lists items still owned by the install that use them. For a package authored here the package itself drops them too (update_package, default true). Audited.
+         */
+        post: operations["detachInstallItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/package-installs/{id}/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add existing workspace items to an installed package, so uninstall removes them (packages authored here only)
+         * @description Only for an install of a package authored in this workspace (self-installed); a gallery or third-party install answers 403 (detach is allowed there). The package itself gains them too (update_package, default true) so its next build keeps them. Audited.
+         */
+        post: operations["adoptInstallItems"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9429,6 +9681,8 @@ export interface operations {
                 priority?: string;
                 /** @description true: leave out completed and cancelled tasks */
                 hide_completed?: "true" | "false";
+                /** @description true: only tasks shared with you by an invite (read only) */
+                shared_only?: "true" | "false";
             };
             header?: never;
             path?: never;
@@ -9577,6 +9831,754 @@ export interface operations {
                         data: {
                             task_id: string;
                             following: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listTaskViewers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            tenant_id: string;
+                            viewers: ({
+                                /** @description Invite id */
+                                id: string;
+                                task_id: string;
+                                /** @enum {string} */
+                                principal_type: "user" | "team" | "role";
+                                principal_id: string;
+                                /** @description Person / team / role name */
+                                name: string;
+                                /** @description Members of the team / holders of the role (null for a person) */
+                                member_count: number | null;
+                                include_subtasks: boolean;
+                                note: string | null;
+                                invited_by: ({
+                                    id: string;
+                                    name: string;
+                                } & {
+                                    [key: string]: unknown;
+                                }) | null;
+                                created_at: string;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            can_manage: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addTaskViewers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description People, teams and roles to invite (at most 50) */
+                    viewers: {
+                        /**
+                         * @description Who: a person, a team or a role of the workspace
+                         * @enum {string}
+                         */
+                        type: "user" | "team" | "role";
+                        /** @description User, team or role id */
+                        id: string;
+                    }[];
+                    /** @description A note for them (shown in the notification) */
+                    note?: string;
+                    /** @description Also its subtasks (default true) */
+                    include_subtasks?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            added: ({
+                                /** @description Invite id */
+                                id: string;
+                                task_id: string;
+                                /** @enum {string} */
+                                principal_type: "user" | "team" | "role";
+                                principal_id: string;
+                                /** @description Person / team / role name */
+                                name: string;
+                                /** @description Members of the team / holders of the role (null for a person) */
+                                member_count: number | null;
+                                include_subtasks: boolean;
+                                note: string | null;
+                                invited_by: ({
+                                    id: string;
+                                    name: string;
+                                } & {
+                                    [key: string]: unknown;
+                                }) | null;
+                                created_at: string;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            existing: number;
+                            notified: number;
+                            skipped_group_notifications: number;
+                            basis: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeTaskViewer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task id */
+                id: string;
+                /** @description Invite id */
+                viewerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            removed: {
+                                /** @description Invite id */
+                                id: string;
+                                task_id: string;
+                                /** @enum {string} */
+                                principal_type: "user" | "team" | "role";
+                                principal_id: string;
+                                /** @description Person / team / role name */
+                                name: string;
+                                /** @description Members of the team / holders of the role (null for a person) */
+                                member_count: number | null;
+                                include_subtasks: boolean;
+                                note: string | null;
+                                invited_by: ({
+                                    id: string;
+                                    name: string;
+                                } & {
+                                    [key: string]: unknown;
+                                }) | null;
+                                created_at: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listSubtasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            subtasks: ({
+                                id: string;
+                                parent_task_id: string;
+                                title: string;
+                                subtitle: string | null;
+                                description: string | null;
+                                status: string;
+                                priority: string;
+                                due_date: string | null;
+                                sequence: number;
+                                tags: string[];
+                                /** @description The parent's assignee, else the person who added it */
+                                assignee_id: string | null;
+                                /** @description The working estimate (the assignee's, else the creator's) */
+                                estimated_effort_minutes: number | null;
+                                actual_effort_minutes: number;
+                                /** @description Its own subtasks */
+                                child_count: number;
+                                completed_child_count: number;
+                                created_at: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                            completed: number;
+                            can_add: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addSubtask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    /** @description A short summary shown under the title */
+                    subtitle?: string | null;
+                    /** @description Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images). */
+                    description?: string | null;
+                    /** @description Estimate in whole minutes (the unit of actual_effort); stored as the creator's estimate. 0 or null = none */
+                    estimated_effort_minutes?: number | null;
+                    /** @description ISO 8601 date or date-time (years 2000–2100) */
+                    due_date?: string | null;
+                    /**
+                     * @description Default: the parent's priority
+                     * @enum {string}
+                     */
+                    priority?: "critical" | "high" | "medium" | "low" | "none";
+                    tags?: string[] | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            subtask: {
+                                id: string;
+                                parent_task_id: string;
+                                title: string;
+                                subtitle: string | null;
+                                description: string | null;
+                                status: string;
+                                priority: string;
+                                due_date: string | null;
+                                sequence: number;
+                                tags: string[];
+                                /** @description The parent's assignee, else the person who added it */
+                                assignee_id: string | null;
+                                /** @description The working estimate (the assignee's, else the creator's) */
+                                estimated_effort_minutes: number | null;
+                                actual_effort_minutes: number;
+                                /** @description Its own subtasks */
+                                child_count: number;
+                                completed_child_count: number;
+                                created_at: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateSubtask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Parent task id */
+                id: string;
+                /** @description Subtask id */
+                subtaskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    /** @description A short summary shown under the title */
+                    subtitle?: string | null;
+                    /** @description Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images). */
+                    description?: string | null;
+                    /** @description Estimate in whole minutes (the unit of actual_effort); stored as the creator's estimate. 0 or null = none */
+                    estimated_effort_minutes?: number | null;
+                    /** @description ISO 8601 date or date-time (years 2000–2100) */
+                    due_date?: string | null;
+                    /**
+                     * @description Default: the parent's priority
+                     * @enum {string}
+                     */
+                    priority?: "critical" | "high" | "medium" | "low" | "none";
+                    tags?: string[] | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            subtask: {
+                                id: string;
+                                parent_task_id: string;
+                                title: string;
+                                subtitle: string | null;
+                                description: string | null;
+                                status: string;
+                                priority: string;
+                                due_date: string | null;
+                                sequence: number;
+                                tags: string[];
+                                /** @description The parent's assignee, else the person who added it */
+                                assignee_id: string | null;
+                                /** @description The working estimate (the assignee's, else the creator's) */
+                                estimated_effort_minutes: number | null;
+                                actual_effort_minutes: number;
+                                /** @description Its own subtasks */
+                                child_count: number;
+                                completed_child_count: number;
+                                created_at: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRunTimeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            timeline: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTaskTimeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            timeline: {
+                                [key: string]: unknown;
+                            };
                         } & {
                             [key: string]: unknown;
                         };
@@ -13008,6 +14010,302 @@ export interface operations {
                         data: {
                             deleted: number;
                             ids: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Accepted (async=true or Prefer: respond-async): a background job. Poll GET /jobs/{id}; the result is GET /jobs/{id}/result. */
+            202: {
+                headers: {
+                    /** @description The job: /api/v1/jobs/{id} */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            job: {
+                                id: string;
+                                tenant_id: string;
+                                user_id: string | null;
+                                /** @description What the job does, e.g. config.export or api.applyconfig */
+                                kind: string;
+                                title: string;
+                                /** @enum {string} */
+                                status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+                                /** @description 0-100 */
+                                progress: number;
+                                message: string | null;
+                                result: ({
+                                    file?: {
+                                        filename: string;
+                                        content_type: string;
+                                        size: number;
+                                    };
+                                    counts?: {
+                                        [key: string]: number;
+                                    };
+                                    summary?: string;
+                                    data?: unknown;
+                                    data_in_file?: boolean;
+                                } & {
+                                    [key: string]: unknown;
+                                }) | null;
+                                error: string | null;
+                                attempts: number;
+                                max_attempts: number;
+                                created_at: string;
+                                updated_at: string;
+                                started_at: string | null;
+                                finished_at: string | null;
+                                /** @description When the result (and the job) is deleted */
+                                expires_at: string | null;
+                                /** @description A result file is ready: GET /jobs/{id}/download */
+                                downloadable: boolean;
+                                cancellable: boolean;
+                                retryable: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importDataRows: {
+        parameters: {
+            query?: {
+                /** @description true: run as a background job and return 202 with it (same as Prefer: respond-async) */
+                async?: "true" | "false";
+            };
+            header?: {
+                /** @description respond-async: run as a background job (202) */
+                Prefer?: string;
+            };
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field. */
+                    file_base64: string;
+                    /** @description File name; its extension (.csv, .tsv, .xlsx) picks the reader */
+                    file_name: string;
+                    /** @description .xlsx: the sheet to read (default the first) */
+                    sheet?: string;
+                    /**
+                     * @description CSV delimiter (default auto: comma, semicolon or tab, detected)
+                     * @enum {string}
+                     */
+                    delimiter?: "auto" | "," | ";" | "\t";
+                    /**
+                     * @description Text encoding (default auto: UTF-8 with or without BOM, UTF-16 with BOM, else Windows-1252)
+                     * @enum {string}
+                     */
+                    encoding?: "auto" | "utf-8" | "utf-16le" | "utf-16be" | "windows-1252";
+                    /** @description File header → column key or name; null skips the header. Headers left out are matched to columns by name (case-insensitive; spaces, underscores and hyphens ignored) */
+                    mapping?: {
+                        [key: string]: string | null;
+                    } | string;
+                    /** @description Columns to add to the table before importing (needs data.edit_schema) */
+                    new_columns?: {
+                        /** @description File header the new column is filled from */
+                        header: string;
+                        /** @description Column name (default the header) */
+                        name?: string;
+                        /**
+                         * @description Column type (default text)
+                         * @enum {string}
+                         */
+                        type?: "text" | "longtext" | "number" | "date" | "boolean" | "select";
+                        /** @description Choices, for select columns */
+                        options?: string[];
+                        required?: boolean;
+                    }[] | string;
+                    /**
+                     * @description insert (default): add every row; upsert: update rows whose key_column value matches, insert the rest; replace: delete every existing row first (confirm_replace)
+                     * @enum {string}
+                     */
+                    mode?: "insert" | "upsert" | "replace";
+                    /** @description upsert: the column (key or name) whose value identifies a row */
+                    key_column?: string;
+                    /** @description replace: the table name, typed, to confirm deleting every existing row */
+                    confirm_replace?: string;
+                    /**
+                     * @description Day / month order of numeric dates such as 03/04/2026 (default auto: detected from the values; month/day when undecidable)
+                     * @enum {string}
+                     */
+                    date_order?: "auto" | "dmy" | "mdy" | "ymd";
+                    /** @description Trim leading / trailing whitespace (default true) */
+                    trim?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /**
+                     * @description empty (default): an empty cell clears the column; ignore: it leaves the column out (an upsert keeps the stored value)
+                     * @enum {string}
+                     */
+                    empty_cells?: "empty" | "ignore";
+                    /** @description Import the valid rows and skip rows with errors (default false: any error stops the import, nothing is written) */
+                    skip_invalid?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** @description Fire data_table_event workflows for created / updated rows (default true, like POST /data-tables/{id}/rows) */
+                    fire_triggers?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** @description Validate only: the report (mapping, counts, row errors, preview), nothing written */
+                    dry_run?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                };
+                "multipart/form-data": {
+                    /** @description .xlsx: the sheet to read (default the first) */
+                    sheet?: string;
+                    /**
+                     * @description CSV delimiter (default auto: comma, semicolon or tab, detected)
+                     * @enum {string}
+                     */
+                    delimiter?: "auto" | "," | ";" | "\t";
+                    /**
+                     * @description Text encoding (default auto: UTF-8 with or without BOM, UTF-16 with BOM, else Windows-1252)
+                     * @enum {string}
+                     */
+                    encoding?: "auto" | "utf-8" | "utf-16le" | "utf-16be" | "windows-1252";
+                    /** @description File header → column key or name; null skips the header. Headers left out are matched to columns by name (case-insensitive; spaces, underscores and hyphens ignored) */
+                    mapping?: {
+                        [key: string]: string | null;
+                    } | string;
+                    /** @description Columns to add to the table before importing (needs data.edit_schema) */
+                    new_columns?: {
+                        /** @description File header the new column is filled from */
+                        header: string;
+                        /** @description Column name (default the header) */
+                        name?: string;
+                        /**
+                         * @description Column type (default text)
+                         * @enum {string}
+                         */
+                        type?: "text" | "longtext" | "number" | "date" | "boolean" | "select";
+                        /** @description Choices, for select columns */
+                        options?: string[];
+                        required?: boolean;
+                    }[] | string;
+                    /**
+                     * @description insert (default): add every row; upsert: update rows whose key_column value matches, insert the rest; replace: delete every existing row first (confirm_replace)
+                     * @enum {string}
+                     */
+                    mode?: "insert" | "upsert" | "replace";
+                    /** @description upsert: the column (key or name) whose value identifies a row */
+                    key_column?: string;
+                    /** @description replace: the table name, typed, to confirm deleting every existing row */
+                    confirm_replace?: string;
+                    /**
+                     * @description Day / month order of numeric dates such as 03/04/2026 (default auto: detected from the values; month/day when undecidable)
+                     * @enum {string}
+                     */
+                    date_order?: "auto" | "dmy" | "mdy" | "ymd";
+                    /** @description Trim leading / trailing whitespace (default true) */
+                    trim?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /**
+                     * @description empty (default): an empty cell clears the column; ignore: it leaves the column out (an upsert keeps the stored value)
+                     * @enum {string}
+                     */
+                    empty_cells?: "empty" | "ignore";
+                    /** @description Import the valid rows and skip rows with errors (default false: any error stops the import, nothing is written) */
+                    skip_invalid?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** @description Fire data_table_event workflows for created / updated rows (default true, like POST /data-tables/{id}/rows) */
+                    fire_triggers?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** @description Validate only: the report (mapping, counts, row errors, preview), nothing written */
+                    dry_run?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            table_id: string;
+                            dry_run: boolean;
+                            imported: boolean;
+                            /** @enum {string} */
+                            mode: "insert" | "upsert" | "replace";
+                            file: {
+                                [key: string]: unknown;
+                            };
+                            mapping: {
+                                [key: string]: string | null;
+                            };
+                            /** @enum {string} */
+                            date_order: "dmy" | "mdy" | "ymd";
+                            key_column: string | null;
+                            fire_triggers: boolean;
+                            columns_created: string[];
+                            counts: {
+                                rows: number;
+                                valid: number;
+                                invalid: number;
+                                inserted: number;
+                                updated: number;
+                                skipped: number;
+                                failed: number;
+                                deleted: number;
+                            };
+                            errors: {
+                                row: number;
+                                column: string;
+                                value: string;
+                                reason: string;
+                            }[];
+                            errors_truncated: boolean;
+                            preview: {
+                                [key: string]: unknown;
+                            }[];
                         } & {
                             [key: string]: unknown;
                         };
@@ -16984,7 +18282,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Field values keyed by field key (validated like a task form: types, required, rules, people, lookup values against their source) */
+                    /** @description Field values keyed by field key (validated like a task form: types, required, rules, people, lookup values against their source; a list field takes an array of row objects keyed by its column keys) */
                     values?: {
                         [key: string]: unknown;
                     };
@@ -17651,6 +18949,142 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importInfoPathForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The InfoPath form template (.xsn), or a .zip of its extracted source files, base64. With multipart/form-data: the `file` field. */
+                    file_base64: string;
+                    /** @description The file name (default form.xsn); re-imports are matched by it */
+                    file_name?: string;
+                    /** @description true = analyse only: the report and the forms that would be made; nothing is stored */
+                    dry_run?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /**
+                     * @description per_view (default): one form per InfoPath view, "<Form> — <View>"; combined: one form with each view as a step
+                     * @enum {string}
+                     */
+                    mode?: "per_view" | "combined";
+                    /** @description Views to import (names; default all) */
+                    views?: string[] | string;
+                    /** @description Base form name (default the InfoPath form's title) */
+                    name?: string;
+                    /** @description An extra tag (the form name and "infopath" are always added) */
+                    tag?: string;
+                    /**
+                     * @description Forms an earlier import of this file made (matched by file name + view): update them (a new version each) or create new forms (default)
+                     * @enum {string}
+                     */
+                    existing?: "new" | "update";
+                    /** @description Also create a data table for the submissions (a child table per repeating table) and a draft "save submissions" workflow (data.create and workflows.create / edit) */
+                    create_table?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** @description Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false). */
+                    available_in_menu?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                };
+                "multipart/form-data": {
+                    /** @description true = analyse only: the report and the forms that would be made; nothing is stored */
+                    dry_run?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /**
+                     * @description per_view (default): one form per InfoPath view, "<Form> — <View>"; combined: one form with each view as a step
+                     * @enum {string}
+                     */
+                    mode?: "per_view" | "combined";
+                    /** @description Views to import (names; default all) */
+                    views?: string[] | string;
+                    /** @description Base form name (default the InfoPath form's title) */
+                    name?: string;
+                    /** @description An extra tag (the form name and "infopath" are always added) */
+                    tag?: string;
+                    /**
+                     * @description Forms an earlier import of this file made (matched by file name + view): update them (a new version each) or create new forms (default)
+                     * @enum {string}
+                     */
+                    existing?: "new" | "update";
+                    /** @description Also create a data table for the submissions (a child table per repeating table) and a draft "save submissions" workflow (data.create and workflows.create / edit) */
+                    create_table?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** @description Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false). */
+                    available_in_menu?: boolean | ("0" | "1" | "true" | "false" | "on" | "off");
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            file_name: string;
+                            hash: string;
+                            report: {
+                                [key: string]: unknown;
+                            };
+                            forms: {
+                                [key: string]: unknown;
+                            }[];
+                            existing: {
+                                [key: string]: unknown;
+                            }[];
+                            markdown: string;
+                            created?: {
+                                [key: string]: unknown;
+                            }[];
+                            updated?: {
+                                [key: string]: unknown;
+                            }[];
+                            table?: {
+                                [key: string]: unknown;
+                            };
+                            workflow?: {
+                                [key: string]: unknown;
+                            } | null;
+                            warnings?: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -30808,7 +32242,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -30817,7 +32251,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -30826,7 +32260,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -30897,7 +32331,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -30907,7 +32341,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -30917,7 +32351,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -30956,7 +32390,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -30965,7 +32399,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -30974,7 +32408,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31035,7 +32469,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31044,7 +32478,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31053,7 +32487,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31275,7 +32709,7 @@ export interface operations {
             query?: {
                 /** @description Case-insensitive substring of the name or description (integrations: also their reference names) */
                 search?: string;
-                /** @description Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme (default every type you may view) (comma-separated) */
+                /** @description Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control (default every type you may view) (comma-separated) */
                 type?: string;
                 /** @description Tag (workflows, custom steps, integrations, agents) or report category */
                 tag?: string;
@@ -31310,7 +32744,7 @@ export interface operations {
                         data: {
                             assets: ({
                                 /** @enum {string} */
-                                type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                 id: string;
                                 name: string;
                                 /** @description Type label, e.g. "Decision table" */
@@ -31415,7 +32849,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31424,7 +32858,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31433,7 +32867,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31593,7 +33027,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31602,7 +33036,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31611,7 +33045,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31621,7 +33055,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31631,7 +33065,7 @@ export interface operations {
                          * @description Artifact type
                          * @enum {string}
                          */
-                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                         /** @description Artifact id in this workspace */
                         id: string;
                     }[];
@@ -31665,7 +33099,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31674,7 +33108,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31683,7 +33117,7 @@ export interface operations {
                                      * @description Artifact type
                                      * @enum {string}
                                      */
-                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme";
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
                                     /** @description Artifact id in this workspace */
                                     id: string;
                                 }[];
@@ -31951,6 +33385,8 @@ export interface operations {
                     }[];
                     /** @description Return the .utpkg as file_base64 */
                     include_file?: boolean;
+                    /** @description When the package is installed in this workspace (built and installed here): update that install to the new version, so uninstall removes items added since and keeps items removed. Needs packages.install */
+                    update_install?: boolean;
                 };
             };
         };
@@ -33801,6 +35237,629 @@ export interface operations {
                             } & {
                                 [key: string]: unknown;
                             };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listPackageItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Package id or slug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            package: {
+                                [key: string]: unknown;
+                            };
+                            items: ({
+                                /** @enum {string} */
+                                type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                id: string;
+                                name: string;
+                                label: string;
+                                section: string;
+                                /** @enum {string} */
+                                included_as: "root" | "manual" | "dependency";
+                                required_by: ({
+                                    /** @enum {string} */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    id: string;
+                                    name: string;
+                                    label: string;
+                                } & {
+                                    [key: string]: unknown;
+                                }) | null;
+                                uses: ({
+                                    /** @enum {string} */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    id: string;
+                                    name: string;
+                                    label: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                used_by: ({
+                                    /** @enum {string} */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    id: string;
+                                    name: string;
+                                    label: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            groups: ({
+                                type: string;
+                                label: string;
+                                count: number;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            excluded: {
+                                [key: string]: unknown;
+                            }[];
+                            changes: {
+                                since_version: string | null;
+                                unpublished: boolean;
+                                added: ({
+                                    /** @enum {string} */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    id: string;
+                                    name: string;
+                                    label: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                removed: ({
+                                    /** @enum {string} */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    id: string;
+                                    name: string;
+                                    label: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            install: ({
+                                id: string;
+                                version: string;
+                                status: string;
+                            } & {
+                                [key: string]: unknown;
+                            }) | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addPackageItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Package id or slug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Workspace items to add (find them with GET /packages/assets) */
+                    items: {
+                        /**
+                         * @description Artifact type
+                         * @enum {string}
+                         */
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                        /** @description Artifact id in this workspace */
+                        id: string;
+                    }[];
+                    /** @description Also add what they use that is not in the package yet (default true); false leaves those out */
+                    with_dependencies?: boolean;
+                    /** @description Only list the items and the dependencies they would bring in */
+                    dry_run?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            dry_run: boolean;
+                            package?: {
+                                id: string;
+                                /** @description Stable package id (the same in every environment) */
+                                package_uid: string;
+                                name: string;
+                                slug: string;
+                                description: string | null;
+                                roots: {
+                                    /**
+                                     * @description Artifact type
+                                     * @enum {string}
+                                     */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    /** @description Artifact id in this workspace */
+                                    id: string;
+                                }[];
+                                items: {
+                                    /**
+                                     * @description Artifact type
+                                     * @enum {string}
+                                     */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    /** @description Artifact id in this workspace */
+                                    id: string;
+                                }[];
+                                excluded: {
+                                    /**
+                                     * @description Artifact type
+                                     * @enum {string}
+                                     */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    /** @description Artifact id in this workspace */
+                                    id: string;
+                                }[];
+                                data_modes: {
+                                    [key: string]: string;
+                                };
+                                latest_version: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            adding: {
+                                [key: string]: unknown;
+                            }[];
+                            dependencies: {
+                                [key: string]: unknown;
+                            }[];
+                            dependencies_added: number;
+                            dependencies_left_out: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removePackageItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Package id or slug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Items in the package to remove (nothing in the workspace is deleted) */
+                    items: {
+                        /**
+                         * @description Artifact type
+                         * @enum {string}
+                         */
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                        /** @description Artifact id in this workspace */
+                        id: string;
+                    }[];
+                    /** @description Remove even when other items in the package use them */
+                    force?: boolean;
+                    /** @description Only list the items and what in the package still uses them */
+                    dry_run?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            dry_run: boolean;
+                            package?: {
+                                id: string;
+                                /** @description Stable package id (the same in every environment) */
+                                package_uid: string;
+                                name: string;
+                                slug: string;
+                                description: string | null;
+                                roots: {
+                                    /**
+                                     * @description Artifact type
+                                     * @enum {string}
+                                     */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    /** @description Artifact id in this workspace */
+                                    id: string;
+                                }[];
+                                items: {
+                                    /**
+                                     * @description Artifact type
+                                     * @enum {string}
+                                     */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    /** @description Artifact id in this workspace */
+                                    id: string;
+                                }[];
+                                excluded: {
+                                    /**
+                                     * @description Artifact type
+                                     * @enum {string}
+                                     */
+                                    type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                                    /** @description Artifact id in this workspace */
+                                    id: string;
+                                }[];
+                                data_modes: {
+                                    [key: string]: string;
+                                };
+                                latest_version: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            removing: {
+                                [key: string]: unknown;
+                            }[];
+                            dependents: {
+                                [key: string]: unknown;
+                            }[];
+                            warnings: string[];
+                            left_out: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    detachInstallItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Install id or package slug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Items by type and their id in this workspace */
+                    items: {
+                        /**
+                         * @description Artifact type
+                         * @enum {string}
+                         */
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                        /** @description Artifact id in this workspace */
+                        id: string;
+                    }[];
+                    dry_run?: boolean;
+                    /** @description Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage) */
+                    update_package?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            dry_run: boolean;
+                            install_id: string;
+                            items: {
+                                [key: string]: unknown;
+                            }[];
+                            skipped: {
+                                [key: string]: unknown;
+                            }[];
+                            used_by: {
+                                [key: string]: unknown;
+                            }[];
+                            /** @description The package authored here this install came from (null: gallery / another workspace) */
+                            authored_package: {
+                                [key: string]: unknown;
+                            } | null;
+                            package_updated: boolean;
+                            warnings: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    adoptInstallItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Install id or package slug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Items by type and their id in this workspace */
+                    items: {
+                        /**
+                         * @description Artifact type
+                         * @enum {string}
+                         */
+                        type: "workflow" | "workflow_activity" | "data_table" | "integration" | "connector" | "decision_table" | "email_template" | "agent" | "report" | "role" | "mcp_server" | "retention_policy" | "log_destination" | "form" | "form_theme" | "form_control";
+                        /** @description Artifact id in this workspace */
+                        id: string;
+                    }[];
+                    dry_run?: boolean;
+                    /** @description Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage) */
+                    update_package?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            dry_run: boolean;
+                            install_id: string;
+                            items: {
+                                [key: string]: unknown;
+                            }[];
+                            skipped: {
+                                [key: string]: unknown;
+                            }[];
+                            used_by: {
+                                [key: string]: unknown;
+                            }[];
+                            /** @description The package authored here this install came from (null: gallery / another workspace) */
+                            authored_package: {
+                                [key: string]: unknown;
+                            } | null;
+                            package_updated: boolean;
+                            warnings: string[];
                         } & {
                             [key: string]: unknown;
                         };

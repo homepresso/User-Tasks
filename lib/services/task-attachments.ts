@@ -174,7 +174,12 @@ export async function taskAttachmentAccess(ctx: ServiceContext, db: AnySupabaseC
   const work = !closed(task) && hasPerm(ctx, 'tasks.complete') && Boolean(ctx.actorId) && (
     related || hasPerm(ctx, 'tasks.complete_any') || (!task.is_workflow_task && hasPerm(ctx, 'tasks.manage_queue'))
   )
-  const view = work || related || assigner || broadView
+  let view = work || related || assigner || broadView
+  // Invited viewers (task_viewers) read the files; they never add them.
+  if (!view && ctx.actorId) {
+    const { findTaskViewerGrant } = await import('@/lib/task-authz')
+    view = Boolean(await findTaskViewerGrant(db, ctx.tenantId, ctx.actorId, taskId))
+  }
   if (!view) throw ServiceError.notFound('Task not found')
   return { task, view, work, admin, held: await formHeld(db, ctx.tenantId, taskFormId(task)) }
 }

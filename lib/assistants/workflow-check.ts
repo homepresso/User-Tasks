@@ -58,6 +58,14 @@ function setsVariables(node: any): string[] {
   const out: string[] = []
   for (const k of ['output_var', 'output_row_id_var', 'output_row_var', 'output_rows_var', 'output_count_var', 'output_variable', 'name', 'variable', 'result_var']) if (typeof c[k] === 'string' && c[k]) out.push(c[k])
   if (Array.isArray(c.assignments)) for (const a of c.assignments) if (a?.name) out.push(String(a.name))
+  // A loop's current item / index (inside its body).
+  if (node?.type === 'loop') out.push(String(c.item_var || 'item'), String(c.index_var || 'index'))
+  if (node?.type === 'loop_n_times') out.push(String(c.index_var || 'i'))
+  // A decision table step sets each declared output (the designer caches them as _decision_outputs) and its match facts.
+  if (node?.type === 'decision_table') {
+    out.push('matched', 'rule_id', 'rule_label', 'outputs')
+    for (const o of Array.isArray(c._decision_outputs) ? c._decision_outputs : []) if (o?.key) out.push(String(o.key))
+  }
   return out
 }
 

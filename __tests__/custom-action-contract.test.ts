@@ -8,10 +8,10 @@ const ROOT = process.cwd()
 const src = (file: string) => readFileSync(path.join(ROOT, file), 'utf8')
 
 /**
- * packages/action (@usertasks/action) ships its own copy of the contract and
+ * packages/action (@user-tasks/action) ships its own copy of the contract and
  * the sandbox so authors test locally against exactly what the app runs.
  */
-describe('@usertasks/action stays in step with the app', () => {
+describe('@user-tasks/action stays in step with the app', () => {
   it('exports the same contract constants', () => {
     expect(Object.keys(pkg).sort()).toEqual(Object.keys(app).sort())
     expect(pkg.ACTION_MANIFEST_VERSION).toBe(app.ACTION_MANIFEST_VERSION)

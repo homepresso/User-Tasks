@@ -145,6 +145,7 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | lookup | `POST /forms/{id}/lookup` | `forms_lookup` | `forms lookup` |  |
 | data table rows | `POST /forms/{id}/data-table` | `forms_data_table` | `forms data-table` |  |
 | check accessibility | `POST /forms/{id}/accessibility` | `forms_check_accessibility` | `forms check-accessibility` |  |
+| import InfoPath | `POST /forms/import/infopath` | `forms_import_infopath` | `forms import-infopath` | an .xsn → one form per view (or views as steps); dry_run returns the analysis report |
 | governance | `GET /forms/{id}/governance` | `forms_governance_get` | `forms governance` | retention policy, legal hold and submission count |
 | legal hold | `POST /forms/{id}/legal-hold` | `forms_legal_hold` | `forms legal-hold` | team.change_roles; while held nothing of the form is purged or deleted |
 | anonymous link | `GET /forms/{id}/anonymous` | `forms_anonymous_get` | `forms anonymous` | the public link (/p/<token>), limits and what anonymous visitors would not get |
@@ -186,6 +187,16 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | start direct upload | `POST /tasks/{id}/attachments` | `tasks_attachments_add_init` | `tasks attachment-add` |  |
 | complete direct upload | `POST /tasks/{id}/attachments/{attachmentId}/complete` | `tasks_attachments_complete` | `tasks attachment-complete` |  |
 
+## Subtasks
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /tasks/{id}/subtasks` | `tasks_subtasks_list` | `tasks subtasks` | direct subtasks in order, with can_add |
+| get | `GET /tasks/{id}` | `tasks_get` | `tasks get` | a subtask is a task |
+| create | `POST /tasks/{id}/subtasks` | `tasks_add_subtask` | `tasks add-subtask` | anyone who can work on the open task (workflow tasks included); title + optional subtitle, description, estimate, due date, priority, tags |
+| update | `PATCH /tasks/{id}/subtasks/{subtaskId}` | `tasks_update_subtask` | `tasks update-subtask` | only the fields sent change |
+| delete | — | — | — | subtasks are cancelled (status), not deleted: PATCH /tasks/{id} status cancelled |
+
 ## Task follows
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
@@ -195,6 +206,27 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | create | `PUT /tasks/{id}/follow` | `tasks_follow` | `tasks follow` | only a task the caller can see; idempotent |
 | update | — | — | — | a follow has nothing to change |
 | delete | `DELETE /tasks/{id}/follow` | `tasks_unfollow` | `tasks unfollow` | idempotent |
+
+## Task viewers (invite, read only)
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /tasks/{id}/viewers` | `tasks_viewers_list` | `tasks viewers` | anyone who can see the task; can_manage says who may change them |
+| get | — | — | — | an invite has no detail beyond the list row |
+| create | `POST /tasks/{id}/viewers` | `tasks_viewers_add` | `tasks viewers-add` | people, teams or roles; the people working on the task, its assigner, their managers, a manager of the workflow or tasks.complete_any |
+| update | — | — | — | remove the invite and invite again |
+| delete | `DELETE /tasks/{id}/viewers/{viewerId}` | `tasks_viewers_remove` | `tasks viewers-remove` |  |
+
+## Timelines (read only)
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | a timeline belongs to one run or task: read it from the run or the task |
+| get | `GET /workflows/runs/{id}/timeline` | `workflows_run_timeline` | `runs timeline` | a run in plain words; only what the caller may see |
+| get task timeline | `GET /tasks/{id}/timeline` | `tasks_timeline` | `tasks timeline` | its run's timeline when the run is visible, else the task's own history |
+| create | — | — | — | built from the run, its tasks and their history as things happen |
+| update | — | — | — | read only: comment on the task, or act on it, to add to it |
+| delete | — | — | — | follows the run and its tasks (retention) |
 
 ## Form themes
 
@@ -261,6 +293,7 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | update | `PATCH /data-tables/{id}/rows/{rowId}` | `data_rows_upsert` | `rows update` | MCP: data_rows_upsert { row_id } |
 | delete | `DELETE /data-tables/{id}/rows/{rowId}` | `data_rows_delete` | `rows delete` |  |
 | bulk delete | `POST /data-tables/{id}/rows/bulk-delete` | `data_rows_bulk_delete` | `rows bulk-delete` |  |
+| import | `POST /data-tables/{id}/rows/import` | `data_rows_import` | `rows import` | CSV / TSV / .xlsx: insert, upsert or replace; dry_run validates; MCP also takes csv_text |
 
 ## Reports
 
@@ -552,6 +585,9 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | get version | `GET /packages/{id}/versions/{versionId}` | `packages_version_get` | `packages version` |  |
 | download version | `GET /packages/{id}/versions/{versionId}/download` | `packages_download` | `packages download` |  |
 | inspect file | `POST /packages/inspect` | `packages_inspect` | `packages inspect` | the CLI verifies offline |
+| list items | `GET /packages/{id}/items` | `packages_items_list` | `packages items` | grouped by type, uses / used by, unpublished changes since the last build |
+| add items | `POST /packages/{id}/items` | `packages_items_add` | `packages add-items` | dry_run lists the dependencies they bring in; with_dependencies (default true) |
+| remove items | `POST /packages/{id}/items/remove` | `packages_items_remove` | `packages remove-items` | 409 while other items use them unless force; dry_run lists the dependents |
 
 ## Package installs
 
@@ -564,6 +600,8 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | `POST /package-installs/{id}/uninstall` | `packages_uninstall` | `packages uninstall` | dry_run lists what is removed |
 | plan (dry run) | `POST /package-installs/plan` | `packages_install_plan` | `packages install` | CLI: packages install --dry-run |
 | complete setup | `POST /package-installs/{id}/complete` | `packages_complete_setup` | `packages complete` |  |
+| detach items | `POST /package-installs/{id}/detach` | `packages_install_detach` | `package-installs detach` | uninstall keeps them; any install |
+| adopt items | `POST /package-installs/{id}/adopt` | `packages_install_adopt` | `package-installs adopt` | uninstall removes them; packages authored here only |
 
 ## Package history
 

@@ -16,7 +16,7 @@ types; everything below works the same way.
 | `src/action.js` | The action: `export default { operations: { calculate, invoice_totals } }` (JSDoc types for your editor) |
 | `test/cases.json` | Test cases: inputs and the outputs (or error code) you expect |
 | `harness/run.ts` | The local test harness behind `npm test` |
-| `vendor/usertasks-action/` | A copy of `@usertasks/action`: contract types and `runAction` (the app's sandbox with mocks) |
+| `vendor/usertasks-action/` | A copy of `@user-tasks/action`: contract types and `runAction` (the app's sandbox with mocks) |
 | `scripts/` | `build`, `test` and `package` |
 
 You need Node.js 20 or later.

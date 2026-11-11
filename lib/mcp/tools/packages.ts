@@ -6,6 +6,7 @@ import { resolvePage } from '@/lib/services/_shared'
 import * as packages from '@/lib/services/packages'
 import { searchPackageAssets } from '@/lib/services/package-assets'
 import * as installs from '@/lib/services/package-installs'
+import * as packageItems from '@/lib/services/package-items'
 import * as history from '@/lib/services/package-events'
 import { messageOf } from './_util'
 
@@ -24,7 +25,7 @@ async function run(fn: () => Promise<unknown>) {
   }
 }
 
-const TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme'] as const
+const TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control'] as const
 const item = z.object({ type: z.enum(TYPES), id: z.string() })
 const page = { limit: z.number().optional().describe('Page size (1-100, default 50; 0 = no limit)'), offset: z.number().optional() }
 const values = z.record(z.string(), z.record(z.string(), z.any())).describe('{ <requirement id>: { <field key>: value } } (see packages_install_plan requirements)')
@@ -82,11 +83,28 @@ export function registerPackageTools(server: McpToolServer, ctx: McpContext) {
   }, async (args) => run(() => searchPackageAssets(svc(), args)))
   server.tool('packages_contents', 'What a package contains now: artifacts with the reason each is included, data modes and requirements.', { package_id: z.string() },
     async (args) => run(() => packages.getPackageContents(svc(), args.package_id)))
+  server.tool('packages_items_list', 'The items in a package (grouped by type): why each is included, what it uses and what uses it, unpublished changes since the last built version, and whether the package is installed here (then build with update_install).', { package_id: z.string() },
+    async (args) => run(() => packageItems.listPackageItems(svc(), args.package_id)))
+  server.tool('packages_items_add', 'Add workspace items to a package (ids from packages_assets_search). Use dry_run first: `dependencies` lists what they use that is not in the package yet — with_dependencies (default true) adds those too. Changes the draft; packages_build publishes it.', {
+    package_id: z.string(), items: z.array(item).describe('[{ type, id }]'),
+    with_dependencies: z.boolean().optional(), dry_run: z.boolean().optional(),
+  }, async (args) => run(async () => {
+    const { package_id: id, ...input } = args
+    return packageItems.addPackageItems(svc(), id, input)
+  }))
+  server.tool('packages_items_remove', 'Remove items from a package (nothing in the workspace is deleted). Refused while another item in the package uses one ("Workflow X uses this form") unless force — dry_run lists the dependents first. packages_build publishes the change.', {
+    package_id: z.string(), items: z.array(item).describe('[{ type, id }]'),
+    force: z.boolean().optional(), dry_run: z.boolean().optional(),
+  }, async (args) => run(async () => {
+    const { package_id: id, ...input } = args
+    return packageItems.removePackageItems(svc(), id, input)
+  }))
   server.tool('packages_versions_list', 'List built versions of a package.', { package_id: z.string(), ...page },
     async (args) => run(() => packages.listPackageVersions(svc(), args.package_id, resolvePage(args))))
   server.tool('packages_build', 'Build, sign and publish a new version of a package (version, or bump the latest: patch by default). Returns the version, its manifest (requirements, checksum, signature) and, with include_file, the .utpkg as base64.', {
     package_id: z.string(), version: z.string().optional(), bump: z.enum(['major', 'minor', 'patch']).optional(), notes: z.string().optional(),
     include_file: z.boolean().optional(),
+    update_install: z.boolean().optional().describe('When the package is installed in this workspace (built here): update that install too, so uninstall removes added items and keeps removed ones'),
   }, async (args) => run(async () => {
     const { package_id: id, ...input } = args
     return packages.buildPackageVersion(svc(), id, input)
@@ -124,6 +142,21 @@ export function registerPackageTools(server: McpToolServer, ctx: McpContext) {
     install_id: z.string(), dry_run: z.boolean().optional(), force: z.boolean().optional(), delete_data: z.boolean().optional(),
     cancel_runs: z.boolean().optional().describe("Cancel unfinished runs of the package's workflows first"),
   }, async (args) => run(() => installs.uninstallPackage(svc(), args.install_id, { ...args, source: 'mcp' })))
+  const installItemArgs = {
+    install_id: z.string().describe('Install id or package slug'), items: z.array(item).describe('[{ type, id }] — ids in this workspace'),
+    dry_run: z.boolean().optional(),
+    update_package: z.boolean().optional().describe('Packages authored here: also change the package itself (default true)'),
+  }
+  server.tool('packages_install_detach', 'Remove items from an installed package: they stay in the workspace, uninstall keeps them and upgrades leave them alone. Any install. dry_run lists what still uses them.', installItemArgs,
+    async (args) => run(async () => {
+      const { install_id: id, ...input } = args
+      return installs.detachInstallItems(svc(), id, input)
+    }))
+  server.tool('packages_install_adopt', 'Add existing workspace items to an installed package so uninstall removes them. Only for packages authored in this workspace (self-installed); gallery / third-party installs allow detach only.', installItemArgs,
+    async (args) => run(async () => {
+      const { install_id: id, ...input } = args
+      return installs.adoptInstallItems(svc(), id, input)
+    }))
   server.tool('packages_history', 'Package history, newest first: every install, upgrade, reinstall, downgrade, reconfigure (complete setup) and uninstall, failed attempts included — who, when, channel, version from → to, signature status, counts, requirement changes, errors. packages_history_get adds the applied plan.', {
     package: z.string().optional().describe('Install id, package id or slug'),
     action: z.string().optional().describe('Comma-separated: install, upgrade, reinstall, downgrade, reconfigure, uninstall'),

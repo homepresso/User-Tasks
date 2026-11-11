@@ -3,12 +3,12 @@
 import { useId, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ChevronDown, Clock, Clock3, ExternalLink, ListOrdered, Pencil, UserCheck, Workflow } from "lucide-react"
+import { ChevronDown, Clock, Clock3, ExternalLink, Eye, ListOrdered, Pencil, UserCheck, Workflow } from "lucide-react"
 import { PriorityBadge } from "@/components/ui/priority-badge"
 import { Badge, StatusPill, statusLabel, type Tone } from "@/components/ui/badge"
 import { OrgBadge } from "@/components/ui/org-badge"
 import { Tooltip } from "@/components/ui/tooltip"
-import { TD, TR } from "@/components/ui/table"
+import { TD, TR, TableDetailCell, Truncate } from "@/components/ui/table"
 import { RelativeTime } from "@/components/activity/relative-time"
 import { formatDay } from "@/lib/format/date"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,7 @@ import { getTaskCode } from "@/components/tasks/timesheet-helpers"
 import { TaskFollowButton } from "@/components/tasks/task-follow-button"
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
 import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
+import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
 
@@ -68,6 +69,8 @@ interface AssignedTaskRowProps {
     } | null
     /** Following tab: listed because I follow its workflow run. */
     followed_via_run?: { run_id: string; workflow_name: string; run_status?: string | null } | null
+    /** Following tab: shared with me by an invite (read only) — directly, through a team or a role. */
+    shared_with_me?: { via: 'user' | 'team' | 'role'; name: string | null; invited_by: string | null; shared_at: string } | null
     collaborators?: {
       id: string
       acceptance_status: string
@@ -132,6 +135,7 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
           actions={(
             <>
               {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            {task.workflow_run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
               <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
             </>
           )}
@@ -139,8 +143,9 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
           priority={<PriorityBadge priority={task.priority} />}
           progress={progress.pct > 0 ? <TaskProgressStrip value={progress.pct} /> : undefined}
           due={<TaskDue task={task} />}
-          footer={(task.followed_via_run || acceptance || task.assignee_rank) ? (
+          footer={(task.followed_via_run || task.shared_with_me || acceptance || task.assignee_rank) ? (
             <>
+              {task.shared_with_me && <SharedWithMeBadge shared={task.shared_with_me} />}
               {task.followed_via_run && (
                 <Badge tone="info" data-followed-via-run={task.followed_via_run.run_id}>
                   <Workflow className="mr-1 inline size-3 align-[-2px]" aria-hidden />Via {task.followed_via_run.workflow_name}
@@ -180,13 +185,14 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
               {task.workflow_source ? <Pencil className="size-3.5" /> : <Clock className="size-3.5" />}
             </span>
             <span className={cn("shrink-0 font-mono text-xs text-fg-muted", isDone && "line-through")}>{getTaskCode(task)}</span>
-            <span className={cn("truncate font-medium text-fg", isDone && "text-fg-muted line-through")}>{task.title}</span>
+            <span className={cn("min-w-24 truncate font-medium text-fg", isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             {task.tenant && (
               <OrgBadge name={task.tenant.name} slug={task.tenant.slug} color={task.tenant.branding?.primary_color} size="sm" />
             )}
           </button>
-          {(secondary.length > 0 || acceptance || task.assignee_rank || task.estimated_completion || task.followed_via_run) && (
+          {(secondary.length > 0 || acceptance || task.assignee_rank || task.estimated_completion || task.followed_via_run || task.shared_with_me) && (
             <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pl-[22px] text-xs text-fg-muted">
+              {task.shared_with_me && <SharedWithMeBadge shared={task.shared_with_me} />}
               {task.followed_via_run && (
                 <Badge tone="info" data-followed-via-run={task.followed_via_run.run_id}>
                   <Workflow className="mr-1 inline size-3 align-[-2px]" aria-hidden />Via {task.followed_via_run.workflow_name} · <span className="font-mono">{task.followed_via_run.run_id.slice(0, 8)}</span>
@@ -203,15 +209,16 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
             </div>
           )}
         </TD>
-        <TD className="max-w-0 truncate text-fg-muted">{assigneeLabel}</TD>
-        <TD><StatusPill status={task.status} /></TD>
-        <TD><PriorityBadge priority={task.priority} /></TD>
+        <TD className="max-w-0 text-fg-muted"><Truncate text={assigneeLabel} /></TD>
+        <TD className="whitespace-nowrap"><StatusPill status={task.status} /></TD>
+        <TD className="whitespace-nowrap"><PriorityBadge priority={task.priority} /></TD>
         <TD className="w-28"><TaskProgressStrip value={progress.pct} /></TD>
         <TD numeric><TaskDue task={task} /></TD>
         <TD numeric className="text-xs text-fg-muted">{task.updated_at ? <RelativeTime at={task.updated_at} /> : "—"}</TD>
-        <TD className="px-1" onClick={(e) => e.stopPropagation()}>
-          <span className="flex items-center justify-end gap-0.5">
+        <TD col="actions" className="px-1" onClick={(e) => e.stopPropagation()}>
+          <span className="flex flex-nowrap items-center justify-end gap-0.5">
             {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            {task.workflow_run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
             <Tooltip content="Open task">
               <Link href={`/tasks/${task.id}`} aria-label={`Open ${task.title}`}
                 className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-muted hover:text-fg">
@@ -220,26 +227,26 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
             </Tooltip>
           </span>
         </TD>
-        <TD className="px-1" onClick={(e) => e.stopPropagation()}>
+        <TD col="actions" className="px-1" onClick={(e) => e.stopPropagation()}>
           <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
         </TD>
       </TR>
 
       {expanded && (
         <tr className="border-b border-border-subtle bg-subtle last:border-b-0" data-assigned-task-panel={task.id}>
-          <td colSpan={ASSIGNED_TASK_COLUMNS} className="space-y-3 px-4 pb-4 pt-1 pl-12">
+          <TableDetailCell colSpan={ASSIGNED_TASK_COLUMNS} className="space-y-3 px-4 pb-4 pt-1 pl-12">
             <TaskDetailPanel id={panelId} taskId={task.id} title={task.title} onClose={close} />
             <QueueSummary task={task} />
-          </td>
+          </TableDetailCell>
         </tr>
       )}
       {mobile ? (
         <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} />
       ) : actionsOpen && (
         <tr className="border-b border-border-subtle" data-task-actions-row>
-          <td colSpan={ASSIGNED_TASK_COLUMNS} className="p-0">
+          <TableDetailCell colSpan={ASSIGNED_TASK_COLUMNS}>
             <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false} taskId={task.id} title={task.title} />
-          </td>
+          </TableDetailCell>
         </tr>
       )}
     </>
@@ -263,5 +270,15 @@ function QueueSummary({ task }: { task: AssignedTaskRowProps["task"] }) {
         </span>
       ))}
     </div>
+  )
+}
+
+/** "Shared with me · Finance team · by Priya" (Following tab, tasks shared by an invite — read only). */
+function SharedWithMeBadge({ shared }: { shared: NonNullable<AssignedTaskRowProps['task']['shared_with_me']> }) {
+  const via = shared.via === 'user' ? null : shared.name ? `${shared.name} ${shared.via === 'team' ? 'team' : 'role'}` : shared.via === 'team' ? 'your team' : 'your role'
+  return (
+    <Badge tone="neutral" data-shared-with-me={shared.via} title={shared.invited_by ? `Invited by ${shared.invited_by} (read only)` : 'Read only'}>
+      <Eye className="mr-1 inline size-3 align-[-2px]" aria-hidden />Shared with me{via ? ` · ${via}` : ''}{shared.invited_by ? ` · by ${shared.invited_by}` : ''}
+    </Badge>
   )
 }

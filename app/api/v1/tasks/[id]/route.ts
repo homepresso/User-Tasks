@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err } from '@/lib/api-auth'
-import { canAccessTaskAsUser } from '@/lib/api-key-permissions'
+import { canViewTaskAsUser } from '@/lib/api-key-permissions'
 import { apiRoute } from '@/lib/api/route'
 import { updateTaskEndpoint } from '@/lib/api-schemas/tasks'
 import { updateTask } from '@/lib/services/tasks'
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { tenantId, supabase } = auth
   const { id } = await params
 
-  if (auth.actingUserId && !(await canAccessTaskAsUser(supabase, tenantId, auth.actingUserId, id))) {
+  if (auth.actingUserId && !(await canViewTaskAsUser(supabase, tenantId, auth.actingUserId, id))) {
     return err('This user-context API key cannot access that task', 403)
   }
 

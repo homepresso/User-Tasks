@@ -8,7 +8,7 @@
 
 import { writeFileSync } from 'node:fs'
 import type { Command } from 'commander'
-import { UsertasksJobError } from '@usertasks/sdk'
+import { UsertasksJobError } from '@user-tasks/sdk'
 import type { Runtime } from '../runtime'
 import { jobProgressLine } from './resources'
 

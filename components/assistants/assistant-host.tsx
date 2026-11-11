@@ -51,6 +51,8 @@ export function designerAreaForPath(pathname: string): DesignerContext | null {
   let m: RegExpMatchArray | null
   if ((m = p.match(new RegExp(`^/automations/rules/(${ID})$`, 'i')))) return { area: 'decision_table', item_id: m[1] }
   if (p === '/automations/rules') return { area: 'decision_table' }
+  if (p === '/automations/forms/new') return { area: 'form' }
+  if ((m = p.match(new RegExp(`^/automations/forms/(${ID})$`, 'i')))) return { area: 'form', item_id: m[1] }
   if (p === '/automations/forms') return { area: 'form' }
   if (p === '/automations/email-templates' || p.startsWith('/automations/email-templates/')) return { area: 'email_template' }
   if (/^\/automations\/(queue|runs|schedules|email-templates)(\/|$)/.test(p) || /\/runs$/.test(p)) return null
@@ -246,6 +248,7 @@ export function AssistantHost({ standalone = false }: { standalone?: boolean }) 
                 : 'bottom-[calc(var(--ds-tabbar-h)+env(safe-area-inset-bottom)+0.75rem)]',
           )}
           data-testid="assistant-launcher"
+          data-tour="agent-button"
         >
           <Sparkles className="size-4" aria-hidden="true" />
           <span className="max-md:sr-only">{AGENT_NAME}</span>

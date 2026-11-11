@@ -1,5 +1,5 @@
 import {
-  AlignLeft, ArrowDownUp, Calendar, Gauge, Grid3x3, Images, ListOrdered, SlidersHorizontal, Smile, Star, ToggleLeft, MousePointerClick, Paperclip, CalendarClock, CircleDot, DollarSign, Hash, Heading, Link, ListChecks, Mail, Minus, Phone, Puzzle, SearchCheck, SquareCheck, Table2, Tag, Type, User,
+  AlignLeft, ArrowDownUp, Calendar, Gauge, Grid3x3, Images, ListOrdered, ListPlus, SlidersHorizontal, Smile, Star, ToggleLeft, MousePointerClick, Paperclip, CalendarClock, CircleDot, DollarSign, Hash, Heading, Link, ListChecks, Mail, Minus, Phone, Puzzle, SearchCheck, SquareCheck, Table2, Tag, Type, User,
   type LucideIcon,
 } from 'lucide-react'
 import type { TaskFieldType } from '@/lib/task-field-schema'
@@ -25,6 +25,7 @@ export const FIELD_ICONS: Record<TaskFieldType, LucideIcon> = {
   custom: Puzzle,
   button: MousePointerClick,
   data_table: Table2,
+  list: ListPlus,
   label: Tag,
   rating: Star,
   nps: Gauge,
@@ -49,7 +50,7 @@ export const PALETTE_GROUPS: Array<{ label: string; types: TaskFieldType[] }> = 
   { label: 'Numbers & dates', types: ['number', 'currency', 'date', 'datetime'] },
   { label: 'Choices', types: ['boolean', 'choice', 'multi_choice', 'user', 'lookup'] },
   { label: 'Survey', types: ['rating', 'nps', 'likert', 'matrix', 'slider', 'csat', 'ranking', 'image_choice', 'yes_no_maybe'] },
-  { label: 'Data', types: ['data_table'] },
+  { label: 'Data', types: ['list', 'data_table'] },
   { label: 'Files', types: ['attachments'] },
   { label: 'Display', types: ['label'] },
   { label: 'Layout', types: ['heading', 'divider', 'button'] },

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo, type ReactNode } from "react"
+import { Fragment, useEffect, useState, useMemo, type ReactNode } from "react"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import Link from "next/link"
 import {
   Network, Zap, Database, Globe, Bookmark, Box,
-  ChevronRight, Tag as TagIcon, X, Plus, Play, Loader2,
+  ChevronRight, ChevronDown, Tag as TagIcon, X, Plus, Play, Loader2,
   BarChart3, ExternalLink, ArrowRightLeft, Trash2, Download, MoreHorizontal, LayoutGrid,
   Map as MapIcon, Link2, Table, List, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react"
@@ -34,7 +34,7 @@ import { JsonViewer } from "@/components/integrations/json-viewer"
 import { formatCount } from "@/lib/format/number"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Tooltip } from "@/components/ui/tooltip"
-import { Table as DataTable, TableSkeleton, TBody, TD, TDActions, TH, THead, TR } from "@/components/ui/table"
+import { Table as DataTable, TableSkeleton, TBody, TD, TDActions, TH, THead, TR, type ColumnKind } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { plural } from "@/lib/format/plural"
 import { formatAbsolute, formatRelative } from "@/lib/format/date"
@@ -271,6 +271,33 @@ export function IntegrationsView({ description, actions, integrations, reference
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
   }, [references])
 
+  // References grouped by their integration (connector), each group collapsible.
+  const referenceGroups = useMemo(() => {
+    const groups = new Map<string, { id: string; name: string; integration: any; refs: any[] }>()
+    for (const r of filteredReferences) {
+      const integ = r.integration as any
+      const id = integ?.id ?? 'none'
+      if (!groups.has(id)) groups.set(id, { id, name: integ?.name ?? 'Unknown integration', integration: integ, refs: [] })
+      groups.get(id)!.refs.push(r)
+    }
+    return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [filteredReferences])
+  const COLLAPSED_KEY = 'ut:integrations:collapsed-ref-groups'
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(globalThis.localStorage?.getItem(COLLAPSED_KEY) ?? '[]') as string[]) } catch { return new Set() }
+  })
+  function saveCollapsed(next: Set<string>) {
+    setCollapsedGroups(next)
+    try { globalThis.localStorage?.setItem(COLLAPSED_KEY, JSON.stringify([...next])) } catch { /* storage unavailable */ }
+  }
+  // While searching or filtering, every matching group is open.
+  const groupOpen = (id: string) => Boolean(search || selectedTag || refIntegrationFilter) || !collapsedGroups.has(id)
+  function toggleGroup(id: string) {
+    const next = new Set(collapsedGroups)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    saveCollapsed(next)
+  }
+
   async function addTagToItem(table: "integrations" | "integration_references", id: string, currentTags: string[], tag: string) {
     if (!tag.trim() || currentTags.includes(tag.trim())) return
     const updated = [...currentTags, tag.trim().toLowerCase()]
@@ -312,11 +339,11 @@ export function IntegrationsView({ description, actions, integrations, reference
     setIntegrationSortDir(field === 'name' || field === 'type' ? 'asc' : 'desc')
   }
 
-  function sortTH(label: string, field: 'name' | 'type' | 'references' | 'updated_at', numeric = false) {
+  function sortTH(label: string, field: 'name' | 'type' | 'references' | 'updated_at', numeric = false, col?: ColumnKind) {
     const active = integrationSortBy === field
     const SortIcon = !active ? ArrowUpDown : integrationSortDir === 'asc' ? ArrowUp : ArrowDown
     return (
-      <TH numeric={numeric} aria-sort={active ? (integrationSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <TH numeric={numeric} col={col} aria-sort={active ? (integrationSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
         <button type="button" onClick={() => toggleIntegrationSort(field)} className={cn("inline-flex items-center gap-1 hover:text-fg", active && "text-fg")}>
           {label} <SortIcon className="size-3" aria-hidden="true" />
         </button>
@@ -510,15 +537,15 @@ export function IntegrationsView({ description, actions, integrations, reference
             })}
           </div>
         ) : (
-          <DataTable>
+          <DataTable label="Integrations" stickyFirstColumn>
             <THead>
               <tr>
-                {sortTH("Name", "name")}
-                {sortTH("Type", "type")}
-                <TH>Status</TH>
-                {sortTH("References", "references", true)}
-                {sortTH("Updated", "updated_at")}
-                <TH><span className="sr-only">Actions</span></TH>
+                {sortTH("Name", "name", false, "title")}
+                {sortTH("Type", "type", false, "status")}
+                <TH col="status">Status</TH>
+                {sortTH("References", "references", true, "number")}
+                {sortTH("Updated", "updated_at", false, "date")}
+                <TH col="actions"><span className="sr-only">Actions</span></TH>
               </tr>
             </THead>
             <TBody>
@@ -532,16 +559,16 @@ export function IntegrationsView({ description, actions, integrations, reference
 
                 return (
                   <TR key={integration.id} interactive onClick={() => router.push(`/integrations/${integration.id}`)}>
-                    <TD className="max-w-0 w-[40%]">
+                    <TD className="max-w-0">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <span className="flex size-6 shrink-0 items-center justify-center rounded border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
                           {customIcon ? <img src={customIcon} alt="" className="size-4 object-contain" /> : <Icon className="size-3.5" />}
                         </span>
                         <div className="min-w-0">
-                          <Link href={`/integrations/${integration.id}`} onClick={(e) => e.stopPropagation()} className="block truncate font-medium text-fg hover:underline">
+                          <Link href={`/integrations/${integration.id}`} onClick={(e) => e.stopPropagation()} className="block truncate font-medium text-fg hover:underline" title={integration.name}>
                             {integration.name}
                           </Link>
-                          <span className="block truncate font-mono text-xs text-fg-muted">{config?.base_url || 'No endpoint configured'}</span>
+                          <span className="block truncate font-mono text-xs text-fg-muted" title={config?.base_url || undefined}>{config?.base_url || 'No endpoint configured'}</span>
                         </div>
                         {tags.length > 0 && (
                           <span className="ml-auto hidden shrink-0 gap-1 lg:flex">
@@ -550,10 +577,10 @@ export function IntegrationsView({ description, actions, integrations, reference
                         )}
                       </div>
                     </TD>
-                    <TD className="text-fg-muted">{typeLabels[integration.type] ?? integration.type}</TD>
+                    <TD className="whitespace-nowrap text-fg-muted">{typeLabels[integration.type] ?? integration.type}</TD>
                     <TD><StatusPill status={integration.is_active ? "active" : "inactive"} /></TD>
                     <TD numeric>{refCount}</TD>
-                    <TD className="text-fg-muted">
+                    <TD className="whitespace-nowrap text-fg-muted">
                       <Tooltip content={formatAbsolute(updated)}><span className="num">{formatRelative(updated)}</span></Tooltip>
                     </TD>
                     <TDActions onClick={(e) => e.stopPropagation()}>{renderIntegrationMenu(integration)}</TDActions>
@@ -646,6 +673,12 @@ export function IntegrationsView({ description, actions, integrations, reference
                     ]}
                   />
                 )}
+                {referenceGroups.length > 1 && !(search || selectedTag || refIntegrationFilter) && (
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => saveCollapsed(new Set())} data-ref-groups-expand>Expand all</Button>
+                    <Button size="sm" variant="ghost" onClick={() => saveCollapsed(new Set(referenceGroups.map((g) => g.id)))} data-ref-groups-collapse>Collapse all</Button>
+                  </div>
+                )}
                 {selectedRefs.size > 0 && (
                   <div className="ml-auto flex items-center gap-2" role="toolbar" aria-label="Selected references">
                     <span className="num text-xs text-fg-muted">{selectedRefs.size} selected</span>
@@ -699,7 +732,7 @@ export function IntegrationsView({ description, actions, integrations, reference
                 )}
               </div>
 
-              <DataTable>
+              <DataTable label="API references" stickyFirstColumn stickyColumns={2}>
                 <THead>
                   <tr>
                     <TH className="w-10">
@@ -712,16 +745,49 @@ export function IntegrationsView({ description, actions, integrations, reference
                         }}
                       />
                     </TH>
-                    <TH>Reference</TH>
-                    <TH>Request</TH>
-                    <TH>Tags</TH>
-                    <TH numeric>Inputs</TH>
-                    <TH numeric>Outputs</TH>
-                    <TH><span className="sr-only">Actions</span></TH>
+                    <TH col="title">Reference</TH>
+                    <TH className="min-w-56">Request</TH>
+                    <TH col="text">Tags</TH>
+                    <TH numeric col="number">Inputs</TH>
+                    <TH numeric col="number">Outputs</TH>
+                    <TH col="actions"><span className="sr-only">Actions</span></TH>
                   </tr>
                 </THead>
                 <TBody>
-                  {filteredReferences.map((ref) => {
+                  {referenceGroups.map((group) => {
+                    const open = groupOpen(group.id)
+                    const GroupIcon = typeIcons[group.integration?.type] ?? Globe
+                    const groupIcon = resolveStorageUrl((group.integration?.config as any)?.icon_url)
+                    const allInGroup = group.refs.every((r) => selectedRefs.has(r.id))
+                    return (
+                    <Fragment key={group.id}>
+                      <tr className="border-b border-border-subtle bg-subtle" data-ref-group={group.id}>
+                        <td className="w-10 px-[var(--theme-density-cell-x)] py-1.5">
+                          <Checkbox
+                            aria-label={`Select every reference in ${group.name}`}
+                            checked={allInGroup}
+                            onChange={() => setSelectedRefs((prev) => { const n = new Set(prev); for (const r of group.refs) { if (allInGroup) n.delete(r.id); else n.add(r.id) } return n })}
+                          />
+                        </td>
+                        <td colSpan={6} className="px-[var(--theme-density-cell-x)] py-1.5">
+                          {/* Pinned beside the checkbox column, as wide as the visible region, while the table scrolls. */}
+                          <div className="sticky left-[calc(var(--ds-sticky-lead,2.5rem)+var(--theme-density-cell-x))] flex min-w-0 max-w-[calc(var(--table-viewport,100%)-var(--ds-sticky-lead,2.5rem)-2*var(--theme-density-cell-x))] items-center gap-2">
+                            <button type="button" onClick={() => toggleGroup(group.id)} aria-expanded={open}
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded text-left text-ui font-semibold text-fg hover:text-primary-text">
+                              {open ? <ChevronDown className="size-4 shrink-0 text-fg-muted" aria-hidden /> : <ChevronRight className="size-4 shrink-0 text-fg-muted" aria-hidden />}
+                              <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border-subtle bg-panel text-fg-muted" aria-hidden="true">
+                                {groupIcon ? <img src={groupIcon} alt="" className="size-3.5 object-contain" /> : <GroupIcon className="size-3" />}
+                              </span>
+                              <span className="truncate">{group.name}</span>
+                              <span className="num shrink-0 text-xs font-normal text-fg-muted">{plural(group.refs.length, 'reference')}</span>
+                            </button>
+                            {group.integration?.id && (
+                              <Button size="sm" variant="ghost" onClick={() => router.push(`/integrations/${group.integration.id}`)}>Open integration</Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                  {open && group.refs.map((ref) => {
                     const integration = ref.integration as any
                     const Icon = typeIcons[integration?.type] ?? Globe
                     const refCustomIcon = resolveStorageUrl((integration?.config as any)?.icon_url || (ref.request_config as any)?.icon_url)
@@ -740,18 +806,18 @@ export function IntegrationsView({ description, actions, integrations, reference
                             onChange={() => setSelectedRefs(prev => { const n = new Set(prev); if (n.has(ref.id)) n.delete(ref.id); else n.add(ref.id); return n })}
                           />
                         </TD>
-                        <TD className="max-w-0 w-[34%]">
+                        <TD className="max-w-0">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <span className="flex size-6 shrink-0 items-center justify-center rounded border border-border-subtle bg-subtle text-fg-muted" aria-hidden="true">
                               {refCustomIcon ? <img src={refCustomIcon} alt="" className="size-4 object-contain" /> : <Icon className="size-3.5" />}
                             </span>
                             <div className="min-w-0">
-                              <p className="truncate font-medium text-fg">{ref.name}</p>
+                              <p className="truncate font-medium text-fg" title={ref.name}>{ref.name}</p>
                               <p className="truncate text-xs text-fg-muted">{integration?.name ?? "Unknown integration"}</p>
                             </div>
                           </div>
                         </TD>
-                        <TD className="max-w-0 w-[30%]">
+                        <TD className="max-w-0">
                           <div className="flex min-w-0 items-center gap-1.5">
                             {reqConfig.method && <Tag mono>{reqConfig.method}</Tag>}
                             {reqConfig.path_template && (
@@ -774,6 +840,9 @@ export function IntegrationsView({ description, actions, integrations, reference
                           <IconButton size="sm" label={`Open ${integration?.name ?? 'integration'}`} icon={<ChevronRight />} onClick={() => router.push(`/integrations/${integration?.id}`)} />
                         </TDActions>
                       </TR>
+                    )
+                  })}
+                    </Fragment>
                     )
                   })}
                 </TBody>
@@ -1088,27 +1157,27 @@ function McpServersPanel({ servers }: { servers: any[] }) {
           ))}
         </div>
       ) : (
-        <DataTable>
+        <DataTable label="MCP servers" stickyFirstColumn>
           <THead>
             <tr>
-              <TH>Name</TH>
-              <TH>URL</TH>
-              <TH>Auth</TH>
-              <TH numeric>Tools</TH>
-              <TH><span className="sr-only">Actions</span></TH>
+              <TH col="name">Name</TH>
+              <TH col="text" className="min-w-56">URL</TH>
+              <TH col="status">Auth</TH>
+              <TH numeric col="number">Tools</TH>
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>
             {sortedServers.map((server: any) => (
               <TR key={server.id}>
-                <TD className="font-medium">
+                <TD className="whitespace-nowrap font-medium">
                   <span className="flex items-center gap-2">
                     {server.name}
                     {!server.is_active && <StatusPill status="inactive" />}
                   </span>
                 </TD>
-                <TD className="max-w-0 w-[40%]"><span className="block truncate font-mono text-xs text-fg-muted">{server.url}</span></TD>
-                <TD className="text-fg-muted">{authLabel(server.auth_type)}</TD>
+                <TD className="max-w-0"><span className="block truncate font-mono text-xs text-fg-muted" title={server.url}>{server.url}</span></TD>
+                <TD className="whitespace-nowrap text-fg-muted">{authLabel(server.auth_type)}</TD>
                 <TD numeric>{server.tools_cache?.length ?? 0}</TD>
                 <TDActions>{serverMenu(server)}</TDActions>
               </TR>
@@ -1316,7 +1385,7 @@ function ObjectsPanel({ references }: { references: any[] }) {
       </div>
 
       {isLoading ? (
-        <DataTable><TBody><TableSkeleton columns={4} rows={3} /></TBody></DataTable>
+        <DataTable label="Objects"><TBody><TableSkeleton columns={4} rows={3} /></TBody></DataTable>
       ) : sortedObjects.length === 0 ? (
         search || sourceFilter !== 'all' ? (
           <EmptyState size="sm" variant="no-results" title="No objects match these filters" action={{ label: 'Clear filters', onClick: () => { setSearch(''); setSourceFilter('all') } }} />
@@ -1362,14 +1431,14 @@ function ObjectsPanel({ references }: { references: any[] }) {
           })}
         </div>
       ) : (
-        <DataTable>
+        <DataTable label="Objects" stickyFirstColumn>
           <THead>
             <tr>
-              <TH>Name</TH>
-              <TH numeric>Sources</TH>
-              <TH>Type</TH>
-              <TH>Updated</TH>
-              <TH><span className="sr-only">Actions</span></TH>
+              <TH col="title">Name</TH>
+              <TH numeric col="number">Sources</TH>
+              <TH col="status">Type</TH>
+              <TH col="date">Updated</TH>
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>
@@ -1379,13 +1448,13 @@ function ObjectsPanel({ references }: { references: any[] }) {
               const updated = obj.updated_at ?? obj.created_at
               return (
                 <TR key={obj.id}>
-                  <TD className="max-w-0 w-[45%]">
-                    <p className="truncate font-medium text-fg">{obj.name}</p>
-                    <p className="truncate text-xs text-fg-muted">{obj.description || 'No description'}</p>
+                  <TD className="max-w-0">
+                    <p className="truncate font-medium text-fg" title={obj.name}>{obj.name}</p>
+                    <p className="truncate text-xs text-fg-muted" title={obj.description || undefined}>{obj.description || 'No description'}</p>
                   </TD>
                   <TD numeric>{srcs.length}</TD>
-                  <TD className="text-fg-muted">{sourceKind}</TD>
-                  <TD className="text-fg-muted"><Tooltip content={formatAbsolute(updated)}><span className="num">{formatRelative(updated)}</span></Tooltip></TD>
+                  <TD className="whitespace-nowrap text-fg-muted">{sourceKind}</TD>
+                  <TD className="whitespace-nowrap text-fg-muted"><Tooltip content={formatAbsolute(updated)}><span className="num">{formatRelative(updated)}</span></Tooltip></TD>
                   <TDActions>{objectActions(obj)}</TDActions>
                 </TR>
               )

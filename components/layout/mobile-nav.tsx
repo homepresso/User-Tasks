@@ -1,5 +1,6 @@
 "use client"
 
+import { GettingStartedLauncher } from "@/components/onboarding/getting-started/launcher"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
@@ -104,6 +105,9 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
           <p className="px-2 pt-4 text-xs text-[color:var(--theme-sidebar-muted)]">
             Builders, settings and integrations are available on desktop.
           </p>
+          <div className="mt-3 border-t border-[color:var(--theme-sidebar-border)] pt-3">
+            <GettingStartedLauncher onOpen={() => onOpenChange(false)} />
+          </div>
         </nav>
       </SheetContent>
     </Sheet>

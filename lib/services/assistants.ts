@@ -24,7 +24,7 @@ import { resolveThinkingLevel, type ThinkingGroup, type ThinkingLevel } from '@/
 import { createHash } from 'node:crypto'
 import { assertSafeEgressUrl } from '@/lib/egress-guard'
 import { encryptSecret } from '@/lib/secret-crypto'
-import { isAiProviderIntegration } from '@/lib/agents/provider'
+import { isAiProviderIntegration, type AgentProviderKind } from '@/lib/agents/provider'
 import { lastFour, mergeAgentSettings, normalizeAgentSettings, normalizeLimits, resolveAvailability, storedAgentSettings, userAllowed, type AvailabilityUser } from '@/lib/assistants/config'
 import {
   AssistantConfigError, availabilitySettings, loadAssistantSettings, loadRuleKeys, presentSettings, resolveConnection, rowForRule, testConnection,
@@ -49,6 +49,15 @@ export const ASSISTANTS_SETTINGS_PATH = '/settings/assistants'
 
 export interface AssistantIntegrationOption { id: string; name: string; type: string }
 
+/** Media connections of the workspace that can transcribe (names only) for Settings → Agent → Dictation. */
+async function transcriptionIntegrations(db: AnySupabaseClient, tenantId: string): Promise<AssistantIntegrationOption[]> {
+  const { mediaProviderForType } = await import('@/lib/media/catalog')
+  const { data } = await (db as any).from('integrations').select('id, name, type, is_active').eq('tenant_id', tenantId).order('name')
+  return ((data ?? []) as any[])
+    .filter((i) => i.is_active !== false && mediaProviderForType(i.type)?.capabilities.includes('transcribe'))
+    .map((i) => ({ id: String(i.id), name: String(i.name ?? i.type), type: String(i.type ?? '') }))
+}
+
 /** AI provider integrations of the workspace (names only) for "use an existing connection". */
 async function aiIntegrations(db: AnySupabaseClient, tenantId: string): Promise<AssistantIntegrationOption[]> {
   const { data } = await (db as any).from('integrations').select('id, name, type, config, is_active').eq('tenant_id', tenantId).order('name')
@@ -57,17 +66,22 @@ async function aiIntegrations(db: AnySupabaseClient, tenantId: string): Promise<
     .map((i) => ({ id: String(i.id), name: String(i.name ?? i.type), type: String(i.type ?? '') }))
 }
 
-export async function getAssistantSettings(ctx: ServiceContext): Promise<AssistantSettingsView & { integrations: AssistantIntegrationOption[] }> {
+export async function getAssistantSettings(ctx: ServiceContext): Promise<AssistantSettingsView & { integrations: AssistantIntegrationOption[]; transcription_integrations: AssistantIntegrationOption[]; agent_transcribes: boolean }> {
   requirePerm(ctx, 'assistants.manage')
   const db = await serviceRoleClient(ctx)
   const row = await loadAssistantSettings(db, ctx.tenantId)
   const view = presentSettings(row)
-  const [usage, integrations, unpriced] = await Promise.all([
+  const { agentIntegrationType, transcriptionConfigured } = await import('@/lib/assistants/transcribe')
+  const [usage, integrations, unpriced, transcription, ownType] = await Promise.all([
     usageSnapshot(db, ctx.tenantId, null, view.limits.cost_currency).catch(() => undefined),
     aiIntegrations(db, ctx.tenantId).catch(() => []),
     unpricedModels(db, ctx.tenantId, view).catch(() => []),
+    transcriptionIntegrations(db, ctx.tenantId).catch(() => []),
+    row ? agentIntegrationType(db, row).catch(() => null) : Promise.resolve(null),
   ])
-  return { ...view, ...(usage ? { usage } : {}), ...(unpriced.length ? { unpriced_models: unpriced } : {}), integrations }
+  // Whether the Agent's own connection transcribes (the Dictation card's "Agent's connection" choice).
+  const agentTranscribes = row ? transcriptionConfigured({ ...row, agent: { ...row.agent, dictation: { ...row.agent.dictation, integration_id: null } } }, ownType) : false
+  return { ...view, ...(usage ? { usage } : {}), ...(unpriced.length ? { unpriced_models: unpriced } : {}), integrations, transcription_integrations: transcription, agent_transcribes: agentTranscribes }
 }
 
 /**
@@ -171,6 +185,10 @@ export async function updateAssistantSettings(ctx: ServiceContext, input: Assist
     const profilesInput: ProfileInput[] | undefined = input.agent.profiles !== undefined ? input.agent.profiles
       : legacyRules !== undefined ? (Array.isArray(legacyRules) ? legacyRules.map((rule, i) => ({ ...profilesFromModelRules(normalizeModelRules([{ ...rule, id: rule?.id || `rule_${Date.now().toString(36)}_${i}` }]))[0], api_key: rule?.api_key })) : legacyRules as never)
       : undefined
+    if (input.agent.dictation?.integration_id) {
+      const options = await transcriptionIntegrations(db, ctx.tenantId)
+      if (!options.some((o) => o.id === input.agent!.dictation!.integration_id)) throw ServiceError.validation('Pick a media connection of this workspace that can transcribe (Integrations)')
+    }
     if (profilesInput !== undefined) {
       const prepared = await prepareProfiles(db, ctx.tenantId, current, profilesInput)
       agentPatch.profiles = prepared.profiles
@@ -423,7 +441,7 @@ export function agentHistoryKey(userId: string, tenantId: string): string {
  * own setting) or a task (its form's setting). Never throws for "not
  * configured": all false.
  */
-export async function getAssistantAvailability(ctx: ServiceContext, target: { formId?: string | null; taskId?: string | null; area?: ProfileArea | null } = {}): Promise<AssistantAvailability> {
+export async function getAssistantAvailability(ctx: ServiceContext, target: { formId?: string | null; taskId?: string | null; area?: ProfileArea | null; dictation?: boolean } = {}): Promise<AssistantAvailability> {
   if (!ctx.actorId || !ctx.permissions) return { ...NO_ASSISTANTS }
   const db = await serviceRoleClient(ctx)
   const row = await loadAssistantSettings(db, ctx.tenantId).catch(() => null)
@@ -435,17 +453,74 @@ export async function getAssistantAvailability(ctx: ServiceContext, target: { fo
   ])
   // The profile follows the screen's area: a task / form target is that area; otherwise the panel says.
   const area = target.taskId ? 'tasks' : target.formId ? 'forms' : target.area ?? null
-  return resolveAvailability(settings, user, { formKnown: form.known, formSetting: form.setting, area })
+  const availability = resolveAvailability(settings, user, { formKnown: form.known, formSetting: form.setting, area })
+  if (!target.dictation || !availability.agent || !row) return availability
+  return { ...availability, dictation: await dictationFor(db, row) }
+}
+
+/** The panel's dictation settings (null: off). The provider is looked up only when the engine can use it. */
+async function dictationFor(db: AnySupabaseClient, row: AssistantSettingsRow) {
+  const { clientDictation } = await import('@/lib/assistants/dictation')
+  const settings = row.agent.dictation
+  if (!settings.enabled) return null
+  if (settings.engine === 'browser') return clientDictation(settings, false)
+  const { agentIntegrationType, transcriptionConfigured } = await import('@/lib/assistants/transcribe')
+  const type = settings.integration_id ? null : await agentIntegrationType(db, row).catch(() => null)
+  return clientDictation(settings, transcriptionConfigured(row, type))
+}
+
+/* ── Dictation ─────────────────────────────────────────────────────── */
+
+/**
+ * Transcribe one dictation recording for the signed-in person
+ * (/api/assistants/transcribe): only when the Agent is available to them and
+ * dictation can use the provider (engine provider / auto); the workspace's
+ * monthly cost cap applies. The audio is held in memory for the call only.
+ */
+export async function transcribeDictation(ctx: ServiceContext, audio: { bytes: Uint8Array; mime_type: string }, language: string, fetchImpl?: typeof fetch): Promise<{ text: string }> {
+  if (!ctx.actorId || !ctx.permissions) throw ServiceError.forbidden('The Agent is not available to you')
+  const availability = await getAssistantAvailability(ctx, { dictation: true })
+  if (!availability.agent) throw ServiceError.forbidden('The Agent is not available to you')
+  if (!availability.dictation) throw ServiceError.forbidden('Dictation is turned off for the Agent')
+  if (!availability.dictation.provider) throw ServiceError.forbidden('Dictation does not use a transcription provider in this workspace')
+  const db = await serviceRoleClient(ctx)
+  const row = await loadAssistantSettings(db, ctx.tenantId)
+  if (!row) throw ServiceError.forbidden('The Agent is not available to you')
+  const { checkAssistantLimits, AssistantLimitError } = await import('@/lib/assistants/limits')
+  try {
+    // The workspace's monthly cost cap (dictation isn't a message: the daily message limit doesn't apply).
+    await checkAssistantLimits(db, ctx.tenantId, ctx.actorId, { ...row.limits, messages_per_user_per_day: 0 })
+  } catch (error) {
+    if (error instanceof AssistantLimitError) throw new ServiceError('rate_limited', error.message)
+    throw error
+  }
+  const { resolveTranscriptionSource, transcribeRecording, DictationUnavailableError } = await import('@/lib/assistants/transcribe')
+  const { providerLanguage, recordingFileName } = await import('@/lib/assistants/dictation')
+  try {
+    const source = await resolveTranscriptionSource(db, row)
+    const result = await transcribeRecording(source, { name: recordingFileName(audio.mime_type), mime_type: audio.mime_type.split(';')[0], bytes: audio.bytes }, {
+      language: providerLanguage(row.agent.dictation.language || language),
+      fetchImpl,
+    })
+    return { text: result.text }
+  } catch (error) {
+    if (error instanceof DictationUnavailableError) throw new ServiceError('internal', error.message, { status: 503 })
+    const { MediaProviderError } = await import('@/lib/media/types')
+    if (error instanceof MediaProviderError) throw new ServiceError('internal', `The transcription provider failed: ${error.message}`, { status: 502 })
+    throw error
+  }
 }
 
 /* ── Attachments ───────────────────────────────────────────────────── */
 
 /**
  * How the signed-in person's attachments are converted (null: the Agent is
- * not available to them): whether their model takes images, and the
- * instance's OCR for images when it doesn't.
+ * not available to them): whether their model takes images, whether it reads
+ * PDFs itself (lib/agents/pdf-input — Claude only over Anthropic's native
+ * Messages API), and the instance's OCR for images / scanned pages when it
+ * can't see.
  */
-export async function attachmentUploadOptions(ctx: ServiceContext): Promise<{ vision: boolean; ocr: ((bytes: Buffer) => Promise<string>) | null } | null> {
+export async function attachmentUploadOptions(ctx: ServiceContext): Promise<{ vision: boolean; ocr: ((bytes: Buffer) => Promise<string>) | null; pdf: { maxPages: number } | null } | null> {
   if (!ctx.actorId || !ctx.permissions) return null
   const availability = await getAssistantAvailability(ctx)
   if (!availability.agent) return null
@@ -454,9 +529,28 @@ export async function attachmentUploadOptions(ctx: ServiceContext): Promise<{ vi
   if (!row) return null
   const { modelAcceptsImages } = await import('@/lib/assistants/engine')
   const { resolvePersonModel } = await import('@/lib/assistants/profiles')
+  const { pdfInputSupport, supportsPdfInput } = await import('@/lib/agents/pdf-input')
   const user = await availabilityUser(db, ctx.tenantId, ctx.actorId, ctx.permissions)
-  const resolved = resolvePersonModel(row, { userId: ctx.actorId, roleIds: user.roleIds, teamIds: user.teamIds })
-  const vision = modelAcceptsImages(resolved.provider, resolved.model)
+  const person = { userId: ctx.actorId, roleIds: user.roleIds, teamIds: user.teamIds }
+  // The person's actual connection (an Integrations connection names its provider only here); the model choice when it can't be resolved.
+  let resolved: { provider: AgentProviderKind | string; model: string; url: string | null }
+  try {
+    const { resolvePersonConnection } = await import('@/lib/assistants/settings')
+    const { connection } = await resolvePersonConnection(db, row, person)
+    resolved = { provider: connection.provider, model: connection.model, url: connection.url }
+  } catch {
+    const choice = resolvePersonModel(row, person)
+    resolved = { provider: choice.provider, model: choice.model, url: null }
+  }
+  const vision = modelAcceptsImages(resolved.provider as AgentProviderKind, resolved.model)
+  // PDFs whole only where the chat will send them whole: Claude needs the native Messages API (its URL decides).
+  let pdf: { maxPages: number } | null = null
+  const support = pdfInputSupport(resolved.provider, resolved.model)
+  if (support) {
+    const { useAnthropicNative } = await import('@/lib/agents/anthropic-messages')
+    const native = resolved.url ? useAnthropicNative(resolved.provider as AgentProviderKind, resolved.url) : false
+    if (supportsPdfInput(resolved.provider, resolved.model, { native })) pdf = { maxPages: support.maxPages }
+  }
   let ocr: ((bytes: Buffer) => Promise<string>) | null = null
   if (!vision) {
     const { instanceTesseractAvailable, openOcrProvider } = await import('@/lib/documents/ocr')
@@ -467,5 +561,5 @@ export async function attachmentUploadOptions(ctx: ServiceContext): Promise<{ vi
       }
     }
   }
-  return { vision, ocr }
+  return { vision, ocr, pdf }
 }

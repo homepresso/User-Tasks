@@ -268,7 +268,10 @@ export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}
       break
     case 'read_csv':
     case 'read_excel':
-      if (!c.file_url) errors.push('File URL required')
+      // Write mode turns a list into a file: it reads data_var, not file_url.
+      if (c.mode === 'write') {
+        if (!c.data_var) errors.push('Data (a list variable) required')
+      } else if (!c.file_url) errors.push('File URL required')
       break
     case 'doc_word':
     case 'doc_excel':

@@ -290,6 +290,14 @@ async function assertDataTargets(ctx: ServiceContext, db: AnySupabaseClient, sto
       for (const a of allActions(r.then)) {
         if (a.type === 'call_reference' && a.reference_id && !rules.references.includes(a.reference_id)) rules.references.push(a.reference_id)
         if (a.type === 'start_workflow' && a.workflow_id && !rules.workflows.includes(a.workflow_id)) rules.workflows.push(a.workflow_id)
+        // Data table steps (lib/forms/data-actions.ts): reads need data.view, writes data.manage_rows of the author.
+        if (a.table_id && (a.type === 'table_read' || a.type === 'table_list')) sources.tables.add(a.table_id)
+        if (a.table_id && (a.type === 'table_create' || a.type === 'table_update' || a.type === 'table_delete') && !rules.tables.includes(a.table_id)) rules.tables.push(a.table_id)
+        // Editable table rules' "Save now" (lib/forms/row-rules.ts): writes the Data table field's table — data.manage_rows of the author.
+        if ((a.type === 'commit_row' || a.type === 'delete_row') && a.commit_mode === 'save_now') {
+          const table = normalizeTaskFields(def.fields).find((f) => f.key === a.field && f.type === 'data_table')?.data_table
+          if (table?.source === 'table' && table.table_id && !rules.tables.includes(table.table_id)) rules.tables.push(table.table_id)
+        }
       }
     }
     return { ...sources, rules }
@@ -406,10 +414,11 @@ export async function listAvailableForms(ctx: ServiceContext): Promise<Available
   if (error) throw dbError(error)
   const rows = (data ?? []) as any[]
   // The menu opens a form without parameters: a form that needs one (required, no default) is left out.
-  const { blocked, systemNames } = await menuFormFacts(ctx, rows.map((row) => String(row.id)))
+  const { blocked, systemNames, tags } = await menuFormFacts(ctx, rows.map((row) => String(row.id)))
   return sortAvailableForms(rows.filter((row) => !blocked.has(String(row.id))).map((row) => ({
     id: String(row.id), name: String(row.name), description: (row.description ?? null) as string | null,
     system_name: systemNames.get(String(row.id)) ?? null,
+    tags: tags.get(String(row.id)) ?? [],
   })))
 }
 
@@ -418,15 +427,16 @@ export async function listAvailableForms(ctx: ServiceContext): Promise<Available
  * (lib/forms/form-params.ts: they can't open from a plain link), and every
  * form's system name (the friendly /form/<name> link on a workspace address).
  */
-async function menuFormFacts(ctx: ServiceContext, ids: string[]): Promise<{ blocked: Set<string>; systemNames: Map<string, string> }> {
-  if (!ids.length) return { blocked: new Set(), systemNames: new Map() }
+async function menuFormFacts(ctx: ServiceContext, ids: string[]): Promise<{ blocked: Set<string>; systemNames: Map<string, string>; tags: Map<string, string[]> }> {
+  if (!ids.length) return { blocked: new Set(), systemNames: new Map(), tags: new Map() }
   const db = await serviceRoleClient(ctx)
-  const { data, error } = await (db as any).from('forms').select('id, layout, system_name').eq('tenant_id', ctx.tenantId).in('id', ids)
+  const { data, error } = await (db as any).from('forms').select('id, layout, system_name, tags').eq('tenant_id', ctx.tenantId).in('id', ids)
   if (error) throw dbError(error)
   const rows = (data ?? []) as any[]
   return {
     blocked: new Set(rows.filter((row) => requiredParamsWithoutDefault(row.layout).length > 0).map((row) => String(row.id))),
     systemNames: new Map(rows.filter((row) => row.system_name).map((row) => [String(row.id), String(row.system_name)])),
+    tags: new Map(rows.map((row) => [String(row.id), Array.isArray(row.tags) ? (row.tags as unknown[]).map((t) => String(t).toLowerCase()).filter(Boolean) : []])),
   }
 }
 

@@ -82,7 +82,7 @@ describe('action starter kit', () => {
     expect(read('README.md')).toContain('/docs/workflows/custom-actions')
   })
 
-  it.each(VARIANTS)('%s: vendored @usertasks/action sources are byte-identical to packages/action/src', (variant) => {
+  it.each(VARIANTS)('%s: vendored @user-tasks/action sources are byte-identical to packages/action/src', (variant) => {
     for (const file of VENDORED) {
       expect(read(variant, 'vendor/usertasks-action', file), file).toBe(readFileSync(path.join(PACKAGE_SRC, file), 'utf8'))
     }

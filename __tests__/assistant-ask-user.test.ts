@@ -246,13 +246,13 @@ describe('"@me": the person building, on the card and when it runs', () => {
       ],
     }
     const card = await tool.confirm!(args)
-    expect(card.lines).toContain('Assignee of “Manager approval”: you (Andy Hayes), for testing')
-    expect(card.lines).toContain('Assignee of “HR check”: the team Finance')
+    expect(card.lines).toContain('Assignee of “Manager approval”: you (Andy Hayes), for testing · redirect allowed')
+    expect(card.lines).toContain('Assignee of “HR check”: the team Finance · redirect allowed')
     expect(card.warnings[0]).toBe(ASSIGNED_FOR_TESTING_NOTE)
     expect((card as any).confirm_label).toBe('Build all')
     const out = await tool.run(args, { emit: () => undefined, toolCallId: 'p1' })
     const wf = created.find((c) => c.name === 'workflows_create')
-    expect(wf.args.nodes[1].config).toMatchObject({ assignee_id: ME, _assigned_for_testing: true })
+    expect(JSON.parse(wf.args.nodes)[1].config).toMatchObject({ assignee_id: ME, _assigned_for_testing: true, allow_redirect: true })
     expect(out.result).toMatchObject({ status: 'completed', assigned_for_testing: ['Manager approval'] })
     expect((out.result as any).assignment_note).toContain('assigned to you for testing')
   })
@@ -260,12 +260,12 @@ describe('"@me": the person building, on the card and when it runs', () => {
   it('the card names each assignee and flags unassigned tasks', async () => {
     const inner: AssistantToolDef = { name: 'workflows_update', description: '', parameters: {}, mode: 'write', label: () => 'Updating', confirm: async () => ({ title: 'Update workflow', lines: ['Nodes: 2'], warnings: ['1 possible wiring issue'] }), run: async () => ({ result: { ok: true } }) }
     const card = await withAssignmentHelp(inner, deps).confirm!(workflowArgs({}))
-    expect(card.lines).toEqual(['Nodes: 2', 'Assignee of “Manager approval”: nobody — it waits in the queue (unassigned)'])
+    expect(card.lines).toEqual(['Nodes: 2', 'Assignee of “Manager approval”: nobody — it waits in the queue (unassigned) · redirect allowed'])
     expect(card.warnings[0]).toContain('No assignee: “Manager approval”')
     const mgr = await withAssignmentHelp(inner, deps).confirm!(workflowArgs({ assignee_variable: '{{submitted_by_manager_id}}' }))
-    expect(mgr.lines[1]).toBe("Assignee of “Manager approval”: the submitter's manager")
+    expect(mgr.lines[1]).toBe("Assignee of “Manager approval”: the submitter's manager · redirect allowed")
     const person = await withAssignmentHelp(inner, deps).confirm!(workflowArgs({ assignee_id: PRIYA }))
-    expect(person.lines[1]).toBe('Assignee of “Manager approval”: Priya Shah')
+    expect(person.lines[1]).toBe('Assignee of “Manager approval”: Priya Shah · redirect allowed')
   })
 
   it('the chat hook wraps only workflow writes and adds assignees_lookup for builders', () => {
@@ -321,7 +321,7 @@ describe('a mocked conversation: ask → "Assign to me for testing" → the writ
     expect(bodies[bodies.length - 1].messages.filter((m: any) => m.role === 'user').pop().content).toBe('Assign to me for testing (@me)')
     expect(t2.r.status).toBe('awaiting_confirmation')
     const confirm = t2.events.find((e) => e.type === 'confirm') as Extract<AssistantEvent, { type: 'confirm' }>
-    expect(confirm.card.lines).toContain('Assignee of “Manager approval”: you (Andy Hayes), for testing')
+    expect(confirm.card.lines).toContain('Assignee of “Manager approval”: you (Andy Hayes), for testing · redirect allowed')
     expect(confirm.card.warnings).toContain(ASSIGNED_FOR_TESTING_NOTE)
     expect(ran).toEqual([]) // nothing written before the confirmation
     history = [...history, ...t2.r.newMessages]

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A sample InfoPath form template written for UserTasks' importer tests (not from Microsoft). -->
+<xsf:xDocumentClass solutionFormatVersion="3.0.0.0" solutionVersion="1.0.0.2" productVersion="15.0.0" name="urn:schemas-microsoft-com:office:infopath:Leave-Request" xmlns:xsf="http://schemas.microsoft.com/office/infopath/2003/solutionDefinition" xmlns:xsf2="http://schemas.microsoft.com/office/infopath/2006/solutionDefinition/extensions" xmlns:xd="http://schemas.microsoft.com/office/infopath/2003" xmlns:xdDate="http://schemas.microsoft.com/office/infopath/2003/xslt/Date" xmlns:xdUser="http://schemas.microsoft.com/office/infopath/2006/xslt/User" xmlns:my="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-02-03T09:30:00">
+	<xsf:package><xsf:files><xsf:file name="myschema.xsd"><xsf:fileProperties><xsf:property name="rootElement" type="string" value="leaveRequest"></xsf:property></xsf:fileProperties></xsf:file></xsf:files></xsf:package>
+	<xsf:extensions><xsf:extension name="SolutionDefinitionExtensions"><xsf2:solutionDefinition runtimeCompatibility="client server"></xsf2:solutionDefinition></xsf:extension></xsf:extensions>
+	<xsf:views default="Request">
+		<xsf:view name="Request" caption="Leave request" showMenuItem="yes">
+			<xsf:mainpane transform="view1.xsl"></xsf:mainpane>
+			<xsf:editing>
+				<xsf:xmlToEdit name="medical_1" item="/my:leaveRequest/my:medical" container="/my:leaveRequest">
+					<xsf:editWith caption="medical details" component="xOptional"></xsf:editWith>
+				</xsf:xmlToEdit>
+			</xsf:editing>
+			<xsf:unboundControls>
+				<xsf:button name="CTRL30"><xsf:ruleSetAction ruleSet="ruleSet_send"></xsf:ruleSetAction></xsf:button>
+			</xsf:unboundControls>
+		</xsf:view>
+		<xsf:view name="Approval" caption="Manager approval" showMenuItem="yes">
+			<xsf:mainpane transform="view2.xsl"></xsf:mainpane>
+			<xsf:unboundControls>
+				<xsf:button name="CTRL40"><xsf:ruleSetAction ruleSet="ruleSet_approve"></xsf:ruleSetAction></xsf:button>
+				<xsf:button name="CTRL41"><xsf:ruleSetAction ruleSet="ruleSet_back"></xsf:ruleSetAction></xsf:button>
+			</xsf:unboundControls>
+		</xsf:view>
+	</xsf:views>
+	<xsf:documentSchemas><xsf:documentSchema rootSchema="yes" location="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-02-03T09:30:00 myschema.xsd"></xsf:documentSchema></xsf:documentSchemas>
+	<xsf:fileNew><xsf:initialXmlDocument caption="Leave Request" href="template.xml"></xsf:initialXmlDocument></xsf:fileNew>
+	<xsf:calculations>
+		<xsf:calculatedField target="/my:leaveRequest/my:employee/my:fullName" expression="xdUser:get-DisplayName()" refresh="onInit"></xsf:calculatedField>
+	</xsf:calculations>
+	<xsf:ruleSets>
+		<xsf:ruleSet name="ruleSet_load">
+			<xsf:rule caption="New request status" condition="my:status = &quot;&quot;" isEnabled="yes">
+				<xsf:assignmentAction targetField="my:status" expression="&quot;Draft&quot;"></xsf:assignmentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_type">
+			<xsf:rule caption="Clear doctor when not sick" condition=". != &quot;Sick&quot;" isEnabled="yes">
+				<xsf:assignmentAction targetField="../my:medical/my:doctor" expression="&quot;&quot;"></xsf:assignmentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_send">
+			<xsf:rule caption="Check the dates" condition="my:endDate &lt; my:startDate" isEnabled="yes" stopProcessingRules="yes">
+				<xsf:dialogBoxMessageAction>The end date is before the start date.</xsf:dialogBoxMessageAction>
+			</xsf:rule>
+			<xsf:rule caption="Send for approval" isEnabled="yes">
+				<xsf:assignmentAction targetField="my:status" expression="&quot;Pending approval&quot;"></xsf:assignmentAction>
+				<xsf:switchViewAction view="Approval"></xsf:switchViewAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_approve">
+			<xsf:rule caption="Record the decision" condition="my:approval/my:decision != &quot;&quot;" isEnabled="yes">
+				<xsf:assignmentAction targetField="my:approval/my:approvedOn" expression="xdDate:Today()"></xsf:assignmentAction>
+				<xsf:assignmentAction targetField="my:status" expression="concat(my:approval/my:decision, &quot; by manager&quot;)"></xsf:assignmentAction>
+				<xsf:closeDocumentAction promptToSaveChanges="no"></xsf:closeDocumentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+		<xsf:ruleSet name="ruleSet_back">
+			<xsf:rule caption="Back to the request" isEnabled="yes">
+				<xsf:switchViewAction view="Request"></xsf:switchViewAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+	</xsf:ruleSets>
+	<xsf:domEventHandlers>
+		<xsf:domEventHandler match="/my:leaveRequest/my:leaveType"><xsf:ruleSetAction ruleSet="ruleSet_type"></xsf:ruleSetAction></xsf:domEventHandler>
+	</xsf:domEventHandlers>
+	<xsf:onLoad><xsf:ruleSetAction ruleSet="ruleSet_load"></xsf:ruleSetAction></xsf:onLoad>
+	<xsf:customValidation>
+		<xsf:errorCondition match="/my:leaveRequest/my:endDate" expressionContext="." expression=". &lt; ../my:startDate">
+			<xsf:errorMessage type="modeless" shortMessage="The end date must be on or after the start date"></xsf:errorMessage>
+		</xsf:errorCondition>
+		<xsf:errorCondition match="/my:leaveRequest/my:reason" expressionContext="." expression="string-length(.) &lt; 10 and ../my:leaveType = &quot;Unpaid&quot;">
+			<xsf:errorMessage type="modeless" shortMessage="Explain unpaid leave in a sentence"></xsf:errorMessage>
+		</xsf:errorCondition>
+	</xsf:customValidation>
+</xsf:xDocumentClass>

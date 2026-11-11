@@ -143,7 +143,7 @@ describe('designer tools', () => {
     const all = allowedDesignerToolNames(new Set(ALL_BUILD))
     expect(all.filter((n) => /delete|publish|toggle|start|run_action|secrets|anonymous|submit|migrate/.test(n) && n !== 'data_rows_bulk_delete')).toEqual([])
     // Row writes need data.manage_rows (row reads data.view).
-    expect(all.filter((n) => n.startsWith('data_rows_') && n !== 'data_rows_query' && n !== 'data_rows_get')).toEqual(ALL_BUILD.includes('data.manage_rows') ? ['data_rows_create', 'data_rows_update', 'data_rows_bulk_delete'] : [])
+    expect(all.filter((n) => n.startsWith('data_rows_') && n !== 'data_rows_query' && n !== 'data_rows_get')).toEqual(ALL_BUILD.includes('data.manage_rows') ? ['data_rows_create', 'data_rows_update', 'data_rows_bulk_delete', 'data_rows_import'] : [])
     // A new form control is disabled right after creation: that needs edit as well as create.
     expect(allowedDesignerToolNames(new Set(['extensibility.view', 'extensibility.create']))).not.toContain('form_controls_create')
   })
@@ -188,7 +188,7 @@ describe('designer tools', () => {
     })
     expect(done.status).toBe('completed')
     expect(server.handlers.get('forms_create')).toHaveBeenCalledTimes(1)
-    expect(events2).toContainEqual({ type: 'changed', kind: 'form', id: 'form-9', title: 'Loans', href: '/automations/forms?open=form-9', action: 'created' })
+    expect(events2).toContainEqual({ type: 'changed', kind: 'form', id: 'form-9', title: 'Loans', href: '/automations/forms/form-9', action: 'created' })
   })
 
   it('a declined write never runs', async () => {

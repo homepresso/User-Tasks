@@ -15,12 +15,13 @@ const followResponse = z.looseObject({ task_id: z.string(), following: z.boolean
 export const listFollowedTasksEndpoint = defineEndpoint({
   method: 'GET', path: '/tasks/following', operationId: 'listFollowedTasks', tags,
   summary: 'Tasks I follow (the Task tracker\'s Following tab)', permission: 'tasks.view_own',
-  description: `Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at, sorted by due date (none last), then most recently followed. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. ${PERSONAL}`,
+  description: `Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. ${PERSONAL}`,
   query: paginationQuery.extend({
     search: z.string().max(200).optional().describe('Task name, ID, workflow, people, team, status or priority contains'),
     status: csvFilter('Task statuses'),
     priority: csvFilter('Priorities'),
     hide_completed: booleanFlag('true: leave out completed and cancelled tasks'),
+    shared_only: booleanFlag('true: only tasks shared with you by an invite (read only)'),
   }),
   response: listResponse('tasks'), listKey: 'tasks',
   cli: { resource: 'tasks', verb: 'following' },

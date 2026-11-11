@@ -1,7 +1,7 @@
 # Release notes: CLI, complete REST API and MCP permission changes
 
-This release adds the `usertasks` CLI (`@usertasks/cli`) and TypeScript SDK
-(`@usertasks/sdk`), extends `/api/v1` to cover everything the UI can
+This release adds the `usertasks` CLI (`@user-tasks/cli`) and TypeScript SDK
+(`@user-tasks/sdk`), extends `/api/v1` to cover everything the UI can
 configure, and moves REST, MCP and most server actions onto one shared
 service layer (`lib/services/*`). The API is described by the OpenAPI 3.1
 document at `GET /api/v1/openapi.json`.
@@ -211,7 +211,7 @@ endpoint `/api/webhooks/inbound` works as before.
 | Agents, retention | `PATCH /agents/{id}`, `PATCH /retention-policies/{id}` (same as `PUT`) |
 | Data tables | `GET,POST /data-tables`; `GET,PATCH,DELETE /data-tables/{id}`; `GET,POST /data-tables/{id}/rows`; `GET,PATCH,DELETE /data-tables/{id}/rows/{rowId}`; `POST /data-tables/{id}/rows/bulk-delete` |
 | Workflows | `GET /workflows/{id}/definition`; `PATCH,DELETE /workflows/{id}`; `POST /workflows/{id}/publish`; `POST /workflows/{id}/activate`, `/deactivate`; `GET /workflows/{id}/versions[/{versionId}]` |
-| Tasks | `PATCH /tasks/{id}` |
+| Tasks | `PATCH /tasks/{id}`; `GET,POST /tasks/{id}/subtasks`; `PATCH /tasks/{id}/subtasks/{subtaskId}` (MCP `tasks_subtasks_list` needs tasks.view_own; `tasks_add_subtask`, `tasks_update_subtask` need tasks.complete) |
 | Roles & users | `GET,POST /roles`; `GET,PATCH,DELETE /roles/{id}`; `GET /users`; `PUT,DELETE /users/{id}/roles/{roleId}` |
 | Teams | `GET,POST /teams`; `GET,PATCH,DELETE /teams/{id}`; `PUT,DELETE /teams/{id}/members/{userId}` |
 | Invitations | `GET,POST /invitations`; `DELETE /invitations/{id}`; `POST /invitations/{id}/resend` |

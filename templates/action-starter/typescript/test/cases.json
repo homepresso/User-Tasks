@@ -1,5 +1,5 @@
 {
-  "$comment": "npm test runs each operation's manifest sample, then these cases. expect: outputs that must match (deep equal per key); expect_error: an error code (timeout, memory, capability, action, invalid, host) or true; mocks: http / data / files / secrets as in @usertasks/action/testing.",
+  "$comment": "npm test runs each operation's manifest sample, then these cases. expect: outputs that must match (deep equal per key); expect_error: an error code (timeout, memory, capability, action, invalid, host) or true; mocks: http / data / files / secrets as in @user-tasks/action/testing.",
   "cases": [
     {
       "name": "15% on 100",

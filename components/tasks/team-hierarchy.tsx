@@ -260,19 +260,19 @@ function PersonTasks({ node, root, filters, readOnly, sort, targets }: {
   }
   const people = targets.map((t) => ({ id: t.id, display_name: t.name, email: t.email }))
   return (
-    // Phones: task cards (TeamTaskRow), no header row and no minimum table width (it pushed the cards past the screen edge).
-    <Table data-team-node-tasks={node.id} containerClassName={mobile ? undefined : "max-lg:[&>table]:min-w-[760px]"}>
+    // Phones: task cards (TeamTaskRow), no header row. Wider: readable columns (col presets) that scroll sideways.
+    <Table data-team-node-tasks={node.id} label={`${node.name}’s tasks`} stickyFirstColumn>
       <THead className={mobile ? "hidden" : undefined}>
         <tr>
-          <SortableTH sortKey="title" sort={sort.sort} onSort={sort.toggle}>Task</SortableTH>
-          <SortableTH sortKey="assignee" sort={sort.sort} onSort={sort.toggle} className="w-36">Assignee</SortableTH>
-          <SortableTH sortKey="status" sort={sort.sort} onSort={sort.toggle} className="w-32">Status</SortableTH>
-          <SortableTH sortKey="priority" sort={sort.sort} onSort={sort.toggle} className="w-28">Priority</SortableTH>
-          <SortableTH sortKey="progress" sort={sort.sort} onSort={sort.toggle} className="w-28">Progress</SortableTH>
-          <SortableTH sortKey="due" sort={sort.sort} onSort={sort.toggle} numeric className="w-32">Due</SortableTH>
-          <SortableTH sortKey="updated" sort={sort.sort} onSort={sort.toggle} numeric className="w-28">Updated</SortableTH>
-          <TH className="w-px"><span className="sr-only">Open</span></TH>
-          <TH className="w-px"><span className="sr-only">Actions</span></TH>
+          <SortableTH sortKey="title" sort={sort.sort} onSort={sort.toggle} col="title">Task</SortableTH>
+          <SortableTH sortKey="assignee" sort={sort.sort} onSort={sort.toggle} col="people" className="w-36">Assignee</SortableTH>
+          <SortableTH sortKey="status" sort={sort.sort} onSort={sort.toggle} col="status" className="w-32">Status</SortableTH>
+          <SortableTH sortKey="priority" sort={sort.sort} onSort={sort.toggle} col="status" className="w-28">Priority</SortableTH>
+          <SortableTH sortKey="progress" sort={sort.sort} onSort={sort.toggle} className="w-28 min-w-28">Progress</SortableTH>
+          <SortableTH sortKey="due" sort={sort.sort} onSort={sort.toggle} numeric col="date" className="w-32">Due</SortableTH>
+          <SortableTH sortKey="updated" sort={sort.sort} onSort={sort.toggle} numeric col="date" className="w-28">Updated</SortableTH>
+          <TH col="actions"><span className="sr-only">Open</span></TH>
+          <TH col="actions"><span className="sr-only">Actions</span></TH>
         </tr>
       </THead>
       <TBody>

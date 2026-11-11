@@ -34,6 +34,8 @@ All ${STEP_NODE_COUNT} node types (plus the section and live-reference canvas to
 3. **Publish** — freezes the draft as a new version. Runs always use the published version. See [Versions and runs](/docs/workflows/versions-and-runs).
 4. **Activate** — an active workflow listens to its trigger; deactivate it to stop new runs without deleting anything.
 
+Each run has a **Timeline** next to its Process view: who started it, who each step went to, comments, approvals with their outcomes, notable automatic steps (emails, records, decisions, waits, errors) and where it is now, in plain words. It is the first tab for people who don't build workflows. See [Timeline](/docs/tasks#timeline).
+
 ## Authoring as JSON
 
 The designer and the API use the same definition: \`nodes\`, \`edges\`, \`user_variables\` and optional \`swimlanes\`.
@@ -505,6 +507,10 @@ Each node has an \`onError\` setting:
 
 Branch on \`{{has_error}}\` to compensate, notify or create a task for a person.
 
+## Ending a run as failed
+
+**End Workflow** ends the run as completed by default. Set **End the run as** to **Failed** (\`status: "failed"\`) to fail it instead: the reason becomes the run's error, the run shows red and Workflow Error triggers fire — for example when your own checks find a problem. The [platform self-test](/docs/workflows/self-test) ends this way when a check fails.
+
 ## Central error workflows
 
 A workflow with a **Workflow Error** trigger runs whenever another workflow (or only the ones you choose) fails, with \`error_workflow_id\`, \`error_workflow_name\`, \`error_run_id\`, \`error_message\`, \`error_node\` and \`error_timestamp\`. Use one to page on-call, open an incident or log to a data table.
@@ -671,6 +677,78 @@ Admins (**Complete any task**) can select rows and **Reassign…** them together
 Each run records its trigger, variables, every step (status, duration, input and output, capped in size), logs and the execution path. Open it in **Build › Workflows → Runs**, fetch it with \`usertasks runs get <id>\`, or follow its events with \`usertasks logs tail --run <id>\`.
 
 The run page (**Process view**) also shows each User Task step's people, status and history, and a form icon to open a waiting task when you may: as its assignee, a manager of the assignee, a manager of the workflow (an explicit **Edit** grant), or with **View all tasks**. Managers of the workflow and of the assignee can act **on behalf** of the assignee from the task page, giving a reason. See [Process view: open the waiting task](/docs/home#open-the-waiting-task). \`GET /api/v1/workflows/runs/{id}\` and MCP \`workflows_run_get\` return the same list as \`tasks\`, with your own \`can_open\` / \`can_act\` for each task. Finished queue rows are kept for \`QUEUE_RETENTION_DAYS\` (default 7); run history follows your [retention policies](/docs/governance/audit-and-retention).
+`,
+  },
+  {
+    slug: 'workflows/self-test',
+    title: 'Platform self-test (kitchen sink)',
+    description: 'Install and run the kitchen sink workflow: it runs every built-in, non-API step type, checks each result and shows "Kitchen sink: N/N passed" — or fails the run listing what broke.',
+    body: `
+The **Kitchen sink — platform self-test** workflow exercises every step type that does not depend on an outside service, checks each result against the expected value, and reports. Run it after an upgrade, a provider change (storage, database, email) or a restore to see that everything is operational.
+
+## What it covers
+
+About 80 checks in labelled sections, one after the other:
+
+| Section | Steps |
+|---|---|
+| Variables & formulas | Set Variable with several assignments (a row using the one before), Calculate Value, inline functions (\`ROUND\`, \`MAX\`, \`IF\`) |
+| Text | Modify String (trim, uppercase, slug), Regex (replace, test), Create Text, \`LENGTH\` |
+| Dates | Date Math (add, interval), Format Date, \`WEEKDAY\` |
+| JSON | Build JSON Object, Add to JSON Array, Get JSON Value, parsing JSON text (\`FROM_JSON\`) |
+| Collections & loops | Build JSON Array, Count, Remove Duplicates, Sort, Get Item (index, last), Join to Text, Filter, Loop For Each, Loop N Times (with their Done edges) |
+| Branching | If / else if / else, Branch by Value, a multi-path condition where every matching branch runs |
+| Go to (jump) | Go To Activity looping back three times |
+| Parallel | Two branches, a join and the Done edge |
+| Decision table | A bundled decision table (first matching rule, outputs) |
+| Data table | Insert, get, list with a filter, update, delete — on a bundled scratch table, cleaned up every run |
+| Sub-workflow | Call Sub Workflow (a bundled child that doubles a number) |
+| Error handling | A step that fails on purpose with **On error = continue**, then checks \`has_error\`, \`last_error\` and \`last_error_node_id\` |
+| Timing | Pause for Duration (1 s), Pause Until Date (a few seconds ahead), Set SLA |
+| Files & documents | CSV and Excel write + read back, Base64 to File, Read File, File to Base64, Download File (from your own storage), Convert Document (text → Word, text → PDF), Word / Excel / PowerPoint find & replace, Read Document, PDF Tools (page count), Inspect, Compare, Extract, Redact (detect) |
+| Governance & custom actions | Retention Policies (list), a bundled Custom Action, Add User to Role / Check Permission / Remove from Role with a bundled test role |
+| Human step check | One User Task assigned to you with a bundled form and a prefilled value; after you click **Confirm** it checks the outcome and the values, then Add Task Attachment, Create Subtask and Auto Action (closing the subtask) |
+
+Setup and Summary also use Set Title, Log, Placeholder, Send Email (optional) and End Workflow.
+
+**Left out**, because they need an outside service or a different start: HTTP Request, Call API / Reference, Live Reference, Server Event, Run Agent, the media steps, the e-signature steps, Update Task (it writes the run's own triggering task, which a Run now start does not have) and the triggers other than the one it starts from. A test in the repository fails when a new step type is neither in the kitchen sink nor on this list.
+
+## Install it
+
+Either:
+
+- **Settings → General → Platform self-test → Install self-test** (admins: needs **Edit settings**, **Create workflows** and **Activate workflows**). Confirm: it imports the bundle, publishes both workflows and opens the kitchen sink. Installing again updates the same assets.
+- **Workflows → Import** with \`examples/kitchen-sink/kitchen-sink.bundle.json\` from the source repository: review the plan, apply, then **Publish** the sub-workflow and the kitchen sink (Run uses the published version). Or \`POST /api/v1/config/apply\` with the file as \`manifest\`, MCP \`config_apply\`, or \`usertasks config apply examples/kitchen-sink/kitchen-sink.bundle.json\`.
+
+It adds: the workflow, its sub-workflow (**Kitchen sink — sub-workflow**), the data table **Kitchen sink scratch rows**, the decision table **Kitchen sink pricing rules**, the form **Kitchen sink human check**, the role **Kitchen sink test role** (one read-only permission, \`reports.view\`) and the custom action **Kitchen sink: double**. Both workflows are active.
+
+## Run it
+
+Open the workflow and choose **⋯ → Run** (or start it from the API). It takes about 10 seconds, then waits for you:
+
+1. A task **Kitchen sink self-test: please confirm** appears in your tasks (you are notified). Its run token is prefilled; accept it if it is queued, then click **Confirm**.
+2. The run finishes the human-step checks and the summary.
+
+Inputs (workflow variables):
+
+| Variable | Default | |
+|---|---|---|
+| \`include_human_step\` | \`true\` | Turn off for unattended runs (its checks count as skipped) |
+| \`send_test_email\` | \`false\` | Email the summary with a \`[Kitchen sink test]\` subject… |
+| \`test_email_to\` | — | …to this address (yours) |
+
+A designer **Test** run works too; its User Task is simulated, so the task-writing checks are skipped. The role checks are skipped when no person started the run (a schedule). To run it nightly, add a **Schedule** trigger and set \`include_human_step\` to \`false\`.
+
+## Read the results
+
+- **The run's title**: \`Kitchen sink: 78/78 passed\` (with \`(N skipped)\` when sections were skipped).
+- **Status**: completed when every check passed; **failed** otherwise, with the error \`Kitchen sink failed: 2 of 78 checks failed (doc_pdf, csv)…\` — red in the run history and the process view, and Workflow Error triggers fire.
+- **The process view**: each check is a **Check: …** step; a failed one took its **Else** path to a **Record failure: …** step. Every section ends with a **Tally** step.
+- **Variables**: \`results\` (\`total\`, \`run\`, \`passed\`, \`failed\`, \`skipped\`, \`failures\`, \`skipped_groups\`) and \`failures\` — one entry per failed check with its \`check\`, \`group\`, \`expected\` and \`actual\` value. The summary is also written to the run log.
+
+A step that errors (other than the deliberate one) stops the run there, with that step's error — which points straight at what is broken.
+
+Ending a run as failed uses End Workflow's **End the run as: Failed** setting (\`status: "failed"\`), which you can use in your own workflows.
 `,
   },
   CUSTOM_ACTIONS_PAGE,

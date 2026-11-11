@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { pageMetadata } from '@/lib/seo/site'
+import { USE_CASES_INDEX } from '@/lib/seo/public-pages'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from '@/components/marketing/marketing-ui'
@@ -7,15 +9,10 @@ import { GalleryTeaser } from '@/components/gallery/gallery-teaser'
 import { publicBaseUrl } from '@/lib/deployment'
 import { USE_CASES, useCasesInGroup } from '@/lib/use-cases'
 
-const TITLE = 'Use cases: headless tasks, approvals, AI agents, integrations, surveys, media and migrations'
-const DESCRIPTION = 'How teams use UserTasks: human tasks inside their own apps, governed approvals, AI agents with human review, an integration hub, customer and employee surveys, quizzes, inspections, event registration and document sign-off on ready-made form controls, records requests and evidence redaction, claims, KYC, call QA and moderation on images, audio and video, and replacing SharePoint, Nintex and K2 workflows.'
+const TITLE = USE_CASES_INDEX.title
+const DESCRIPTION = USE_CASES_INDEX.description
 
-export const metadata: Metadata = {
-  title: `${TITLE} | UserTasks`,
-  description: DESCRIPTION,
-  alternates: { canonical: '/use-cases' },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: '/use-cases', type: 'website' },
-}
+export const metadata: Metadata = pageMetadata({ path: '/use-cases', title: `${TITLE} | UserTasks`, description: DESCRIPTION, socialTitle: TITLE })
 
 export default function UseCasesIndex() {
   const baseUrl = publicBaseUrl()

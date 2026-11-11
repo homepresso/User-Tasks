@@ -579,14 +579,14 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
           })}
         </div>
       ) : (
-        <Table>
+        <Table label="Custom actions" stickyFirstColumn stickyColumns={2}>
           <THead>
             <tr>
               <TH className="w-10"><span className="sr-only">Select</span></TH>
-              <TH>Action</TH>
-              <TH className="w-28">Status</TH>
-              <TH numeric className="w-24">Readiness</TH>
-              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+              <TH col="title">Action</TH>
+              <TH col="status" className="w-28">Status</TH>
+              <TH numeric col="number" className="w-24">Readiness</TH>
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>
@@ -616,7 +616,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
                         <Code2 size={14} />
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-fg">{displayName}</p>
+                        <p className="truncate font-medium text-fg" title={displayName}>{displayName}</p>
                         <p className="truncate text-xs text-fg-muted">{summary || `${item.key} · ${plural(manifest.inputs.length, 'input')} · ${plural(manifest.outputs.length, 'output')}`}</p>
                       </div>
                     </div>

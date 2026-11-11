@@ -63,6 +63,10 @@ export interface CheckOptions {
    * rule applies.
    */
   buttonIds?: readonly string[] | null
+  /** Where the form's rule steps run (a task, or a reusable form): rule-loaded options are checked against what they served. */
+  ruleTarget?: { task_id: string } | { form_id: string } | null
+  /** The context that check runs as (default `ctx`): a task's completer. */
+  ruleCtx?: import('@/lib/services/context').ServiceContext | null
 }
 
 export async function mergeTaskFieldValuesChecked(
@@ -150,6 +154,33 @@ async function checkedValues(
     })
     Object.assign(errors, resolved.errors)
     templateValues = { ...templateValues, ...resolved.items, ...lookupFillTargets(fields, resolved.fills ?? {}) }
+  }
+  // List lookup cells (lib/forms/list-field.ts): each confirmed in its column's source, labels from the source.
+  const lists = fields.filter((f) => f.type === 'list' && !f.read_only && f.list?.columns.some((c) => c.type === 'lookup'))
+  const listKeys = options.partial ? lists.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key) : lists.map((f) => f.key)
+  if (listKeys.length) {
+    const { verifyListLookups } = await import('@/lib/services/form-lookup')
+    const { createServiceClient } = await import('@/lib/cron-auth')
+    const verified = await verifyListLookups(createServiceClient(), tenantId, fields, { ...templateValues, ...context }, { strict: !options.partial, taskId: options.taskId ?? null, task: options.task ?? null, keys: listKeys })
+    Object.assign(errors, verified.errors)
+    templateValues = { ...templateValues, ...verified.values }
+  }
+  // Choices whose options a rule loads (lib/forms/data-actions.ts): the value must be one the person was offered.
+  const ruleCtx = options.ruleCtx ?? options.ctx
+  if (!options.partial && ruleCtx && options.ruleTarget) {
+    const { ruleOptionFields } = await import('@/lib/forms/data-actions')
+    const { allActions } = await import('@/lib/forms/field-buttons')
+    const { layoutFormRules } = await import('@/lib/forms/form-rules')
+    const loose = ruleOptionFields(layoutFormRules(metadata?.form_layout).flatMap((r) => allActions(r.then)))
+    if (loose.size) {
+      const { verifyRuleOptions } = await import('@/lib/services/form-rule-actions')
+      try {
+        Object.assign(errors, await verifyRuleOptions(ruleCtx, options.ruleTarget, templateValues, [...loose]))
+      } catch (error) {
+        // The form / task can't be read as the checker: the rule-loaded value can't be confirmed.
+        console.warn('[forms] rule-loaded options check skipped:', error instanceof Error ? error.message : error)
+      }
+    }
   }
   // Data tables: selections re-read from the source, change sets validated
   // and their `before` re-read (lib/services/form-data-table.ts).

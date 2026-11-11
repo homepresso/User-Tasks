@@ -10,7 +10,7 @@
  *
  * create, on a connected machine with Docker: the OCI images (`docker save`,
  * one platform), the Helm chart (.tgz), the Compose files, npm tarballs of
- * @usertasks/sdk and @usertasks/cli (the CLI with its dependencies bundled,
+ * @user-tasks/sdk and @user-tasks/cli (the CLI with its dependencies bundled,
  * so `npm install -g` works offline), the docs (Markdown; the full docs site
  * is served by the app at /docs), SBOMs (syft, run in Docker), SHA256SUMS
  * and an ed25519 signature over it — the same key type and fingerprint
@@ -215,7 +215,7 @@ function packCli(stage: string, out: string, sdkTarball: string): void {
   for (const dep of deps) {
     const dest = path.join(work, 'node_modules', dep)
     mkdirSync(path.dirname(dest), { recursive: true })
-    if (dep === '@usertasks/sdk') {
+    if (dep === '@user-tasks/sdk') {
       mkdirSync(dest, { recursive: true })
       run('tar', ['-xzf', sdkTarball, '-C', dest, '--strip-components=1'], { quiet: true })
       continue

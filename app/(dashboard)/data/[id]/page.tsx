@@ -5,7 +5,10 @@ import { serverRead } from '@/lib/server-read'
 import { useQuery } from '@tanstack/react-query'
 import { DataGrid } from '@/components/data/data-grid'
 import { TableDesigner } from '@/components/data/table-designer'
-import { Table2 } from 'lucide-react'
+import { Table2, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ImportWizard } from '@/components/data/import-wizard'
+import { usePermissions } from '@/lib/permissions-context'
 import { ObjectPermissions } from '@/components/governance/object-permissions'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
 import { plural } from '@/lib/format/plural'
@@ -20,6 +23,7 @@ import { useDesignerContext } from '@/lib/assistants/client-registry'
 
 interface TableColumn {
   id: string
+  key?: string
   name: string
   type: 'text' | 'number' | 'date' | 'boolean' | 'select' | 'file' | 'longtext'
   options?: string[]
@@ -88,6 +92,8 @@ export default function CustomTablePage({
   // A new table opens on its schema (?tab=schema) so its columns can be added straight away.
   const { tab } = use(searchParams)
   const [activeTab, setActiveTab] = useState<'rows' | 'schema' | 'access'>(tab === 'schema' || tab === 'access' ? tab : 'rows')
+  const [importOpen, setImportOpen] = useState(false)
+  const { can } = usePermissions()
 
   const { data: table, isLoading: isTableLoading } = useQuery({
     queryKey: ['custom-table', id],
@@ -157,7 +163,14 @@ export default function CustomTablePage({
             </span>
           </>
         }
-        actions={<ExportAssetButton ids={[table.id]} name={table.name} allowRows />}
+        actions={
+          <>
+            {can('data.manage_rows') && (
+              <Button variant="secondary" leadingIcon={<Upload />} onClick={() => setImportOpen(true)} data-testid="data-table-import">Import</Button>
+            )}
+            <ExportAssetButton ids={[table.id]} name={table.name} allowRows />
+          </>
+        }
         tabs={
           <Tabs
             aria-label="Table"
@@ -172,6 +185,8 @@ export default function CustomTablePage({
           />
         }
       />
+
+      {importOpen && <ImportWizard open onOpenChange={setImportOpen} table={{ id: table.id, name: table.name, columns: table.columns }} />}
 
       {activeTab === 'rows' && (
         <TabPanel idBase="data-table" value="rows">

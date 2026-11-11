@@ -502,3 +502,36 @@ describe('downstream data and portability', () => {
     expect((remapped.fields[1] as any).lookup).toMatchObject({ reference_id: u(21), integration_id: u(71) })
   })
 })
+
+describe('List lookup columns (lib/forms/list-field.ts): the column\'s own source, {{row.<column>}}, labels from the source on submit', () => {
+  const LIST_FIELDS = [
+    { key: 'region', label: 'Region', type: 'text' },
+    { key: 'lines', label: 'Lines', type: 'list', list: { columns: [
+      { key: 'region', label: 'Region', type: 'text' },
+      { key: 'customer', label: 'Customer', type: 'lookup', required: true, lookup: { source: 'table', table_id: TABLE, search_columns: ['name'], display_columns: ['name'], filters: [{ column: 'region', operator: 'eq', value: '{{row.region}}' }] } },
+    ] } },
+  ]
+  beforeEach(() => { db = fakeDb(seed({ fields: LIST_FIELDS })); clearLookupCache() })
+
+  it('suggestions for `<list>.<column>` come from the saved column, filtered by the row being edited', async () => {
+    const eu = await lookupTaskField(ctx(), TASK, { field_key: 'lines.customer', query: 'f', values: { __row: { region: 'EU', secret: 'nope' } } })
+    expect(eu.items.map((i) => i.label).sort()).toEqual(['50% Off Store', 'Alfreds Futterkiste'])
+    const latam = await lookupTaskField(ctx(), TASK, { field_key: 'lines.customer', query: 'a', values: { __row: { region: 'LATAM' } } })
+    expect(latam.items.map((i) => i.label)).toEqual(['Ana Trujillo'])
+    await expect(lookupTaskField(ctx(), TASK, { field_key: 'lines.region', query: 'a' })).rejects.toThrow(/no lookup field/)
+    await expect(lookupTaskField(ctx(), TASK, { field_key: 'lines.nope', query: 'a' })).rejects.toThrow(/no lookup field/)
+  })
+
+  it('on submit each cell is confirmed in its row\'s scope and gets its label from the source; others are refused', async () => {
+    const { verifyListLookups } = await import('@/lib/services/form-lookup')
+    const fields = normalizeTaskFields(LIST_FIELDS)
+    const ok = await verifyListLookups(db as any, TENANT, fields, { lines: [{ region: 'EU', customer: u(101), customer_label: 'forged' }, { region: 'LATAM', customer: u(102) }] }, { strict: true, taskId: TASK })
+    expect(ok.errors).toEqual({})
+    expect((ok.values.lines as any[]).map((r) => r.customer_label)).toEqual(['Alfreds Futterkiste', 'Ana Trujillo'])
+    // Ana is LATAM: not offered for an EU row.
+    const bad = await verifyListLookups(db as any, TENANT, fields, { lines: [{ region: 'EU', customer: u(102) }] }, { strict: true, taskId: TASK })
+    expect(bad.errors.lines).toMatch(/row 1: Customer must be one of the suggestions/)
+    const draft = await verifyListLookups(db as any, TENANT, fields, { lines: [{ region: 'EU', customer: u(102) }] }, { strict: false, taskId: TASK })
+    expect(draft.errors).toEqual({})
+  })
+})

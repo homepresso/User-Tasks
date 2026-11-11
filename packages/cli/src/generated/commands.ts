@@ -1880,6 +1880,17 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "true",
           "false"
         ]
+      },
+      {
+        "name": "shared_only",
+        "flag": "shared-only",
+        "description": "true: only tasks shared with you by an invite (read only)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
       }
     ],
     "body": null,
@@ -1923,6 +1934,254 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "paginated": false,
     "envelope": true,
     "destructive": true
+  },
+  {
+    "operationId": "listTaskViewers",
+    "method": "GET",
+    "path": "/tasks/{id}/viewers",
+    "resource": "tasks",
+    "verb": "viewers",
+    "summary": "Who a task is shared with (read only invites)",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "viewers",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addTaskViewers",
+    "method": "POST",
+    "path": "/tasks/{id}/viewers",
+    "resource": "tasks",
+    "verb": "viewers-add",
+    "summary": "Invite people, teams or roles to view a task (read only)",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "viewers",
+          "type": "array",
+          "required": true,
+          "description": "People, teams and roles to invite (at most 50)"
+        },
+        {
+          "name": "note",
+          "type": "string",
+          "required": false,
+          "description": "A note for them (shown in the notification)"
+        },
+        {
+          "name": "include_subtasks",
+          "type": "boolean",
+          "required": false,
+          "description": "Also its subtasks (default true)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeTaskViewer",
+    "method": "DELETE",
+    "path": "/tasks/{id}/viewers/{viewerId}",
+    "resource": "tasks",
+    "verb": "viewers-remove",
+    "summary": "Stop sharing a task with a person, team or role",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id",
+      "viewerId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "listSubtasks",
+    "method": "GET",
+    "path": "/tasks/{id}/subtasks",
+    "resource": "tasks",
+    "verb": "subtasks",
+    "summary": "List a task's subtasks",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "subtasks",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addSubtask",
+    "method": "POST",
+    "path": "/tasks/{id}/subtasks",
+    "resource": "tasks",
+    "verb": "add-subtask",
+    "summary": "Add a subtask",
+    "permission": "tasks.complete",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "subtitle",
+          "required": false,
+          "description": "A short summary shown under the title"
+        },
+        {
+          "name": "description",
+          "required": false,
+          "description": "Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images)."
+        },
+        {
+          "name": "estimated_effort_minutes",
+          "required": false,
+          "description": "Estimate in whole minutes (the unit of actual_effort); stored as the creator's estimate. 0 or null = none"
+        },
+        {
+          "name": "due_date",
+          "required": false,
+          "description": "ISO 8601 date or date-time (years 2000–2100)"
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "description": "Default: the parent's priority"
+        },
+        {
+          "name": "tags",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateSubtask",
+    "method": "PATCH",
+    "path": "/tasks/{id}/subtasks/{subtaskId}",
+    "resource": "tasks",
+    "verb": "update-subtask",
+    "summary": "Edit a subtask",
+    "permission": "tasks.complete",
+    "positional": [
+      "id",
+      "subtaskId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "subtitle",
+          "required": false,
+          "description": "A short summary shown under the title"
+        },
+        {
+          "name": "description",
+          "required": false,
+          "description": "Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images)."
+        },
+        {
+          "name": "estimated_effort_minutes",
+          "required": false,
+          "description": "Estimate in whole minutes (the unit of actual_effort); stored as the creator's estimate. 0 or null = none"
+        },
+        {
+          "name": "due_date",
+          "required": false,
+          "description": "ISO 8601 date or date-time (years 2000–2100)"
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "description": "Default: the parent's priority"
+        },
+        {
+          "name": "tags",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getRunTimeline",
+    "method": "GET",
+    "path": "/workflows/runs/{id}/timeline",
+    "resource": "runs",
+    "verb": "timeline",
+    "summary": "A run's timeline: who did what and when, in plain words",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getTaskTimeline",
+    "method": "GET",
+    "path": "/tasks/{id}/timeline",
+    "resource": "tasks",
+    "verb": "timeline",
+    "summary": "A task's timeline: its run's story, or the task's own history",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
   },
   {
     "operationId": "listAgents",
@@ -3193,6 +3452,119 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "envelope": true,
     "async": true,
     "destructive": true
+  },
+  {
+    "operationId": "importDataRows",
+    "method": "POST",
+    "path": "/data-tables/{id}/rows/import",
+    "resource": "rows",
+    "verb": "import",
+    "summary": "Import rows from a CSV, TSV or .xlsx file (insert, upsert or replace)",
+    "permission": "data.manage_rows",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "file_base64",
+          "type": "string",
+          "required": true,
+          "description": "The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field."
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "required": true,
+          "description": "File name; its extension (.csv, .tsv, .xlsx) picks the reader"
+        },
+        {
+          "name": "sheet",
+          "type": "string",
+          "required": false,
+          "description": ".xlsx: the sheet to read (default the first)"
+        },
+        {
+          "name": "delimiter",
+          "type": "string",
+          "required": false,
+          "description": "CSV delimiter (default auto: comma, semicolon or tab, detected)"
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "required": false,
+          "description": "Text encoding (default auto: UTF-8 with or without BOM, UTF-16 with BOM, else Windows-1252)"
+        },
+        {
+          "name": "mapping",
+          "required": false,
+          "description": "File header → column key or name; null skips the header. Headers left out are matched to columns by name (case-insensitive; spaces, underscores and hyphens ignored)"
+        },
+        {
+          "name": "new_columns",
+          "required": false,
+          "description": "Columns to add to the table before importing (needs data.edit_schema)"
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "description": "insert (default): add every row; upsert: update rows whose key_column value matches, insert the rest; replace: delete every existing row first (confirm_replace)"
+        },
+        {
+          "name": "key_column",
+          "type": "string",
+          "required": false,
+          "description": "upsert: the column (key or name) whose value identifies a row"
+        },
+        {
+          "name": "confirm_replace",
+          "type": "string",
+          "required": false,
+          "description": "replace: the table name, typed, to confirm deleting every existing row"
+        },
+        {
+          "name": "date_order",
+          "type": "string",
+          "required": false,
+          "description": "Day / month order of numeric dates such as 03/04/2026 (default auto: detected from the values; month/day when undecidable)"
+        },
+        {
+          "name": "trim",
+          "required": false,
+          "description": "Trim leading / trailing whitespace (default true)"
+        },
+        {
+          "name": "empty_cells",
+          "type": "string",
+          "required": false,
+          "description": "empty (default): an empty cell clears the column; ignore: it leaves the column out (an upsert keeps the stored value)"
+        },
+        {
+          "name": "skip_invalid",
+          "required": false,
+          "description": "Import the valid rows and skip rows with errors (default false: any error stops the import, nothing is written)"
+        },
+        {
+          "name": "fire_triggers",
+          "required": false,
+          "description": "Fire data_table_event workflows for created / updated rows (default true, like POST /data-tables/{id}/rows)"
+        },
+        {
+          "name": "dry_run",
+          "required": false,
+          "description": "Validate only: the report (mapping, counts, row errors, preview), nothing written"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "async": true,
+    "destructive": false
   },
   {
     "operationId": "listIntegrations",
@@ -4836,7 +5208,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "values",
           "type": "object",
           "required": false,
-          "description": "Field values keyed by field key (validated like a task form: types, required, rules, people, lookup values against their source)"
+          "description": "Field values keyed by field key (validated like a task form: types, required, rules, people, lookup values against their source; a list field takes an array of row objects keyed by its column keys)"
         },
         {
           "name": "button_id",
@@ -5125,6 +5497,82 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "pathFlags": [],
     "query": [],
     "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "importInfoPathForm",
+    "method": "POST",
+    "path": "/forms/import/infopath",
+    "resource": "forms",
+    "verb": "import-infopath",
+    "summary": "Import an InfoPath form (.xsn): analyse it (dry_run) or create one UserTasks form per view, with its rules and validation",
+    "permission": "forms.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "file_base64",
+          "type": "string",
+          "required": true,
+          "description": "The InfoPath form template (.xsn), or a .zip of its extracted source files, base64. With multipart/form-data: the `file` field."
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "required": false,
+          "description": "The file name (default form.xsn); re-imports are matched by it"
+        },
+        {
+          "name": "dry_run",
+          "required": false,
+          "description": "true = analyse only: the report and the forms that would be made; nothing is stored"
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "description": "per_view (default): one form per InfoPath view, \"<Form> — <View>\"; combined: one form with each view as a step"
+        },
+        {
+          "name": "views",
+          "required": false,
+          "description": "Views to import (names; default all)"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "Base form name (default the InfoPath form's title)"
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "required": false,
+          "description": "An extra tag (the form name and \"infopath\" are always added)"
+        },
+        {
+          "name": "existing",
+          "type": "string",
+          "required": false,
+          "description": "Forms an earlier import of this file made (matched by file name + view): update them (a new version each) or create new forms (default)"
+        },
+        {
+          "name": "create_table",
+          "required": false,
+          "description": "Also create a data table for the submissions (a child table per repeating table) and a draft \"save submissions\" workflow (data.create and workflows.create / edit)"
+        },
+        {
+          "name": "available_in_menu",
+          "required": false,
+          "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
+        }
+      ]
+    },
     "paginated": false,
     "envelope": true,
     "destructive": false
@@ -10330,7 +10778,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       {
         "name": "type",
         "flag": "type",
-        "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme (default every type you may view) (comma-separated)",
+        "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control (default every type you may view) (comma-separated)",
         "required": false,
         "type": "string"
       },
@@ -10677,6 +11125,183 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "pathFlags": [],
     "query": [],
     "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listPackageItems",
+    "method": "GET",
+    "path": "/packages/{id}/items",
+    "resource": "packages",
+    "verb": "items",
+    "summary": "The items in a package, grouped by type, with what each uses / is used by and the changes since the last built version",
+    "permission": "packages.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "items",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addPackageItems",
+    "method": "POST",
+    "path": "/packages/{id}/items",
+    "resource": "packages",
+    "verb": "add-items",
+    "summary": "Add workspace items to a package (and, by default, what they use)",
+    "permission": "packages.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Workspace items to add (find them with GET /packages/assets)"
+        },
+        {
+          "name": "with_dependencies",
+          "type": "boolean",
+          "required": false,
+          "description": "Also add what they use that is not in the package yet (default true); false leaves those out"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "description": "Only list the items and the dependencies they would bring in"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removePackageItems",
+    "method": "POST",
+    "path": "/packages/{id}/items/remove",
+    "resource": "packages",
+    "verb": "remove-items",
+    "summary": "Remove items from a package (refused while other items use them, unless force)",
+    "permission": "packages.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Items in the package to remove (nothing in the workspace is deleted)"
+        },
+        {
+          "name": "force",
+          "type": "boolean",
+          "required": false,
+          "description": "Remove even when other items in the package use them"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "description": "Only list the items and what in the package still uses them"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "detachInstallItems",
+    "method": "POST",
+    "path": "/package-installs/{id}/detach",
+    "resource": "package-installs",
+    "verb": "detach",
+    "summary": "Remove items from an installed package: they stay in the workspace and uninstall keeps them",
+    "permission": "packages.install",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Items by type and their id in this workspace"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "update_package",
+          "type": "boolean",
+          "required": false,
+          "description": "Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "adoptInstallItems",
+    "method": "POST",
+    "path": "/package-installs/{id}/adopt",
+    "resource": "package-installs",
+    "verb": "adopt",
+    "summary": "Add existing workspace items to an installed package, so uninstall removes them (packages authored here only)",
+    "permission": "packages.install",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Items by type and their id in this workspace"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "update_package",
+          "type": "boolean",
+          "required": false,
+          "description": "Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage)"
+        }
+      ]
+    },
     "paginated": false,
     "envelope": true,
     "destructive": false

@@ -484,6 +484,21 @@ export const reads = {
   }),
 
   /**
+   * Timeline (lib/services/run-timeline): a run — `{ runId }`, or `{ taskId }`
+   * for the run of a task (else that task's own history) — as a readable
+   * story. Open to every signed-in member: the service shows only runs the
+   * person may see (run scope → full; can_view_run_progress → progress) and
+   * tasks they may view; anything else is not found.
+   */
+  'automations.timeline': defineRead({
+    args: z.object({ runId: id.optional(), taskId: id.optional() }).refine((a) => Boolean(a.runId) !== Boolean(a.taskId), 'Give runId or taskId'),
+    run: async (ctx, { runId, taskId }) => {
+      const { getTimeline } = await import('../run-timeline')
+      return getTimeline(ctx, runId ? { runId } : { taskId: taskId! })
+    },
+  }),
+
+  /**
    * Queue page: one page of queue items for a view + filters (filtered,
    * sorted and paged in the database), view counts and status totals
    * (lib/services/workflow-queue-list).

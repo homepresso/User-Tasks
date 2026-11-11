@@ -16,6 +16,7 @@ import {
   type HousekeepingSettings,
 } from '@/lib/config/housekeeping'
 import { bytesPerRow, formatBytes, housekeepingFindings, isBloated, type HousekeepingRunResult, type HousekeepingStatus } from '@/lib/admin/housekeeping'
+import { TableScroll } from '@/components/ui/table'
 
 /**
  * Settings → Infrastructure → Housekeeping (instance admins): the system-table
@@ -230,7 +231,7 @@ export function HousekeepingCard({ initial, error }: { initial: HousekeepingStat
         </ul>
       )}
 
-      <div className="overflow-x-auto">
+      <TableScroll bare label="Housekeeping tables">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs" style={muted}>
@@ -238,7 +239,7 @@ export function HousekeepingCard({ initial, error }: { initial: HousekeepingStat
               <th className="py-1 pr-3 font-medium text-right">Rows</th>
               <th className="py-1 pr-3 font-medium text-right">Size</th>
               <th className="py-1 pr-3 font-medium">Purged by</th>
-              <th className="py-1 font-medium">Rule</th>
+              <th className="min-w-56 py-1 font-medium">Rule</th>
             </tr>
           </thead>
           <tbody>
@@ -268,7 +269,7 @@ export function HousekeepingCard({ initial, error }: { initial: HousekeepingStat
             })}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
 
       <div>
         <h3 className="text-sm font-semibold">Recent passes</h3>

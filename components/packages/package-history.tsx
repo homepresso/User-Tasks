@@ -22,7 +22,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Tooltip } from '@/components/ui/tooltip'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/list-controls'
-import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table'
+import { Table, THead, TBody, TR, TH, TD, Truncate } from '@/components/ui/table'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { getPackageEventAction, listPackageEventsAction } from '@/app/actions/packages'
 import { useJobs } from '@/components/jobs/jobs-provider'
@@ -153,23 +153,23 @@ export function PackageHistory({ filters, onFiltersChange, packages }: {
             action={filtered ? { label: 'Clear filters', onClick: () => { setPage(0); onFiltersChange({}) } } : undefined} />
         </Card>
       ) : (
-        <Table>
+        <Table label="Package history">
           <THead>
             <tr>
-              <TH>When</TH>
-              <TH>Package</TH>
-              <TH>Action</TH>
+              <TH col="date">When</TH>
+              <TH col="name">Package</TH>
+              <TH col="status">Action</TH>
               <TH>Version</TH>
-              <TH>Status</TH>
-              <TH>By</TH>
-              <TH>Items</TH>
+              <TH col="status">Status</TH>
+              <TH col="people">By</TH>
+              <TH col="text">Items</TH>
             </tr>
           </THead>
           <TBody>
             {(events.data?.events ?? []).map((e) => (
               <TR key={e.id} interactive onClick={() => setOpenId(e.id)} data-testid="history-row">
                 <TD className="num whitespace-nowrap text-fg-muted"><Tooltip content={formatAbsolute(e.created_at)}><span>{formatRelative(e.created_at)}</span></Tooltip></TD>
-                <TD className="font-medium">{e.package_name}</TD>
+                <TD className="max-w-0 font-medium"><Truncate text={e.package_name} /></TD>
                 <TD className="whitespace-nowrap">{ACTION_LABEL[e.action] ?? e.action}</TD>
                 <TD className="whitespace-nowrap font-mono text-xs">{versionText(e)}</TD>
                 <TD><StatusPill status={e.status} /></TD>

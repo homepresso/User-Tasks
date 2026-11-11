@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Loader2, Search, X } from 'lucide-react'
 import {
-  lookupDebounceMs, lookupFillValues, lookupMinChars, lookupValues, storedItemLabel, storedItemsByValue,
+  lookupDebounceMs, lookupDependencyKeys, lookupFillValues, lookupMinChars, lookupValues, recheckedSelection, storedItemLabel, storedItemsByValue,
   type LookupItem,
 } from '@/lib/forms/lookup'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
@@ -192,6 +192,37 @@ export function LookupField({ field, value, item, label, values, onChange, onIte
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the unresolved values, the source and the config
   }, [unresolvedKey, sourceKey, configKey])
 
+  // A cascade: when a field this lookup reads changes ({{task_data.country}} in a filter or an input), the selection is
+  // checked again against the source under the new parent — kept when still offered, cleared when not (or the parent emptied).
+  const parents = useMemo(() => lookupDependencyKeys(config), [configKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const parentKey = JSON.stringify(parents.map((k) => values[k] ?? null))
+  const seenParents = useRef(parentKey)
+  const selectedRef = useRef(selected)
+  useEffect(() => { selectedRef.current = selected })
+  useEffect(() => {
+    if (parentKey === seenParents.current) return
+    seenParents.current = parentKey
+    const current = selectedRef.current
+    if (!config || !source || !current.length || freeText) return
+    const clear = (kept: string[]) => {
+      if (multiple) { onChange(kept); onItem(itemsFor(kept)); onLabel?.(kept.map(labelOf)) }
+      else { onChange(null); onItem(null); onLabel?.(null); if (config.fill?.length) onFill(lookupFillValues(config, null)) }
+    }
+    if (parents.every((k) => { const v = valuesRef.current[k]; return v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length) })) { clear([]); return }
+    const controller = new AbortController()
+    setState('loading')
+    fetchSuggestions(source, field, '', valuesRef.current, controller.signal, current)
+      .then((result) => {
+        if (controller.signal.aborted || !mounted.current) return
+        setState('idle')
+        const kept = recheckedSelection(current, result.items.map((i) => i.value))
+        if (kept) clear(kept)
+      })
+      .catch(() => { if (!controller.signal.aborted && mounted.current) setState('idle') })
+    return () => controller.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the parents' values
+  }, [parentKey])
+
   function search(query: string) {
     if (!config || !source) return
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -338,6 +369,7 @@ export function LookupField({ field, value, item, label, values, onChange, onIte
     <div ref={rootRef} className="relative" data-lookup-field={field.key}>
       <div
         ref={boxRef}
+        data-input-shell=""
         className={cn('flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border px-2 focus-within:ring-2 bg-input text-fg', invalid ? 'border-(--status-blocked)' : 'border-border')}
         onClick={() => inputRef.current?.focus()}
       >

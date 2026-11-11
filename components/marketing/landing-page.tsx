@@ -1,55 +1,32 @@
-import type { CSSProperties } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
-  ArrowRight,
-  BarChart3,
-  Bot,
-  Braces,
-  Check,
-  Cloud,
-  Database,
-  FileInput,
-  Files,
-  GitBranch,
-  ListChecks,
-  MessageSquareText,
-  Package,
-  Palette,
-  Plug,
-  Radio,
-  Scale,
-  Server,
-  ShieldCheck,
-  Sparkles,
-  Terminal,
-  Waves,
-  Workflow,
+  ArrowRight, Bell, Bot, Check, Cloud, Container, FileSpreadsheet, GitFork, Mail, MessageCircle, Play, Plug, Server, ShieldCheck, Sparkles, StickyNote, Terminal, WifiOff,
 } from "lucide-react"
-import { SectionHeading, Shot, SiteNav, Snippet } from "@/components/marketing/marketing-ui"
-import { aiConnectors, CONNECTOR_COUNT, shortProviderName, WORKFLOW_NODE_COUNT } from "@/lib/marketing-connectors"
-import { UseCaseCard } from "@/components/marketing/use-case-page"
+import { FaqList, MarketingFooter, MarketingHeader, SectionHeading, Snippet } from "@/components/marketing/marketing-ui"
+import { NavArt } from "@/components/marketing/nav-art"
+import { ProductDemo } from "@/components/marketing/demo/product-demo"
+import { LazyAgentChat } from "@/components/marketing/demo/lazy-demo"
+import { RevealRoot } from "@/components/marketing/reveal-root"
+import { ScreenshotFrame } from "@/components/marketing/screenshot-frame"
+import { Testimonials } from "@/components/marketing/testimonials"
+import { aiConnectors, CONNECTOR_COUNT, connectorGroups, shortProviderName, WORKFLOW_NODE_COUNT } from "@/lib/marketing-connectors"
+import { PRODUCT_TILES, SOLUTIONS_BY_TEAM, SOLUTIONS_BY_USE_CASE, START_HREF } from "@/lib/marketing-nav"
+import { GALLERY_PACKAGES } from "@/lib/gallery/site"
+import { ASSISTANT_PROVIDERS, PROVIDER_PRESETS } from "@/lib/assistants/types"
 import { SCREENSHOTS } from "@/lib/docs/screenshots"
 import type { ScreenshotName } from "@/lib/docs/screenshot-names"
-import { repositoryUrl, SOURCE_RELEASE_NOTE } from "@/lib/site-links"
-import { useCasesInGroup } from "@/lib/use-cases"
-import { GalleryTeaser } from "@/components/gallery/gallery-teaser"
-import { Wordmark } from "@/components/brand/logo"
-import { FormsTasksShowcase } from "@/components/marketing/forms-tasks-showcase"
-import { ScreenshotFrame } from "@/components/marketing/screenshot-frame"
-import assistantForm from "@/public/screenshots/assistant-form.webp"
+import { CLI_PACKAGE, repositoryUrl, SOURCE_RELEASE_NOTE } from "@/lib/site-links"
 
 /**
- * Cloud-edition product page for the headless workflow engine. Server-rendered;
- * the only client islands are the copy buttons on the code samples. Uses the
- * brand language of the rest of the public site: cream paper, ink text, bronze
- * accents and Fraunces headings (--font-display from the root layout).
+ * The cloud edition's homepage. Server-rendered; client islands are the
+ * header, the hero demo (ProductDemo), the lazy Agent chat and the copy
+ * buttons. Brand: cream paper and ink with bronze, on dark "night" stages for
+ * the hero, the Agent and the closing call to action.
  */
 
 const THEME = {
-  background: "linear-gradient(170deg, var(--mkt-paper) 0%, #F3EFE6 40%, #F7F4EC 100%)",
-  // globals.css themes the app through --theme-* variables (h1–h4, bg-white…)
-  // with light app defaults; reset them to this page's palette.
   "--theme-primary": "var(--mkt-primary)",
   "--theme-primary-hover": "var(--mkt-primary-hover)",
   "--theme-primary-light": "rgba(23,21,15,0.14)",
@@ -61,447 +38,452 @@ const THEME = {
   "--theme-accent": "var(--mkt-primary)",
 } as CSSProperties
 
-const CLI_EXAMPLES: Array<{ verb: string; title: string; body: string; code: string }> = [
+export const HOME_FAQS = [
+  { question: "What is UserTasks?", answer: "An open-source platform for the work between people and systems: forms that collect requests, workflows that route them, a task list where people approve and complete them, data tables and reports over the results, and an AI Agent on every screen that helps build and work all of it." },
+  { question: "Is it really open source?", answer: "Yes. UserTasks is licensed under Apache-2.0. The cloud edition at usertasks.com runs the same code, and config as code lets you move a workspace between the cloud and your own servers." },
+  { question: "Do I have to use AI?", answer: "No. The Agent and AI workflow steps are optional and off until an administrator turns them on with your own provider key: OpenAI, Claude, Gemini, Grok, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model. The Agent proposes; people apply and confirm." },
+  { question: "Where does our data live?", answer: "In the cloud edition, in an isolated workspace. Self-hosted, wherever you put it: start on Supabase, or run the database, storage, auth, email and secrets on AWS, Azure, Google Cloud, Kubernetes or your own servers, including air-gapped networks." },
+  { question: "Can developers drive it from code?", answer: "Every screen is backed by the REST API, described by OpenAPI 3.1. There is an MCP server for AI clients, a TypeScript SDK and the usertasks CLI, with config as code to review and promote changes like any other code." },
+  { question: "What does it cost?", answer: "The cloud edition is free during the beta, with no credit card. Self-hosting is free under the Apache-2.0 licence. Talk to us about support and private deployments." },
+]
+
+/** Email + "Start free": a plain GET to /start, so it works before (and without) JavaScript. */
+function StartForm({ id, tone = "night" }: { id: string; tone?: "night" | "paper" }) {
+  return (
+    <form action={START_HREF} method="get" className="w-full max-w-md">
+      <div className={`flex flex-col gap-2 rounded-2xl p-1.5 sm:flex-row ${tone === "night" ? "border border-white/15 bg-[#fff]/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur" : "border border-(color:--mkt-ink)/12 bg-(color:--mkt-white) shadow-sm"}`}>
+        <label htmlFor={id} className="sr-only">Work email</label>
+        <input
+          id={id}
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@company.com"
+          className={`min-w-0 flex-1 rounded-xl bg-transparent px-4 py-3 text-base outline-none ${tone === "night" ? "text-white placeholder:text-[#A89E8C] focus-visible:bg-[#fff]/[0.05]" : "text-(color:--mkt-ink) placeholder:text-(color:--mkt-subtle)"}`}
+          style={{ backgroundColor: "transparent" }}
+        />
+        <button type="submit" className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 py-3 font-semibold ${tone === "night" ? "mkt-btn-ember" : "mkt-btn-primary"}`}>
+          Start free <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Eyebrow({ children, light = false }: { children: ReactNode; light?: boolean }) {
+  return <p className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] ${light ? "text-[#F0C27B]" : "text-(color:--mkt-bronze)"}`}><span aria-hidden="true" className={`h-px w-6 bg-gradient-to-r from-transparent ${light ? "to-[#F0C27B]" : "to-(color:--mkt-gold)"}`} />{children}</p>
+}
+
+/* ── The "before" mess ─────────────────────────────────────────────── */
+function MessyBefore() {
+  const scraps: Array<{ icon: typeof Mail; title: string; body: string; style: CSSProperties; tone: string }> = [
+    { icon: Mail, title: "RE: RE: FW: laptop for new designer??", body: "Did this ever get approved? Finance says they never saw it…", style: { top: "4%", left: "2%", rotate: "-4deg" }, tone: "bg-(color:--mkt-white)" },
+    { icon: FileSpreadsheet, title: "purchase_requests_v7_FINAL(2).xlsx", body: "Row 214 · status: “waiting?” · owner: ??", style: { top: "30%", left: "30%", rotate: "3deg" }, tone: "bg-[#EEF6EE]" },
+    { icon: MessageCircle, title: "#design-team", body: "@priya can you chase finance on the MacBook pls 🙏", style: { top: "56%", left: "4%", rotate: "-2deg" }, tone: "bg-(color:--mkt-white)" },
+    { icon: StickyNote, title: "Note to self", body: "Chase PO on Thursday. Who has the quote?", style: { top: "62%", left: "52%", rotate: "6deg" }, tone: "bg-[#FFF3C4]" },
+  ]
+  return (
+    <div className="relative h-[340px] sm:h-[380px]" aria-hidden="true">
+      {scraps.map(({ icon: Icon, title, body, style, tone }) => (
+        <div key={title} className={`absolute w-[64%] rounded-xl border border-(color:--mkt-ink)/10 p-3.5 shadow-[0_14px_30px_-16px_rgba(27,25,22,0.4)] sm:w-[58%] ${tone}`} style={style}>
+          <p className="flex items-center gap-2 truncate text-[13px] font-semibold text-(color:--mkt-ink)"><Icon size={14} className="shrink-0 text-(color:--mkt-muted)" />{title}</p>
+          <p className="mt-1 text-xs leading-5 text-(color:--mkt-muted)">{body}</p>
+        </div>
+      ))}
+      <span className="absolute right-[4%] top-[14%] rotate-[8deg] rounded-full bg-(color:--mkt-red) px-3 py-1 text-xs font-bold text-white shadow-lg">9 days · 14 emails</span>
+    </div>
+  )
+}
+
+function CleanAfter() {
+  const steps = [["Submitted", true], ["Budget", true], ["Manager", true], ["Finance", false], ["Order", null]] as const
+  return (
+    <div className="mkt-ring relative overflow-hidden p-5 shadow-[0_30px_60px_-30px_rgba(27,25,22,0.35)]" aria-hidden="true">
+      <p className="text-[13px] text-(color:--mkt-muted)">PUR-1042 · Purchase request</p>
+      <p className="mt-0.5 font-semibold">Approve purchase: MacBook Pro ($4,200)</p>
+      <ol className="mt-5 flex items-center">
+        {steps.map(([label, done], index) => (
+          <li key={label} className="flex flex-1 items-center last:flex-none">
+            <span className="flex flex-col items-center gap-1.5">
+              <span className={`flex size-8 items-center justify-center rounded-full text-white ${done ? "bg-(color:--mkt-green)" : done === false ? "mkt-pulse-dot bg-[#E8B266] text-[#1B1406]" : "bg-(color:--mkt-line-strong)"}`}>
+                {done ? <Check size={15} strokeWidth={3} /> : <span className="text-xs font-bold">{index + 1}</span>}
+              </span>
+              <span className="text-[11px] font-medium text-(color:--mkt-text)">{label}</span>
+            </span>
+            {index < steps.length - 1 && <span className={`mx-1 mb-5 h-0.5 flex-1 rounded ${done ? "bg-(color:--mkt-green)" : "bg-(color:--mkt-line-strong)"}`} />}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl bg-(color:--mkt-sand) px-3 py-2.5 text-[13px]">
+        <Bell size={14} className="text-(color:--mkt-bronze)" />Waiting on <b>Finance</b> · reminder tomorrow 09:00 · due Wed
+      </div>
+    </div>
+  )
+}
+
+/* ── Big feature sections ─────────────────────────────────────────────── */
+type Feature = { zoom?: { scale: number; origin: string }; insetZoom?: { scale: number; origin: string }; id: string; eyebrow: string; title: ReactNode; body: string; points: string[]; href: string; cta: string; shot: ScreenshotName; alt: string; inset: ScreenshotName; insetAlt: string; stat: { value: string; label: string } }
+
+const FEATURES: Feature[] = [
   {
-    verb: "Create",
-    title: "Create anything from a file",
-    body: "Every REST operation is a command. Send JSON or YAML with -f, or set fields inline.",
-    code: `usertasks workflows create -f invoice-approval.json
-usertasks email-templates create --set name="Invoice approved" \\
-  --set subject="Invoice {{invoice_number}} approved" --set html_body=@approved.html
-usertasks log-destinations create -f splunk.json`,
+    id: "workflows", zoom: { scale: 1.9, origin: "50% 28%" }, insetZoom: { scale: 1.6, origin: "45% 40%" }, eyebrow: "Workflows", title: <>Processes you can <span className="mkt-gradient-text-ink">actually see.</span></>,
+    body: "Draw the process on a canvas, or let the Agent draw it. Every run shows the path it took, who has it now and what happens next, so nobody has to ask where things are.",
+    points: ["Branches, parallel paths, loops, sub-workflows, timers and error paths", "Decision tables your analysts change without touching the flow", "Save & Test with the real forms; versions and live migration"],
+    href: "/workflows", cta: "Explore workflows", shot: "workflows-process-viewer", alt: "The process view of a completed supplier invoice run: the path through the approval policy, the finance manager approval and both parallel branches, with steps that did not run greyed out",
+    inset: "workflows-designer", insetAlt: "The workflow designer with a supplier invoice workflow and the Branch by Value settings open", stat: { value: String(WORKFLOW_NODE_COUNT), label: "kinds of workflow step" },
   },
   {
-    verb: "Update",
-    title: "Edit workflows in your editor",
-    body: "Pull the draft as JSON, change it, push it back and publish. Runs keep the old version until you do.",
-    code: `usertasks workflows definition <id> -o json > wf.json
-$EDITOR wf.json
-usertasks workflows update <id> -f wf.json
-usertasks workflows publish <id> --set notes="CFO step over 50k"`,
+    id: "forms", eyebrow: "Forms", title: <>Forms that do <span className="mkt-gradient-text-ink">the typing for you.</span></>,
+    body: "Lay out a form on a grid, or answer a few questions and let the wizard write it. Lists for line items, lookups into your data, rules that show, fill and total fields, then share it as a link, an embed or a QR code.",
+    points: ["Lists, lookups, attachments, signatures and survey controls", "Rules, buttons and steps; your own controls as web components", "Every value checked on the server and ready for the workflow"],
+    href: "/forms", cta: "Explore forms", shot: "forms-designer", alt: "The form designer with a vendor application form on four steps, the field palette on the left and the field settings on the right",
+    inset: "forms-page", insetAlt: "A published form page with a header, a customer lookup and three uploaded files", stat: { value: "1", label: "description, to a form and its workflow" },
   },
   {
-    verb: "Delete",
-    title: "Clean up safely",
-    body: "Destructive commands confirm on a terminal and take --yes in scripts. Deletions check dependencies first.",
-    code: `usertasks roles delete <id>
-usertasks references bulk-delete --set ids:='["…","…"]' --yes
-usertasks api-keys revoke <id> --yes`,
-  },
-  {
-    verb: "Monitor",
-    title: "Watch it run",
-    body: "Tail the live event stream with filters, list failed runs, check log shipping.",
-    code: `usertasks logs tail --category workflow --severity warn
-usertasks runs list --status failed
-usertasks log-destinations status <id>`,
+    id: "tasks", zoom: { scale: 1.35, origin: "0% 0%" }, insetZoom: { scale: 1.5, origin: "40% 0%" }, eyebrow: "Tasks and approvals", title: <>Approvals that <span className="mkt-gradient-text-ink">chase themselves.</span></>,
+    body: "Everything someone needs to do lands in one task list, on desktop or phone. Approve with a comment, hand it on, act on behalf of a colleague, or pick work from a team queue. Reminders and escalation do the chasing.",
+    points: ["Approve, reject, request changes, redirect or act on behalf", "Team queues with rules, SLAs, reminders and escalation", "A timeline and audit trail on every request"],
+    href: "/tasks-and-approvals", cta: "Explore tasks", shot: "tasks-queue", alt: "The task queue with queued tasks waiting to be accepted by members of the team",
+    inset: "task-detail", insetAlt: "A task with its form, outcome buttons and details", stat: { value: "1", label: "task list for every process" },
   },
 ]
 
-const HEADLINERS: Array<{ href: string; icon: typeof Workflow; eyebrow: string; title: string; shot: ScreenshotName; alt: string; points: string[] }> = [
-  { href: "/workflows", icon: Workflow, eyebrow: "Workflows", title: "Complex workflows, built visually", shot: "workflows-process-viewer", alt: "The process view of a completed run: the path through the approval policy, the finance manager approval and both parallel branches, with the steps that did not run greyed out", points: [`Branches, parallel paths, loops and sub-workflows — ${WORKFLOW_NODE_COUNT} node types`, "Decision tables, User Tasks, SLAs, timers, events and error paths", "Save & Test with real forms, versions and live migration"] },
-  { href: "/forms", icon: FileInput, eyebrow: "Forms", title: "Forms that start and drive your workflows", shot: "forms-page", alt: "A form page with a header, three-column rows, a customer lookup and three uploaded files", points: ["Grid designer with lookups, editable data tables, attachments and survey controls — or the form wizard", "Rules that show, hide, fill or lock fields; custom controls as web components", "Share a link, embed it in your website or print a QR code; buttons start workflows"] },
-  { href: "/documents", icon: Files, eyebrow: "Documents", title: "Read, compare and transform documents", shot: "documents-compare-report", alt: "A side-by-side comparison report with deleted words in red and inserted words in green", points: ["Word, Excel, PowerPoint, PDF with OCR, Markdown and HTML", "Redlines with Word tracked changes and side-by-side reports", "Convert, split, extract to tables, redact personal data"] },
-  { href: "/media", icon: Waves, eyebrow: "Media", title: "AI for images, audio and video", shot: "media-designer", alt: "The workflow designer with Analyze Image and Redact Image steps and the Redact Image settings open: Google Gemini as provider, faces and sensitive text selected", points: ["Transcribe with speakers, timestamps and SRT / VTT subtitles", "Blur faces, plates and ID numbers; bleep spoken card numbers", "Analyse images and video, generate images and speech — your own key"] },
-]
+function FeatureSection({ feature, flip }: { feature: Feature; flip: boolean }) {
+  return (
+    <div id={feature.id} className="scroll-mt-24 grid items-center gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-24">
+      <div className={flip ? "lg:order-2" : ""} data-reveal>
+        <Eyebrow>{feature.eyebrow}</Eyebrow>
+        <h3 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-[2.6rem] sm:leading-[1.08]">{feature.title}</h3>
+        <p className="mt-4 mkt-body text-(color:--mkt-text)">{feature.body}</p>
+        <ul className="mt-6 space-y-2.5 text-[15px] text-(color:--mkt-ink-soft)">
+          {feature.points.map((point) => <li key={point} className="flex gap-3"><span className="mt-1 flex size-4 shrink-0 items-center justify-center rounded-full bg-(color:--mkt-green) text-white"><Check size={10} strokeWidth={3.5} aria-hidden="true" /></span>{point}</li>)}
+        </ul>
+        <div className="mt-8 flex flex-wrap items-center gap-6">
+          <Link href={feature.href} className="group inline-flex items-center gap-1.5 rounded-xl border border-(color:--mkt-ink)/15 bg-(color:--mkt-white) px-4 py-2.5 text-sm font-semibold hover:border-(color:--mkt-ink)/35">{feature.cta} <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></Link>
+          <p className="flex items-baseline gap-2"><span className="font-display text-4xl font-bold">{feature.stat.value}</span><span className="max-w-[10rem] text-sm leading-5 text-(color:--mkt-muted)">{feature.stat.label}</span></p>
+        </div>
+      </div>
+      <div className={`relative ${flip ? "lg:order-1" : ""}`} data-reveal>
+        <div className="mkt-glow">
+          <ScreenshotFrame>
+            <div className="aspect-[16/10] overflow-hidden bg-(color:--mkt-white)">
+              <Image src={SCREENSHOTS[feature.shot]} alt={feature.alt} sizes="(min-width: 1152px) 1100px, 100vw" placeholder="blur" className="h-full w-full object-cover object-left-top" style={feature.zoom ? { transform: `scale(${feature.zoom.scale})`, transformOrigin: feature.zoom.origin } : undefined} />
+            </div>
+          </ScreenshotFrame>
+        </div>
+        <div className={`absolute -bottom-10 hidden w-[46%] sm:block ${flip ? "-right-6" : "-left-6"}`}>
+          <ScreenshotFrame className="shadow-[0_30px_60px_-20px_rgba(27,25,22,0.45)]">
+            <div className="aspect-[16/10] overflow-hidden bg-(color:--mkt-white)">
+              <Image src={SCREENSHOTS[feature.inset]} alt={feature.insetAlt} sizes="600px" placeholder="blur" className="h-full w-full object-cover object-left-top" style={feature.insetZoom ? { transform: `scale(${feature.insetZoom.scale})`, transformOrigin: feature.insetZoom.origin } : undefined} />
+            </div>
+          </ScreenshotFrame>
+        </div>
+      </div>
+    </div>
+  )
+}
 
-const INTEGRATION_PILLARS: Array<{ icon: typeof Workflow; title: string; points: string[] }> = [
-  { icon: Plug, title: "Any API", points: ["REST and OData, with API key, bearer, basic or OAuth 2.0", "OpenAPI and Postman import: one reference per operation", "Response models and a data picker — click fields, not JSON paths"] },
-  { icon: Database, title: "Data and events", points: ["PostgreSQL, SQL Server, MySQL, Oracle, Snowflake and MongoDB", "Inbound webhooks that start runs or answer in line", "Outbound webhooks and HTTP calls, retried and logged"] },
-  { icon: Terminal, title: "Both directions", points: ["An MCP server for Claude, ChatGPT, Cursor and other AI clients", "Your MCP servers as tools for agents", "REST API, TypeScript SDK and CLI for every operation"] },
-]
-
-const DESTINATIONS = [
-  { name: "Splunk HEC", note: "HTTP Event Collector, index and sourcetype" },
-  { name: "Datadog Logs", note: "Every site, tags and facets out of the box" },
-  { name: "OpenTelemetry", note: "OTLP/HTTP to any collector or vendor" },
-  { name: "Webhooks", note: "Signed HTTPS batches (HMAC-SHA256)" },
-  { name: "Live tail", note: "Server-Sent Events, the CLI and the SDK" },
-]
-
-const FEATURES: Array<{ icon: typeof Workflow; title: string; body: string; href: string; shot?: ScreenshotName }> = [
-  { icon: Workflow, title: "Workflows", body: `${WORKFLOW_NODE_COUNT} node types: triggers, branches, loops, parallel paths, waits, sub-workflows, documents and error handling. Durable runs with a full step history.`, href: "/workflows", shot: "run-detail" },
-  { icon: FileInput, title: "Forms", body: "Grid forms with lookups, file uploads, rules, survey controls and themes: on tasks, workflow starts, their own pages and other websites. Or answer a few questions in the form wizard and get the form, its approval workflow and a responses report with charts.", href: "/forms", shot: "forms-designer" },
-  { icon: Files, title: "Documents", body: "Read Word, Excel, PowerPoint, PDF and Markdown, redline two versions, convert, extract to tables and redact personal data — inside the run.", href: "/documents", shot: "documents-compare" },
-  { icon: Waves, title: "Media", body: "Transcribe recordings, analyse photos and video, blur faces and ID numbers, bleep spoken personal data, generate images and speech — with your own AI provider key.", href: "/media", shot: "media-transcribe" },
-  { icon: ListChecks, title: "Human tasks", body: "User Tasks with typed fields, outcomes and attachments, SLAs, reminders, escalation and multi-assignee rules. One task list with queue rules and cards on phones, a Process view of who has each step, or your own UI.", href: "/docs/tasks", shot: "task-detail" },
-  { icon: Plug, title: "Integrations", body: `${CONNECTOR_COUNT} connectors, plus any REST or OData API, webhook and database — encrypted credentials, OAuth and OpenAPI import.`, href: "/connectors", shot: "integrations" },
-  { icon: Scale, title: "Decision tables", body: "Ordered, typed business rules your analysts can change without touching a workflow. Testable from the API.", href: "/docs/decision-tables", shot: "decision-table" },
-  { icon: Bot, title: "AI agents, optional", body: "Agents on Claude, OpenAI, Gemini, Mistral, local models and more, with granted tools, files, structured outputs and traces. Leave them off if you don't need them.", href: "/connectors#ai" },
-  { icon: BarChart3, title: "Reports and charts", body: "Saved reports over tasks, runs, rules, integrations and your data tables, with up to eight summary charts above the table. In the app, the API, MCP and OData.", href: "/docs/reports", shot: "reports" },
-  { icon: ShieldCheck, title: "Governance", body: "Roles and fine-grained permissions, scoped API keys, OAuth, SSO and directory sync, audit, retention and a deletion queue.", href: "/docs/governance", shot: "roles" },
-  { icon: Package, title: "Packages", body: "Bundle a workflow and everything it uses into a signed, versioned package. Install it in another environment, finish the setup it asks for, upgrade in place — or start from the gallery.", href: "/docs/packages", shot: "packages-library-complete" },
-  { icon: Palette, title: "Your brand", body: "One workspace theme: colours for light and dark, fonts (or your own woff2), shape, density and logos — designed with a live preview, or set from the API, CLI and config as code.", href: "/docs/governance/workspace-theme", shot: "theme-designer" },
-]
-
-// Absolute medians from the final run in docs/perf/results.md. No
-// before/after or competitor comparisons on the marketing site.
-const AGENT_POINTS: Array<{ icon: typeof Workflow; title: string; body: string }> = [
-  { icon: FileInput, title: "On forms.", body: "Answers questions, explains errors and proposes values you apply. Never submits." },
-  { icon: MessageSquareText, title: "On tasks.", body: "Summarises the history, drafts comments and suggests an outcome. Never approves or completes." },
-  { icon: Workflow, title: "In the builders.", body: "Designs workflows, forms, tables, decision tables and plugins with you. A confirmation card before each change; workflows and plugins saved as drafts." },
-]
-
-const PERF = [
-  { value: "4–8 ms", label: "REST API responses" },
-  { value: "3–5 ms", label: "MCP tool calls" },
-  { value: "< 1 s", label: "200 queued workflows, start to finish" },
-  { value: "~1 µs", label: "Evaluating a template expression" },
-  { value: "~40 ms", label: "A member’s task list, row-level security applied" },
+const DEPLOY = [
+  { icon: Cloud, title: "Cloud", body: "Start in the browser at usertasks.com. We run and upgrade it.", href: "/docs/quickstart/cloud" },
+  { icon: Container, title: "Docker", body: "One image and Supabase, on any server, in about ten minutes.", href: "/docs/quickstart/self-host" },
+  { icon: Server, title: "Kubernetes", body: "Your cluster on AWS, Azure, Google Cloud or on premises.", href: "/docs/self-hosting/kubernetes" },
+  { icon: WifiOff, title: "Air-gapped", body: "No outbound calls: local models, mirrored images, your own services.", href: "/docs/self-hosting/air-gapped" },
 ]
 
 export function LandingPage() {
   // Null until the public repository exists: repository links are omitted.
   const repoUrl = repositoryUrl()
+  const connectors = connectorGroups().flatMap((group) => group.connectors.map((connector) => connector.name))
+  const ai = aiConnectors().map((provider) => shortProviderName(provider.name))
+  const half = Math.ceil(connectors.length / 2)
+  const rows = [connectors.slice(0, half), [...connectors.slice(half), ...ai]]
+  const packagesIn = (href: string) => GALLERY_PACKAGES.filter((pkg) => href.endsWith(`=${pkg.category}`)).length
+
   return (
-    <div className="mkt min-h-screen text-(color:--mkt-ink)" style={THEME}>
-      <header className="relative z-20">
-        <SiteNav />
-      </header>
+    <div className="mkt min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
+      <RevealRoot />
+      <MarketingHeader tone="night" />
 
       <main>
-        {/* Hero */}
-        <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pt-16">
-          <div className="max-w-3xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-gold)/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">
-              <Sparkles size={13} aria-hidden="true" /> Open source · Apache-2.0
-            </p>
-            <h1 className="mt-6 font-display text-display font-bold">
-              The headless workflow engine you drive from code.
+        {/* ── Hero ── */}
+        <section data-hero-night className="mkt-night mkt-grain relative overflow-hidden">
+          <div aria-hidden="true" className="mkt-grid pointer-events-none absolute inset-0" />
+          <div aria-hidden="true" className="pointer-events-none absolute -top-48 left-1/2 h-[42rem] w-[72rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(232,178,102,0.30),transparent)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-[-12rem] top-[28rem] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(closest-side,rgba(139,124,246,0.22),transparent)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-[-14rem] top-[40rem] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,rgba(79,179,169,0.16),transparent)]" />
+
+          <div className="relative mx-auto max-w-6xl px-4 pb-10 pt-12 text-center sm:px-6 sm:pt-16">
+            <Link href="/open-source" className="group inline-flex items-center gap-2 rounded-full border border-white/12 bg-[#fff]/[0.05] py-1 pl-1 pr-3 text-[13px] text-[#E9E1D2] backdrop-blur hover:border-white/25">
+              <span className="rounded-full bg-[#fff]/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#F0C27B]">Open source</span>
+              Apache-2.0<span className="hidden sm:inline">· in our cloud or on your servers</span>
+              <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+            <h1 className="mx-auto mt-6 max-w-4xl font-display text-[clamp(2.75rem,6.6vw,5.25rem)] font-bold leading-[0.98] tracking-[-0.03em] text-white">
+              The open source<br /><span className="mkt-gradient-text">process platform.</span>
             </h1>
-            <p className="mt-6 mkt-body text-(color:--mkt-text)">
-              Build complex processes on a visual canvas or as JSON, put people in the loop with typed tasks, connect any system and any AI model — then run, change and watch all of it from the <strong className="text-(color:--mkt-ink)">REST API</strong>, the <strong className="text-(color:--mkt-ink)">MCP server</strong> or the <strong className="text-(color:--mkt-ink)">CLI</strong>. Self-host it or use the cloud.
+            <p className="mx-auto mt-6 max-w-2xl text-[18px] leading-8 text-[#D9D0BF] sm:text-[19px]">
+              UserTasks turns the forms, approvals and hand-offs between your people and systems into one flow everyone can see. Describe it to the Agent and it is built in minutes.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/docs" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Read the docs <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link href="/docs/quickstart/self-host" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                Self-host in ten minutes
-              </Link>
-            </div>
-            <div className="mt-6 max-w-md">
-              <Snippet code="npm install -g @usertasks/cli" />
-            </div>
-          </div>
-          <div className="mt-12">
-            <Shot name="workflows-designer" alt="The UserTasks workflow designer with a supplier invoice workflow: a loop over invoice lines, an approval policy, a four-way branch to approval tasks, a rework loop, vendor onboarding as a sub-workflow, parallel payment and notification and an error path" sizes="(min-width: 1152px) 1104px, 100vw" priority />
-          </div>
-          <ul className="mt-8 grid gap-3 text-sm text-(color:--mkt-text) sm:grid-cols-3">
-            {[
-              [Braces, "API-first: every screen is an endpoint, described by OpenAPI 3.1"],
-              [Terminal, "A command for every operation, plus config as code"],
-              [Radio, "Every run, call and change in one exportable event stream"],
-            ].map(([Icon, text]) => {
-              const I = Icon as typeof Braces
-              return (
-                <li key={text as string} className="flex items-start gap-2"><I size={16} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" aria-hidden="true" />{text as string}</li>
-              )
-            })}
-          </ul>
-        </section>
-
-        {/* Headliners: workflows, forms, documents, media */}
-        <section id="workflows-forms-documents" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/40">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <SectionHeading eyebrow="Workflows, forms, documents and media" title="Build the process. Collect what it needs. Read, hear and see the files.">
-              Model complex workflows visually — branches, parallel paths, loops, rules, people and error paths — start them from forms with lookups and uploads, read, compare and transform the documents in the steps that follow, and transcribe, analyse and redact the recordings and photos.
-            </SectionHeading>
-            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-              {HEADLINERS.map(({ href, icon: Icon, eyebrow, title, shot, alt, points }) => (
-                <Link key={href} href={href} className="group flex flex-col overflow-hidden rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) transition hover:border-(color:--mkt-bronze)/40 hover:shadow-md">
-                  <div className="aspect-[16/10] overflow-hidden border-b border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-white)">
-                    <Image src={SCREENSHOTS[shot]} alt={alt} sizes="(min-width: 1152px) 552px, (min-width: 768px) 50vw, 100vw" placeholder="blur" className="h-full w-full object-cover object-top" />
-                  </div>
-                  <div className="flex flex-1 flex-col p-6">
-                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-(color:--mkt-bronze)"><Icon size={14} aria-hidden="true" />{eyebrow}</p>
-                    <h3 className="mt-2 font-display text-2xl font-bold tracking-tight">{title}</h3>
-                    <ul className="mt-4 flex-1 space-y-2 text-sm text-(color:--mkt-text)">
-                      {points.map((point) => <li key={point} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{point}</li>)}
-                    </ul>
-                    <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) group-hover:underline">Explore {eyebrow.toLowerCase()} <ArrowRight size={14} aria-hidden="true" /></span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <p className="mt-6 text-sm text-(color:--mkt-text)"><Link href="/workflows#actions" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Custom actions: build your own sandboxed steps, or install six official ones <ArrowRight size={14} aria-hidden="true" /></Link></p>
-          </div>
-        </section>
-
-        <FormsTasksShowcase />
-
-        {/* Agent */}
-        <section id="agent" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/40">
-          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[2fr_3fr]">
-            <div>
-              <SectionHeading eyebrow="New: Agent" title="Agent, your AI co-worker in every screen.">
-                One panel that knows which screen you are on and follows you from one to the next, with the conversation intact. It explains, summarises, drafts and suggests. You apply, decide and confirm.
-              </SectionHeading>
-              <ul className="mt-6 space-y-3 text-sm leading-6 text-(color:--mkt-text)">
-                {AGENT_POINTS.map(({ icon: Icon, title, body }) => (
-                  <li key={title} className="flex gap-3"><Icon size={18} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" aria-hidden="true" /><span><strong className="text-(color:--mkt-ink)">{title}</strong> {body}</span></li>
-                ))}
-              </ul>
-              <p className="mt-6 text-sm leading-6 text-(color:--mkt-muted)">OpenAI, Claude, Grok, Gemini, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model. Bring your own key. One switch in Settings, the person&rsquo;s own permissions, role and team access, daily limits and monthly cost caps.</p>
-              <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                <Link href="/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Explore Agent <ArrowRight size={14} aria-hidden="true" /></Link>
-                <Link href="/docs/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Set it up <ArrowRight size={14} aria-hidden="true" /></Link>
+            <div className="mt-8 flex flex-col items-center gap-4">
+              <StartForm id="hero-email" />
+              <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[13px] text-[#A89E8C]">
+                <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#7FA98A]" aria-hidden="true" />Free during the beta</span>
+                <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#7FA98A]" aria-hidden="true" />No credit card</span>
+                <a href="#demo" className="inline-flex items-center gap-1.5 font-semibold text-[#F0C27B] hover:text-white"><Play size={12} className="fill-current" aria-hidden="true" />Try the demo below</a>
               </p>
             </div>
-            <ScreenshotFrame>
-              <Image src={assistantForm} alt="An Expense claim form with the Agent panel open beside it, proposing eight field values with Apply and Apply all buttons" sizes="(min-width: 1152px) 650px, 100vw" placeholder="blur" className="h-auto w-full" />
-            </ScreenshotFrame>
+          </div>
+
+          <div className="relative mx-auto max-w-6xl px-3 pb-20 sm:px-6 sm:pb-28">
+            <ProductDemo />
           </div>
         </section>
 
-        {/* Integrations and AI */}
-        <section id="integrations" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <SectionHeading eyebrow="Integrations and AI" title="Integrate with any system — and any AI.">
-              Import an OpenAPI document, connect a database, start from one of {CONNECTOR_COUNT} connectors or call any HTTP endpoint. Then put AI models to work on the same governed connections, with a person reviewing what matters.
-            </SectionHeading>
-            <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
-              {INTEGRATION_PILLARS.map(({ icon: Icon, title, points }) => (
-                <article key={title} className="flex flex-col rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-6">
-                  <Icon size={20} className="text-(color:--mkt-bronze)" aria-hidden="true" />
-                  <h3 className="mt-3 text-lg font-semibold">{title}</h3>
-                  <ul className="mt-3 space-y-2 text-sm text-(color:--mkt-text)">
-                    {points.map((point) => <li key={point} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{point}</li>)}
-                  </ul>
-                </article>
-              ))}
-            </div>
-            <div className="mt-6 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-gradient-to-br from-(color:--mkt-primary)/[0.04] to-(color:--mkt-gold)/[0.10] p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="max-w-xl">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold"><Bot size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />Any AI model, under your rules</h3>
-                  <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">Agents call the references, workflows and MCP servers you grant them, read the files you hand them, return typed outputs — and stop for a person when a decision needs one.</p>
-                </div>
-                <ul className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end" aria-label="AI providers with a ready-made connector">
-                  {aiConnectors().map((provider) => <li key={provider.key} className="rounded-full border border-(color:--mkt-ink)/10 bg-(color:--mkt-white) px-3 py-1 text-xs font-semibold text-(color:--mkt-ink-soft)">{shortProviderName(provider.name)}</li>)}
-                  <li className="rounded-full border border-dashed border-(color:--mkt-ink)/20 px-3 py-1 text-xs font-semibold text-(color:--mkt-muted)">Any OpenAI-compatible endpoint</li>
-                </ul>
-              </div>
-            </div>
-            <p className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-              <Link href="/connectors" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">See every connector <ArrowRight size={14} aria-hidden="true" /></Link>
-              <Link href="/connectors#ai" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">AI agents and MCP <ArrowRight size={14} aria-hidden="true" /></Link>
-              <Link href="/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Agent: AI for people on every screen <ArrowRight size={14} aria-hidden="true" /></Link>
-              <Link href="/media" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">AI for images, audio and video <ArrowRight size={14} aria-hidden="true" /></Link>
-            </p>
-          </div>
-        </section>
-
-        {/* Use cases */}
-        <section id="use-cases" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/40">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <SectionHeading eyebrow="Use cases" title="What teams build on it.">
-              Human steps inside your own apps, approvals you can prove, agents with a person in the loop, an integration hub — and a home for workflows moving off SharePoint, Nintex or K2.
-            </SectionHeading>
-            <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {useCasesInGroup("platform").map((useCase) => <UseCaseCard key={useCase.slug} useCase={useCase} />)}
-              <Link href="/use-cases" className="flex flex-col justify-center rounded-2xl border border-dashed border-(color:--mkt-ink)/15 p-6 text-center hover:border-(color:--mkt-bronze)/40">
-                <span className="font-display text-xl font-bold">All use cases</span>
-                <span className="mt-2 text-sm text-(color:--mkt-text)">Including records requests, claims, KYC, call QA and moderation on images, audio and video.</span>
-                <span className="mt-2 inline-flex items-center justify-center gap-1 text-sm font-semibold text-(color:--mkt-bronze)">Browse them <ArrowRight size={14} aria-hidden="true" /></span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Package gallery */}
-        <section id="gallery" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <GalleryTeaser />
-          </div>
-        </section>
-
-        {/* CLI */}
-        <section id="cli" className="scroll-mt-8 border-y border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <SectionHeading eyebrow="Everything from the CLI" title="Create, update, delete and monitor — from your terminal or CI.">
-              <code className="font-mono text-base">usertasks</code> talks only to the public API, so it obeys the same permissions as any client. Log in with your browser or an API key, keep profiles for dev and prod, and pipe JSON into the rest of your tools.
-            </SectionHeading>
-            <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
-              {CLI_EXAMPLES.map((example) => (
-                <div key={example.verb} className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(color:--mkt-bronze)">{example.verb}</p>
-                  <h3 className="mt-1 text-lg font-semibold">{example.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-(color:--mkt-text)">{example.body}</p>
-                  <div className="mt-4"><Snippet code={example.code} /></div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <figure>
-                <Shot name="cli-edit-workflow" alt="Terminal output of exporting, updating and publishing a workflow with the usertasks CLI" sizes="(min-width: 1024px) 540px, 100vw" />
-                <figcaption className="mt-2 text-sm text-(color:--mkt-muted)">Real output: edit a workflow as a file and publish it.</figcaption>
-              </figure>
-              <figure>
-                <Shot name="cli-logs-tail" alt="Terminal output of usertasks logs tail streaming live workflow events" sizes="(min-width: 1024px) 540px, 100vw" />
-                <figcaption className="mt-2 text-sm text-(color:--mkt-muted)">Real output: <code className="font-mono">logs tail</code> following runs as they happen.</figcaption>
-              </figure>
-            </div>
-            <p className="mt-8 text-sm text-(color:--mkt-text)">
-              <Link href="/docs/cli" className="font-semibold text-(color:--mkt-bronze) hover:underline">CLI guide</Link>{" · "}
-              <Link href="/docs/cli/commands" className="font-semibold text-(color:--mkt-bronze) hover:underline">Every command</Link>{" · "}
-              <Link href="/docs/cli/recipes" className="font-semibold text-(color:--mkt-bronze) hover:underline">Recipes: dev → prod, CI, monitoring</Link>
-            </p>
-          </div>
-        </section>
-
-        {/* Log export */}
-        <section id="logs" className="scroll-mt-8 mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <SectionHeading eyebrow="Ship logs anywhere" title="Your workflows, in the log platform you already use.">
-            Run transitions, step logs, integration calls, agent runs, task changes, audit and security events — one normalised stream, delivered at least once, usually within seconds. No request bodies, prompts or secrets ever leave.
-          </SectionHeading>
-          <ul className="mt-8 flex flex-wrap gap-3" aria-label="Supported destinations">
-            {DESTINATIONS.map((destination) => (
-              <li key={destination.name} className="rounded-xl border border-(color:--mkt-ink)/10 bg-(color:--mkt-white)/70 px-4 py-2.5">
-                <span className="block text-sm font-semibold">{destination.name}</span>
-                <span className="block text-xs text-(color:--mkt-muted)">{destination.note}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-10 grid grid-cols-1 items-start gap-6 lg:grid-cols-[3fr_2fr]">
-            <Shot name="log-export" alt="Settings, Log Export page listing a Splunk HEC destination and a webhook destination with healthy status and lag" sizes="(min-width: 1024px) 650px, 100vw" />
-            <div className="space-y-4">
-              <Shot name="cli-log-destinations" alt="Terminal output creating a Splunk destination from a file and checking its status" sizes="(min-width: 1024px) 430px, 100vw" />
-              <ul className="space-y-2 text-sm text-(color:--mkt-text)">
-                {["Filters by category, type glob, severity and workflow", "Send-test button, lag and last-error per destination", "Pull API with a cursor and an SSE stream for your own consumers"].map((item) => (
-                  <li key={item} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{item}</li>
-                ))}
-              </ul>
-              <Link href="/docs/observability" className="inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">Observability guide <ArrowRight size={14} aria-hidden="true" /></Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section className="border-y border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <SectionHeading eyebrow="The engine" title="Everything a real process needs, nothing it doesn't." />
-            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body, href, shot }) => (
-                <Link key={title} href={href} className="group flex flex-col overflow-hidden rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) transition hover:border-(color:--mkt-bronze)/40 hover:shadow-md">
-                  {shot ? (
-                    <div className="aspect-[16/10] overflow-hidden border-b border-(color:--mkt-ink)/[0.06] bg-(color:--mkt-white)">
-                      <Image src={SCREENSHOTS[shot]} alt="" sizes="(min-width: 1024px) 360px, (min-width: 768px) 50vw, 100vw" placeholder="blur" className="h-full w-full object-cover object-left-top" />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[16/10] items-center justify-center border-b border-(color:--mkt-ink)/[0.06] bg-gradient-to-br from-(color:--mkt-primary)/[0.06] to-(color:--mkt-gold)/[0.12]">
-                      <Icon size={40} className="text-(color:--mkt-bronze)" aria-hidden="true" />
-                    </div>
-                  )}
-                  <div className="p-5">
-                    <h3 className="flex items-center gap-2 text-lg font-semibold"><Icon size={17} className="text-(color:--mkt-bronze)" aria-hidden="true" />{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-(color:--mkt-text)">{body}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Config as code */}
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
-            <div>
-              <SectionHeading eyebrow="Config as code" title={<>Review processes like code. Promote them like code.</>}>
-                Export a workspace to files, review the change in a pull request, diff it against production and apply it. Secrets stay out of Git. Or let GitHub sync commit every change and deploy pinned commits for you.
-              </SectionHeading>
-              <div className="mt-6">
-                <Snippet code={`usertasks --profile dev config export ./config
-git commit -am "Invoice approval v2"
-usertasks --profile prod config diff ./config --exit-code
-usertasks --profile prod config apply ./config`} />
-              </div>
-              <Link href="/docs/config-as-code" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline"><GitBranch size={14} aria-hidden="true" /> Config as code and GitHub sync</Link>
-            </div>
-            <Shot name="cli-config-diff" alt="Terminal output of usertasks config export and config diff" sizes="(min-width: 1024px) 540px, 100vw" />
-          </div>
-        </section>
-
-        {/* Performance */}
-        <section className="border-y border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-primary) text-(color:--mkt-code-text)">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-gold-light)">Performance</p>
-            <h2 className="mt-3 max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-5xl" style={{ color: "var(--mkt-paper)" }}>A fast execution engine.</h2>
-            <p className="mt-4 max-w-2xl mkt-body text-(color:--mkt-line-strong)">
-              Single-digit-millisecond API and MCP calls, a queue that clears hundreds of runs a second, and expressions evaluated in about a microsecond — so the engine is never the slow step in your process.
-            </p>
-            <dl className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {PERF.map((item) => (
-                <div key={item.label} className="flex flex-col-reverse justify-end rounded-xl border border-white/10 p-5">
-                  <dt className="mt-2 text-sm leading-5 text-(color:--mkt-faint)">{item.label}</dt>
-                  <dd className="font-display text-3xl font-bold text-(color:--mkt-paper)">{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-6 max-w-3xl text-xs leading-5 text-(color:--mkt-faint)">
-              Medians measured on our benchmark (app and database on one machine). Your numbers depend on network and hosting — <Link href="/docs/performance" className="font-semibold text-(color:--mkt-gold-light) hover:underline">see /docs/performance</Link>.
-            </p>
-          </div>
-        </section>
-
-        {/* Self-host vs cloud */}
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <SectionHeading eyebrow="Run it your way" title="Same code, two ways to run it." />
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
+        {/* ── Proof bar ── */}
+        <section aria-label="At a glance" className="border-b border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/60">
+          <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4 sm:px-6 lg:grid-cols-5">
             {[
-              { icon: Server, title: "Self-hosted", body: "Apache-2.0. Start on Supabase, our recommended platform, with zero extra configuration. Whenever you're ready, move any area — database, auth, storage, email, secrets — to AWS, Azure, Google Cloud or your own servers. Docker image included.", points: ["Your data stays where you put it", "One reversible usertasks-admin switch per area", "Fully on-premises and air-gapped when you need it"], href: "/deploy-anywhere", cta: "Deploy anywhere" },
-              { icon: Cloud, title: "Cloud", body: "The same engine at usertasks.com, run and upgraded by the team that builds it.", points: ["Nothing to install — start in the browser", "Same API, MCP server, CLI and docs", "Move to self-hosting any time with config as code"], href: "/login", cta: "Sign in" },
-            ].map(({ icon: Icon, title, body, points, href, cta }) => (
-              <div key={title} className="flex flex-col rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/60 p-6">
-                <Icon size={22} className="text-(color:--mkt-bronze)" aria-hidden="true" />
-                <h3 className="mt-3 text-xl font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-(color:--mkt-text)">{body}</p>
-                <ul className="mt-4 flex-1 space-y-2 text-sm text-(color:--mkt-text)">
-                  {points.map((point) => <li key={point} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{point}</li>)}
-                </ul>
-                <Link href={href} className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">{cta} <ArrowRight size={14} aria-hidden="true" /></Link>
+              ["Unlimited", "possibilities: build any process your team runs"],
+              ["<1 ms", "median time to run a workflow step (measured on live runs)"],
+              ["∞", "use cases: approvals, onboarding, purchasing, IT and beyond"],
+              ["4", "ways to run it: cloud, Docker, Kubernetes, air-gapped"],
+              ["Apache-2.0", "open source, no lock-in"],
+            ].map(([value, label]) => (
+              <div key={label} className="flex flex-col-reverse gap-1 py-8 pr-4 last:col-span-2 lg:last:col-span-1" data-reveal>
+                <dt className="text-sm leading-5 text-(color:--mkt-muted)">{label}</dt>
+                <dd className="whitespace-nowrap font-display text-4xl font-bold tracking-tight">{value}</dd>
               </div>
             ))}
+          </dl>
+        </section>
+
+        {/* ── Before / after ── */}
+        <section className="relative overflow-hidden">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+            <SectionHeading eyebrow="Why it exists" title={<>Approvals shouldn’t live in <span className="mkt-gradient-text-ink">inboxes.</span></>} align="center">
+              Requests arrive by email, sit in spreadsheets and move when someone remembers to chase. UserTasks gives each one a form, a path and an owner.
+            </SectionHeading>
+            <div className="mt-14 grid items-center gap-8 lg:grid-cols-[1fr_auto_1fr] [&>*]:min-w-0">
+              <div data-reveal>
+                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-red)">Before</p>
+                <MessyBefore />
+              </div>
+              <div aria-hidden="true" className="mx-auto flex size-14 items-center justify-center rounded-full border border-(color:--mkt-ink)/10 bg-(color:--mkt-white) shadow-lg lg:rotate-0" data-reveal>
+                <ArrowRight size={22} className="rotate-90 text-(color:--mkt-bronze) lg:rotate-0" />
+              </div>
+              <div data-reveal>
+                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-green)">With UserTasks</p>
+                <CleanAfter />
+                <ul className="mt-6 grid gap-2 text-[15px] text-(color:--mkt-ink-soft) sm:grid-cols-2">
+                  {["Everyone sees where it is", "Reminders do the chasing", "Every decision on the record", "Systems updated automatically"].map((item) => <li key={item} className="flex items-center gap-2"><Check size={16} className="text-(color:--mkt-green)" aria-hidden="true" />{item}</li>)}
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-          <div className="rounded-3xl border border-(color:--mkt-ink)/10 bg-gradient-to-br from-(color:--mkt-primary)/[0.06] via-transparent to-(color:--mkt-gold)/[0.12] p-8 text-center sm:p-14">
-            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Start with the docs. Ship with the CLI.</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-(color:--mkt-text)">Every node, function, permission, MCP tool and command is documented — generated from the code, so it matches what you run.</p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link href="/docs" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover)">Documentation <ArrowRight size={16} aria-hidden="true" /></Link>
-              {repoUrl && <a href={repoUrl} className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">GitHub</a>}
-              <Link href="/login" className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">Sign in</Link>
+        {/* ── Pillars ── */}
+        <section className="border-y border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-sand)/60">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+            <SectionHeading eyebrow="One platform" title="Everything between the request and the result." align="center">
+              Six parts that share one data model, one permission system and one Agent.
+            </SectionHeading>
+            <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {PRODUCT_TILES.map((tile) => (
+                <li key={tile.href} data-reveal>
+                  <Link href={tile.href} className="mkt-lift group flex h-full flex-col rounded-3xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-3 hover:border-(color:--mkt-bronze)/40">
+                    <NavArt kind={tile.art} live className="h-36" />
+                    <span className="px-3 pb-3 pt-5">
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-(color:--mkt-bronze)">{tile.title}</span>
+                      <span className="mt-1.5 block font-display text-[1.6rem] font-bold leading-tight tracking-tight">{tile.outcome}</span>
+                      <span className="mt-2 block text-sm leading-6 text-(color:--mkt-text)">{tile.description}</span>
+                      <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-ink)">Learn more <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ── Three big features ── */}
+        <section id="forms-and-tasks" className="scroll-mt-20">
+          <div className="mx-auto max-w-6xl divide-y divide-(color:--mkt-ink)/[0.07] px-4 sm:px-6">
+            {FEATURES.map((feature, index) => <FeatureSection key={feature.id} feature={feature} flip={index % 2 === 1} />)}
+          </div>
+        </section>
+
+        {/* ── Agent spotlight ── */}
+        <section id="agent" className="mkt-night mkt-grain relative scroll-mt-20 overflow-hidden">
+          <div aria-hidden="true" className="mkt-grid pointer-events-none absolute inset-0" />
+          <div aria-hidden="true" className="pointer-events-none absolute -left-40 top-0 h-[40rem] w-[40rem] rounded-full bg-[radial-gradient(closest-side,rgba(139,124,246,0.28),transparent)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute -right-40 bottom-0 h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(closest-side,rgba(232,178,102,0.22),transparent)]" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.05fr] lg:py-32 [&>*]:min-w-0">
+            <div data-reveal>
+              <Eyebrow light>The UserTasks Agent</Eyebrow>
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-white sm:text-5xl sm:leading-[1.05]">An Agent that <span className="mkt-gradient-text">asks before it acts.</span></h2>
+              <p className="mt-5 text-[17px] leading-8 text-[#D9D0BF]">One panel on every screen. It reads what you are looking at, answers, drafts and builds, and anything that changes data comes to you as a card to apply or confirm. It works with your permissions, on your own model.</p>
+              <ul className="mt-8 space-y-4">
+                {[
+                  [Sparkles, "Builds from a description", "Tables, forms, workflows and reports from one paragraph, as drafts."],
+                  [Bot, "Works tasks with you", "Summarises, drafts comments, approves when you confirm."],
+                  [ShieldCheck, "Governed", "Your permissions, daily limits and cost caps, all in the audit trail."],
+                ].map(([Icon, title, body]) => {
+                  const I = Icon as typeof Bot
+                  return (
+                    <li key={title as string} className="flex gap-4">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#fff]/[0.06] text-[#F0C27B]"><I size={18} aria-hidden="true" /></span>
+                      <span><b className="block text-white">{title as string}</b><span className="text-sm leading-6 text-[#C9BFAE]">{body as string}</span></span>
+                    </li>
+                  )
+                })}
+              </ul>
+              <ul className="mt-8 flex flex-wrap gap-2" aria-label="Model providers the Agent can use">
+                {ASSISTANT_PROVIDERS.map((id) => <li key={id} className={`rounded-full px-3 py-1 text-xs font-medium ${id === "other" ? "border border-dashed border-white/20 text-[#C9BFAE]" : "border border-white/12 text-[#E9E1D2]"}`}>{id === "other" ? "Any OpenAI-compatible model" : PROVIDER_PRESETS[id].label}</li>)}
+              </ul>
+              <p className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <Link href="/ai-assistants" className="inline-flex items-center gap-1 font-semibold text-[#F0C27B] hover:text-white">Meet the Agent <ArrowRight size={14} aria-hidden="true" /></Link>
+                <Link href="/docs/tutorials/agent-build-from-process" className="inline-flex items-center gap-1 font-semibold text-[#F0C27B] hover:text-white">Tutorial: build from a process <ArrowRight size={14} aria-hidden="true" /></Link>
+              </p>
             </div>
-            {!repoUrl && <p className="mt-6 text-sm text-(color:--mkt-muted)">{SOURCE_RELEASE_NOTE}</p>}
+            <div className="mkt-glow" data-reveal>
+              <LazyAgentChat />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Built for ── */}
+        <section id="use-cases" className="scroll-mt-20">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+            <SectionHeading eyebrow="Built for" title="Every team has a process like this." align="center">
+              Start from a ready-made package for your team, or from a use case, and change anything.
+            </SectionHeading>
+            <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {SOLUTIONS_BY_TEAM.map((team) => {
+                const count = packagesIn(team.href)
+                return (
+                  <li key={team.href} data-reveal>
+                    <Link href={team.href} className="mkt-lift group flex h-full flex-col rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-5 hover:border-(color:--mkt-bronze)/40">
+                      <span className="font-display text-xl font-bold leading-tight">{team.title}</span>
+                      <span className="mt-2 flex-1 text-sm leading-6 text-(color:--mkt-text)">{team.description}</span>
+                      {count > 0 && <span className="mt-4 text-xs font-semibold text-(color:--mkt-bronze)">{count} ready-made packages <ArrowRight size={12} className="inline transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></span>}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {SOLUTIONS_BY_USE_CASE.map((useCase) => (
+                <li key={useCase.href} data-reveal>
+                  <Link href={useCase.href} className="group flex items-center justify-between gap-4 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) px-5 py-4 hover:border-(color:--mkt-bronze)/40 hover:bg-(color:--mkt-white)">
+                    <span><span className="block font-semibold">{useCase.title}</span><span className="text-sm text-(color:--mkt-muted)">{useCase.description}</span></span>
+                    <ArrowRight size={16} className="shrink-0 text-(color:--mkt-bronze) transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-8 text-center"><Link href="/use-cases" className="inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">All use cases <ArrowRight size={14} aria-hidden="true" /></Link></p>
+          </div>
+        </section>
+
+        <Testimonials />
+
+        {/* ── Integrations ── */}
+        <section id="integrations" className="scroll-mt-20 border-y border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/60">
+          <div className="mx-auto max-w-6xl px-4 pt-20 sm:px-6 sm:pt-24">
+            <SectionHeading eyebrow="Integrations" title="Systems that finally talk." align="center">
+              {CONNECTOR_COUNT} ready-made connectors, any REST or OData API through OpenAPI import, databases, webhooks and MCP in both directions.
+            </SectionHeading>
+          </div>
+          <div className="mkt-marquee-wrap mkt-marquee-mask mt-12 space-y-3 overflow-hidden" aria-label="Connectors">
+            {rows.map((row, rowIndex) => (
+              <div key={rowIndex} className="mkt-marquee gap-3" style={{ "--marquee-duration": `${70 + rowIndex * 15}s`, animationDirection: rowIndex % 2 ? "reverse" : "normal" } as CSSProperties}>
+                {[...row, ...row].map((name, index) => (
+                  <span key={`${name}-${index}`} aria-hidden={index >= row.length ? "true" : undefined} className="whitespace-nowrap rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper) px-4 py-2.5 text-sm font-semibold text-(color:--mkt-ink-soft) shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]">{name}</span>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="mx-auto grid max-w-6xl gap-4 px-4 pb-20 pt-12 sm:px-6 md:grid-cols-3 sm:pb-24">
+            {[
+              [Plug, "Any API", "Import an OpenAPI or Postman file: one reference per operation, with a data picker for the response.", "/docs/integrations/openapi-import"],
+              [Bot, "MCP, both ways", "Claude, ChatGPT and Cursor drive UserTasks through its MCP server; your MCP servers become tools for agents.", "/docs/mcp"],
+              [Terminal, "API, SDK and CLI", "Every screen is an endpoint. Script it with the TypeScript SDK or the usertasks CLI.", "/docs/api"],
+            ].map(([Icon, title, body, href]) => {
+              const I = Icon as typeof Plug
+              return (
+                <Link key={title as string} href={href as string} className="mkt-lift group rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-6 hover:border-(color:--mkt-bronze)/40" data-reveal>
+                  <I size={20} className="text-(color:--mkt-bronze)" aria-hidden="true" />
+                  <span className="mt-3 block text-lg font-semibold">{title as string}</span>
+                  <span className="mt-1 block text-sm leading-6 text-(color:--mkt-text)">{body as string}</span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze)">Read more <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ── Deploy anywhere + open source ── */}
+        <section id="deploy" className="scroll-mt-20">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+            <SectionHeading eyebrow="Deploy anywhere" title="Our cloud, or anywhere you like." align="center">
+              The same code everywhere. Move a workspace between them with config as code.
+            </SectionHeading>
+            <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {DEPLOY.map(({ icon: Icon, title, body, href }) => (
+                <li key={title} data-reveal>
+                  <Link href={href} className="mkt-lift group flex h-full flex-col rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-6 hover:border-(color:--mkt-bronze)/40">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2A251E] to-[#14110D] text-[#F0C27B] shadow-lg"><Icon size={22} aria-hidden="true" /></span>
+                    <span className="mt-5 text-lg font-semibold">{title}</span>
+                    <span className="mt-1 flex-1 text-sm leading-6 text-(color:--mkt-text)">{body}</span>
+                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze)">Guide <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div id="open-source" className="mkt-night mkt-grain relative mt-16 scroll-mt-24 overflow-hidden rounded-[2rem] p-8 sm:p-12" data-reveal>
+              <div aria-hidden="true" className="mkt-grid pointer-events-none absolute inset-0" />
+              <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-[radial-gradient(closest-side,rgba(232,178,102,0.3),transparent)]" />
+              <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
+                <div>
+                  <Eyebrow light>Open source</Eyebrow>
+                  <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-white">Yours to read, run and change.</h2>
+                  <p className="mt-4 text-[17px] leading-8 text-[#D9D0BF]">Apache-2.0, with nothing held back for a paid tier. Read every line, run it on your own servers and keep your processes if you ever leave the cloud.</p>
+                  <div className="mt-7 flex flex-wrap gap-3">
+                    <Link href="/open-source" className="mkt-btn-ember inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold">Why open source <ArrowRight size={16} aria-hidden="true" /></Link>
+                    {repoUrl && <a href={repoUrl} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-3 font-semibold text-[#F4EFE4] hover:border-white/35"><GitFork size={16} aria-hidden="true" />GitHub</a>}
+                  </div>
+                  {!repoUrl && <p className="mt-5 text-sm text-[#C9BFAE]">{SOURCE_RELEASE_NOTE}</p>}
+                </div>
+                <div className="space-y-3">
+                  <Snippet code={`npm install -g ${CLI_PACKAGE}\nusertasks login\nusertasks workflows list`} />
+                  <p className="text-sm text-[#C9BFAE]">Then the <Link href="/docs/cli" className="font-semibold text-[#F0C27B] hover:text-white">CLI guide</Link>, the <Link href="/docs/api" className="font-semibold text-[#F0C27B] hover:text-white">REST API</Link> and <Link href="/docs/config-as-code" className="font-semibold text-[#F0C27B] hover:text-white">config as code</Link>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-sand)/50">
+          <FaqList faqs={HOME_FAQS} />
+        </div>
+
+        {/* ── Closing call to action ── */}
+        <section className="mkt-night mkt-grain relative overflow-hidden">
+          <div aria-hidden="true" className="mkt-grid pointer-events-none absolute inset-0" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[30rem] w-[60rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(232,178,102,0.25),transparent)]" />
+          <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 py-24 text-center sm:px-6 sm:py-32">
+            <h2 className="font-display text-[clamp(2.5rem,6vw,4.75rem)] font-bold leading-[1] tracking-[-0.03em] text-white">The open source <span className="mkt-gradient-text">process platform.</span></h2>
+            <p className="mt-5 max-w-xl text-[17px] leading-8 text-[#D9D0BF]">Your first process is a sentence away.</p>
+            <div className="mt-9 flex w-full justify-center"><StartForm id="cta-email" /></div>
+            <p className="mt-5 text-sm text-[#A89E8C]">Or <Link href="/contact" className="font-semibold text-[#F0C27B] hover:text-white">talk to us</Link> about a private deployment.</p>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-(color:--mkt-ink)/[0.07]">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
-          <Wordmark size={26} />
-          <p className="text-xs text-(color:--mkt-subtle)">Open-source headless workflow engine · Apache-2.0 · © {new Date().getFullYear()} UserTasks</p>
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-(color:--mkt-muted)">
-            <Link href="/workflows" className="hover:text-(color:--mkt-ink)">Workflows</Link>
-            <Link href="/forms" className="hover:text-(color:--mkt-ink)">Forms</Link>
-            <Link href="/documents" className="hover:text-(color:--mkt-ink)">Documents</Link>
-            <Link href="/media" className="hover:text-(color:--mkt-ink)">Media</Link>
-            <Link href="/ai-assistants" className="hover:text-(color:--mkt-ink)">Agent</Link>
-            <Link href="/connectors" className="hover:text-(color:--mkt-ink)">Integrations</Link>
-            <Link href="/use-cases" className="hover:text-(color:--mkt-ink)">Use cases</Link>
-            <Link href="/gallery" className="hover:text-(color:--mkt-ink)">Package gallery</Link>
-            <Link href="/deploy-anywhere" className="hover:text-(color:--mkt-ink)">Deploy anywhere</Link>
-            <Link href="/docs" className="hover:text-(color:--mkt-ink)">Docs</Link>
-            <Link href="/docs/api-explorer" className="hover:text-(color:--mkt-ink)">API Explorer</Link>
-            <Link href="/open-source" className="hover:text-(color:--mkt-ink)">Why open source</Link>
-            <Link href="/contact" className="hover:text-(color:--mkt-ink)">Contact</Link>
-            <Link href="/login" className="hover:text-(color:--mkt-ink)">Sign in</Link>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter cta={false} />
     </div>
   )
 }

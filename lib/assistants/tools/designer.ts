@@ -18,6 +18,7 @@
  *    'draft', no enable / host / data grants; form controls: module upload
  *    only, a new control is disabled right after it is created).
  */
+import { formDesignerHref } from '@/lib/forms/designer-links'
 import { getMcpToolCatalog, type McpContext, type McpToolServer } from '@/lib/mcp/server'
 import { requiredToolPermission } from '@/lib/mcp/authz'
 import { holdsPermission } from '@/lib/permissions'
@@ -25,6 +26,7 @@ import type { AssistantToolDef } from '../engine'
 import { DESIGNER_READ_TOOLS, DESIGNER_WRITE_TOOLS } from '../types'
 import { draftFromArgs, workflowWarnings } from '../workflow-check'
 import { buildPlanTools, CREATE_TOOL } from './build-plan'
+import { packageItemsTool, packageSolutionTool, shareToGalleryTool, type PackagingAccess, type SolutionPackageDeps } from './solution-package'
 import { compactRead, COMPACT_READ_TOOLS, DETAIL_PARAM, NODE_IDS_PARAM } from './compact-reads'
 import { ITEM_REFERENCE, NODE_REFERENCE_TOOL, nodeReferenceTool, referenceKindOf } from './node-reference'
 import { themeChanges, themeChangesPreview, themeCheckError, themeReferenceTool } from './theme-reference'
@@ -43,6 +45,8 @@ export const FORBIDDEN_ARGS: Record<string, readonly string[]> = {
   agents_update: ['is_active'],
   email_templates_create: ['is_default'],
   email_templates_update: ['is_default'],
+  // The Agent imports pasted CSV text (csv_text); files are imported in the Data area.
+  data_rows_import: ['file_base64', 'sheet'],
 }
 
 /** Arguments forced on, per tool (drafts). */
@@ -196,7 +200,7 @@ export function hrefFor(kind: string, id: string | null): string | null {
   if (!id) return null
   switch (kind) {
     case 'workflow': return `/automations/${id}`
-    case 'form': return `/automations/forms?open=${encodeURIComponent(id)}`
+    case 'form': return formDesignerHref(id)
     case 'data_table': case 'data_rows': return `/data/${id}`
     case 'decision_table': return `/automations/rules/${id}`
     case 'workflow_activity': return `/extensibility?action=${encodeURIComponent(id)}`
@@ -439,6 +443,34 @@ export async function describeRowWrite(tool: string, args: Record<string, any>, 
     return rows
   }
   const rowData = (r: any) => ({ id: r?.id, ...(r?.data ?? {}) })
+  if (tool === 'data_rows_import') {
+    // The card is the dry run: what the import would do, row errors included.
+    const plan = await read('data_rows_import', { ...args, table_id: table?.id ?? args.table_id, dry_run: true })
+    if (plan?.error) throw new Error(plan.error)
+    const c = plan?.counts ?? {}
+    const errors: any[] = list(plan?.errors)
+    const errorLine = errors.slice(0, 5).map((e) => `row ${e.row} ${e.column}: ${e.reason}`).join('; ')
+    if (c.invalid && !args.skip_invalid) throw new Error(`${c.invalid} of ${c.rows} rows have errors (${errorLine}${errors.length > 5 ? '; …' : ''}). Fix the data, or pass skip_invalid: true to import the ${c.valid} valid rows only.`)
+    if (!c.valid) throw new Error('No valid rows to import')
+    const mode = String(plan?.mode ?? args.mode ?? 'insert')
+    const mapped = Object.entries(plan?.mapping ?? {}).filter(([, key]) => key)
+    const warnings = [
+      ...(plan?.fire_triggers === false ? [] : [triggers]),
+      ...(c.invalid ? [`${c.invalid} row${c.invalid === 1 ? '' : 's'} with errors will be skipped: ${errorLine}`] : []),
+      ...(mode === 'replace' ? ['Every existing row of this table is deleted first.'] : []),
+    ]
+    return {
+      title: `${mode === 'replace' ? 'Replace all rows of' : mode === 'upsert' ? 'Import (update or add) into' : 'Import into'} “${tableName}”: ${c.valid} row${c.valid === 1 ? '' : 's'}`,
+      lines: [
+        `${c.rows} row${c.rows === 1 ? '' : 's'} read, ${c.valid} valid${c.invalid ? `, ${c.invalid} with errors` : ''}`,
+        `Columns: ${mapped.map(([header, key]) => header === key ? header : `${header} → ${key}`).join(', ').slice(0, 300)}`,
+        ...(mode === 'upsert' ? [`Rows matching on “${plan?.key_column}” are updated, the rest added`] : []),
+      ],
+      warnings,
+      preview: previewOf(columns, list(plan?.preview), c.valid, 'First rows as they will be stored'),
+      ...(mode === 'replace' ? { danger: true, confirm_label: `Replace all rows`, typed_confirm: `replace ${tableName}` } : {}),
+    }
+  }
   if (tool === 'data_rows_create') {
     const rows = list(args.rows)
     if (!rows.length) throw new Error('No rows to add')
@@ -555,6 +587,11 @@ export interface DesignerToolsParams {
   area?: string | null
   /** Test seam: offer every tool from the start (no deferred groups). */
   allTools?: boolean
+  /**
+   * Sharing to the community gallery as the person (lib/services/gallery-community
+   * submitCommunityPackage), when this instance accepts submissions — absent: no share tool.
+   */
+  galleryShare?: SolutionPackageDeps['share']
   /** Test seam: the workflow self-check (lib/assistants/workflow-check). */
   checkWorkflow?: (args: Record<string, any>, read: (name: string, a: Record<string, any>) => Promise<any>) => string[] | Promise<string[]>
 }
@@ -576,7 +613,7 @@ const defaultWorkflowCheck = async (args: Record<string, any>, read: (name: stri
   return workflowWarnings({ ...draft, linkedForms })
 }
 
-export function designerTools({ server, permissions, area = null, allTools = false, checkWorkflow = defaultWorkflowCheck }: DesignerToolsParams): AssistantToolDef[] {
+export function designerTools({ server, permissions, area = null, allTools = false, checkWorkflow = defaultWorkflowCheck, galleryShare }: DesignerToolsParams): AssistantToolDef[] {
   const catalog = getMcpToolCatalog()
   const byName = new Map(catalog.tools.map((t) => [t.name, t]))
   const call = async (name: string, rawArgs: Record<string, any>) => {
@@ -601,7 +638,24 @@ export function designerTools({ server, permissions, area = null, allTools = fal
   const allowed = allowedDesignerToolNames(permissions)
   // The solution builder: for people who can create at least one kind of item.
   const createTools = new Set([...allowed, ...(holdsPermission(permissions, requiredToolPermission('reports_create') ?? 'reports.create') ? ['reports_create'] : [])].filter((n) => Object.values(CREATE_TOOL).includes(n)))
-  const planTools = createTools.size ? buildPlanTools({ call, allowedTools: createTools, draftOnly: draftOnlyArgs }) : []
+  // Packaging a solution (solution-package.ts): the package tools' own permissions.
+  const holds = (tool: string) => { const p = requiredToolPermission(tool); return Boolean(p) && holdsPermission(permissions, p!) }
+  const packaging: PackagingAccess = { manage: holds('packages_create') && holds('packages_build'), install: holds('packages_install'), share: false }
+  packaging.share = packaging.manage && Boolean(galleryShare)
+  // Each plan item is checked against its create tool's input schema before the card.
+  const validate = async (tool: string, args: Record<string, any>): Promise<string | null> => {
+    const validator = catalog.inputSchemas.get(tool)
+    if (!validator) return null
+    const parsed = await (validator as any).safeParseAsync(args)
+    return parsed.success ? null : `invalid ${tool} arguments: ${String(parsed.error?.issues?.slice(0, 4).map((i: any) => `${(i.path ?? []).join('.') || 'args'}: ${i.message}`).join('; ') ?? parsed.error).slice(0, 400)}`
+  }
+  const planTools = createTools.size ? buildPlanTools({ call, allowedTools: createTools, draftOnly: draftOnlyArgs, validate, packaging }) : []
+  if (createTools.size && packaging.manage) {
+    planTools.push(packageSolutionTool({ call, access: packaging }))
+    planTools.push(packageItemsTool({ call, access: packaging }))
+    const share = shareToGalleryTool({ call, access: packaging, share: galleryShare })
+    if (share) planTools.push(share)
+  }
   // The build reference: for anyone who can see workflows or build something.
   const canReference = allowed.includes('workflows_catalog') || createTools.size > 0
   const referenceTools = canReference ? [nodeReferenceTool({
@@ -628,7 +682,7 @@ export function designerTools({ server, permissions, area = null, allTools = fal
       ...(name.endsWith('_list') ? { maxResultChars: 12_000 } : COMPACT_READ_TOOLS.has(name) ? { maxResultChars: 30_000 } : {}),
       label: (args) => (write
         ? name === 'data_rows_create' ? `Adding ${Array.isArray(args.rows) ? args.rows.length : ''} rows`.replace('  ', ' ')
-          : name === 'data_rows_update' ? 'Updating rows' : name === 'data_rows_bulk_delete' ? 'Deleting rows'
+          : name === 'data_rows_update' ? 'Updating rows' : name === 'data_rows_bulk_delete' ? 'Deleting rows' : name === 'data_rows_import' ? 'Importing rows'
           : `${name.endsWith('_create') ? 'Creating' : 'Updating'} the ${noun}${args.name ? ` “${String(args.name).slice(0, 60)}”` : ''}`
         : name === 'workflows_catalog' ? 'Reading the step catalog'
         : name === 'data_rows_query' ? 'Reading rows'
@@ -687,9 +741,9 @@ export function designerTools({ server, permissions, area = null, allTools = fal
         if (payload?.error) return { result: payload, ok: false }
         if (name === 'integrations_test') return { result: payload }
         if (write && name.startsWith('data_rows_')) {
-          const count = Number(payload?.created ?? payload?.updated ?? payload?.deleted ?? 0)
+          const count = name === 'data_rows_import' ? Number(payload?.counts?.inserted ?? 0) + Number(payload?.counts?.updated ?? 0) : Number(payload?.created ?? payload?.updated ?? payload?.deleted ?? 0)
           const tableId = payload?.table_id ?? (/^[0-9a-f-]{36}$/i.test(String(safe.table_id)) ? safe.table_id : null)
-          env.emit({ type: 'changed', kind: 'data_rows', id: tableId, title: `${count} row${count === 1 ? '' : 's'}`, href: hrefFor('data_rows', tableId), action: name === 'data_rows_create' ? 'created' : name === 'data_rows_update' ? 'updated' : 'deleted' })
+          env.emit({ type: 'changed', kind: 'data_rows', id: tableId, title: `${count} row${count === 1 ? '' : 's'}`, href: hrefFor('data_rows', tableId), action: name === 'data_rows_create' || name === 'data_rows_import' ? 'created' : name === 'data_rows_update' ? 'updated' : 'deleted' })
         } else if (write) {
           const item = changedItem(name, safe, payload)
           if (name === 'form_controls_create' && item.id) {

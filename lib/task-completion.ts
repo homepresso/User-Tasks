@@ -253,7 +253,9 @@ export async function recordTaskResponse(params: {
   // the pressed button, else the bar's submitting buttons that complete with this outcome.
   const { submissionButtonIds } = await import("@/lib/forms/buttons");
   const buttonIds = submissionButtonIds(taskMeta.form_buttons, { buttonId: params.buttonId ?? null, outcome, outcomes: (task.available_outcomes ?? []) as string[] });
-  const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, taskMeta, values, { taskId, task, actorId: userId, buttonIds });
+  // Choices a form rule filled with options (lib/forms/data-actions.ts): checked against what the rule served for this task.
+  const ruleCtx = { supabase, db: supabase, tenantId, actorId: null, permissions: null, authKind: "job", source: "job" } as unknown as import("@/lib/services/context").ServiceContext;
+  const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, taskMeta, values, { taskId, task, actorId: userId, buttonIds, ruleTarget: { task_id: taskId }, ruleCtx });
   if (Object.keys(errors).length > 0) return { status: "invalid", errors };
   const meta = {
     ...taskMeta,

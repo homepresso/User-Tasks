@@ -377,7 +377,8 @@ export function handleSwitchCase(config: Record<string, any>, ctx: ExpressionCon
     return String(caseValue).toLowerCase() === value.toLowerCase()
   })
   if (matched) {
-    const matchedLabel = typeof matched === 'object' && matched !== null ? matched.label : String(matched)
+    // An object case routes by its label, else its value ({ value: 'EU' } → the "EU" edge).
+    const matchedLabel = typeof matched === 'object' && matched !== null ? String(matched.label || matched.value) : String(matched)
     return { value, matched_case: matchedLabel }
   }
   if (config.has_default !== false) return { value, matched_case: "default" }

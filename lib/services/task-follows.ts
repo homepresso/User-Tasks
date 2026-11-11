@@ -43,6 +43,46 @@ export interface FollowedTaskFilters {
    * A task followed directly and through its run is listed once.
    */
   viaRuns?: boolean
+  /** Only the tasks shared with me by an invite (the tracker's "Shared with me" filter). */
+  sharedOnly?: boolean
+}
+
+interface SharedRow { task_id: string; tenant_id: string; status: string; viewer_id: string; principal_type: 'user' | 'team' | 'role'; principal_id: string; invited_by: string | null; shared_at: string }
+
+/** What a tracker row shared with me says: "Shared with me · via Finance (team) · by Priya". */
+export interface SharedWithMe { via: 'user' | 'team' | 'role'; name: string | null; invited_by: string | null; shared_at: string }
+
+/**
+ * Tasks shared with me by an invite (task_viewers: directly, through a team
+ * I'm in or a role I hold — list_viewer_tasks). They show in Following
+ * without a follow row of their own (team / role invites have none). Until
+ * 20270105000000 is applied there are none.
+ */
+async function sharedTasks(ctx: ServiceContext, me: string, tenantId: string | null): Promise<SharedRow[]> {
+  const { data, error } = await (getDb(ctx) as any).rpc('list_viewer_tasks', { p_user_id: me, p_tenant_id: tenantId })
+  if (error) return []
+  return ((data ?? []) as SharedRow[]).filter((row) => row && UUID_RE.test(String(row.task_id)))
+}
+
+async function sharedLabels(db: AnySupabaseClient, rows: SharedRow[]): Promise<Map<string, SharedWithMe>> {
+  const of = (type: string) => Array.from(new Set(rows.filter((r) => r.principal_type === type).map((r) => String(r.principal_id))))
+  const people = Array.from(new Set(rows.map((r) => r.invited_by).filter((id): id is string => Boolean(id))))
+  const [teams, roles, users] = await Promise.all([
+    of('team').length ? (db as any).from('teams').select('id, name').in('id', of('team')) : { data: [] },
+    of('role').length ? (db as any).from('roles').select('id, name').in('id', of('role')) : { data: [] },
+    people.length ? (db as any).from('users').select('id, display_name, email').in('id', people) : { data: [] },
+  ])
+  const name = new Map<string, string>([
+    ...((teams.data ?? []) as any[]).map((t) => [String(t.id), String(t.name ?? 'Team')] as [string, string]),
+    ...((roles.data ?? []) as any[]).map((r) => [String(r.id), String(r.name ?? 'Role')] as [string, string]),
+  ])
+  const person = new Map(((users.data ?? []) as any[]).map((u) => [String(u.id), String(u.display_name || u.email || 'Someone')]))
+  return new Map(rows.map((r) => [String(r.task_id), {
+    via: r.principal_type,
+    name: r.principal_type === 'user' ? null : name.get(String(r.principal_id)) ?? null,
+    invited_by: r.invited_by ? person.get(String(r.invited_by)) ?? null : null,
+    shared_at: r.shared_at,
+  }]))
 }
 
 interface RunTaskRow { task_id: string; tenant_id: string; run_id: string; status: string; run_status: string; workflow_id: string | null; followed_at: string }
@@ -133,12 +173,13 @@ async function visibleFollows(ctx: ServiceContext, me: string): Promise<{ rows: 
   return { rows: ((data ?? []) as FollowRow[]).filter((row) => row && UUID_RE.test(String(row.task_id))), tenantId }
 }
 
-/** Following tab badge: how many followed tasks I can see, and how many are still open (viaRuns: plus the open tasks of runs I follow). */
+/** Following tab badge: how many followed tasks I can see, and how many are still open (viaRuns: plus the open tasks of runs I follow; tasks shared with me always count). */
 export async function countFollowedTasks(ctx: ServiceContext, options: { viaRuns?: boolean } = {}): Promise<{ total: number; open: number }> {
   const me = actor(ctx)
   const { rows, tenantId } = await visibleFollows(ctx, me)
   const status = new Map(rows.map((row) => [String(row.task_id), String(row.status)]))
   if (options.viaRuns) for (const row of await followedRunTasks(ctx, me, tenantId, false)) if (!status.has(String(row.task_id))) status.set(String(row.task_id), String(row.status))
+  for (const row of await sharedTasks(ctx, me, tenantId)) if (!status.has(String(row.task_id))) status.set(String(row.task_id), String(row.status))
   const all = [...status.values()]
   return { total: all.length, open: all.filter((s) => !CLOSED.includes(s)).length }
 }
@@ -167,6 +208,18 @@ export async function listFollowedTasks(ctx: ServiceContext, filters: FollowedTa
       ids.push(taskId)
     }
   }
+  // Shared with me (invites — directly, team or role): listed once, labelled.
+  const shares = await sharedTasks(ctx, me, tenantId)
+  const shared = await sharedLabels(getDb(ctx), shares)
+  const listed = new Set(ids)
+  for (const row of shares) {
+    const taskId = String(row.task_id)
+    if (listed.has(taskId) || (filters.hideCompleted && CLOSED.includes(String(row.status)))) continue
+    listed.add(taskId)
+    followedAt.set(taskId, row.shared_at)
+    ids.push(taskId)
+  }
+  if (filters.sharedOnly) ids.splice(0, ids.length, ...ids.filter((taskId) => shared.has(taskId)))
   if (!ids.length) return []
 
   const db = getDb(ctx)
@@ -192,6 +245,8 @@ export async function listFollowedTasks(ctx: ServiceContext, filters: FollowedTa
         followed_at: followedAt.get(String(task.id)) ?? null,
         // Listed because I follow its run (not followed itself): "via {workflow} · {run}".
         followed_via_run: run ? { run_id: String(run.run_id), workflow_name: (run.workflow_id && workflowNames.get(String(run.workflow_id))) || 'Workflow', run_status: run.run_status } : null,
+        // Shared with me by an invite (read only): who, and through which team / role.
+        shared_with_me: shared.get(String(task.id)) ?? null,
       }
     })
   return searchTrackerTasks(enriched, filters.search).sort((a, b) => {

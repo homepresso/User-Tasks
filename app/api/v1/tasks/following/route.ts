@@ -12,4 +12,5 @@ export const GET = apiRoute(listFollowedTasksEndpoint, async ({ ctx, query }) =>
     status: csv(query.status),
     priority: csv(query.priority),
     hideCompleted: query.hide_completed === 'true',
+    sharedOnly: query.shared_only === 'true',
   }, resolvePage({ limit: query.limit, offset: query.offset })))

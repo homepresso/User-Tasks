@@ -18,7 +18,7 @@
  */
 
 import { getDb, hasPerm, type ServiceContext } from './context'
-import { requireTaskReach } from './tasks'
+import { canAddSubtask, requireTaskReach, taskDepth } from './tasks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped client rows */
 
@@ -34,11 +34,17 @@ export interface TaskPanelSubtask {
   priority: string | null
   due_date: string | null
   assignee: string | null
+  subtitle: string | null
+  /** The working estimate in minutes (assignee's, else the creator's), null when none. */
+  estimateMinutes: number | null
+  /** Its own subtasks. */
+  childCount: number
 }
 
 export interface TaskPanelData {
   id: string
   title: string
+  subtitle: string | null
   status: string
   priority: string | null
   due_date: string | null
@@ -68,11 +74,13 @@ export interface TaskPanelData {
   attachments: number
   links: { task: string; form: string | null; process: string | null }
   can: { progress: boolean; status: boolean; effort: boolean; subtasks: boolean; addSubtask: boolean }
+  /** Here only through an invite (read only; they may comment). */
+  viewer?: boolean
   /** Why the controls are read-only, when they are. */
   readOnlyReason: string | null
 }
 
-const COLUMNS = 'id, tenant_id, title, description, status, priority, due_date, created_at, updated_at, progress_pct, is_workflow_task, event_id, workflow_run_id, assignee_id, assigner_id, assigned_team_id, estimated_effort_assigner, estimated_effort_assignee, actual_effort, metadata'
+const COLUMNS = 'id, tenant_id, parent_task_id, title, subtitle, description, status, priority, due_date, created_at, updated_at, progress_pct, is_workflow_task, event_id, workflow_run_id, assignee_id, assigner_id, assigned_team_id, estimated_effort_assigner, estimated_effort_assignee, actual_effort, metadata'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
@@ -95,16 +103,19 @@ const EVENT_LABELS: Record<string, string> = {
 
 export function activityText(event: { event_type: string; metadata?: unknown }): string {
   const meta = record(event.metadata)
+  if (meta.action === 'viewers_invited') return 'Shared (read only)'
+  if (meta.action === 'viewer_removed') return 'Stopped sharing'
   if (event.event_type === 'started' && typeof meta.minutes === 'number') return `Logged ${(meta.minutes / 60).toFixed(1)}h`
+  if (meta.source === 'subtask_added' && typeof meta.message === 'string') return meta.message
   if (typeof meta.subtask_title === 'string' && meta.subtask_title) return `${EVENT_LABELS[event.event_type] ?? 'Updated'} subtask “${meta.subtask_title}”`
   return EVENT_LABELS[event.event_type] ?? event.event_type.replace(/_/g, ' ')
 }
 
 /** The panel's permissions (pure: the tests and the read share it). */
-export function panelPermissions(input: { canComplete: boolean; reachable: boolean; closed: boolean; workflow: boolean }): { can: TaskPanelData['can']; readOnlyReason: string | null } {
+export function panelPermissions(input: { canComplete: boolean; reachable: boolean; closed: boolean; workflow: boolean; depth?: number }): { can: TaskPanelData['can']; readOnlyReason: string | null } {
   const edit = input.canComplete && input.reachable
   const open = edit && !input.closed
-  const can = { progress: open, status: open && !input.workflow, effort: edit, subtasks: edit, addSubtask: open }
+  const can = { progress: open, status: open && !input.workflow, effort: edit, subtasks: edit, addSubtask: canAddSubtask(input) }
   const readOnlyReason = !input.canComplete ? 'Your role can view this task but not update it.'
     : !input.reachable ? 'Only people working on this task (or overseeing it) can update it.'
     : input.closed ? 'This task is closed.'
@@ -118,14 +129,19 @@ export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise
   if (!task) return null
   // The task's own workspace (the unified view lists tasks of every member workspace).
   const scoped: ServiceContext = { ...ctx, tenantId: String(task.tenant_id) }
-  try { await requireTaskReach(scoped, taskId) } catch { return null }
+  // Invited viewers (lib/services/task-viewers) see the panel read only.
+  let reachable = true
+  try { await requireTaskReach(scoped, taskId) } catch {
+    reachable = false
+    try { await (await import('./task-viewers')).requireTaskView(scoped, taskId) } catch { return null }
+  }
 
   const tenantId = String(task.tenant_id)
   const people = [task.assignee_id, task.assigner_id].filter(Boolean)
   const [peopleResult, teamResult, subtasksResult, subtaskCountResult, eventsResult, effortResult, attachmentsResult] = await Promise.all([
     people.length ? db.from('users').select('id, display_name, email').in('id', people) : Promise.resolve({ data: [] }),
     task.assigned_team_id ? db.from('teams').select('name').eq('id', task.assigned_team_id).maybeSingle() : Promise.resolve({ data: null }),
-    db.from('tasks').select('id, title, status, priority, due_date, assignee:users!tasks_assignee_id_fkey(display_name, email)')
+    db.from('tasks').select('id, title, subtitle, status, priority, due_date, estimated_effort_assigner, estimated_effort_assignee, child_count, assignee:users!tasks_assignee_id_fkey(display_name, email)')
       .eq('tenant_id', tenantId).eq('parent_task_id', taskId).is('deleted_at', null)
       .order('sequence', { ascending: true }).order('created_at', { ascending: true }).limit(PANEL_SUBTASK_LIMIT),
     db.from('tasks').select('status').eq('tenant_id', tenantId).eq('parent_task_id', taskId).is('deleted_at', null).limit(1000),
@@ -144,7 +160,9 @@ export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise
   const allSubs = (subtaskCountResult.data ?? []) as Array<{ status: string }>
   const total = allSubs.length
   const completed = allSubs.filter((s) => s.status === 'completed').length
-  const manual = task.progress_pct == null ? null : Math.round(Number(task.progress_pct) || 0)
+  // The tasks trigger keeps progress_pct at the subtask share; only a value that differs from it was set by hand.
+  const stored = task.progress_pct == null ? null : Number(task.progress_pct) || 0
+  const manual = stored === null || (total > 0 && Math.abs(stored - (completed / total) * 100) < 0.5) ? null : Math.round(stored)
   const closed = task.status === 'completed' || task.status === 'cancelled'
   const fromSubtasks = total > 0 && manual === null
   const pct = manual ?? (total > 0 ? Math.round((completed / total) * 100) : closed ? 100 : 0)
@@ -166,11 +184,15 @@ export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise
   const workflow = Boolean(task.is_workflow_task && task.event_id)
   const runId = task.workflow_run_id ? String(task.workflow_run_id) : null
   const estimate = Number(task.estimated_effort_assignee || 0) || Number(task.estimated_effort_assigner || 0) || null
-  const { can, readOnlyReason } = panelPermissions({ canComplete: hasPerm(ctx, 'tasks.complete'), reachable: true, closed, workflow })
+  const depth = task.parent_task_id ? await taskDepth(scoped, task) : 0
+  const permissions = panelPermissions({ canComplete: hasPerm(ctx, 'tasks.complete'), reachable, closed, workflow, depth })
+  const { can } = permissions
+  const readOnlyReason = reachable ? permissions.readOnlyReason : "You're invited to view this task (read only)."
 
   return {
     id: String(task.id),
     title: String(task.title ?? ''),
+    subtitle: task.subtitle ?? null,
     status: String(task.status),
     priority: task.priority ?? null,
     due_date: task.due_date ?? null,
@@ -191,6 +213,7 @@ export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise
     subtasks: {
       items: ((subtasksResult.data ?? []) as any[]).map((s) => ({
         id: String(s.id), title: String(s.title ?? ''), status: String(s.status), priority: s.priority ?? null, due_date: s.due_date ?? null, assignee: nameOf(s.assignee),
+        subtitle: s.subtitle ?? null, estimateMinutes: Number(s.estimated_effort_assignee || 0) || Number(s.estimated_effort_assigner || 0) || null, childCount: Number(s.child_count ?? 0) || 0,
       })),
       total,
       completed,
@@ -204,5 +227,6 @@ export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise
     },
     can,
     readOnlyReason,
+    viewer: !reachable,
   }
 }

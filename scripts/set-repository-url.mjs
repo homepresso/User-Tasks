@@ -77,8 +77,8 @@ update('README.md', (text) => {
   const badges = [
     BADGES_START,
     `[![CI](${REPO}/actions/workflows/ci.yml/badge.svg?branch=main)](${REPO}/actions/workflows/ci.yml)`,
-    `[![@usertasks/sdk](https://img.shields.io/npm/v/@usertasks/sdk?label=%40usertasks%2Fsdk)](https://www.npmjs.com/package/@usertasks/sdk)`,
-    `[![@usertasks/cli](https://img.shields.io/npm/v/@usertasks/cli?label=%40usertasks%2Fcli)](https://www.npmjs.com/package/@usertasks/cli)`,
+    `[![@user-tasks/sdk](https://img.shields.io/npm/v/@user-tasks/sdk?label=%40usertasks%2Fsdk)](https://www.npmjs.com/package/@user-tasks/sdk)`,
+    `[![@user-tasks/cli](https://img.shields.io/npm/v/@user-tasks/cli?label=%40usertasks%2Fcli)](https://www.npmjs.com/package/@user-tasks/cli)`,
     `[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)`,
     BADGES_END,
   ].join('\n')

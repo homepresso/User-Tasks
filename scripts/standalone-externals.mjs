@@ -35,7 +35,7 @@ export function standaloneExternals(standaloneDir, { bundleAlways = [] } = {}) {
     name: 'standalone-externals',
     setup(b) {
       b.onResolve({ filter: /^[^./]/ }, (args) => {
-        if (args.path.startsWith('@/') || args.path.startsWith('@usertasks/')) return undefined
+        if (args.path.startsWith('@/') || args.path.startsWith('@user-tasks/')) return undefined
         if (args.path.startsWith('node:')) return { path: args.path, external: true }
         if (bundleAlways.some((p) => args.path === p || args.path.startsWith(`${p}/`))) return undefined
         const file = resolveFromRepo(args.path)

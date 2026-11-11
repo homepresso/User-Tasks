@@ -22,6 +22,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react"
+import { ProductHero } from "@/components/marketing/product-hero"
 import { DocLinks, FaqList, FeatureCard, MarketingFooter, MarketingHeader, Pill, SectionHeading } from "@/components/marketing/marketing-ui"
 import { ScreenshotFrame } from "@/components/marketing/screenshot-frame"
 import { ASSISTANT_PROVIDERS, PROVIDER_PRESETS } from "@/lib/assistants/types"
@@ -60,7 +61,7 @@ const PROVIDER_SENTENCE = `${PROVIDER_LABELS.slice(0, -1).join(", ")} or any Ope
 
 const ABILITIES = [
   { icon: FileInput, title: "Fill forms", where: "On a form", body: "Answers questions about the form, explains validation errors and proposes field values. The person previews them and clicks Apply or Apply all.", never: "Never submits the form.", href: "#forms" },
-  { icon: ListChecks, title: "Work tasks", where: "On a task", body: "Summarises a task and its history, explains what each outcome means, drafts comments and suggests an outcome with its reasoning.", never: "Never approves or completes anything.", href: "#tasks" },
+  { icon: ListChecks, title: "Work tasks", where: "On a task", body: "Summarises a task and its history, explains what each outcome means, drafts comments, and approves or completes a task when asked.", never: "Never acts without your confirmation.", href: "#tasks" },
   { icon: PenTool, title: "Build", where: "In the builders", body: "Designs workflows, forms, data tables, decision tables, reports and agents with you, reading what you have open and proposing changes.", never: "A confirmation card before every change.", href: "#build" },
 ]
 
@@ -117,26 +118,22 @@ export function AiAssistantsPage() {
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <MarketingHeader />
+      <MarketingHeader tone="night" />
 
       <main>
         {/* Hero */}
-        <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
-          <div className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span><span aria-current="page">{AI_ASSISTANTS_PAGE.eyebrow}</span></nav>
-            <div className="mt-8"><Pill icon={Sparkles}>{AI_ASSISTANTS_PAGE.eyebrow}</Pill></div>
-            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">Agent: your AI co-worker in every screen.</h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
-              One floating Agent button on every screen. It knows where you are and helps you <strong className="text-(color:--mkt-ink)">fill a form</strong>, <strong className="text-(color:--mkt-ink)">work a task</strong> or <strong className="text-(color:--mkt-ink)">build</strong> a workflow, form, table or plugin, using the AI provider you choose and your own key. It proposes. Applying a value, choosing an outcome and saving a change stay with you.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href={SETUP} className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Set up Agent <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link href={USING} className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                What Agent can do
-              </Link>
-            </div>
+        <ProductHero
+          crumb="Agent"
+          eyebrow="The UserTasks Agent"
+          icon={Sparkles}
+          title={<>An Agent that <span className="mkt-gradient-text">asks before it acts.</span></>}
+          intro={<>One floating Agent button on every screen. It knows where you are and helps you <strong className="text-white">fill a form</strong>, <strong className="text-white">work a task</strong> or <strong className="text-white">build</strong> a workflow, form, table or plugin, using the AI provider you choose and your own key. It proposes. Applying a value, choosing an outcome and saving a change stay with you.</>}
+          primary={{ href: SETUP, label: "Set up Agent" }}
+          secondary={{ href: USING, label: "What Agent can do" }}
+          scenes={["agent", "build", "form"]}
+        />
+        <section className="relative">
+          <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
             <dl className="mt-10 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
               {[
                 ["1", "panel on every screen"],
@@ -222,9 +219,10 @@ export function AiAssistantsPage() {
                 "Suggests an outcome with its reasoning; the person chooses with the task's own buttons",
                 "Drafts a comment or an outcome note to copy or post",
                 "Fills the task's form fields with the same preview-and-apply card",
+                "Approves, declines or completes a task when asked — required fields first, then a confirmation card",
                 "On a task the person can only read, it summarises and explains",
               ]} />
-              <Never>It never completes, approves, rejects, reassigns or posts anything itself.</Never>
+              <Never>It never actions a task without the person's confirmation, or one they couldn't action themselves.</Never>
               <DocLinks links={[{ href: USING, label: "Agent on tasks" }, { href: "/docs/tasks", label: "Tasks" }]} />
             </div>
             <AppShot src={assistantTask} alt="A purchase approval task with the Agent panel open: a summary of the request, a suggested outcome of Approve with its reason, and a draft outcome note with a Copy button" sizes="(min-width: 1024px) 650px, 100vw" />

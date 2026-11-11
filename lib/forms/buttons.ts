@@ -25,6 +25,7 @@
  * isomorphic.
  */
 
+import { readDeepPath } from './data-actions'
 import { isPlainObject } from '@/lib/utils/guards'
 import { pathValue } from './lookup'
 import { formContextPath } from './form-params'
@@ -309,7 +310,7 @@ export function startedWorkflowIds(buttons: FormButton[] | null | undefined): st
 
 /* ── Placeholders ───────────────────────────────────────────────────── */
 
-const TEMPLATE_RE = /\{\{\s*([\w.\-[\]]+)\s*\}\}/g
+const TEMPLATE_RE = /\{\{\s*([\w.\-[\]*]+)\s*\}\}/g
 
 export interface ButtonScope {
   values: Record<string, unknown>
@@ -335,7 +336,9 @@ export function interpolateButtonText(template: string | undefined, scope: Butto
     const extras = scope.extras ?? {}
     if (Object.prototype.hasOwnProperty.call(extras, path)) return display(extras[path])
     // Nested extras: {{event.row.name}}, {{user.email}} (form rules).
-    if (path.includes('.') && Object.prototype.hasOwnProperty.call(extras, path.split('.')[0])) return display(pathValue(extras, path))
+    // Nested extras with [n] / [*] too: {{result[0].name}}, {{result[*].sku}}, {{row.item}}.
+    const root = path.split(/[.[]/)[0]
+    if (root !== path && Object.prototype.hasOwnProperty.call(extras, root)) return display(readDeepPath(extras[root], path.slice(root.length).replace(/^\./, '')))
     const m = /^(?:form|task_data|task\.data)\.(.+)$/.exec(path)
     return display(pathValue(scope.values, formContextPath(path) ?? (m ? m[1] : path)))
   })
@@ -347,13 +350,14 @@ export function interpolateButtonText(template: string | undefined, scope: Butto
  * text → interpolated text.
  */
 export function resolveInputTemplate(template: string, scope: ButtonScope): unknown {
-  const whole = /^\{\{\s*([\w.\-[\]]+)\s*\}\}$/.exec(template.trim())
+  const whole = /^\{\{\s*([\w.\-[\]*]+)\s*\}\}$/.exec(template.trim())
   if (whole) {
     const path = whole[1]
     const extras = scope.extras ?? {}
     if (Object.prototype.hasOwnProperty.call(extras, path)) return extras[path]
-    if (path.includes('.') && Object.prototype.hasOwnProperty.call(extras, path.split('.')[0])) {
-      const nested = pathValue(extras, path)
+    const root = path.split(/[.[]/)[0]
+    if (root !== path && Object.prototype.hasOwnProperty.call(extras, root)) {
+      const nested = readDeepPath(extras[root], path.slice(root.length).replace(/^\./, ''))
       return nested === undefined ? null : nested
     }
     const m = /^(?:form|task_data|task\.data)\.(.+)$/.exec(path)

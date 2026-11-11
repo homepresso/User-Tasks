@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createCustomTable } from '@/app/actions/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus } from 'lucide-react'
+import { FileSpreadsheet, Plus } from 'lucide-react'
+import { ImportWizard } from './import-wizard'
 import { Dialog, DialogBody, DialogClose, DialogContent, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { InlineNotice } from '@/components/ui/inline-notice'
@@ -38,6 +39,9 @@ export function CreateTableDialog() {
   }, [wantsNew, searchParams, pathname, router])
 
   const [clash, setClash] = useState<{ name: string; suggestion: string; description: string } | null>(null)
+  // Create from file: the import wizard infers the columns, creates the table and imports the rows.
+  const [fromFile, setFromFile] = useState<{ name: string } | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
 
   async function create(formData: FormData) {
     const created = await createCustomTable(formData)
@@ -64,6 +68,7 @@ export function CreateTableDialog() {
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setClash(null) }}>
       <DialogTrigger asChild>
         <Button leadingIcon={<Plus />}>New table</Button>
@@ -72,7 +77,7 @@ export function CreateTableDialog() {
         <form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogBody className="space-y-4">
             <Field label="Name">
-              <Input name="name" required placeholder="e.g. Clients" autoFocus />
+              <Input ref={nameRef} name="name" required placeholder="e.g. Clients" autoFocus />
             </Field>
             <Field label="Description" optional>
               <Input name="description" placeholder="What the table holds" />
@@ -87,12 +92,25 @@ export function CreateTableDialog() {
               </InlineNotice></div>
             )}
           </DialogBody>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-            <SubmitButton pendingLabel="Creating…">Create table</SubmitButton>
+          <DialogFooter className="justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              leadingIcon={<FileSpreadsheet />}
+              data-testid="create-table-from-file"
+              onClick={() => { setFromFile({ name: nameRef.current?.value.trim() ?? '' }); setOpen(false); setClash(null) }}
+            >
+              Create from file
+            </Button>
+            <div className="flex gap-2">
+              <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
+              <SubmitButton pendingLabel="Creating…">Create table</SubmitButton>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+    {fromFile && <ImportWizard open onOpenChange={(next) => { if (!next) setFromFile(null) }} createName={fromFile.name} />}
+    </>
   )
 }

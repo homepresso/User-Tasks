@@ -345,7 +345,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
           })}
         </div>
       ) : (
-        <Table className="min-w-[760px]">
+        <Table label="Business rules" stickyFirstColumn stickyColumns={2}>
           <THead>
             <tr>
               <TH className="w-10">
@@ -355,12 +355,12 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
                   aria-label={allPageSelected ? 'Deselect all on page' : 'Select all on page'}
                 />
               </TH>
-              <TH>Business rule</TH>
+              <TH col="title">Business rule</TH>
               <TH numeric className="w-24">Inputs</TH>
               <TH numeric className="w-24">Outputs</TH>
               <TH numeric className="w-24">Rules</TH>
-              <TH className="w-36">Updated</TH>
-              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+              <TH col="date" className="w-36">Updated</TH>
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>
@@ -377,7 +377,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
                     />
                   </TD>
                   <TD className="max-w-0 py-2">
-                    <Link href={`/automations/rules/${table.id}`} className="block truncate font-medium text-fg hover:underline">
+                    <Link href={`/automations/rules/${table.id}`} className="block truncate font-medium text-fg hover:underline" title={table.name}>
                       {table.name}
                     </Link>
                     <p className="truncate text-xs text-fg-muted">
@@ -387,7 +387,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
                   <TD numeric>{table.inputs?.length ?? 0}</TD>
                   <TD numeric>{table.outputs?.length ?? 0}</TD>
                   <TD numeric>{table.rules?.length ?? 0}</TD>
-                  <TD className="text-xs text-fg-muted">
+                  <TD className="whitespace-nowrap text-xs text-fg-muted">
                     <UpdatedAt value={table.updated_at ?? table.created_at} />
                   </TD>
                   <TDActions>

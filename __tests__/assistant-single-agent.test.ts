@@ -48,7 +48,7 @@ describe('settings back-compat (first-release capabilities rows)', () => {
   it('any enabled capability turns the Agent on; nothing enabled → off with all help groups ready', () => {
     expect(legacyToAgentSettings({ task: { enabled: true } }).enabled).toBe(true)
     const off = normalizeAgentSettings({ form: { enabled: false }, task: { enabled: false }, designer: { enabled: false } })
-    expect(off).toEqual({ enabled: false, roles: [], teams: [], tools: { form: true, task: true, designer: true, admin: true }, all_forms: true, profiles: [], thinking_level: 'default', thinking_levels: {} })
+    expect(off).toEqual({ enabled: false, roles: [], teams: [], tools: { form: true, task: true, designer: true, admin: true }, all_forms: true, task_actions: true, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: { enabled: true, engine: 'browser', language: '', integration_id: null, auto_send: false } })
   })
 
   it('access: the most permissive enabled capability — one open to everyone makes the Agent open to everyone', () => {
@@ -218,12 +218,32 @@ describe('tools follow the screen and the person\'s permissions', () => {
     expect(wf.instructions).toMatch(/SAME kind/)
   })
 
+  it('task actions: offered on every screen to people who complete tasks; "Let the Agent complete tasks" off (or a profile) leaves only reading', async () => {
+    const ACTOR = [...MEMBER, 'tasks.complete']
+    const req = parseChatRequest({ messages: [{ role: 'user', content: 'approve Ethan\'s leave' }], context: { screen: { label: 'Home', path: '/home' } } })
+    const on = await prepareAssistantTurn(ctx(ACTOR), req, { serviceDb: rowsDb({ assistant_settings: [ON_ROW] }), skipBurst: true })
+    expect(on.tools.map((t) => t.name)).toEqual(expect.arrayContaining(['task_get_form', 'task_complete', 'task_respond', 'task_save_form_values', 'find_active_tasks']))
+    expect(on.instructions).toContain('Never infer approval')
+    const offRow = { ...ON_ROW, capabilities: { version: 3, enabled: true, task_actions: false } }
+    const off = await prepareAssistantTurn(ctx(ACTOR), req, { serviceDb: rowsDb({ assistant_settings: [offRow] }), skipBurst: true })
+    expect(off.tools.map((t) => t.name)).toContain('task_get_form')
+    expect(off.tools.map((t) => t.name).filter((n) => ['task_complete', 'task_respond', 'task_save_form_values'].includes(n))).toEqual([])
+    expect(off.instructions).toContain('Task actions are turned off')
+    // A profile turns it back on for its people.
+    const profRow = { ...ON_ROW, capabilities: { version: 3, enabled: true, task_actions: false, profiles: [{ id: 'p1', name: 'Approvers', users: ['u1'], task_actions: true }] } }
+    const prof = await prepareAssistantTurn(ctx(ACTOR), req, { serviceDb: rowsDb({ assistant_settings: [profRow] }), skipBurst: true })
+    expect(prof.tools.map((t) => t.name)).toContain('task_complete')
+    // Without tasks.complete: reading only.
+    const member = await prepareAssistantTurn(ctx(MEMBER), req, { serviceDb: rowsDb({ assistant_settings: [ON_ROW] }), skipBurst: true })
+    expect(member.tools.map((t) => t.name)).not.toContain('task_complete')
+  })
+
   it('the Advanced building switch off removes every building tool', async () => {
     const db = rowsDb({ assistant_settings: [{ ...ON_ROW, capabilities: { version: 2, enabled: true, tools: { designer: false } } }] })
     const p = await prepareAssistantTurn(ctx(BUILDER), parseChatRequest({ messages: [{ role: 'user', content: 'hi' }] }), { serviceDb: db, skipBurst: true })
-    // Only the question-with-buttons tool, which every screen has.
-    expect(p.tools.map((t) => t.name)).toEqual(['ask_user'])
-    expect(p.instructions).toContain('no form, task or building tools')
+    // Only the question-with-buttons tool, which every screen has, and reading a task's form (task help).
+    expect(p.tools.map((t) => t.name)).toEqual(['ask_user', 'task_get_form'])
+    expect(p.instructions).toContain('no form or building tools')
   })
 })
 

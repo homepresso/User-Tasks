@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { SeoSolutionPage } from '@/components/marketing/seo-solution-page'
-import { getSeoPage } from '@/lib/seo-pages'
+import { getSeoPage, seoPageMetadataInput } from '@/lib/seo-pages'
+import { pageMetadata } from '@/lib/seo/site'
 
 const page = getSeoPage('bpm-workflow-automation')!
-export const metadata: Metadata = { title: 'BPM Workflow Automation and Business Process Management | UserTasks', description: page.description, keywords: ['BPM', 'business process management', 'BPM workflow', 'business process automation'], alternates: { canonical: '/bpm-workflow-automation' }, openGraph: { title: page.title, description: page.description, url: '/bpm-workflow-automation', type: 'website' } }
-export default function BpmWorkflowAutomationPage() { return <SeoSolutionPage page={page} /> }
+export const metadata: Metadata = pageMetadata(seoPageMetadataInput(page))
+export default function Page() { return <SeoSolutionPage page={page} /> }

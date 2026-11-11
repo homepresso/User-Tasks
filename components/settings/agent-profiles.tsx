@@ -83,7 +83,7 @@ export function AgentProfiles({ profiles, onChange, disabled, saved, defaults, r
   /** The saved profiles (test results, unsaved markers). */
   saved: AgentProfile[]
   /** The Default profile: the settings above. */
-  defaults: { modelLabel: string; thinking: ThinkingLevel; tools: Record<AgentToolGroup, boolean>; limits: AssistantLimits }
+  defaults: { modelLabel: string; thinking: ThinkingLevel; tools: Record<AgentToolGroup, boolean>; taskActions?: boolean; limits: AssistantLimits }
   roleOptions: Option[]
   teamOptions: Option[]
   userOptions: Option[]
@@ -250,7 +250,7 @@ function ProfileSheet({ initial, isNew, onClose, onApply, roleOptions, teamOptio
   savedProfile: AgentProfile | null
   defaultProvider: string | null
   defaultModel: string
-  defaults: { tools: Record<AgentToolGroup, boolean>; limits: AssistantLimits }
+  defaults: { tools: Record<AgentToolGroup, boolean>; taskActions?: boolean; limits: AssistantLimits }
 }) {
   const isMobile = useIsMobile()
   const [d, setD] = useState<ProfileDraft>(initial)
@@ -430,6 +430,16 @@ function ProfileSheet({ initial, isNew, onClose, onApply, roleOptions, teamOptio
                 ))}
               </div>
             )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label htmlFor={`${id}-task-actions`} className="text-sm">Let the Agent complete tasks (with confirmation)</label>
+              <Select id={`${id}-task-actions`} value={d.task_actions === true ? 'on' : d.task_actions === false ? 'off' : 'default'} className="max-w-72"
+                onChange={(e) => set({ task_actions: e.target.value === 'on' ? true : e.target.value === 'off' ? false : null })}
+                data-testid="assistants-profile-task-actions">
+                <option value="default">Same as the Default profile ({defaults.taskActions === false ? 'off' : 'on'})</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </Select>
+            </div>
             <p className="text-2xs" style={muted}>Each kind still needs the person&apos;s own permissions (e.g. building needs a build permission). A profile can turn help off, never grant more.</p>
           </section>
 

@@ -96,16 +96,16 @@ function ProjectsTable({ projects }: { projects: ProjectSummaryRow[] }) {
     people: (p) => p.people_count,
   }, 'name')
   return (
-    <Table aria-label="Projects">
+    <Table aria-label="Projects" stickyFirstColumn>
       <THead>
         <tr>
-          <SortTH label="Project" column="name" sort={sort} onSort={toggle} />
-          <SortTH label="Key" column="key" sort={sort} onSort={toggle} />
-          <SortTH label="Status" column="status" sort={sort} onSort={toggle} />
-          <SortTH label="Owner" column="owner" sort={sort} onSort={toggle} />
-          <SortTH label="Start" column="start" sort={sort} onSort={toggle} />
-          <SortTH label="End" column="end" sort={sort} onSort={toggle} />
-          <SortTH label="People" column="people" sort={sort} onSort={toggle} numeric />
+          <SortTH label="Project" column="name" sort={sort} onSort={toggle} col="title" />
+          <SortTH label="Key" column="key" sort={sort} onSort={toggle} col="number" />
+          <SortTH label="Status" column="status" sort={sort} onSort={toggle} col="status" />
+          <SortTH label="Owner" column="owner" sort={sort} onSort={toggle} col="people" />
+          <SortTH label="Start" column="start" sort={sort} onSort={toggle} col="date" />
+          <SortTH label="End" column="end" sort={sort} onSort={toggle} col="date" />
+          <SortTH label="People" column="people" sort={sort} onSort={toggle} numeric col="number" />
         </tr>
       </THead>
       <TBody>

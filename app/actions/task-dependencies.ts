@@ -4,6 +4,19 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/permissions-server'
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
 import { revalidatePath } from 'next/cache'
+import { fromSessionForTask } from '@/lib/actions/task-context'
+import { requireTaskReach } from '@/lib/services/tasks'
+
+/**
+ * A dependency belongs to the blocked task (`taskId`): only someone who can
+ * work on it (requireTaskReach — assignee, collaborator, team, manager,
+ * assigner, tasks.view_all) links or unlinks its blockers. The blocker can be
+ * any task they can see — one shared with them by an invite included — but
+ * an invited viewer can't change the dependencies of a task they only view.
+ */
+async function requireBlockedTaskReach(taskId: string) {
+  await requireTaskReach(await fromSessionForTask(taskId), taskId)
+}
 
 /**
  * Add a blocking link: `taskId` is blocked by `dependsOnTaskId`. Cycle
@@ -12,6 +25,7 @@ import { revalidatePath } from 'next/cache'
  */
 export async function addTaskDependency(taskId: string, dependsOnTaskId: string): Promise<void> {
   await requirePermission('tasks.assign')
+  await requireBlockedTaskReach(taskId)
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) throw new Error('Not authenticated')
@@ -47,6 +61,7 @@ export async function addTaskDependency(taskId: string, dependsOnTaskId: string)
 
 export async function removeTaskDependency(taskId: string, dependsOnTaskId: string): Promise<void> {
   await requirePermission('tasks.assign')
+  await requireBlockedTaskReach(taskId)
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) throw new Error('Not authenticated')

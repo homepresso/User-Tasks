@@ -31,15 +31,15 @@ export function PeopleTable({ people, onSelect }: { people: ChartPerson[]; onSel
   return (
     <div className="space-y-2">
       <SearchInput size="sm" value={query} onValueChange={(v) => { setQuery(v); setLimit(PAGE) }} placeholder="Filter people" aria-label="Filter people" wrapperClassName="w-full sm:w-72" />
-      <Table aria-label="People">
+      <Table aria-label="People" stickyFirstColumn>
         <THead>
           <tr>
-            <SortTH label="Name" column="name" sort={sort} onSort={toggle} />
-            <SortTH label="Job title" column="title" sort={sort} onSort={toggle} />
-            <SortTH label="Department" column="department" sort={sort} onSort={toggle} />
-            <SortTH label="Location" column="location" sort={sort} onSort={toggle} />
-            <SortTH label="Manager" column="manager" sort={sort} onSort={toggle} />
-            <SortTH label="Reports" column="reports" sort={sort} onSort={toggle} numeric />
+            <SortTH label="Name" column="name" sort={sort} onSort={toggle} col="title" />
+            <SortTH label="Job title" column="title" sort={sort} onSort={toggle} col="name" />
+            <SortTH label="Department" column="department" sort={sort} onSort={toggle} col="text" />
+            <SortTH label="Location" column="location" sort={sort} onSort={toggle} col="text" />
+            <SortTH label="Manager" column="manager" sort={sort} onSort={toggle} col="people" />
+            <SortTH label="Reports" column="reports" sort={sort} onSort={toggle} numeric col="number" />
           </tr>
         </THead>
         <TBody>

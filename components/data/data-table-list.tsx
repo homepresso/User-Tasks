@@ -10,7 +10,7 @@ import { IconButton } from '@/components/ui/icon-button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/ui/avatar'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Table, THead, TBody, TR, TD, TDActions, TableEmpty, thClass } from '@/components/ui/table'
+import { Table, THead, TBody, TR, TD, TDActions, TableEmpty, columnClass, thClass } from '@/components/ui/table'
 import { unwrapAction } from '@/lib/action-result'
 import { serverQuery } from '@/lib/server-read'
 import { Map as MapIcon, Trash2, Shield, ArrowUp, ArrowDown, X, Download } from 'lucide-react'
@@ -264,7 +264,7 @@ export function DataTableList({ tables }: DataTableListProps) {
         )}
       </div>
 
-      <Table>
+      <Table label="Data tables" stickyFirstColumn stickyColumns={2}>
         <THead>
           <tr>
             <th scope="col" className={cn(thClass, 'w-10 pr-0')}>
@@ -275,13 +275,13 @@ export function DataTableList({ tables }: DataTableListProps) {
                 aria-label="Select all tables"
               />
             </th>
-            {sortHeader('name', 'Name')}
+            {sortHeader('name', 'Name', { className: columnClass.title })}
             {sortHeader('rows', 'Rows', { numeric: true, className: 'w-24' })}
             {sortHeader('columns', 'Columns', { numeric: true, className: 'w-24' })}
-            <th scope="col" className={cn(thClass, 'w-48')}>Retention</th>
-            <th scope="col" className={cn(thClass, 'w-48')}>Created by</th>
-            {sortHeader('updated_at', 'Updated', { className: 'w-36' })}
-            <th scope="col" className={cn(thClass, 'w-px')}><span className="sr-only">Actions</span></th>
+            <th scope="col" className={cn(thClass, columnClass.text, 'w-48')}>Retention</th>
+            <th scope="col" className={cn(thClass, columnClass.people, 'w-48')}>Created by</th>
+            {sortHeader('updated_at', 'Updated', { className: cn(columnClass.date, 'w-36') })}
+            <th scope="col" className={cn(thClass, columnClass.actions)}><span className="sr-only">Actions</span></th>
           </tr>
         </THead>
         <TBody>
@@ -317,6 +317,7 @@ export function DataTableList({ tables }: DataTableListProps) {
                     href={`/data/${table.id}`}
                     onClick={(e) => e.stopPropagation()}
                     className="block truncate font-medium text-fg hover:underline"
+                    title={table.name}
                   >
                     {table.name}
                   </Link>
@@ -328,14 +329,14 @@ export function DataTableList({ tables }: DataTableListProps) {
                 </TD>
                 <TD numeric>{formatCount(table.row_count?.[0]?.count ?? 0)}</TD>
                 <TD numeric>{formatCount((table.columns as any[])?.length ?? 0)}</TD>
-                <TD className="max-w-48 truncate text-fg-muted">
+                <TD className="max-w-48 truncate whitespace-nowrap text-fg-muted">
                   {table.retention_policy_id ? (policyName.get(table.retention_policy_id) ?? 'Policy assigned') : '—'}
                 </TD>
                 <TD>
                   {creatorName ? (
                     <span className="flex min-w-0 items-center gap-2">
                       <Avatar name={creatorName} size="sm" />
-                      <span className="truncate text-fg-muted">{creatorName}</span>
+                      <span className="truncate text-fg-muted" title={creatorName}>{creatorName}</span>
                     </span>
                   ) : <span className="text-fg-subtle">—</span>}
                 </TD>

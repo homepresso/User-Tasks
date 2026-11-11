@@ -55,6 +55,8 @@ interface RouteEntry { pattern: string; label: string; root?: boolean; hidden?: 
 export const ROUTES: readonly RouteEntry[] = [
   { pattern: '/home', label: 'Home' },
   { pattern: '/home/runs/[id]', label: 'Run' },
+  { pattern: '/timeline', label: 'Timeline', hidden: true },
+  { pattern: '/timeline/[id]', label: 'Timeline', root: true },
   { pattern: '/tasks', label: 'My tasks' },
   { pattern: '/tasks/new', label: 'New task' },
   { pattern: '/tasks/team', label: 'My team', root: true },
@@ -73,6 +75,8 @@ export const ROUTES: readonly RouteEntry[] = [
   { pattern: '/automations/rules/[id]', label: 'Business rule' },
   { pattern: '/automations/email-templates', label: 'Email templates', root: true },
   { pattern: '/automations/forms', label: 'Forms', root: true },
+  { pattern: '/automations/forms/new', label: 'New form' },
+  { pattern: '/automations/forms/[id]', label: 'Form' },
   { pattern: '/forms', label: 'My forms', hidden: true },
   { pattern: '/forms/wizard', label: 'My forms', root: true },
   { pattern: '/forms/wizard/new', label: 'Build a form' },

@@ -36,6 +36,7 @@ import {
   type LookupConfig, type LookupFilter, type LookupItem,
 } from '@/lib/forms/lookup'
 import { answersLookups, normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { LOOKUP_ROW_KEY } from '@/lib/forms/lookup'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { serviceRoleClient } from './_shared'
@@ -430,11 +431,11 @@ export async function lookupTaskField(ctx: ServiceContext, taskId: string, input
   const task = await loadLookupTask(ctx, db, taskId)
   const meta = (task.metadata ?? {}) as Record<string, any>
   const fields = normalizeTaskFields(meta.fields)
-  const field = fields.find((f) => f.key === input.field_key && answersLookups(f))
+  const field = lookupTargetField(fields, input.field_key)
   if (!field?.lookup) throw ServiceError.notFound(`The task's form has no lookup field "${String(input.field_key).slice(0, 64)}"`)
   await rateLimited(ctx)
   const stored = isPlainObject(meta.template_values) ? meta.template_values : {}
-  const values = { ...lookupScopeValues(fields, stored, isPlainObject(input.values) ? input.values : undefined), ...await contextScope(meta.form_layout, input, isPlainObject(meta.form_params) ? meta.form_params : {}, fields) }
+  const values = { ...lookupScopeValues(fields, stored, isPlainObject(input.values) ? input.values : undefined), ...await contextScope(meta.form_layout, input, isPlainObject(meta.form_params) ? meta.form_params : {}, fields), ...rowScope(fields, field.key, input.values) }
   const resolve = resolveRequestValues(input.resolve)
   if (resolve) return resolveItems(db, ctx.tenantId, field, field.lookup, resolve, values, { taskId: task.id, task: taskScope(task) })
   const result = await runLookup(db, ctx.tenantId, field.lookup, { search: lookupSearchTerm(input.query), values, task: taskScope(task) }, task.id)
@@ -455,7 +456,7 @@ export async function lookupFormField(ctx: ServiceContext, formId: string, input
   const { data: form } = await (db as any).from('forms').select('id, fields, layout').eq('id', formId).eq('tenant_id', ctx.tenantId).maybeSingle()
   if (!form) throw ServiceError.notFound('Form not found')
   const fields = normalizeTaskFields(form.fields)
-  const field = fields.find((f) => f.key === input.field_key && answersLookups(f))
+  const field = lookupTargetField(fields, input.field_key)
   if (!field?.lookup) throw ServiceError.notFound(`The form has no lookup field "${String(input.field_key).slice(0, 64)}"`)
   // Anonymous visitors (lib/services/anonymous-forms.ts): only this link's form, only a lookup
   // the author opened with "Allow anonymous read", never a custom control's, results capped.
@@ -467,13 +468,79 @@ export async function lookupFormField(ctx: ServiceContext, formId: string, input
     lookup = { ...lookup, max_results: Math.min(lookup.max_results ?? LOOKUP_LIMITS.defaultMaxResults, ANONYMOUS_LIMITS.maxLookupResults) }
   }
   await rateLimited(ctx)
-  const values = { ...lookupScopeValues(fields, {}, isPlainObject(input.values) ? input.values : undefined), ...await contextScope(form.layout, input, undefined, fields) }
+  const values = { ...lookupScopeValues(fields, {}, isPlainObject(input.values) ? input.values : undefined), ...await contextScope(form.layout, input, undefined, fields), ...rowScope(fields, field.key, input.values) }
   const scope = formLookupScope(formId, lookupSubject(ctx))
   const resolve = resolveRequestValues(input.resolve)
   if (resolve) return resolveItems(db, ctx.tenantId, field, lookup, resolve.slice(0, isAnonymous(ctx) ? 20 : resolve.length), values, { taskId: scope, task: null })
   const result = await runLookup(db, ctx.tenantId, lookup, { search: lookupSearchTerm(input.query), values, task: null }, scope)
   if (field.lookup.source === 'reference' && result.items.length) void rememberServed(scope, field.key, result.items)
   return result
+}
+
+/**
+ * The lookup a request names: a lookup field (`customer`), or a List's
+ * lookup column (`line_items.product` — its own source, read from the saved
+ * form like a field's). Null when the form has neither.
+ */
+export function lookupTargetField(fields: TaskFieldDef[], key: unknown): TaskFieldDef | null {
+  const k = String(key ?? '')
+  const direct = fields.find((f) => f.key === k && answersLookups(f))
+  if (direct) return direct
+  const m = /^([a-z0-9][a-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(k)
+  if (!m) return null
+  const list = fields.find((f) => f.key === m[1] && f.type === 'list')
+  const column = list?.list?.columns.find((c) => c.key === m[2] && c.type === 'lookup' && c.lookup)
+  return column ? { key: k, label: column.label, type: 'lookup', lookup: column.lookup } : null
+}
+
+/** {{row.<column>}} for a List lookup column: the row being edited, its declared columns' plain values only. */
+function rowScope(fields: TaskFieldDef[], key: string, values: unknown): Record<string, unknown> {
+  const m = /^([a-z0-9][a-z0-9_]*)\./.exec(key)
+  const list = m ? fields.find((f) => f.key === m[1] && f.type === 'list') : null
+  const raw = isPlainObject(values) ? values[LOOKUP_ROW_KEY] : undefined
+  if (!list?.list || !isPlainObject(raw)) return {}
+  const row: Record<string, unknown> = {}
+  for (const c of list.list.columns) {
+    const v = raw[c.key]
+    if (v === null || ['string', 'number', 'boolean'].includes(typeof v)) row[c.key] = typeof v === 'string' ? v.slice(0, 500) : v
+  }
+  return { [LOOKUP_ROW_KEY]: row }
+}
+
+/**
+ * List lookup cells on submit: each value confirmed in its column's source
+ * (with the same row / form scope a search had), the display label beside it
+ * (`<column>_label`) taken from the source — never as sent. A value the
+ * source doesn't offer is an error (unless free text is allowed).
+ */
+export async function verifyListLookups(db: AnySupabaseClient, tenantId: string, fields: TaskFieldDef[], values: Record<string, unknown>, options: { strict: boolean; taskId?: string | null; task?: Record<string, unknown> | null; keys?: string[] }): Promise<{ errors: Record<string, string>; values: Record<string, unknown> }> {
+  const errors: Record<string, string> = {}
+  const out: Record<string, unknown> = {}
+  const { listLabelKey } = await import('@/lib/forms/list-field')
+  for (const list of fields) {
+    if (list.type !== 'list' || !list.list || list.read_only || (options.keys && !options.keys.includes(list.key))) continue
+    const columns = list.list.columns.filter((c) => c.type === 'lookup' && c.lookup)
+    const rows = Array.isArray(values[list.key]) ? (values[list.key] as Array<Record<string, unknown>>) : []
+    if (!columns.length || !rows.length) continue
+    const next = rows.map((r) => ({ ...r }))
+    for (const column of columns) {
+      const field: TaskFieldDef = { key: `${list.key}.${column.key}`, label: column.label, type: 'lookup', lookup: column.lookup }
+      const config = normalizeLookupConfig(column.lookup)
+      for (const [i, row] of next.entries()) {
+        const value = row[column.key]
+        if (value === null || value === undefined || value === '') continue
+        let found = new Map<string, LookupItem>()
+        try {
+          found = await findByValues(db, tenantId, field, config, [String(value)], { ...values, [LOOKUP_ROW_KEY]: row }, options)
+        } catch { /* judged below as not found */ }
+        const item = found.get(String(value))
+        if (item) row[listLabelKey(column.key)] = item.label
+        else if (options.strict && !config.allow_free_text) { errors[list.key] = `${list.label}: row ${i + 1}: ${column.label} must be one of the suggestions`; break }
+      }
+    }
+    out[list.key] = next
+  }
+  return { errors, values: out }
 }
 
 /** Whose served items a form lookup remembers: the user, or an anonymous visitor's IP hash. */

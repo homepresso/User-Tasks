@@ -50,6 +50,7 @@ import {
 } from '@/app/actions/github-sync'
 import { SECTION_LABELS, SYNC_SECTION_CATALOG } from '@/lib/github-sync/scope-catalog'
 import { useJobs } from '@/components/jobs/jobs-provider'
+import { TableScroll } from '@/components/ui/table'
 
 type SyncStatus = Awaited<ReturnType<typeof getGitHubSyncStatus>>
 type Deployment = SyncStatus['deployments'][number]
@@ -772,26 +773,26 @@ function PendingChangesCard({
         <p className="text-sm py-3 text-fg-muted">No pending changes.</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border mb-4 border-border">
+          <TableScroll label="Pending changes" frameClassName="mb-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-fg-muted bg-subtle">
-                  <th className="px-3 py-2 font-medium">Asset</th>
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Action</th>
-                  <th className="px-3 py-2 font-medium">Queued</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="min-w-48 px-3 py-2 font-medium">Asset</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Action</th>
+                  <th className="min-w-28 whitespace-nowrap px-3 py-2 font-medium">Queued</th>
+                  <th className="min-w-32 px-3 py-2 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingChanges.map((row) => (
                   <tr key={row.id} className="border-t border-border">
                     <td className="px-3 py-2 font-medium">{row.asset_name || row.asset_id}</td>
-                    <td className="px-3 py-2 text-xs text-fg-muted">{row.asset_type}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-fg-muted">{row.asset_type}</td>
                     <td className="px-3 py-2">
                       <Badge tone={row.action === 'delete' ? 'danger' : 'brand'} className="capitalize">{row.action}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-xs text-fg-muted">{formatRelativeDate(row.queued_at)}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-fg-muted">{formatRelativeDate(row.queued_at)}</td>
                     <td className="px-3 py-2 text-xs">
                       <span style={{ color: 'var(--theme-muted-text)' }}>{row.status}</span>
                       {row.error && <span className="block text-danger truncate max-w-48" title={row.error}>{row.error}</span>}
@@ -800,7 +801,7 @@ function PendingChangesCard({
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
 
           {canEdit && (
             <div className="flex gap-2">

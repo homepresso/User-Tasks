@@ -13,7 +13,7 @@
  */
 
 import { Option, type Command } from 'commander'
-import type { UsertasksEvent } from '@usertasks/sdk'
+import type { UsertasksEvent } from '@user-tasks/sdk'
 import { CliUsageError } from '../exit-codes'
 import type { Runtime } from '../runtime'
 

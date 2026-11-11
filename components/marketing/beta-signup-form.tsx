@@ -14,11 +14,14 @@ const COMPANY_SIZES = ['Just me', '2–10', '11–50', '51–200', '200+']
  * Beta signup form — provisions a new tenant via the betaSignup server action,
  * then signs the user straight in and lands them on the dashboard.
  */
-export function BetaSignupForm() {
+/** Where to land after sign-up: only known destinations (no open redirects). */
+const NEXT: Record<string, string> = { infopath: '/automations/forms?import=infopath' }
+
+export function BetaSignupForm({ defaultEmail = '', next }: { defaultEmail?: string; next?: string | null }) {
   const router = useRouter()
   const [form, setForm] = useState({
     fullName: '',
-    email: '',
+    email: defaultEmail,
     password: '',
     company: '',
     companySize: '',
@@ -57,7 +60,7 @@ export function BetaSignupForm() {
           return
         }
         setPhase('done')
-        window.location.href = '/tasks'
+        window.location.href = (next && NEXT[next]) || '/tasks'
       } catch {
         setError('Something went wrong — please try again.')
         setPhase('idle')
@@ -68,7 +71,7 @@ export function BetaSignupForm() {
   const inputClass =
     // text-base (16px), not text-sm — iOS Safari auto-zooms the page on focus
     // for any input/select under 16px, which reads as "the page is broken".
-    'w-full rounded-lg border border-(color:--mkt-ink)/10 bg-(color:--mkt-sand) px-4 py-3 text-base text-(color:--mkt-ink) placeholder:text-(color:--mkt-subtle) outline-none transition focus:border-(color:--mkt-primary)/60 focus:bg-[#102943] focus:ring-2 focus:ring-(color:--mkt-primary)/20'
+    'w-full rounded-lg border border-(color:--mkt-ink)/10 bg-(color:--mkt-sand) px-4 py-3 text-base text-(color:--mkt-ink) placeholder:text-(color:--mkt-subtle) outline-none transition focus:border-(color:--mkt-primary)/60 focus:bg-(color:--mkt-white) focus:ring-2 focus:ring-(color:--mkt-primary)/20'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" aria-busy={busy}>
@@ -126,7 +129,7 @@ export function BetaSignupForm() {
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">{error}</p>
+        <p role="alert" className="rounded-lg border border-(color:--mkt-red)/30 bg-(color:--mkt-red)/[0.06] px-4 py-2.5 text-sm text-(color:--mkt-red)">{error}</p>
       )}
 
       {/* Provisioning takes a few seconds — show a live progress treatment. */}

@@ -160,7 +160,7 @@ function tsxUnder(dir: string): string[] {
  * scope its runtime resolves.
  */
 const EDITORS: Record<string, { sets?: string[]; renderedBy?: string[]; workflow?: true }> = {
-  'designer/form-designer-dialog.tsx': { sets: ["kind: 'header'"] },
+  'designer/form-designer.tsx': { sets: ["kind: 'header'"] },
   'designer/rules-panel.tsx': { sets: ["kind: 'rule', event: rule.event, target: rule.target, slot: 'condition'", "kind: 'rule', event: rule.event, target: rule.target, slot: 'action'", "kind: 'bar'"] },
   'designer/button-properties.tsx': { sets: ["kind: 'button'"] },
   'designer/field-properties.tsx': { sets: ["kind: 'default'"] },
@@ -178,6 +178,8 @@ const EDITORS: Record<string, { sets?: string[]; renderedBy?: string[]; workflow
   'designer/message-editor.tsx': { renderedBy: ['designer/button-properties.tsx'] },
   'designer/set-variable-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
   'designer/call-reference-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
+  'designer/data-action-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
+  'designer/list-action-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
   // A workflow step's form parameters (workflow designer): the workflow lists.
   'node-form-section.tsx': { workflow: true },
 }
@@ -208,7 +210,7 @@ describe('regression: no forms-designer input falls back to the workflow lists',
   })
 
   it('the designer wraps its whole properties panel in a base scope', () => {
-    const dialog = readFileSync(path.join(formsDir, 'designer/form-designer-dialog.tsx'), 'utf8')
+    const dialog = readFileSync(path.join(formsDir, 'designer/form-designer.tsx'), 'utf8')
     const at = dialog.indexOf("<DesignerVariableScope state={state} context={{ kind: 'header' }}>")
     expect(at).toBeGreaterThan(0)
     expect(dialog.indexOf('id={`designer-panel-${tab}`}', at)).toBeGreaterThan(at)

@@ -326,6 +326,7 @@ export const CLI_HANDWRITTEN_COMMANDS: CliCommandGroup[] = [
           { flags: '--notes <text>', description: 'Release notes' },
           { flags: '--out <file>', description: 'Where to save the file (default <slug>-<version>.utpkg)' },
           { flags: '-O <file>', description: 'Alias of --out' },
+          { flags: '--update-install', description: 'When the package is installed in this workspace (built here): update that install too, so uninstall removes added items and keeps removed ones' },
         ],
         example: 'usertasks packages build invoice-approval --bump minor --out invoice-approval.utpkg',
       },

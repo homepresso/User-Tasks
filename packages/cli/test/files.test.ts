@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { UsertasksClient } from '@usertasks/sdk'
+import { UsertasksClient } from '@user-tasks/sdk'
 import { harness, ok } from './helpers'
 
 const env = { USERTASKS_URL: 'https://tasks.test', USERTASKS_API_KEY: 'ut_key' }

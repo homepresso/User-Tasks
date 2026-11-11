@@ -5,6 +5,7 @@
  * dialog opens / saves. Every operation returns a new state (undo history).
  */
 
+import { isRowsField, rowCommitKit } from './row-rules'
 import { isSurveyType, surveyFieldDefaults } from '@/lib/forms/survey/controls'
 import {
   DISPLAY_FIELD_TYPES, TASK_FIELD_TYPE_LABELS, fieldKeyFromLabel, fieldKeyProblem, normalizeTaskFields, uniqueFieldKey,
@@ -21,13 +22,14 @@ import { normalizeFormButtons, type FormButton } from './buttons'
 import { defaultFormHeader, normalizeFormHeader, type FormHeader } from './header'
 import { lookupConfigProblem, lookupItemKey } from './lookup'
 import { ATTACHMENT_DEFAULTS, attachmentsConfigProblem, attachmentsCountKey } from './attachments'
+import { DEFAULT_LIST_CONFIG, listConfigProblem, listDerivedKeys, listEntryKit, normalizeListConfig } from './list-field'
 import type { FormThemeRef } from './form-theme'
 import { takePendingCustomControl } from './custom-controls/palette'
 import { customControlConfigProblem } from './custom-controls/field'
 import { defaultFieldButton, fieldButtonProblem, type FieldButtonConfig } from './field-buttons'
 import { dataTableConfigProblem } from './data-table'
 import { formStateConfig, parseTarget } from './form-state'
-import { formRuleProblem, normalizeFormRules, promptIds, type FormRule, type RuleKnown } from './form-rules'
+import { formRuleProblem, newRuleId, normalizeFormRules, promptIds, type FormRule, type RuleKnown } from './form-rules'
 import type { DataTableCondition, DataTableConditionGroup } from './data-table'
 import { layoutFormVariables } from './form-params'
 import { expressionKnown, expressionProblems, labelOrder, renameExpressionKey } from './label-field'
@@ -101,6 +103,7 @@ const DEFAULT_LABELS: Partial<Record<TaskFieldType, string>> = {
   divider: 'Divider',
   button: 'Show more',
   data_table: 'Table',
+  list: 'Line items',
   label: 'Total',
 }
 
@@ -122,6 +125,7 @@ export function newField(type: TaskFieldType, taken: string[]): DesignerField {
   if (custom) field.custom = custom
   if (type === 'button') field.button = defaultFieldButton()
   if (type === 'data_table') field.data_table = { source: 'table', mode: 'display', columns: [] }
+  if (type === 'list') field.list = structuredClone(DEFAULT_LIST_CONFIG)
   return field
 }
 
@@ -189,6 +193,84 @@ export function addField(state: DesignerState, type: TaskFieldType, at?: { row: 
     layout: at ? placeField(view.layout, field.key, at.row, at.index) : placeField(view.layout, field.key, view.layout.rows.length, 0),
   }))
   return { state: next, field }
+}
+
+/**
+ * The List field's helper "Add inputs and an Add button with a rule"
+ * (lib/forms/list-field.ts listEntryKit): one input per column and an "Add …"
+ * button in rows just above the list, and an "Add row to list" rule on the
+ * button's click (values from the inputs, required columns required, the
+ * inputs cleared after adding). Null when the field is not a List.
+ */
+export function addListEntryKit(state: DesignerState, listId: string, options: { edit?: 'button' | 'row_click' | false; selection?: 'single' | 'multiple' } = {}): { state: DesignerState; ruleId: string; fields: DesignerField[] } | null {
+  const list = state.fields.find((f) => f._id === listId)
+  if (!list || list.type !== 'list') return null
+  const taken = (state.layout.rules ?? []).map((r) => r.id)
+  const ruleId = newRuleId(taken)
+  const ruleIds: string[] = []
+  for (let i = 0; i < 4; i++) ruleIds.push(newRuleId([...taken, ruleId, ...ruleIds]))
+  const kit = listEntryKit(list.key, list.label || list.key, normalizeListConfig(list.list), state.fields.map((f) => f.key), { ruleId, ruleIds, edit: options.edit, selection: options.selection })
+  const added = kit.fields.map((f) => ({ ...f, _id: designerId(), _keyLocked: true }) as unknown as DesignerField)
+  const inputs = added.filter((f) => f.type !== 'button')
+  const buttons = added.filter((f) => f.type === 'button')
+  const page = pageOfField(state.layout, list.key)?.id ?? null
+  const next = onPage(state, page, (view) => {
+    const rows = view.layout.rows.map((row) => ({ ...row, cells: row.cells.map((c) => ({ ...c })) }))
+    const at = findCell(view.layout, list.key)?.row ?? rows.length
+    const section = rows[at]?.section
+    const tag = section ? { section } : {}
+    const fresh: FormRow[] = []
+    for (let i = 0; i < inputs.length; i += 3) {
+      const chunk = inputs.slice(i, i + 3)
+      fresh.push({ columns: chunk.length, cells: chunk.map((f) => ({ field_key: f.key, span: 1 })), ...tag })
+    }
+    // The Add button, and (editing) the Cancel button beside it; the selection buttons (Edit / Delete selected, Clear) on a row of their own.
+    const first = buttons.slice(0, 2)
+    const rest = buttons.slice(2)
+    fresh.push({ columns: Math.max(1, first.length), cells: first.map((f) => ({ field_key: f.key, span: 1 })), ...tag })
+    if (rest.length) fresh.push({ columns: rest.length, cells: rest.map((f) => ({ field_key: f.key, span: 1 })), ...tag })
+    rows.splice(at, 0, ...fresh)
+    const fields = view.fields.map((f) => (f._id === listId ? { ...f, list: { ...normalizeListConfig(f.list), ...kit.listPatch } } : f))
+    return { ...view, fields: [...fields, ...added], layout: { ...view.layout, rows } }
+  })
+  const rules = [...(next.layout.rules ?? []), ...normalizeFormRules([kit.rule, ...kit.editRules])]
+  const stateConfig = next.layout.state ?? {}
+  const flags = kit.flag && !(stateConfig.flags ?? []).some((f) => f.key === kit.flag) ? [...(stateConfig.flags ?? []), { key: kit.flag }] : stateConfig.flags
+  return { state: { ...next, layout: { ...next.layout, rules, ...(flags ? { state: { ...stateConfig, flags } } : {}) } }, ruleId, fields: added }
+}
+
+/**
+ * The "New → fill → Commit" kit (lib/forms/row-rules.ts rowCommitKit) for a
+ * List or an editable Data table: inputs, New row / (Apply) / Save row
+ * buttons above the field and their rules.
+ */
+export function addRowCommitKit(state: DesignerState, fieldId: string, options: { apply?: 'change' | 'button'; save?: 'stage' | 'save_now' } = {}): { state: DesignerState; fields: DesignerField[] } | null {
+  const target = state.fields.find((f) => f._id === fieldId)
+  if (!target || !isRowsField(target as never)) return null
+  const taken = (state.layout.rules ?? []).map((r) => r.id)
+  const ruleIds: string[] = []
+  for (let i = 0; i < 40; i++) ruleIds.push(newRuleId([...taken, ...ruleIds]))
+  const kit = rowCommitKit(target as never, state.fields.map((f) => f.key), { ...options, ruleIds })
+  const added = kit.fields.map((f) => ({ ...f, _id: designerId(), _keyLocked: true }) as unknown as DesignerField)
+  const inputs = added.filter((f) => f.type !== 'button')
+  const buttons = added.filter((f) => f.type === 'button')
+  const page = pageOfField(state.layout, target.key)?.id ?? null
+  const next = onPage(state, page, (view) => {
+    const rows = view.layout.rows.map((row) => ({ ...row, cells: row.cells.map((c) => ({ ...c })) }))
+    const at = findCell(view.layout, target.key)?.row ?? rows.length
+    const section = rows[at]?.section
+    const tag = section ? { section } : {}
+    const fresh: FormRow[] = []
+    for (let i = 0; i < inputs.length; i += 3) {
+      const chunk = inputs.slice(i, i + 3)
+      fresh.push({ columns: chunk.length, cells: chunk.map((f) => ({ field_key: f.key, span: 1 })), ...tag })
+    }
+    fresh.push({ columns: Math.max(1, buttons.length), cells: buttons.map((f) => ({ field_key: f.key, span: 1 })), ...tag })
+    rows.splice(at, 0, ...fresh)
+    return { ...view, fields: [...view.fields, ...added], layout: { ...view.layout, rows } }
+  })
+  const rules = [...(next.layout.rules ?? []), ...normalizeFormRules(kit.rules)]
+  return { state: { ...next, layout: { ...next.layout, rules } }, fields: added }
 }
 
 export function duplicateField(state: DesignerState, id: string): { state: DesignerState; field: DesignerField } | null {
@@ -331,6 +413,12 @@ export function designerProblems(state: DesignerState): Record<string, string> {
     }
     if (field.type === 'data_table') {
       const problem = dataTableConfigProblem(field.data_table)
+      if (problem) out[field._id] = problem
+    }
+    if (field.type === 'list') {
+      const others = state.fields.filter((f) => f._id !== field._id && !DISPLAY_FIELD_TYPES.has(f.type)).map((f) => f.key)
+      const clash = listDerivedKeys(field.key, field.list).find((k) => others.includes(k))
+      const problem = listConfigProblem(field.list) ?? (clash ? `Another field uses the key "${clash}" (this list stores its row count / totals there)` : null)
       if (problem) out[field._id] = problem
     }
     if (field.type === 'label' && field.label_config?.expression) {

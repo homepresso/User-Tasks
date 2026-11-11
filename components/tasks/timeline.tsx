@@ -143,6 +143,9 @@ export function ActivityTimeline({ events, taskId }: TimelineProps) {
               eventLabel = 'sent a message'
             } else if (event.event_type === 'reassigned' && event.metadata?.took_ownership) {
               eventLabel = 'took ownership of this task'
+            } else if ((event.metadata?.action === 'viewers_invited' || event.metadata?.action === 'viewer_removed') && typeof event.metadata?.message === 'string') {
+              // Invite (read only): "invited Finance (team) to view" / "stopped sharing with Priya Nair".
+              eventLabel = event.metadata.message
             } else if (isSubtaskEvent) {
               eventLabel = event.event_type === 'completed' ? 'completed subtask' : 'reopened subtask'
             } else {

@@ -11,7 +11,7 @@ import { serverQuery } from "@/lib/server-read"
 import { usePermissions } from "@/lib/permissions-context"
 import { formHref } from "@/lib/forms/form-page-url"
 import {
-  AVAILABLE_FORMS_QUERY_KEY, SIDEBAR_FORMS_SEARCH_MIN, withFavoriteForms, availableFormsExpandedKey, filterAvailableForms, highlightMatch, showsAvailableFormsSearch,
+  AVAILABLE_FORMS_QUERY_KEY, SIDEBAR_FORMS_SEARCH_MIN, withFavoriteForms, availableFormsExpandedKey, filterAvailableForms, highlightMatch, showsAvailableFormsSearch, availableFormTags,
   type AvailableForm,
 } from "@/lib/forms/available-forms"
 import { cn } from "@/lib/utils"
@@ -124,7 +124,9 @@ export function AvailableFormsList({ forms, variant, onClose, autoFocus = false,
   const inputRef = useRef<HTMLInputElement>(null)
   const plainRef = useRef<HTMLUListElement>(null)
   const listboxRef = useRef<HTMLUListElement>(null)
-  const searchable = showsAvailableFormsSearch(forms.length, searchMin)
+  const formTags = useMemo(() => availableFormTags(forms), [forms])
+  // Tags make the search useful even for a short list.
+  const searchable = showsAvailableFormsSearch(forms.length, searchMin) || (formTags.length > 0 && forms.length > 3)
   // Favourites are starred here; the plain list can star / unstar (Home → Favourite forms).
   const favorites = new Set(useFavoriteForms().forms.map((f) => f.id))
   const closesOnOpen = variant === "flyout" || variant === "header"
@@ -197,6 +199,11 @@ export function AvailableFormsList({ forms, variant, onClose, autoFocus = false,
               aria-current={current ? "page" : undefined} title={form.description ? `${form.name} — ${form.description}` : form.name}
               onClick={() => { if (closesOnOpen) onClose?.() }}>
               <span className="truncate"><Highlighted name={form.name} query={query} /></span>
+              {(form.tags?.length ?? 0) > 0 && (
+                <span className={cn("ml-1 hidden min-w-0 shrink truncate text-2xs sm:inline", tone.muted)} data-available-form-tags>
+                  {form.tags!.slice(0, 2).map((t) => `#${t}`).join(" ")}
+                </span>
+              )}
               {favorites.has(form.id) && <Star className={cn("ml-auto size-3 shrink-0", tone.current)} fill="currentColor" aria-label="Favourite" />}
             </Link>
           </li>
@@ -258,7 +265,7 @@ export function AvailableFormsList({ forms, variant, onClose, autoFocus = false,
           aria-activedescendant={activeOption ? `${listId}-opt-${activeIndex}` : undefined}
           autoComplete="off"
           spellCheck={false}
-          placeholder={`Search ${forms.length} forms`}
+          placeholder={formTags.length ? `Search ${forms.length} forms or #tag` : `Search ${forms.length} forms`}
           value={query}
           onChange={(e) => { setQuery(e.target.value); setActive(0) }}
           onKeyDown={onListKeyDown}
@@ -276,6 +283,20 @@ export function AvailableFormsList({ forms, variant, onClose, autoFocus = false,
           </button>
         )}
       </div>
+      {formTags.length > 0 && (
+        <div className="flex flex-wrap gap-1 px-0.5" role="group" aria-label="Filter by tag" data-available-forms-tags>
+          {formTags.map((tag) => {
+            const on = query.trim().toLowerCase() === `#${tag}`
+            return (
+              <button key={tag} type="button" aria-pressed={on}
+                onClick={() => { setQuery(on ? "" : `#${tag}`); setActive(0); inputRef.current?.focus() }}
+                className={cn("rounded-full border px-2 py-0.5 text-2xs transition-colors", on ? "border-[color:var(--theme-primary)] bg-[var(--theme-primary-light)] text-[color:var(--theme-primary-text)]" : cn("border-[color:var(--ds-border)]", tone.muted, tone.hover))}>
+                #{tag}
+              </button>
+            )
+          })}
+        </div>
+      )}
       {options}
       {shown.length === 0 && (
         <p className={cn("px-2 py-1 text-2xs", tone.muted)} role="status">No forms match “{query.trim()}”</p>

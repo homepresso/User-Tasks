@@ -5480,6 +5480,12 @@ async function runNodeAction(
     // ─── End Workflow ───
     case "end_workflow": {
       const reason = resolveExpression(config.reason, ctx) ?? "Workflow ended";
+      // End as failed: the step fails with the reason, so the run is failed
+      // (red in the process view and run history) and workflow_error
+      // triggers fire. Not for middleware responses (they always answer).
+      if (config.status === "failed" && ctx.variables._trigger_type !== "middleware_received") {
+        throw new Error(String(reason) || "Workflow ended as failed");
+      }
       if (ctx.variables._trigger_type === "middleware_received") {
         const response = await buildMiddlewareResponse(
           config,
@@ -6308,6 +6314,8 @@ async function runNodeAction(
         .select("id")
         .single();
       if (error) throw new Error(`Create subtask failed: ${error.message}`);
+      // The new subtask's id, for later steps (Auto Action, Add Task Attachment…).
+      setVar("subtask_id", data?.id ?? null);
       return {
         subtask_id: data?.id,
       };

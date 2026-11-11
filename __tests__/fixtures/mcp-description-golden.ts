@@ -10,5 +10,6 @@ export const mcpDescriptionGolden = {
   projects_members: MCP_CORE_TOOL_DESCRIPTIONS.projects_members,
   tasks_follow: MCP_CORE_TOOL_DESCRIPTIONS.tasks_follow,
   tasks_following: MCP_CORE_TOOL_DESCRIPTIONS.tasks_following,
+  tasks_add_subtask: MCP_CORE_TOOL_DESCRIPTIONS.tasks_add_subtask,
   forms_wizard_create: MCP_CORE_TOOL_DESCRIPTIONS.forms_wizard_create,
 } as const

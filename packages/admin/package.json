@@ -1,5 +1,5 @@
 {
-  "name": "@usertasks/admin",
+  "name": "@user-tasks/admin",
   "version": "0.1.0",
   "private": true,
   "description": "usertasks-admin: server-side administration for UserTasks installs (provider status, doctor, switch and rollback; database migrations on any PostgreSQL)",

@@ -20,7 +20,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { StatusPill, Tag } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Table, THead, TBody, TR, TH, TD, TDActions, TableSkeleton } from "@/components/ui/table"
+import { Table, THead, TBody, TR, TH, TD, TDActions, TableDetailCell, TableSkeleton, type ColumnKind } from "@/components/ui/table"
 import { Dialog, DialogBody, DialogClose, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, floatingSurfaceClass,
@@ -334,10 +334,10 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
     ))
   }
 
-  function sortHeader(field: SortField, label: string, numeric = false) {
+  function sortHeader(field: SortField, label: string, numeric = false, col?: ColumnKind) {
     const active = sortField === field
     return (
-      <TH numeric={numeric} aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+      <TH numeric={numeric} col={col ?? (numeric ? "number" : undefined)} aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
         <button
           type="button"
           onClick={() => toggleSort(field)}
@@ -475,7 +475,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
       {/* Workflow grid / list */}
       {loading && filtered.length === 0 ? (
         viewMode === "list" ? (
-          <Table>
+          <Table label="Workflows">
             <TBody><TableSkeleton columns={LIST_COLUMNS} /></TBody>
           </Table>
         ) : (
@@ -508,7 +508,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
         </Card>
       ) : viewMode === "list" ? (
         /* ── List view ── */
-        <Table>
+        <Table label="Workflows" stickyFirstColumn stickyColumns={2}>
           <THead>
             <tr>
               <TH className="w-10">
@@ -519,13 +519,13 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
                   onChange={selectAll}
                 />
               </TH>
-              {sortHeader("name", "Name")}
-              {sortHeader("status", "Status")}
-              {sortHeader("trigger_type", "Trigger")}
+              {sortHeader("name", "Name", false, "title")}
+              {sortHeader("status", "Status", false, "status")}
+              {sortHeader("trigger_type", "Trigger", false, "status")}
               {sortHeader("nodes", "Nodes", true)}
               {sortHeader("run_count", "Runs", true)}
-              {sortHeader("updated_at", "Updated")}
-              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+              {sortHeader("updated_at", "Updated", false, "date")}
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>
@@ -540,7 +540,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
                     </span>
                   </TD>
                   <TD className="w-[40%] max-w-0 py-1.5">
-                    <Link href={href} onClick={e => e.stopPropagation()} className="block truncate font-medium text-fg hover:underline">
+                    <Link href={href} onClick={e => e.stopPropagation()} className="block truncate font-medium text-fg hover:underline" title={wf.name}>
                       {wf.name}
                     </Link>
                     {(wf.tags ?? []).length > 0 && (
@@ -548,7 +548,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
                     )}
                   </TD>
                   <TD><StatusPill status={wf.is_active ? "active" : "inactive"} /></TD>
-                  <TD><TriggerTag trigger={wf.trigger_type} /></TD>
+                  <TD className="whitespace-nowrap"><TriggerTag trigger={wf.trigger_type} /></TD>
                   <TD numeric className="text-fg-muted">{formatCount(wf.node_count ?? 0)}</TD>
                   <TD numeric className="text-fg-muted">{formatCount(wf.run_count ?? 0)}</TD>
                   <TD className="whitespace-nowrap text-xs text-fg-muted"><RelativeDate value={wf.updated_at} /></TD>
@@ -559,9 +559,9 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
                 </TR>,
                 editingTagsId === wf.id && (
                   <tr key={`${wf.id}-tags`} className="border-b border-border-subtle bg-subtle">
-                    <td colSpan={LIST_COLUMNS} className="px-[var(--theme-density-cell-x)] py-3">
+                    <TableDetailCell colSpan={LIST_COLUMNS} className="px-[var(--theme-density-cell-x)] py-3">
                       <div className="max-w-md">{tagEditor(wf)}</div>
-                    </td>
+                    </TableDetailCell>
                   </tr>
                 ),
               ]

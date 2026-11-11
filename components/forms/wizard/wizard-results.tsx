@@ -33,6 +33,8 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'danger' | 'warning' |
 
 function cell(value: unknown): string {
   if (value == null || value === '') return '—'
+  // A List's rows (objects without a file name): "3 rows".
+  if (Array.isArray(value) && value.length && value.every((v) => v && typeof v === 'object' && !Array.isArray(v) && !('name' in v) && !('storage_ref' in v))) return `${value.length} ${value.length === 1 ? 'row' : 'rows'}`
   if (Array.isArray(value)) return value.map((v) => (v && typeof v === 'object' ? String((v as { name?: string }).name ?? 'file') : String(v))).join(', ') || '—'
   if (typeof value === 'object') return JSON.stringify(value)
   const text = String(value)

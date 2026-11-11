@@ -584,7 +584,7 @@ Workspace addresses are off until you set \`APP_BASE_DOMAIN\`. They also need a 
     title: 'Workspace theme',
     description: 'One brand theme for the whole workspace: the theme designer, fonts and logos, contrast checks, and the REST, MCP, CLI and config-as-code surfaces.',
     body: `
-Every workspace has **one theme that all of its members see**. It sets colours for light and dark mode, fonts and font weights, corner radii and shadows, density, the sidebar and top bar styles, logos, the favicon and a wordmark. New workspaces start from the default template. Members can follow their device's light or dark setting, unless the theme forces one mode.
+Every workspace has **one theme that all of its members see**. It sets colours for light and dark mode, fonts and font weights, corner radii and shadows, density, the sidebar and top bar styles, logos, the favicon and a wordmark. New workspaces start from the default template in light mode. To let members follow their device's light or dark setting instead, set the theme's mode to follow each member's setting.
 
 ## Theme designer
 

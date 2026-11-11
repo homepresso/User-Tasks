@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Play, Table, RefreshCw, ChevronRight, ChevronDown } from "lucide-react"
+import { TableScroll } from "@/components/ui/table"
 
 interface DbQueryRunnerProps {
   integrationId: string
@@ -384,7 +385,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                 </span>
                 <span>{result.duration}ms</span>
               </div>
-              <div className="overflow-x-auto max-h-[400px]">
+              <TableScroll bare label="Query results" className="max-h-[400px] overflow-y-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-bg">
@@ -425,7 +426,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableScroll>
             </div>
           )}
         </div>

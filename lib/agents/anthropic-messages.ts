@@ -17,7 +17,12 @@
  *     system block caches the tool list and the system prompt together;
  *   - a second breakpoint on the last block of the conversation caches the
  *     history so far; the next call (same turn, a tool result appended) reads
- *     it back and writes only what was added.
+ *     it back and writes only what was added;
+ *   - PDFs (OpenAI-style `file` parts with a PDF data URL, sent only to
+ *     models that read PDFs: lib/agents/pdf-input) become `document` blocks,
+ *     and a third breakpoint sits on the newest one: the prefix up to and
+ *     including the PDF stays cached for the turn's later calls and later
+ *     turns, even after that message's text (the screen context) changes.
  * Thinking blocks are not replayed (the browser keeps none; the
  * compatibility endpoint never returned them either).
  *
@@ -82,6 +87,14 @@ function imageBlock(url: string): Record<string, unknown> | null {
   return null
 }
 
+/** An OpenAI `file` part holding a PDF data URL as a Messages document block (null for anything else). */
+export function documentBlock(file: { filename?: unknown; file_data?: unknown } | null | undefined): Record<string, unknown> | null {
+  const m = /^data:application\/pdf;base64,(.+)$/i.exec(String(file?.file_data ?? ''))
+  if (!m) return null
+  const title = String(file?.filename ?? '').replace(/[\r\n]/g, ' ').trim().slice(0, 200)
+  return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: m[1] }, ...(title ? { title } : {}) }
+}
+
 function userBlocks(content: unknown): Array<Record<string, unknown>> {
   if (typeof content === 'string') return content.trim() ? [{ type: 'text', text: content }] : []
   const out: Array<Record<string, unknown>> = []
@@ -89,6 +102,9 @@ function userBlocks(content: unknown): Array<Record<string, unknown>> {
     if (part?.type === 'text' && String(part.text ?? '').trim()) out.push({ type: 'text', text: String(part.text) })
     else if (part?.type === 'image_url') {
       const block = imageBlock(String(part.image_url?.url ?? ''))
+      if (block) out.push(block)
+    } else if (part?.type === 'file') {
+      const block = documentBlock(part.file)
       if (block) out.push(block)
     }
   }
@@ -144,6 +160,16 @@ export function toMessagesBody(body: Record<string, any>): Record<string, unknow
   }
   // The conversation must start with a user turn.
   while (messages.length && messages[0].role !== 'user') messages.shift()
+  // Cache breakpoint on the newest PDF (a big, stable prefix: read back by later calls and turns).
+  for (let mi = messages.length - 1, found = false; mi >= 0 && !found; mi--) {
+    const blocks = messages[mi].content
+    for (let bi = blocks.length - 1; bi >= 0; bi--) {
+      if (blocks[bi].type !== 'document') continue
+      blocks[bi] = { ...blocks[bi], cache_control: EPHEMERAL }
+      found = true
+      break
+    }
+  }
   // Cache breakpoint on the conversation's last block (the next call reads everything up to here).
   const last = messages[messages.length - 1]
   if (last?.content.length) {

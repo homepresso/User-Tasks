@@ -164,7 +164,7 @@ Outputs are available as \`{{<prefix>_<output>}}\` (the node's output prefix, ed
 
 ## The contract
 
-The source of truth is \`lib/custom-actions/contract.ts\`, also exported by the \`@usertasks/action\` package.
+The source of truth is \`lib/custom-actions/contract.ts\`, also exported by the \`@user-tasks/action\` package.
 
 ### manifest.json
 
@@ -239,7 +239,7 @@ Input and output names may not look like credentials (\`token\`, \`password\`, \
 ONE self-contained ES module — bundle dependencies, no \`import\` statements or dynamic \`import()\` (the sandbox has no module loader). Its default export maps operation ids to functions:
 
 \`\`\`ts title="src/action.ts"
-import { defineAction } from '@usertasks/action'
+import { defineAction } from '@user-tasks/action'
 
 export default defineAction({
   operations: {
@@ -376,11 +376,11 @@ You need Node.js 20 or later.
 
 ## Testing with runAction
 
-\`@usertasks/action/testing\` exports \`runAction\`, the runner behind \`npm test\` — use it from any test framework:
+\`@user-tasks/action/testing\` exports \`runAction\`, the runner behind \`npm test\` — use it from any test framework:
 
 \`\`\`ts title="action.test.ts"
 import { readFileSync } from 'node:fs'
-import { runAction } from '@usertasks/action/testing'
+import { runAction } from '@user-tasks/action/testing'
 
 const module = readFileSync('dist/action.js', 'utf8')
 const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'))

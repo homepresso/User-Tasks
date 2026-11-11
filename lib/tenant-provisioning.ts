@@ -10,7 +10,17 @@ import type { AuthAdmin } from '@/lib/providers/auth/types'
  *   2. inserts the `tenants` row (a DB trigger also gives it the default
  *      workspace theme — 20261101000000_workspace_themes.sql),
  *   3. ensures the five system roles exist with their permission sets,
- *   4. upserts the `users` row and assigns the `owner` role.
+ *   4. upserts the `users` row and assigns the `owner` role,
+ *   5. removes the personal workspace that account creation also made.
+ *
+ * One account, one workspace: creating the account (step 1) runs the
+ * provisioning every new account gets — the Supabase trigger
+ * on_auth_user_created, or onUserCreated for built-in accounts — which makes
+ * a personal "<name>'s Workspace" (slug personal-<user id prefix>) and points
+ * the user at it. Here the named workspace replaces it: the user is repointed
+ * (users row, home owner membership), and the personal one, still empty and
+ * memberless, is deleted. Before this, every signup left it behind next to
+ * the named workspace.
  *
  * Shared by the cloud beta signup (app/actions/beta-signup.ts) and the
  * self-hosted first-run script (scripts/bootstrap-tenant.ts). Requires a
@@ -101,6 +111,35 @@ export function supabaseAuthAdmin(supabase: Pick<SupabaseClient, 'auth'>): Pick<
   }
 }
 
+/** The personal workspace account creation gave `userId`, if any (its users row points at personal-<id prefix>). */
+async function personalWorkspaceOf(db: any, userId: string): Promise<string | null> {
+  const { data: user } = await db.from('users').select('tenant_id').eq('id', userId).maybeSingle()
+  if (!user?.tenant_id) return null
+  const { data: tenant } = await db.from('tenants').select('id, slug').eq('id', user.tenant_id).maybeSingle()
+  return tenant?.slug === personalWorkspaceSlug(userId) ? (tenant.id as string) : null
+}
+
+/** provision_auth_user's slug for a user's personal workspace. */
+export function personalWorkspaceSlug(userId: string): string {
+  return `personal-${userId.slice(0, 8)}`
+}
+
+/**
+ * Deletes the fresh personal workspace of a just-created account — only while
+ * nobody else is tied to it (it is seconds old; never touches a workspace in use).
+ */
+async function removePersonalWorkspace(db: any, tenantId: string, userId: string): Promise<void> {
+  const [{ data: members }, { data: users }] = await Promise.all([
+    db.from('user_memberships').select('user_id').eq('tenant_id', tenantId).neq('user_id', userId).limit(1),
+    db.from('users').select('id').or(`tenant_id.eq.${tenantId},current_tenant_id.eq.${tenantId}`).neq('id', userId).limit(1),
+  ])
+  if ((members ?? []).length || (users ?? []).length) return
+  await db.from('user_roles').delete().eq('tenant_id', tenantId).eq('user_id', userId)
+  await db.from('user_memberships').delete().eq('tenant_id', tenantId).eq('user_id', userId)
+  const { error } = await db.from('tenants').delete().eq('id', tenantId)
+  if (error) console.warn(`[tenant-provisioning] could not remove personal workspace ${tenantId}: ${error.message}`)
+}
+
 export async function provisionTenant(
   supabase: SupabaseClient<any, any, any>,
   input: ProvisionTenantInput,
@@ -141,6 +180,10 @@ export async function provisionTenant(
     return { ok: false, reason: 'auth_failed', error: msg || 'Auth user creation failed' }
   }
 
+  // The personal workspace account creation just made (none when the auth
+  // provider doesn't provision): replaced by the named one below.
+  const personalTenantId = await personalWorkspaceOf(db, userId).catch(() => null)
+
   // Best-effort rollback if any later step fails, so retries aren't wedged on
   // half-provisioned state.
   const rollback = async (tenantId?: string) => {
@@ -152,6 +195,7 @@ export async function provisionTenant(
         await db.from('tenants').delete().eq('id', tenantId)
       }
       await admin.deleteUser(userId)
+      if (personalTenantId) await removePersonalWorkspace(db, personalTenantId, userId)
     } catch { /* best effort */ }
   }
 
@@ -217,19 +261,25 @@ export async function provisionTenant(
     })
     if (roleErr) { await rollback(tenant.id); throw new Error(`user_roles insert: ${roleErr.message}`) }
 
-    // user_memberships is one of the access checks in verify-tenant; keep it
-    // consistent if the table is in use (ignore failure — not all envs have it).
-    await db.from('user_memberships').insert({
+    // user_memberships is one of the access checks in verify-tenant: the
+    // owner's home membership (what provision_auth_user gives a personal
+    // workspace). Ignore failure — not all envs have it.
+    await db.from('user_memberships').upsert({
       user_id: userId,
       tenant_id: tenant.id,
+      role: 'owner',
+      is_home: true,
       is_active: true,
-    }).then(() => {}, () => {})
+    }, { onConflict: 'user_id,tenant_id' }).then(() => {}, () => {})
 
-    // The auth-level trigger may also grant membership/roles in a default
-    // tenant — remove any grant that isn't for the new isolated tenant,
-    // otherwise verify-tenant would let the user switch into it.
+    // Account creation granted membership in the personal workspace — remove
+    // any grant that isn't for the new isolated tenant (otherwise verify-tenant
+    // would let the user switch into it), then the personal workspace itself.
     await db.from('user_memberships').delete().eq('user_id', userId).neq('tenant_id', tenant.id).then(() => {}, () => {})
     await db.from('user_roles').delete().eq('user_id', userId).neq('tenant_id', tenant.id).then(() => {}, () => {})
+    if (personalTenantId && personalTenantId !== tenant.id) {
+      await removePersonalWorkspace(db, personalTenantId, userId).catch(() => {})
+    }
 
     return { ok: true, tenantId: tenant.id as string, slug: tenant.slug as string, userId }
   } catch (err: any) {

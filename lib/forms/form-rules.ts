@@ -96,13 +96,16 @@ import {
   type DataTableCondition, type DataTableConditionGroup, type DataTableOperator,
 } from './data-table'
 import {
-  FIELD_BUTTON_ACTION_LABELS, SERVER_RULE_ACTIONS, actionAt, allActions, normalizeFieldButtonAction,
+  FIELD_BUTTON_ACTION_LABELS, isServerRuleAction, actionAt, allActions, listClearFields, listSourceField, normalizeFieldButtonAction,
   type ActionBranch, type FieldButtonAction, type FieldButtonActionType,
 } from './field-buttons'
 import { DISMISSED_RESPONSE, promptButton } from './form-messages'
 import { FORM_STATE_KEY, FORM_WHOLE_TARGET, flagKey, parseTarget, sectionBoundaryKeys, stateRuleFlag, targetFieldKeys, type FormUiState } from './form-state'
 import { CONTROLS_KEY, formContextPath } from './form-params'
 import { sectionConditionValue } from './sections'
+import { OPTIONS_KEY, readDeepPath } from './data-actions'
+import { listEditingRow, type ListFieldConfig } from './list-field'
+import { ignoredOnExisting, isRowsField } from './row-rules'
 
 /* ── Events ─────────────────────────────────────────────────────────── */
 
@@ -110,13 +113,15 @@ export type FormRuleEventType =
   | 'always' | 'form_load' | 'value_change' | 'focus' | 'blur' | 'button_click'
   | 'row_click' | 'row_select' | 'row_deselect' | 'row_double_click' | 'cell_edit' | 'row_add' | 'row_delete'
   | 'item_select' | 'page_change' | 'before_submit' | 'after_submit' | 'flag_change' | 'message_answered' | 'section_change'
-  | 'label_change' | 'part_loaded'
+  | 'label_change' | 'part_loaded' | 'list_row_button' | 'list_row_click' | 'list_row_select' | 'list_selection_change'
+  | 'row_created' | 'row_values_changed' | 'row_committed' | 'row_commit_failed' | 'cell_change'
 
 export const FORM_RULE_EVENTS: FormRuleEventType[] = [
   'always', 'form_load', 'value_change', 'focus', 'blur', 'button_click',
   'row_click', 'row_select', 'row_deselect', 'row_double_click', 'cell_edit', 'row_add', 'row_delete',
   'item_select', 'page_change', 'before_submit', 'after_submit', 'flag_change', 'message_answered', 'section_change',
-  'label_change', 'part_loaded',
+  'label_change', 'part_loaded', 'list_row_button', 'list_row_click', 'list_row_select', 'list_selection_change',
+  'row_created', 'row_values_changed', 'row_committed', 'row_commit_failed', 'cell_change',
 ]
 
 export const FORM_RULE_EVENT_LABELS: Record<FormRuleEventType, string> = {
@@ -142,10 +147,20 @@ export const FORM_RULE_EVENT_LABELS: Record<FormRuleEventType, string> = {
   section_change: 'Section added / removed',
   label_change: 'Label changes',
   part_loaded: 'Section / tab loaded',
+  list_row_button: 'List: row button clicked',
+  list_row_click: 'List: row clicked',
+  list_row_select: 'List: row selected / unselected',
+  list_selection_change: 'List: selection changed',
+  row_created: 'Editable table: new row created',
+  row_values_changed: 'Editable table: row values set',
+  row_committed: 'Editable table: row committed',
+  row_commit_failed: 'Editable table: row commit failed',
+  cell_change: 'Editable table: cell changed',
 }
 
 /** What an event's target is (the field / button / table / lookup / page / flag it is about), or null. */
-export type RuleEventTarget = 'field' | 'button' | 'table' | 'lookup' | 'page' | 'flag' | 'bar_button' | 'message' | 'section' | 'label' | 'part' | null
+/** `rows`: a List or an editable Data table (the editable table rules — lib/forms/row-rules.ts). */
+export type RuleEventTarget = 'field' | 'button' | 'table' | 'lookup' | 'page' | 'flag' | 'bar_button' | 'message' | 'section' | 'label' | 'part' | 'list' | 'rows' | null
 export const EVENT_TARGET: Record<FormRuleEventType, RuleEventTarget> = {
   always: null, form_load: null, value_change: 'field', focus: 'field', blur: 'field', button_click: 'button',
   row_click: 'table', row_select: 'table', row_deselect: 'table', row_double_click: 'table', cell_edit: 'table', row_add: 'table', row_delete: 'table',
@@ -154,6 +169,15 @@ export const EVENT_TARGET: Record<FormRuleEventType, RuleEventTarget> = {
   section_change: 'section',
   label_change: 'label',
   part_loaded: 'part',
+  list_row_button: 'list',
+  list_row_click: 'list',
+  list_row_select: 'list',
+  list_selection_change: 'list',
+  row_created: 'rows',
+  row_values_changed: 'rows',
+  row_committed: 'rows',
+  row_commit_failed: 'rows',
+  cell_change: 'rows',
 }
 
 /** {{event.*}} paths each event provides (the designer's placeholders; the test panel's sample event). */
@@ -180,6 +204,17 @@ export const EVENT_CONTEXT: Record<FormRuleEventType, string[]> = {
   section_change: ['event.section', 'event.included'],
   label_change: ['event.field', 'event.value', 'event.previous'],
   part_loaded: ['event.part'],
+  // A List's row button (list.row_buttons): which button, the row ({{row.<column>}} too) and its position.
+  list_row_button: ['event.field', 'event.button', 'event.row', 'event.row_number', 'event.index'],
+  list_row_click: ['event.field', 'event.row', 'event.row_number', 'event.index'],
+  list_row_select: ['event.field', 'event.row', 'event.row_number', 'event.index', 'event.selected'],
+  list_selection_change: ['event.field', 'event.selected', 'event.count'],
+  // Editable table rules (lib/forms/row-rules.ts): the row, its number (Lists / new Data table rows) or key (existing Data table rows).
+  row_created: ['event.field', 'event.row', 'event.row_number', 'event.key'],
+  row_values_changed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.columns'],
+  row_committed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.saved', 'event.result'],
+  row_commit_failed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.error', 'event.errors'],
+  cell_change: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.column', 'event.value', 'event.previous'],
 }
 
 /** Events whose rules' Validate actions the server re-checks at submit. */
@@ -194,7 +229,9 @@ export const RULE_ACTION_GROUPS: RuleActionGroup[] = [
   { label: 'Show / hide', types: ['show_hide', 'enable_disable', 'read_only', 'collapse_expand', 'load_part'] },
   { label: 'Validate', types: ['field_error', 'block_submit', 'validate'] },
   { label: 'Update values', types: ['set_values', 'clear_values', 'set_state', 'set_variable'] },
-  { label: 'Transfer data', types: ['copy_values', 'run_lookup', 'refresh'] },
+  { label: 'Transfer data', types: ['copy_values', 'add_list_row', 'edit_list_row', 'cancel_list_edit', 'update_list_row', 'remove_list_row', 'clear_list', 'run_lookup', 'refresh'] },
+  { label: 'Editable tables', types: ['new_row', 'set_row_values', 'commit_row', 'discard_row', 'revert_row', 'delete_row', 'refresh_table'] },
+  { label: 'Data tables', types: ['table_read', 'table_list', 'table_create', 'table_update', 'table_delete'] },
   { label: 'Messages', types: ['message', 'prompt'] },
   { label: 'Navigate', types: ['go_to_page', 'next_page', 'previous_page', 'open_link', 'submit', 'save_draft', 'print'] },
   { label: 'Integrations / workflow', types: ['call_reference', 'start_workflow', 'apply_table_changes'] },
@@ -225,6 +262,8 @@ export interface FormRule {
   /** Stable id (the server looks a rule's server actions up by it). */
   id: string
   name?: string
+  /** Notes about the rule (e.g. what an import could not convert, with the original expression). */
+  description?: string
   /** Turned off (kept, not run). */
   disabled?: boolean
   event: FormRuleEventType
@@ -237,7 +276,7 @@ export interface FormRule {
   step_check?: boolean
 }
 
-export const FORM_RULE_LIMITS = { rules: 100, actions: 12, name: 80 } as const
+export const FORM_RULE_LIMITS = { rules: 100, actions: 12, name: 80, description: 2000 } as const
 export const FORM_ERROR_KEY = '__form'
 
 const RULE_ID_RE = /^[A-Za-z0-9_-]{1,40}$/
@@ -283,6 +322,9 @@ export function normalizeFormRules(raw: unknown): FormRule[] {
     const rule: FormRule = { id, event, then: [] }
     const name = typeof entry.name === 'string' ? entry.name.replace(/[<>]/g, '').trim().slice(0, FORM_RULE_LIMITS.name) : ''
     if (name) rule.name = name
+    // Plain text (rendered as text, never HTML): comparison operators in an original expression are kept.
+    const description = typeof entry.description === 'string' ? entry.description.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, FORM_RULE_LIMITS.description) : ''
+    if (description) rule.description = description
     if (entry.disabled === true) rule.disabled = true
     if (EVENT_TARGET[event] && typeof entry.target === 'string' && (event === 'part_loaded' ? PART_TARGET_RE : TARGET_RE).test(entry.target)) rule.target = event === 'flag_change' ? (flagKey(entry.target) || undefined) : entry.target
     if (!rule.target) delete rule.target
@@ -293,6 +335,18 @@ export function normalizeFormRules(raw: unknown): FormRule[] {
     rule.then = actions.map((a) => normalizeFieldButtonAction(a, { rule: true })).filter((a): a is FieldButtonAction => Boolean(a)).slice(0, FORM_RULE_LIMITS.actions)
     out.push(rule)
   }
+  return out
+}
+
+/**
+ * Inputs that only stage a List's rows: the fields an "Add row to list" rule
+ * clears after adding (lib/forms/field-buttons.ts listClearFields). They are
+ * empty in every submission, so summaries (submission tables, details) skip
+ * them when empty.
+ */
+export function listStagingKeys(layout: unknown): Set<string> {
+  const out = new Set<string>()
+  for (const rule of layoutFormRules(layout)) for (const a of allActions(rule.then)) if (a.type === 'add_list_row') for (const k of listClearFields(a)) out.add(k)
   return out
 }
 
@@ -316,6 +370,13 @@ export function renameRuleKey(rule: FormRule, from: string, to: string): FormRul
     if (a.targets) next.targets = a.targets.map(renameTarget)
     if (a.assign) next.assign = Object.fromEntries(Object.entries(a.assign).map(([k, v]) => [k === from ? to : k, v]))
     if (a.fields) next.fields = a.fields.map((k) => (k === from ? to : k))
+    if (a.list_field === from) next.list_field = to
+    if (a.outputs) next.outputs = a.outputs.map((o) => (o.to === from ? { ...o, to } : o))
+    if (a.on_success) next.on_success = a.on_success.map(renameAction)
+    if (a.on_failure) next.on_failure = a.on_failure.map(renameAction)
+    if (a.clear_fields) next.clear_fields = a.clear_fields.map((k) => (k === from ? to : k))
+    if (a.require) next.require = a.require.map((k) => (k === from ? to : k))
+    if (a.values) next.values = Object.fromEntries(Object.entries(a.values).map(([c, v]) => [c, v.replace(new RegExp(`\\{\\{(\\s*(?:form\\.)?)${from}(\\s*)\\}\\}`, 'g'), `{{$1${to}$2}}`)]))
     if (a.field === from) next.field = to
     if (a.results) next.results = Object.fromEntries(Object.entries(a.results).map(([p, k]) => [p, k === from ? to : k]))
     if (a.prompt) next.prompt = { ...a.prompt, buttons: a.prompt.buttons.map((b) => (b.then ? { ...b, then: b.then.map(renameAction) } : b)) }
@@ -336,7 +397,7 @@ export interface RuleScope {
   now?: Date
 }
 
-const TEMPLATE_RE = /\{\{\s*([\w.\-[\]$]+)\s*\}\}/g
+const TEMPLATE_RE = /\{\{\s*([\w.\-[\]$*]+)\s*\}\}/g
 
 function stateOf(scope: RuleScope): FormUiState | null {
   if (scope.state) return scope.state
@@ -367,6 +428,13 @@ export function ruleValue(path: string, scope: RuleScope): unknown {
   if (flag) return stateOf(scope)?.flags?.[flag] === true
   if (path === 'user' || path.startsWith('user.')) return path === 'user' ? scope.user : pathValue(scope.user ?? {}, path.slice(5))
   if (path === 'event' || path.startsWith('event.')) return path === 'event' ? scope.event : pathValue(scope.event ?? {}, path.slice(6))
+  // {{row.*}} (a List row's button, a table row event), {{result.*}} / {{error.*}} (a data / API step's own steps).
+  for (const alias of ['row', 'result', 'error'] as const) {
+    if ((path === alias || path.startsWith(`${alias}.`) || path.startsWith(`${alias}[`)) && isPlainObject(scope.event) && alias in scope.event) {
+      // [n] indexes and [*] (every item) as well: {{result[0].name}}, {{result[*].sku}}.
+      return path === alias ? scope.event[alias] : readDeepPath(scope.event[alias], path.slice(alias.length).replace(/^\./, ''))
+    }
+  }
   // {{param.x}} / {{var.x}}: the form's parameters and variables (lib/forms/form-params.ts).
   const context = formContextPath(path)
   if (context) return pathValue(scope.values ?? {}, context)
@@ -398,7 +466,7 @@ function textOf(v: unknown): string {
 /** A rule template: one placeholder → its raw value; mixed text → filled text. */
 export function resolveRuleTemplate(text: string | undefined, scope: RuleScope): unknown {
   if (typeof text !== 'string' || !text.includes('{{')) return text ?? ''
-  const whole = /^\{\{\s*([\w.\-[\]$]+)\s*\}\}$/.exec(text.trim())
+  const whole = /^\{\{\s*([\w.\-[\]$*]+)\s*\}\}$/.exec(text.trim())
   if (whole) {
     const v = ruleValue(whole[1], scope)
     return v === undefined ? null : v
@@ -721,6 +789,13 @@ export function ruleWrittenReadOnlyValues(layout: unknown, readOnlyKeys: readonl
           else trusted = true
         }
         if (a.type === 'clear_values' && a.fields?.includes(key)) candidates.push(null)
+        // A read-only List filled by Add / Remove row rules: trusted like a click (the rows are checked like any value).
+        if ((a.type === 'add_list_row' || a.type === 'remove_list_row' || a.type === 'clear_list' || a.type === 'update_list_row') && a.list_field === key) trusted = true
+        // …and one the editable table rules fill (New row, Set row values, Commit, Discard, Delete).
+        if ((a.type === 'new_row' || a.type === 'set_row_values' || a.type === 'commit_row' || a.type === 'discard_row' || a.type === 'revert_row' || a.type === 'delete_row') && a.field === key) trusted = true
+        // A read-only field a data / API step's result fills (written by the server's mapping, sent back by the browser).
+        if ((a.outputs ?? []).some((o) => o.to === key && o.as !== 'options') || Object.values(a.results ?? {}).includes(key)) trusted = true
+        if (a.type === 'add_list_row' && (a.clear_fields ?? []).includes(key)) candidates.push(null)
       }
     }
     if (trusted || candidates.some((c) => sameValue(c, sent))) out[key] = sent
@@ -772,7 +847,7 @@ export function ruleWorkflowIds(layout: unknown): string[] {
 export function findServerRuleAction(layout: unknown, ruleId: string, index: number, branch?: ActionBranch | null): { rule: FormRule; action: FieldButtonAction } | null {
   const rule = layoutFormRules(layout).find((r) => r.id === ruleId && !r.disabled)
   const action = rule ? actionAt(rule.then, index, branch) : null
-  if (!rule || !action || !SERVER_RULE_ACTIONS.has(action.type)) return null
+  if (!rule || !action || !isServerRuleAction(action)) return null
   return { rule, action }
 }
 
@@ -833,9 +908,11 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
     if (kind === 'message' && known.messageIds && !known.messageIds.has(rule.target)) return `When: no question on this form is named "${rule.target}"`
     if (kind === 'section' && !known.sectionKeys?.has(rule.target)) return `When: "${rule.target}" is not a section of this form`
     if (kind === 'label' && type !== 'label') return `When: "${rule.target}" is not a Label on this form`
+    if (kind === 'list' && type !== 'list') return `When: "${rule.target}" is not a List on this form`
+    if (kind === 'rows' && type !== 'list' && type !== 'data_table') return `When: "${rule.target}" is not a List or Data table on this form`
     if (kind === 'part' && !partKnown(rule.target, known)) return `When: "${rule.target}" is not a section or step / tab of this form`
-  } else if (kind === 'field' || kind === 'button' || kind === 'table' || kind === 'lookup' || kind === 'label') {
-    return `When: choose the ${kind === 'table' ? 'Data table' : kind === 'lookup' ? 'autocomplete' : kind === 'label' ? 'Label' : kind}`
+  } else if (kind === 'field' || kind === 'button' || kind === 'table' || kind === 'lookup' || kind === 'label' || kind === 'list' || kind === 'rows') {
+    return `When: choose the ${kind === 'table' ? 'Data table' : kind === 'lookup' ? 'autocomplete' : kind === 'label' ? 'Label' : kind === 'list' ? 'List' : kind === 'rows' ? 'List or Data table' : kind}`
   }
   if (!rule.then.length) return 'Then: add at least one action'
   if (rule.event === 'always') {
@@ -919,6 +996,8 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         break
       case 'call_reference':
         if (!a.reference_id) return 'Call an API reference: choose the reference'
+        { const bad = outputTargetProblem(a, known); if (bad) return `${RULE_ACTION_LABELS[a.type]}: ${bad}` }
+        if (a.wait === false && (a.outputs?.length || a.on_success?.length || Object.keys(a.results ?? {}).length)) return `${RULE_ACTION_LABELS[a.type]}: a call that doesn't wait has no response to map — turn waiting on, or remove the outputs / on-success steps`
         for (const key of Object.values(a.results ?? {})) {
           if (key.startsWith('var.') ? !known.variables?.has(key.slice(4)) : !known.valueKeys.has(key)) return `Call an API reference: "${key}" is not ${key.startsWith('var.') ? 'a variable of' : 'an input on'} this form`
           if (['data_table', 'attachments'].includes(known.fieldTypes.get(key) ?? '')) return `Call an API reference: "${key}" can't take a value from the response`
@@ -934,6 +1013,49 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
       case 'apply_table_changes':
         if (!a.table_changes?.field || known.fieldTypes.get(a.table_changes.field) !== 'data_table') return 'Apply table changes: choose the editable Data table'
         break
+      case 'table_read':
+      case 'table_list':
+      case 'table_create':
+      case 'table_update':
+      case 'table_delete': {
+        const label = RULE_ACTION_LABELS[a.type]
+        if (!a.table_id) return `${label}: choose the data table`
+        if ((a.type === 'table_create' || a.type === 'table_update') && !Object.keys(a.column_values ?? {}).length) return `${label}: set at least one column`
+        if ((a.type === 'table_read' || a.type === 'table_update') && !a.row_id && !a.filter) return `${label}: give a row id or a filter`
+        if (a.type === 'table_delete' && !a.row_id) return `${label}: give the row id (e.g. {{row.row_id}})`
+        const bad = outputTargetProblem(a, known)
+        if (bad) return `${label}: ${bad}`
+        break
+      }
+      case 'new_row':
+      case 'set_row_values':
+      case 'commit_row':
+      case 'discard_row':
+      case 'revert_row':
+      case 'delete_row':
+      case 'refresh_table': {
+        const label = RULE_ACTION_LABELS[a.type]
+        const type = a.field ? known.fieldTypes.get(a.field) : undefined
+        if (a.type === 'refresh_table') { if (type !== 'data_table') return `${label}: choose the Data table`; break }
+        if (type !== 'list' && type !== 'data_table') return `${label}: choose the List or editable Data table`
+        if (a.type === 'set_row_values' && !Object.keys(a.values ?? {}).length) return `${label}: set at least one column`
+        if (a.commit_mode === 'save_now' && type !== 'data_table') return `${label}: "Save now" is for a Data table (a List's rows are saved with the submission)`
+        break
+      }
+      case 'add_list_row':
+      case 'remove_list_row':
+      case 'update_list_row':
+      case 'edit_list_row':
+      case 'cancel_list_edit':
+      case 'clear_list': {
+        const label = RULE_ACTION_LABELS[a.type]
+        if (!a.list_field || known.fieldTypes.get(a.list_field) !== 'list') return `${label}: choose the List field`
+        if (a.type !== 'add_list_row') break
+        if (!Object.keys(a.values ?? {}).length) return `${label}: map at least one column to a value`
+        const bad = [...(a.require ?? []), ...(a.clear_fields ?? [])].find((k) => !known.valueKeys.has(k))
+        if (bad) return `${label}: "${bad}" is not an input on this form`
+        break
+      }
       default:
         break
     }
@@ -950,6 +1072,9 @@ interface FieldShape {
   required?: boolean
   visible_when?: { field: string; operator: string; value?: string }
   button?: { actions?: FieldButtonAction[]; disabled_when?: { field: string; operator: string; value?: string } } & Record<string, unknown>
+  /** List / Data table columns (the editable table rules' summaries and read-only warnings). */
+  list?: ListFieldConfig
+  data_table?: { mode?: string; columns?: Array<{ key: string; label?: string; read_only?: boolean; hidden?: boolean }> } & Record<string, unknown>
 }
 interface PageShape { id: string; title?: string; visible_when?: { field: string; operator: string; value?: string } }
 interface BarButtonShape { id: string; label: string; kind: string; actions?: Array<Record<string, unknown>> }
@@ -1168,6 +1293,12 @@ function effectKeys(action: FieldButtonAction): string[] {
     case 'load_part': return []
     case 'set_values': case 'copy_values': return Object.keys(action.assign ?? {}).map((k) => `value:${k}`)
     case 'clear_values': return (action.fields ?? []).map((k) => `value:${k}`)
+    case 'add_list_row': case 'remove_list_row': case 'clear_list': case 'update_list_row': return action.list_field ? [`rows:${action.list_field}`] : []
+    case 'new_row': case 'set_row_values': case 'commit_row': case 'discard_row': case 'revert_row': case 'delete_row': return action.field ? [`rows:${action.field}`] : []
+    case 'edit_list_row': return Object.keys(action.assign ?? {}).map((k) => `value:${k}`)
+    case 'cancel_list_edit': return (action.fields ?? []).map((k) => `value:${k}`)
+    case 'call_reference': case 'table_read': case 'table_list': case 'table_create': case 'table_update': case 'table_delete':
+      return (action.outputs ?? []).map((o) => (o.as === 'options' ? `options:${o.to}` : o.to.startsWith('var.') ? `var:${o.to.slice(4)}` : `value:${o.to}`))
     case 'set_state': return action.flag ? [`flag:${action.flag}`] : []
     default: return []
   }
@@ -1178,6 +1309,7 @@ function effectName(def: RulesDefinition, key: string): string {
   const target = rest.join(':')
   if (kind === 'flag') return `the flag state.${target}`
   if (kind === 'value') return `the value of ${fieldName(def, target)}`
+  if (kind === 'rows') return `the rows of ${fieldName(def, target)}`
   const t = parseTarget(target)
   const thing = target === FORM_WHOLE_TARGET ? 'the whole form' : t ? (t.kind === 'page' ? `step / tab ${(def.layout.pages ?? []).find((p) => p.id === t.id)?.title ?? t.id}` : t.kind === 'section' && sectionTitle(def, t.id) ? `section ${sectionTitle(def, t.id)}` : `${t.kind === 'field' ? '' : `${t.kind} of `}${fieldName(def, t.id)}`) : target
   return kind === 'visibility' ? `whether ${thing} shows` : kind === 'collapsed' ? `whether ${thing} is collapsed` : kind === 'readonly' ? `whether ${thing} is read only` : `whether ${thing} is enabled`
@@ -1234,6 +1366,17 @@ export function describeRuleAction(def: RulesDefinition, a: FieldButtonAction, s
     case 'read_only': return `${a.mode === 'read_only' ? 'Make read only' : a.mode === 'editable' ? 'Make editable' : 'Toggle read only'} ${targets(a.targets)}`
     case 'set_values': case 'copy_values': return `${a.type === 'copy_values' ? 'Copy into' : 'Set'} ${Object.entries(a.assign ?? {}).map(([k, v]) => `${fieldName(def, k)} = ${shown(v)}`).join(', ') || '…'}`
     case 'clear_values': return `Clear ${(a.fields ?? []).map((k) => fieldName(def, k)).join(', ') || '…'}`
+    case 'add_list_row': return `Add a row to ${a.list_field ? fieldName(def, a.list_field) : '…'}: ${Object.entries(a.values ?? {}).map(([k, v]) => `${k} = ${shown(v)}`).join(', ') || '…'}`
+    case 'remove_list_row': return `${a.row === 'selected' ? `Delete the selected rows of ${listName(def, a)}` : `Remove the ${a.row && a.row !== 'last' ? (a.row === 'first' ? 'first row' : a.row === '{{event.row_number}}' ? 'row of the event' : `row ${a.row}`) : 'last row'} of ${listName(def, a)}`}${a.confirm_text ? ' (asks first)' : ''}`
+    case 'clear_list': return `Clear ${listName(def, a)}${a.confirm_text ? ' (asks first)' : ''}`
+    case 'edit_list_row': return `Edit ${a.row === 'selected' ? 'the selected row' : a.row && a.row !== '{{event.row_number}}' ? `row ${a.row}` : 'the row'} of ${listName(def, a)}: load ${Object.keys(a.assign ?? {}).map((k) => fieldName(def, k)).join(', ') || '…'}`
+    case 'cancel_list_edit': return `Cancel editing ${a.list_field ? fieldName(def, a.list_field) : '…'}${a.fields?.length ? `; reset ${a.fields.map((k) => fieldName(def, k)).join(', ')}` : ''}`
+    case 'update_list_row': return `Update ${a.row === 'selected' ? 'the selected rows' : a.row && a.row !== 'last' ? `row ${a.row}` : 'the last row'} of ${listName(def, a)}: ${Object.entries(a.values ?? {}).map(([k, v]) => `${k} = ${shown(v)}`).join(', ') || '…'}`
+    case 'table_read': case 'table_list': case 'table_create': case 'table_update': case 'table_delete': {
+      const verb = { table_read: 'Read a row of', table_list: 'List rows of', table_create: 'Add a row to', table_update: 'Update rows of', table_delete: 'Delete a row of' }[a.type]
+      const outs = (a.outputs ?? []).map((o) => (o.as === 'options' ? `options of ${fieldName(def, o.to)}` : o.to.startsWith('var.') ? `{{${o.to}}}` : fieldName(def, o.to)))
+      return `${verb} ${a.table_name ?? 'a table'}${a.each_selected ? ` for each selected row of ${fieldName(def, a.each_selected)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server)${branchSummary(def, a, sample)}`
+    }
     case 'set_state': return `${a.state_value === 'toggle' ? 'Toggle' : 'Set'} state.${a.flag || '?'}${a.state_value === 'toggle' ? '' : ` = ${a.state_value}`}`
     case 'set_variable': return a.variable_mode === 'clear' ? `Clear var.${a.variable ?? '?'}` : a.variable_mode === 'reset' ? `Reset var.${a.variable ?? '?'}` : `Set var.${a.variable ?? '?'} = ${shown(a.value ?? '')}`
     case 'go_to_page': return `Go to ${(def.layout.pages ?? []).find((p) => p.id === a.page)?.title ?? a.page ?? '…'}`
@@ -1243,12 +1386,103 @@ export function describeRuleAction(def: RulesDefinition, a: FieldButtonAction, s
     case 'prompt': return describePrompt(def, a, sample)
     case 'refresh': return `Refresh ${a.field ? fieldName(def, a.field) : '…'}`
     case 'run_lookup': return `Run lookup ${a.field ? fieldName(def, a.field) : '…'}${a.query ? ` for ${a.query}` : ''}`
-    case 'call_reference': return `Call API reference${Object.keys(a.results ?? {}).length ? ` → ${Object.values(a.results ?? {}).map((k) => fieldName(def, k)).join(', ')}` : ''} (server)`
+    case 'call_reference': {
+      const outs = [...Object.values(a.results ?? {}).map((k) => fieldName(def, k)), ...(a.outputs ?? []).map((o) => (o.as === 'options' ? `options of ${fieldName(def, o.to)}` : o.to.startsWith('var.') ? `{{${o.to}}}` : fieldName(def, o.to)))]
+      return `Call API reference${outs.length ? ` → ${outs.join(', ')}` : ''} (server${a.wait === false ? ', without waiting' : ''})${branchSummary(def, a, sample)}`
+    }
     case 'start_workflow': return `Start workflow ${a.workflow_name ?? ''} (server)`.replace(/\s+/g, ' ')
     case 'apply_table_changes': return `For each changed row of ${a.table_changes?.field ? fieldName(def, a.table_changes.field) : '…'} (server)`
     case 'open_link': return `Open ${a.url ?? '…'}`
+    case 'new_row': return `Create a new row in ${a.field ? fieldName(def, a.field) : '…'}${a.position === 'start' ? ' (at the top)' : a.position === 'after_selected' ? ' (after the selected row)' : ''}${Object.keys(a.values ?? {}).length ? `: ${Object.entries(a.values ?? {}).map(([k, v]) => `${columnName(def, a.field, k)} = ${shown(v)}`).join(', ')}` : ''}`
+    case 'set_row_values': {
+      const ignored = readOnlyWarning(def, a)
+      return `Set ${Object.entries(a.values ?? {}).map(([k, v]) => `${columnName(def, a.field, k)} = ${shown(v)}`).join(', ') || '…'} on ${rowTargetName(a)} of ${a.field ? fieldName(def, a.field) : '…'}${ignored}`
+    }
+    case 'commit_row': return `Commit ${rowTargetName(a)} ${a.commit_mode === 'save_now' ? 'to' : 'of'} ${a.field ? fieldName(def, a.field) : '…'}${a.commit_mode === 'save_now' ? ' (save now)' : ''}${branchSummary(def, a, sample)}`
+    case 'discard_row': return `Discard ${rowTargetName(a)} of ${a.field ? fieldName(def, a.field) : '…'} (a new row goes, an edited one is put back)`
+    case 'revert_row': return `Revert ${rowTargetName(a)} of ${a.field ? fieldName(def, a.field) : '…'}`
+    case 'delete_row': return `Delete ${rowTargetName(a, 'selected')} of ${a.field ? fieldName(def, a.field) : '…'}${a.commit_mode === 'save_now' ? ' (now)' : ''}${a.confirm_text ? ' (asks first)' : ''}${branchSummary(def, a, sample)}`
+    case 'refresh_table': return `Refresh ${a.field ? fieldName(def, a.field) : '…'}${a.keep_pending === 'ask' ? ' (asks before dropping pending rows)' : ' (pending rows kept)'}`
     default: return RULE_ACTION_LABELS[a.type]
   }
+}
+
+/** "the current row", "the selected rows", "row 2", "the row keyed {{…}}", "all pending rows". */
+function rowTargetName(a: FieldButtonAction, fallback = 'current'): string {
+  if (a.row_key) return `the row keyed ${a.row_key}`
+  const spec = (a.row ?? fallback).trim()
+  if (spec === 'current') return 'the current row'
+  if (spec === 'selected') return 'the selected rows'
+  if (spec === 'all_pending') return 'all pending rows'
+  if (spec === '{{event.row_number}}') return 'the row of the event'
+  return `row ${spec}`
+}
+
+/** A List's / Data table's column by label. */
+function columnName(def: RulesDefinition, field: string | undefined, column: string): string {
+  const f = field ? def.fields.find((x) => x.key === field) : undefined
+  const cols = (f?.list?.columns ?? f?.data_table?.columns ?? []) as Array<{ key: string; label?: string }>
+  return cols.find((c) => c.key === column)?.label || column
+}
+
+/** " (Price is read-only: ignored on existing rows)" for Set row values (the designer's warning). */
+export function readOnlyWarning(def: RulesDefinition, a: FieldButtonAction): string {
+  const f = a.field ? def.fields.find((x) => x.key === a.field) : undefined
+  if (!f || !isRowsField(f as never)) return ''
+  const ignored = ignoredOnExisting(f as never, Object.keys(a.values ?? {}))
+  if (!ignored.length) return ''
+  return ` — ⚠ ${ignored.map((k) => columnName(def, a.field, k)).join(', ')} ${ignored.length === 1 ? 'is' : 'are'} read-only: ignored on existing rows (a new row takes ${ignored.length === 1 ? 'it' : 'them'} before its first commit)`
+}
+
+/**
+ * Inputs locked while a List row is being edited ("Edit row" loaded it into
+ * the inputs): the ones mapped to the List's read-only columns — by its
+ * "Add row to list" values ({{form.<input>}}) or its "Edit row" loads
+ * ({{row.<column>}}). The row keeps those values on update.
+ */
+export function listEditLockedInputs(rules: FormRule[], fields: Array<{ key: string; type: string; list?: ListFieldConfig }>, values: Record<string, unknown>): string[] {
+  const out = new Set<string>()
+  for (const f of fields) {
+    if (f.type !== 'list' || !f.list || listEditingRow(values, f.key) === null) continue
+    const locked = new Set(f.list.columns.filter((c) => c.read_only).map((c) => c.key))
+    if (!locked.size) continue
+    for (const rule of rules) {
+      if (rule.disabled) continue
+      for (const a of allActions(rule.then)) {
+        if (a.type === 'add_list_row' && a.list_field === f.key) {
+          for (const [column, template] of Object.entries(a.values ?? {})) { const input = listSourceField(template); if (input && locked.has(column)) out.add(input) }
+        }
+        if (a.type === 'edit_list_row' && a.list_field === f.key) {
+          for (const [input, template] of Object.entries(a.assign ?? {})) { const column = /^\{\{\s*row\.([A-Za-z0-9_]+)\s*\}\}$/.exec(template.trim())?.[1]; if (column && locked.has(column)) out.add(input) }
+        }
+      }
+    }
+  }
+  return [...out]
+}
+
+/** A List action's List by name ("Line items"). */
+function listName(def: RulesDefinition, a: FieldButtonAction): string {
+  return a.list_field ? fieldName(def, a.list_field) : '…'
+}
+
+/** " — then …; if it fails …" for a data / API step's own steps. */
+function branchSummary(def: RulesDefinition, a: FieldButtonAction, sample?: RuleScope): string {
+  const ok = (a.on_success ?? []).map((x) => describeRuleAction(def, x, sample))
+  const failed = (a.on_failure ?? []).map((x) => describeRuleAction(def, x, sample))
+  return `${ok.length ? `; then ${ok.join(', ')}` : ''}${failed.length ? `; if it fails ${failed.join(', ')}` : ''}`
+}
+
+/** An output aimed at something the form doesn't have (null = fine). */
+function outputTargetProblem(a: FieldButtonAction, known: RuleKnown): string | null {
+  for (const o of a.outputs ?? []) {
+    if (o.to.startsWith('var.')) { if (known.variables && !known.variables.has(o.to.slice(4))) return `"${o.to}" is not a variable of this form`; continue }
+    const type = known.fieldTypes.get(o.to)
+    if (!type) return `"${o.to}" is not a field of this form`
+    if (o.as === 'options' && type !== 'choice' && type !== 'multi_choice') return `options go into a single or multi-select ("${o.to}" is not one)`
+    if (['button', 'heading', 'divider', 'data_table', 'attachments', 'custom'].includes(type)) return `"${o.to}" can't take a value from a result`
+  }
+  return null
 }
 
 /** "Ask “Delete rows?” — Yes → Apply table changes; No → stop" (with `response`: only that answer's branch). */
@@ -1366,3 +1600,43 @@ export function rulesHidingRequiredFields(def: RulesDefinition): Array<{ field: 
 
 /** Data table operators offered by the condition builder. */
 export const RULE_OPERATORS: DataTableOperator[] = DATA_TABLE_OPERATORS
+
+/**
+ * Options a rule loads (a cascade: Country changes → load the States): when
+ * a form opens with saved values (a draft, a task's prefill), the rules that
+ * load options for a choice that already holds a value run again for their
+ * field's saved value — so the choice offers (and keeps) its saved value
+ * without a "Form loads" rule. Value-change rules only; a field whose
+ * options are already loaded is left alone.
+ */
+export function resumeOptionEvents(rules: FormRule[], values: Record<string, unknown>): RuleEvent[] {
+  const blankish = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length)
+  const loaded = isPlainObject(values[OPTIONS_KEY]) ? values[OPTIONS_KEY] as Record<string, unknown> : {}
+  const out: RuleEvent[] = []
+  for (const rule of rules) {
+    if (rule.disabled || rule.event !== 'value_change' || !rule.target || blankish(values[rule.target])) continue
+    const targets = allActions(rule.then).flatMap((a) => (a.outputs ?? []).filter((o) => o.as === 'options').map((o) => o.to))
+    if (!targets.some((t) => !blankish(values[t]) && !Array.isArray(loaded[t]))) continue
+    if (out.some((e) => e.target === rule.target)) continue
+    out.push({ type: 'value_change', target: rule.target, context: { field: rule.target, value: values[rule.target], previous: null, resume: true } })
+  }
+  return out
+}
+
+/**
+ * Rule chains (a rule's change firing another rule, a cascade of any depth):
+ * runs nest at most `max` deep, so a rule that changes its own source — or
+ * two rules that change each other — stop instead of looping.
+ */
+export class RuleChainGuard {
+  private depth = 0
+  constructor(private readonly max = 3) {}
+  /** Enter a nested run; false = too deep (the run is skipped). */
+  enter(): boolean {
+    if (this.depth >= this.max) return false
+    this.depth += 1
+    return true
+  }
+  leave(): void { this.depth = Math.max(0, this.depth - 1) }
+  get current(): number { return this.depth }
+}

@@ -11,7 +11,9 @@
  *   {{form.<key>}}             every field, typed (numbers, booleans, ISO
  *                              dates, arrays); {{form.<key>_item}} for lookups;
  *                              attachments: a list of file objects and
- *                              {{form.<key>_count}}
+ *                              {{form.<key>_count}}; lists: an array of row
+ *                              objects, {{form.<key>_count}} and totals
+ *                              ({{form.<key>_total_<column>}})
  *   {{form_id}} {{form_name}} {{form_version}}
  *   {{form_submission_id}} {{form_button}} {{form_outcome}} {{form_source}}
  *   {{submitted_by}} {{submitted_by_name}} {{submitted_by_email}}
@@ -30,6 +32,7 @@
 import { isPlainObject } from '@/lib/utils/guards'
 import { lookupItemKey, lookupLabelKey } from './lookup'
 import { attachmentsCountKey } from './attachments'
+import { coerceListRows, listDerivedValues } from './list-field'
 import { includedContextSchema } from './form-params'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { customOutputSiblingKeys } from './custom-controls/output'
@@ -86,6 +89,12 @@ export function buildFormSubmittedPayload(input: FormSubmittedPayloadInput): Rec
       const files = Array.isArray(input.values[field.key]) ? input.values[field.key] as unknown[] : []
       form[field.key] = files
       form[attachmentsCountKey(field.key)] = files.length
+    }
+    if (field.type === 'list') {
+      // Repeating rows (lib/forms/list-field.ts): typed row objects a Loop iterates, the count and the totals.
+      const rows = coerceListRows(field.list, input.values[field.key])
+      form[field.key] = rows
+      Object.assign(form, listDerivedValues(field.key, field.list, rows))
     }
     // Custom control outputs (lib/forms/custom-controls/output.ts): `<key>_raw` and the extras.
     for (const key of customOutputSiblingKeys(field)) form[key] = input.values[key] ?? null

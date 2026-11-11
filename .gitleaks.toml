@@ -27,6 +27,9 @@ regexes = [
   '''test-signing-key-for-attachments-0123456789''',
   # Placeholders in docs and UI snippets.
   '''Bearer YOUR_API_KEY''',
+  # Verified fakes in tests (alphabet string; tamper-test idempotency key).
+  '''sk-live-abcdefghijklmnopqrstuvwxyz123456''',
+  '''key-tamper-123''',
   '''idempotency_key=legacy-po-\d+''',
   '''empotency_key=legacy-po-\d+''',
   '''S3_SECRET = env\.E2E_S3_SECRET_KEY''',

@@ -45,6 +45,7 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   data_rows_update: 'data.manage_rows',
   data_rows_delete: 'data.manage_rows',
   data_rows_bulk_delete: 'data.manage_rows',
+  data_rows_import: 'data.manage_rows',
   // decision tables (governed by workflow permissions)
   decision_tables_create: 'workflows.create',
   decision_tables_update: 'workflows.edit',
@@ -86,6 +87,8 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   forms_submit: 'forms.submit',
   // The form wizard (the service checks ownership; its steps run with the wizard's own context).
   forms_wizard_create: 'forms.wizard',
+  // dry_run needs forms.view; an import forms.edit (checked in lib/services/infopath-import).
+  forms_import_infopath: 'forms.view',
   forms_wizard_update: 'forms.wizard',
   // Attachments uploads (the service checks the context: task, form or workflow start).
   files_upload: 'forms.submit',
@@ -164,11 +167,16 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   tasks_update: 'tasks.manage_queue', // arbitrary mutation of any task's fields
   tasks_respond: 'tasks.complete', // accept/hold/reject in the caller's queue
   tasks_claim: 'tasks.complete', // take an unassigned team task (team members only)
+  // subtasks: anyone who can work on the task (the service checks reach)
+  tasks_add_subtask: 'tasks.complete',
+  tasks_update_subtask: 'tasks.complete',
   // home: the acting person's own follows, favourites and preferences
   home_follow: 'tasks.view_own',
   // Task tracker → Following: the acting person's own follows (the service checks the task is visible to them)
   tasks_follow: 'tasks.view_own',
   tasks_unfollow: 'tasks.view_own',
+  tasks_viewers_add: 'tasks.view_own',
+  tasks_viewers_remove: 'tasks.view_own',
   home_favorite_form: 'forms.submit',
   home_preferences: 'tasks.view_own',
   home_layout: 'tasks.view_own',
@@ -225,6 +233,10 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   packages_upgrade: 'packages.install',
   packages_complete_setup: 'packages.install',
   packages_uninstall: 'packages.install',
+  packages_items_add: 'packages.manage',
+  packages_items_remove: 'packages.manage',
+  packages_install_detach: 'packages.install',
+  packages_install_adopt: 'packages.install',
 }
 
 // Read tool name → required view permission (same keys as the matching
@@ -236,9 +248,14 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   tasks_get: 'tasks.view_own',
   // Task attachments: readers of the task (the download link is audited by the service).
   tasks_attachments_list: 'tasks.view_own',
+  tasks_subtasks_list: 'tasks.view_own',
   tasks_attachments_download_url: 'tasks.view_own',
   // The acting person's followed tasks (visibility re-checked per row by the database).
   tasks_following: 'tasks.view_own',
+  tasks_viewers_list: 'tasks.view_own',
+  // Timeline: run scope or can_view_run_progress / canViewTask, checked in the service (lib/services/run-timeline).
+  tasks_timeline: 'tasks.view_own',
+  workflows_run_timeline: 'tasks.view_own',
   tasks_priority_summary: 'tasks.view_own',
   // Autocomplete / lookup suggestions for a task the caller can act on
   // (no write; the service checks the task and runs only the stored config).
@@ -428,6 +445,7 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   packages_install_plan: 'packages.view',
   packages_history: 'packages.view',
   packages_history_get: 'packages.view',
+  packages_items_list: 'packages.view',
 }
 
 /** Permission a tool needs (mutation or read), or undefined for an unclassified tool. */
@@ -452,6 +470,10 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'packages_upgrade',
   'packages_complete_setup',
   'packages_uninstall',
+  'packages_items_add',
+  'packages_items_remove',
+  'packages_install_detach',
+  'packages_install_adopt',
   'config_apply',
   'integrations_create',
   'integrations_create_bundle',
@@ -484,6 +506,7 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'email_templates_delete',
   'forms_create',
   'forms_wizard_create',
+  'forms_import_infopath',
   'forms_wizard_update',
   'forms_update',
   'forms_duplicate',

@@ -18,6 +18,7 @@ import { FollowButton } from '@/components/home/shared'
 import { RunWaitingChip } from '@/components/automations/run-task-links'
 import { RunAskAgentFix } from '@/components/automations/run-ask-agent-fix'
 import { processViewPollMs } from '@/lib/automations/process-view-poll'
+import { RUN_VIEW_TABS, type RunViewTab } from '@/lib/automations/run-view-tabs'
 
 // The process viewer (graph + trace replay) is the bulk of this route's JS;
 // its own chunk lets the run header render first.
@@ -32,6 +33,10 @@ export default function ProcessViewPage({ params }: { params: Promise<{ id: stri
   const searchParams = useSearchParams()
   const focus = searchParams.get('focus')
   const { can } = usePermissions()
+  // Timeline first for people who don't build workflows; Process view for builders. ?tab= picks one.
+  const builder = can('workflows.edit')
+  const requestedTab = searchParams.get('tab')
+  const initialTab: RunViewTab = (RUN_VIEW_TABS as readonly string[]).includes(requestedTab ?? '') ? requestedTab as RunViewTab : builder ? 'canvas' : 'timeline'
   const [moving, setMoving] = useState(false)
 
   const { data, isLoading, refetch } = useQuery({
@@ -131,6 +136,8 @@ export default function ProcessViewPage({ params }: { params: Promise<{ id: stri
           focus={focus}
           compareRun={data.compareRun}
           tasks={data.tasks ?? []}
+          initialTab={initialTab}
+          timelineFirst={!builder}
         />
       </div>
     </div>

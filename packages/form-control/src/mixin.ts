@@ -4,7 +4,7 @@
  * importing Lit.
  *
  *   import { LitElement, html } from 'lit'
- *   import { UserTasksControlMixin } from '@usertasks/form-control'
+ *   import { UserTasksControlMixin } from '@user-tasks/form-control'
  *
  *   class StarRating extends UserTasksControlMixin(LitElement) {
  *     static properties = { max: { type: Number } }

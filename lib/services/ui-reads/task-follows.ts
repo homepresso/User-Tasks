@@ -18,11 +18,13 @@ export const reads = {
       status: statusList.optional(),
       priority: statusList.optional(),
       hideCompleted: z.boolean().optional(),
+      /** Only tasks shared with me by an invite. */
+      sharedOnly: z.boolean().optional(),
     }).optional(),
     perm: TASK_VIEW,
     // The app's Following tab: the tasks of runs I follow too (viaRuns).
     run: async (ctx, args) => follows.listFollowedTasks(ctx, {
-      search: args?.search, status: args?.status, priority: args?.priority, hideCompleted: args?.hideCompleted, viaRuns: true,
+      search: args?.search, status: args?.status, priority: args?.priority, hideCompleted: args?.hideCompleted, sharedOnly: args?.sharedOnly, viaRuns: true,
     }),
   }),
   /** The Following tab's badge: followed tasks I can see (total) and how many are open. */

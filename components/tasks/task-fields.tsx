@@ -10,6 +10,7 @@ import { FormPagesProvider, FormStepActions } from '@/components/forms/form-page
 import { cn } from '@/lib/utils'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { attachmentsCountKey } from '@/lib/forms/attachments'
+import { listDerivedKeys } from '@/lib/forms/list-field'
 import { customOutputSiblingKeys } from '@/lib/forms/custom-controls/output'
 
 interface TaskFieldsProps {
@@ -54,7 +55,7 @@ export function formatTaskValue(value: unknown): string {
  */
 export function TaskFields({ fields, values, onChange, errors, readOnly, data, compact, layout, theme, header, footer, page, persistKey }: TaskFieldsProps) {
   // A lookup's selected item (`<key>_item`) is shown through its field.
-  const fieldKeys = new Set(fields.flatMap((f) => (f.type === 'lookup' ? [f.key, lookupItemKey(f.key), `${f.key}_label`] : f.type === 'attachments' ? [f.key, attachmentsCountKey(f.key)] : [f.key, ...customOutputSiblingKeys(f)])))
+  const fieldKeys = new Set(fields.flatMap((f) => (f.type === 'lookup' ? [f.key, lookupItemKey(f.key), `${f.key}_label`] : f.type === 'attachments' ? [f.key, attachmentsCountKey(f.key)] : f.type === 'list' ? [f.key, ...listDerivedKeys(f.key, f.list)] : [f.key, ...customOutputSiblingKeys(f)])))
   const extraEntries = Object.entries(data ?? {}).filter(([key]) => !fieldKeys.has(key))
   const labelClass = compact ? 'text-[11px]' : 'text-xs'
 

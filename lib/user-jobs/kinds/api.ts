@@ -1,13 +1,14 @@
 import { z } from 'zod'
 import type { EndpointDef } from '@/lib/api-schemas/registry'
 import { exportConfigEndpoint, applyConfigEndpoint } from '@/lib/api-schemas/config'
-import { bulkDeleteRowsEndpoint } from '@/lib/api-schemas/data-tables'
+import { bulkDeleteRowsEndpoint, importRowsEndpoint } from '@/lib/api-schemas/data-tables'
 import { bulkDeleteReferencesEndpoint } from '@/lib/api-schemas/integrations'
 import { migrateWorkflowInstancesEndpoint } from '@/lib/api-schemas/workflows'
 import { buildPackageVersionEndpoint, installPackageEndpoint, upgradePackageInstallEndpoint, uninstallPackageEndpoint } from '@/lib/api-schemas/packages'
 import { requirePerm, ServiceError, type ServiceContext } from '@/lib/services/context'
 import { applyConfig, exportConfig } from '@/lib/services/config'
 import { deleteRows } from '@/lib/services/data-tables'
+import { decodeBase64, importRowsNow, runImport, type ImportState } from '@/lib/services/data-import'
 import { bulkDeleteReferences } from '@/lib/services/references'
 import { migrateInstances } from '@/lib/services/workflow-runs'
 import { buildPackageVersion } from '@/lib/services/packages'
@@ -25,8 +26,17 @@ import { defineJobKind, type JobKind } from '../define'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- endpoint inputs are validated by their own schemas */
 
-export interface ApiHandlerInput { ctx: ServiceContext; params: any; query: any; body: any }
+export interface ApiHandlerInput {
+  ctx: ServiceContext; params: any; query: any; body: any
+  /** Set when the handler runs as a background job: it may hand back (ApiJobContinue) and resume from `checkpoint`. */
+  job?: { checkpoint: unknown; progress(percent: number, message?: string): Promise<void>; timeLeft(): number }
+}
 export type ApiHandler = (input: ApiHandlerInput) => Promise<unknown>
+
+/** Returned by a resumable handler (as a job) to continue in the next invocation from `state`. */
+export class ApiJobContinue {
+  constructor(readonly state: unknown, readonly progress?: number, readonly message?: string) {}
+}
 
 const csv = (value: string | undefined) => value?.split(',').map((item) => item.trim()).filter(Boolean)
 
@@ -51,6 +61,15 @@ export const buildPackageVersionHandler: ApiHandler = ({ ctx, params, body }) =>
 export const installPackageHandler: ApiHandler = ({ ctx, body }) => installPackage(ctx, { source: 'api', ...body })
 export const upgradePackageInstallHandler: ApiHandler = ({ ctx, params, body }) => upgradePackageInstall(ctx, params.id, { source: 'api', ...body })
 export const uninstallPackageHandler: ApiHandler = ({ ctx, params, body }) => uninstallPackage(ctx, params.id, body)
+
+/** POST /data-tables/{id}/rows/import: inline up to DATA_IMPORT_LIMITS.syncRows rows; as a job in resumable batches. */
+export const importRowsHandler: ApiHandler = async ({ ctx, params, body, job }) => {
+  const { file_base64, ...options } = body
+  const bytes = decodeBase64(file_base64)
+  if (!job) return importRowsNow(ctx, params.id, bytes, options)
+  const step = await runImport(ctx, params.id, bytes, options, (job.checkpoint as ImportState | null) ?? null, { progress: job.progress, timeLeft: job.timeLeft })
+  return step.done ? step.report : new ApiJobContinue(step.state, step.progress, step.message)
+}
 
 /** Request bodies above this are stored as the job's input instead of in params. */
 export const INLINE_BODY_BYTES = 64 * 1024
@@ -81,7 +100,7 @@ function defineApiJob(endpoint: EndpointDef, handler: ApiHandler): JobKind<ApiJo
     params: apiParams,
     title: () => endpoint.summary.slice(0, 200),
     authorize: (ctx) => { if (endpoint.permission) requirePerm(ctx, endpoint.permission) },
-    async run({ ctx, params, readInput, progress }) {
+    async run({ ctx, params, readInput, progress, checkpoint, timeLeft }) {
       let rawBody = params.body
       if (params.body_in_input) {
         const bytes = await readInput()
@@ -95,8 +114,9 @@ function defineApiJob(endpoint: EndpointDef, handler: ApiHandler): JobKind<ApiJo
         query: parse(endpoint.query, params.query, 'query'),
         body: parse(endpoint.body, rawBody, 'body'),
       }
-      await progress(5, 'Running')
-      const data = await handler(input)
+      await progress(5, checkpoint ? 'Resuming' : 'Running')
+      const data = await handler({ ...input, job: { checkpoint: checkpoint ?? null, progress, timeLeft } })
+      if (data instanceof ApiJobContinue) return { continue: data.state, progress: data.progress, message: data.message }
       return { data: data ?? null, summary: 'Completed' }
     },
   })
@@ -113,6 +133,7 @@ export const API_JOB_ENDPOINTS: Array<{ endpoint: EndpointDef; handler: ApiHandl
   { endpoint: installPackageEndpoint, handler: installPackageHandler },
   { endpoint: upgradePackageInstallEndpoint, handler: upgradePackageInstallHandler },
   { endpoint: uninstallPackageEndpoint, handler: uninstallPackageHandler },
+  { endpoint: importRowsEndpoint, handler: importRowsHandler },
 ]
 
 export const API_JOB_KINDS: JobKind<ApiJobParams>[] = API_JOB_ENDPOINTS.map(({ endpoint, handler }) => defineApiJob(endpoint, handler))

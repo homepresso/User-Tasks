@@ -41,7 +41,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname),
       // Package tests run against sources, not the built dist/.
-      '@usertasks/sdk': path.resolve(__dirname, 'packages/sdk/src/index.ts'),
+      '@user-tasks/sdk': path.resolve(__dirname, 'packages/sdk/src/index.ts'),
     },
   },
 })

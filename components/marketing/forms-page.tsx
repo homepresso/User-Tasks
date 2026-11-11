@@ -34,6 +34,7 @@ import {
   User,
   Zap,
 } from "lucide-react"
+import { ProductHero } from "@/components/marketing/product-hero"
 import { MarketingFooter, MarketingHeader, SectionHeading, Shot, Snippet } from "@/components/marketing/marketing-ui"
 import { SCREENSHOTS } from "@/lib/docs/screenshots"
 import { FORMS_PAGE } from "@/lib/marketing-pages"
@@ -162,26 +163,23 @@ export function FormsPage() {
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <MarketingHeader />
+      <MarketingHeader tone="night" />
 
       <main>
         {/* Hero */}
-        <section className="bg-[radial-gradient(circle_at_50%_0%,rgba(176,138,84,0.16),transparent_45%)]">
-          <div className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pt-20">
-            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-subtle)"><Link href="/" className="hover:text-(color:--mkt-bronze)">UserTasks</Link><span className="px-2">/</span><span aria-current="page">{FORMS_PAGE.eyebrow}</span></nav>
-            <div className="mt-8"><Pill icon={FileInput}>{FORMS_PAGE.eyebrow}</Pill></div>
-            <h1 className="mt-6 max-w-4xl font-display text-display font-bold">Forms that start and drive your workflows.</h1>
-            <p className="mt-6 max-w-3xl mkt-body text-(color:--mkt-text)">
-              Design a form on a grid, with lookups into your data and APIs, file uploads, buttons, a header and your theme. Share it as a link on your workspace's own address, embed it in your website or print a QR code, start a workflow every time it is submitted, and use each value in the steps that follow — <strong className="text-(color:--mkt-ink)">checked on the server</strong>, whoever sends it.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/docs/tasks/forms#build-your-first-form-in-5-minutes" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) shadow-lg shadow-(color:--mkt-primary)/20 hover:bg-(color:--mkt-primary-hover)">
-                Build your first form <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link href="/gallery?trigger=form" className="inline-flex items-center justify-center gap-2 rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">
-                {formPackageCount} form-started packages
-              </Link>
-            </div>
+        <ProductHero
+          crumb="Forms"
+          eyebrow="Forms"
+          icon={FileInput}
+          title={<>Forms that do <span className="mkt-gradient-text">the typing for you.</span></>}
+          intro={<>Design a form on a grid, with lookups into your data and APIs, file uploads, buttons, a header and your theme. Share it as a link on your workspace's own address, embed it in your website or print a QR code, start a workflow every time it is submitted, and use each value in the steps that follow — <strong className="text-white">checked on the server</strong>, whoever sends it.</>}
+          primary={{ href: "/docs/tasks/forms#build-your-first-form-in-5-minutes", label: "Build your first form" }}
+          secondary={{ href: "/gallery?trigger=form", label: `${formPackageCount} form-started packages` }}
+          scenes={["form", "task", "table"]}
+          bullets={["One designer for task forms, start forms and form pages", "Every submission validated on the server", "Values typed and ready in the next step"]}
+        />
+        <section className="relative">
+          <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
             <div className="mt-12">
               <Shot name="forms-designer" alt="The UserTasks form designer: a palette of field types, a grid of rows with one to four columns, and the settings of an Attachments field" sizes="(min-width: 1152px) 1104px, 100vw" priority />
             </div>
@@ -505,7 +503,7 @@ usertasks forms submissions <form id> -o json`} />
             <div className="mt-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
               <div className="min-w-0">
                 <h3 className="font-display text-2xl font-bold tracking-tight">Start from the kit.</h3>
-                <p className="mt-3 leading-7 text-(color:--mkt-text)">A star rating in Lit + TypeScript and in plain JavaScript, a dev harness that plays the form and logs every event, and scripts that build and package one self-contained module to upload. Prefer a library? The <code className="font-mono text-ui">@usertasks/form-control</code> package in the repository has the contract types, a vanilla base element and a Lit mixin. Or start from one of the {officialControlCount} official controls in the gallery — their sources are in the repository too.</p>
+                <p className="mt-3 leading-7 text-(color:--mkt-text)">A star rating in Lit + TypeScript and in plain JavaScript, a dev harness that plays the form and logs every event, and scripts that build and package one self-contained module to upload. Prefer a library? The <code className="font-mono text-ui">@user-tasks/form-control</code> package in the repository has the contract types, a vanilla base element and a Lit mixin. Or start from one of the {officialControlCount} official controls in the gallery — their sources are in the repository too.</p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <a href="/downloads/form-control-starter.zip" download className="inline-flex items-center gap-2 rounded-lg bg-(color:--mkt-primary) px-5 py-2.5 text-sm font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover)" data-testid="forms-starter-kit">Download the starter kit</a>
                   <Link href="/docs/tasks/custom-form-controls" className="inline-flex items-center gap-1 rounded-lg border border-(color:--mkt-ink)/15 px-5 py-2.5 text-sm font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">Read the guide <ArrowRight size={14} aria-hidden="true" /></Link>
@@ -600,7 +598,7 @@ npm run package   # release/ut-star-rating-1.0.0.zip
           <div className="mt-8 space-y-3">
             {FAQS.map((faq) => (
               <details key={faq.question} className="group rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5">
-                <summary className="cursor-pointer list-none font-semibold">{faq.question}</summary>
+                <summary className="cursor-pointer list-none"><h3 className="inline font-semibold">{faq.question}</h3></summary>
                 <p className="mt-3 text-sm leading-7 text-(color:--mkt-muted)">{faq.answer}</p>
               </details>
             ))}

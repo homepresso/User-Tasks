@@ -59,6 +59,9 @@ describe('page titles and breadcrumbs', () => {
     expect(routeBreadcrumbs('/automations/runs/r1')).toEqual([{ label: 'Workflows', href: '/automations' }, { label: 'Run' }])
     // Sections that live under another section's URL start their own trail.
     expect(routeBreadcrumbs('/automations/forms')).toEqual([{ label: 'Forms' }])
+    // The form designer page (and a new form) sit under the Forms library, not under Workflows.
+    expect(routeBreadcrumbs('/automations/forms/f1')).toEqual([{ label: 'Forms', href: '/automations/forms' }, { label: 'Form' }])
+    expect(routeBreadcrumbs('/automations/forms/new')).toEqual([{ label: 'Forms', href: '/automations/forms' }, { label: 'New form' }])
     expect(routeBreadcrumbs('/automations/rules/r1')).toEqual([{ label: 'Business rules', href: '/automations/rules' }, { label: 'Business rule' }])
     expect(routeBreadcrumbs('/tasks/t1')).toEqual([{ label: 'My tasks', href: '/tasks' }, { label: 'Task' }])
     expect(routeBreadcrumbs('/settings/governance', 'tab=retention')).toEqual([

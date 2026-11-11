@@ -19,7 +19,7 @@ import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client, type Pool } from 'pg'
 import type { z } from 'zod'
-import { createPgQuery } from '@usertasks/pg-query'
+import { createPgQuery } from '@user-tasks/pg-query'
 import { runUiRead, UI_READS } from '@/lib/services/ui-reads'
 import type { ServiceContext } from '@/lib/services/context'
 
@@ -80,6 +80,8 @@ const SPECS: Array<{ table: string; make: (k: K) => Record<string, unknown>; noI
   { table: 'form_themes', make: (k) => ({ tenant_id: TENANT[k], name: `${MARK[k]} theme`, overrides: { radius: 4 } }) },
   // Task tracker → Following (20261226000000): each user follows their own workspace's task.
   { table: 'task_followers', noId: true, make: (k) => ({ tenant_id: TENANT[k], user_id: USER[k], task_id: id('tasks', k) }) },
+  // Invite, read only (20270105000000): each workspace's task shared with its team (tasks.viewers, the tracker's Shared with me).
+  { table: 'task_viewers', make: (k) => ({ tenant_id: TENANT[k], task_id: id('tasks', k), principal_type: 'team', principal_id: id('teams', k), invited_by: USER[k], note: `${MARK[k]} invite` }) },
 ]
 
 /**

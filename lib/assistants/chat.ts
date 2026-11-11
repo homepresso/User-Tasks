@@ -15,8 +15,12 @@
  *                      get_validation_problems, propose_field_values
  *                      (forms.submit; never on a form that opted out; never submit);
  *       task help      a task on screen (RLS) → get_task_history,
- *                      draft_comment, suggest_outcome + its form's tools
- *                      (never complete / approve / redirect);
+ *                      draft_comment, suggest_outcome + its form's tools;
+ *                      on every screen: task_get_form, and — while "Let the
+ *                      Agent complete tasks" is on — task_complete /
+ *                      task_respond / task_save_form_values (each behind a
+ *                      confirmation card, the app's own rules:
+ *                      lib/assistants/tools/task-actions.ts);
  *       building help  everywhere: the MCP read tools the person's view
  *                      permissions allow, and for builders the write tools
  *                      (confirmed, drafts only) + ask_where_to_build when an
@@ -49,12 +53,13 @@ import { formForModel, sanitizeSnapshot } from './form-values'
 import { AssistantLimitError, checkAssistantLimits, recordAssistantUsage } from './limits'
 import { assistantInstructions } from './prompts'
 import { AssistantConfigError, availabilitySettings, connectionForProfile, loadAssistantSettings, type AssistantConnection } from './settings'
-import { matchProfile, profileLimits, profileTools, screenArea, withProfileInstructions } from './profiles'
+import { matchProfile, profileLimits, profileTaskActions, profileTools, screenArea, withProfileInstructions } from './profiles'
 import { formTools } from './tools/form'
 import { openItemOf, whereToBuildTool } from './tools/choice'
 import { askUserTool } from './tools/ask-user'
 import { withAssignmentTools } from './assignment'
 import { processTool, type ProcessTarget } from './tools/process'
+import { timelineTool } from './tools/timeline'
 import { taskForModel, taskTools, type TaskContext, type TaskEvent } from './tools/task'
 import { ADMIN_WRITE_TOOLS } from './admin-policy'
 import { ADMIN_AREAS, ASSISTANT_CAPABILITIES, formAssistantSetting, type AdminArea, type AssistantCapability, type AssistantEvent, type ChatRequest, type DesignerContext } from './types'
@@ -302,13 +307,25 @@ export async function prepareAssistantTurn(ctx: ServiceContext, request: ChatReq
     const { designerTools, allowedDesignerToolNames } = await import('./tools/designer')
     if (allowedDesignerToolNames(ctx.permissions).length) {
       const { server } = await serverForPerson()
-      const designer = designerTools({ server, permissions: ctx.permissions, area: d?.area ?? null })
+      // Sharing a packaged solution to the community gallery: only where this instance accepts submissions.
+      const gallery = await import('@/lib/services/gallery-community')
+      const galleryShare = gallery.communityGalleryEnabled() ? async (file: { name: string; bytes: Uint8Array }, listing: unknown) => {
+        const { data: me } = await (db as any).from('users').select('email').eq('id', ctx.actorId).maybeSingle()
+        return gallery.submitCommunityPackage({ id: ctx.actorId!, email: me?.email ?? null, tenantId: ctx.tenantId }, { file, listing })
+      } : undefined
+      const designer = designerTools({ server, permissions: ctx.permissions, area: d?.area ?? null, galleryShare })
       tools.push(...designer)
       const canWrite = designer.some((t) => t.mode === 'write')
       groups.push('designer')
       if (canWrite && openItem) tools.push(whereToBuildTool(openItem))
       context.building = canWrite ? 'The person can build: write tools are available (each confirmed first, saved as drafts).' : 'Read-only: the person can look things up but not build or change anything.'
     }
+  }
+
+  // An InfoPath template attached in this conversation: offer to import it (forms.edit).
+  {
+    const { infopathTools } = await import('./tools/infopath')
+    tools.push(...infopathTools(ctx, request.messages))
   }
 
   // Admin help: every tool needs its own permission; excluded tools never exist.
@@ -343,6 +360,10 @@ export async function prepareAssistantTurn(ctx: ServiceContext, request: ChatReq
     : openItem?.kind === 'workflow' ? { kind: 'workflow', workflowId: openItem.id }
     : null
   if (processTarget) tools.push(processTool({ db, tenantId: ctx.tenantId, userId: ctx.actorId, permissions: ctx.permissions }, processTarget))
+  // "What's happened on this request?": its timeline (lib/assistants/tools/timeline.ts) — any open task, a run page or a timeline page.
+  const timelineRun = runMatch?.[1] ?? String(screen?.path ?? '').match(/^\/timeline\/([0-9a-f-]{36})/i)?.[1] ?? null
+  const timelineTarget = task ? { taskId: task.id } : timelineRun ? { runId: timelineRun } : null
+  if (timelineTarget) tools.push(timelineTool(ctx, timelineTarget))
 
   // Task assignment (take ownership / reassign / claim, each confirmed; lib/assistants/tools/task-assign.ts):
   // with task help, and on the screens where waiting work is managed (process view, My tasks / My team, Home, the queue).
@@ -351,6 +372,34 @@ export async function prepareAssistantTurn(ctx: ServiceContext, request: ChatReq
     const { taskAssignTools } = await import('./tools/task-assign')
     const taken = new Set(tools.map((t) => t.name))
     tools.push(...taskAssignTools({ ctx, taskId: task?.id ?? null }).filter((t) => !taken.has(t.name)))
+    // Break a task into subtasks (confirmed; lib/assistants/tools/task-subtasks.ts).
+    const { taskSubtaskTools } = await import('./tools/task-subtasks')
+    tools.push(...taskSubtaskTools({ ctx, taskId: task?.id ?? null }).filter((t) => !taken.has(t.name)))
+  }
+
+  // Task forms and task actions (lib/assistants/tools/task-actions.ts), on every screen with task help: reading a task's form
+  // (task_get_form) always; completing / responding / saving values (each confirmed) while "Let the Agent complete tasks" is
+  // on for the person's profile and they hold tasks.complete. find_active_tasks finds a task by name anywhere.
+  let taskActions: 'act' | 'read' | null = null
+  if (availability.task) {
+    const canAct = profileTaskActions(settings.agent.task_actions, profile) && ctx.permissions?.has('tasks.complete') !== false
+    const { taskActionTools } = await import('./tools/task-actions')
+    const taken = new Set(tools.map((t) => t.name))
+    tools.push(...taskActionTools({ ctx, taskId: task?.id ?? null, canAct, db }).filter((t) => !taken.has(t.name)))
+    if (canAct && !taken.has('find_active_tasks')) {
+      const { taskAssignTools } = await import('./tools/task-assign')
+      tools.push(...taskAssignTools({ ctx, taskId: task?.id ?? null }).filter((t) => t.name === 'find_active_tasks'))
+    }
+    taskActions = canAct ? 'act' : 'read'
+  }
+
+  // Who the Agent is helping (from the session, never the chat): "my tasks" / "my team" resolve without asking.
+  let personBlock = ''
+  if (ctx.actorId) {
+    try {
+      const { loadPersonContext, personContextBlock } = await import('./person-context')
+      personBlock = personContextBlock(await loadPersonContext(db, ctx.tenantId, ctx.actorId))
+    } catch { /* the Agent still works without it */ }
   }
 
   const capability: AssistantCapability = groups.includes('task') ? 'task' : groups.includes('form') ? 'form' : 'designer'
@@ -360,7 +409,7 @@ export async function prepareAssistantTurn(ctx: ServiceContext, request: ChatReq
     connection: { ...connection, thinking: resolveThinkingLevel({ rule: ruleThinking, group: row.agent.thinking_levels?.[capability], base: row.agent.thinking_level }) },
     profile: profile ? { id: profile.id, name: profile.name } : null,
     // The profile's instructions only ever come AFTER ours (and say ours win).
-    instructions: withProfileInstructions(assistantInstructions({ groups, openItem: Boolean(openItem), canBuild: tools.some((t) => t.mode === 'write' && !ADMIN_WRITE_SET.has(t.name)), admin: adminOn ? { canChange: adminCanChange } : null }), profile),
+    instructions: withProfileInstructions([assistantInstructions({ groups, openItem: Boolean(openItem), canBuild: tools.some((t) => t.mode === 'write' && !ADMIN_WRITE_SET.has(t.name) && !t.name.startsWith('task_')), admin: adminOn ? { canChange: adminCanChange } : null, taskActions }), personBlock].filter(Boolean).join('\n\n'), profile),
     context: Object.keys(context).length ? context : null,
     tools,
     limits: { ...(groups.includes('designer') || adminOn ? CAPABILITY_LIMITS.designer : CAPABILITY_LIMITS[capability]), maxTokens: limits.max_request_tokens || 0 },

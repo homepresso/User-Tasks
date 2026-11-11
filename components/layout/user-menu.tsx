@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { BookOpen, LogOut, Settings, User } from "lucide-react"
+import { BookOpen, LogOut, MessageSquareHeart, Rocket, Settings, User } from "lucide-react"
+import { useOnboarding } from "@/components/onboarding/getting-started/onboarding-provider"
 import { signOutAndRedirect } from "@/lib/auth-client"
-import { useCurrentWorkspaceName, WorkspaceMenuItems } from "./workspace-switcher"
+import { useCurrentWorkspaceName } from "./workspace-switcher"
 import { Avatar } from "@/components/ui/avatar"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -11,8 +12,8 @@ import {
 
 /**
  * The avatar menu in the top bar (28px avatar): who you are and which
- * workspace you're in, the workspace switcher, profile and settings, help,
- * and sign out.
+ * workspace you're in, profile and settings, help, and sign out. Each person
+ * works in one workspace, so there is no workspace list to switch between.
  */
 
 interface UserMenuProps {
@@ -27,7 +28,8 @@ interface UserMenuProps {
 
 export function UserMenu({ user, currentTenantId }: UserMenuProps) {
   const workspaceName = useCurrentWorkspaceName(currentTenantId)
-  const label = `Account and workspaces: ${user.display_name}${workspaceName ? `, ${workspaceName}` : ""}`
+  const guide = useOnboarding()
+  const label = `Account: ${user.display_name}${workspaceName ? `, ${workspaceName}` : ""}`
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -47,11 +49,10 @@ export function UserMenu({ user, currentTenantId }: UserMenuProps) {
           <div className="min-w-0">
             <p className="truncate text-ui font-semibold text-fg">{user.display_name}</p>
             <p className="truncate text-xs text-fg-muted">{user.email}</p>
+            {workspaceName && <p className="truncate text-xs text-fg-subtle" data-current-workspace>{workspaceName}</p>}
           </div>
         </div>
 
-        <DropdownMenuSeparator />
-        <WorkspaceMenuItems currentTenantId={currentTenantId} />
         <DropdownMenuSeparator />
 
         <DropdownMenuItem asChild>
@@ -63,6 +64,17 @@ export function UserMenu({ user, currentTenantId }: UserMenuProps) {
         <DropdownMenuItem asChild>
           <a href="/docs" target="_blank" rel="noopener noreferrer" className="cursor-pointer"><MenuRow icon={<BookOpen />}>Help &amp; docs</MenuRow></a>
         </DropdownMenuItem>
+        {guide.state && (
+          // Opens after the menu has closed and returned focus.
+          <DropdownMenuItem icon={<Rocket />} onSelect={() => setTimeout(() => guide.openGuide(), 0)} data-help-getting-started>
+            Getting started{guide.progress.total > 0 && !guide.progress.complete ? ` (${guide.progress.done}/${guide.progress.total})` : ""}
+          </DropdownMenuItem>
+        )}
+        {guide.state?.feedback_available && (
+          <DropdownMenuItem icon={<MessageSquareHeart />} onSelect={() => setTimeout(() => guide.openFeedback(), 0)} data-help-feedback>
+            Send feedback
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuSeparator />
 

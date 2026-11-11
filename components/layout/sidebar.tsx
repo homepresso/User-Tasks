@@ -9,6 +9,8 @@ import { SidebarFormsMenu } from "./available-forms-menu"
 import { SidebarDecorations } from "./sidebar-decorations"
 import { navIcon } from "./nav-icons"
 import { HeaderFormsMenu } from "./header-forms-menu"
+import { useWorkspaceBrand } from "@/components/providers/theme-provider"
+import { LogoMark } from "@/components/brand/logo"
 import { NAV_PRIMARY, NAV_SETTINGS, resolveNavGroups, type NavGroupId } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/stores/app-store"
@@ -18,6 +20,7 @@ import { useIsManager } from "@/hooks/use-is-manager"
 import { useNavCounts, useNavCountsSync } from "@/hooks/use-nav-counts"
 import { navBadgeCount } from "@/lib/nav-badges"
 import { Tooltip } from "@/components/ui/tooltip"
+import { GettingStartedLauncher } from "@/components/onboarding/getting-started/launcher"
 
 /**
  * The side menu (docs/design/ui-polish-spec.md §4.1): the Forms dropdown at
@@ -56,7 +59,7 @@ export function useNavGroupState() {
   return { folded, toggle }
 }
 
-export function Sidebar(_props: SidebarProps) {
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { sidebarCollapsed: collapsed, toggleSidebar, openTasks, removeOpenTask } = useAppStore()
@@ -100,12 +103,20 @@ export function Sidebar(_props: SidebarProps) {
       {!collapsed && <SidebarDecorations />}
 
       <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <div className={cn("flex h-[var(--theme-topbar-height)] shrink-0 items-center border-b border-[color:var(--theme-sidebar-border)]", collapsed ? "justify-center px-2" : "px-2")}>
-          {/* The Forms dropdown: the forms shared with this person (workspaces are in the avatar menu). */}
-          <div className="min-w-0 flex-1">
-            <HeaderFormsMenu collapsed={collapsed} />
-          </div>
+        <div className={cn("flex h-[var(--theme-topbar-height)] shrink-0 items-center gap-1 border-b border-[color:var(--theme-sidebar-border)]", collapsed ? "justify-center px-2" : "px-2")}>
+          {/* The workspace logo (Home), then the Forms dropdown: the forms shared with this person (workspaces are in the avatar menu). */}
+          <SidebarLogo branding={user.tenant?.branding ?? null} name={user.tenant?.name ?? "UserTasks"} collapsed={collapsed} />
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <HeaderFormsMenu collapsed={false} />
+            </div>
+          )}
         </div>
+        {collapsed && (
+          <div className="shrink-0 px-2 pt-2">
+            <HeaderFormsMenu collapsed />
+          </div>
+        )}
 
         <nav aria-label="Primary" className={cn("min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin py-3", collapsed ? "px-2" : "px-3")}>
           <ul className="space-y-0.5">
@@ -175,6 +186,7 @@ export function Sidebar(_props: SidebarProps) {
         </nav>
 
         <div className={cn("shrink-0 border-t border-[color:var(--theme-sidebar-border)] py-2", collapsed ? "px-2" : "px-3")}>
+          <GettingStartedLauncher collapsed={collapsed} />
           {visible(NAV_SETTINGS) && renderItem(NAV_SETTINGS)}
           <div className={cn("mt-0.5 flex gap-0.5", collapsed ? "flex-col" : "items-center")}>
             <Tooltip content="Help & docs" side="right" enabled={collapsed}>
@@ -205,5 +217,23 @@ export function Sidebar(_props: SidebarProps) {
         </div>
       </div>
     </aside>
+  )
+}
+
+/** The workspace logo (or the UserTasks mark) at the top of the side menu; links Home. */
+function SidebarLogo({ branding, name, collapsed }: { branding: { logo_url?: string | null } | null; name: string; collapsed: boolean }) {
+  const { logoUrl } = useWorkspaceBrand(branding?.logo_url ?? null)
+  return (
+    <Tooltip content={name} side="right" enabled={collapsed}>
+      <Link href="/home" aria-label={`${name} — Home`} data-sidebar-logo
+        className={cn("flex h-10 shrink-0 items-center justify-center rounded-md px-1.5 hover:bg-[var(--sidebar-hover-bg)]", sidebarFocus)}>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className={cn("object-contain", collapsed ? "size-6" : "max-h-6 max-w-[88px]")} />
+        ) : (
+          <LogoMark variant="glyph" size={22} color="var(--theme-sidebar-text)" accent="var(--theme-sidebar-accent, var(--theme-primary))" />
+        )}
+      </Link>
+    </Tooltip>
   )
 }

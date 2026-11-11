@@ -349,11 +349,10 @@ export async function reassignReportTask(ctx: ServiceContext, taskId: string, in
   if (task.status === 'completed' || task.status === 'cancelled') throw ServiceError.conflict('This task is already closed')
   if (!task.assignee_id) throw ServiceError.validation('This task has no individual assignee to reassign from')
   const index = options.index ?? await loadReportingIndex(db, ctx.tenantId)
-  if (!isInManagerChain(index, ctx.actorId, String(task.assignee_id))) {
+  // A manager of the assignee, or an admin (Complete any task), may reassign to anyone in the workspace.
+  const isAdmin = hasPerm(ctx, 'tasks.complete_any')
+  if (!isAdmin && !isInManagerChain(index, ctx.actorId, String(task.assignee_id))) {
     throw ServiceError.forbidden('Forbidden: you can only reassign tasks of your reports')
-  }
-  if (target !== ctx.actorId && !isInManagerChain(index, ctx.actorId, target)) {
-    throw ServiceError.validation('Reassign to yourself or to one of your reports')
   }
   if (target === task.assignee_id) throw ServiceError.validation('The task is already assigned to that person')
   await requireMember(db, ctx.tenantId, target)

@@ -1,4 +1,4 @@
-# @usertasks/form-control
+# @user-tasks/form-control
 
 Build **custom form controls** for UserTasks: web components that run in
 UserTasks forms with the form's theme, validation and accessibility.
@@ -21,7 +21,7 @@ Guide: <https://usertasks.com/docs/tasks/custom-form-controls>
 
 ```ts
 import { LitElement, html } from 'lit'
-import { UserTasksControlMixin } from '@usertasks/form-control'
+import { UserTasksControlMixin } from '@user-tasks/form-control'
 
 class AcmeCounter extends UserTasksControlMixin(LitElement) {
   static properties = { step: { type: Number } } // declared props (manifest "props")
@@ -52,7 +52,7 @@ The mixin merges the host properties (`value`, `disabled`, `readonly`,
 ## Without a framework
 
 ```ts
-import { UserTasksControlElement } from '@usertasks/form-control'
+import { UserTasksControlElement } from '@user-tasks/form-control'
 
 class AcmeToggle extends UserTasksControlElement {
   static controlProps = ['on_label'] // declared props become element properties

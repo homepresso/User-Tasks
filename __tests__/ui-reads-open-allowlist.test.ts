@@ -29,6 +29,7 @@ const OPEN_READS: Record<string, string> = {
   'home.followMetrics': "The person's own Home metrics",
   'home.navCounts': 'Own task / tracker counts; each count gated on its permission inside the service',
   'home.following': 'Runs the person follows (visibleRun / can_view_run_progress)',
+  'automations.timeline': "A run's / task's timeline: run scope or can_view_run_progress for a run, canViewTask for a task — not found otherwise (lib/services/run-timeline)",
   'home.runProgress': "A run's progress for someone who can view it (visibleRun)",
   'home.followedRunIds': 'Which of the given runs the person follows',
   'home.favoriteForms': "The person's favourite forms",
@@ -52,6 +53,7 @@ const OPEN_READS: Record<string, string> = {
   'tasks.teamMembers': 'Team members for task assignment pickers',
   'tasks.redirectUsers': 'People a task can be redirected to',
   'tasks.myProfile': "The person's own profile",
+  'onboarding.state': "The person's own getting-started checklist and choices; each done check is a yes / no count on their workspace, run only for items their permissions show",
   'tasks.completionSettings': 'Workspace task-completion screen settings every task screen applies',
 }
 

@@ -30,6 +30,7 @@
  * wizard, or forms.edit.
  */
 
+import { formDesignerHref } from '@/lib/forms/designer-links'
 import { isPlainObject } from '@/lib/utils/guards'
 import {
   WizardSpecSchema, WIZARD_LIMITS, isAnswerKind,
@@ -341,7 +342,7 @@ async function linksFor(db: AnySupabaseClient, tenantId: string, projectId: stri
     public: access?.enabled && access?.token ? `/p/${access.token}` : null,
     results: `/forms/results/${projectId}`,
     edit: `/forms/wizard/${projectId}`,
-    form_designer: `/automations/forms?details=${manifest.form_id}`,
+    form_designer: formDesignerHref(manifest.form_id),
     workflow_designer: manifest.workflow_id ? `/automations/${manifest.workflow_id}` : null,
     table: `/data/${manifest.table_id}`,
     reports: (manifest.report_ids ?? []).map((id) => `/reports/${id}`),

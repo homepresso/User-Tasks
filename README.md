@@ -9,8 +9,8 @@
 
 <!-- badges:start -->
 [![CI](https://github.com/homepresso/User-Tasks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/homepresso/User-Tasks/actions/workflows/ci.yml)
-[![@usertasks/sdk](https://img.shields.io/npm/v/@usertasks/sdk?label=%40usertasks%2Fsdk)](https://www.npmjs.com/package/@usertasks/sdk)
-[![@usertasks/cli](https://img.shields.io/npm/v/@usertasks/cli?label=%40usertasks%2Fcli)](https://www.npmjs.com/package/@usertasks/cli)
+[![@user-tasks/sdk](https://img.shields.io/npm/v/@user-tasks/sdk?label=%40usertasks%2Fsdk)](https://www.npmjs.com/package/@user-tasks/sdk)
+[![@user-tasks/cli](https://img.shields.io/npm/v/@user-tasks/cli?label=%40usertasks%2Fcli)](https://www.npmjs.com/package/@user-tasks/cli)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 <!-- badges:end -->
 UserTasks is a workflow engine with human tasks built in. You design
@@ -179,7 +179,7 @@ deployments; pg_cron is the primary scheduler.
 
   Requests are authenticated with an API key (`Authorization: Bearer <key>`) or an OAuth
   access token. The OpenAPI 3.1 document is served at `/api/v1/openapi.json`.
-- **SDK**: [`@usertasks/sdk`](packages/sdk/README.md) is a typed TypeScript client.
+- **SDK**: [`@user-tasks/sdk`](packages/sdk/README.md) is a typed TypeScript client.
 - **MCP**: streamable HTTP at `/api/mcp`, authenticated with an API key or
   an OAuth access token.
 - **OAuth**: authorization code flow with PKCE. Discovery at
@@ -189,11 +189,11 @@ deployments; pg_cron is the primary scheduler.
 
 ## CLI
 
-[`@usertasks/cli`](packages/cli/README.md) gives you the `usertasks` command. It has a command
+[`@user-tasks/cli`](packages/cli/README.md) gives you the `usertasks` command. It has a command
 for every REST endpoint, plus browser login and config as code:
 
 ```bash
-npm install -g @usertasks/cli
+npm install -g @user-tasks/cli
 usertasks login --url https://tasks.example.com      # browser login; or: login --api-key
 usertasks workflows list
 usertasks config export ./config && usertasks config diff ./config

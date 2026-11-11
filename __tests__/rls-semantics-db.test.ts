@@ -138,6 +138,15 @@
  * UPDATE grant. tenant_id always follows the task (trigger), so a "move"
  * keeps the row in its tenant.
  *
+ * 20270105000000_task_viewers.sql added task_viewers (Invite, read only):
+ * a caller reads the invites of tasks they can see in their visible
+ * workspaces (task_view_access — the fixture task has no assignee or
+ * assigner and the callers have no roles; the user-principal fixture row
+ * names OWNER[k], so its owner sees it by being invited); no end-user writes
+ * — INSERT / UPDATE / DELETE are not granted, so every caller gets 42501.
+ * tenant_id always follows the task (trigger), so a "move" keeps the row in
+ * its tenant.
+ *
  * 20261230000000_ai_assistants.sql added assistant_settings (one row per
  * workspace; SELECT only with assistants.manage in the current workspace, and
  * the encrypted key column is not granted to authenticated at all, so a
@@ -449,6 +458,8 @@ const SPECS: Spec[] = [
   { table: 'run_followers', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, run_id: id('workflow_runs', k) }), touch: 'created_at' },
   // Task tracker → Following (20261226000000): a person's own follows; INSERT only for a task they can see.
   { table: 'task_followers', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, task_id: id('tasks', k) }), touch: 'created_at' },
+  // Invite, read only (20270105000000): invites of tasks the caller can see; written by the service only.
+  { table: 'task_viewers', make: (k, v) => ({ tenant_id: TENANT[k], task_id: id('tasks', k), principal_type: v === 'row' ? 'user' : 'team', principal_id: v === 'row' ? OWNER[k] : id('teams', k) }), touch: 'note' },
   { table: 'form_favorites', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k) }), touch: 'created_at' },
   // Form drafts (20261218000000): a person's own saved answers; INSERT / UPDATE only for a form they can open.
   { table: 'form_drafts', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k), values: '{}' }), touch: 'version' },

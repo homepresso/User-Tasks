@@ -236,7 +236,7 @@ export function UseCasePage({ useCase }: { useCase: UseCase }) {
           <div className="mt-8 space-y-3">
             {useCase.faqs.map((faq) => (
               <details key={faq.question} className="rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-sand) p-5">
-                <summary className="cursor-pointer font-semibold">{faq.question}</summary>
+                <summary className="cursor-pointer"><h3 className="inline font-semibold">{faq.question}</h3></summary>
                 <p className="mt-3 text-sm leading-7 text-(color:--mkt-text)">{faq.answer}</p>
               </details>
             ))}

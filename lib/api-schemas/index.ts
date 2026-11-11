@@ -26,6 +26,9 @@ import { retentionEndpoints } from './retention-policies'
 import { taskEndpoints } from './tasks'
 import { taskAttachmentEndpoints } from './task-attachments'
 import { taskFollowEndpoints } from './task-follows'
+import { taskViewerEndpoints } from './task-viewers'
+import { taskSubtaskEndpoints } from './task-subtasks'
+import { timelineEndpoints } from './timeline'
 import { workflowActivityEndpoints } from './workflow-activities'
 import { webhookEndpoints } from './webhooks'
 import { workflowEndpoints } from './workflows'
@@ -44,6 +47,9 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...taskEndpoints,
   ...taskAttachmentEndpoints,
   ...taskFollowEndpoints,
+  ...taskViewerEndpoints,
+  ...taskSubtaskEndpoints,
+  ...timelineEndpoints,
   ...agentEndpoints,
   ...decisionTableEndpoints,
   ...dataTableEndpoints,

@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { plural } from '@/lib/format/plural'
 import type { AgentTableGrant, AgentTableOperation } from '@/lib/agent-knowledge'
+import { TableScroll } from '@/components/ui/table'
 
 export interface DataAccessValue {
   mode: 'none' | 'selected' | 'all'
@@ -97,11 +98,11 @@ export function DataGrantsPanel({ value, tables, onChange }: {
         )}
       </div>
       <SearchInput size="sm" value={search} onValueChange={setSearch} placeholder="Search tables to grant…" aria-label="Search data tables" />
-      <div className="max-h-56 overflow-y-auto rounded-md border border-border bg-panel">
+      <TableScroll bare label="Data table grants" frameClassName="rounded-md border border-border bg-panel" className="max-h-56 overflow-y-auto">
         <table className="w-full text-ui">
           <thead>
             <tr className="bg-subtle text-xs text-fg-muted">
-              <th className="px-2 py-1.5 text-left font-medium">Table</th>
+              <th className="min-w-40 px-2 py-1.5 text-left font-medium">Table</th>
               {OPS.map((o) => <th key={o.op} className="w-16 px-1 py-1.5 text-center font-medium" title={o.title}>{o.label}</th>)}
             </tr>
           </thead>
@@ -111,7 +112,7 @@ export function DataGrantsPanel({ value, tables, onChange }: {
               return (
                 <tr key={t.id} className="border-t border-border-subtle hover:bg-subtle">
                   <td className="max-w-0 px-2 py-1.5">
-                    <span className="block truncate text-fg">{t.name}</span>
+                    <span className="block truncate text-fg" title={t.name}>{t.name}</span>
                   </td>
                   {OPS.map((o) => (
                     <td key={o.op} className="text-center">
@@ -124,7 +125,7 @@ export function DataGrantsPanel({ value, tables, onChange }: {
             {tables.length === 0 && <tr><td colSpan={5} className="px-2 py-2 text-xs text-fg-muted">No data tables in this workspace yet.</td></tr>}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <p className="text-xs text-fg-muted">With an acting person, reads also need their data.view permission and writes data.manage_rows. Update and delete touch at most 100 matching rows per call; consider requiring approval for them (Approvals, further down this Tools tab).</p>
     </div>
   )

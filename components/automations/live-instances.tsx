@@ -165,18 +165,18 @@ export function LiveInstancesPanel({ workflowId, initialVersionId, onClose }: { 
             {instances.length === 0 ? (
               <EmptyState size="sm" icon={GitBranch} title={`No live instances${versionFilter ? ' on this version' : ''}`} />
             ) : (
-              <Table>
+              <Table label="Live instances" stickyFirstColumn stickyColumns={2}>
                 <THead>
                   <tr>
                     <TH className="w-8">
                       <Checkbox aria-label="Select all" checked={allSelected} disabled={!canMigrate}
                         onChange={() => setSelected(allSelected ? new Set() : new Set(instances.map((i) => i.run_id)))} />
                     </TH>
-                    <TH>Instance</TH>
-                    <TH>Version</TH>
-                    <TH>Current node</TH>
-                    <TH>Waiting since</TH>
-                    <TH>Assignee</TH>
+                    <TH col="name">Instance</TH>
+                    <TH col="number">Version</TH>
+                    <TH col="name">Current node</TH>
+                    <TH col="date">Waiting since</TH>
+                    <TH col="people">Assignee</TH>
                   </tr>
                 </THead>
                 <TBody>
@@ -236,7 +236,7 @@ function InstanceRow({ instance: i, publishedVersionId, checked, disabled, onTog
       <TD>
         <div className="flex items-center gap-1.5">
           <NodeTypeIcon type={i.current_node_type} />
-          <span className="truncate">{i.current_node_label ?? i.current_node_id ?? '—'}</span>
+          <span className="truncate" title={i.current_node_label ?? i.current_node_id ?? undefined}>{i.current_node_label ?? i.current_node_id ?? '—'}</span>
         </div>
       </TD>
       <TD className="whitespace-nowrap text-fg-muted">
@@ -244,7 +244,7 @@ function InstanceRow({ instance: i, publishedVersionId, checked, disabled, onTog
           <Tooltip content={formatAbsolute(i.waiting_since)}><span>{formatRelative(i.waiting_since)}</span></Tooltip>
         ) : '—'}
       </TD>
-      <TD className={`truncate ${assignee ? 'text-fg' : 'text-fg-muted'}`}>{assignee ?? (i.open_task ? 'Unassigned' : '—')}</TD>
+      <TD className={`whitespace-nowrap ${assignee ? 'text-fg' : 'text-fg-muted'}`}>{assignee ?? (i.open_task ? 'Unassigned' : '—')}</TD>
     </TR>
   )
 }
@@ -525,14 +525,14 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
 
 function PlanTable({ plan }: { plan: MigrationPlan }) {
   return (
-    <Table>
+    <Table label="Migration plan">
       <THead>
         <tr>
-          <TH>Instance</TH>
-          <TH>Now</TH>
-          <TH>Continues at (v{plan.to_version.version_number})</TH>
-          <TH>Closes</TH>
-          <TH>Notes</TH>
+          <TH col="name">Instance</TH>
+          <TH col="name">Now</TH>
+          <TH col="name">Continues at (v{plan.to_version.version_number})</TH>
+          <TH col="status">Closes</TH>
+          <TH col="text">Notes</TH>
         </tr>
       </THead>
       <TBody>

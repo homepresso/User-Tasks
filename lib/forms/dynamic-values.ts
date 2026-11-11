@@ -78,6 +78,12 @@ interface SourceShape {
   anonymous_read?: boolean
   /** options: refuse a submitted value outside the resolved list (default true). */
   restrict?: boolean
+  /**
+   * Cascades: when a form field the source reads is empty (Country not chosen
+   * yet), `clear` (default) offers no options without asking the source;
+   * `keep` leaves the options as they were.
+   */
+  when_inputs_blank?: 'clear' | 'keep'
 }
 
 export interface ExprBinding { kind: 'expr'; expr: string; expects?: DynamicValueType }
@@ -146,7 +152,7 @@ export function fieldPropType(field: FieldLike, prop: string): DynamicValueType 
     case 'placeholder':
       return TEXT_LIKE.has(t) || t === 'number' || t === 'currency' || t === 'date' || t === 'lookup' || t === 'user' || (t === 'choice' && field.display !== 'radio') ? 'string' : null
     case 'default':
-      if (t === 'attachments' || t === 'custom' || t === 'data_table' || t === 'lookup') return null
+      if (t === 'attachments' || t === 'custom' || t === 'data_table' || t === 'lookup' || t === 'list') return null
       return t === 'multi_choice' ? 'string_list' : t === 'number' || t === 'currency' ? 'number' : t === 'boolean' ? 'boolean' : t === 'date' ? 'date' : 'string'
     case 'options': return t === 'choice' || t === 'multi_choice' ? 'options' : null
     case 'min': case 'max': return t === 'number' || t === 'currency' || t === 'multi_choice' ? 'number' : null
@@ -236,6 +242,7 @@ function normalizeShape(kind: 'table' | 'reference', src: Record<string, unknown
   if (limit !== undefined) out.limit = limit
   if (src.anonymous_read === true) out.anonymous_read = true
   if (src.restrict === false) out.restrict = false
+  if (src.when_inputs_blank === 'keep') out.when_inputs_blank = 'keep'
 }
 
 /** Clean one stored binding (null when it can't be used). */
@@ -352,6 +359,35 @@ export function bindingDependencies(binding: DynamicBinding): string[] {
  */
 export function bindingInputs(binding: DynamicBinding, values: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(bindingDependencies(binding).map((k) => [k, values[k] ?? null]))
+}
+
+/**
+ * Cascading options: a source binding whose form-field inputs include an
+ * empty one (the parent isn't chosen) — the dependent offers no options
+ * (`clear`, default) or keeps what it had (`keep`); null = ask the source.
+ */
+export function blankInputsBehaviour(binding: DynamicBinding, values: Record<string, unknown>): 'clear' | 'keep' | null {
+  if (binding.kind === 'expr') return null
+  const fieldDeps = bindingDependencies(binding).filter((k) => k !== FORM_PARAMS_KEY && k !== FORM_VARS_KEY && k !== CONTROLS_KEY)
+  const blank = fieldDeps.some((k) => { const v = values[k]; return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) })
+  return blank ? binding.when_inputs_blank ?? 'clear' : null
+}
+
+/**
+ * The value a dependent choice keeps once its options changed: a value no
+ * longer offered is cleared (null; a multi-select keeps the offered ones);
+ * undefined = unchanged (valid, or nothing to judge).
+ */
+export function staleChoiceValue(type: string, value: unknown, options: unknown): unknown {
+  if (!Array.isArray(options)) return undefined
+  const offered = new Set(options.map((o) => String(isPlainObject(o) ? o.value : o)))
+  if (type === 'multi_choice') {
+    const list = Array.isArray(value) ? value.map(String) : []
+    const kept = list.filter((v) => offered.has(v))
+    return kept.length === list.length ? undefined : kept
+  }
+  if (value === undefined || value === null || value === '') return undefined
+  return offered.has(String(value)) ? undefined : null
 }
 
 /** Whether a binding reads {{user.*}} (resolved in the browser from the signed-in user). */

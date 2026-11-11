@@ -170,7 +170,7 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
         {index.error && <InlineNotice tone="error" message={(index.error as Error).message} />}
         {error && <InlineNotice tone="error" message={error} />}
         <ul className="grid gap-3 sm:grid-cols-2">
-          {packages.map((p) => {
+          {packages.map((p, index) => {
             const origin = p.source ?? 'official'
             const installed = installedUids.has(p.id)
             return (
@@ -211,7 +211,7 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
                 </p>
                 <div className="mt-auto flex items-center justify-end gap-2 pt-1">
                   <Button asChild size="sm" variant="ghost"><a href={/^https?:\/\//.test(p.page) ? p.page : `${SITE}${p.page}`} target="_blank" rel="noreferrer">Details</a></Button>
-                  <Button size="sm" variant={installed ? 'secondary' : 'primary'} leadingIcon={<Download />} disabled={loading !== null} loading={loading === p.slug} onClick={() => void pick(p)} data-testid={`gallery-install-${p.slug}`}>
+                  <Button size="sm" variant={installed ? 'secondary' : 'primary'} leadingIcon={<Download />} disabled={loading !== null} loading={loading === p.slug} onClick={() => void pick(p)} data-testid={`gallery-install-${p.slug}`} data-tour={index === 0 ? 'gallery-install' : undefined}>
                     {installed ? 'Reinstall / upgrade' : 'Install'}
                   </Button>
                 </div>

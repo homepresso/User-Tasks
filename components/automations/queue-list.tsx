@@ -15,7 +15,7 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { Badge, StatusPill, Tag } from '@/components/ui/badge'
-import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
+import { Table, TBody, TD, TH, THead, TR, TableDetailCell, Truncate } from '@/components/ui/table'
 import { Card } from '@/components/ui/card'
 import { Tooltip } from '@/components/ui/tooltip'
 import { formatCount } from '@/lib/format/number'
@@ -26,6 +26,7 @@ import { deleteQueueJob } from '@/app/actions/workflow-queue'
 import { runInlineJob, useJobs } from '@/components/jobs/jobs-provider'
 import { serverRead } from '@/lib/server-read'
 import { QUEUE_PAGE_SIZES, type QueueItem } from '@/lib/automations/queue-filters'
+import { TimelineIconButton } from '@/components/timeline/timeline-sheet'
 
 const MigrateInstancesWizard = dynamic(() => import('./live-instances').then((m) => m.MigrateInstancesWizard))
 
@@ -254,6 +255,7 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
         {runId && (
           <LinkIconButton href={`/automations/runs/${runId}`} label="Process view" icon={<Eye />} />
         )}
+        {runId && <TimelineIconButton target={{ runId }} title={wf?.name ?? 'Run'} />}
         {runId && (
           <LinkIconButton href={`/automations/runs/${runId}#logs`} label="View logs" icon={<FileText />} />
         )}
@@ -404,16 +406,17 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
       {paginated.length === 0 ? empty : (
         <>
           {/* Desktop / tablet: the table. */}
-          <Table containerClassName="max-md:hidden">
+          {/* Readable columns that scroll sideways when the space is narrow; the selection box and the workflow name stay in view. */}
+          <Table containerClassName="max-md:hidden" label="Queue items" stickyFirstColumn stickyColumns={2}>
             <THead>
               <tr>
                 <TH className="w-10"><span className="sr-only">Select</span></TH>
-                <TH className="w-px">Status</TH>
-                <TH>Workflow</TH>
-                <TH className="max-xl:hidden">Started by</TH>
-                <TH>Submitted</TH>
-                <TH numeric className="max-xl:hidden">Duration</TH>
-                <TH><span className="sr-only">Actions</span></TH>
+                <TH col="title">Workflow</TH>
+                <TH col="status" className="w-px">Status</TH>
+                <TH col="people">Started by</TH>
+                <TH col="date">Submitted</TH>
+                <TH numeric col="number">Duration</TH>
+                <TH col="actions"><span className="sr-only">Actions</span></TH>
               </tr>
             </THead>
             <TBody>
@@ -430,12 +433,9 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
                       <TD className="w-10">
                         <Checkbox checked={isSelected} aria-label={`Select ${wf?.name ?? 'job'} ${job.id.slice(0, 8)}`} onChange={() => toggleSelected(job.id)} />
                       </TD>
-                      <TD className="w-px whitespace-nowrap">
-                        <StatusPill status={effectiveStatus} tone={effectiveStatus === 'dead' ? 'danger' : undefined} label={statusLabels[effectiveStatus] ?? undefined} />
-                      </TD>
                       <TD className="min-w-48 max-w-0 py-2">
                         <button type="button" className="block w-full min-w-0 text-left" aria-expanded={isExpanded} onClick={() => setExpandedJob(isExpanded ? null : job.id)}>
-                          <span className="block truncate text-ui font-medium text-fg">{wf?.name ?? 'Unknown'}</span>
+                          <span className="block truncate text-ui font-medium text-fg" title={wf?.name ?? undefined}>{wf?.name ?? 'Unknown'}</span>
                           {(runTitle || sla) && (
                             <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
                               {runTitle && <Tag className="min-w-0 max-w-full truncate">{runTitle}</Tag>}
@@ -445,16 +445,19 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
                           <RowSubline job={job} />
                         </button>
                       </TD>
-                      <TD className="max-w-40 truncate text-ui text-fg-muted max-xl:hidden">{job.started_by ? personName(job.started_by) : '—'}</TD>
+                      <TD className="w-px whitespace-nowrap">
+                        <StatusPill status={effectiveStatus} tone={effectiveStatus === 'dead' ? 'danger' : undefined} label={statusLabels[effectiveStatus] ?? undefined} />
+                      </TD>
+                      <TD className="max-w-0 text-ui text-fg-muted">{job.started_by ? <Truncate text={personName(job.started_by)} /> : '—'}</TD>
                       <TD className="whitespace-nowrap text-ui text-fg-muted">
                         <Tooltip content={formatAbsolute(job.created_at)}>
                           <span>{formatRelative(job.created_at)}</span>
                         </Tooltip>
                         <div className="text-2xs">{job.trigger_type ? humanize(job.trigger_type) : '—'}</div>
                       </TD>
-                      <TD numeric className="whitespace-nowrap text-ui text-fg-muted max-xl:hidden">{duration ?? '—'}</TD>
+                      <TD numeric className="whitespace-nowrap text-ui text-fg-muted">{duration ?? '—'}</TD>
                       <TD className="w-px whitespace-nowrap text-right">
-                        <div className="inline-flex items-center gap-0.5">
+                        <div className="inline-flex flex-nowrap items-center gap-0.5">
                           {renderActions(job)}
                           <IconButton size="sm" label={isExpanded ? 'Collapse' : 'Details'} icon={isExpanded ? <ChevronUp /> : <ChevronDown />}
                             aria-expanded={isExpanded} onClick={() => setExpandedJob(isExpanded ? null : job.id)} />
@@ -463,7 +466,7 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
                     </TR>
                     {isExpanded && (
                       <tr className="border-b border-border-subtle last:border-b-0">
-                        <td colSpan={7} className="px-3 pb-3">{renderDetails(job, duration, sla)}</td>
+                        <TableDetailCell colSpan={7} className="px-3 pb-3">{renderDetails(job, duration, sla)}</TableDetailCell>
                       </tr>
                     )}
                   </Fragment>

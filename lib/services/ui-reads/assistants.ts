@@ -31,7 +31,9 @@ export const reads = {
    * setting, in the task's workspace — a task the person can't see gets no
    * task / form help). area: the screen's area for the person's Agent
    * profile (lib/assistants/profiles.ts) — its panel name and starters come
-   * back as `profile` (never its instructions).
+   * back as `profile` (never its instructions). `dictation`: the panel's
+   * microphone settings (engine, language, whether a transcription provider is
+   * set up, auto-send) — never a connection id.
    */
   'assistants.availability': defineRead({
     args: z.object({ formId: id.optional(), taskId: id.optional(), area: z.enum(PROFILE_AREAS).optional() }).optional(),
@@ -40,15 +42,15 @@ export const reads = {
       // One conversation per person and session workspace, whatever screen (or task's workspace) is open.
       const history_key = ctx.actorId ? agentHistoryKey(ctx.actorId, ctx.tenantId) : null
       if (args?.taskId) {
-        const base = await getAssistantAvailability(ctx, { area: 'tasks' })
+        const base = await getAssistantAvailability(ctx, { area: 'tasks', dictation: true })
         const { data: task } = await (getDb(ctx) as any).from('tasks').select('tenant_id').eq('id', args.taskId).maybeSingle()
         if (!task?.tenant_id) return { ...base, task: false, form: false, form_read: false, history_key }
         const taskCtx = String(task.tenant_id) === ctx.tenantId ? ctx : await fromSession({ tenantId: String(task.tenant_id) })
         const onTask = taskCtx === ctx ? await getAssistantAvailability(ctx, { taskId: args.taskId }) : await getAssistantAvailability(taskCtx, { taskId: args.taskId })
         // The button follows the session workspace; task / form help the task's workspace.
-        return { ...onTask, agent: base.agent || onTask.agent, designer: base.designer, history_key }
+        return { ...onTask, agent: base.agent || onTask.agent, designer: base.designer, dictation: base.dictation ?? null, history_key }
       }
-      return { ...(await getAssistantAvailability(ctx, { formId: args?.formId ?? null, area: args?.area ?? null })), history_key }
+      return { ...(await getAssistantAvailability(ctx, { formId: args?.formId ?? null, area: args?.area ?? null, dictation: true })), history_key }
     },
   }),
 }

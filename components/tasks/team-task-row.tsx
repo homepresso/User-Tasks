@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select"
 import { Badge, StatusPill } from "@/components/ui/badge"
 import { PriorityBadge } from "@/components/ui/priority-badge"
 import { Tooltip } from "@/components/ui/tooltip"
-import { TD, TR, tdClass } from "@/components/ui/table"
+import { TD, TR, TableDetailCell, Truncate, tdClass } from "@/components/ui/table"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { RelativeTime } from "@/components/activity/relative-time"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -20,6 +20,8 @@ import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import { rowProgress } from "@/lib/tasks/list-sort"
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
 import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
+import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
+import { AssignTaskDialog } from "@/components/tasks/assign-task"
 
 /**
  * One task of a report (My team, and the reporting-line view on My team and
@@ -50,6 +52,7 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [picking, setPicking] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const mobile = useIsMobile()
   const baseId = useId()
@@ -89,6 +92,7 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
           actions={(
             <>
               {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            {task.workflow_run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
               <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
             </>
           )}
@@ -122,14 +126,14 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
           <button ref={toggleRef} type="button" aria-expanded={expanded} aria-controls={expanded ? panelId : undefined}
             onClick={(e) => { e.stopPropagation(); toggle() }} className="flex w-full min-w-0 items-center gap-2 rounded-sm text-left" data-task-toggle>
             <ChevronDown className={cn("size-3.5 shrink-0 text-fg-subtle transition-transform duration-[var(--ds-dur-fast)] motion-reduce:transition-none", !expanded && "-rotate-90")} aria-hidden />
-            <span className={cn("truncate font-medium text-fg", closed && "text-fg-muted line-through")}>{task.title}</span>
+            <span className={cn("truncate font-medium text-fg", closed && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             {task.sla_breached && <Badge tone="danger"><AlertTriangle className="size-3" aria-hidden /> SLA</Badge>}
           </button>
-          {secondary.length > 0 && <p className="mt-0.5 truncate pl-[22px] text-xs text-fg-muted">{secondary.join(" · ")}</p>}
+          {secondary.length > 0 && <p className="mt-0.5 truncate pl-[22px] text-xs text-fg-muted" title={secondary.join(" · ")}>{secondary.join(" · ")}</p>}
         </TD>
-        <TD className="max-w-0 truncate text-fg-muted">{teamPersonName(task.assignee)}</TD>
-        <TD><StatusPill status={task.status} /></TD>
-        <TD>{task.priority ? <PriorityBadge priority={task.priority} /> : <span className="text-fg-subtle">—</span>}</TD>
+        <TD className="max-w-0 text-fg-muted"><Truncate text={teamPersonName(task.assignee)} /></TD>
+        <TD className="whitespace-nowrap"><StatusPill status={task.status} /></TD>
+        <TD className="whitespace-nowrap">{task.priority ? <PriorityBadge priority={task.priority} /> : <span className="text-fg-subtle">—</span>}</TD>
         <TD>
           <span className="flex items-center gap-2">
             <ProgressBar value={progress} className="w-12 shrink-0" label={`${progress}% complete`} />
@@ -139,7 +143,7 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
         <TD numeric className={task.is_overdue ? "text-danger" : "text-fg-muted"}>
           {task.due_date ? (
             <Tooltip content={formatAbsolute(task.due_date)}>
-              <span className="inline-flex items-center justify-end gap-1">
+              <span className="inline-flex items-center justify-end gap-1 whitespace-nowrap">
                 {task.is_overdue && <Clock className="size-3.5" aria-hidden />}
                 {task.is_overdue && <span className="sr-only">Overdue: </span>}
                 {formatRelative(task.due_date)}
@@ -151,6 +155,7 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
         <td className={cn(tdClass, "w-px whitespace-nowrap px-1 text-right")} onClick={(e) => e.stopPropagation()}>
           <span className="inline-flex items-center gap-0.5">
             {task.workflow_run_id && <ProcessViewIconLink runId={task.workflow_run_id} title={task.title} />}
+            {task.workflow_run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
             <Tooltip content="Open task">
               <Link href={`/tasks/${task.id}`} aria-label={`Open ${task.title}`}
                 className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-muted hover:text-fg">
@@ -160,7 +165,7 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
           </span>
         </td>
         <td className={cn(tdClass, "w-px whitespace-nowrap text-right")} onClick={(e) => e.stopPropagation()}>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex flex-nowrap items-center gap-1">
             <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
             {!readOnly && !closed && (
               <Button asChild size="sm" variant="ghost">
@@ -175,36 +180,33 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
       </TR>
       {expanded && (
         <tr className="border-b border-border-subtle bg-subtle last:border-b-0" data-team-task-panel={task.id}>
-          <td colSpan={TEAM_TASK_COLUMNS} className="px-4 pb-4 pt-1 pl-9">
+          <TableDetailCell colSpan={TEAM_TASK_COLUMNS} className="px-4 pb-4 pt-1 pl-9">
             <TaskDetailPanel id={panelId} taskId={task.id} title={task.title} onClose={() => { setExpanded(false); toggleRef.current?.focus() }} />
-          </td>
+          </TableDetailCell>
         </tr>
       )}
       {mobile ? (
         <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} />
       ) : actionsOpen && (
         <tr className="border-b border-border-subtle" data-task-actions-row>
-          <td colSpan={TEAM_TASK_COLUMNS} className="p-0">
+          <TableDetailCell colSpan={TEAM_TASK_COLUMNS}>
             <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false} taskId={task.id} title={task.title} />
-          </td>
+          </TableDetailCell>
         </tr>
       )}
       {reassigning && !readOnly && (
         <tr className="border-b border-border-subtle bg-subtle last:border-b-0">
-          <td colSpan={TEAM_TASK_COLUMNS} className="px-[var(--theme-density-cell-x)] py-2">
+          <TableDetailCell colSpan={TEAM_TASK_COLUMNS} className="px-[var(--theme-density-cell-x)] py-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Select size="sm" wrapperClassName="w-auto" value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Reassign to">
-                <option value="">Reassign to…</option>
-                {targets.filter((p) => p.id !== task.assignee_id).map((p) => <option key={p.id} value={p.id}>{teamPersonName(p)}</option>)}
-              </Select>
-              <Input size="sm" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Comment (optional)" aria-label="Comment" className="min-w-[12rem] flex-1" />
-              <Button size="sm" disabled={busy || !target} onClick={() => void reassign(false)}>Reassign</Button>
+              {/* Anyone in the workspace (or a team): the same picker as the Active tasks tab; the server checks manager / admin rights. */}
+              <Button size="sm" disabled={busy} onClick={() => setPicking(true)}>Reassign to…</Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => void reassign(true)}>Take it myself</Button>
               {message && <span role="alert" className="text-xs text-danger">{message}</span>}
             </div>
-          </td>
+          </TableDetailCell>
         </tr>
       )}
+      {picking && <AssignTaskDialog taskIds={[task.id]} open={picking} onOpenChange={setPicking} title={task.title} currentAssignee={teamPersonName(task.assignee)} onDone={() => { setPicking(false); onDone() }} />}
     </>
   )
 }

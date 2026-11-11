@@ -3,7 +3,7 @@
 //
 //   node scripts/build-worker.mjs [outfile]      (default .next/standalone/worker.cjs)
 //
-// App code (@/…, relative imports, the @usertasks/* workspace packages that
+// App code (@/…, relative imports, the @user-tasks/* workspace packages that
 // ship as TypeScript) is bundled; a package stays external only when the
 // standalone node_modules next to the output can load it, otherwise it is
 // bundled too (scripts/standalone-externals.mjs).

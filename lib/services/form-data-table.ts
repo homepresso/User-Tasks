@@ -428,7 +428,9 @@ export async function resolveDataTableValues(
         out[field.key] = keys.filter((k) => found.has(k)).map((k) => found.get(k)!.values)
         continue
       }
-      const { changes, errors: problems } = validateChangeSet(config, values[field.key])
+      const { changes, errors: problems, warnings } = validateChangeSet(config, values[field.key])
+      // Read-only cells the browser sent changed: dropped (the stored value stays), and noted.
+      if (warnings.length) console.warn(`[forms.dataTable] ${field.key}: ${warnings.slice(0, 5).join('; ')}`)
       if (problems.length) { errors[field.key] = `${field.label}: ${problems.slice(0, 3).join('; ')}`; continue }
       if (config.source === 'table') {
         const keys = [...changes.updated.map((u) => u.key), ...changes.deleted.map((d) => d.key)]

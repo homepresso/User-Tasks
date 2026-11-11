@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { UsertasksApiError, UsertasksNetworkError } from '@usertasks/sdk'
+import { UsertasksApiError, UsertasksNetworkError } from '@user-tasks/sdk'
 import { CliAuthError, CliUsageError, EXIT, exitCodeFor } from '../src/exit-codes'
 import { harness } from './helpers'
 

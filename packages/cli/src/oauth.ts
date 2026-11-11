@@ -24,7 +24,7 @@ import {
   type AuthorizationServerMetadata,
   type OAuthTokenStore,
   type OAuthTokens,
-} from '@usertasks/sdk'
+} from '@user-tasks/sdk'
 import type { ConfigStore, OAuthCredentials, Profile } from './config'
 import { CliAuthError } from './exit-codes'
 

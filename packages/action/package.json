@@ -1,5 +1,5 @@
 {
-  "name": "@usertasks/action",
+  "name": "@user-tasks/action",
   "version": "0.1.0",
   "description": "Build UserTasks custom workflow actions: the contract types, defineAction and a local test runner (the same QuickJS sandbox the app uses)",
   "keywords": [

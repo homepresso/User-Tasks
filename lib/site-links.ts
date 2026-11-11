@@ -21,5 +21,5 @@ export function repositoryUrl(): string | null {
 /** Shown where a repository call to action would otherwise sit. */
 export const SOURCE_RELEASE_NOTE = 'Open source (Apache-2.0) — source release coming at launch'
 
-export const CLI_PACKAGE = '@usertasks/cli'
-export const SDK_PACKAGE = '@usertasks/sdk'
+export const CLI_PACKAGE = '@user-tasks/cli'
+export const SDK_PACKAGE = '@user-tasks/sdk'

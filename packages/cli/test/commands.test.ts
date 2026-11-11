@@ -286,3 +286,17 @@ describe('workspace-theme commands', () => {
     expect(h.requests[0].url.pathname).toBe('/api/v1/workspace-theme')
   })
 })
+
+describe('forms import-infopath', () => {
+  it('is generated from POST /forms/import/infopath', () => {
+    const spec = COMMAND_SPECS.find((s) => s.resource === 'forms' && s.verb === 'import-infopath')
+    expect(spec).toMatchObject({ method: 'POST', path: '/forms/import/infopath' })
+    expect(spec!.body!.fields.map((f) => f.name)).toEqual(expect.arrayContaining(['file_base64', 'file_name', 'dry_run', 'mode', 'existing', 'create_table']))
+  })
+
+  it('reads a binary file as base64 with key=@@path', async () => {
+    const { applyAssignments } = await import('../src/input')
+    const body = await applyAssignments(undefined, ['file_base64=@@form.xsn', 'dry_run:=true'], async () => 'text', async (path) => `B64(${path})`)
+    expect(body).toEqual({ file_base64: 'B64(form.xsn)', dry_run: true })
+  })
+})

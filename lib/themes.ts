@@ -77,6 +77,8 @@ export const THEMES: Theme[] = [
     id: "basecamp",
     name: "Gallery",
     description: "Warm white canvas, ink-black actions and sidebar, camel accents — striking and professional",
+    // New workspaces start in light mode; switch to "Follow each member's setting" in the theme designer.
+    mode: "light",
     colors: {
       primary: "#17150F",
       primaryHover: "#2E2A24",

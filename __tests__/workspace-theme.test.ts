@@ -255,6 +255,7 @@ describe('contrast checks', () => {
 
   it('blocks near-invisible core text (below 3:1), warns below the AA target', () => {
     const t = defaultWorkspaceTheme()
+    t.meta.mode = 'auto'
     t.colors.light.onPrimary = '#1A1A1A'
     t.colors.dark.sidebarText = t.colors.dark.sidebar
     t.colors.light.mutedText = '#BBBBBB'
@@ -276,6 +277,7 @@ describe('contrast checks', () => {
 
   it('checks text against every gradient stop of the sidebar and topbar, in each mode', () => {
     const t = defaultWorkspaceTheme()
+    t.meta.mode = 'auto'
     t.chrome.topbar = { style: 'gradient', gradient: { angle: 90, stops: [{ color: '#FFFFFF', at: 0 }, { color: '#EDE9FE', at: 100 }] } }
     t.colors.dark.topbarText = '#F3F4F6'
     t.chrome.sidebar.style = 'gradient'
@@ -308,6 +310,11 @@ describe('provider resolution', () => {
 
   it('follows the OS unless the theme forces a mode; data-theme-mode follows the canvas', () => {
     const gallery = presetToWorkspaceTheme('basecamp')!
+    // The default starts in light mode, even on a dark OS.
+    expect(gallery.meta.mode).toBe('light')
+    expect(resolvePaletteMode(gallery, true)).toBe('light')
+    expect(canvasMode(gallery, true)).toBe('light')
+    gallery.meta.mode = 'auto'
     expect(resolvePaletteMode(gallery, true)).toBe('dark')
     // Gallery has a dark palette: Follow device turns the canvas dark.
     expect(canvasMode(gallery, true)).toBe('dark')

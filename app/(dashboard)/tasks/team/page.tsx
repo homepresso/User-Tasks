@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { StatCard, StatGrid } from "@/components/ui/stat-card"
 import { Tooltip } from "@/components/ui/tooltip"
-import { Table, TBody, TD, TH, THead, TR, TableEmpty, tdClass } from "@/components/ui/table"
+import { Table, TBody, TD, TH, THead, TR, TableDetailCell, TableEmpty, tdClass } from "@/components/ui/table"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { RelativeTime } from "@/components/activity/relative-time"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -260,18 +260,18 @@ export default function MyTeamPage() {
           filters={{ status: filters.status, includeClosed: filters.includeClosed, priority, search: debouncedSearch }} />
       ) : (
       <>
-      <Table>
+      <Table label="Team tasks" stickyFirstColumn>
         <THead className={isMobile ? "hidden" : undefined}>
           <tr>
-            <SortableTH sortKey="title" sort={sort} onSort={toggleSort}>Task</SortableTH>
-            <SortableTH sortKey="assignee" sort={sort} onSort={toggleSort} className="w-36">Assignee</SortableTH>
-            <SortableTH sortKey="status" sort={sort} onSort={toggleSort} className="w-32">Status</SortableTH>
-            <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} className="w-28">Priority</SortableTH>
-            <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28">Progress</SortableTH>
-            <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric className="w-32">Due</SortableTH>
-            <SortableTH sortKey="updated" sort={sort} onSort={toggleSort} numeric className="w-28">Updated</SortableTH>
-            <TH className="w-px"><span className="sr-only">Open</span></TH>
-            <TH className="w-px"><span className="sr-only">Actions</span></TH>
+            <SortableTH sortKey="title" sort={sort} onSort={toggleSort} col="title">Task</SortableTH>
+            <SortableTH sortKey="assignee" sort={sort} onSort={toggleSort} col="people" className="w-36">Assignee</SortableTH>
+            <SortableTH sortKey="status" sort={sort} onSort={toggleSort} col="status" className="w-32">Status</SortableTH>
+            <SortableTH sortKey="priority" sort={sort} onSort={toggleSort} col="status" className="w-28">Priority</SortableTH>
+            <SortableTH sortKey="progress" sort={sort} onSort={toggleSort} className="w-28 min-w-28">Progress</SortableTH>
+            <SortableTH sortKey="due" sort={sort} onSort={toggleSort} numeric col="date" className="w-32">Due</SortableTH>
+            <SortableTH sortKey="updated" sort={sort} onSort={toggleSort} numeric col="date" className="w-28">Updated</SortableTH>
+            <TH col="actions"><span className="sr-only">Open</span></TH>
+            <TH col="actions"><span className="sr-only">Actions</span></TH>
           </tr>
         </THead>
         <TBody>
@@ -284,7 +284,7 @@ export default function MyTeamPage() {
               return (
                 <Fragment key={w.user.id}>
                   <tr className="border-b border-border-subtle bg-subtle" data-team-group={w.user.id}>
-                    <td colSpan={COLUMNS} className="p-0">
+                    <TableDetailCell colSpan={COLUMNS}>
                       <button type="button" aria-expanded={!collapsed[w.user.id]}
                         className="flex h-8 w-full items-center justify-between gap-3 px-[var(--theme-density-cell-x)] text-xs font-medium text-fg-muted hover:text-fg"
                         onClick={() => setCollapsed((c) => ({ ...c, [w.user.id]: !c[w.user.id] }))}>
@@ -294,7 +294,7 @@ export default function MyTeamPage() {
                         </span>
                         <span className="num">{plural(rows.length, "task")}{overdueCount ? <span className="text-danger"> · {formatCount(overdueCount)} overdue</span> : null}</span>
                       </button>
-                    </td>
+                    </TableDetailCell>
                   </tr>
                   {!collapsed[w.user.id] && rows.map((t) => <TeamTaskRow key={t.id} {...rowProps(t)} />)}
                 </Fragment>

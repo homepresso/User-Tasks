@@ -129,12 +129,12 @@ export function EmailTemplateManager() {
       {!isLoading && data.length === 0 ? (
         <EmptyState icon={Mail} title="No email templates yet" description="Create reusable HTML content for workflow emails and user-task notifications." action={{ label: 'New email template', onClick: () => setEditing(null) }} />
       ) : (
-        <Table>
+        <Table label="Email templates">
           <THead>
             <tr>
-              <TH>Template</TH>
-              <TH className="w-32">Updated</TH>
-              <TH className="w-px"><span className="sr-only">Actions</span></TH>
+              <TH col="title">Template</TH>
+              <TH col="date" className="w-32">Updated</TH>
+              <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
           <TBody>
@@ -145,14 +145,14 @@ export function EmailTemplateManager() {
                     <Mail size={16} className="shrink-0 text-fg-muted" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate font-medium text-fg">{row.name}</p>
+                        <p className="truncate font-medium text-fg" title={row.name}>{row.name}</p>
                         {row.is_default && <Badge tone="brand">Default</Badge>}
                       </div>
-                      <p className="truncate text-xs text-fg-muted">{row.subject}</p>
+                      <p className="truncate text-xs text-fg-muted" title={row.subject}>{row.subject}</p>
                     </div>
                   </div>
                 </TD>
-                <TD className="text-xs text-fg-muted">
+                <TD className="whitespace-nowrap text-xs text-fg-muted">
                   <Tooltip content={formatAbsolute(row.updated_at)}><span className="num">{formatRelative(row.updated_at)}</span></Tooltip>
                 </TD>
                 <TDActions>

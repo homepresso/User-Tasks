@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Tabs } from "@/components/ui/tabs"
 import { Tooltip } from "@/components/ui/tooltip"
+import { TableScroll } from "@/components/ui/table"
 import { serverQuery } from "@/lib/server-read"
 import { usePermissions } from "@/lib/permissions-context"
 import { setHomePreferences } from "@/app/actions/home"
@@ -34,6 +35,7 @@ import { formHref } from "@/lib/forms/form-page-url"
 import type { FollowedRun, HomeTask, MySubmission } from "@/lib/services/home"
 import { QueuedTaskActions, TaskStatusPill } from "@/components/tasks/queued-task-actions"
 import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
+import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
 import { QueueRulesButton } from "@/components/tasks/queue-rules-dialog"
@@ -90,14 +92,49 @@ function useHomeList<T>(name: "home.myTasks" | "home.following" | "home.submissi
   })
 }
 
-function ListFrame({ header, children, toolbar }: { header?: React.ReactNode; children: React.ReactNode; toolbar: React.ReactNode }) {
+/**
+ * A list's column tracks with a readable minimum each: `[min, fr]` grows
+ * from `min` rem, a number is a fixed width in rem. Gives the grid template
+ * and the narrowest the list gets (tracks + 0.75rem gaps + 1rem padding a
+ * side) — below that it scrolls sideways instead of squashing its columns.
+ */
+export function listColumns(tracks: Array<number | [min: number, fr: number]>): { cols: string; minWidth: string } {
+  const cols = tracks.map((t) => typeof t === "number" ? `${t}rem` : `minmax(${t[0]}rem,${t[1]}fr)`).join(" ")
+  const min = tracks.reduce<number>((sum, t) => sum + (typeof t === "number" ? t : t[0]), 0) + 0.75 * (tracks.length - 1) + 2
+  return { cols, minWidth: `${min}rem` }
+}
+
+/** States that span the list (loading, empty, error): stay in view while it scrolls. */
+function Span({ children }: { children: React.ReactNode }) {
+  return <div className="ds-table-detail">{children}</div>
+}
+
+/**
+ * The list's frame. From md up the rows are a grid with readable column
+ * minimums; when the space is narrower (sidebar, docked Agent, a small
+ * window) the list scrolls sideways in its own region — the item name stays
+ * in view — instead of squashing. Phones stack each row as a card.
+ */
+function ListFrame({ header, children, toolbar, footer, minWidth, label }: {
+  header?: React.ReactNode
+  children: React.ReactNode
+  toolbar: React.ReactNode
+  footer?: React.ReactNode
+  minWidth: string
+  label: string
+}) {
   return (
     <div className="space-y-2">
       <div className="flex flex-col gap-2 @xl:flex-row @xl:items-center @xl:justify-between">{toolbar}</div>
-      {/* Not overflow-hidden: the View stage popover may extend past the list. */}
+      {/* The View stage popover is portalled, so the scroll region never clips it. */}
       <div className="rounded-lg border border-border bg-panel text-fg">
-        {header}
-        {children}
+        <TableScroll bare label={label} stickyFirstColumn frameClassName="rounded-[inherit]">
+          <div className="md:min-w-[var(--list-min)]" style={{ "--list-min": minWidth } as React.CSSProperties} data-home-list>
+            {header}
+            {children}
+          </div>
+        </TableScroll>
+        {footer}
       </div>
     </div>
   )
@@ -119,25 +156,33 @@ function HeaderRow<K extends string>({ cols, labels, sortKeys, sort, onSort }: {
 }) {
   const sortable = Boolean(sortKeys && onSort)
   return (
-    <div className="hidden h-8 items-center rounded-t-[calc(var(--ds-radius-md)-1px)] bg-primary px-4 text-xs font-medium text-primary-fg @2xl:grid @2xl:gap-3"
+    <div className="hidden h-8 items-center rounded-t-[calc(var(--ds-radius-md)-1px)] bg-primary px-4 text-xs font-medium text-primary-fg md:grid md:gap-3"
       style={{ gridTemplateColumns: cols }} aria-hidden={sortable ? undefined : true} role={sortable ? "group" : undefined}
       aria-label={sortable ? "Sort the list" : undefined} data-home-list-header>
       {labels.map((l, i) => {
         const key = sortKeys?.[i]
+        // The first column stays in view while the list scrolls sideways.
+        const first = i === 0 ? { "data-sticky-cell": "", className: cn("truncate", stickyCellClass, "flex items-center self-stretch bg-primary") } : { className: "truncate" }
         return key && onSort
-          ? <span key={`${l}-${i}`} className="truncate"><SortButton sortKey={key} sort={sort ?? null} onSort={onSort} className="text-primary-fg hover:text-primary-fg">{l}</SortButton></span>
-          : <span key={`${l}-${i}`} className="truncate" aria-hidden>{l}</span>
+          ? <span key={`${l}-${i}`} {...first}><SortButton sortKey={key} sort={sort ?? null} onSort={onSort} className="text-primary-fg hover:text-primary-fg">{l}</SortButton></span>
+          : <span key={`${l}-${i}`} {...first} aria-hidden>{l}</span>
       })}
     </div>
   )
 }
 
 function Mobile({ label }: { label: string }) {
-  return <span className="mr-1 text-fg-muted @2xl:hidden">{label}:</span>
+  return <span className="mr-1 text-fg-muted md:hidden">{label}:</span>
 }
 
+/**
+ * The row's first cell, kept in view while the list scrolls sideways (md
+ * up): it covers the row's left padding and takes the row's background.
+ */
+const stickyCellClass = "md:-my-1.5 md:-ml-4 md:py-1.5 md:pl-4 md:min-w-0"
+
 function ErrorRow({ message }: { message: string }) {
-  return <EmptyState size="sm" variant="error" title="This list couldn’t be loaded" description={message} />
+  return <Span><EmptyState size="sm" variant="error" title="This list couldn’t be loaded" description={message} /></Span>
 }
 
 /* ── Task rows (My tasks) ───────────────────────────────────────────── */
@@ -175,11 +220,13 @@ function OpenFormButton({ task }: { task: HomeTask }) {
  */
 function Disclosure({ open, onToggle, controls, title, ref }: { open: boolean; onToggle: () => void; controls: string; title: string; ref?: React.Ref<HTMLButtonElement> }) {
   return (
-    <button ref={ref} type="button" onClick={onToggle} aria-expanded={open} aria-controls={open ? controls : undefined}
-      className="flex min-w-0 items-center gap-1.5 rounded-sm text-left font-medium text-fg" data-home-task-toggle>
-      <ChevronRight className={cn("size-3.5 shrink-0 text-fg-muted transition-transform duration-[var(--ds-dur-fast)]", open && "rotate-90")} aria-hidden="true" />
-      <span className="truncate">{title}</span>
-    </button>
+    <span data-sticky-cell className={cn("flex min-w-0 items-center self-stretch", stickyCellClass)}>
+      <button ref={ref} type="button" onClick={onToggle} aria-expanded={open} aria-controls={open ? controls : undefined}
+        className="flex min-w-0 items-center gap-1.5 rounded-sm text-left font-medium text-fg" data-home-task-toggle title={title}>
+        <ChevronRight className={cn("size-3.5 shrink-0 text-fg-muted transition-transform duration-[var(--ds-dur-fast)]", open && "rotate-90")} aria-hidden="true" />
+        <span className="truncate">{title}</span>
+      </button>
+    </span>
   )
 }
 
@@ -203,8 +250,9 @@ function TaskRow({ task, cols, children, rowAttr, onNotice }: { task: HomeTask; 
         onClick={(e) => { if (!(e.target as HTMLElement).closest("a, button, input, select, [role='dialog']")) setOpen((v) => !v) }}>
         <Disclosure ref={toggleRef} open={open} onToggle={() => setOpen((v) => !v)} controls={detailsId} title={task.title} />
         {children}
-        <span className="flex items-center gap-0.5 @2xl:justify-end">
+        <span className="flex flex-nowrap items-center gap-0.5 md:justify-end">
           {task.run_id && <ProcessViewIconLink runId={task.run_id} title={task.title} />}
+          {task.run_id && <TimelineIconButton target={{ taskId: task.id }} title={task.title} />}
           <OpenFormButton task={task} />
           <TaskQuickActionsToggle open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} controls={actionsId} title={task.title} />
         </span>
@@ -218,9 +266,11 @@ function TaskRow({ task, cols, children, rowAttr, onNotice }: { task: HomeTask; 
           </SheetContent>
         </Sheet>
       ) : open && (
-        <div className="border-t border-border-subtle bg-subtle px-4 py-3" data-home-task-details={task.id}>
-          <TaskDetailPanel id={detailsId} taskId={task.id} title={task.title} compact
-            onClose={() => { setOpen(false); toggleRef.current?.focus() }} />
+        <div className="border-t border-border-subtle bg-subtle" data-home-task-details={task.id}>
+          <div className="ds-table-detail px-4 py-3">
+            <TaskDetailPanel id={detailsId} taskId={task.id} title={task.title} compact
+              onClose={() => { setOpen(false); toggleRef.current?.focus() }} />
+          </div>
         </div>
       )}
       <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile={mobile}
@@ -231,7 +281,9 @@ function TaskRow({ task, cols, children, rowAttr, onNotice }: { task: HomeTask; 
 
 /* ── My tasks (queued included) ──────────────────────────────────────── */
 
-const TASK_COLS = "minmax(0,2.2fr) minmax(0,1.2fr) minmax(0,1.1fr) minmax(0,1fr) 6rem minmax(0,1.7fr) minmax(0,0.8fr) 9.5rem"
+// Task, Process, Stage / team, Due / SLA, Priority, Status, Assigned, actions.
+const TASK_LIST = listColumns([[16, 2.2], [10, 1.2], [9, 1.1], [8, 1], 6, [9, 1.7], [7, 0.8], 7.5])
+const TASK_COLS = TASK_LIST.cols
 
 /**
  * My tasks: everything assigned to me plus what waits for my response —
@@ -265,7 +317,8 @@ export function MyTasksTab() {
     ...(sort ? { columnSort: sort } : {}), ...(showCompleted && show === "all" ? { includeClosed: true } : {}),
   })
   return (
-    <ListFrame
+    <ListFrame minWidth={TASK_LIST.minWidth} label="My tasks"
+      footer={data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
       toolbar={<>
         <SearchBox value={search} onChange={setSearch} placeholder="Search my tasks" label="Search my tasks" />
         {notice && <p role="status" className="text-xs text-success">{notice}</p>}
@@ -282,7 +335,7 @@ export function MyTasksTab() {
               label={<span className="whitespace-nowrap text-xs text-fg-muted">Show completed</span>} />
           )}
           {show === "all" && (
-            <label className="flex items-center gap-2 text-xs text-fg-muted @2xl:hidden">
+            <label className="flex items-center gap-2 text-xs text-fg-muted md:hidden">
               Sort
               <Select size="sm" wrapperClassName="w-40" value={sort ? `${sort.dir === "desc" ? "-" : ""}${sort.key}` : ""}
                 onChange={(e) => { const v = e.target.value; setSort(v ? { key: v.replace(/^-/, "") as HomeSortKey, dir: v.startsWith("-") ? "desc" : "asc" } : null) }}
@@ -293,37 +346,36 @@ export function MyTasksTab() {
       </>}
       header={<HeaderRow cols={TASK_COLS} labels={["Task", "Process", "Stage / team", "Due / SLA", "Priority", "Status", "Assigned", ""]}
         sortKeys={show === "all" ? HOME_SORT_COLUMNS : undefined} sort={sort} onSort={toggleSort} />}>
-      {isPending ? <RowsSkeleton /> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.tasks.length ? (
+      {isPending ? <Span><RowsSkeleton /></Span> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.tasks.length ? (
         q ? (
-          <EmptyState size="sm" variant="no-results" title={`No tasks match “${q}”`} description="Try another search."
-            action={{ label: "Clear search", onClick: () => setSearch("") }} />
+          <Span><EmptyState size="sm" variant="no-results" title={`No tasks match “${q}”`} description="Try another search."
+            action={{ label: "Clear search", onClick: () => setSearch("") }} /></Span>
         ) : show === "queued" ? (
-          <EmptyState size="sm" variant="first-run" icon={ListChecks} title="Nothing queued for you"
+          <Span><EmptyState size="sm" variant="first-run" icon={ListChecks} title="Nothing queued for you"
             description="Tasks sent to you for acceptance, and unclaimed tasks of your teams, show here with status Queued."
-            action={{ label: "Show all my tasks", onClick: () => setShow("all") }} />
+            action={{ label: "Show all my tasks", onClick: () => setShow("all") }} /></Span>
         ) : (
-          <EmptyState size="sm" variant="first-run" icon={CheckSquare} title="You’re all caught up"
+          <Span><EmptyState size="sm" variant="first-run" icon={CheckSquare} title="You’re all caught up"
             description="Nothing is assigned to you right now. Tasks waiting for you to accept or claim show here too, with status Queued."
-            action={{ label: "Open all tasks", href: "/tasks" }} />
+            action={{ label: "Open all tasks", href: "/tasks" }} /></Span>
         )
       ) : (
         <ul className="divide-y divide-border-subtle">
           {data.tasks.map((t) => (
             <TaskRow key={t.id} task={t} cols={TASK_COLS} onNotice={setNotice} rowAttr={{ "data-home-task": t.id, ...(t.action ? { "data-home-queued": t.action } : {}) }}>
-              <span className="truncate"><Mobile label="Process" />{t.process?.name ?? <span className="text-fg-muted">—</span>}</span>
+              <span className="truncate" title={t.process?.name}><Mobile label="Process" />{t.process?.name ?? <span className="text-fg-muted">—</span>}</span>
               <span className="truncate"><Mobile label="Stage" />{[t.stage, t.team ? `${t.team} team` : null].filter(Boolean).join(" · ") || <span className="text-fg-muted">—</span>}</span>
-              <span><Mobile label="Due" /><DueCell task={t} /></span>
+              <span className="whitespace-nowrap"><Mobile label="Due" /><DueCell task={t} /></span>
               <span><PriorityBadge priority={t.priority} /></span>
               <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <TaskStatusPill status={t.action ? QUEUED_STATUS : t.status} />
                 {t.action && <QueuedTaskActions task={t} action={t.action} onDone={setNotice} />}
               </span>
-              <span><Mobile label="Assigned" /><When at={t.assigned_at} /></span>
+              <span className="whitespace-nowrap"><Mobile label="Assigned" /><When at={t.assigned_at} /></span>
             </TaskRow>
           ))}
         </ul>
       )}
-      {data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
     </ListFrame>
   )
 }
@@ -349,7 +401,9 @@ function FlowLink({ runId }: { runId: string }) {
 
 /* ── Following ───────────────────────────────────────────────────────── */
 
-const FOLLOW_COLS = "minmax(0,1.8fr) minmax(0,1.4fr) 6.5rem minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,1.1fr) 9.5rem"
+// Process, Current stage, Status, Started, Updated, People involved, actions.
+const FOLLOW_LIST = listColumns([[15, 1.8], [11, 1.4], 7.5, [6.5, 0.9], [6.5, 0.9], [9, 1.1], 12])
+const FOLLOW_COLS = FOLLOW_LIST.cols
 
 function AutoFollowToggle() {
   const queryClient = useQueryClient()
@@ -376,7 +430,8 @@ export function FollowingTab() {
   const { data, isPending, isError, error } = useHomeList<{ runs: FollowedRun[] }>("home.following", { search: q || undefined, status, limit: LIMIT, offset })
   const filtered = !!q || status !== "all"
   return (
-    <ListFrame
+    <ListFrame minWidth={FOLLOW_LIST.minWidth} label="Followed processes"
+      footer={data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
       toolbar={<>
         <div className="flex flex-col gap-2 @xl:flex-row @xl:items-center">
           <SearchBox value={search} onChange={setSearch} placeholder="Search processes" label="Search followed processes" />
@@ -386,39 +441,41 @@ export function FollowingTab() {
         <AutoFollowToggle />
       </>}
       header={<HeaderRow cols={FOLLOW_COLS} labels={["Process", "Current stage", "Status", "Started", "Updated", "People involved", ""]} />}>
-      {isPending ? <RowsSkeleton /> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.runs.length ? (
-        <EmptyState size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Bell} title={filtered ? "Nothing matches" : "You’re not following any processes"}
+      {isPending ? <Span><RowsSkeleton /></Span> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.runs.length ? (
+        <Span><EmptyState size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Bell} title={filtered ? "Nothing matches" : "You’re not following any processes"}
           description={filtered ? "Try another search or status." : "Processes you start — including the ones your form submissions start — are followed automatically. You can also follow a run from its page."}
-          action={filtered ? { label: "Clear filters", onClick: () => { setSearch(""); setStatus("all") } } : undefined} />
+          action={filtered ? { label: "Clear filters", onClick: () => { setSearch(""); setStatus("all") } } : undefined} /></Span>
       ) : (
         <ul className="divide-y divide-border-subtle">
           {data.runs.map((r) => (
             <li key={r.run_id} className={rowClass()} style={{ gridTemplateColumns: FOLLOW_COLS }} data-home-followed={r.run_id}>
-              <span className="min-w-0">
-                <Link href={`/home/runs/${r.run_id}`} className="block truncate font-medium text-fg hover:underline">{r.process.name}</Link>
-                {r.title && <span className="block truncate text-xs text-fg-muted">{r.title}</span>}
+              <span data-sticky-cell className={cn("min-w-0 self-stretch md:flex md:flex-col md:justify-center", stickyCellClass)}>
+                <Link href={`/home/runs/${r.run_id}`} className="block truncate font-medium text-fg hover:underline" title={r.process.name}>{r.process.name}</Link>
+                {r.title && <span className="block truncate text-xs text-fg-muted" title={r.title}>{r.title}</span>}
               </span>
               <span className="min-w-0"><Mobile label="Stage" /><StagePopover stages={r.stages} fallback={r.status === "running" ? "Running" : "—"} /></span>
               <span><ProgressPill status={r.status} /></span>
-              <span><Mobile label="Started" /><When at={r.started_at} /></span>
-              <span><Mobile label="Updated" /><When at={r.updated_at} /></span>
-              <span className="truncate"><Mobile label="With" /><People names={r.people} /></span>
-              <span className="flex flex-wrap gap-1 @2xl:justify-end">
+              <span className="whitespace-nowrap"><Mobile label="Started" /><When at={r.started_at} /></span>
+              <span className="whitespace-nowrap"><Mobile label="Updated" /><When at={r.updated_at} /></span>
+              <span className="min-w-0 truncate"><Mobile label="With" /><People names={r.people} /></span>
+              <span className="flex flex-nowrap items-center gap-1 md:justify-end">
                 <FlowLink runId={r.run_id} />
+                <TimelineIconButton target={{ runId: r.run_id }} title={r.title ?? r.process.name} />
                 <FollowButton runId={r.run_id} following compact />
               </span>
             </li>
           ))}
         </ul>
       )}
-      {data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
     </ListFrame>
   )
 }
 
 /* ── My submissions ──────────────────────────────────────────────────── */
 
-const SUB_COLS = "minmax(0,1.5fr) minmax(0,0.8fr) minmax(0,1.3fr) 6.5rem minmax(0,1.3fr) minmax(0,1fr) minmax(0,0.8fr) 11.5rem"
+// Form, Submitted, Process, Status, Current stage, People involved, Updated, actions.
+const SUB_LIST = listColumns([[14, 1.5], [7, 0.8], [11, 1.3], 7.5, [11, 1.3], [10, 1], [7, 0.8], 14.5])
+const SUB_COLS = SUB_LIST.cols
 
 export function SubmissionsTab() {
   const [search, setSearch] = useState("")
@@ -430,46 +487,51 @@ export function SubmissionsTab() {
   const { data, isPending, isError, error } = useHomeList<{ submissions: MySubmission[] }>("home.submissions", { search: q || undefined, status, limit: LIMIT, offset })
   const filtered = !!q || status !== "all"
   return (
-    <ListFrame
+    <ListFrame minWidth={SUB_LIST.minWidth} label="My submissions"
+      footer={<>
+        {data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
+        <SubmissionDialog submission={viewing} onClose={() => setViewing(null)} />
+      </>}
       toolbar={<div className="flex flex-col gap-2 @xl:flex-row @xl:items-center">
         <SearchBox value={search} onChange={setSearch} placeholder="Search forms or processes" label="Search my submissions" />
         <StatusFilterSelect value={status} onChange={setStatus} />
         <ListRefreshButton queryKeys={[[...HOME_QUERY_KEY, "home.submissions"]]} />
       </div>}
       header={<HeaderRow cols={SUB_COLS} labels={["Form", "Submitted", "Process", "Status", "Current stage", "People involved", "Updated", ""]} />}>
-      {isPending ? <RowsSkeleton /> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.submissions.length ? (
-        <EmptyState size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Inbox} title={filtered ? "Nothing matches" : "No submissions yet"}
+      {isPending ? <Span><RowsSkeleton /></Span> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.submissions.length ? (
+        <Span><EmptyState size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Inbox} title={filtered ? "Nothing matches" : "No submissions yet"}
           description={filtered ? "Try another search or status." : "When you submit a form, it shows up here with the process it started and where that process is now."}
-          action={filtered ? { label: "Clear filters", onClick: () => { setSearch(""); setStatus("all") } } : undefined} />
+          action={filtered ? { label: "Clear filters", onClick: () => { setSearch(""); setStatus("all") } } : undefined} /></Span>
       ) : (
         <ul className="divide-y divide-border-subtle">
           {data.submissions.map((s) => (
             <li key={s.submission_id} className={rowClass()} style={{ gridTemplateColumns: SUB_COLS }} data-home-submission={s.submission_id}>
-              <span className="truncate font-medium">{s.form.name}</span>
-              <span><Mobile label="Submitted" /><When at={s.submitted_at} /></span>
+              <span data-sticky-cell className={cn("flex min-w-0 items-center self-stretch font-medium", stickyCellClass)}><span className="truncate" title={s.form.name}>{s.form.name}</span></span>
+              <span className="whitespace-nowrap"><Mobile label="Submitted" /><When at={s.submitted_at} /></span>
               <span className="truncate"><Mobile label="Process" />{s.process?.name ?? <span className="text-fg-muted">{s.status === "queued" ? "Starting…" : "None"}</span>}{s.run_count > 1 ? <span className="num text-fg-muted"> +{s.run_count - 1}</span> : null}</span>
               <span><Tooltip content={s.status_label}><span tabIndex={0} className="inline-flex"><ProgressPill status={s.status} /></span></Tooltip></span>
               <span className="min-w-0"><Mobile label="Stage" /><StagePopover stages={s.stages} fallback={s.status === "waiting" ? "Waiting" : "—"} /></span>
-              <span className="truncate"><Mobile label="With" /><People names={s.people} /></span>
-              <span><Mobile label="Updated" /><When at={s.updated_at} /></span>
-              <span className="flex flex-wrap gap-1 @2xl:justify-end">
+              <span className="min-w-0 truncate"><Mobile label="With" /><People names={s.people} /></span>
+              <span className="whitespace-nowrap"><Mobile label="Updated" /><When at={s.updated_at} /></span>
+              <span className="flex flex-nowrap items-center gap-1 md:justify-end">
                 <IconButton size="sm" label={`View submission of ${s.form.name}`} icon={<Eye />} onClick={() => setViewing({ id: s.submission_id, form_id: s.form.id, form_name: s.form.name })} data-view-submission />
                 {s.run_id && <FlowLink runId={s.run_id} />}
+                {s.run_id && <TimelineIconButton target={{ runId: s.run_id }} title={s.form.name} />}
                 {s.run_id && <FollowButton runId={s.run_id} following={s.following} compact />}
               </span>
             </li>
           ))}
         </ul>
       )}
-      {data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
-      <SubmissionDialog submission={viewing} onClose={() => setViewing(null)} />
     </ListFrame>
   )
 }
 
 /* ── Favourite forms ─────────────────────────────────────────────────── */
 
-const FAV_COLS = "minmax(0,1.4fr) minmax(0,2fr) 8rem"
+// Form, Description, actions.
+const FAV_LIST = listColumns([[14, 1.4], [16, 2], 8])
+const FAV_COLS = FAV_LIST.cols
 
 /** My starred forms, alphabetical: name, description, Open and unstar; a search box past ten. */
 export function FavoritesTab() {
@@ -479,30 +541,30 @@ export function FavoritesTab() {
   const [notice, setNotice] = useState<string | null>(null)
   const view = favoriteFormsView(forms, search)
   return (
-    <ListFrame
+    <ListFrame minWidth={FAV_LIST.minWidth} label="Favourite forms"
       toolbar={<>
         {view.searchable ? <SearchBox value={search} onChange={setSearch} placeholder="Search favourite forms" label="Search favourite forms" /> : <span />}
         {notice && <InlineNotice tone="danger" message={notice} onDismiss={() => setNotice(null)} />}
       </>}
       header={view.forms.length ? <HeaderRow cols={FAV_COLS} labels={["Form", "Description", ""]} /> : undefined}>
-      {loading ? <RowsSkeleton rows={3} /> : error ? <ErrorRow message="Your favourite forms couldn’t be loaded." /> : view.empty === "none" ? (
+      {loading ? <Span><RowsSkeleton rows={3} /></Span> : error ? <ErrorRow message="Your favourite forms couldn’t be loaded." /> : view.empty === "none" ? (
         <div data-home-favorites-empty>
-          <EmptyState size="sm" icon={Star} title="No favourite forms yet"
+          <Span><EmptyState size="sm" icon={Star} title="No favourite forms yet"
             description="Star a form (☆) in the Forms menu or the Forms list, or use the heart (♡) at the top right of a form’s page, and it shows up here with an Open button."
-            action={can("forms.view") ? { label: "Browse forms", href: "/automations/forms" } : undefined} />
+            action={can("forms.view") ? { label: "Browse forms", href: "/automations/forms" } : undefined} /></Span>
         </div>
       ) : view.empty === "no-match" ? (
-        <EmptyState size="sm" variant="no-results" title={`No favourites match “${search}”`} description="Try another search." action={{ label: "Clear search", onClick: () => setSearch("") }} />
+        <Span><EmptyState size="sm" variant="no-results" title={`No favourites match “${search}”`} description="Try another search." action={{ label: "Clear search", onClick: () => setSearch("") }} /></Span>
       ) : (
         <ul className="divide-y divide-border-subtle" data-home-favorites>
           {view.forms.map((f) => (
             <li key={f.id} className={rowClass()} style={{ gridTemplateColumns: FAV_COLS }} data-favorite-form={f.id}>
-              <span className="flex min-w-0 items-center gap-2">
+              <span data-sticky-cell className={cn("flex min-w-0 items-center gap-2 self-stretch", stickyCellClass)}>
                 <FileText className="size-3.5 shrink-0 text-primary-text" aria-hidden />
-                <Link href={formHref(f)} className="truncate font-medium text-fg hover:underline">{f.name}</Link>
+                <Link href={formHref(f)} className="truncate font-medium text-fg hover:underline" title={f.name}>{f.name}</Link>
               </span>
               <span className="line-clamp-2 min-w-0 text-fg-muted">{f.description || "—"}</span>
-              <span className="flex items-center gap-1 @2xl:justify-end">
+              <span className="flex flex-nowrap items-center gap-1 md:justify-end">
                 <Button size="sm" variant="secondary" asChild>
                   <Link href={formHref(f)} aria-label={`Open ${f.name}`} data-favorite-open={f.id}>Open</Link>
                 </Button>

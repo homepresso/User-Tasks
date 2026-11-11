@@ -7,6 +7,8 @@ export interface FollowedTaskFilters {
   priority?: string[]
   search?: string
   hideCompleted?: boolean
+  /** Only tasks shared with me by an invite. */
+  sharedOnly?: boolean
 }
 
 /**

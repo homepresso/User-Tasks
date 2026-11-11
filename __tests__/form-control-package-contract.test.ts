@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import * as app from '@/lib/forms/custom-controls/contract'
 import * as pkg from '../packages/form-control/src/contract'
 
-/** @usertasks/form-control ships a copy of the contract: its values must match the app's. */
-describe('@usertasks/form-control contract parity', () => {
+/** @user-tasks/form-control ships a copy of the contract: its values must match the app's. */
+describe('@user-tasks/form-control contract parity', () => {
   it('exports the same constants as lib/forms/custom-controls/contract', () => {
     const constants = (mod: Record<string, unknown>) => Object.fromEntries(Object.entries(mod).filter(([, v]) => typeof v !== 'function'))
     const ours = constants(app as Record<string, unknown>)

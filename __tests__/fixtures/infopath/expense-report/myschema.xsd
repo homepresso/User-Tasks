@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xsd:schema targetNamespace="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-01-12T10:00:00" xmlns:my="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-01-12T10:00:00" xmlns:xd="http://schemas.microsoft.com/office/infopath/2003" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="expenseReport">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:employeeName" minOccurs="0"/>
+				<xsd:element ref="my:email" minOccurs="0"/>
+				<xsd:element ref="my:department" minOccurs="0"/>
+				<xsd:element ref="my:costCenter" minOccurs="0"/>
+				<xsd:element ref="my:project" minOccurs="0"/>
+				<xsd:element ref="my:reportDate" minOccurs="0"/>
+				<xsd:element ref="my:purpose" minOccurs="0"/>
+				<xsd:element ref="my:items" minOccurs="0"/>
+				<xsd:element ref="my:total" minOccurs="0"/>
+				<xsd:element ref="my:managerEmail" minOccurs="0"/>
+				<xsd:element ref="my:receipts" minOccurs="0"/>
+				<xsd:element ref="my:status" minOccurs="0"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="employeeName" type="my:requiredString"/>
+	<xsd:element name="email" type="xsd:string"/>
+	<xsd:element name="department" type="xsd:string"/>
+	<xsd:element name="costCenter">
+		<xsd:simpleType>
+			<xsd:restriction base="xsd:string">
+				<xsd:pattern value="[A-Z]{2}-\d{4}"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+	</xsd:element>
+	<xsd:element name="project" type="xsd:string"/>
+	<xsd:element name="reportDate" nillable="true" type="xsd:date"/>
+	<xsd:element name="purpose">
+		<xsd:complexType mixed="true">
+			<xsd:sequence>
+				<xsd:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/1999/xhtml" processContents="lax"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="items">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:item" minOccurs="0" maxOccurs="unbounded"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="item">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element ref="my:expenseDate" minOccurs="0"/>
+				<xsd:element ref="my:description" minOccurs="0"/>
+				<xsd:element ref="my:category" minOccurs="0"/>
+				<xsd:element ref="my:quantity" minOccurs="0"/>
+				<xsd:element ref="my:unitPrice" minOccurs="0"/>
+				<xsd:element ref="my:lineTotal" minOccurs="0"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="expenseDate" nillable="true" type="xsd:date"/>
+	<xsd:element name="description" type="xsd:string"/>
+	<xsd:element name="category" type="xsd:string"/>
+	<xsd:element name="quantity" nillable="true" type="xsd:integer"/>
+	<xsd:element name="unitPrice" nillable="true" type="xsd:decimal"/>
+	<xsd:element name="lineTotal" nillable="true" type="xsd:decimal"/>
+	<xsd:element name="total" nillable="true" type="xsd:decimal"/>
+	<xsd:element name="managerEmail" type="xsd:string"/>
+	<xsd:element name="receipts" nillable="true" type="xsd:base64Binary"/>
+	<xsd:element name="status" type="xsd:string"/>
+	<xsd:simpleType name="requiredString">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

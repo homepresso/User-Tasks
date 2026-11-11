@@ -4,7 +4,7 @@
  */
 
 import { Command, CommanderError, Option } from 'commander'
-import { UsertasksApiError, UsertasksOAuthError } from '@usertasks/sdk'
+import { UsertasksApiError, UsertasksOAuthError } from '@user-tasks/sdk'
 import { registerApiCommand } from './commands/api'
 import { registerAuthCommands } from './commands/auth'
 import { registerCompletionCommand } from './commands/completion'

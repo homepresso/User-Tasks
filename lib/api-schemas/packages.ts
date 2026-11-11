@@ -9,7 +9,7 @@ import { csvFilter, deletedResponse, idParams, itemResponse, listResponse, loose
  * lib/services/package-installs.
  */
 
-const ASSET_TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme'] as const
+const ASSET_TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control'] as const
 
 const itemRef = z.object({
   type: z.enum(ASSET_TYPES).describe('Artifact type'),
@@ -114,6 +114,23 @@ export const packageBuildBody = z.object({
   notes: z.string().max(5000).nullable().optional(),
   dependencies: z.array(z.object({ package_slug: z.string(), version_range: z.string() })).optional().describe('Packages that must be installed first, e.g. [{ "package_slug": "vendor-master", "version_range": "^1.0.0" }]'),
   include_file: z.boolean().optional().describe('Return the .utpkg as file_base64'),
+  update_install: z.boolean().optional().describe('When the package is installed in this workspace (built and installed here): update that install to the new version, so uninstall removes items added since and keeps items removed. Needs packages.install'),
+})
+
+export const packageItemsAddBody = z.object({
+  items: z.array(itemRef).min(1).max(500).describe('Workspace items to add (find them with GET /packages/assets)'),
+  with_dependencies: z.boolean().optional().describe('Also add what they use that is not in the package yet (default true); false leaves those out'),
+  dry_run: z.boolean().optional().describe('Only list the items and the dependencies they would bring in'),
+})
+export const packageItemsRemoveBody = z.object({
+  items: z.array(itemRef).min(1).max(500).describe('Items in the package to remove (nothing in the workspace is deleted)'),
+  force: z.boolean().optional().describe('Remove even when other items in the package use them'),
+  dry_run: z.boolean().optional().describe('Only list the items and what in the package still uses them'),
+})
+export const installItemsBody = z.object({
+  items: z.array(itemRef).min(1).max(500).describe('Items by type and their id in this workspace'),
+  dry_run: z.boolean().optional(),
+  update_package: z.boolean().optional().describe('Packages authored here (self-installed): also change the package itself, so its next build keeps the change (default true; needs packages.manage)'),
 })
 
 const fileFields = {
@@ -386,9 +403,64 @@ export const uninstallPackageEndpoint = defineEndpoint({
   async: true,
 })
 
+const itemView = z.looseObject({ type: z.enum(ASSET_TYPES), id: z.string(), name: z.string(), label: z.string() })
+export const listPackageItemsEndpoint = defineEndpoint({
+  method: 'GET', path: '/packages/{id}/items', operationId: 'listPackageItems', tags,
+  summary: 'The items in a package, grouped by type, with what each uses / is used by and the changes since the last built version',
+  description: '`changes.unpublished` is true when items were added or removed since `changes.since_version` (or it was never built): build a new version to publish them. `install` is set when the package is installed in this workspace (built and installed here): build with update_install to keep that install in step.',
+  permission: 'packages.view', params: packageParams,
+  response: z.looseObject({
+    package: looseObject,
+    items: z.array(itemView.extend({ section: z.string(), included_as: z.enum(['root', 'manual', 'dependency']), required_by: itemView.nullable(), uses: z.array(itemView), used_by: z.array(itemView) })),
+    groups: z.array(z.looseObject({ type: z.string(), label: z.string(), count: z.number().int() })),
+    excluded: z.array(looseObject),
+    changes: z.looseObject({ since_version: z.string().nullable(), unpublished: z.boolean(), added: z.array(itemView), removed: z.array(itemView) }),
+    install: z.looseObject({ id: z.string(), version: z.string(), status: z.string() }).nullable(),
+  }),
+  listKey: 'items',
+  cli: { resource: 'packages', verb: 'items', positional: ['id'] },
+})
+const itemChangeResponse = z.looseObject({ dry_run: z.boolean(), package: packageRow.optional() })
+export const addPackageItemsEndpoint = defineEndpoint({
+  method: 'POST', path: '/packages/{id}/items', operationId: 'addPackageItems', tags,
+  summary: 'Add workspace items to a package (and, by default, what they use)',
+  description: 'dry_run lists `dependencies`: what the items use that is not in the package yet (left_out: the author left it out earlier). with_dependencies (default true) adds them too; false leaves them out (they must then exist where the package is installed). Changes the draft only — build a new version to publish.',
+  permission: 'packages.manage', params: packageParams, body: packageItemsAddBody,
+  response: itemChangeResponse.extend({ adding: z.array(looseObject), dependencies: z.array(looseObject), dependencies_added: z.number().int(), dependencies_left_out: z.number().int() }),
+  cli: { resource: 'packages', verb: 'add-items', positional: ['id'] },
+})
+export const removePackageItemsEndpoint = defineEndpoint({
+  method: 'POST', path: '/packages/{id}/items/remove', operationId: 'removePackageItems', tags,
+  summary: 'Remove items from a package (refused while other items use them, unless force)',
+  description: 'Nothing in the workspace is deleted. When another item in the package uses one ("Workflow X uses this form") the request is refused with 409 unless force; dry_run lists `dependents` and `warnings` first. Items something still pulls in are left out (excluded). Build a new version to publish.',
+  permission: 'packages.manage', params: packageParams, body: packageItemsRemoveBody,
+  response: itemChangeResponse.extend({ removing: z.array(looseObject), dependents: z.array(looseObject), warnings: z.array(z.string()), left_out: z.array(looseObject) }),
+  cli: { resource: 'packages', verb: 'remove-items', positional: ['id'] },
+})
+const installItemsResponse = z.looseObject({
+  dry_run: z.boolean(), install_id: z.string(), items: z.array(looseObject), skipped: z.array(looseObject), used_by: z.array(looseObject),
+  authored_package: looseObject.nullable().describe('The package authored here this install came from (null: gallery / another workspace)'),
+  package_updated: z.boolean(), warnings: z.array(z.string()),
+})
+export const detachInstallItemsEndpoint = defineEndpoint({
+  method: 'POST', path: '/package-installs/{id}/detach', operationId: 'detachInstallItems', tags,
+  summary: 'Remove items from an installed package: they stay in the workspace and uninstall keeps them',
+  description: 'Any install (gallery, file or built here). Later upgrades leave detached items alone. `used_by` lists items still owned by the install that use them. For a package authored here the package itself drops them too (update_package, default true). Audited.',
+  permission: 'packages.install', params: z.object({ id: z.string().describe('Install id or package slug') }), body: installItemsBody, response: installItemsResponse,
+  cli: { resource: 'package-installs', verb: 'detach', positional: ['id'] },
+})
+export const adoptInstallItemsEndpoint = defineEndpoint({
+  method: 'POST', path: '/package-installs/{id}/adopt', operationId: 'adoptInstallItems', tags,
+  summary: 'Add existing workspace items to an installed package, so uninstall removes them (packages authored here only)',
+  description: 'Only for an install of a package authored in this workspace (self-installed); a gallery or third-party install answers 403 (detach is allowed there). The package itself gains them too (update_package, default true) so its next build keeps them. Audited.',
+  permission: 'packages.install', params: z.object({ id: z.string().describe('Install id or package slug') }), body: installItemsBody, response: installItemsResponse,
+  cli: { resource: 'package-installs', verb: 'adopt', positional: ['id'] },
+})
+
 export const packageEndpoints = [
   listPackagesEndpoint, createPackageEndpoint, previewPackageEndpoint, inspectPackageEndpoint, searchPackageAssetsEndpoint, getPackageEndpoint, updatePackageEndpoint, deletePackageEndpoint,
   getPackageContentsEndpoint, listPackageVersionsEndpoint, buildPackageVersionEndpoint, getPackageVersionEndpoint, downloadPackageVersionEndpoint,
   listPackageInstallsEndpoint, planPackageInstallEndpoint, installPackageEndpoint, getPackageInstallEndpoint, upgradePackageInstallEndpoint,
   completePackageInstallEndpoint, uninstallPackageEndpoint, listPackageEventsEndpoint, getPackageEventEndpoint,
+  listPackageItemsEndpoint, addPackageItemsEndpoint, removePackageItemsEndpoint, detachInstallItemsEndpoint, adoptInstallItemsEndpoint,
 ]

@@ -1,6 +1,6 @@
 /**
  * The bits of the UserTasks form control contract this control uses, inline
- * so the starter has no dependency beyond Lit. (The @usertasks/form-control
+ * so the starter has no dependency beyond Lit. (The @user-tasks/form-control
  * package will offer the same as `UserTasksControlMixin` once published.)
  *
  * Full contract: https://usertasks.com/docs/tasks/custom-form-controls

@@ -10,6 +10,7 @@ import { assignRole, removeUserRole } from '@/app/actions/governance'
 import { BulkAssignUsersDialog } from './bulk-assign-users-dialog'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { TableScroll } from '@/components/ui/table'
 
 interface Props {
   users: any[]
@@ -128,12 +129,12 @@ export function UserRoleAssignments({ users, roles }: Props) {
       <div
         className="rounded-xl border overflow-hidden border-border"
       >
-        <div className="overflow-x-auto">
+        <TableScroll bare label="User role assignments" stickyFirstColumn>
         <table className="w-full min-w-[560px] text-sm">
           <thead>
-            <tr style={{ backgroundColor: 'var(--theme-surface)' }}>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-fg-muted">User</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-fg-muted">Assigned Roles</th>
+            <tr className="bg-subtle">
+              <th className="min-w-56 text-left px-4 py-2.5 text-xs font-semibold text-fg-muted">User</th>
+              <th className="min-w-64 text-left px-4 py-2.5 text-xs font-semibold text-fg-muted">Assigned Roles</th>
               <th className="text-right px-4 py-2.5 text-xs font-semibold w-24 text-fg-muted">Actions</th>
             </tr>
           </thead>
@@ -210,7 +211,7 @@ export function UserRoleAssignments({ users, roles }: Props) {
             )}
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         {/* Pagination footer — always shown so users can switch rows/page
             even on short lists, but the prev/next buttons only appear

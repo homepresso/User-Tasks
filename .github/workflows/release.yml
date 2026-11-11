@@ -1,6 +1,6 @@
 name: Release packages
 
-# Publishes @usertasks/sdk and/or @usertasks/cli to npm with provenance.
+# Publishes @user-tasks/sdk and/or @user-tasks/cli to npm with provenance.
 #   - push a tag sdk-v<version> or cli-v<version> (must match the package.json version), or
 #   - run manually and choose the package(s).
 # Requires the NPM_TOKEN repository secret (an npm automation token with publish
@@ -89,7 +89,7 @@ jobs:
           flags="--provenance --access public"
           [[ "${{ steps.select.outputs.dry_run }}" == "true" ]] && flags="$flags --dry-run"
           for pkg in ${{ steps.select.outputs.packages }}; do
-            echo "::group::npm publish @usertasks/${pkg}"
-            npm publish -w "@usertasks/${pkg}" $flags
+            echo "::group::npm publish @user-tasks/${pkg}"
+            npm publish -w "@user-tasks/${pkg}" $flags
             echo "::endgroup::"
           done

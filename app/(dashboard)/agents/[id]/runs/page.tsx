@@ -102,16 +102,17 @@ export default function AgentRunsPage({ params }: { params: Promise<{ id: string
 
         {/* List */}
         <div>
-          <Table>
+          {/* Readable columns that scroll sideways when narrow; status and the input stay in view. */}
+          <Table label="Agent runs" stickyFirstColumn stickyColumns={2}>
             <THead>
               <tr>
-                <TH>Status</TH>
-                <TH>Input</TH>
-                <TH numeric>Iterations</TH>
-                <TH numeric>Tokens</TH>
-                <TH numeric>Cost</TH>
-                <TH numeric>Duration</TH>
-                <TH>Started</TH>
+                <TH col="status">Status</TH>
+                <TH col="title">Input</TH>
+                <TH numeric col="number">Iterations</TH>
+                <TH numeric col="number">Tokens</TH>
+                <TH numeric col="number">Cost</TH>
+                <TH numeric col="number">Duration</TH>
+                <TH col="date">Started</TH>
                 <TH className="w-8"><span className="sr-only">Open</span></TH>
               </tr>
             </THead>
@@ -130,9 +131,9 @@ export default function AgentRunsPage({ params }: { params: Promise<{ id: string
                 const started = run.started_at ?? run.created_at
                 return (
                   <TR key={run.id} interactive onClick={() => router.push(`/agents/${agentId}/runs/${run.id}`)}>
-                    <TD><StatusPill status={run.status} /></TD>
+                    <TD className="whitespace-nowrap"><StatusPill status={run.status} /></TD>
                     <TD className="max-w-0 w-[40%]">
-                      <Link href={`/agents/${agentId}/runs/${run.id}`} className="block truncate text-fg hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <Link href={`/agents/${agentId}/runs/${run.id}`} className="block truncate text-fg hover:underline" onClick={(e) => e.stopPropagation()} title={run.input_message ?? undefined}>
                         {run.input_message?.slice(0, 120) ?? '—'}
                       </Link>
                     </TD>
@@ -144,7 +145,7 @@ export default function AgentRunsPage({ params }: { params: Promise<{ id: string
                         : <Tooltip content="No price for this model"><span>—</span></Tooltip>}
                     </TD>
                     <TD numeric className="text-fg-muted">{run.duration_ms != null ? formatDurationMs(run.duration_ms) : '—'}</TD>
-                    <TD className="text-xs text-fg-muted">
+                    <TD className="whitespace-nowrap text-xs text-fg-muted">
                       <Tooltip content={formatAbsolute(started)}>
                         <span className="num">{formatRelative(started)}</span>
                       </Tooltip>

@@ -46,6 +46,6 @@ The step-by-step guide, with downtime expectations and rollback per area, is
 [Switching providers](../../docs/switching-providers.md); provider options are
 in [Infrastructure and providers](../../docs/infrastructure.md).
 
-Build the single-file bundle with `npm run build -w @usertasks/admin`
+Build the single-file bundle with `npm run build -w @user-tasks/admin`
 (`dist/admin.cjs`; `pg` and the optional cloud SDKs are loaded from the
 app's `node_modules`).

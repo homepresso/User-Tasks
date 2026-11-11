@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  ArrowUpRight, Check, ChevronDown, ClipboardList, CornerDownRight, ExternalLink, Pause, Play, UserPlus, Workflow, Zap,
+  ArrowUpRight, Check, ChevronDown, ClipboardList, CornerDownRight, ExternalLink, MessageSquare, Pause, Play, UserPlus, Workflow, Zap,
 } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useSubmitGuard } from "@/hooks/use-submit-guard"
+import { TaskInviteControls } from "./invite-viewers"
 import { usePermissions } from "@/lib/permissions-context"
 import { serverQuery } from "@/lib/server-read"
 import type { TaskQuickActionsInfo } from "@/lib/tasks/quick-actions"
@@ -122,7 +123,7 @@ export function TaskQuickActions({ id, open, onOpenChange, mobile, ...props }: P
   )
 }
 
-type Mode = null | "hold" | "redirect" | "escalate" | "invite"
+type Mode = null | "hold" | "redirect" | "escalate" | "invite" | "comment"
 type Person = { id: string; display_name: string | null; email: string | null }
 
 /** Email addresses typed one per line (or comma / semicolon separated). */
@@ -137,6 +138,7 @@ export function parseEmails(text: string): string[] {
  */
 export function quickFormError({ mode, comment, chosen, limit }: { mode: Exclude<Mode, null>; comment: string; chosen: number; limit: number | null }): string | null {
   if (mode === "hold") return comment.trim() ? null : "Add a reason for putting this task on hold."
+  if (mode === "comment") return comment.trim() ? null : "Write a comment first."
   if (!chosen) return mode === "escalate" ? "Choose who to escalate to." : "Choose someone first."
   if (limit !== null && chosen > limit) return `Choose up to ${limit} ${limit === 1 ? "person" : "people"}.`
   return null
@@ -309,6 +311,14 @@ export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDon
     const problem = quickFormError({ mode, comment, chosen, limit: many ? limit : null })
     if (problem) { setFormError(problem); return }
     const note = comment.trim() || undefined
+    if (mode === "comment") {
+      return run("comment", async () => {
+        const { addTaskComment } = await import("@/app/actions/tasks")
+        const result = await addTaskComment(taskId, comment.trim())
+        if (!result.ok) throw new Error(result.error)
+        succeed("Comment posted.")
+      })
+    }
     if (mode === "hold") return act("hold", { kind: "hold", taskId, title, comment })
     if (mode === "escalate") return act(mode, { kind: "escalate", taskId, personId, personName: nameOf(personId), comment: note })
     if (mode === "invite") return act(mode, target === "email" ? { kind: "invite", taskId, emails: emailList, comment: note } : { kind: "invite", taskId, userIds: personIds, comment: note })
@@ -394,8 +404,9 @@ export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDon
           {info.completeVia === "none" && info.completeNote && !queueAction && <p className="text-xs text-fg-muted">{info.completeNote}</p>}
 
           {/* Other actions */}
-          {(info.canHold || info.canResume || info.redirect || info.invite || info.canEscalate) && (
+          {(
             <div className="flex flex-wrap items-center gap-2" data-quick-more>
+              <Button size="sm" variant={mode === "comment" ? "secondary" : "ghost"} leadingIcon={<MessageSquare />} aria-pressed={mode === "comment"} disabled={busy !== null} onClick={() => openMode("comment")} data-quick-action="comment">Comment…</Button>
               {info.canResume && (
                 <Button size="sm" variant="secondary" leadingIcon={<Play />} loading={busy === "resume"} disabled={busy !== null} onClick={() => void act("resume", { kind: "resume", taskId, title })} data-quick-action="resume">Resume</Button>
               )}
@@ -406,8 +417,10 @@ export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDon
                 <Button size="sm" variant={mode === "redirect" ? "secondary" : "ghost"} leadingIcon={<CornerDownRight />} aria-pressed={mode === "redirect"} disabled={busy !== null} onClick={() => openMode("redirect")} data-quick-action="redirect">Redirect…</Button>
               )}
               {info.invite && (
-                <Button size="sm" variant={mode === "invite" ? "secondary" : "ghost"} leadingIcon={<UserPlus />} aria-pressed={mode === "invite"} disabled={busy !== null} onClick={() => openMode("invite")} data-quick-action="invite">Invite someone…</Button>
+                <Button size="sm" variant={mode === "invite" ? "secondary" : "ghost"} leadingIcon={<UserPlus />} aria-pressed={mode === "invite"} disabled={busy !== null} onClick={() => openMode("invite")} data-quick-action="invite">Add collaborator…</Button>
               )}
+              {/* Invite (read only): share with people, teams or roles — shown to those who may (components/tasks/invite-viewers). */}
+              <TaskInviteControls taskId={taskId} showChip={false} label="Invite…" variant="ghost" />
               {info.canEscalate && (
                 <Button size="sm" variant={mode === "escalate" ? "secondary" : "ghost"} leadingIcon={<ArrowUpRight />} aria-pressed={mode === "escalate"} disabled={busy !== null} onClick={() => openMode("escalate")} data-quick-action="escalate">Escalate…</Button>
               )}
@@ -418,7 +431,7 @@ export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDon
           {mode && (
             <div className="max-w-xl space-y-2 rounded-md border border-border-subtle bg-panel p-3" data-quick-form={mode}>
               <p className="font-medium text-fg">
-                {mode === "hold" ? "Put on hold" : mode === "redirect" ? "Redirect to" : mode === "invite" ? "Invite into this task" : "Escalate to"}
+                {mode === "comment" ? "Add a comment" : mode === "hold" ? "Put on hold" : mode === "redirect" ? "Redirect to" : mode === "invite" ? "Add collaborators (they work on this task)" : "Escalate to"}
               </p>
               {needsPeople && allowEmail && (
                 <SegmentedControl aria-label="Recipient" size="sm" value={target} onValueChange={(v) => { setTarget(v); setFormError(null) }}
@@ -456,14 +469,16 @@ export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDon
                   {mode === "invite" ? `Room for ${limit} more ${limit === 1 ? "person" : "people"} on this task.` : `You can redirect this task to up to ${limit} ${limit === 1 ? "person" : "people"}.`}
                 </p>
               )}
-              <Field label={mode === "hold" ? "Reason" : "Comment"} optional={mode !== "hold"}>
+              <Field label={mode === "hold" ? "Reason" : "Comment"} optional={mode !== "hold" && mode !== "comment"}>
                 <Textarea rows={2} value={comment} onChange={(e) => { setComment(e.target.value); setFormError(null) }}
-                  placeholder={mode === "hold" ? "Why are you putting this on hold?" : mode === "escalate" ? "Why are you escalating this task?" : mode === "invite" ? "What do you need from them?" : "Why are you redirecting this task?"} />
+                  placeholder={mode === "comment" ? "Write a comment for everyone on this task…" : mode === "hold" ? "Why are you putting this on hold?" : mode === "escalate" ? "Why are you escalating this task?" : mode === "invite" ? "What do you need from them?" : "Why are you redirecting this task?"} />
               </Field>
               {formError && <InlineNotice tone="danger">{formError}</InlineNotice>}
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="ghost" onClick={() => openMode(null)}>Cancel</Button>
-                {mode === "hold" ? (
+                {mode === "comment" ? (
+                  <Button size="sm" loading={busy === "comment"} disabled={busy !== null || !comment.trim()} onClick={() => void submitMode()} data-quick-submit="comment">Post comment</Button>
+                ) : mode === "hold" ? (
                   <Button size="sm" loading={busy === "hold"} disabled={busy !== null || !comment.trim()} onClick={() => void submitMode()} data-quick-submit="hold">Put on hold</Button>
                 ) : (
                   <Button size="sm" loading={busy === mode} disabled={busy !== null || !chosen || overLimit} onClick={() => void submitMode()} data-quick-submit={mode}>

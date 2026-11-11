@@ -88,13 +88,13 @@ function UnitsTable({ data, onSelect }: { data: OrgUnitTreeData; onSelect: (id: 
     headcount: (u) => u.headcount,
   }, 'tree')
   return (
-    <Table aria-label="Org units">
+    <Table aria-label="Org units" stickyFirstColumn>
       <THead>
         <tr>
-          <SortTH label="Unit" column="tree" sort={sort} onSort={toggle} />
-          <SortTH label="Kind" column="kind" sort={sort} onSort={toggle} />
-          <SortTH label="Head" column="head" sort={sort} onSort={toggle} />
-          <SortTH label="Headcount" column="headcount" sort={sort} onSort={toggle} numeric />
+          <SortTH label="Unit" column="tree" sort={sort} onSort={toggle} col="title" />
+          <SortTH label="Kind" column="kind" sort={sort} onSort={toggle} col="status" />
+          <SortTH label="Head" column="head" sort={sort} onSort={toggle} col="people" />
+          <SortTH label="Headcount" column="headcount" sort={sort} onSort={toggle} numeric col="number" />
         </tr>
       </THead>
       <TBody>

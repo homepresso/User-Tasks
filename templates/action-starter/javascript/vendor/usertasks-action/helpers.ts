@@ -3,7 +3,7 @@
  * primitives and Intl (QuickJS has neither). They read nothing but their
  * arguments, so every action gets them without a capability.
  *
- * Node only (node:crypto). Shared verbatim with @usertasks/action (its local
+ * Node only (node:crypto). Shared verbatim with @user-tasks/action (its local
  * test runner) — __tests__/custom-action-contract checks the copies match.
  */
 

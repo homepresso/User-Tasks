@@ -1,11 +1,14 @@
 import type { McpToolServer } from '../server'
 import { registerTaskAttachmentTools } from './task-attachments'
 import { registerTaskFollowTools } from './task-follows'
+import { registerTaskViewerTools } from './task-viewers'
+import { registerTimelineTools } from './timeline'
+import { registerTaskSubtaskTools } from './task-subtasks'
 import { buildTaskDataObject } from '@/lib/task-data'
 import { z } from 'zod'
 import type { McpContext } from '../server'
 import { mcpOk, mcpErr } from '../server'
-import { canAccessTaskAsUser, getAccessibleTaskIdsForUser } from '@/lib/api-key-permissions'
+import { canAccessTaskAsUser, canViewTaskAsUser, getAccessibleTaskIdsForUser } from '@/lib/api-key-permissions'
 import { mergeTaskFieldValuesChecked } from '@/lib/forms/task-values'
 import { kickQueueProcessor } from '@/lib/process-queue'
 import type { Json } from '@/lib/database.types'
@@ -29,6 +32,9 @@ async function acceptanceOnReassign(supabase: any, tenantId: string, taskId: str
 export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
   registerTaskAttachmentTools(server, ctx)
   registerTaskFollowTools(server, ctx)
+  registerTaskViewerTools(server, ctx)
+  registerTimelineTools(server, ctx)
+  registerTaskSubtaskTools(server, ctx)
   const { tenantId, supabase } = ctx
   const actingUserId = ctx.actingUserId ?? null
 
@@ -109,7 +115,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     task_id: z.string().describe('Task ID'),
     strip_html: z.boolean().optional().describe('Return description as plain text (HTML stripped); description_text is always included'),
   }, async (args) => {
-    if (actingUserId && !(await canAccessTaskAsUser(supabase, tenantId, actingUserId, args.task_id))) {
+    if (actingUserId && !(await canViewTaskAsUser(supabase, tenantId, actingUserId, args.task_id))) {
       return mcpErr('This user-context API key cannot access that task')
     }
     const { data, error } = await supabase.from('tasks')

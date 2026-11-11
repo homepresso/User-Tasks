@@ -75,13 +75,13 @@ export function PeopleEditor({ canEditProfile, canEditManager }: { canEditProfil
         <span className="text-xs text-fg-muted">{filtered.length} people</span>
       </div>
       {error && <InlineNotice tone="danger" message={error} onDismiss={() => setError(null)} />}
-      <Table aria-label="People attributes">
+      <Table aria-label="People attributes" stickyFirstColumn>
         <THead>
           <tr>
-            <TH>Person</TH>
-            {FIELDS.map((f) => <TH key={f.key}>{f.label}</TH>)}
-            <TH>Manager</TH>
-            <TH><span className="sr-only">Source</span></TH>
+            <TH col="title">Person</TH>
+            {FIELDS.map((f) => <TH key={f.key} col="name">{f.label}</TH>)}
+            <TH col="people" className="min-w-48">Manager</TH>
+            <TH col="actions"><span className="sr-only">Source</span></TH>
           </tr>
         </THead>
         <TBody>

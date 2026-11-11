@@ -139,7 +139,11 @@ function createPillElement(name: string, isExpression?: boolean, label?: string,
   pill.contentEditable = 'false'
   pill.dataset.var = name
   if (isExpression) pill.dataset.expr = '1'
-  pill.className = 'variable-pill inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md font-mono text-2xs font-medium align-middle whitespace-nowrap select-none'
+  // Expression pills wrap inside the input (a long formula must not run under the buttons or off the panel);
+  // variable pills stay on one line, capped at the input's width.
+  pill.className = isExpression
+    ? 'variable-pill inline px-1 py-px mx-0.5 rounded-md font-mono text-2xs font-medium whitespace-pre-wrap break-all [box-decoration-break:clone] [-webkit-box-decoration-break:clone] select-none'
+    : 'variable-pill inline-flex max-w-full items-center px-1.5 py-0.5 mx-0.5 rounded-md font-mono text-2xs font-medium align-middle whitespace-nowrap overflow-hidden text-ellipsis select-none'
   // Expression pills stay violet but blend toward the theme's text colour so
   // they read clearly on both light and fully-dark themes (the old static
   // --status-info violet looked greyed-out on dark themes like Nebula).
@@ -147,7 +151,7 @@ function createPillElement(name: string, isExpression?: boolean, label?: string,
   pill.style.backgroundColor = isExpression ? 'color-mix(in srgb, var(--theme-chart-6) 20%, transparent)' : 'var(--theme-primary-light)'
   pill.style.color = isExpression ? 'color-mix(in srgb, var(--theme-chart-6) 55%, var(--theme-card-text))' : 'var(--theme-primary-text)'
   pill.style.border = `1px solid ${isExpression ? 'color-mix(in srgb, var(--theme-chart-6) 45%, transparent)' : 'color-mix(in srgb, var(--theme-accent) 40%, transparent)'}`
-  pill.style.lineHeight = '1'
+  pill.style.lineHeight = isExpression ? '16px' : '1'
   const readable = !isExpression ? (info?.label && info.label !== name ? info.label : label) : undefined
   pill.title = isExpression ? `Expression: ${name}` : readable ? `${readable}: {{${name}}}` : `Variable: ${name}`
   // Known variables read as their label (sans), the path on hover.

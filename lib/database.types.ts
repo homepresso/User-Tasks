@@ -3182,6 +3182,7 @@ export type Database = {
           sequence: number | null
           started_at: string | null
           status: Database["public"]["Enums"]["task_status"]
+          subtitle: string | null
           tags: string[] | null
           tenant_id: string
           title: string
@@ -3234,6 +3235,7 @@ export type Database = {
           sequence?: number | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          subtitle?: string | null
           tags?: string[] | null
           tenant_id: string
           title: string
@@ -3286,6 +3288,7 @@ export type Database = {
           sequence?: number | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          subtitle?: string | null
           tags?: string[] | null
           tenant_id?: string
           title?: string

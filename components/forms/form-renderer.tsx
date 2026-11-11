@@ -14,6 +14,10 @@ import { AttachmentList, AttachmentsField } from './attachments-field'
 import { CustomControlField } from './custom-control-field'
 import { ControlPrewarm, ControlReadyBoundary } from './control-ready'
 import { DataTableField, DataTableValueView } from './data-table-field'
+import { ListField, ListValueView } from './list-field'
+import { currentFocusColumn, currentListIndex, rowCurrentEntries } from '@/lib/forms/row-rules'
+import { LIST_SELECT_KEY, describeListValue, listEditingRow, listSelection, listSelectionEntries, withListSelected } from '@/lib/forms/list-field'
+import { OPTIONS_KEY, optionsLoading, ruleOptions } from '@/lib/forms/data-actions'
 import { describeDataTableValue } from '@/lib/forms/data-table'
 import { formatCustomValue } from '@/lib/forms/custom-controls/field'
 import { attachmentNames } from '@/lib/forms/attachments'
@@ -92,6 +96,7 @@ export function formatFieldValue(field: TaskFieldDef | undefined, value: unknown
   if (field?.type === 'attachments') return attachmentNames(value) || '—'
   if (field?.type === 'custom') return formatCustomValue(field.custom, value)
   if (field?.type === 'data_table') return describeDataTableValue(field.data_table, value)
+  if (field?.type === 'list') return describeListValue(value)
   if (field && isSurveyType(field.type)) return formatSurveyValue(field, value)
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (Array.isArray(value)) return value.map((v) => (field ? optionLabel(field, String(v)) : String(v))).join(', ')
@@ -185,7 +190,9 @@ function ReadOnlyText({ id, value, describedBy, labelledBy }: { id: string; valu
   )
 }
 
-function FieldControl({ field, value, onChange, error, id, people, values, setValue, reportRows, locked = false }: {
+function FieldControl({ field, value, onChange, error, id, people, values, setValue, reportRows, locked = false, narrow }: {
+  /** One-column form / the designer's phone preview: List rows as cards. */
+  narrow?: boolean
   field: TaskFieldDef
   value: unknown
   onChange: (value: unknown) => void
@@ -266,6 +273,10 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
           disabled={field.read_only || locked}
         />
       )
+    case 'list':
+      return <ListField field={field} value={value} onChange={onChange} id={id} describedBy={describedBy} invalid={invalid} disabled={field.read_only || locked} narrow={narrow} editing={listEditingRow(values, field.key)} formValues={values}
+        selected={listSelection(values, field.key)} onSelect={(next) => setValue(LIST_SELECT_KEY, withListSelected(values, field.key, next))}
+        current={currentListIndex(values, field.key)} focusColumn={currentFocusColumn(values, field.key)} />
     case 'attachments':
       return (
         <AttachmentsField
@@ -499,6 +510,10 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
     )
   }
 
+  if (readOnly && field.type === 'list') {
+    return <div>{label}<ListValueView field={field} value={value} narrow={singleColumn} /></div>
+  }
+
   if (readOnly) {
     return (
       <div className={cn(labelLeft && 'sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-3')}>
@@ -511,13 +526,13 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
     )
   }
 
-  const control = <FieldControl field={field} value={value} onChange={(v) => onChange?.(field.key, v)} error={error} id={id} people={people} values={values} setValue={(key, v) => onChange?.(key, v)} reportRows={field.type === 'data_table' && tablesReadByLabels(fields).has(field.key)} locked={locked} />
+  const control = <FieldControl field={field} value={value} onChange={(v) => onChange?.(field.key, v)} error={error} id={id} people={people} values={values} setValue={(key, v) => onChange?.(key, v)} reportRows={field.type === 'data_table' && tablesReadByLabels(fields).has(field.key)} locked={locked} narrow={singleColumn} />
   const errorLine = error ? <p id={`${id}-error`} role="alert" className="mt-1 text-2xs text-(--status-blocked)">{error}</p> : null
   if (field.type === 'boolean') {
     // Aligned with the inputs beside it on wider screens; no gap when the row collapses to one column.
     return <div className={cn(!labelLeft && !singleColumn && 'sm:pt-5')}>{control}{help}{errorLine}</div>
   }
-  if (labelLeft && field.type !== 'data_table') {
+  if (labelLeft && field.type !== 'data_table' && field.type !== 'list') {
     return (
       <div className="sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-3">
         {label}
@@ -539,6 +554,11 @@ export function FormRenderer(rawProps: FormRendererProps) {
     const reported = (ctx[CONTROLS_KEY] && typeof ctx[CONTROLS_KEY] === 'object' ? ctx[CONTROLS_KEY] : {}) as Record<string, unknown>
     const withStep = pages.length && stepId ? { ...ctx, [CONTROLS_KEY]: { ...reported, form: { step_id: stepId } } } : ctx
     const out = withControlState(rawProps.fields, withStep, pages, layoutSectionControls(rawProps.layout))
+    // Lists' selections, as rules and buttons read them ({{form.<list>_selected_count}}…): UI state, never submitted.
+    const selection = rawProps.fields.some((f) => f.type === 'list' && f.list?.selectable) ? listSelectionEntries(rawProps.fields, out) : null
+    // The current / pending rows of Lists and editable Data tables ({{form.<field>_current_row.<column>}} — lib/forms/row-rules.ts).
+    const rows = rawProps.fields.some((f) => f.type === 'list' || (f.type === 'data_table' && f.data_table?.mode === 'edit')) ? rowCurrentEntries(rawProps.fields, out) : null
+    if (selection || (rows && Object.keys(rows).length)) return { ...out, ...(selection ?? {}), ...(rows ?? {}) }
     return out === withStep && withStep === ctx ? ctx : out
   }, [rawProps.layout, rawProps.values, rawProps.fields, stepId])
   const editable = !rawProps.readOnly && Boolean(rawProps.onChange)
@@ -546,8 +566,17 @@ export function FormRenderer(rawProps: FormRendererProps) {
   const lazy = useLazyState(rawProps.layout, rawProps.values, rawProps.onChange, editable)
   // Dynamic properties (lib/forms/dynamic-values.ts): bound options, bounds, texts and control props resolved.
   const dynamic = useDynamicFields(rawProps.fields, values, rawProps.readOnly ? undefined : rawProps.onChange, editable, lazy.deferred)
-  const props = values === rawProps.values && dynamic.fields === rawProps.fields ? rawProps : { ...rawProps, values, fields: dynamic.fields }
-  const body = <LazyPartsProvider value={lazy.api}><DynamicStatusProvider value={dynamic.status}><FormRendererBody {...props} /></DynamicStatusProvider></LazyPartsProvider>
+  // Options a rule loaded from a table / API (lib/forms/data-actions.ts OPTIONS_KEY) replace a choice's own.
+  const loadedOptions = rawProps.values?.[OPTIONS_KEY]
+  const fields = useMemo(() => (loadedOptions ? dynamic.fields.map((f) => {
+    const list = (f.type === 'choice' || f.type === 'multi_choice') ? ruleOptions(rawProps.values, f.key) : null
+    return list ? { ...f, options: list.map((o) => o.value), option_labels: Object.fromEntries(list.filter((o) => o.label !== o.value).map((o) => [o.value, o.label])) } : f
+  }) : dynamic.fields), [dynamic.fields, loadedOptions, rawProps.values])
+  const props = values === rawProps.values && fields === rawProps.fields ? rawProps : { ...rawProps, values, fields }
+  // A rule step loading a dependent's options (a cascade): the control says "Loading options…" and waits.
+  const loading = optionsLoading(rawProps.values)
+  const status = useMemo(() => (loading.length ? { ...dynamic.status, ...Object.fromEntries(loading.map((k) => [k, { ...(dynamic.status[k] ?? {}), options: { loading: true } }])) } : dynamic.status), [dynamic.status, loading.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
+  const body = <LazyPartsProvider value={lazy.api}><DynamicStatusProvider value={status}><FormRendererBody {...props} /></DynamicStatusProvider></LazyPartsProvider>
   // Form animations (lib/forms/motion.ts): the form's first load, for the fields' entrance.
   return editable ? <FormEnteringScope>{body}</FormEnteringScope> : body
 }
@@ -905,9 +934,9 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
     <div className={cn('grid', gap, compact || singleColumn ? 'grid-cols-1' : 'sm:grid-cols-2')} {...(fmOn ? motionAttrs(motion.level) : {})}>
       <div className="sm:col-span-2 empty:hidden"><FormLevelError errors={errors} /></div>
       {fields.filter(kept).map((field, i) => {
-        const wide = !compact && !singleColumn && (field.type === 'text' || field.type === 'textarea' || isDisplayField(field) || field.type === 'multi_choice' || field.type === 'attachments' || field.type === 'data_table' || field.type === 'matrix' || field.type === 'likert' || field.type === 'nps' || field.type === 'ranking' || field.type === 'image_choice' || (field.type === 'custom' && Boolean(field.custom?.size?.full_width)))
+        const wide = !compact && !singleColumn && (field.type === 'text' || field.type === 'textarea' || isDisplayField(field) || field.type === 'multi_choice' || field.type === 'attachments' || field.type === 'data_table' || field.type === 'list' || field.type === 'matrix' || field.type === 'likert' || field.type === 'nps' || field.type === 'ranking' || field.type === 'image_choice' || (field.type === 'custom' && Boolean(field.custom?.size?.full_width)))
         return (
-          <MotionCell key={field.key} on={fmOn} index={stagger(Math.floor(i / 2))} exiting={exiting.has(field.key)} id={`${idPrefix}cell-${field.key}`} className={cn('min-w-0', wide && !disabled && 'sm:col-span-2', wide && disabled && isDisplayField(field) && 'sm:col-span-2')} {...focusEvents(field.key)}>
+          <MotionCell key={field.key} on={fmOn} index={stagger(Math.floor(i / 2))} exiting={exiting.has(field.key)} id={`${idPrefix}cell-${field.key}`} className={cn('min-w-0', wide && !disabled && 'sm:col-span-2', wide && disabled && (isDisplayField(field) || field.type === 'list') && 'sm:col-span-2')} {...focusEvents(field.key)}>
             {cell(field)}
           </MotionCell>
         )

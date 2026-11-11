@@ -17,6 +17,8 @@ import { runAction } from '@/lib/actions/run-action'
 import { fromSessionForTask } from '@/lib/actions/task-context'
 import { fromSession } from '@/lib/services/context'
 import * as tasksService from '@/lib/services/tasks'
+import type { SubtaskRecord } from '@/lib/services/tasks'
+import type { SubtaskInput } from '@/lib/tasks/subtask-input'
 import { findRecentDuplicate } from '@/lib/recent-duplicate'
 import { decideAcceptance, type QueueTaskFacts } from '@/lib/tasks/queue-rules'
 import { decideAcceptanceForAssignees } from '@/lib/tasks/queue-rules-server'
@@ -441,10 +443,21 @@ export async function setSubtaskCompleted(subtaskId: string, completed: boolean,
     tasksService.setSubtaskCompleted(await fromSessionForTask(subtaskId), subtaskId, completed, { logToTaskId }))
 }
 
-/** Add a subtask to an open task (tasks.complete and a task the person can reach — lib/services/tasks addSubtask). */
-export async function addSubtask(parentTaskId: string, input: { title: string; due_date?: string | null }): Promise<ActionResult<{ id: string; title: string; status: string; priority: string; due_date: string | null; sequence: number }>> {
+/**
+ * Add a subtask to an open task — title plus optional subtitle, description,
+ * estimate (minutes), due date, priority and tags. Anyone who can work on the
+ * task (lib/services/tasks canAddSubtask: tasks.complete and a task the
+ * person can reach), workflow tasks included.
+ */
+export async function addSubtask(parentTaskId: string, input: SubtaskInput): Promise<ActionResult<SubtaskRecord>> {
   return runAction('addSubtask', 'Failed to add the subtask', async () =>
     tasksService.addSubtask(await fromSessionForTask(parentTaskId), parentTaskId, input))
+}
+
+/** Edit a subtask's fields (same people as adding). */
+export async function updateSubtask(subtaskId: string, input: SubtaskInput): Promise<ActionResult<SubtaskRecord>> {
+  return runAction('updateSubtask', 'Failed to update the subtask', async () =>
+    tasksService.updateSubtask(await fromSessionForTask(subtaskId), subtaskId, input))
 }
 
 export async function addTaskComment(taskId: string, message: string): Promise<ActionResult<{ message: string }>> {

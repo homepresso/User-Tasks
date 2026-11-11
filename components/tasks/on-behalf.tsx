@@ -31,14 +31,15 @@ export function useOnBehalf(): OnBehalfState {
   return useContext(Ctx)
 }
 
-export function OnBehalfProvider({ mode, workflowTask, children, note }: { mode: TaskActMode | null; workflowTask: boolean; note: string; children: ReactNode }) {
+export function OnBehalfProvider({ mode, workflowTask, children, note, viewer = false }: { mode: TaskActMode | null; workflowTask: boolean; note: string; children: ReactNode; /** Here only through an invite (read only): nothing to act on, any task. */ viewer?: boolean }) {
   const value = useMemo<OnBehalfState>(() => {
     // Standard tasks keep their rules; unknown access (still loading) acts as before.
+    if (viewer) return { canAct: false, onBehalf: false, note: '', needsNote: false, options: {} }
     if (!workflowTask || mode === null || mode === 'assignee') return DEFAULT
     if (mode === 'none') return { canAct: false, onBehalf: false, note: '', needsNote: false, options: {} }
     const trimmed = note.trim()
     return { canAct: true, onBehalf: true, note: trimmed, needsNote: !trimmed, options: { onBehalf: true, onBehalfNote: trimmed || null } }
-  }, [mode, workflowTask, note])
+  }, [mode, workflowTask, note, viewer])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

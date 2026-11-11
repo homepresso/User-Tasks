@@ -11,6 +11,7 @@ import { connectDirectory, testDirectoryConnection, updateDirectoryConnection } 
 import { LDAP_FLAVORS, LDAP_MAPPING_KEYS, LDAP_PRESETS, type LdapFlavor, type LdapMappingKey } from '@/lib/directory-sync/ldap-presets'
 import type { LdapTestResult } from '@/lib/directory-sync/ldap'
 import { errText, Field, OptionCheckbox, Select, TextArea, unwrap } from './shared'
+import { TableScroll } from '@/components/ui/table'
 
 const MAPPING_LABELS: Record<LdapMappingKey, string> = {
   id: 'Unique id',
@@ -249,7 +250,8 @@ export function LdapTestSummary({ result }: { result: LdapTestResult }) {
         <p key={warning} className="flex items-start gap-1.5 text-warning"><TriangleAlert size={12} className="mt-0.5 shrink-0" />{warning}</p>
       ))}
       {result.sample.length > 0 && (
-        <table className="w-full text-left">
+        <TableScroll bare label="Sample directory users">
+        <table className="w-full min-w-[28rem] text-left">
           <thead><tr style={{ color: 'var(--theme-muted-text)' }}><th className="font-medium py-1">Name</th><th className="font-medium">Email</th><th className="font-medium">Id</th><th className="font-medium">Active</th></tr></thead>
           <tbody>
             {result.sample.map((user) => (
@@ -262,6 +264,7 @@ export function LdapTestSummary({ result }: { result: LdapTestResult }) {
             ))}
           </tbody>
         </table>
+        </TableScroll>
       )}
     </div>
   )

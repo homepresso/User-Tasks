@@ -20,6 +20,9 @@ import DocsHome from '@/app/docs/page'
 import DocPage from '@/app/docs/[...slug]/page'
 import OpenSourcePage from '@/app/(marketing)/open-source/page'
 import FormsMarketingPage from '@/app/(marketing)/forms/page'
+import InfoPathMarketingPage from '@/app/(marketing)/infopath/page'
+import TasksMarketingPage from '@/app/(marketing)/tasks-and-approvals/page'
+import DataReportsMarketingPage from '@/app/(marketing)/data-and-reports/page'
 import { ALL_DOC_PAGES, getDocPage } from '@/lib/docs/registry'
 import { pageBlocks } from '@/lib/docs/render'
 import { repositoryUrl, SOURCE_RELEASE_NOTE } from '@/lib/site-links'
@@ -109,7 +112,7 @@ describe('repository link', { timeout: 30_000 }, () => {
   })
 })
 
-// The landing page, the /forms page and the docs home deep-link into docs
+// The landing page, the /forms, /tasks-and-approvals and /data-and-reports pages and the docs home deep-link into docs
 // pages and their headings; a renamed heading or a retired page (such as the
 // old /docs/changelog) must not leave a dangling link behind.
 describe('public pages link only to docs pages and anchors that exist', { timeout: 30_000 }, () => {
@@ -121,8 +124,8 @@ describe('public pages link only to docs pages and anchors that exist', { timeou
     vi.unstubAllEnvs()
   })
 
-  it('on the landing page, /forms and the docs home', async () => {
-    const pages = { home: await renderHome(), forms: renderToStaticMarkup(FormsMarketingPage()), docs: renderToStaticMarkup(DocsHome()) }
+  it('on the landing page, /forms, /tasks-and-approvals, /data-and-reports and the docs home', async () => {
+    const pages = { home: await renderHome(), forms: renderToStaticMarkup(FormsMarketingPage()), infopath: renderToStaticMarkup(InfoPathMarketingPage()), tasks: renderToStaticMarkup(TasksMarketingPage()), data: renderToStaticMarkup(DataReportsMarketingPage()), docs: renderToStaticMarkup(DocsHome()) }
     const problems: string[] = []
     let checked = 0
     for (const [name, html] of Object.entries(pages)) {
@@ -144,5 +147,24 @@ describe('public pages link only to docs pages and anchors that exist', { timeou
     const home = await renderHome()
     expect(home).not.toMatch(/What changed and why/)
     expect(home).toContain('id="forms-and-tasks"')
+  })
+})
+
+describe('/infopath', () => {
+  beforeEach(() => { vi.stubEnv('DEPLOYMENT_MODE', 'cloud') })
+  afterEach(() => { vi.unstubAllEnvs() })
+
+  it('has the hero, the upload box, the explainer sections, FAQ JSON-LD and is in the nav and footer', async () => {
+    const html = renderToStaticMarkup(InfoPathMarketingPage())
+    expect(html).toContain('Bring your InfoPath forms')
+    expect(html).toContain('data-testid="infopath-preview-box"')
+    for (const id of ['id="how"', 'id="maps"', 'id="faq"']) expect(html).toContain(id)
+    expect(html).toContain('Is my file stored?')
+    const ld = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)![1])
+    expect(ld['@graph'].map((n: { '@type': string }) => n['@type'])).toEqual(['WebPage', 'BreadcrumbList', 'HowTo', 'FAQPage'])
+    // Solutions menu and footer (both read lib/marketing-nav).
+    expect(html).toContain('href="/infopath"')
+    const { SOLUTIONS_BY_USE_CASE } = await import('@/lib/marketing-nav')
+    expect(SOLUTIONS_BY_USE_CASE.some((i) => i.href === '/infopath')).toBe(true)
   })
 })

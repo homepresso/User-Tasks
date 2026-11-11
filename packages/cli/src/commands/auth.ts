@@ -1,7 +1,7 @@
 /** login / logout / whoami */
 
 import type { Command } from 'commander'
-import { apiKeyAuth, revokeToken } from '@usertasks/sdk'
+import { apiKeyAuth, revokeToken } from '@user-tasks/sdk'
 import type { OAuthCredentials } from '../config'
 import { CliUsageError } from '../exit-codes'
 import { browserLogin, buildOAuthCredentials } from '../oauth'

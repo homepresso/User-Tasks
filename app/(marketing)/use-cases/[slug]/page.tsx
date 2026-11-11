@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { pageMetadata } from '@/lib/seo/site'
 import { notFound } from 'next/navigation'
 import { UseCasePage } from '@/components/marketing/use-case-page'
 import { getUseCase, USE_CASES } from '@/lib/use-cases'
@@ -15,13 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const useCase = getUseCase((await params).slug)
   if (!useCase) return {}
   const url = `/use-cases/${useCase.slug}`
-  return {
-    title: `${useCase.metaTitle} | UserTasks`,
-    description: useCase.description,
-    keywords: useCase.keywords,
-    alternates: { canonical: url },
-    openGraph: { title: useCase.metaTitle, description: useCase.description, url, type: 'article' },
-  }
+  return pageMetadata({ path: url, title: `${useCase.metaTitle} | UserTasks`, description: useCase.description, socialTitle: useCase.metaTitle, keywords: useCase.keywords, type: 'article' })
 }
 
 export default async function UseCaseRoute({ params }: Props) {

@@ -17,7 +17,7 @@ import {
   MinusCircle,
   CheckCircle2,
 } from "lucide-react";
-import { Wordmark } from "@/components/brand/logo"
+import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-ui"
 
 /**
  * The refocus announcement (/open-source). Announces the refocus of UserTasks into an open-source,
@@ -150,33 +150,7 @@ export function RefocusAnnouncement() {
       </div>
 
       {/* ── Nav ── */}
-      <header className="relative z-10">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-5 sm:px-6">
-          <Link href="/" aria-label="UserTasks home">
-            <Wordmark size={34} />
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/docs"
-              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-(color:--mkt-text) transition hover:text-(color:--mkt-ink) sm:inline"
-            >
-              Documentation
-            </Link>
-            <Link
-              href="/contact"
-              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-(color:--mkt-text) transition hover:text-(color:--mkt-ink) md:inline"
-            >
-              Contact
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-lg bg-(color:--mkt-primary) px-4 py-2 text-sm font-semibold text-(color:--mkt-paper) transition hover:bg-(color:--mkt-primary-hover)"
-            >
-              Sign in
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <MarketingHeader />
 
       <main className="relative z-10">
         {/* ── Announcement hero ── */}
@@ -382,23 +356,7 @@ export function RefocusAnnouncement() {
         </section>
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-(color:--mkt-ink)/[0.06]">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-          <Wordmark size={26} />
-          <p className="text-xs text-(color:--mkt-subtle)">
-            Open-source headless workflow engine. © {new Date().getFullYear()}{" "}
-            UserTasks.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/login" className="text-xs text-(color:--mkt-muted) transition hover:text-(color:--mkt-ink)">Sign in</Link>
-            <Link href="/contact" className="text-xs text-(color:--mkt-muted) transition hover:text-(color:--mkt-ink)">Contact</Link>
-            <Link href="/docs" className="text-xs text-(color:--mkt-muted) transition hover:text-(color:--mkt-ink)">Documentation</Link>
-            <Link href="/deploy-anywhere" className="text-xs text-(color:--mkt-muted) transition hover:text-(color:--mkt-ink)">Deploy anywhere</Link>
-            <Link href="/docs/api-explorer" className="text-xs text-(color:--mkt-muted) transition hover:text-(color:--mkt-ink)">API Explorer</Link>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
