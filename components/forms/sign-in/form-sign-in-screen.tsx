@@ -10,6 +10,7 @@ import type { LoginOptions, SsoOption } from '@/lib/providers/auth/types'
 import { cn } from '@/lib/utils'
 import { FormSignInLayout, type PanelTone } from './form-sign-in-layout'
 import { EmbedFrame } from '../embed-frame'
+import { FontLinks } from '@/components/fonts/font-links'
 
 /**
  * The form sign-in page (/form-login), and its preview in Settings → Forms.
@@ -57,7 +58,7 @@ export function FormSignInScreen(props: FormSignInScreenProps) {
   const design = embed ? 10 : settings.design
   return (
     <EmbedFrame embed={embed && !preview}>
-      {themeStyle.fontsHref && <link rel="stylesheet" href={themeStyle.fontsHref} />}
+      <FontLinks hrefs={themeStyle.fontHrefs} />
       <style dangerouslySetInnerHTML={{ __html: themeStyle.css }} />
       <div data-fsi-root data-ds-scope data-sign-in-theme={themeStyle.source} className={cn('font-sans antialiased', preview && 'h-full')}>
         <FormSignInLayout

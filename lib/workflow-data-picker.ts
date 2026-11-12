@@ -334,6 +334,8 @@ function valueSchemaAt(schema: ControlValueSchema | undefined, path: string): Sc
 function listColumnSchema(column: ListColumn): SchemaNode & { name: string } {
   // A nested List: its rows (a Loop over {{item.<column>}} inside a Loop over the List gives their columns).
   if (column.type === 'list') return { name: column.key, ...listRowsSchema(column.list), description: `${column.label} (nested list — loop over it inside the outer loop)` }
+  // A signature per row: the Signature field's value ({{item.<column>.user_name}}, .signed_at, .file).
+  if (column.type === 'signature') return { name: column.key, ...SIGNATURE_SCHEMA, nullable: true, description: `${column.label} (electronic signature of the row: file, signed_at, user_name…)` }
   const type: SchemaNode['type'] = isNumericColumn(column) ? 'number' : column.type === 'boolean' ? 'boolean' : 'string'
   const what = column.type === 'date' ? ' (YYYY-MM-DD)' : column.type === 'currency' ? ` (${column.currency ?? 'USD'})` : column.type === 'calculated' && column.formula ? ` (= ${column.formula})` : column.type === 'choice' && column.options?.length ? ` (${column.options.slice(0, 6).join(', ')})` : ''
   return { name: column.key, type, ...(column.type === 'boolean' ? {} : { nullable: true }), description: `${column.label}${what}` }

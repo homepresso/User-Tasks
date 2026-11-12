@@ -15,6 +15,7 @@ import { FormThemeOverridesSchema, FormThemeRefSchema, overridesFromPreset, bloc
 import { formSignInSettingsSchema } from '@/lib/api-schemas/form-sign-in-page'
 import { SIGN_IN_DESIGNS, DEFAULT_SIGN_IN_SETTINGS, isSupportLinkUrl } from '@/lib/forms/sign-in-page'
 import { CURATED_FONTS, SYSTEM_FONT_STACKS } from './fonts'
+import { googleFonts } from '@/lib/fonts/google'
 import { THEME_TEMPLATES, WORKSPACE_SHADOW_PRESETS } from './presets'
 import { WorkspaceThemeSchema } from './schema'
 import { defaultFormAnimation, defaultSubmittedPage } from '@/lib/forms/success-defaults'
@@ -74,7 +75,7 @@ function walk(node: any, path: string, out: ThemeSetting[], ctx: { required: boo
   const options: any[] | undefined = node.oneOf ?? node.anyOf
   if (options) {
     if (isFontUnion(options)) {
-      out.push({ key: path, type: 'font', range: '{ source: "google", family } (a curated family: see fonts) or { source: "system", family: ' + Object.keys(SYSTEM_FONT_STACKS).map((f) => `"${f}"`).join(' | ') + ' }', ...(ctx.required ? { required: true } : {}), ...(node.when_unset ? { when_unset: node.when_unset } : {}), ...(desc ?? ctx.inherited ? { affects: desc ?? ctx.inherited } : {}) })
+      out.push({ key: path, type: 'font', range: '{ source: "google", family } (any Google Fonts family; featured ones: see fonts) or { source: "system", family: ' + Object.keys(SYSTEM_FONT_STACKS).map((f) => `"${f}"`).join(' | ') + ' }', ...(ctx.required ? { required: true } : {}), ...(node.when_unset ? { when_unset: node.when_unset } : {}), ...(desc ?? ctx.inherited ? { affects: desc ?? ctx.inherited } : {}) })
       return
     }
     const nonNull = options.filter((o) => o?.type !== 'null')
@@ -153,13 +154,14 @@ export function zodLeafPaths(schema: any, prefix = ''): string[] {
 
 const fontList = (includeMono: boolean) => ({
   google: CURATED_FONTS.filter((f) => includeMono || f.category !== 'mono').map((f) => `${f.family} (${f.category}${f.bundledVar ? ', bundled' : ''})`),
+  google_note: `Featured families above; any of the ${googleFonts().length.toLocaleString('en-US')} Google Fonts families is accepted by its exact name (e.g. "Lato", "Lobster", "Noto Sans JP"). Served from this site, never from Google; with downloads turned off on the instance only fonts already stored load (others fall back to a similar system font).`,
   system: Object.keys(SYSTEM_FONT_STACKS),
 })
 
 const presetList = () => THEME_TEMPLATES.map((t) => ({ id: t.id, name: t.name, category: t.category }))
 
 /** Settings no scope supports — so the Agent can say so plainly. */
-const NOT_SUPPORTED = 'Custom CSS, raw box-shadow strings (forms), arbitrary web fonts or font URLs, animations beyond the form animation setting, per-field colours.'
+const NOT_SUPPORTED = 'Custom CSS, raw box-shadow strings (forms), font URLs or web fonts outside Google Fonts (workspace themes can upload a woff2), animations beyond the form animation setting, per-field colours.'
 
 export function themeReference(scope: ThemeScope): Record<string, unknown> {
   if (scope === 'form') {

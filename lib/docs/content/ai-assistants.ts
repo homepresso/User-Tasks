@@ -683,7 +683,7 @@ Ask the Agent to style a form, the workspace theme or the form sign-in page in y
 
 - **It checks what is possible first.** Before a change it reads the list of settings each theme accepts — for forms: colours for light and dark, body and heading fonts, button shape, shadow, field style, appearance (light / dark / follow the viewer), corner radius, density, width and header — and uses only those. That list comes from the same rules that save the theme, so it is always current.
 - **One card, before → after.** A theme that wouldn't save is corrected before you see anything; the card lists each setting that changes, before → after, with colour swatches.
-- **It says when something isn't available.** Custom CSS, raw shadows, fonts outside the curated list or a background image aren't theme settings: the Agent says so plainly and offers the closest option (for example a named shadow level, a curated serif, a page gradient) or the workspace-level setting.
+- **It says when something isn't available.** Custom CSS, raw shadows, fonts outside Google Fonts (other than an uploaded woff2) or a background image aren't theme settings: the Agent says so plainly and offers the closest option (for example a named shadow level, a curated serif, a page gradient) or the workspace-level setting.
 - **New forms end on a thank-you page.** Forms the Agent creates get the same animated success page as the form wizard (a check mark, *Thank you — your response was submitted*, the reference number, and a light confetti burst where motion is allowed), unless you ask for something else — *no success page*, *calmer animation* or your own wording.
 
 ## Example prompts

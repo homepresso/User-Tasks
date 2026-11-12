@@ -573,6 +573,21 @@ allowed for this URL (it is instance configuration, not workflow input).
 With it set, Convert Document's **Automatic** engine uses it for Office →
 PDF; see [Convert Document](/docs/workflows/documents/convert-document).
 
+### Google Fonts
+
+Workspace themes and forms can use any Google Fonts family. The app serves
+them itself from `/fonts/g/…`: the first request for a family makes the
+server download it once from `fonts.googleapis.com` / `fonts.gstatic.com`
+(nowhere else; https only, size limits, rate limited) and store it in the
+storage provider (bucket `task-files`, prefix `google-fonts/`), so browsers
+never contact Google and the CSP allows fonts only from this origin. Set
+`FONTS_REMOTE=off` (or the instance setting `instance.fonts_remote` =
+`false`) where the server has no internet access: only fonts already stored
+are offered and served, others fall back to a similar system font. Pre-seed
+them with `usertasks-admin fonts seed <family>…` (or `--dir` on a connected
+machine, then `usertasks-admin fonts import`); see
+[Air-gapped installs](/docs/self-hosting/air-gapped#google-fonts).
+
 ## 6. Security checklist
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY` and

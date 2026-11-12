@@ -19,6 +19,7 @@ import { TASK_FIELD_TYPE_LABELS, type TaskFieldDef, type TaskFieldType } from '@
 import { ALWAYS_ACTIONS, type FormRule } from '@/lib/forms/form-rules'
 import { FUNCTION_CATALOG } from '@/lib/expression-functions'
 import type { FormLayout, FormRow } from '@/lib/forms/layout'
+import { formGoogleFontFamilies } from '@/lib/forms/form-fonts'
 
 const MB = 1024 * 1024
 export const PUBLIC_INFOPATH_LIMITS = { maxInputBytes: 4 * MB, maxTotalBytes: 40 * MB, maxFiles: 400, budgetMs: 8000, previewFields: 80, previewImageBytes: 768 * 1024 } as const
@@ -26,7 +27,7 @@ export const PUBLIC_INFOPATH_LIMITS = { maxInputBytes: 4 * MB, maxTotalBytes: 40
 /** What the importer made, by kind: shown as "What converts" (only kinds with a count). */
 export type PublicInfoPathFeatureKey =
   | 'lists' | 'nested_lists' | 'repeating_sections' | 'calculated_columns' | 'images' | 'display_images' | 'signatures'
-  | 'rich_text' | 'text_lists' | 'people' | 'choice_groups' | 'styles' | 'cell_rules' | 'column_rules' | 'text_styles' | 'list_validations' | 'roles' | 'functions'
+  | 'rich_text' | 'text_lists' | 'people' | 'choice_groups' | 'styles' | 'cell_rules' | 'column_rules' | 'text_styles' | 'google_fonts' | 'list_validations' | 'roles' | 'functions'
 export interface PublicInfoPathFeature { key: PublicInfoPathFeatureKey; label: string; count: number; items?: string[] }
 
 export interface PublicInfoPathSummary {
@@ -92,7 +93,7 @@ const FEATURE_LABELS: Record<PublicInfoPathFeatureKey, string> = {
   calculated_columns: 'Row formulas → calculated columns',
   images: 'Picture controls → Image fields',
   display_images: 'Pictures in the view → Display images',
-  signatures: 'Signatures and ink → Signature fields',
+  signatures: 'Signatures and ink → Signature fields (per row and per item in repeating tables and sections too)',
   rich_text: 'Rich text boxes',
   text_lists: 'Bulleted and numbered lists',
   people: 'People pickers',
@@ -101,6 +102,7 @@ const FEATURE_LABELS: Record<PublicInfoPathFeatureKey, string> = {
   cell_rules: 'Cells hidden or locked per row',
   column_rules: 'Columns hidden by form conditions',
   text_styles: 'Fonts, sizes and colours',
+  google_fonts: 'Fonts → Google Fonts',
   list_validations: 'Validation on repeating fields',
   roles: 'User roles → role conditions',
   functions: 'XPath functions translated',
@@ -127,6 +129,7 @@ function featuresOf(forms: GeneratedForm[]): PublicInfoPathFeature[] {
     for (const c of cols) {
       if (c.type === 'calculated') { add('calculated_columns', `${at}.${c.key}`); scanFunctions(c.formula) }
       if (c.text_style) add('text_styles', `${at}.${c.key}`)
+      if (c.type === 'signature') add('signatures', `${at}.${c.key}`)
       for (const [i] of (c.validations ?? []).entries()) add('list_validations', `${at}.${c.key}:${i}`)
       if (c.type === 'list' && c.list) list(c.list, `${at}.${c.key}`, depth + 1)
     }
@@ -156,6 +159,9 @@ function featuresOf(forms: GeneratedForm[]): PublicInfoPathFeature[] {
       if (f.type === 'label') scanFunctions(f.label_config?.expression)
     }
   }
+  // Fonts the view used that map to a Google Fonts family (text styles and set_style rules).
+  const googleFamilies = new Set<string>()
+  for (const form of forms) for (const f of formGoogleFontFamilies(form.input.fields, form.input.layout)) googleFamilies.add(f)
   for (const form of forms) {
     // Keyed by field key, so a field on several views counts once.
     fields(form.input.fields as AnyField[], '', 0)
@@ -165,6 +171,7 @@ function featuresOf(forms: GeneratedForm[]): PublicInfoPathFeature[] {
   const out: PublicInfoPathFeature[] = []
   for (const key of Object.keys(FEATURE_LABELS) as PublicInfoPathFeatureKey[]) {
     if (key === 'functions') { if (functions.size) out.push({ key, label: FEATURE_LABELS[key], count: functions.size, items: [...functions].sort().slice(0, 20) }); continue }
+    if (key === 'google_fonts') { if (googleFamilies.size) out.push({ key, label: FEATURE_LABELS[key], count: googleFamilies.size, items: [...googleFamilies].sort().slice(0, 20) }); continue }
     const n = seen.get(key)?.size ?? 0
     if (n) out.push({ key, label: FEATURE_LABELS[key], count: n })
   }

@@ -81,9 +81,11 @@ export const REPEATING_LIMITS = {
 /**
  * Field types a repeating section cannot hold: they need a form-level
  * identity on the server — a Data table's queries and change sets, a custom
- * control's frame, a Signature's server-stamped signer / time.
+ * control's frame. (A Signature may go inside: each item's signature is
+ * uploaded under the inner key, re-read from the upload records and stamped
+ * by the server per item — lib/services/form-files.ts, form-signatures.ts.)
  */
-export const REPEATING_EXCLUDED_TYPES: ReadonlySet<TaskFieldType> = new Set<TaskFieldType>(['data_table', 'custom', 'signature'])
+export const REPEATING_EXCLUDED_TYPES: ReadonlySet<TaskFieldType> = new Set<TaskFieldType>(['data_table', 'custom'])
 
 /** Keys an inner field may not use: the item scope's own names. */
 export const ITEM_SCOPE_NAMES: ReadonlySet<string> = new Set(['item', 'row', 'parent', 'index', 'form'])
@@ -103,7 +105,7 @@ export interface RepeatingSectionLayout {
 }
 
 export interface RepeatingSectionConfig {
-  /** The controls of one item (any field type but data_table / custom / signature; nested list / repeating_section within the depth cap). */
+  /** The controls of one item (any field type but data_table / custom; nested list / repeating_section within the depth cap). */
   fields: TaskFieldDef[]
   /** Their grid (no pages); absent = one full-width row per field. */
   layout?: RepeatingSectionLayout
@@ -196,7 +198,7 @@ export function normalizeRepeatingSectionConfig(raw: unknown, normalizeFields: F
     totals.push(total)
   }
   if (totals.length) config.totals = totals
-  if (typeof r.key_field === 'string' && byKey.has(r.key_field) && !['list', 'repeating_section'].includes(byKey.get(r.key_field)!.type)) config.key_field = r.key_field
+  if (typeof r.key_field === 'string' && byKey.has(r.key_field) && !['list', 'repeating_section', 'signature'].includes(byKey.get(r.key_field)!.type)) config.key_field = r.key_field
   return config
 }
 

@@ -88,3 +88,34 @@ describe('InfoPath fonts and per-cell formatting', () => {
     expect(JSON.stringify(summary.preview!.layout.rules ?? [])).toContain(`column:${list.key}.unit_price`)
   })
 })
+
+describe('InfoPath fonts that Google Fonts has', () => {
+  function googleXsn(): Buffer {
+    const files = fixtureFiles('expense-report').map((f) => {
+      if (f.name !== 'view1.xsl') return f
+      let xsl = f.data.toString('utf8')
+      xsl = xsl.replace(/style="WIDTH: 100%"/g, 'style="WIDTH: 100%; FONT-FAMILY: Calibri; FONT-SIZE: 10pt"')
+      // Open Sans (on Google Fonts) on the Department label; Wingdings (nowhere) on its value.
+      xsl = xsl.replace('<td><div>Department:</div>', '<td><div><font face="Open Sans">Department:</font></div>')
+      xsl = xsl.replace('xd:binding="my:department" xd:boundProp="value" style="WIDTH: 100%; FONT-FAMILY: Calibri; FONT-SIZE: 10pt"', 'xd:binding="my:department" xd:boundProp="value" style="WIDTH: 100%; FONT-FAMILY: Wingdings; COLOR: #c00000"')
+      return { name: f.name, data: Buffer.from(xsl, 'utf8') }
+    })
+    return writeCab(files, 'mszip', { blockSize: 4096 })
+  }
+  const xsn = googleXsn()
+  const { forms, report } = generateForms(analyzeInfoPath(xsn, { fileName: 'Expense Report.xsn' }), { now: '2026-11-11T00:00:00.000Z' })
+  const fields = forms[0].input.fields as any[]
+
+  it('maps the font to that Google family (a valid form) and names unavailable fonts in the report', () => {
+    expect(fields.find((f) => f.key === 'department').text_style).toEqual({ label: { font: 'google:Open Sans' }, value: { color: '#c00000' } })
+    expect(() => validateFormContent({ fields: forms[0].input.fields, layout: forms[0].input.layout })).not.toThrow()
+    const item = report.items.find((i) => i.id.startsWith('fonts:'))!
+    expect(item.detail).toContain('Google Fonts used (served from this site): Open Sans')
+    expect(item.detail).toContain('not available, so the theme font is used instead: Wingdings')
+  })
+
+  it('the public summary lists the Google fonts', () => {
+    const summary = publicInfoPathSummary(new Uint8Array(xsn), 'Expense Report.xsn')
+    expect(summary.features.find((f: any) => f.key === 'google_fonts')).toMatchObject({ count: 1, items: ['Open Sans'] })
+  })
+})

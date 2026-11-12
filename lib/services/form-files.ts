@@ -48,7 +48,8 @@ import { deriveInputFields } from '@/lib/workflow-inputs'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
-import { findFieldDeep } from '@/lib/forms/repeating-section'
+import { hasSignatureColumns, type ListFieldConfig } from '@/lib/forms/list-field'
+import { listSignatureUploadKeys, nestedSignatureCells, resolveFileControl, signatureFieldForColumn } from '@/lib/forms/signature-cells'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- form_files is not in the generated Database types */
 
@@ -163,17 +164,35 @@ export function presentFormFile(row: FormFileRow): AttachmentFile {
 
 /* ── Upload ──────────────────────────────────────────────────────────── */
 
-function attachmentField(fields: TaskFieldDef[], fieldKey: string, where: string): TaskFieldDef {
-  // A form's own field, or one inside a repeating section (lib/forms/repeating-section.ts; inner keys are unique over the form).
-  const found = findFieldDeep(fields, fieldKey)
-  const field = found && usesFileUploads(found.field) ? found.field : undefined
-  if (!field) throw ServiceError.notFound(`${where} has no attachments field "${String(fieldKey).slice(0, 64)}"`)
-  if (field.read_only) throw ServiceError.forbidden(`"${field.label}" is read-only`)
-  return field
+/**
+ * The key an upload records (form_files.field_key, at most 64 characters): the field's key, or — a List signature
+ * column's longer `<list>.<child>.<column>` — its first 47 characters, `~` and a hash of the whole key.
+ */
+export function storedFieldKey(key: string): string {
+  return key.length <= 64 ? key : `${key.slice(0, 47)}~${createHash('sha256').update(key).digest('hex').slice(0, 16)}`
 }
 
-/** The field the upload goes to, authorised for the caller in their workspace. */
-async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, context: UploadContext, fieldKey: string): Promise<{ field: TaskFieldDef; contextId: string }> {
+/**
+ * A form's own file field, one inside a repeating section (lib/forms/repeating-section.ts; inner keys are unique over
+ * the form) or a List signature column (`<list>.<column>` — lib/forms/signature-cells.ts). `repeated`: per item / row.
+ */
+function fileControlIn(fields: TaskFieldDef[], fieldKey: string): { field: TaskFieldDef; repeated: boolean } | null {
+  // A recorded long key (storedFieldKey): the List signature column whose key it shortens.
+  const key = fieldKey.includes('~') ? listSignatureUploadKeys(fields).find((k) => storedFieldKey(k) === fieldKey) ?? '' : fieldKey
+  const found = resolveFileControl(fields, key)
+  if (!found || !usesFileUploads(found.field) || found.list?.read_only) return null
+  return { field: found.field, repeated: found.repeated }
+}
+
+function attachmentField(fields: TaskFieldDef[], fieldKey: string, where: string): { field: TaskFieldDef; repeated: boolean } {
+  const found = fileControlIn(fields, fieldKey)
+  if (!found) throw ServiceError.notFound(`${where} has no attachments field "${String(fieldKey).slice(0, 64)}"`)
+  if (found.field.read_only) throw ServiceError.forbidden(`"${found.field.label}" is read-only`)
+  return found
+}
+
+/** The field the upload goes to, authorised for the caller in their workspace. `repeated`: a control per item / row. */
+async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, context: UploadContext, fieldKey: string): Promise<{ field: TaskFieldDef; contextId: string; repeated?: boolean }> {
   if (isAnonymous(ctx) && (context.kind !== 'form' || context.formId !== ctx.anonymous.formId)) throw ServiceError.notFound('Form not found')
   if (context.kind === 'form') {
     requirePerm(ctx, 'forms.submit')
@@ -181,14 +200,15 @@ async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, co
     const { data: form, error } = await (db as any).from('forms').select('id, fields').eq('id', context.formId).eq('tenant_id', ctx.tenantId).maybeSingle()
     if (error) throw dbError(error)
     if (!form) throw ServiceError.notFound('Form not found')
-    const field = attachmentField(normalizeTaskFields(form.fields), fieldKey, 'The form')
+    const { field, repeated } = attachmentField(normalizeTaskFields(form.fields), fieldKey, 'The form')
     // Anonymous visitors: Attachments, Image and Signature fields only (never a custom control's files capability).
     if (isAnonymous(ctx) && field.type !== 'attachments' && field.type !== 'image' && field.type !== 'signature') throw ServiceError.forbidden('Uploads are not available on a public form')
-    return { field, contextId: form.id }
+    return { field, contextId: form.id, repeated }
   }
   if (context.kind === 'task') {
     const task = await loadActionableTask(ctx, db, context.taskId)
-    return { field: attachmentField(normalizeTaskFields(task.metadata?.fields), fieldKey, "The task's form"), contextId: task.id }
+    const { field, repeated } = attachmentField(normalizeTaskFields(task.metadata?.fields), fieldKey, "The task's form")
+    return { field, contextId: task.id, repeated }
   }
   if (context.kind === 'start') {
     // A workflow's start form, as runs see it (published version, else the draft): workflows.activate starts runs.
@@ -211,8 +231,8 @@ async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, co
   for (const node of (Array.isArray(workflow.nodes) ? workflow.nodes : []) as any[]) {
     if (node?.type !== 'user_task' || !isPlainObject(node.config)) continue
     const form = await resolveRuntimeForm(db, ctx.tenantId, node.config).catch(() => null)
-    const field = form?.fields.find((f) => f.key === fieldKey && usesFileUploads(f))
-    if (field && !field.read_only) return { field, contextId: workflow.id }
+    const found = form ? fileControlIn(form.fields, fieldKey) : null
+    if (found && !found.field.read_only) return { field: found.field, contextId: workflow.id, repeated: found.repeated }
   }
   throw ServiceError.notFound(`No User Task of this workflow has an attachments field "${String(fieldKey).slice(0, 64)}"`)
 }
@@ -298,8 +318,12 @@ function tooLarge(maxBytes: number): ServiceError {
   return new ServiceError('validation_error', `Files must be ${Math.round(maxBytes / 1024 / 1024 * 10) / 10} MB or smaller`, { status: 413 })
 }
 
-/** Uploads not yet submitted: per person in the workspace, and per field of this context. */
-async function checkUploadQuota(ctx: ServiceContext, db: AnySupabaseClient, context: UploadContext, contextId: string, field: TaskFieldDef, maxFiles: number) {
+/**
+ * Uploads not yet submitted: per person in the workspace, and per field of this context. A control that repeats
+ * (`repeated`: inside a repeating section's items, a List signature column) holds one file per item / row, so it is
+ * capped by the per-person limit (FORM_ATTACHMENT_PENDING_LIMIT) — or an anonymous visit's — only.
+ */
+async function checkUploadQuota(ctx: ServiceContext, db: AnySupabaseClient, context: UploadContext, contextId: string, field: TaskFieldDef, maxFiles: number, repeated = false) {
   const since = new Date(Date.now() - pendingTtlHours() * 3_600_000).toISOString()
   if (isAnonymous(ctx)) {
     // Per visit (upload key), across the form's fields: the form's "files per submission".
@@ -311,9 +335,10 @@ async function checkUploadQuota(ctx: ServiceContext, db: AnySupabaseClient, cont
   const { count: pendingCount } = await (db as any).from('form_files').select('id', { count: 'exact', head: true })
     .eq('tenant_id', ctx.tenantId).eq('uploaded_by', ctx.actorId).in('status', ['uploading', 'pending']).gte('created_at', since)
   if ((pendingCount ?? 0) >= pendingLimit()) throw new ServiceError('rate_limited', 'You have too many unsubmitted uploads — submit or remove some first')
+  if (repeated) return
   const [contextColumn, contextValue] = Object.entries(contextColumns(context, contextId))[0]
   const { count: fieldCount } = await (db as any).from('form_files').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', ctx.tenantId).eq('uploaded_by', ctx.actorId).in('status', ['uploading', 'pending']).eq('field_key', field.key)
+    .eq('tenant_id', ctx.tenantId).eq('uploaded_by', ctx.actorId).in('status', ['uploading', 'pending']).eq('field_key', storedFieldKey(field.key))
     .eq(contextColumn, contextValue).gte('created_at', since)
   if ((fieldCount ?? 0) >= maxFiles + 10) throw new ServiceError('rate_limited', `Too many uploads for "${field.label}" — remove some first`)
 }
@@ -392,7 +417,7 @@ function storageKeyFor(ctx: ServiceContext, context: UploadContext, contextId: s
 export async function uploadFormFile(ctx: ServiceContext, input: UploadFormFileInput): Promise<AttachmentFile> {
   if (!ctx.actorId) assertAnonymousUploads(ctx)
   const db = await serviceRoleClient(ctx)
-  const { field, contextId } = await resolveUploadField(ctx, db, input.context, String(input.field_key ?? ''))
+  const { field, contextId, repeated } = await resolveUploadField(ctx, db, input.context, String(input.field_key ?? ''))
   await rateLimited(ctx)
 
   const bytes = input.bytes
@@ -408,7 +433,7 @@ export async function uploadFormFile(ctx: ServiceContext, input: UploadFormFileI
   if (bytes.byteLength > streamedUploadMaxBytes()) throw streamedTooLarge()
   const name = sanitizeFileName(input.name)
   const checked = await verifyUploadBytes(field, name, bytes, limits.maxFileBytes)
-  await checkUploadQuota(ctx, db, input.context, contextId, field, limits.maxFiles)
+  await checkUploadQuota(ctx, db, input.context, contextId, field, limits.maxFiles, repeated)
 
   const id = crypto.randomUUID()
   const key = storageKeyFor(ctx, input.context, contextId, id, name)
@@ -431,7 +456,7 @@ export async function uploadFormFile(ctx: ServiceContext, input: UploadFormFileI
     ...(isAnonymous(ctx) ? { uploaded_by: null, upload_session: ctx.anonymous.uploadSession } : {}),
     context_kind: input.context.kind,
     ...contextColumns(input.context, contextId),
-    field_key: field.key,
+    field_key: storedFieldKey(field.key),
     status: 'pending',
     scan_status: checked.scan,
     created_at: new Date().toISOString(),
@@ -479,7 +504,7 @@ export async function initDirectUpload(ctx: ServiceContext, input: InitDirectUpl
     return { mode: 'server', max_bytes: Math.min(ctx.anonymous!.uploads.maxBytes, streamedUploadMaxBytes()) }
   }
   const db = await serviceRoleClient(ctx)
-  const { field, contextId } = await resolveUploadField(ctx, db, input.context, String(input.field_key ?? ''))
+  const { field, contextId, repeated } = await resolveUploadField(ctx, db, input.context, String(input.field_key ?? ''))
   await rateLimited(ctx)
   const size = Number(input.size)
   if (!Number.isInteger(size) || size <= 0) throw ServiceError.validation('The file is empty')
@@ -490,7 +515,7 @@ export async function initDirectUpload(ctx: ServiceContext, input: InitDirectUpl
   if (BLOCKED_EXTENSIONS.has(ext) || !isTypeAllowed(uploadConfigFor(field), ext, kindForExtension(ext))) {
     throw new ServiceError('validation_error', ext ? `.${ext} files are not allowed here` : 'Files without an extension are not allowed here', { status: 415 })
   }
-  await checkUploadQuota(ctx, db, input.context, contextId, field, limits.maxFiles)
+  await checkUploadQuota(ctx, db, input.context, contextId, field, limits.maxFiles, repeated)
 
   const provider = await storage()
   const server = (): InitDirectUploadResult => {
@@ -513,7 +538,7 @@ export async function initDirectUpload(ctx: ServiceContext, input: InitDirectUpl
     uploaded_by: ctx.actorId,
     context_kind: input.context.kind,
     ...contextColumns(input.context, contextId),
-    field_key: field.key,
+    field_key: storedFieldKey(field.key),
     status: 'uploading',
     created_at: new Date().toISOString(),
     expires_at: expiresAt,
@@ -622,6 +647,16 @@ export type FileValueContext =
  * reusable form: by the submitter, still pending; a task: for this task).
  * Returns the rebuilt values plus `<key>_count`, or errors per field.
  * `keys` limits the fields (draft saves send some fields only).
+ *
+ * Repeating controls are rebuilt the same way, in place: file controls in a
+ * repeating section's items (any level) and List signature columns (any
+ * level, also in Lists inside sections) — a problem at its path
+ * (`expenses[1].receipt`, `approvals[0].signature`) and on the field.
+ *
+ * `stored` (a task's saved values): a file the task already holds for the
+ * same control — a signature a workflow carried over from an earlier task,
+ * e.g. the rows earlier approvers signed — stays valid while it is a bound
+ * upload of that control in this workspace.
  */
 export async function resolveAttachmentValues(
   db: AnySupabaseClient,
@@ -630,97 +665,154 @@ export async function resolveAttachmentValues(
   values: Record<string, unknown>,
   context: FileValueContext | null,
   keys?: string[],
+  stored?: Record<string, unknown> | null,
 ): Promise<{ errors: Record<string, string>; values: Record<string, unknown> }> {
   const errors: Record<string, string> = {}
   const out: Record<string, unknown> = {}
   const targets = valueFields(fields).filter((f) => usesFileUploads(f) && (!keys || keys.includes(f.key)))
-  // Repeating sections holding file controls (any level): every item's files are re-read the same way.
-  const sections = valueFields(fields).filter((f) => f.type === 'repeating_section' && hasInnerFiles(f) && (!keys || keys.includes(f.key)))
-  if (!targets.length && !sections.length) return { errors, values: out }
+  // Repeating sections holding file controls and Lists with signature columns (any level): every item's / row's files re-read.
+  const containers = valueFields(fields).filter((f) => holdsRepeatingFiles(f) && (!keys || keys.includes(f.key)))
+  if (!targets.length && !containers.length) return { errors, values: out }
   const wanted = new Map<string, string[]>()
   for (const field of targets) wanted.set(field.key, fileIdsOf(field, values[field.key]))
-  const allIds = [...new Set([...wanted.values()].flat().concat(sections.flatMap((f) => itemFileIds(f, values[f.key]))))]
+  const allIds = [...new Set([...wanted.values()].flat().concat(containers.flatMap((f) => repeatingFileIds(f, values[f.key]))))]
   const rows = new Map<string, FormFileRow>()
   if (allIds.length) {
     if (!context) {
       for (const field of targets) if ((wanted.get(field.key) ?? []).length) errors[field.key] = `${field.label}: files can't be attached here`
-      for (const field of sections) if (itemFileIds(field, values[field.key]).length) errors[field.key] = `${field.label}: files can't be attached here`
+      for (const field of containers) if (repeatingFileIds(field, values[field.key]).length) errors[field.key] = `${field.label}: files can't be attached here`
       return { errors, values: out }
     }
     const { data, error } = await (db as any).from('form_files').select(FILE_COLUMNS).eq('tenant_id', tenantId).in('id', allIds)
     if (error) throw dbError(error)
     for (const row of (data ?? []) as FormFileRow[]) rows.set(String(row.id).toLowerCase(), row)
   }
+  const kept = context?.kind === 'task' && stored ? storedFileIds(fields, stored) : null
+  const judge = (field: TaskFieldDef, raw: unknown) => judgeFileField(field, raw, rows, context, kept?.get(storedFieldKey(field.key)))
   for (const field of targets) {
-    const judged = judgeFileField(field, values[field.key], rows, context)
+    const judged = judge(field, values[field.key])
     if ('problem' in judged) { errors[field.key] = judged.problem; continue }
     Object.assign(out, judged.values)
   }
-  // Items: each inner file control's files rebuilt in place; a problem at its item path (`expenses[1].receipt`) and on the section.
-  const rebuild = (section: TaskFieldDef, value: unknown, path: string, top: TaskFieldDef): unknown => {
+  const report = (top: TaskFieldDef, path: string, i: number, problem: string, noun: string) => {
+    errors[path] = problem
+    errors[top.key] ??= `${top.label}: ${noun} ${i + 1}: ${problem}`
+  }
+  // A List's rows: each signature cell rebuilt in place (nested Lists too; upload key `<list>.<column path>`).
+  const rebuildRows = (listKey: string, config: ListFieldConfig | undefined, value: unknown, prefix: string[], path: string, top: TaskFieldDef): unknown => {
+    if (!config || !Array.isArray(value)) return value
+    return value.map((row, i) => {
+      if (!isPlainObject(row)) return row
+      const next: Record<string, unknown> = { ...row }
+      for (const column of config.columns) {
+        if (column.type === 'list' && hasSignatureColumns(column.list)) { next[column.key] = rebuildRows(listKey, column.list, row[column.key], [...prefix, column.key], `${path}[${i}].${column.key}`, top); continue }
+        if (column.type !== 'signature') continue
+        const cell = signatureFieldForColumn(listKey, [...prefix, column.key], column)
+        const judged = judge(cell, row[column.key])
+        if ('problem' in judged) { report(top, `${path}[${i}].${column.key}`, i, judged.problem, 'row'); continue }
+        next[column.key] = judged.values[cell.key] ?? null
+      }
+      return next
+    })
+  }
+  // Items: each inner file control's files rebuilt in place; nested sections and Lists the same way.
+  const rebuildItems = (section: TaskFieldDef, value: unknown, path: string, top: TaskFieldDef): unknown => {
     if (!Array.isArray(value)) return value
     return value.map((item, i) => {
       if (!isPlainObject(item)) return item
       const next: Record<string, unknown> = { ...item }
       for (const inner of valueFields(section.repeating_section?.fields ?? [])) {
-        if (inner.type === 'repeating_section') { next[inner.key] = rebuild(inner, item[inner.key], `${path}[${i}].${inner.key}`, top); continue }
+        if (inner.type === 'repeating_section') { next[inner.key] = rebuildItems(inner, item[inner.key], `${path}[${i}].${inner.key}`, top); continue }
+        if (inner.type === 'list') { if (hasSignatureColumns(inner.list)) next[inner.key] = rebuildRows(inner.key, inner.list, item[inner.key], [], `${path}[${i}].${inner.key}`, top); continue }
         if (!usesFileUploads(inner)) continue
-        const judged = judgeFileField(inner, item[inner.key], rows, context)
-        if ('problem' in judged) {
-          errors[`${path}[${i}].${inner.key}`] = judged.problem
-          errors[top.key] ??= `${top.label}: item ${i + 1}: ${judged.problem}`
-          continue
-        }
+        const judged = judge(inner, item[inner.key])
+        if ('problem' in judged) { report(top, `${path}[${i}].${inner.key}`, i, judged.problem, 'item'); continue }
         Object.assign(next, judged.values)
       }
       return next
     })
   }
-  for (const field of sections) {
-    const rebuilt = rebuild(field, values[field.key], field.key, field)
+  for (const field of containers) {
+    const rebuilt = field.type === 'list'
+      ? rebuildRows(field.key, field.list, values[field.key], [], field.key, field)
+      : rebuildItems(field, values[field.key], field.key, field)
     if (!errors[field.key]) out[field.key] = rebuilt
   }
   return { errors, values: out }
 }
 
-/** A repeating section with a file control inside (any level). */
-function hasInnerFiles(field: TaskFieldDef): boolean {
-  return (field.repeating_section?.fields ?? []).some((f) => usesFileUploads(f) || (f.type === 'repeating_section' && hasInnerFiles(f)))
+/** A repeating section with a file control inside, or a List with a signature column (any level). */
+function holdsRepeatingFiles(field: TaskFieldDef): boolean {
+  if (field.type === 'list') return hasSignatureColumns(field.list)
+  if (field.type !== 'repeating_section') return false
+  return (field.repeating_section?.fields ?? []).some((f) => usesFileUploads(f) || holdsRepeatingFiles(f))
 }
 
-/** The upload ids a repeating section's items name (any level). */
-function itemFileIds(field: TaskFieldDef, value: unknown): string[] {
+/** The upload ids a repeating section's items or a List's signature cells name (any level). */
+function repeatingFileIds(field: TaskFieldDef, value: unknown): string[] {
   if (!Array.isArray(value)) return []
+  if (field.type === 'list') return nestedSignatureCells(field, value).flatMap((c) => fileIdsOf(c.field, c.value))
   const out: string[] = []
   for (const item of value) {
     if (!isPlainObject(item)) continue
     for (const inner of valueFields(field.repeating_section?.fields ?? [])) {
       if (usesFileUploads(inner)) out.push(...fileIdsOf(inner, item[inner.key]))
-      else if (inner.type === 'repeating_section') out.push(...itemFileIds(inner, item[inner.key]))
+      else if (inner.type === 'repeating_section' || inner.type === 'list') out.push(...repeatingFileIds(inner, item[inner.key]))
     }
+  }
+  return out
+}
+
+/** The file ids a task's saved values hold, by the control's recorded key (storedFieldKey) — top level, items and rows. */
+function storedFileIds(fields: TaskFieldDef[], stored: Record<string, unknown>): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>()
+  const add = (field: TaskFieldDef, value: unknown) => {
+    const ids = fileIdsOf(field, value)
+    if (!ids.length) return
+    const key = storedFieldKey(field.key)
+    const set = out.get(key) ?? new Set<string>()
+    for (const id of ids) set.add(id)
+    out.set(key, set)
+  }
+  const walkItems = (section: TaskFieldDef, value: unknown) => {
+    for (const item of Array.isArray(value) ? value : []) {
+      if (!isPlainObject(item)) continue
+      for (const inner of valueFields(section.repeating_section?.fields ?? [])) {
+        if (usesFileUploads(inner)) add(inner, item[inner.key])
+        else if (inner.type === 'repeating_section') walkItems(inner, item[inner.key])
+        else if (inner.type === 'list') for (const c of nestedSignatureCells(inner, item[inner.key])) add(c.field, c.value)
+      }
+    }
+  }
+  for (const field of valueFields(fields)) {
+    if (usesFileUploads(field)) add(field, stored[field.key])
+    else if (field.type === 'repeating_section') walkItems(field, stored[field.key])
+    else if (field.type === 'list') for (const c of nestedSignatureCells(field, stored[field.key])) add(c.field, c.value)
   }
   return out
 }
 
 /**
  * One file field's value re-read from the upload records: the files must be
- * this field's (by key) and this context's; the result — files, a picture,
- * a signature (with its PNG) — and `<key>_count`, or the problem.
+ * this field's (by key) and this context's — or, in a task, already held by
+ * the task's saved values for this control (`kept`, bound uploads) — the
+ * result — files, a picture, a signature (with its PNG) — and
+ * `<key>_count`, or the problem.
  */
-function judgeFileField(field: TaskFieldDef, raw: unknown, rows: Map<string, FormFileRow>, context: FileValueContext | null): { values: Record<string, unknown> } | { problem: string } {
+function judgeFileField(field: TaskFieldDef, raw: unknown, rows: Map<string, FormFileRow>, context: FileValueContext | null, kept?: ReadonlySet<string>): { values: Record<string, unknown> } | { problem: string } {
   const out: Record<string, unknown> = {}
   const files: AttachmentFile[] = []
   let problem: string | null = null
   for (const id of fileIdsOf(field, raw)) {
     const row = rows.get(id)
-    const belongs = context && row && row.field_key === field.key && (row.status === 'pending' || row.status === 'bound') && (
+    const belongs = context && row && row.field_key === storedFieldKey(field.key) && (row.status === 'pending' || row.status === 'bound') && (
       context.kind === 'form'
         ? row.context_kind === 'form' && row.form_id === context.formId && row.status === 'pending' && (context.actorId
           ? row.uploaded_by !== null && row.uploaded_by === context.actorId
           : Boolean(context.uploadSession) && row.uploaded_by === null && row.upload_session === context.uploadSession)
         : context.kind === 'start'
           ? row.context_kind === 'start' && row.workflow_id === context.workflowId && row.status === 'pending' && row.uploaded_by !== null && row.uploaded_by === context.actorId
-          : row.context_kind === 'task' && row.task_id === context.taskId
+          : (row.context_kind === 'task' && row.task_id === context.taskId) || (row.status === 'bound' && Boolean(kept?.has(id)))
     )
     if (!belongs) { problem = `${field.label}: a file is no longer available — remove it and upload it again`; break }
     files.push(presentFormFile(row!))
@@ -761,8 +853,8 @@ export function attachmentIdsIn(fields: TaskFieldDef[], values: Record<string, u
   const ids: string[] = []
   for (const field of valueFields(fields)) {
     if (usesFileUploads(field)) ids.push(...fileIdsOf(field, values?.[field.key]))
-    // …and the file controls inside repeating sections' items.
-    if (field.type === 'repeating_section') ids.push(...itemFileIds(field, values?.[field.key]))
+    // …and the file controls inside repeating sections' items, and List signature cells (any level).
+    if (field.type === 'repeating_section' || field.type === 'list') ids.push(...repeatingFileIds(field, values?.[field.key]))
   }
   return [...new Set(ids)]
 }
@@ -977,21 +1069,36 @@ export async function sanitizeTestTaskFiles(db: AnySupabaseClient, tenantId: str
     // File objects only (a list of plain ids could be anything, e.g. user ids).
     return isAttachmentFile(v) || (Array.isArray(v) && v.length > 0 && v.some(isAttachmentFile)) || isSignatureLike(v)
   })
-  if (!keys.length) return taskData
-  const ids = [...new Set(keys.flatMap((key) => attachmentIds(isSignatureLike(taskData[key]) ? (taskData[key] as { file: unknown }).file : taskData[key])))]
+  // Rows / items (a List, a repeating section): signatures inside them (any level) are re-read the same way.
+  const rowKeys = Object.keys(taskData).filter((key) => !keys.includes(key) && Array.isArray(taskData[key]) && rowSignatureIds(taskData[key]).length > 0)
+  if (!keys.length && !rowKeys.length) return taskData
+  const ids = [...new Set(keys.flatMap((key) => attachmentIds(isSignatureLike(taskData[key]) ? (taskData[key] as { file: unknown }).file : taskData[key])).concat(rowKeys.flatMap((key) => rowSignatureIds(taskData[key]))))]
   const rows = new Map<string, FormFileRow>()
   if (actorId && ids.length) {
     const { data } = await (db as any).from('form_files').select(FILE_COLUMNS).eq('tenant_id', tenantId).eq('uploaded_by', actorId).in('id', ids).in('status', ['pending', 'bound'])
     for (const row of (data ?? []) as FormFileRow[]) rows.set(String(row.id).toLowerCase(), row)
   }
   const out = { ...taskData }
+  // A Signature: its PNG re-read; the person and the time are the tester's / now, never as sent.
+  const cleanSignature = (v: unknown) => {
+    const row = rows.get(attachmentIds((v as { file: unknown }).file)[0] ?? '')
+    const sig = normalizeSignatureValue(v)
+    return row && sig ? { file: presentFormFile(row), method: sig.method, ...(sig.typed_name ? { typed_name: sig.typed_name } : {}), signed_at: new Date().toISOString(), ...(actorId ? { user_id: actorId } : {}) } : null
+  }
+  const cleanRows = (list: unknown[]): unknown[] => list.map((row) => {
+    if (!isPlainObject(row)) return row
+    const next: Record<string, unknown> = { ...row }
+    for (const [k, v] of Object.entries(row)) {
+      if (isSignatureLike(v)) next[k] = cleanSignature(v)
+      else if (Array.isArray(v)) next[k] = cleanRows(v)
+    }
+    return next
+  })
+  for (const key of rowKeys) out[key] = cleanRows(taskData[key] as unknown[])
   for (const key of keys) {
     const v = taskData[key]
     if (isSignatureLike(v)) {
-      // A Signature: its PNG re-read; the person and the time are the tester's / now, never as sent.
-      const row = rows.get(attachmentIds((v as { file: unknown }).file)[0] ?? '')
-      const sig = normalizeSignatureValue(v)
-      out[key] = row && sig ? { file: presentFormFile(row), method: sig.method, ...(sig.typed_name ? { typed_name: sig.typed_name } : {}), signed_at: new Date().toISOString(), ...(actorId ? { user_id: actorId } : {}) } : null
+      out[key] = cleanSignature(v)
       continue
     }
     const files = attachmentIds(v).map((id) => rows.get(id)).filter((r): r is FormFileRow => Boolean(r)).map(presentFormFile)
@@ -1001,6 +1108,12 @@ export async function sanitizeTestTaskFiles(db: AnySupabaseClient, tenantId: str
     out[attachmentsCountKey(key)] = files.length
   }
   return out
+}
+
+/** The PNG ids of signatures inside rows / items (any level). */
+function rowSignatureIds(list: unknown): string[] {
+  if (!Array.isArray(list)) return []
+  return list.flatMap((row) => (isPlainObject(row) ? Object.values(row).flatMap((v) => (isSignatureLike(v) ? attachmentIds((v as { file: unknown }).file) : Array.isArray(v) ? rowSignatureIds(v) : [])) : []))
 }
 
 function isSignatureLike(value: unknown): boolean {

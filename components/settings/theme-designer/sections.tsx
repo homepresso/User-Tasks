@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils"
 import { LogoUpload } from "@/components/settings/logo-upload"
 import { uploadWorkspaceThemeFont } from "@/app/actions/workspace-theme"
 import { paletteContrastChecks, checkThemeContrast, type ContrastCheck } from "@/lib/theme/contrast"
-import { CURATED_FONTS, SYSTEM_FONT_STACKS, findCuratedFont, type FontSlot } from "@/lib/theme/fonts"
+import { SYSTEM_FONT_STACKS, findThemeFont, type FontSlot } from "@/lib/theme/fonts"
+import { FontPicker as CatalogFontPicker } from "@/components/fonts/font-picker"
 import { THEME_TEMPLATES, WORKSPACE_SHADOW_PRESETS, presetToWorkspaceTheme } from "@/lib/theme/presets"
 import { isValidShadow, type FontRef, type ThemeMode, type ThemePalette, type WorkspaceTheme } from "@/lib/theme/schema"
 import { fontFamilyValue } from "@/lib/theme/to-css"
@@ -218,19 +219,17 @@ export function ColorsSection({ theme, set, mode, onModeChange }: SectionProps &
 const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900].map((w) => ({ value: w, label: String(w) }))
 const LETTER_SPACING = ["-0.03em", "-0.02em", "-0.01em", "normal", "0.01em", "0.02em", "0.05em"].map((v) => ({ value: v, label: v }))
 const SLOT_LABEL: Record<FontSlot, string> = { sans: "Body & UI", display: "Display (headings)", mono: "Monospace (code, ids)" }
-const SLOT_CATEGORY: Record<FontSlot, string> = { sans: "sans", display: "serif", mono: "mono" }
+const SLOT_CATEGORY: Record<FontSlot, "sans" | "serif" | "mono"> = { sans: "sans", display: "serif", mono: "mono" }
 const SPECIMEN = "Approve invoice INV-2041 · The quick brown fox jumps over the lazy dog 0123456789"
 
 function FontPicker({ slot, font, onChange }: { slot: FontSlot; font: FontRef; onChange: (font: FontRef) => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Show the slot's natural category first, then the rest.
-  const ordered = [...CURATED_FONTS].sort((a, b) => Number(b.category === SLOT_CATEGORY[slot]) - Number(a.category === SLOT_CATEGORY[slot]))
+  // System stacks (and the uploaded font) first; then every Google family, the slot's natural category preselected.
   const options = [
-    ...ordered.map((f) => ({ value: `google:${f.family}`, label: `${f.family} (${f.category === "sans" ? "sans-serif" : f.category === "serif" ? "serif" : "monospace"})` })),
-    ...Object.keys(SYSTEM_FONT_STACKS).map((family) => ({ value: `system:${family}`, label: `${family} (system font)` })),
-    ...(font.source === "upload" ? [{ value: `upload:${font.family}`, label: `${font.family} (uploaded)` }] : []),
+    ...Object.keys(SYSTEM_FONT_STACKS).map((family) => ({ value: `system:${family}`, label: `${family} (system font)`, stack: SYSTEM_FONT_STACKS[family] })),
+    ...(font.source === "upload" ? [{ value: `upload:${font.family}`, label: `${font.family} (uploaded)`, stack: fontFamilyValue(font, slot) }] : []),
   ]
   const current = `${font.source}:${font.family}`
 
@@ -249,17 +248,26 @@ function FontPicker({ slot, font, onChange }: { slot: FontSlot; font: FontRef; o
 
   return (
     <div className="space-y-1.5">
-      <SelectField
-        label={SLOT_LABEL[slot]}
-        value={current}
-        options={options}
-        onChange={(value) => {
-          const [source, ...rest] = value.split(":")
-          const family = rest.join(":")
-          if (source === "google" && findCuratedFont(family)) onChange({ source: "google", family })
-          else if (source === "system") onChange({ source: "system", family })
-        }}
-      />
+      <div className="flex items-center gap-3">
+        <label className="w-36 shrink-0 text-ui text-fg" htmlFor={`theme-font-${slot}`}>{SLOT_LABEL[slot]}</label>
+        <CatalogFontPicker
+          id={`theme-font-${slot}`}
+          size="sm"
+          className="min-w-0 flex-1"
+          aria-label={SLOT_LABEL[slot]}
+          value={current}
+          options={options}
+          preferredCategory={SLOT_CATEGORY[slot]}
+          onChange={(value) => {
+            if (!value) return
+            const [source, ...rest] = value.split(":")
+            const family = rest.join(":")
+            const google = source === "google" ? findThemeFont(family) : undefined
+            if (google) onChange({ source: "google", family: google.family })
+            else if (source === "system" && SYSTEM_FONT_STACKS[family]) onChange({ source: "system", family })
+          }}
+        />
+      </div>
       <p className="truncate rounded-md bg-subtle px-3 py-2 text-sm text-fg" style={{ fontFamily: fontFamilyValue(font, slot) }} aria-label={`${SLOT_LABEL[slot]} specimen`}>
         {SPECIMEN}
       </p>

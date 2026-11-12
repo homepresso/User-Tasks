@@ -16,9 +16,13 @@ import { GroupEditor } from './data-table-properties'
 import { designerInputClass as inputClass } from './designer-controls'
 import {
   TEXT_COLOR_LABELS, TEXT_COLOR_TOKENS, TEXT_FONTS, TEXT_FONT_KEYS, TEXT_SIZE_LABELS, TEXT_SIZE_PRESETS, describeTextStyle, normalizeTextColor, normalizeTextSize,
-  normalizeTextStyle, textStyleProps, type ControlTextStyle, type TextFont, type TextSizePreset, type TextStyle,
+  normalizeTextFont, normalizeTextStyle, textStyleProps, type ControlTextStyle, type TextSizePreset, type TextStyle,
 } from '@/lib/forms/text-style'
+import { FontPicker } from '@/components/fonts/font-picker'
 import { CELL_RULE_LIMIT, type ListCellRule } from '@/lib/forms/conditional-style'
+
+/** The curated stacks (theme sans / serif / mono, the common InfoPath fonts) listed before the Google families. */
+const STANDARD_FONT_OPTIONS = TEXT_FONT_KEYS.map((f) => ({ value: f, label: TEXT_FONTS[f].label, stack: TEXT_FONTS[f].stack }))
 
 /** Size, font and colour pickers (whitelisted values only — lib/forms/text-style.ts). */
 export function FontPickers({ value, onChange, idBase }: { value: Pick<TextStyle, 'size' | 'font' | 'color'>; onChange: (patch: Pick<TextStyle, 'size' | 'font' | 'color'>) => void; idBase: string }) {
@@ -38,12 +42,11 @@ export function FontPickers({ value, onChange, idBase }: { value: Pick<TextStyle
             onChange={(e) => onChange({ ...value, size: normalizeTextSize(`${e.target.value}px`) ?? value.size })} />
         )}
       </label>
-      <label className="block text-2xs" htmlFor={`${idBase}-font`}>Font
-        <select id={`${idBase}-font`} className={inputClass} value={value.font ?? ''} data-text-font onChange={(e) => onChange({ ...value, font: (e.target.value || undefined) as TextFont | undefined })}>
-          <option value="">Theme default</option>
-          {TEXT_FONT_KEYS.map((f) => <option key={f} value={f}>{TEXT_FONTS[f].label}</option>)}
-        </select>
-      </label>
+      <div className="block text-2xs" data-text-font>
+        <label htmlFor={`${idBase}-font`}>Font</label>
+        <FontPicker id={`${idBase}-font`} size="sm" className="mt-0.5" value={value.font} emptyLabel="Theme default" options={STANDARD_FONT_OPTIONS}
+          aria-label="Font" onChange={(v) => onChange({ ...value, font: normalizeTextFont(v) })} />
+      </div>
       <label className="block text-2xs" htmlFor={`${idBase}-color`}>Colour
         <select id={`${idBase}-color`} className={inputClass} value={hex ? 'hex' : value.color ?? ''} data-text-color
           onChange={(e) => onChange({ ...value, color: e.target.value === 'hex' ? (hex || '#1f4e79') : e.target.value || undefined })}>
@@ -103,7 +106,7 @@ export function ControlTextStyleEditor({ value, onChange, idBase, labelName = 'L
       <div className="mt-1 space-y-2">
         <div><p className="text-2xs font-medium">{labelName}</p><TextStyleControls style={value?.label} idBase={`${idBase}-l`} sample={labelName} onChange={(next) => set('label', next)} /></div>
         <div><p className="text-2xs font-medium">{valueName}</p><TextStyleControls style={value?.value} idBase={`${idBase}-v`} sample="USD 1,250.00" onChange={(next) => set('value', next)} /></div>
-        <p className="text-2xs text-fg-muted">Fonts fall back to safe web fonts; custom colours are adjusted to stay readable in light and dark mode.</p>
+        <p className="text-2xs text-fg-muted">Pick a standard font or any Google font (served from this site; it falls back to a similar standard font if it can&apos;t load). Custom colours are adjusted to stay readable in light and dark mode.</p>
       </div>
     </details>
   )

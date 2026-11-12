@@ -40,16 +40,63 @@ import type { RuleScope } from './form-rules'
 import { ROW_ORIGINAL_KEY, rowDraftState } from './row-markers'
 import { CELL_RULE_LIMIT, NO_ROW_STYLE, ROW_STYLE_LIMIT, mergeStyles, normalizeConditionalStyle, type ListCellRule, type ListRowStyle, type RowStyleResult } from './conditional-style'
 import { normalizeControlTextStyle, type ControlTextStyle } from './text-style'
+import { describeSignature, normalizeSignatureConfig, normalizeSignatureValue, signatureValueError, type SignatureFieldConfig, type SignatureValue } from './media-fields'
 
 /**
  * `field` is internal: a repeating section seen as a List (lib/forms/repeating-section.ts)
  * keeps a control the List columns don't model (rich text, files, people…) as it is.
  * Never offered in the designer (not in LIST_COLUMN_TYPES), never kept by normalizeListConfig.
+ *
+ * `signature`: an electronic signature per row (each line item / approver signs
+ * their own row) — the same value as a Signature field (lib/forms/media-fields.ts
+ * SignatureValue: the PNG's file object, method, typed name, signed_at and the
+ * server-stamped signer). Its PNG is uploaded under the column's upload key
+ * (listUploadKey: `<list>.<column>`, `<list>.<child>.<column>` in nested Lists),
+ * re-read from the server's upload records on submit and stamped by the server.
  */
-export type ListColumnType = 'text' | 'textarea' | 'number' | 'currency' | 'date' | 'choice' | 'boolean' | 'email' | 'lookup' | 'calculated' | 'list' | 'field'
-export const LIST_COLUMN_TYPES: ListColumnType[] = ['text', 'textarea', 'number', 'currency', 'date', 'choice', 'boolean', 'email', 'lookup', 'calculated', 'list']
+export type ListColumnType = 'text' | 'textarea' | 'number' | 'currency' | 'date' | 'choice' | 'boolean' | 'email' | 'lookup' | 'calculated' | 'list' | 'signature' | 'field'
+export const LIST_COLUMN_TYPES: ListColumnType[] = ['text', 'textarea', 'number', 'currency', 'date', 'choice', 'boolean', 'email', 'lookup', 'calculated', 'signature', 'list']
 export const LIST_COLUMN_TYPE_LABELS: Record<ListColumnType, string> = {
-  text: 'Text', textarea: 'Long text', number: 'Number', currency: 'Currency', date: 'Date', choice: 'Choice', boolean: 'Yes / no', email: 'Email', lookup: 'Lookup (table / API)', calculated: 'Calculated', list: 'Nested list', field: 'Form control',
+  text: 'Text', textarea: 'Long text', number: 'Number', currency: 'Currency', date: 'Date', choice: 'Choice', boolean: 'Yes / no', email: 'Email', lookup: 'Lookup (table / API)', calculated: 'Calculated', list: 'Nested list', signature: 'Signature', field: 'Form control',
+}
+
+/**
+ * The upload key of a List signature column: the List's key and the column
+ * path (`approvals.signature`; a nested List's `orders.lines.signed`). Field
+ * keys have no dots, so it never names a form field. Row indexes are not part
+ * of it: every row's signature is an upload of the same column.
+ */
+export function listUploadKey(listKey: string, columnPath: string[]): string {
+  return [listKey, ...columnPath].join('.')
+}
+
+/** Every signature column of a config with its path (`signed`, `lines.signed`), any level. */
+export function listSignatureColumns(config: ListFieldConfig | undefined, prefix: string[] = []): Array<{ column: ListColumn; path: string[] }> {
+  const out: Array<{ column: ListColumn; path: string[] }> = []
+  for (const c of config?.columns ?? []) {
+    if (c.type === 'signature') out.push({ column: c, path: [...prefix, c.key] })
+    else if (c.type === 'list' && c.list) out.push(...listSignatureColumns(c.list, [...prefix, c.key]))
+  }
+  return out
+}
+
+/** Whether a List (or a List nested in it) has a signature column. */
+export function hasSignatureColumns(config: ListFieldConfig | undefined): boolean {
+  return listSignatureColumns(config).length > 0
+}
+
+/** The signature column a column path names inside a List (`signature`, `lines.signed`), or null. */
+export function signatureColumnAt(listConfig: ListFieldConfig | undefined, columnPath: string[]): ListColumn | null {
+  if (!listConfig || !columnPath.length) return null
+  let at: ListFieldConfig | undefined = listConfig
+  for (const [i, step] of columnPath.entries()) {
+    const column: ListColumn | undefined = at?.columns.find((c) => c.key === step)
+    if (!column) return null
+    if (i === columnPath.length - 1) return column.type === 'signature' ? column : null
+    if (column.type !== 'list') return null
+    at = column.list
+  }
+  return null
 }
 
 /**
@@ -132,6 +179,13 @@ export interface ListColumn {
   validations?: ListValidation[]
   /** Text styling (lib/forms/text-style.ts): `label` = the header (and the label in the row pop-out), `value` = the cells. */
   text_style?: ControlTextStyle
+  /**
+   * signature: draw / type / both, the statement shown above the pad and
+   * capture_audit (the signer's IP address and browser, server-set) — the
+   * Signature field's config (lib/forms/media-fields.ts; resign_on_change
+   * does not apply to a cell).
+   */
+  signature?: SignatureFieldConfig
 }
 
 /** A List column's validation: the message shows on the cell while `if` holds. */
@@ -524,7 +578,8 @@ export function withListEditing(values: Record<string, unknown> | null | undefin
 }
 
 /** A typed cell: a nested List column holds its child rows. */
-export type ListCell = string | number | boolean | null | ListRow[]
+/** A typed cell: a signature column holds the Signature field's value object. */
+export type ListCell = string | number | boolean | null | ListRow[] | SignatureValue
 export type ListRow = { [key: string]: ListCell }
 
 /** A new List field in the designer: line items with a calculated total. */
@@ -722,12 +777,12 @@ function normalizeColumn(raw: unknown, seen: Set<string>, depth: number): ListCo
   const column: ListColumn = { key, label: label || key, type }
   if (raw.required === true && type !== 'calculated' && type !== 'boolean') column.required = true
   const placeholder = cleanText(raw.placeholder, 200)
-  if (placeholder && type !== 'boolean' && type !== 'calculated' && type !== 'list') column.placeholder = placeholder
+  if (placeholder && type !== 'boolean' && type !== 'calculated' && type !== 'list' && type !== 'signature') column.placeholder = placeholder
   const help = cleanText(raw.help_text, 500)
   if (help) column.help_text = help
   if (raw.hidden === true) column.hidden = true
   if (raw.read_only === true && type !== 'calculated') column.read_only = true
-  if (type !== 'calculated' && type !== 'list') {
+  if (type !== 'calculated' && type !== 'list' && type !== 'signature') {
     const def = raw.default === true || raw.default === false ? String(raw.default) : cleanText(raw.default, 500)
     if (def !== undefined) column.default = def
   }
@@ -765,6 +820,12 @@ function normalizeColumn(raw: unknown, seen: Set<string>, depth: number): ListCo
     if (formula) column.formula = formula
   }
   if (type === 'lookup') column.lookup = { ...normalizeLookupConfig(raw.lookup), multiple: undefined } as LookupConfig
+  if (type === 'signature') {
+    // A cell's pad: draw / type / both, the statement, audit capture (re-sign on change is a form-level behaviour).
+    const config = normalizeSignatureConfig(raw.signature)
+    delete config.resign_on_change
+    if (Object.keys(config).length) column.signature = config
+  }
   // A nested List: its own config, one level down (beyond the cap: kept empty, and listConfigProblem says why).
   if (type === 'list') column.list = depth < LIST_MAX_DEPTH ? normalizeListConfig(raw.list ?? { columns: raw.columns }, depth + 1) : { columns: [] }
   const validations = normalizeValidations(raw.validations).map(({ if: cond, message }) => ({ if: cond, message }))
@@ -823,7 +884,7 @@ export function normalizeListConfig(raw: unknown, depth = 1): ListFieldConfig {
   if (level > 1) {
     if (r.on_submit_pending === 'exclude' || r.on_submit_pending === 'commit') config.on_submit_pending = r.on_submit_pending
     if (r.row_commit_controls === true) config.row_commit_controls = true
-    if (typeof r.key_column === 'string' && keys.has(r.key_column)) config.key_column = r.key_column
+    if (typeof r.key_column === 'string' && keys.has(r.key_column) && columns.find((c) => c.key === r.key_column)?.type !== 'signature') config.key_column = r.key_column
     return config
   }
   const buttons: ListRowButton[] = []
@@ -840,7 +901,7 @@ export function normalizeListConfig(raw: unknown, depth = 1): ListFieldConfig {
   if (r.selectable === 'single' || r.selectable === 'multiple') config.selectable = r.selectable
   if (r.on_submit_pending === 'exclude' || r.on_submit_pending === 'commit') config.on_submit_pending = r.on_submit_pending
   if (r.row_commit_controls === true) config.row_commit_controls = true
-  if (typeof r.key_column === 'string' && keys.has(r.key_column)) config.key_column = r.key_column
+  if (typeof r.key_column === 'string' && keys.has(r.key_column) && columns.find((c) => c.key === r.key_column)?.type !== 'signature') config.key_column = r.key_column
   return config
 }
 
@@ -983,6 +1044,7 @@ export function listConfigProblem(config: ListFieldConfig | undefined, depth = 1
     if (column && total.fn !== 'count' && !isNumericColumn(column)) return `Total of "${column.label}": only number, currency and calculated columns add up`
   }
   if (config.key_column && childListColumns(config).some((c) => c.key === config.key_column)) return 'The key column cannot be a nested list'
+  if (config.key_column && config.columns.some((c) => c.key === config.key_column && c.type === 'signature')) return 'The key column cannot be a signature'
   const keys = new Set(config.columns.flatMap((c) => [c.key, ...(c.type === 'lookup' ? [listLabelKey(c.key)] : []), ...(c.type === 'list' ? childRowDerivedKeys({ columns: [c] }) : [])]))
   for (const [where, v] of [...config.columns.flatMap((c) => (c.validations ?? []).map((x) => [`Column "${c.label}"`, x] as const)), ...(config.row_validations ?? []).map((x) => ['Row check', x] as const), ...(config.row_styles ?? []).map((x) => ['Row style', x] as const), ...(config.cell_rules ?? []).map((x) => ['Cell rule', x] as const)]) {
     for (const c of groupConditions(v.if)) {
@@ -1045,6 +1107,9 @@ function coerceCell(column: ListColumn, value: unknown, budget?: RowBudget): Lis
       return blankCell(value) ? null : value as ListCell
     case 'list':
       return column.list ? coerceRows(column.list, value, budget ?? { left: LIST_LIMITS.nestedRows }) : []
+    case 'signature':
+      // The Signature field's value (lib/forms/media-fields.ts), cleaned; anything else → no signature.
+      return normalizeSignatureValue(value)
     case 'number':
     case 'currency':
       return toNumber(value)
@@ -1121,6 +1186,7 @@ export function listRowDraft(config: ListFieldConfig, row?: Record<string, unkno
   const out: Record<string, unknown> = {}
   for (const column of inputColumns(config)) {
     if (column.type === 'list') { out[column.key] = row ? rawListRows(row[column.key]) : []; continue }
+    if (column.type === 'signature') { out[column.key] = row ? normalizeSignatureValue(row[column.key]) : null; continue }
     const v = row ? row[column.key] : (column.default ?? (column.type === 'boolean' ? false : ''))
     out[column.key] = column.type === 'boolean' ? toBoolean(v) === true : v === null || v === undefined ? '' : v
   }
@@ -1243,6 +1309,13 @@ export function listRowErrors(config: ListFieldConfig, row: Record<string, unkno
       // A nested List: its own rows' checks, min / max rows; required = at least one row.
       const inner = checkListValue(column.list, value, Boolean(unlockedRequired), 2, ctx ? { ...ctx, hiddenColumns: null, parent: coerceListRow(config, row) } : null)
       if (inner.errors.length) errors[column.key] = `${name}: ${inner.errors[0]}`
+      continue
+    }
+    if (column.type === 'signature') {
+      // An electronic signature per row: the Signature field's shape rules (its PNG is re-read and stamped on the server).
+      if (blankCell(value)) { if (unlockedRequired) errors[column.key] = `${name}: please sign`; continue }
+      const problem = signatureValueError({ label: name, signature: column.signature }, value)
+      if (problem) errors[column.key] = problem
       continue
     }
     if (blankCell(value)) {
@@ -1431,6 +1504,7 @@ function countNoun(label: string, count: number): string {
 export function formatListCell(column: ListColumn, value: unknown, row?: Record<string, unknown>): string {
   if (column.type === 'list') { const n = rawListRows(value).length; return n ? `${n} ${countNoun(column.label, n)}` : '—' }
   if (value === null || value === undefined || value === '') return '—'
+  if (column.type === 'signature') return normalizeSignatureValue(value) ? describeSignature(value) : '—'
   if (column.type === 'lookup') { const label = row?.[listLabelKey(column.key)]; return typeof label === 'string' && label ? label : String(value) }
   if (column.type === 'boolean') return toBoolean(value) ? 'Yes' : 'No'
   if (column.type === 'choice') return column.option_labels?.[String(value)] ?? String(value)
@@ -1509,7 +1583,7 @@ export interface ListEntryKit {
   listPatch: Partial<ListFieldConfig>
 }
 
-const KIT_TYPE: Record<Exclude<ListColumnType, 'calculated' | 'list' | 'field'>, string> = {
+const KIT_TYPE: Record<Exclude<ListColumnType, 'calculated' | 'list' | 'field' | 'signature'>, string> = {
   text: 'text', textarea: 'textarea', number: 'number', currency: 'currency', date: 'date', choice: 'choice', boolean: 'boolean', email: 'email', lookup: 'lookup',
 }
 
@@ -1531,12 +1605,13 @@ export function listEntryKit(listKey: string, listLabel: string, config: ListFie
   const fields: ListKitField[] = []
   const values: Record<string, string> = {}
   const require: string[] = []
-  // A nested List column is edited in the list itself (its rows under each row), not from an input.
-  const kitColumns = inputColumns(config).filter((c) => !c.hidden && c.type !== 'list')
+  // A nested List column is edited in the list itself (its rows under each row), not from an input;
+  // a signature column is signed in its row (the cell or the row pop-out) — a form input's PNG belongs to that input.
+  const kitColumns = inputColumns(config).filter((c) => !c.hidden && c.type !== 'list' && c.type !== 'signature')
   const keyOf = new Map(kitColumns.map((c) => [c.key, unique(`${listKey}_${c.key}`)]))
   for (const column of kitColumns) {
     const key = keyOf.get(column.key)!
-    const field: ListKitField = { key, label: column.label, type: KIT_TYPE[column.type as Exclude<ListColumnType, 'calculated' | 'list' | 'field'>] ?? 'text' }
+    const field: ListKitField = { key, label: column.label, type: KIT_TYPE[column.type as Exclude<ListColumnType, 'calculated' | 'list' | 'field' | 'signature'>] ?? 'text' }
     // Options with their labels (a choice field reads labels from { value, label } entries).
     if (column.options) field.options = column.options.map((v) => (column.option_labels?.[v] ? { value: v, label: column.option_labels[v] } : v))
     const numeric = column.type === 'number' || column.type === 'currency'

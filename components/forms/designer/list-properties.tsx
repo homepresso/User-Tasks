@@ -12,6 +12,7 @@ import { GroupEditor } from './data-table-properties'
 import { CellRulesEditor, ControlTextStyleEditor, RowStylesEditor } from './style-editor'
 import type { LookupConfig } from '@/lib/forms/lookup'
 import { cn } from '@/lib/utils'
+import type { SignatureFieldConfig, SignatureMode } from '@/lib/forms/media-fields'
 import { designerInputClass as inputClass } from './designer-controls'
 
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
@@ -40,6 +41,12 @@ function clean<T extends object>(obj: T): T {
  * rows are entered, row limits, totals and how rows show on phones.
  */
 /** The "New → fill → Commit" kit (lib/forms/row-rules.ts rowCommitKit), for a List or an editable Data table. */
+
+/** A signature column's config without empty keys (undefined when nothing is set). */
+function cleanSignature(config: SignatureFieldConfig | undefined): SignatureFieldConfig | undefined {
+  const out = Object.fromEntries(Object.entries(config ?? {}).filter(([, v]) => v !== undefined && v !== '' && v !== false)) as SignatureFieldConfig
+  return Object.keys(out).length ? out : undefined
+}
 export function RowCommitKitPanel({ table, disabled, onAdd }: { table?: boolean; disabled?: boolean; onAdd: (options: { apply: 'change' | 'button'; save: 'stage' | 'save_now' }) => void }) {
   const [apply, setApply] = useState<'change' | 'button'>('change')
   const [save, setSave] = useState<'stage' | 'save_now'>('stage')
@@ -148,7 +155,7 @@ export function ListProperties({ field, onPatch, onAddEntryKit, ruleCount = 0, r
         <Label htmlFor={id('keycol')}>Row key column (rows the form opens with keep their read-only values)</Label>
         <select id={id('keycol')} className={inputClass} value={config.key_column ?? ''} onChange={(e) => set({ key_column: e.target.value || undefined })} data-list-key-column>
           <option value="">None</option>
-          {columns.filter((c) => c.type !== 'calculated').map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+          {columns.filter((c) => c.type !== 'calculated' && c.type !== 'signature' && c.type !== 'list').map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>
         <p className="text-2xs text-fg-muted">Rules read {`{{form.${field.key}_current_row.<column>}}`}, {`{{form.${field.key}_current_index}}`} and {`{{form.${field.key}_pending_count}}`}.</p>
       </div>
@@ -355,8 +362,9 @@ function ListColumnsEditor({ config, onPatch, idBase, tagBase, depth, renderLook
                       formula: type === 'calculated' ? (column.formula ?? '') : undefined,
                       lookup: type === 'lookup' ? (column.lookup ?? { source: 'table' }) : undefined,
                       list: type === 'list' ? (column.list ?? { columns: [{ key: 'item', label: 'Item', type: 'text' }] }) : undefined,
-                      default: type === 'list' ? undefined : column.default,
-                      placeholder: type === 'list' ? undefined : column.placeholder,
+                      signature: type === 'signature' ? column.signature : undefined,
+                      default: type === 'list' || type === 'signature' ? undefined : column.default,
+                      placeholder: type === 'list' || type === 'signature' ? undefined : column.placeholder,
                       required: type === 'calculated' || type === 'boolean' ? undefined : column.required,
                     })
                   }}>
@@ -396,6 +404,26 @@ function ListColumnsEditor({ config, onPatch, idBase, tagBase, depth, renderLook
                   {column.type === 'list' ? (
                     <NestedListSettings column={column} depth={depth} idBase={`${idBase}-c${i}`} tagBase={`${tagBase}-${i}`} renderLookup={renderLookup} formFields={formFields} parentColumns={columns}
                       onList={(list, tag) => setColumn(i, { list }, tag)} />
+                  ) : column.type === 'signature' ? (
+                    <div className="space-y-1.5" data-list-signature-column={column.key}>
+                      <div>
+                        <Label htmlFor={cid('sigmode')}>How people sign</Label>
+                        <select id={cid('sigmode')} className={inputClass} value={column.signature?.mode ?? 'both'}
+                          onChange={(e) => setColumn(i, { signature: cleanSignature({ ...column.signature, mode: e.target.value === 'both' ? undefined : e.target.value as SignatureMode }) })}>
+                          <option value="both">Draw or type</option><option value="draw">Draw only</option><option value="type">Type only</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor={cid('sigstmt')}>Statement above the pad</Label>
+                        <input id={cid('sigstmt')} className={inputClass} placeholder="I confirm this line is correct" value={column.signature?.statement ?? ''}
+                          onChange={(e) => setColumn(i, { signature: cleanSignature({ ...column.signature, statement: e.target.value || undefined }) }, `lcss-${tagBase}-${i}`)} />
+                      </div>
+                      <label className="flex items-center gap-1.5 text-2xs">
+                        <input className="accent-primary" type="checkbox" checked={column.signature?.capture_audit === true} onChange={(e) => setColumn(i, { signature: cleanSignature({ ...column.signature, capture_audit: e.target.checked || undefined }) })} />
+                        Record the signer&apos;s IP address and browser
+                      </label>
+                      <p className="text-2xs text-fg-muted">Each row is signed in its cell (a Sign button opens the pad) or in the row pop-out. The server records who signed and when. In a loop: {`{{item.${column.key}.user_name}}`}, {`{{item.${column.key}.signed_at}}`}, {`{{item.${column.key}.file}}`}.</p>
+                    </div>
                   ) : column.type === 'calculated' ? (
                     <div>
                       <Label htmlFor={cid('formula')}>Formula</Label>

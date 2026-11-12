@@ -130,6 +130,33 @@ describe('/api/v1/workspace-theme', () => {
     expect(paths).toEqual(expect.arrayContaining(['body.colors.light.primary']))
   })
 
+  it('PUT takes any Google Fonts family for body, headings and mono, round-trips it, and refuses others', async () => {
+    const db = seed()
+    authAs(db, ['settings.edit'])
+    const theme: any = defaultWorkspaceTheme()
+    theme.typography.sans = { source: 'google', family: 'Lato' }
+    theme.typography.display = { source: 'google', family: 'Playfair Display' }
+    theme.typography.mono = { source: 'google', family: 'Fira Code' }
+    theme.typography.headingFont = 'display'
+    const res = await putTheme(req('/workspace-theme', { method: 'PUT', body: theme }))
+    expect(res.status).toBe(200)
+    const got = (await (await getTheme(req('/workspace-theme'))).json()).data.workspace_theme
+    expect(got.typography).toMatchObject({ sans: { source: 'google', family: 'Lato' }, display: { source: 'google', family: 'Playfair Display' }, mono: { source: 'google', family: 'Fira Code' } })
+    // Export → import keeps them (config-as-code).
+    const files = (await exportConfig(ctx(db), { types: ['workspace_theme'] })).files!
+    expect(JSON.parse(files[0].content).asset.typography.sans).toEqual({ source: 'google', family: 'Lato' })
+    const plan = await applyConfig(ctx(db, PERMISSION_KEYS, B), { files, dry_run: false })
+    expect(plan.warnings ?? []).toEqual([])
+    expect(stored(db, B).theme.typography.display).toEqual({ source: 'google', family: 'Playfair Display' })
+
+    for (const family of ['Comic Sans MS', "Lato'); } body { background: url(//x)"]) {
+      theme.typography.sans = { source: 'google', family }
+      const bad = await putTheme(req('/workspace-theme', { method: 'PUT', body: theme }))
+      expect(bad.status).toBe(400)
+      expect((await bad.json()).details.map((d: { path: string }) => d.path)).toContain('body.typography.sans.family')
+    }
+  })
+
   it('apply-preset replaces the theme; unknown templates are a 400', async () => {
     const db = seed()
     authAs(db, ['settings.edit'])

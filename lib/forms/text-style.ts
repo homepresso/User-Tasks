@@ -8,11 +8,14 @@
  *
  *   text_style: { label?: TextStyle, value?: TextStyle }
  *   TextStyle:  { size?: 'xs'|'sm'|'base'|'lg'|'xl'|'2xl'|'<n>px' (8–48),
- *                 font?: a TEXT_FONTS key, color?: a tone token or #hex,
+ *                 font?: a TEXT_FONTS key or `google:<Family>` (any family
+ *                        in the bundled Google Fonts catalogue — served from
+ *                        this site, lib/fonts/google.ts),
+ *                 color?: a tone token or #hex,
  *                 bold?: true, italic?: true, underline?: true }
  *
  * Never CSS from the author: every value is a token from a whitelist (sizes,
- * font keys, tone tokens) or matched by a strict regex (`<n>px`, `#rgb` /
+ * font keys, catalogue families, tone tokens) or matched by a strict regex (`<n>px`, `#rgb` /
  * `#rrggbb`), and only the CSS this module builds from them reaches a page —
  * custom properties read by app/conditional-style.css. Hex colours are kept
  * legible: the light-mode colour is nudged to WCAG AA on light cards, and a
@@ -27,6 +30,7 @@
 import { isPlainObject } from '@/lib/utils/guards'
 import { ensureContrast } from '@/lib/theme/legibility'
 import { parseColor } from '@/lib/theme/colors'
+import { findGoogleFont, googleFontStack } from '@/lib/fonts/google'
 
 /* ── Sizes ───────────────────────────────────────────────────────────── */
 
@@ -87,24 +91,75 @@ export const TEXT_FONTS = {
 export type TextFont = keyof typeof TEXT_FONTS
 export const TEXT_FONT_KEYS = Object.keys(TEXT_FONTS) as TextFont[]
 
-/** A stored font → a key of TEXT_FONTS (its label or a family name as InfoPath writes it accepted), or undefined. */
-export function normalizeTextFont(raw: unknown): TextFont | undefined {
+/** A Google Fonts family as stored on a style: `google:<Family>` (the catalogue's spelling). */
+export type GoogleTextFont = `google:${string}`
+/** A style's font: a curated key or a Google family. */
+export type TextFontValue = TextFont | GoogleTextFont
+export const GOOGLE_TEXT_FONT_PREFIX = 'google:'
+
+/** `google:<Family>` for a catalogue family (any case, with or without the prefix), or undefined. */
+export function googleTextFont(raw: unknown): GoogleTextFont | undefined {
+  if (typeof raw !== 'string') return undefined
+  const s = raw.trim()
+  const name = s.toLowerCase().startsWith(GOOGLE_TEXT_FONT_PREFIX) ? s.slice(GOOGLE_TEXT_FONT_PREFIX.length) : s
+  const font = findGoogleFont(name)
+  return font ? `google:${font.family}` : undefined
+}
+
+/** The Google family of a style font, or null (curated keys, nothing). */
+export function textFontGoogleFamily(font: unknown): string | null {
+  return typeof font === 'string' && font.startsWith(GOOGLE_TEXT_FONT_PREFIX) ? findGoogleFont(font.slice(GOOGLE_TEXT_FONT_PREFIX.length))?.family ?? null : null
+}
+
+/**
+ * A stored font → a TEXT_FONTS key or `google:<Family>`, or undefined. Keys,
+ * labels and family names as InfoPath writes them map to the curated stacks
+ * first; any other Google Fonts family (bare or `google:`-prefixed) is kept
+ * as that family.
+ */
+export function normalizeTextFont(raw: unknown): TextFontValue | undefined {
   if (typeof raw !== 'string') return undefined
   const s = raw.trim().toLowerCase()
   if ((TEXT_FONT_KEYS as string[]).includes(s)) return s as TextFont
-  return fontFromCss(s)
+  if (s.startsWith(GOOGLE_TEXT_FONT_PREFIX)) return googleTextFont(raw)
+  return fontFromCss(raw)
 }
 
-/** A CSS font-family list (InfoPath writes `FONT-FAMILY: Calibri` or `'Times New Roman', serif`) → the first family we carry, or undefined. */
-export function fontFromCss(css: string): TextFont | undefined {
-  const families = css.split(',').map((f) => f.trim().replace(/^['"]|['"]$/g, '').toLowerCase()).filter(Boolean)
+/** A style font's display name ("Calibri", "Lobster"). */
+export function textFontLabel(font: unknown): string {
+  if (typeof font !== 'string') return ''
+  if ((TEXT_FONT_KEYS as string[]).includes(font)) return TEXT_FONTS[font as TextFont].label
+  return textFontGoogleFamily(font) ?? ''
+}
+
+/** A style font's CSS font-family (a Google family: quoted, then its category's fallback stack), or undefined. */
+export function textFontStack(font: unknown): string | undefined {
+  if (typeof font !== 'string') return undefined
+  if ((TEXT_FONT_KEYS as string[]).includes(font)) return TEXT_FONTS[font as TextFont].stack
+  const g = font.startsWith(GOOGLE_TEXT_FONT_PREFIX) ? findGoogleFont(font.slice(GOOGLE_TEXT_FONT_PREFIX.length)) : undefined
+  return g ? googleFontStack(g) : undefined
+}
+
+/**
+ * A CSS font-family list (InfoPath writes `FONT-FAMILY: Calibri` or
+ * `'Times New Roman', serif`) → the first family we carry: a curated stack
+ * (web-safe and the common InfoPath fonts), else a Google Fonts family of
+ * that name (`google:<Family>`); undefined when none is either.
+ */
+export function fontFromCss(css: string): TextFontValue | undefined {
+  const families = css.split(',').map((f) => f.trim().replace(/^['"]|['"]$/g, '').trim()).filter(Boolean)
   const by: Record<string, TextFont> = {
     calibri: 'calibri', carlito: 'calibri', 'segoe ui': 'segoe_ui', segoe: 'segoe_ui', arial: 'arial', helvetica: 'arial', 'arial narrow': 'arial', 'arial unicode ms': 'arial',
     verdana: 'verdana', tahoma: 'tahoma', 'ms sans serif': 'tahoma', 'microsoft sans serif': 'tahoma', 'times new roman': 'times_new_roman', times: 'times_new_roman',
     georgia: 'georgia', cambria: 'serif', garamond: 'serif', 'book antiqua': 'serif', 'courier new': 'courier_new', courier: 'courier_new', consolas: 'mono', 'lucida console': 'mono',
     'sans-serif': 'sans', serif: 'serif', monospace: 'mono', 'trebuchet ms': 'sans', 'century gothic': 'sans', 'franklin gothic': 'sans',
   }
-  for (const f of families) if (by[f]) return by[f]
+  for (const f of families) {
+    const key = by[f.toLowerCase()]
+    if (key) return key
+    const google = googleTextFont(f)
+    if (google) return google
+  }
   return undefined
 }
 
@@ -164,7 +219,7 @@ export function textColorCss(color: unknown): { light: string; dark: string } | 
 
 export interface TextStyle {
   size?: string
-  font?: TextFont
+  font?: TextFontValue
   color?: string
   bold?: boolean
   italic?: boolean
@@ -207,7 +262,7 @@ export function describeTextStyle(style: TextStyle | null | undefined): string {
   if (!style) return 'default'
   const parts: string[] = []
   if (style.size) parts.push((TEXT_SIZE_PRESETS as readonly string[]).includes(style.size) ? TEXT_SIZE_LABELS[style.size as TextSizePreset] : style.size)
-  if (style.font) parts.push(TEXT_FONTS[style.font].label)
+  if (style.font) parts.push(textFontLabel(style.font))
   if (style.color) parts.push(style.color.startsWith('#') ? style.color : TEXT_COLOR_LABELS[style.color as TextColorToken] ?? style.color)
   if (style.bold) parts.push('bold')
   if (style.italic) parts.push('italic')
@@ -230,7 +285,7 @@ export function textStyleProps(style: TextStyle | null | undefined, prefix: 'ts'
   const vars: Record<string, string> = {}
   const size = textSizeCss(style.size)
   if (size) { out[`data-${prefix}-size`] = ''; vars[`--${prefix}-size`] = size }
-  const font = style.font && TEXT_FONTS[style.font] ? TEXT_FONTS[style.font].stack : undefined
+  const font = textFontStack(style.font)
   if (font) { out[`data-${prefix}-font`] = ''; vars[`--${prefix}-font`] = font }
   const color = textColorCss(style.color)
   if (color) { out[`data-${prefix}-color`] = ''; vars[`--${prefix}-color-light`] = color.light; vars[`--${prefix}-color-dark`] = color.dark }

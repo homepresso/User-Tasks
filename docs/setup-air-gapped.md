@@ -3,9 +3,11 @@
 For a network with no internet access at all: build a signed **bundle** on a
 connected machine, carry it across, verify it, load it and install with
 Docker Compose or Kubernetes. Nothing in UserTasks calls out at runtime (no
-SaaS, CDN or telemetry; fonts and scripts are in the image, the docs site
-is served by the app at `/docs`), and the release gate proves the whole path
-on a host that can't reach the internet.
+SaaS, CDN or telemetry; the app's own fonts and scripts are in the image, the
+docs site is served by the app at `/docs`), and the release gate proves the
+whole path on a host that can't reach the internet. The one optional
+download is Google Fonts chosen in a theme or form — turn it off and
+pre-seed the fonts you want ([Google Fonts](#google-fonts)).
 
 ## What's in the bundle
 
@@ -124,6 +126,31 @@ read (a volume in Compose or Kubernetes) or on an internal web server, and
 set `DOCUMENT_OCR_LANG_PATH` to that folder or URL. Alternatively set
 `DOCUMENT_OCR_PROVIDER=none` to turn OCR off. See
 [Optional drivers](optional-drivers.md#ocr-tesseractjs).
+
+## Google Fonts
+
+Themes and forms can use any Google Fonts family. Browsers never contact
+Google: the app serves each font from its own `/fonts/g/…` route, downloading
+it from `fonts.googleapis.com` / `fonts.gstatic.com` the first time it is
+needed and keeping it in the storage provider (bucket `task-files`, prefix
+`google-fonts/`). On an isolated network turn the download off and bring the
+fonts you want with you:
+
+1. Set `FONTS_REMOTE=off` in the app environment (the instance setting
+   `instance.fonts_remote` = `false` does the same; the environment wins).
+   The pickers then list only fonts already stored, and a page
+   that names any other Google font draws it in a similar system font
+   (sans serif, serif, handwriting or monospace by the family's category).
+2. On a connected machine with a checkout: `npm run admin -- fonts seed
+   "Open Sans" Lato "Playfair Display" --dir fonts-bundle` (`--featured` adds
+   the featured families). This writes each family's stylesheet and all its
+   font files (every weight, italics and script subset) into the folder.
+3. Carry the folder across and, where `usertasks-admin` runs with the app's
+   environment, `usertasks-admin fonts import fonts-bundle`. `usertasks-admin
+   fonts status` lists what is stored.
+
+Google Fonts are open source (SIL Open Font License, Apache License 2.0 or
+the Ubuntu Font Licence); the stylesheets the app serves say so.
 
 ## Media steps
 

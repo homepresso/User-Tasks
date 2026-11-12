@@ -27,7 +27,7 @@ const MAPS: Array<[string, string]> = [
   ["Text boxes, date pickers, drop-downs, option buttons, check boxes", "Text, number, currency, date, choice, radio and yes / no fields, typed from your data source"],
   ["Repeating tables", "List fields: an editable table with a column per control, nested tables as nested Lists, row arithmetic as calculated columns"],
   ["Repeating sections", "Repeating sections: a card per item with the same controls and layout, nested up to 3 levels"],
-  ["Pictures, signatures and ink", "Image fields (camera on phones), display images for logos, electronic signature fields"],
+  ["Pictures, signatures and ink", "Image fields (camera on phones), display images for logos, electronic signature fields — also per row of a repeating table (a signature column) and per item of a repeating section"],
   ["Rich text, list boxes, people pickers, bulleted lists", "Rich text, multi-select list boxes, people pickers and text lists"],
   ["Choice groups", "Choice groups: one alternative section at a time, with a switch"],
   ["Sections and optional sections", "Sections and optional sections, with their show conditions"],
@@ -38,7 +38,7 @@ const MAPS: Array<[string, string]> = [
   ["Rules on fields, buttons and form load", "Form rules: set values, show messages, hide, make read only, go to step"],
   ["Data validation", "Field errors that block submit, in the browser and again on the server; on repeating fields, List column and row validations"],
   ["Conditional formatting", "“Always” rules that hide, lock or style while the condition holds: font colour, font size and font, shading, bold, italic, underline, strikethrough, with colours snapped to your theme; in a repeating table, row styles and cells hidden or locked row by row (locked cells keep their saved value on the server), and whole columns hidden by a condition on the form"],
-  ["Fonts, sizes and colours in the view", "Font size, font, colour, bold, italic and underline on labels, values, table headers and cells, mapped to web-safe fonts (Calibri, Segoe UI, Arial, Verdana, Tahoma, Times New Roman, Georgia, Courier New) and kept readable in dark mode; the view's usual font is left to your theme"],
+  ["Fonts, sizes and colours in the view", "Font size, font, colour, bold, italic and underline on labels, values, table headers and cells, mapped to web-safe fonts (Calibri, Segoe UI, Arial, Verdana, Tahoma, Times New Roman, Georgia, Courier New) or to the matching Google font for anything else Google Fonts has (served from your own site, never from Google), and kept readable in dark mode; the view's usual font is left to your theme"],
   ["User roles, get-Role(), user names", "Conditions on the person's workspace roles; userName() and get-DisplayName() become the signed-in person's email and name"],
 ]
 
@@ -46,8 +46,8 @@ const LEFT_OUT = [
   "Data connections (SharePoint lists, web services, databases) without a data table or API integration of the same name: create one and import again, and they connect",
   "Secondary data sources read in formulas (GetDOM), position() and last() in formulas, and filters other than one “=” comparison",
   "Form code (JScript, C#, managed code) is never run",
-  "Certificates on digital signatures (they become electronic signatures), and signatures inside repeating sections",
-  "Nesting deeper than 3 levels, and fonts outside the web-safe set (they fall back to the nearest one or your theme's font)",
+  "Certificates on digital signatures (they become electronic signatures)",
+  "Nesting deeper than 3 levels, and fonts that are neither web-safe nor on Google Fonts (they fall back to your theme's font)",
   "Person fields on a form shared publicly: anonymous visitors don't see them",
   "Rules that convert only in part: the converted actions run, the rest is in the rule's notes",
 ]

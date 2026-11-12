@@ -1,5 +1,5 @@
 import { defaultWorkspaceTheme } from '@/lib/theme/presets'
-import { themeFontsHref, themeStylesheet } from '@/lib/theme/to-css'
+import { themeFontHrefs, themeStylesheet } from '@/lib/theme/to-css'
 import type { WorkspaceTheme } from '@/lib/theme/schema'
 import { PLATFORM_ACCENT, type FormSignInSettings } from './sign-in-page'
 
@@ -29,8 +29,8 @@ export interface SignInThemeStyle {
   source: 'usertasks' | 'workspace'
   /** A stylesheet declaring the tokens on SIGN_IN_THEME_SCOPE. */
   css: string
-  /** Google Fonts stylesheet for a workspace theme's web fonts, or null. */
-  fontsHref: string | null
+  /** Stylesheets for a workspace theme's Google fonts (served from this origin, /fonts/g/…). */
+  fontHrefs: string[]
   /** The accent (#rrggbb) the designs' coloured panels and buttons use. */
   accent: string
   /** Heading family: Fraunces (`display`, the UserTasks look) or the body sans. */
@@ -52,7 +52,7 @@ export function signInThemeStyle(settings: Pick<FormSignInSettings, 'use_workspa
     return {
       source: 'workspace',
       css: themeStylesheet(workspaceTheme, { scope: SIGN_IN_THEME_SCOPE, important: false }),
-      fontsHref: themeFontsHref(workspaceTheme),
+      fontHrefs: themeFontHrefs(workspaceTheme),
       accent: primary,
       headings: workspaceTheme.typography.headingFont === 'display' ? 'display' : 'sans',
     }
@@ -61,7 +61,7 @@ export function signInThemeStyle(settings: Pick<FormSignInSettings, 'use_workspa
   return {
     source: 'usertasks',
     css: themeStylesheet(platformLight(), { scope: SIGN_IN_THEME_SCOPE, important: false }),
-    fontsHref: null,
+    fontHrefs: [],
     accent,
     headings: 'display',
   }

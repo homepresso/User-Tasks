@@ -17,7 +17,7 @@ import type { AssistantConnection } from '@/lib/assistants/settings'
 import type { AssistantEvent, ChatMessage } from '@/lib/assistants/types'
 import { checkThemePayload, expandKey, themeReference, themeSettingKeys, zodLeafPaths, type ThemeSetting } from '@/lib/theme/reference'
 import {
-  FORM_SHADOWS, FormThemeOverridesSchema, formAppearanceMode, formButtonRadius, formThemeFontHref, formThemeVars, type FormThemeOverrides,
+  FORM_SHADOWS, FormThemeOverridesSchema, formAppearanceMode, formButtonRadius, formThemeFontHrefs, formThemeVars, type FormThemeOverrides,
 } from '@/lib/forms/form-theme'
 import { WorkspaceThemeSchema, isValidShadow } from '@/lib/theme/schema'
 import { formSignInSettingsSchema } from '@/lib/api-schemas/form-sign-in-page'
@@ -120,11 +120,10 @@ describe('new form theme settings render', () => {
     for (const k of ['--form-heading-font', '--form-button-radius', '--form-card-shadow']) expect(plain[k]).toBeUndefined()
   })
 
-  it('a non-bundled heading font is loaded with the body font in one stylesheet', () => {
-    const href = formThemeFontHref({ font: { source: 'google', family: 'DM Sans' }, heading_font: { source: 'google', family: 'Playfair Display' } })!
-    expect(href).toContain('family=DM+Sans')
-    expect(href).toContain('family=Playfair+Display')
-    expect(formThemeFontHref({ heading_font: { source: 'google', family: 'Fraunces' } })).toBeNull()
+  it('a non-bundled heading font is loaded with the body font, from this origin', () => {
+    const hrefs = formThemeFontHrefs({ font: { source: 'google', family: 'DM Sans' }, heading_font: { source: 'google', family: 'Playfair Display' } })
+    expect(hrefs).toEqual(['/fonts/g/dm-sans/w1ff-i1ff.css', '/fonts/g/playfair-display/w1f8-i1f8.css'])
+    expect(formThemeFontHrefs({ heading_font: { source: 'google', family: 'Fraunces' } })).toEqual([])
   })
 
   it('dark overrides apply in dark mode, with dark-tuned shadows', () => {

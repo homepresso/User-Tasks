@@ -209,7 +209,8 @@
           "text_style": {
             "label": {
               "bold": true,
-              "color": "accent"
+              "color": "accent",
+              "font": "google:Lato"
             },
             "value": {
               "font": "georgia",
@@ -373,6 +374,14 @@
                 "label": "Date",
                 "type": "date",
                 "default": "{{today}}"
+              },
+              {
+                "key": "ks_claimant_sig",
+                "label": "Claimant signature",
+                "type": "signature",
+                "signature": {
+                  "statement": "I spent this on company business."
+                }
               }
             ],
             "layout": {
@@ -390,6 +399,15 @@
                     },
                     {
                       "field_key": "ks_spent_on",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 1,
+                  "cells": [
+                    {
+                      "field_key": "ks_claimant_sig",
                       "span": 1
                     }
                   ]
@@ -492,6 +510,15 @@
                     "size": "sm"
                   }
                 }
+              },
+              {
+                "key": "signed_off",
+                "label": "Signed off",
+                "type": "signature",
+                "signature": {
+                  "mode": "both",
+                  "statement": "I approve this adjustment."
+                }
               }
             ],
             "cell_rules": [
@@ -522,6 +549,20 @@
                 },
                 "column": "reason",
                 "hide": true
+              },
+              {
+                "if": {
+                  "match": "all",
+                  "conditions": [
+                    {
+                      "column": "row.status",
+                      "operator": "equals",
+                      "value": "Approved"
+                    }
+                  ]
+                },
+                "column": "signed_off",
+                "read_only": true
               }
             ],
             "row_styles": [

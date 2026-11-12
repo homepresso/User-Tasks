@@ -1,7 +1,7 @@
 /**
  * Form mini themes: a small set of overrides on top of the workspace theme
  * for one form — accent colour, background, text colour, corner radius, font
- * (from the workspace theme's curated list), density, label position and an
+ * (any Google font — served from this site — or a system stack), density, label position and an
  * optional header (title, logo, banner colour).
  *
  * A form's `theme` is a reference:
@@ -28,7 +28,8 @@ import { contrastRatio, isDarkColor, withAlpha } from '@/lib/theme/colors'
 import { AA_LARGE, AA_TEXT, ensureContrast, flatten, onColor, worstContrast } from '@/lib/theme/legibility'
 import { parseColor } from '@/lib/theme/colors'
 import { ColorSchema, isOwnStorageUrl, type ThemeMode, type ThemePalette } from '@/lib/theme/schema'
-import { CURATED_FONTS, FONT_FAMILY_RE, SYSTEM_FONT_STACKS, findCuratedFont } from '@/lib/theme/fonts'
+import { CURATED_FONTS, FONT_FAMILY_RE, SYSTEM_FONT_STACKS, findThemeFont } from '@/lib/theme/fonts'
+import { googleFontHrefs } from '@/lib/fonts/google'
 import { fontFamilyValue, paletteVars } from '@/lib/theme/to-css'
 import { presetToWorkspaceTheme } from '@/lib/theme/presets'
 import { clampFormWidthPct } from './form-width'
@@ -54,7 +55,7 @@ export const FormThemeColorsSchema = z.object({
 const FontSchema = z.discriminatedUnion('source', [
   z.object({
     source: z.literal('google'),
-    family: z.string().trim().regex(FONT_FAMILY_RE).refine((f) => Boolean(findCuratedFont(f)), { message: 'Not one of the supported fonts' }),
+    family: z.string().trim().regex(FONT_FAMILY_RE).refine((f) => Boolean(findThemeFont(f)), { message: 'Not a Google Fonts family' }),
   }).strict(),
   z.object({
     source: z.literal('system'),
@@ -80,7 +81,7 @@ export const FormThemeOverridesSchema = z.object({
     dark: FormThemeColorsSchema.optional().meta({ description: 'Dark-mode palette: used when the form shows dark (the viewer is in dark mode, or appearance is dark).', when_unset: 'the workspace dark palette with the light accent carried over (made legible)' }),
   }).strict().optional().meta({ description: 'Colours per mode. Text is always kept legible (contrast raised where needed).', when_unset: 'the workspace palette' }),
   radius: z.number().int().min(0).max(24).optional().meta({ description: 'Corner radius in px for the card, inputs and buttons.', when_unset: 'the workspace radii' }),
-  font: FontSchema.optional().meta({ description: 'Body font: a curated Google font or a system stack (see fonts).', when_unset: 'the workspace font' }),
+  font: FontSchema.optional().meta({ description: 'Body font: any Google Fonts family (served from this site) or a system stack (see fonts).', when_unset: 'the workspace font' }),
   heading_font: FontSchema.optional().meta({ description: 'Heading / display font for the form title, section and page headings, separate from the body font (see fonts).', when_unset: 'the body font' }),
   button_shape: z.enum(FORM_BUTTON_SHAPES).optional().meta({ description: 'Shape of the form\'s buttons: square, rounded (the corner radius) or pill.', when_unset: 'the corner radius' }),
   shadow: z.enum(FORM_SHADOW_LEVELS).optional().meta({ description: 'Card elevation: none, subtle, medium or strong (tuned for light and dark).', when_unset: 'a subtle shadow on form pages, none inline' }),
@@ -436,21 +437,13 @@ export function formHeaderColors(overrides: FormThemeOverrides | null | undefine
   return { background, text }
 }
 
-/** Fonts the mini theme can pick from (the workspace theme's curated list + system stacks). */
+/** Featured fonts for simple pickers (system stacks + the curated Google list); any catalogue family is accepted. */
 export const FORM_THEME_FONTS: Array<{ value: string; label: string }> = [
   ...Object.keys(SYSTEM_FONT_STACKS).map((family) => ({ value: `system:${family}`, label: `${family} (system)` })),
   ...CURATED_FONTS.filter((f) => f.category !== 'mono').map((f) => ({ value: `google:${f.family}`, label: f.family })),
 ]
 
-/** Google Fonts stylesheet for a mini theme's font (null when bundled / system / none). */
-export function formThemeFontHref(overrides: FormThemeOverrides | null | undefined): string | null {
-  const families: string[] = []
-  for (const font of [overrides?.font, overrides?.heading_font]) {
-    if (!font || font.source !== 'google') continue
-    const curated = findCuratedFont(font.family)
-    if (!curated || curated.bundledVar || families.some((f) => f.startsWith(`family=${curated.family.replace(/ /g, '+')}:`))) continue
-    const weights = [400, 500, 600].map((w) => curated.weights.reduce((best, c) => (Math.abs(c - w) < Math.abs(best - w) ? c : best), curated.weights[0]))
-    families.push(`family=${curated.family.replace(/ /g, '+')}:wght@${[...new Set(weights)].sort((a, b) => a - b).join(';')}`)
-  }
-  return families.length ? `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap` : null
+/** Stylesheets for a mini theme's Google fonts (our /fonts/g/… route; none when bundled / system / unset). */
+export function formThemeFontHrefs(overrides: FormThemeOverrides | null | undefined): string[] {
+  return googleFontHrefs([overrides?.font, overrides?.heading_font].map((f) => (f?.source === 'google' ? f.family : null)))
 }

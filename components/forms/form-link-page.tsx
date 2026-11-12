@@ -1,7 +1,8 @@
 import { WorkspaceThemeProvider } from '@/components/providers/theme-provider'
 import { PermissionsProvider } from '@/lib/permissions-context'
 import { loadSessionWorkspaceTheme } from '@/lib/theme/server'
-import { themeFontsHref, themeStylesheet } from '@/lib/theme/to-css'
+import { themeFontHrefs, themeStylesheet } from '@/lib/theme/to-css'
+import { FontLinks } from '@/components/fonts/font-links'
 import { EmbedFrame } from './embed-frame'
 import { StandaloneForm } from './standalone-form'
 import { AssistantHost } from '@/components/assistants/assistant-host'
@@ -23,11 +24,11 @@ export async function MemberFormPage({ formId, query, embed, userId }: {
     loadSessionWorkspaceTheme(),
     import('@/lib/permissions-server').then((m) => m.getUserPermissions()).catch(() => new Set<string>()),
   ])
-  const fontsHref = themeFontsHref(theme)
+  const fontHrefs = themeFontHrefs(theme)
   const allowed = permissions.has('forms.submit')
   return (
     <>
-      {fontsHref && <link rel="stylesheet" href={fontsHref} />}
+      <FontLinks hrefs={fontHrefs} />
       <style id="workspace-theme" dangerouslySetInnerHTML={{ __html: themeStylesheet(theme) }} />
       <WorkspaceThemeProvider theme={theme}>
         <PermissionsProvider permissions={[...permissions]} userId={userId}>

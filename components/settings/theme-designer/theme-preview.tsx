@@ -7,7 +7,8 @@ import { StatusBadge } from "@/components/ui/status-badge"
 import { PriorityBadge } from "@/components/ui/priority-badge"
 import { themeAttributes } from "@/lib/theme/resolve"
 import { LogoMark } from "@/components/brand/logo"
-import { themeFontsHref, themeStylesheet } from "@/lib/theme/to-css"
+import { themeFontHrefs, themeStylesheet } from "@/lib/theme/to-css"
+import { FontLinks } from "@/components/fonts/font-links"
 import type { ThemeMode, WorkspaceTheme } from "@/lib/theme/schema"
 import { resolveStorageUrl } from "@/lib/storage/refs"
 
@@ -33,7 +34,7 @@ export function ThemePreview({ theme, mode, appBaseSize, logoUrl }: {
   const id = `theme-preview-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`
   const forced = useMemo<WorkspaceTheme>(() => ({ ...theme, meta: { ...theme.meta, mode } }), [theme, mode])
   const css = useMemo(() => themeStylesheet(forced, { scope: `#${id}`, important: false }), [forced, id])
-  const fontsHref = useMemo(() => themeFontsHref(theme), [theme])
+  const fontHrefs = useMemo(() => themeFontHrefs(theme), [theme])
   const attrs = themeAttributes(forced, mode === "dark")
   const data = Object.fromEntries(Object.entries(attrs).filter(([, v]) => v !== null)) as Record<string, string>
   const b = theme.branding
@@ -42,7 +43,7 @@ export function ThemePreview({ theme, mode, appBaseSize, logoUrl }: {
 
   return (
     <figure className="m-0">
-      {fontsHref && <link rel="stylesheet" href={fontsHref} />}
+      <FontLinks hrefs={fontHrefs} />
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <figcaption className="sr-only">Live preview of the theme in {mode} mode</figcaption>
       <div

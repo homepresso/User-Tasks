@@ -51,6 +51,7 @@ import { redirectPolicy, resolveThemeOverrides } from './forms'
 import { withQueuedInitiator } from '@/lib/workflow-initiator'
 import type { TableChangesSummary } from '@/lib/forms/table-changes'
 import { buildSubmissionMeta, submissionMetaFromRow, submissionReference, urlParamsOf, type SubmissionMeta, type SubmissionSurface } from '@/lib/forms/submission-meta'
+import { holdsNestedSignatures, mapNestedSignatures } from '@/lib/forms/signature-cells'
 import { customOutputSiblingKeys } from '@/lib/forms/custom-controls/output'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tables are not in the generated Database types */
@@ -699,7 +700,8 @@ export async function formSubmissionsCsv(ctx: ServiceContext, filters: Submissio
   // A List: its rows as JSON (nested Lists inside their rows) and the row count beside them; per nested List
   // (path P: `lines`, `lines_serials`) its rows under every parent row as `<key>_<P>_count`.
   const cells = fields.flatMap((f) => (isSurveyType(f.type) ? surveyCsvColumns(f) : f.type === 'list' || f.type === 'repeating_section' ? [
-    { header: f.key, cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) && (values[f.key] as unknown[]).length ? values[f.key] : '') },
+    // Signatures in rows / items: "Signed by … on … UTC" (as a Signature field's column), not the file object.
+    { header: f.key, cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) && (values[f.key] as unknown[]).length ? (holdsNestedSignatures(f) ? mapNestedSignatures(f, values[f.key], (_, v) => (v ? describeSignature(v, 'UTC') + ' UTC' : null)) : values[f.key]) : '') },
     { header: listCountKey(f.key), cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) ? (values[f.key] as unknown[]).length : 0) },
     ...childListPaths(f.list).map((path) => ({ header: listCountKey(`${f.key}_${path.join('_')}`), cell: (values: Record<string, unknown>) => nestedRowsAt(rawListRows(values[f.key]) as ListRow[], path).length })),
   ] : [{ header: f.key, cell: (values: Record<string, unknown>) => (controlValueText(f, values[f.key], { csv: true }) ?? (f.type === 'attachments' ? attachmentNames(values[f.key]) : f.type === 'image' ? attachmentNames(values[f.key]) : f.type === 'signature' ? (values[f.key] ? describeSignature(values[f.key], 'UTC') + ' UTC' : '') : values[f.key])) }]))

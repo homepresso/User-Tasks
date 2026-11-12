@@ -1,9 +1,11 @@
 /**
  * Fonts a workspace theme may use.
  *
- * - `google`: one of the curated Google Fonts below. The three families the
- *   app already ships through next/font (Inter, JetBrains Mono, Fraunces) are
- *   served from the app bundle instead of fonts.googleapis.com.
+ * - `google`: any family in the bundled Google Fonts catalogue
+ *   (lib/fonts/google.ts), served from this origin by /fonts/g/… — visitors'
+ *   browsers never contact Google. CURATED_FONTS are the featured ones the
+ *   pickers show first. The three families the app already ships through
+ *   next/font (Inter, JetBrains Mono, Fraunces) are drawn from the bundle.
  * - `system`: a platform font stack, no download.
  * - `upload`: a woff2 file in this workspace's `brand-fonts` storage folder
  *   (rendered with @font-face; the URL is checked by the schema/service).
@@ -12,83 +14,39 @@
  * and put in a URL without escaping problems.
  */
 
+import { findGoogleFont, googleFontHrefs, snapGoogleWeights, type GoogleFont, type GoogleFontCategory } from '@/lib/fonts/google'
+
 export type FontSlot = 'sans' | 'display' | 'mono'
-export type FontCategory = 'sans' | 'serif' | 'mono'
+export type FontCategory = GoogleFontCategory
 
-export interface CuratedFont {
-  family: string
-  category: FontCategory
-  /** Weights Google serves for this family (a request for any other fails). */
-  weights: number[]
-  /** next/font CSS variable when the app bundles this family. */
-  bundledVar?: '--font-sans' | '--font-mono' | '--font-display'
-}
+export type CuratedFont = GoogleFont
 
-const range = (from: number, to: number) => {
-  const out: number[] = []
-  for (let w = from; w <= Math.min(to, 900); w += 100) out.push(w)
-  return out
-}
-
-export const CURATED_FONTS: CuratedFont[] = [
+/** Featured families (pickers list these first; every catalogue family is accepted). */
+export const CURATED_FAMILIES = [
   // Sans-serif
-  { family: 'Inter', category: 'sans', weights: range(100, 900), bundledVar: '--font-sans' },
-  { family: 'DM Sans', category: 'sans', weights: range(100, 900) },
-  { family: 'Geist', category: 'sans', weights: range(100, 900) },
-  { family: 'Roboto', category: 'sans', weights: [100, 300, 400, 500, 700, 900] },
-  { family: 'Open Sans', category: 'sans', weights: range(300, 800) },
-  { family: 'Lato', category: 'sans', weights: [100, 300, 400, 700, 900] },
-  { family: 'Montserrat', category: 'sans', weights: range(100, 900) },
-  { family: 'Poppins', category: 'sans', weights: range(100, 900) },
-  { family: 'Source Sans 3', category: 'sans', weights: range(200, 900) },
-  { family: 'Nunito', category: 'sans', weights: range(200, 900) },
-  { family: 'Nunito Sans', category: 'sans', weights: range(200, 900) },
-  { family: 'Raleway', category: 'sans', weights: range(100, 900) },
-  { family: 'Work Sans', category: 'sans', weights: range(100, 900) },
-  { family: 'IBM Plex Sans', category: 'sans', weights: range(100, 700) },
-  { family: 'Manrope', category: 'sans', weights: range(200, 800) },
-  { family: 'Plus Jakarta Sans', category: 'sans', weights: range(200, 800) },
-  { family: 'Figtree', category: 'sans', weights: range(300, 900) },
-  { family: 'Outfit', category: 'sans', weights: range(100, 900) },
-  { family: 'Rubik', category: 'sans', weights: range(300, 900) },
-  { family: 'Karla', category: 'sans', weights: range(200, 800) },
-  { family: 'Mulish', category: 'sans', weights: range(200, 900) },
-  { family: 'Barlow', category: 'sans', weights: range(100, 900) },
-  { family: 'Public Sans', category: 'sans', weights: range(100, 900) },
-  { family: 'Lexend', category: 'sans', weights: range(100, 900) },
-  { family: 'Noto Sans', category: 'sans', weights: range(100, 900) },
-  { family: 'Space Grotesk', category: 'sans', weights: range(300, 700) },
-  { family: 'Sora', category: 'sans', weights: range(100, 800) },
-  { family: 'Red Hat Display', category: 'sans', weights: range(300, 900) },
-  { family: 'Archivo', category: 'sans', weights: range(100, 900) },
-  { family: 'Atkinson Hyperlegible', category: 'sans', weights: [400, 700] },
+  'Inter', 'DM Sans', 'Geist', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Source Sans 3', 'Nunito', 'Nunito Sans',
+  'Raleway', 'Work Sans', 'IBM Plex Sans', 'Manrope', 'Plus Jakarta Sans', 'Figtree', 'Outfit', 'Rubik', 'Karla', 'Mulish', 'Barlow',
+  'Public Sans', 'Lexend', 'Noto Sans', 'Space Grotesk', 'Sora', 'Red Hat Display', 'Archivo', 'Atkinson Hyperlegible',
   // Serif / display
-  { family: 'Fraunces', category: 'serif', weights: range(100, 900), bundledVar: '--font-display' },
-  { family: 'Playfair Display', category: 'serif', weights: range(400, 900) },
-  { family: 'Merriweather', category: 'serif', weights: [300, 400, 700, 900] },
-  { family: 'Lora', category: 'serif', weights: range(400, 700) },
-  { family: 'Source Serif 4', category: 'serif', weights: range(200, 900) },
-  { family: 'Libre Baskerville', category: 'serif', weights: [400, 700] },
-  { family: 'EB Garamond', category: 'serif', weights: range(400, 800) },
-  { family: 'Crimson Pro', category: 'serif', weights: range(200, 900) },
-  { family: 'PT Serif', category: 'serif', weights: [400, 700] },
-  { family: 'DM Serif Display', category: 'serif', weights: [400] },
-  { family: 'Cormorant Garamond', category: 'serif', weights: range(300, 700) },
-  { family: 'Bitter', category: 'serif', weights: range(100, 900) },
+  'Fraunces', 'Playfair Display', 'Merriweather', 'Lora', 'Source Serif 4', 'Libre Baskerville', 'EB Garamond', 'Crimson Pro',
+  'PT Serif', 'DM Serif Display', 'Cormorant Garamond', 'Bitter',
   // Monospace
-  { family: 'Space Mono', category: 'mono', weights: [400, 700] },
-  { family: 'JetBrains Mono', category: 'mono', weights: range(100, 800), bundledVar: '--font-mono' },
-  { family: 'Fira Code', category: 'mono', weights: range(300, 700) },
-  { family: 'IBM Plex Mono', category: 'mono', weights: range(100, 700) },
-  { family: 'Roboto Mono', category: 'mono', weights: range(100, 700) },
-  { family: 'Source Code Pro', category: 'mono', weights: range(200, 900) },
-  { family: 'DM Mono', category: 'mono', weights: [300, 400, 500] },
-]
+  'Space Mono', 'JetBrains Mono', 'Fira Code', 'IBM Plex Mono', 'Roboto Mono', 'Source Code Pro', 'DM Mono',
+] as const
 
-const BY_FAMILY = new Map(CURATED_FONTS.map((f) => [f.family.toLowerCase(), f]))
+export const CURATED_FONTS: CuratedFont[] = CURATED_FAMILIES.map((f) => findGoogleFont(f)).filter((f): f is GoogleFont => Boolean(f))
 
+const CURATED = new Set(CURATED_FONTS.map((f) => f.family))
+
+/** A featured family (see CURATED_FAMILIES), or undefined. */
 export function findCuratedFont(family: string): CuratedFont | undefined {
-  return BY_FAMILY.get(String(family).toLowerCase())
+  const font = findGoogleFont(family)
+  return font && CURATED.has(font.family) ? font : undefined
+}
+
+/** Any Google Fonts family a theme may name (the bundled catalogue), or undefined. */
+export function findThemeFont(family: string): GoogleFont | undefined {
+  return findGoogleFont(family)
 }
 
 /** Platform stacks selectable as `system` fonts. */
@@ -107,30 +65,16 @@ export const SLOT_FALLBACK: Record<FontSlot, string> = {
   mono: 'var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace',
 }
 
-/** Nearest weights the family actually has (Google rejects a request for a missing one). */
-export function snapWeights(font: CuratedFont, wanted: number[]): number[] {
-  const out = new Set<number>()
-  for (const w of wanted) {
-    let best = font.weights[0]
-    for (const candidate of font.weights) if (Math.abs(candidate - w) < Math.abs(best - w)) best = candidate
-    out.add(best)
-  }
-  return [...out].sort((a, b) => a - b)
+/** Nearest weights the family actually has. */
+export function snapWeights(font: Pick<GoogleFont, 'weights'>, wanted: number[]): number[] {
+  return snapGoogleWeights(font, wanted)
 }
 
 /**
- * One css2 stylesheet URL for the non-bundled Google families, or null when
- * every family is bundled / system / uploaded.
+ * Our stylesheets (/fonts/g/…, one per family) for the non-bundled Google
+ * families among these, in order; empty when every family is bundled /
+ * system / uploaded.
  */
-export function googleFontsHref(families: Array<{ family: string; weights: number[] }>): string | null {
-  const parts: string[] = []
-  const seen = new Set<string>()
-  for (const { family } of families) {
-    const font = findCuratedFont(family)
-    if (!font || font.bundledVar || seen.has(font.family)) continue
-    seen.add(font.family)
-    const merged = families.filter((f) => findCuratedFont(f.family) === font).flatMap((f) => f.weights)
-    parts.push(`family=${font.family.replace(/ /g, '+')}:wght@${snapWeights(font, merged).join(';')}`)
-  }
-  return parts.length ? `https://fonts.googleapis.com/css2?${parts.join('&')}&display=swap` : null
+export function googleFontsHrefs(families: Array<{ family: string }>): string[] {
+  return googleFontHrefs(families.map((f) => f.family))
 }

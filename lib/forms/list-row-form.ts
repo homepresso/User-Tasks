@@ -240,6 +240,9 @@ export function formatRowValue(column: ListColumn, value: unknown, row?: Record<
   }
   if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) return EMPTY
   switch (column.type) {
+    case 'signature':
+      // A signature column holds the Signature value object (or its JSON text).
+      return signatureView(value, options) ?? EMPTY
     case 'boolean':
     case 'choice':
     case 'lookup':
@@ -263,17 +266,22 @@ export function formatRowValue(column: ListColumn, value: unknown, row?: Record<
   }
 }
 
+/** A Signature value (an object or JSON text of one) for reading, or null when it isn't one. */
+function signatureView(value: unknown, options: RowValueOptions): RowValueView | null {
+  const sig = normalizeSignatureValue(value)
+  if (!sig) return null
+  const signer = sig.user_name || sig.typed_name || ''
+  const at = sig.signed_at ? formatSignedAt(sig.signed_at, options.timeZone) : ''
+  return { kind: 'signature', src: sig.file.id ? `${attachmentPath(sig.file.id)}?inline=1` : null, signer, at, text: `Signed${signer ? ` by ${signer}` : ''}${at ? ` on ${at}` : ''}` }
+}
+
 function textValue(column: ListColumn, text: string, options: RowValueOptions): RowValueView {
   const s = text.trim()
   // A value copied from another field (JSON text): a signature, a picture, a link with its text.
   const obj = parseObject(s)
   if (obj) {
-    const sig = normalizeSignatureValue(obj)
-    if (sig) {
-      const signer = sig.user_name || sig.typed_name || ''
-      const at = sig.signed_at ? formatSignedAt(sig.signed_at, options.timeZone) : ''
-      return { kind: 'signature', src: sig.file.id ? `${attachmentPath(sig.file.id)}?inline=1` : null, signer, at, text: `Signed${signer ? ` by ${signer}` : ''}${at ? ` on ${at}` : ''}` }
-    }
+    const sig = signatureView(obj, options)
+    if (sig) return sig
     const file = normalizeImageValue(obj)
     if (file && (String(file.mime_type ?? '').startsWith('image/') || IMAGE_PATH_RE.test(`.${fileExtension(file.name)}`))) {
       const full = attachmentPath(file.id)

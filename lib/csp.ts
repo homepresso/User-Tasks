@@ -18,6 +18,12 @@ import { publicBasesFor, storageConfigSync } from './providers/storage/options'
  * localhost) — never for a remote host. Without a usable URL the previous
  * `https: wss:` fallback applies so a misconfigured build still signs in.
  *
+ * font-src and style-src name no remote hosts: Google Fonts are served from
+ * this origin (/fonts/g/…, lib/fonts/serve.ts), so a browser never fetches a
+ * stylesheet or font from Google. Fonts may also come from the stores
+ * uploaded theme fonts live in — the Supabase project (public storage URLs)
+ * and a configured STORAGE_PUBLIC_BASE_URL — and `data:`.
+ *
  * script-src stays permissive ('unsafe-inline') because the App Router
  * injects inline bootstrap scripts; tightening to a nonce-based CSP is a
  * follow-up that needs full-app verification. Everything else is locked
@@ -55,6 +61,25 @@ export function storageMediaSources(publicBases: Record<string, string> | undefi
     try {
       const url = new URL(base)
       if (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname)) out.add(`http://${url.host}`)
+    } catch {
+      // ignore malformed bases
+    }
+  }
+  return [...out]
+}
+
+/**
+ * font-src origins for uploaded theme fonts (brand-fonts) served straight
+ * from a store: the Supabase project's origin (https, or loopback http) and
+ * each public base URL's origin (https, or loopback http). /files is 'self'.
+ */
+export function fontSources(supabaseUrl: string | undefined, publicBases: Record<string, string> | undefined): string[] {
+  const out = new Set<string>()
+  for (const s of supabaseConnectSources(supabaseUrl)) if (/^https?:\/\/./.test(s)) out.add(s)
+  for (const base of Object.values(publicBases ?? {})) {
+    try {
+      const url = new URL(base)
+      if (url.protocol === 'https:' || (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname))) out.add(`${url.protocol}//${url.host}`)
     } catch {
       // ignore malformed bases
     }
@@ -109,9 +134,9 @@ export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefin
   return [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline'${opts.isDev ? " 'unsafe-eval'" : ''} blob:${captcha(CAPTCHA_SOURCES.script)}`,
-    "style-src 'self' 'unsafe-inline' https:",
+    "style-src 'self' 'unsafe-inline'",
     `img-src 'self' blob: data: https:${media}`,
-    `font-src 'self' data: https:${media}`,
+    `font-src 'self' data:${fontSources(opts.supabaseUrl, opts.storagePublicBases).map((s) => ` ${s}`).join('')}`,
     `connect-src 'self' ${[...new Set([...supabaseConnectSources(opts.supabaseUrl), ...(opts.storageUploadSources ?? [])])].join(' ')}${captcha(CAPTCHA_SOURCES.connect)}`,
     `media-src 'self' blob: data:${media}`,
     "worker-src 'self' blob:",

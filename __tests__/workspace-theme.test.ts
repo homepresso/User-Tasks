@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { THEMES, themeToCSS } from '@/lib/themes'
 import { contrastRatio, isValidColor, parseColor } from '@/lib/theme/colors'
 import { checkThemeContrast, blockingContrastIssues } from '@/lib/theme/contrast'
-import { CURATED_FONTS, googleFontsHref } from '@/lib/theme/fonts'
+import { CURATED_FONTS, googleFontsHrefs } from '@/lib/theme/fonts'
 import { THEME_TEMPLATES, defaultWorkspaceTheme, presetToWorkspaceTheme } from '@/lib/theme/presets'
 import { canvasMode, parseStoredTheme, resolvePaletteMode, themeAttributes } from '@/lib/theme/resolve'
 import { WorkspaceThemeSchema, isOwnStorageUrl, isValidShadow, type WorkspaceTheme } from '@/lib/theme/schema'
-import { themeFontsHref, themeStylesheet, themeVars } from '@/lib/theme/to-css'
+import { themeFontHrefs, themeStylesheet, themeVars } from '@/lib/theme/to-css'
 
 const SUPABASE = 'https://proj.supabase.co'
 
@@ -65,9 +65,11 @@ describe('WorkspaceTheme schema', () => {
     expect(valid(withPatch((t) => { t.typography.baseSize = 40 }))).toBe(false)
   })
 
-  it('limits fonts to safe names, the curated Google list and our storage', () => {
+  it('limits fonts to safe names, the Google Fonts catalogue and our storage', () => {
     expect(valid(withPatch((t) => { t.typography.sans = { source: 'google', family: 'Inter' } }))).toBe(true)
-    expect(valid(withPatch((t) => { t.typography.sans = { source: 'google', family: 'Comic Neue' } }))).toBe(false)
+    // Any catalogue family (not only the featured ones); names Google Fonts doesn't have are refused.
+    expect(valid(withPatch((t) => { t.typography.sans = { source: 'google', family: 'Comic Neue' } }))).toBe(true)
+    expect(valid(withPatch((t) => { t.typography.sans = { source: 'google', family: 'Comic Sans MS' } }))).toBe(false)
     expect(valid(withPatch((t) => { t.typography.sans = { source: 'google', family: "Inter'; } body { x" } }))).toBe(false)
     expect(valid(withPatch((t) => { t.typography.sans = { source: 'upload', family: 'Brand</style>', url: `${SUPABASE}/storage/v1/object/public/brand-fonts/t/a.woff2` } }))).toBe(false)
     expect(valid(withPatch((t) => { t.typography.sans = { source: 'system', family: 'Wingdings' } }))).toBe(false)
@@ -235,15 +237,16 @@ describe('CSS generation', () => {
 
   it('loads non-bundled Google fonts only', () => {
     // Inter, JetBrains Mono and Fraunces ship with the app.
-    expect(themeFontsHref(defaultWorkspaceTheme())).toBeNull()
+    expect(themeFontHrefs(defaultWorkspaceTheme())).toEqual([])
     expect(themeVars(defaultWorkspaceTheme(), 'light')['--theme-font-sans']).toBe('var(--font-sans), ui-sans-serif, system-ui, sans-serif')
     expect(themeVars(defaultWorkspaceTheme(), 'light')['--theme-font-mono']).toBe('var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace')
     // The pre-foundations defaults are ordinary curated Google fonts now.
     const t = withPatch((x) => { x.typography.sans = { source: 'google', family: 'DM Sans' }; x.typography.mono = { source: 'google', family: 'Space Mono' } }) as WorkspaceTheme
-    expect(themeFontsHref(t)).toBe('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap')
+    // Served from this origin, one stylesheet per family (never fonts.googleapis.com).
+    expect(themeFontHrefs(t)).toEqual(['/fonts/g/dm-sans/w1ff-i1ff.css', '/fonts/g/space-mono/w48-i48.css'])
     expect(themeVars(t, 'light')['--theme-font-sans']).toBe("'DM Sans', var(--font-sans), ui-sans-serif, system-ui, sans-serif")
-    // Weights snap to what the family has (Google rejects a request for a missing weight).
-    expect(googleFontsHref([{ family: 'Atkinson Hyperlegible', weights: [400, 500, 600, 700] }])).toBe('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap')
+    // The variant names the weights the family has (Atkinson Hyperlegible: 400 and 700, both with italics).
+    expect(googleFontsHrefs([{ family: 'Atkinson Hyperlegible' }, { family: 'atkinson hyperlegible' }])).toEqual(['/fonts/g/atkinson-hyperlegible/w48-i48.css'])
     expect(CURATED_FONTS.length).toBeGreaterThanOrEqual(40)
   })
 })

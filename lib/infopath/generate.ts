@@ -51,7 +51,7 @@ import { schemaNodes } from './schema'
 import { humanize } from './view'
 import { expressionPaths, localOf, resolveBinding, toCondition, toExpression, type Ref, type TranslateEnv } from './xpath'
 import type { CellFormat } from '@/lib/formatting/cell-format'
-import { colorFromCss, fontFromCss, normalizeTextStyle, sizeFromCss, type ControlTextStyle, type TextStyle } from '@/lib/forms/text-style'
+import { colorFromCss, fontFromCss, normalizeTextStyle, sizeFromCss, textFontGoogleFamily, textFontLabel, type ControlTextStyle, type TextStyle } from '@/lib/forms/text-style'
 import type { IpTextStyle } from './model'
 import type { InfoPathModel, IpControl, IpDataConnection, IpRule, IpRuleAction, IpSchemaNode, IpView, IpViewItem } from './model'
 
@@ -337,6 +337,18 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
   // The view's usual font and size (InfoPath writes "Calibri 10pt" on nearly everything): not copied onto each field.
   const viewBase = new Map<string, { font?: string; size?: string }>()
   const styledCount = new Map<string, number>()
+  // Per view: fonts mapped to a Google Fonts family, and fonts we have no match for (fall back to the theme font).
+  const googleFontsOf = new Map<string, Set<string>>()
+  const missingFontsOf = new Map<string, Set<string>>()
+  const noteFont = (view: IpView, family: string, mapped: string | undefined) => {
+    const g = mapped ? textFontGoogleFamily(mapped) : null
+    const bucket = g ? googleFontsOf : !mapped ? missingFontsOf : null
+    if (!bucket) return
+    const name = g ?? family.split(',')[0].trim().replace(/^['"]|['"]$/g, '').slice(0, 60)
+    if (!name) return
+    if (!bucket.has(view.name)) bucket.set(view.name, new Set())
+    bucket.get(view.name)!.add(name)
+  }
   const baseOf = (view: IpView) => {
     let base = viewBase.get(view.name)
     if (base) return base
@@ -370,6 +382,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     const size = raw.size ? sizeFromCss(raw.size) : undefined
     if (size && size !== base.size && !opts.heading) out.size = size
     const font = raw.family ? fontFromCss(raw.family) : undefined
+    if (raw.family) noteFont(view, raw.family, font)
     if (font && font !== base.font) out.font = font
     const color = raw.color ? colorFromCss(raw.color) : undefined
     if (color && color !== '#ffffff') out.color = color
@@ -528,6 +541,8 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       case 'checkbox': return { type: 'boolean' }
       case 'dropdown': case 'combobox': case 'listbox': case 'option': return (c.options ?? []).filter((o) => o.value).length || node?.enumeration?.length ? { type: 'choice' } : { type: 'text', note: 'options from a data connection became text' }
       case 'multiselect': return { type: 'text', note: 'multi-select column became text' }
+      // A signature line or an ink picture in a repeating table: a signature column (each row signs its own cell).
+      case 'signature': case 'ink': return { type: 'signature' }
       default: return null
     }
   }
@@ -734,12 +749,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     const inner: FormBuild = { ...newBuild(b.view), itemPath: path, depth, parent: b }
     convertItems(inner, view, c.children ?? [], inner.rows, null, 0)
     for (const run of inner.pendingExpr.splice(0)) run()
-    // Signatures are not stamped inside items: they become a note.
-    const signatures = inner.fields.filter((f) => f.type === 'signature')
-    for (const f of signatures) {
-      report({ area: 'field', id: `${c.id}:${f.key}`, view: view.name, name: f.label, status: 'manual', detail: 'A signature inside a repeating section: UserTasks signs the whole form, not each item. Add one Signature field outside the section.' })
-    }
-    inner.fields = inner.fields.filter((f) => f.type !== 'signature')
+    // Signatures inside items sign per item (each item's signature is stamped by the server like a field's) — reported as converted by convertField.
     const keep = new Set(inner.fields.map((f) => f.key))
     inner.rows = inner.rows.map((r) => ({ ...r, cells: r.cells.filter((x) => keep.has(x.field_key)) })).filter((r) => r.cells.length)
     if (!inner.fields.length) {
@@ -892,7 +902,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       seen.add(ch.path.toLowerCase())
       const node = nodeOf(ch.path)
       const t = columnType(ch, node)
-      if (!t) { notes.push(`${ch.kind} "${cleanLabel(ch.label)}" has no column type (use a Repeating section for pictures, signatures and rich text)`); continue }
+      if (!t) { notes.push(`${ch.kind} "${cleanLabel(ch.label)}" has no column type (use a Repeating section for pictures and rich text)`); continue }
       if (t.note) notes.push(`"${cleanLabel(ch.label)}": ${t.note}`)
       const label = cleanLabel(ch.label || humanize(ch.path)) || 'Column'
       const ckey = keys.column(listKey, ch.path, label)
@@ -904,6 +914,11 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         if (Object.keys(labels).length) col.option_labels = labels
       }
       if (t.type === 'currency') col.currency = currency
+      if (t.type === 'signature') {
+        // Ink pictures are drawn; a signature line may be drawn or typed.
+        if (ch.kind === 'ink') col.signature = { mode: 'draw' }
+        report({ area: 'field', id: ch.id, view: view.name, name: label, status: 'converted', detail: `${ch.kind === 'ink' ? 'Ink picture' : 'Signature line'} in a repeating table → a signature column: each row is signed in its own cell (drawn${ch.kind === 'ink' ? '' : ' or typed'}, with the signer and time).` })
+      }
       if (ch.read_only) col.read_only = true
       if (node?.required) col.required = true
       // Fonts from the view: the header cell (label) and the cell's control (value).
@@ -1441,7 +1456,13 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     const n = styledCount.get(v.name) ?? 0
     if (!n) continue
     const base = viewBase.get(v.name)
-    report({ area: 'view', id: `fonts:${v.name}`, view: v.name, name: 'Fonts, sizes and colours', status: 'converted', detail: `Font styles: ${n} control${n === 1 ? '' : 's'} keep their font, size, colour or emphasis (text style on the field or List column)${base?.font || base?.size ? `; the view's usual ${[base.font, base.size].filter(Boolean).join(' ')} is left to the form theme` : ''}.` })
+    const google = [...(googleFontsOf.get(v.name) ?? [])]
+    const missing = [...(missingFontsOf.get(v.name) ?? [])]
+    const extra = [
+      google.length ? `Google Fonts used (served from this site): ${google.join(', ')}` : '',
+      missing.length ? `not available, so the theme font is used instead: ${missing.join(', ')}` : '',
+    ].filter(Boolean).join('; ')
+    report({ area: 'view', id: `fonts:${v.name}`, view: v.name, name: 'Fonts, sizes and colours', status: 'converted', detail: `Font styles: ${n} control${n === 1 ? '' : 's'} keep their font, size, colour or emphasis (text style on the field or List column)${base?.font || base?.size ? `; the view's usual ${[base.font ? textFontLabel(base.font) : '', base.size].filter(Boolean).join(' ')} is left to the form theme` : ''}${extra ? `. ${extra[0].toUpperCase()}${extra.slice(1)}` : ''}.` })
   }
 
   for (const r of model.manifest.rules) {

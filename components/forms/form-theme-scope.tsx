@@ -2,12 +2,13 @@
 
 import { useMemo } from 'react'
 import { useOsDark, useWorkspaceTheme } from '@/components/providers/theme-provider'
-import { formAppearanceMode, formHeaderColors, formThemeFontHref, formThemeVars, paletteScopeVars, type FormThemeOverrides } from '@/lib/forms/form-theme'
+import { formAppearanceMode, formHeaderColors, formThemeFontHrefs, formThemeVars, paletteScopeVars, type FormThemeOverrides } from '@/lib/forms/form-theme'
 import { normalizeFormWidth } from '@/lib/forms/form-width'
 import { resolveStorageUrl } from '@/lib/storage/refs'
 import { isDarkColor } from '@/lib/theme/colors'
 import type { ThemeMode } from '@/lib/theme/schema'
 import { cn } from '@/lib/utils'
+import { FontLinks } from '@/components/fonts/font-links'
 import { FormMotionProvider, motionAttrs, usePrefersReducedMotion } from './form-motion'
 import { motionLevel, type ResolvedFormAnimation } from '@/lib/forms/motion'
 
@@ -47,7 +48,7 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
     ...(active !== appMode ? paletteScopeVars(theme.colors[active]) : {}),
     ...formThemeVars(overrides, theme.colors[active], active),
   }), [overrides, theme, active, appMode])
-  const fontHref = formThemeFontHref(overrides)
+  const fontHrefs = formThemeFontHrefs(overrides)
   const header = overrides?.header?.enabled ? overrides.header : null
   const banner = formHeaderColors(overrides)
   const logo = header?.logo_url ? resolveStorageUrl(header.logo_url) : null
@@ -90,8 +91,8 @@ export function FormThemeScope({ overrides, mode, className, children, card = tr
         ...(overrides?.font ? { fontFamily: 'var(--theme-font-sans)' } : {}),
       } as React.CSSProperties}
     >
-      {/* Google Fonts stylesheet for a non-bundled family (the CSP already allows the workspace theme's fonts). */}
-      {fontHref && <link rel="stylesheet" href={fontHref} />}
+      {/* The theme's Google fonts, served from this origin (/fonts/g/…). */}
+      <FontLinks hrefs={fontHrefs} />
       {header && (header.title || header.subtitle || logo) && (
         <div
           className={cn('flex items-center gap-3 px-5 py-4', !banner && 'border-b border-border')}

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import {
   blankListRow, childListColumns, childListPaths, childListAt, coerceListRow, coerceListRows, formatListCell, formatListTotal, inputColumns, isBlankListRow, listEntryMode,
-  hasListValidations, listCellStates, listColumnWritable, listLabelKey, listRowDraft, listRowErrors, nestedRowsAt, LIST_ROW_ERROR_KEY, remapAfterRemoval, listTotalLabel, listTotalValue, rawListRows, shownColumns, LIST_LIMITS,
+  hasListValidations, listCellStates, listColumnWritable, listLabelKey, listRowDraft, listUploadKey, listRowErrors, nestedRowsAt, LIST_ROW_ERROR_KEY, remapAfterRemoval, listTotalLabel, listTotalValue, rawListRows, shownColumns, LIST_LIMITS,
   rowCellErrors, rowDraftState, stripRowMarkers, type ListColumn, type ListFieldConfig, type ListRow,
 } from '@/lib/forms/list-field'
 import { commitRow, currentListIndex, discardRow, targetValues } from '@/lib/forms/row-rules'
@@ -22,6 +22,7 @@ import {
   cancelRowForm, formatRowValue, openRowForm, rowEditingModes, rowFormDirty, rowFormTitle, saveRowForm, showsViewIcon, type RowFormRequest, type RowFormSession,
 } from '@/lib/forms/list-row-form'
 import { ListRowDialog, RowFormIcon, RowValue } from './list-row-dialog'
+import { SignatureCellInput, SignatureCellValue } from './signature-cell'
 import { RowStyleScope, ToneIcon, rowStyleAttrs, useRowStyles } from './conditional-style'
 import { labelStyleProps, mergeStyleProps, valueStyleProps } from '@/lib/forms/text-style'
 
@@ -66,6 +67,11 @@ function childScope(nest: NestScope | undefined, fieldKey: string, index: number
 }
 
 const EMPTY: ListFieldConfig = { columns: [] }
+
+/** A signature column's upload key: the field's List (or, nested, the top List and the column path) and the column. */
+function uploadKeyOf(field: TaskFieldDef, nest: NestScope | undefined, column: ListColumn): string | undefined {
+  return column.type === 'signature' ? listUploadKey(nest?.top ?? field.key, [...(nest?.path ?? []), column.key]) : undefined
+}
 
 /** Whether a List's validations read the signed-in person (`user.*`). */
 function readsUser(config: ListFieldConfig): boolean {
@@ -352,7 +358,7 @@ function RowsView({ config, rows, label, narrow, actions, editing = null, onRowC
               <td className="px-2 py-1.5 text-2xs text-fg-muted tabular-nums whitespace-nowrap">{nested.length > 0 && <ExpandButton open={expanded.isOpen(i)} onToggle={() => expanded.toggle(i)} controls={panelId(i)} label={`${expanded.isOpen(i) ? 'Hide' : 'Show'} ${nested.map((c) => c.label).join(', ')} of row ${i + 1}`} />}<RowToneIcon style={styleOf(i).row} />{i + 1}{editing === i && editingBadge}{pendingBadge(row)}</td>
               {columns.map((c) => styleOf(i).hidden[c.key] ? <td key={c.key} className="px-2 py-1.5" data-list-hidden-cell={c.key} /> : (
                 <td key={c.key} className={cn('px-2 py-1.5 align-top break-words', cellAlign(c))} aria-invalid={Boolean(errorsOf(row)[c.key]) || undefined} {...mergeStyleProps(valueStyleProps(c), rowStyleAttrs(styleOf(i).cells[c.key]))}>
-                  <RowToneIcon style={styleOf(i).cells[c.key]} />{formatListCell(c, row[c.key], row)}
+                  <RowToneIcon style={styleOf(i).cells[c.key]} />{c.type === 'signature' ? <SignatureCellValue value={row[c.key]} compact /> : formatListCell(c, row[c.key], row)}
                   {errorsOf(row)[c.key] && <span className="block text-left text-2xs text-(--status-blocked)" data-list-cell-error={c.key}>{errorsOf(row)[c.key]}</span>}
                 </td>
               ))}
@@ -396,7 +402,7 @@ function RowsView({ config, rows, label, narrow, actions, editing = null, onRowC
               <div key={c.key} className="contents">
                 <dt className="text-xs text-fg-muted" {...labelStyleProps(c)}>{c.label}</dt>
                 <dd className={cn('break-words text-fg', cellAlign(c) === 'text-left' ? '' : 'tabular-nums')} {...mergeStyleProps(valueStyleProps(c), rowStyleAttrs(styleOf(i).cells[c.key]))}>
-                  <RowToneIcon style={styleOf(i).cells[c.key]} />{formatListCell(c, row[c.key], row)}
+                  <RowToneIcon style={styleOf(i).cells[c.key]} />{c.type === 'signature' ? <SignatureCellValue value={row[c.key]} /> : formatListCell(c, row[c.key], row)}
                   {errorsOf(row)[c.key] && <span className="block text-2xs text-(--status-blocked)" data-list-cell-error={c.key}>{errorsOf(row)[c.key]}</span>}
                 </dd>
               </div>
@@ -490,7 +496,9 @@ export function ListValueView({ field, value, narrow, rowForms, formValues }: {
 }
 
 /** One column's input (form entry, inline cells and the row pop-out; exported for tests). */
-export function ColumnInput({ column, value, onChange, id, error, onKeyDown, inputRef, compact, labelledBy }: {
+export function ColumnInput({ column, value, onChange, id, error, onKeyDown, inputRef, compact, labelledBy, uploadKey }: {
+  /** A signature column: its upload key (listUploadKey — `<list>.<column>`); without one the cell is shown, not signed. */
+  uploadKey?: string
   column: ListColumn
   value: unknown
   onChange: (value: unknown) => void
@@ -512,6 +520,10 @@ export function ColumnInput({ column, value, onChange, id, error, onKeyDown, inp
   }
   const text = value === null || value === undefined ? '' : String(value)
   switch (column.type) {
+    case 'signature':
+      // A signature per row (components/forms/signature-cell.tsx): a thumbnail / "Sign" in a table cell, the pad in the pop-out and cards.
+      if (!uploadKey) return <SignatureCellValue value={value} compact={compact} />
+      return <SignatureCellInput column={column} uploadKey={uploadKey} value={value} onChange={onChange} id={id} compact={compact} invalid={Boolean(error)} labelledBy={labelledBy} inputRef={inputRef} />
     case 'textarea':
       return <textarea {...common} ref={inputRef as React.Ref<HTMLTextAreaElement>} rows={compact ? 1 : 2} value={text} placeholder={column.placeholder} maxLength={column.max ?? LIST_LIMITS.text}
         onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
@@ -779,7 +791,7 @@ function useRowEditor({ field, config, value, onChange, id, nest, formValues, na
           onLabel={(label) => setCells({ [listLabelKey(c.key)]: Array.isArray(label) ? label[0] ?? null : label })} />
       )
     }
-    return <ColumnInput column={c} value={listRowDraft(config, row)[c.key]} id={inputId} error={error} onChange={(v) => setCell(c.key, v)} />
+    return <ColumnInput column={c} value={listRowDraft(config, row)[c.key]} id={inputId} error={error} onChange={(v) => setCell(c.key, v)} uploadKey={uploadKeyOf(field, nest, c)} />
   }
 
   const dialog = session && row ? (
@@ -1038,7 +1050,7 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
   }
   const readOnlyCell = (c: ListColumn, row: Record<string, unknown>, cellKey: string, labelledBy?: string) => (
     <span id={cellKey} role="textbox" aria-readonly="true" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : c.label} className={cn('flex min-h-10 items-center rounded-lg bg-subtle px-2 text-sm text-fg-muted', cellAlign(c) === 'text-left' ? '' : 'justify-end tabular-nums')} data-list-readonly={c.key}>
-      {formatListCell(c, row[c.key], row)}
+      {c.type === 'signature' ? <SignatureCellValue value={row[c.key]} compact /> : formatListCell(c, row[c.key], row)}
     </span>
   )
   // A lookup cell: the column's own source (`<list>.<column>` on the server), the row for {{row.x}}, the label kept beside the value.
@@ -1082,7 +1094,7 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
                     : c.type === 'list' ? nestedCell(c, row, r)
                     : !writable(row, c) ? readOnlyCell(c, row, cellId(r, c.key), `${id}-h-${c.key}`)
                     : c.type === 'lookup' ? lookupCell(c, row, r, cellId(r, c.key))
-                    : <ColumnInput column={c} value={draft(row)[c.key]} id={cellId(r, c.key)} compact error={rowErrors[r]?.[c.key]} labelledBy={`${id}-h-${c.key}`}
+                    : <ColumnInput column={c} value={draft(row)[c.key]} id={cellId(r, c.key)} compact error={rowErrors[r]?.[c.key]} labelledBy={`${id}-h-${c.key}`} uploadKey={uploadKeyOf(field, nest, c)}
                       inputRef={(el) => { refs.current[`${r}:${c.key}`] = el }} onKeyDown={onKeyDown(r, editableIn(row).indexOf(c))} onChange={(v) => setCell(r, c.key, v)} />}
                   </CellWithIcon>
                   {rowErrors[r]?.[c.key] && <p id={`${cellId(r, c.key)}-error`} className="mt-0.5 text-left text-2xs text-(--status-blocked)">{rowErrors[r][c.key]}</p>}
@@ -1137,7 +1149,7 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
                   ? <output id={`${cellId(r, c.key)}-m`} className="text-sm font-medium tabular-nums">{formatListCell(c, typed[r][c.key])}</output>
                   : !writable(row, c) ? readOnlyCell(c, row, `${cellId(r, c.key)}-m`)
                   : c.type === 'lookup' ? lookupCell(c, row, r, `${cellId(r, c.key)}-m`)
-                  : <ColumnInput column={c} value={draft(row)[c.key]} id={`${cellId(r, c.key)}-m`} error={rowErrors[r]?.[c.key]}
+                  : <ColumnInput column={c} value={draft(row)[c.key]} id={`${cellId(r, c.key)}-m`} error={rowErrors[r]?.[c.key]} uploadKey={uploadKeyOf(field, nest, c)}
                     inputRef={(el) => { refs.current[`${r}:${c.key}`] = el }} onKeyDown={onKeyDown(r, editableIn(row).indexOf(c))} onChange={(v) => setCell(r, c.key, v)} />}
                 {rowErrors[r]?.[c.key] && <p id={`${cellId(r, c.key)}-m-error`} className="mt-0.5 text-2xs text-(--status-blocked)">{rowErrors[r][c.key]}</p>}
               </div>

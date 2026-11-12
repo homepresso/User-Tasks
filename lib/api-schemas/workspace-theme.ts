@@ -53,7 +53,7 @@ const preset = z.looseObject({
 })
 
 const tags = ['Workspace theme']
-const SAVE_NOTE = 'Applies to every member of the workspace immediately. Colours must be hex/rgb()/hsl(); fonts are curated Google Fonts, system stacks or woff2 uploads (POST /workspace-theme/fonts); logos must be uploads in this workspace. Themes whose button or navigation text is below 3:1 contrast are refused.'
+const SAVE_NOTE = 'Applies to every member of the workspace immediately. Colours must be hex/rgb()/hsl(); fonts are any Google Fonts family (served from this site — browsers never contact Google), system stacks or woff2 uploads (POST /workspace-theme/fonts); logos must be uploads in this workspace. Themes whose button or navigation text is below 3:1 contrast are refused.'
 
 export const getWorkspaceThemeEndpoint = defineEndpoint({
   method: 'GET', path: '/workspace-theme', operationId: 'getWorkspaceTheme', tags,

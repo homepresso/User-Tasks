@@ -730,7 +730,7 @@ Every field has \`key\`, \`label\`, \`type\`, and optionally \`required\`, \`hel
 | Section heading | \`heading\` | — | none | — |
 | Divider | \`divider\` | — | none | — |
 | Data table | \`data_table\` | \`data_table\`: a data table or API reference, columns and formats, base filter, sort, page size, mode — see [Data table fields](#data-table-fields) | the selected rows, or the changes \`{ added, updated, deleted }\` | — |
-| List (repeating rows) | \`list\` | \`list\`: \`columns\` (key, label, type, required, options, min / max, default, formula; type \`list\` = a [nested List](#nested-lists) with its own \`list\`), \`min_rows\` / \`max_rows\`, \`totals\`, \`display\`, \`entry_mode\` — see [List fields](#list-fields-repeating-rows) | array of row objects | \`<key>_count\` and one key per total (nested: \`<key>_<child>_count\`, \`_counts\`, \`<key>_total_<child>_<column>\`) |
+| List (repeating rows) | \`list\` | \`list\`: \`columns\` (key, label, type, required, options, min / max, default, formula; type \`list\` = a [nested List](#nested-lists) with its own \`list\`; type \`signature\` = a [signature per row](#signatures-in-rows-and-items) with its own \`signature\`), \`min_rows\` / \`max_rows\`, \`totals\`, \`display\`, \`entry_mode\` — see [List fields](#list-fields-repeating-rows) | array of row objects | \`<key>_count\` and one key per total (nested: \`<key>_<child>_count\`, \`_counts\`, \`<key>_total_<child>_<column>\`) |
 | Button | \`button\` | \`button\`: style, size, icon, alignment, tooltip, confirm prompt, \`disabled_when\`, On click \`actions\` — see [Buttons anywhere](#buttons-anywhere-and-form-state) | none | — |
 | Label | \`label\` | \`label_config\`: \`expression\`, \`format\`, \`prefix\` / \`suffix\`, size, alignment, \`include\` — see [Label and expressions](#label-and-expressions) | display text; stored only with \`include\` (recomputed by the server) | — |
 
@@ -866,7 +866,7 @@ API clients read rows with \`POST /api/v1/forms/{id}/data-table\` or \`POST /api
 
 A **Repeating section** (palette group **Data**) is InfoPath's repeating section: a group of form controls laid out on their own grid and repeated once per item — an expense claim with a card per receipt, the travellers on a booking, the stops of a trip. People press **Add expense** (the button text is yours) to add an item; each item is a card with its title, **Collapse**, **Move up / down** and **Remove** (optionally confirmed). Prefer a Repeating section when each entry is a small form of its own; prefer a [List](#list-fields-repeating-rows) for tabular rows.
 
-**Any control inside.** Drag controls from the palette — or fields already on the form — into the section's grid in the designer, with the same rows, columns, spans and section headings as the form (one column on phones). Text, numbers, currency, dates, dropdowns (including ones bound to a data table or an API reference), people, lookups, rich text, attachments, pictures, Labels, buttons, Lists and other repeating sections (three levels at most) all work; Data tables, custom controls and signatures stay on the form itself. A control's key is unique over the whole form. Select the section to set:
+**Any control inside.** Drag controls from the palette — or fields already on the form — into the section's grid in the designer, with the same rows, columns, spans and section headings as the form (one column on phones). Text, numbers, currency, dates, dropdowns (including ones bound to a data table or an API reference), people, lookups, rich text, attachments, pictures, **signatures** (each item is signed on its own — see [Signatures in rows and items](#signatures-in-rows-and-items)), Labels, buttons, Lists and other repeating sections (three levels at most) all work; Data tables and custom controls stay on the form itself. A control's key is unique over the whole form. Select the section to set:
 
 - **Add button** and **Item title** — the title can read the item: \`Expense {{index}}: {{item.description}}\`.
 - **Min / Max items** (max 50 by default, at most 200) and **Start with** (blank items a new form opens with, defaults filled in — \`{{today}}\` too).
@@ -908,7 +908,7 @@ A **Repeating section** (palette group **Data**) is InfoPath's repeating section
 
 A **List** field (palette group **Data**, *List (repeating rows)*) holds rows the person adds on the form itself — line items, attendees, expenses, milestones. The rows live in the submission (no data table behind them) and reach the workflow as an **array of objects** it can loop over. A form can have as many Lists as it needs; each has its own inputs, rule, totals and workflow variable (\`{{form.line_items}}\`, \`{{form.attendees}}\`…).
 
-**Columns.** Each column has a key (snake_case, the row object's key), a label and a type: Text, Long text, Number, Currency, Date, Choice (with options), Yes / no, Email, **Lookup** (rows of a data table or an API reference, searched on the server like an Autocomplete field) or **Calculated** — a formula over the row's number columns such as \`quantity * unit_price\` (numbers, column keys, \`+ - * /\` and brackets; worked out on the server too, never taken from the browser). Columns can be required, and have a default, a placeholder, help text and min / max (a value for numbers, a length for text). **At least / at most (rows)** bound the row count; **Totals** add a sum, average or count of a column under the list.
+**Columns.** Each column has a key (snake_case, the row object's key), a label and a type: Text, Long text, Number, Currency, Date, Choice (with options), Yes / no, Email, **Signature** (each row signs its own cell — see [Signatures in rows and items](#signatures-in-rows-and-items)), **Lookup** (rows of a data table or an API reference, searched on the server like an Autocomplete field) or **Calculated** — a formula over the row's number columns such as \`quantity * unit_price\` (numbers, column keys, \`+ - * /\` and brackets; worked out on the server too, never taken from the browser). Columns can be required, and have a default, a placeholder, help text and min / max (a value for numbers, a length for text). **At least / at most (rows)** bound the row count; **Totals** add a sum, average or count of a column under the list.
 
 **The list view.** The field shows the rows as a table — cards on phones (**Show rows as**: table with cards on phones, always a table, always cards) — with **Remove** on each row and the totals underneath. It has no input row or Add button of its own: rows come from the form's own inputs through a rule. With **Always cards** an editable table shows each row as a card holding its columns as a small form (labelled inputs, its own Remove) — the shape of an InfoPath repeating section.
 
@@ -1367,6 +1367,19 @@ A **Signature** field (palette group **Files & media**) asks the person to sign:
 - **Checks:** required means a signature must be present; the value's shape and method are checked, and the file must be a PNG this person uploaded into this form or task.
 - **After submit** the signature is read-only: the task, the submission view and completed tasks show the image and *"Signed by Ada Lovelace on 11 Nov 2026 14:02"*; summaries and exports use that line.
 
+### Signatures in rows and items
+
+Each line item, approver or visit can carry its own signature: a **Signature column** in a List (column type *Signature*) or a **Signature** control inside a repeating section (any level, also in a List inside a section).
+
+- **In an editable table** the cell shows a **Sign** button, or the signature's thumbnail with a **Clear** icon; either opens the signing pad (draw or type, the column's statement) in a dialog. The **row pop-out** and **phone cards** show the full pad in place; a repeating section's item shows it like a field. Read-only views (submissions, completed tasks, View row) show the image and *Signed by … on …*.
+- **Column settings** (\`signature\` on the column): \`mode\` (\`draw\`, \`type\`, \`both\`), \`statement\` and \`capture_audit\`. A signature column can be required (*Required in every row*: each row must be signed), read-only when editing, hidden or locked per row by a **cell rule** (\`row.<column>\` *is not empty* / *is empty* conditions work, e.g. lock a row's signature once it is signed); it can't be the row key column or filled from an *Add row* input — people sign in the row itself.
+- **Value:** the same object as a Signature field — \`{ file, method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }\` — in each row (\`[{ "approver": "Ada", "signature": { … } }]\`) or item. A workflow loop over the List gets \`{{item.signature.user_name}}\`, \`{{item.signature.signed_at}}\` and \`{{item.signature.file}}\` (the PNG's file object, to attach or pass on).
+- **The server does the same as for a field, row by row:** each PNG is uploaded under the column's upload key (\`<list>.<column>\`; a nested List \`<list>.<child>.<column>\`; a section's control its own key) through the attachments pipeline — a real PNG (sniffed by its bytes), at most 1 MB, metadata stripped, the optional virus scan. On submit every row's PNG is re-read from the upload records: it must be this person's upload into this form or task for that column, in this workspace; anything else (another column's or person's file, a made-up id, a URL or data URL) is refused at the row's path (\`approvals[1].signature\`). Who signed and when are stamped by the server; a row already signed keeps its stamp even when rows move.
+- **Across tasks:** a task that opens with rows signed in an earlier task (the workflow passes the List on) keeps those signatures as they are; a person who can't see the earlier task may see *Signed by …* without the image.
+- **Locked cells:** a signature cell a cell rule makes read only keeps the value it had when the form opened (rows matched by the row key column), whatever the browser sends.
+- **Limits:** a List holds at most 500 rows (2000 over nested levels); unsubmitted uploads are capped per person (\`FORM_ATTACHMENT_PENDING_LIMIT\`, default 200) — on a public link, by the form's anonymous upload limit. Each signature adds about 400 bytes to the submission (the PNG is stored separately).
+- **Exports:** CSV shows *Signed by … on … UTC* in place of each signature inside the List's or section's JSON. Generated documents (Word / PDF steps) don't draw signature images — top-level or in rows; use the \`file\` in a later step.
+
 ## Rich text
 
 A **Rich text** field (palette group **Text**) takes formatted text: a small editor with a toolbar — **Basic** (bold, italic, underline, bulleted and numbered lists, link, clear formatting) or **Full** (adds strikethrough, heading, subheading, quote and code). The toolbar is one tab stop (arrow keys move between its buttons, each says whether it is on); **Ctrl/Cmd+B / I / U** format and **Ctrl/Cmd+K** adds a link. A counter shows the characters used.
@@ -1665,24 +1678,25 @@ Colour a field or a section while a condition holds — InfoPath's conditional f
 
 In JSON: \`{ "type": "set_style", "targets": ["field:<key>" | "section:<key>"], "style": { "tone"?: "success" | "warning" | "danger" | "info" | "neutral" | "accent", "background"?, "text"?, "bold"?, "italic"?, "underline"?, "strike"?, "border"?, "icon"? } }\` (each switch \`true\` or left out; a tone alone shades and colours). \`set_style\` belongs to **Always** rules. A List's \`row_styles\` is \`[{ "if", "style", "column"? }]\` (up to 20).
 
-A style may also change the **font size**, **font** and **text colour** (Size, Font and Colour under the tone): \`"size"\` (\`xs\` … \`2xl\` or \`"<n>px"\`, 8–48), \`"font"\` (one of the curated fonts below) and \`"color"\` (a theme colour or \`#rrggbb\`, which wins over the tone's text colour).
+A style may also change the **font size**, **font** and **text colour** (Size, Font and Colour under the tone): \`"size"\` (\`xs\` … \`2xl\` or \`"<n>px"\`, 8–48), \`"font"\` (one of the curated fonts below, or \`"google:<Family>"\` for any Google font) and \`"color"\` (a theme colour or \`#rrggbb\`, which wins over the tone's text colour).
 
 ### Text styles: font size, font and colour
 
 Every field has a **Text style** section in its properties, split into the **Label** and the **Value** (for a heading: the heading and its description; for a Label field: its text). Each part takes:
 
 - **Size** — Extra small, Small, Normal, Large, Extra large, Huge, or an exact size in pixels (8–48).
-- **Font** — the theme default, Sans serif, Serif, Monospace, or one of the fonts InfoPath forms use: Calibri, Segoe UI, Arial, Verdana, Tahoma, Times New Roman, Georgia, Courier New. Each is a safe web stack, so a device without the font gets a close match.
+- **Font** — the theme default, a **standard font** (Sans serif, Serif, Monospace, or one of the fonts InfoPath forms use: Calibri, Segoe UI, Arial, Verdana, Tahoma, Times New Roman, Georgia, Courier New — each a safe web stack, so a device without the font gets a close match), or **any Google font**. The picker searches all of Google Fonts' families, filters by category (sans serif, serif, display, handwriting, monospace) and shows each name in its own face.
+  Google fonts are served from your UserTasks site, not from Google: the first time a font is needed the server downloads it once and keeps it in your storage, and visitors' browsers only ever talk to your site. A page loads only the fonts its form uses, and text shows in a similar standard font until the font arrives (or if it can't load). In JSON a Google font is \`"google:<Family>"\`, spelled as on Google Fonts (\`"google:Lato"\`, \`"google:Playfair Display"\`). Google Fonts are open source (SIL Open Font License or Apache License 2.0).
 - **Colour** — a theme colour (red, amber, green, blue, brand, text, muted grey), which reads well in every theme, light and dark, or a **custom colour**. A custom colour is adjusted where needed to stay readable (WCAG AA) on light cards, and a separate dark-mode colour is worked out for dark mode.
 - **Bold**, **Italic**, **Underline**.
 
 A List column has the same section, as **Header** and **Cells**; the row pop-out and phone cards use it for the column's label and value. The controls inside a repeating section are fields, so they have it too.
 
-Only these values are stored — sizes, font names and colours are checked against a fixed list or a strict pattern, never CSS — and styles change only how the form looks.
+Only these values are stored — sizes, font names and colours are checked against a fixed list, the bundled list of Google Fonts families or a strict pattern, never CSS — and styles change only how the form looks.
 
 \`\`\`json title="A field with a large serif label and a custom-coloured value"
 { "key": "total", "label": "Total", "type": "currency", "currency": "USD",
-  "text_style": { "label": { "size": "lg", "font": "georgia", "bold": true }, "value": { "color": "#1f4e79", "size": "16px" } } }
+  "text_style": { "label": { "size": "lg", "font": "google:Playfair Display", "bold": true }, "value": { "color": "#1f4e79", "size": "16px", "font": "georgia" } } }
 \`\`\`
 
 ### Hide or lock one cell of a List row
@@ -2215,8 +2229,8 @@ By default a form uses the [workspace theme](/docs/governance/workspace-theme) �
 
 - accent colour (buttons, focus ring, selection), background and text colour, separately for light and dark mode
 - the page behind the form (a colour, or a gradient to a second colour — standalone form pages, the frame around a task form, the designer preview), the input background, border colour and primary button colour (derived from the accent unless you set one), per mode
-- corner radius, font (from the workspace theme's fonts), density (comfortable or compact), label position (above or left of the input) and where the buttons sit (right, left or full width)
-- a **heading font** separate from the body font (the same curated list: titles, section and page headings), the **button shape** (square, rounded — the corner radius — or pill), a **shadow** under the card (none, subtle, medium or strong; tuned for light and dark cards) and the **field style** (outlined, filled or underline — inputs always keep a 3:1 bottom rule)
+- corner radius, font (any Google font — served from your site — or a system font: the form's default font), density (comfortable or compact), label position (above or left of the input) and where the buttons sit (right, left or full width)
+- a **heading font** separate from the body font (the same choices: titles, section and page headings), the **button shape** (square, rounded — the corner radius — or pill), a **shadow** under the card (none, subtle, medium or strong; tuned for light and dark cards) and the **field style** (outlined, filled or underline — inputs always keep a 3:1 bottom rule)
 - **Appearance**: follow the workspace (the default), follow each viewer's own light / dark setting (**Viewer's light / dark**, so your dark colours show to people in dark mode even when the workspace forces light), or **Always light** / **Always dark**
 - an optional header with a title, subtitle, banner colour and the workspace logo
 

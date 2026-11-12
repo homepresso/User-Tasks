@@ -9,6 +9,7 @@ import { INSTANCE_ADMINS_SETTING, parseAdminEmails } from '@/lib/admin/instance-
 import { ALLOW_UI_SWITCHING_SETTING, switchingGate } from '@/lib/admin/switch-runtime'
 import { checkBootstrapInput, ensureStorageBuckets, runBootstrap } from './bootstrap'
 import { runSetupCode } from './setup-code'
+import { runFonts } from './fonts-cli'
 import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from './local-env'
 import { loadMigrations } from './db/migrations'
 import { computeStatus, describeTarget, migrate, readApplied, repair } from './db/runner'
@@ -74,6 +75,9 @@ Usage:
                             [--api-key <key name>] [--if-missing]
   usertasks-admin setup-code [status]   (first-run /setup code: print a new one, or show whether setup is needed)
   usertasks-admin storage init
+  usertasks-admin fonts status [--json]                    (self-hosted Google Fonts: remote fetching, families stored)
+  usertasks-admin fonts seed <family>... [--featured] [--dir <folder>]   (fetch into storage, or a folder for air-gapped)
+  usertasks-admin fonts import <folder>                    (load a seeded folder; no internet needed)
   usertasks-admin db migrate [--dry-run] [--include-all] [--owner <role>] [--dir <path>]
   usertasks-admin db status [--dir <path>]
   usertasks-admin db repair --status applied|reverted <version>... [--dir <path>]
@@ -146,6 +150,7 @@ const OPTIONS = {
   'activate-in': { type: 'string' },
   batch: { type: 'string' },
   restart: { type: 'boolean' },
+  featured: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
 } as const
 
@@ -170,6 +175,7 @@ export type Command =
   | { kind: 'bootstrap' }
   | { kind: 'setup-code'; action: 'new' | 'status' }
   | { kind: 'storage-init' }
+  | { kind: 'fonts'; action: 'status' | 'seed' | 'import'; args: string[] }
   | { kind: 'kms'; action: 'status' | 'rotate' | 'rewrap' | 'rewrap-keys' | 'prune' }
 
 function pairs(list: string[] | undefined, flag: string): Record<string, string> {
@@ -298,6 +304,14 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
     case 'storage':
       if (sub !== 'init' || rest.length) throw new UsageError(sub ? `Unknown command: storage ${sub}` : 'storage needs a command: init')
       return { command: { kind: 'storage-init' }, values }
+    case 'fonts': {
+      const action = (sub ?? 'status') as 'status' | 'seed' | 'import'
+      if (!['status', 'seed', 'import'].includes(action)) throw new UsageError(`Unknown command: fonts ${sub}`)
+      if (action === 'status' && rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
+      if (action === 'import' && rest.length !== 1) throw new UsageError('fonts import needs one folder')
+      if (action === 'seed' && !rest.length && !values.featured) throw new UsageError('fonts seed needs one or more family names (or --featured)')
+      return { command: { kind: 'fonts', action, args: rest }, values }
+    }
     case 'kms': {
       const actions = ['status', 'rotate', 'rewrap', 'rewrap-keys', 'prune'] as const
       if (!actions.includes(sub as (typeof actions)[number]) || rest.length) throw new UsageError(sub ? `Unknown command: kms ${[sub, ...rest].join(' ')}` : `kms needs a command: ${actions.join(', ')}`)
@@ -563,6 +577,9 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
 
     case 'storage-init':
       return ensureStorageBuckets(io)
+
+    case 'fonts':
+      return runFonts(command.action, command.args, values, io)
 
     case 'bootstrap': {
       // The password may come from the environment instead of argv (process lists).

@@ -219,7 +219,11 @@ describe('content security policy', () => {
     expect(buildContentSecurityPolicy({ supabaseUrl: SB, isDev: false, storagePublicBases: undefined })).toBe(base)
     const minio = buildContentSecurityPolicy({ supabaseUrl: SB, isDev: false, storagePublicBases: { logos: 'http://127.0.0.1:9010/logos', x: 'http://minio.internal/x' } })
     expect(minio).toContain("img-src 'self' blob: data: https: http://127.0.0.1:9010")
-    expect(minio).toContain("font-src 'self' data: https: http://127.0.0.1:9010")
+    expect(minio).toContain(`font-src 'self' data: ${new URL(SB).origin} http://127.0.0.1:9010;`)
+    // No blanket https: for fonts or stylesheets (Google Fonts are served from this origin).
+    expect(base).toMatch(/font-src 'self' data: https:\/\/[^ ;]+;/)
+    expect(base).toContain("style-src 'self' 'unsafe-inline';")
+    expect(buildContentSecurityPolicy({ supabaseUrl: SB, isDev: false, storagePublicBases: { logos: 'https://cdn.example.com/logos' } })).toContain(`font-src 'self' data: ${new URL(SB).origin} https://cdn.example.com;`)
     expect(minio).not.toContain('minio.internal')
     // A local `supabase start` stack serves public files over loopback http.
     expect(buildContentSecurityPolicy({ supabaseUrl: 'http://127.0.0.1:54321', isDev: true })).toContain("img-src 'self' blob: data: https: http://127.0.0.1:54321;")

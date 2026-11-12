@@ -201,7 +201,7 @@ export interface TaskFieldDef {
   list?: ListFieldConfig
   /**
    * repeating_section only: the controls of one item (any field type but
-   * data_table / custom / signature; nested Lists / sections within 3 levels), their grid
+   * data_table / custom; nested Lists / sections within 3 levels; Signatures sign per item), their grid
    * and per-item rules, Add label, card title, min / max / start items,
    * remove / reorder / collapse, totals (lib/forms/repeating-section.ts).
    * The value is an array of item objects keyed by the inner fields' keys.

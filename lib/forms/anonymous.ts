@@ -11,6 +11,7 @@ import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { layoutFormRules, conditionPaths } from './form-rules'
 import { allActions, isServerRuleAction } from './field-buttons'
 import { normalizeFormButtons } from './buttons'
+import { holdsNestedSignatures } from './signature-cells'
 import { anonymousDynamicSources } from './dynamic-values'
 
 /** Path of an anonymous form page. */
@@ -137,6 +138,8 @@ export function anonymousReadiness(def: { fields: TaskFieldDef[]; layout?: unkno
     // Dynamic properties from a data table / API reference (lib/forms/dynamic-values.ts): each binding's own switch.
     for (const s of anonymousDynamicSources([field])) out.sources.push({ key: field.key, label: label(field), kind: 'dynamic', allowed: s.allowed, prop: s.prop })
     if (field.type === 'attachments' || field.type === 'image' || field.type === 'signature') out.attachments.push({ key: field.key, label: label(field) })
+    // Signatures per item / row (a repeating section, a List signature column) are uploads too.
+    else if (holdsNestedSignatures(field)) out.attachments.push({ key: field.key, label: label(field) })
     if (field.type === 'user') out.people.push({ key: field.key, label: label(field) })
     if (field.type === 'custom') {
       const caps = field.custom?.capabilities ?? []

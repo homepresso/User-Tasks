@@ -8,7 +8,8 @@
  * (resolveAttachmentValues), on every write path (lib/forms/task-values.ts).
  */
 
-import { stampSignature, type SignatureStampInput } from '@/lib/forms/media-fields'
+import { normalizeSignatureValue, stampSignature, type SignatureStampInput } from '@/lib/forms/media-fields'
+import { holdsNestedSignatures, mapNestedSignatures, nestedSignatureCells } from '@/lib/forms/signature-cells'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import type { AnySupabaseClient } from './context'
 
@@ -39,11 +40,20 @@ export interface StampOptions {
   now?: Date
 }
 
-/** Stamp every Signature value in `values` (returns the changed entries only). */
+/**
+ * Stamp every Signature value in `values` (returns the changed entries only):
+ * Signature fields, and the signatures that repeat — Signature controls in
+ * repeating sections' items and List signature columns (any level;
+ * lib/forms/signature-cells.ts), each stamped like a field. A repeating
+ * signature keeps the stamp of the stored one with the same PNG (a draft, a
+ * row signed before — wherever it sits now: rows may have moved).
+ */
 export async function stampSignatureValues(db: AnySupabaseClient, fields: TaskFieldDef[], values: Record<string, unknown>, options: StampOptions): Promise<Record<string, unknown>> {
-  const targets = fields.filter((f) => f.type === 'signature' && !f.read_only && (!options.keys || options.keys.includes(f.key))
-    && values[f.key] !== undefined && values[f.key] !== null)
-  if (!targets.length) return {}
+  const wanted = (f: TaskFieldDef) => !f.read_only && (!options.keys || options.keys.includes(f.key)) && values[f.key] !== undefined && values[f.key] !== null
+  const targets = fields.filter((f) => f.type === 'signature' && wanted(f))
+  const containers = fields.filter((f) => holdsNestedSignatures(f) && wanted(f))
+  if (!targets.length && !containers.length) return {}
+  const cells = containers.flatMap((f) => nestedSignatureCells(f, values[f.key]))
   let user: SignatureStampInput['user'] = null
   if (options.actorId) {
     let name: string | null = null
@@ -53,10 +63,24 @@ export async function stampSignatureValues(db: AnySupabaseClient, fields: TaskFi
     } catch { /* the name is optional */ }
     user = { id: options.actorId, name }
   }
-  const request = options.request !== undefined ? options.request : targets.some((f) => f.signature?.capture_audit) ? await requestAudit() : null
+  const audited = targets.some((f) => f.signature?.capture_audit) || cells.some((c) => c.field.signature?.capture_audit && c.value)
+  const request = options.request !== undefined ? options.request : audited ? await requestAudit() : null
   const out: Record<string, unknown> = {}
   for (const field of targets) {
     out[field.key] = stampSignature(field, values[field.key], { user, request, now: options.now, previous: options.previous?.[field.key] })
+  }
+  for (const field of containers) {
+    // The stored signatures of this field by their PNG (a row may have moved since it was signed).
+    const before = new Map<string, unknown>()
+    for (const cell of nestedSignatureCells(field, options.previous?.[field.key])) {
+      const sig = normalizeSignatureValue(cell.value)
+      if (sig?.file.id) before.set(`${cell.field.key}|${sig.file.id}`, sig)
+    }
+    out[field.key] = mapNestedSignatures(field, values[field.key], (inner, value) => {
+      if (value === null || value === undefined || value === '') return value
+      const sig = normalizeSignatureValue(value)
+      return stampSignature(inner, value, { user, request, now: options.now, previous: sig ? before.get(`${inner.key}|${sig.file.id}`) : undefined })
+    })
   }
   return out
 }

@@ -34,7 +34,7 @@ export function registerWorkspaceThemeTools(server: McpToolServer, ctx: McpConte
   server.tool('workspace_theme_presets_list', 'List the built-in theme templates (id, name, description, category and a few colours per mode). Apply one with workspace_theme_apply_preset.', {},
     async () => run(async () => workspaceTheme.listWorkspaceThemePresets()))
 
-  server.tool('workspace_theme_update', 'Replace the workspace theme. Applies to every member immediately. Send the whole theme (edit the workspace_theme_get result). Themes with button or navigation text below 3:1 contrast are refused; fonts must be curated Google Fonts, system stacks or uploads (workspace_theme_font_upload).', {
+  server.tool('workspace_theme_update', 'Replace the workspace theme. Applies to every member immediately. Send the whole theme (edit the workspace_theme_get result). Themes with button or navigation text below 3:1 contrast are refused; fonts must be Google Fonts families (any on fonts.google.com; served from this site), system stacks or uploads (workspace_theme_font_upload).', {
     theme: z.record(z.string(), z.any()).describe(THEME_HELP),
     expected_version: expectedVersion,
   }, async (args) => run(async () => workspaceTheme.presentWorkspaceTheme(

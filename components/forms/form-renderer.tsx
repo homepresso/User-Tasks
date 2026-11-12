@@ -65,6 +65,8 @@ import { FORM_MOTION_TIMING, staggerIndex, travelDirection, type TravelDirection
 import { registerFormBridge, type FormBridge } from '@/lib/assistants/client-registry'
 import { coerceProposedValue, isSecretField, unsettableReason } from '@/lib/assistants/form-values'
 import type { FormSnapshot } from '@/lib/assistants/types'
+import { formFontHrefs } from '@/lib/forms/form-fonts'
+import { FontLinks } from '@/components/fonts/font-links'
 
 /**
  * The assignee's form: User Task fields on the designer's grid (or, without
@@ -691,7 +693,10 @@ export function FormRenderer(rawProps: FormRendererProps) {
   // A rule step loading a dependent's options (a cascade): the control says "Loading options…" and waits.
   const loading = optionsLoading(rawProps.values)
   const status = useMemo(() => (loading.length ? { ...dynamic.status, ...Object.fromEntries(loading.map((k) => [k, { ...(dynamic.status[k] ?? {}), options: { loading: true } }])) } : dynamic.status), [dynamic.status, loading.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
-  const body = <LazyPartsProvider value={lazy.api}><DynamicStatusProvider value={status}><FormRendererBody {...props} /></DynamicStatusProvider></LazyPartsProvider>
+  // Google fonts the form's text styles use (lib/forms/form-fonts.ts), from this origin.
+  const fontHrefs = useMemo(() => formFontHrefs(rawProps.fields, rawProps.layout), [rawProps.fields, rawProps.layout])
+  const fonts = fontHrefs.length ? <FontLinks hrefs={fontHrefs} /> : null
+  const body = <LazyPartsProvider value={lazy.api}><DynamicStatusProvider value={status}>{fonts}<FormRendererBody {...props} /></DynamicStatusProvider></LazyPartsProvider>
   // Form animations (lib/forms/motion.ts): the form's first load, for the fields' entrance.
   return editable ? <FormEnteringScope>{body}</FormEnteringScope> : body
 }

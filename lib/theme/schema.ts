@@ -11,7 +11,7 @@
 
 import { z } from 'zod'
 import { isValidColor } from './colors'
-import { FONT_FAMILY_RE, SYSTEM_FONT_STACKS, findCuratedFont } from './fonts'
+import { FONT_FAMILY_RE, SYSTEM_FONT_STACKS, findThemeFont } from './fonts'
 import { getPublicConfig } from '@/lib/config/public'
 import { isOwnStorageObject } from '@/lib/storage/refs'
 
@@ -72,7 +72,7 @@ const FamilyName = z.string().trim().regex(FONT_FAMILY_RE, 'Font family names ma
 export const FontRefSchema = z.discriminatedUnion('source', [
   z.object({
     source: z.literal('google'),
-    family: FamilyName.refine((f) => Boolean(findCuratedFont(f)), { message: 'Not one of the supported Google Fonts' }),
+    family: FamilyName.refine((f) => Boolean(findThemeFont(f)), { message: 'Not a Google Fonts family (any family on fonts.google.com; served from this site)' }),
   }).strict(),
   z.object({
     source: z.literal('system'),

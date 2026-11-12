@@ -378,7 +378,7 @@ describe('sign-in page look (lib/forms/sign-in-theme.ts)', () => {
 
   it('off: the UserTasks palette with the accent colour setting', () => {
     const style = signInThemeStyle({ use_workspace_theme: false, accent_color: '#c2410c' }, null)
-    expect(style).toMatchObject({ source: 'usertasks', accent: '#c2410c', headings: 'display', fontsHref: null })
+    expect(style).toMatchObject({ source: 'usertasks', accent: '#c2410c', headings: 'display', fontHrefs: [] })
     expect(style.css.startsWith('[data-fsi-root]{')).toBe(true)
     expect(style.css).toMatch(/--theme-primary:#17150F/i)
   })

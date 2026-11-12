@@ -32,7 +32,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
-import { TEXT_COLOR_LABELS, TEXT_FONTS, TEXT_SIZE_LABELS, normalizeTextColor, normalizeTextFont, normalizeTextSize, textStyleProps, type TextColorToken, type TextFont, type TextSizePreset, type TextStyleProps } from './text-style'
+import { TEXT_COLOR_LABELS, TEXT_SIZE_LABELS, normalizeTextColor, normalizeTextFont, normalizeTextSize, textFontLabel, textStyleProps, type TextColorToken, type TextFontValue, type TextSizePreset, type TextStyleProps } from './text-style'
 
 export type StyleTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'accent'
 export const STYLE_TONES: StyleTone[] = ['danger', 'warning', 'success', 'info', 'accent', 'neutral']
@@ -86,7 +86,7 @@ export interface ConditionalStyle {
   /** Font size (lib/forms/text-style.ts: a preset or `<n>px`, 8–48). */
   size?: string
   /** Font family (a TEXT_FONTS key). */
-  font?: TextFont
+  font?: TextFontValue
   /** An exact text colour (a theme token or #hex, kept legible light and dark); wins over the tone's text colour. */
   color?: string
 }
@@ -146,7 +146,7 @@ export function describeStyle(style: ConditionalStyle | null | undefined): strin
   const tone = style.tone ? STYLE_TONE_LABELS[style.tone].replace(/ \(.*\)$/, '') : ''
   const typed = [
     style.size ? (TEXT_SIZE_LABELS[style.size as TextSizePreset] ?? style.size).toLowerCase() : '',
-    style.font ? TEXT_FONTS[style.font]?.label ?? '' : '',
+    style.font ? textFontLabel(style.font) : '',
     style.color ? (style.color.startsWith('#') ? style.color : (TEXT_COLOR_LABELS[style.color as TextColorToken] ?? style.color).toLowerCase()) : '',
   ].filter(Boolean)
   return [tone, [...flags, ...typed].join(', ')].filter(Boolean).join(': ') || 'no style'

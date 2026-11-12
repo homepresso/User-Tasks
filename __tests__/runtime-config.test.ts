@@ -383,8 +383,9 @@ describe('public config', () => {
 })
 
 describe('CSP per request', () => {
-  // Today's header for a hosted project (next.config.ts before runtime config).
-  const TODAY = "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https:; img-src 'self' blob: data: https:; font-src 'self' data: https:; connect-src 'self' https://abcd.supabase.co wss://abcd.supabase.co; media-src 'self' blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+  // Today's header for a hosted project (next.config.ts before runtime config). Fonts and stylesheets
+  // only from this origin (Google Fonts are self-served) and the Supabase project (uploaded theme fonts).
+  const TODAY = "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data: https://abcd.supabase.co; connect-src 'self' https://abcd.supabase.co wss://abcd.supabase.co; media-src 'self' blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
   it('matches today\'s header for the default config (NEXT_PUBLIC_SUPABASE_URL only)', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://abcd.supabase.co'

@@ -6,7 +6,7 @@ import { AlertTriangle, Check, Save, WandSparkles } from 'lucide-react'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { useWorkspaceTheme } from '@/components/providers/theme-provider'
 import {
-  autoFixFormTheme, blockingFormThemeIssues, formThemeContrast, overridesFromPreset, FORM_THEME_FONTS,
+  autoFixFormTheme, blockingFormThemeIssues, formThemeContrast, overridesFromPreset,
   FORM_APPEARANCES, FORM_BUTTON_SHAPES, FORM_FIELD_STYLES, FORM_SHADOW_LEVELS,
   type FormThemeColors, type FormThemeOverrides, type FormThemeRef,
 } from '@/lib/forms/form-theme'
@@ -15,6 +15,22 @@ import { isValidColor } from '@/lib/theme/colors'
 import { THEME_TEMPLATES } from '@/lib/theme/presets'
 import type { ThemeMode } from '@/lib/theme/schema'
 import { cn } from '@/lib/utils'
+import { FontPicker } from '@/components/fonts/font-picker'
+import { SYSTEM_FONT_STACKS, findThemeFont } from '@/lib/theme/fonts'
+
+/** System stacks before the Google families; forms don't offer monospace body fonts. */
+const SYSTEM_FONT_OPTIONS = Object.keys(SYSTEM_FONT_STACKS).filter((f) => f !== 'Monospace').map((family) => ({ value: `system:${family}`, label: `${family} (system)`, stack: SYSTEM_FONT_STACKS[family] }))
+const FORM_FONT_CATEGORIES = ['sans', 'serif', 'display', 'handwriting'] as const
+
+/** A picker value (`google:<Family>` / `system:<Stack>`) → a mini-theme font, or undefined. */
+function formFontRef(value: string | undefined): { source: 'google' | 'system'; family: string } | undefined {
+  if (!value) return undefined
+  const [source, ...rest] = value.split(':')
+  const family = rest.join(':')
+  if (source === 'google') { const f = findThemeFont(family); return f ? { source: 'google', family: f.family } : undefined }
+  if (source === 'system' && SYSTEM_FONT_STACKS[family]) return { source: 'system', family }
+  return undefined
+}
 import { designerInputClass as inputClass } from './designer-controls'
 
 /**
@@ -250,31 +266,38 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
               <input id={`${idPrefix}-radius`} type="range" min={0} max={24} value={overrides.radius ?? 8} onChange={(e) => setOverrides({ ...overrides, radius: Number(e.target.value) })} className="w-full accent-primary" />
             </div>
             <div>
-              <Label>Font</Label>
-              <AutocompleteSelect
-                value={fontValue}
-                placeholder="Workspace font"
-                clearable
-                options={FORM_THEME_FONTS}
+              <Label htmlFor={`${idPrefix}-font`}>Font</Label>
+              <FontPicker
+                id={`${idPrefix}-font`}
+                aria-label="Font"
+                size="sm"
+                value={fontValue || undefined}
+                emptyLabel="Workspace font"
+                options={SYSTEM_FONT_OPTIONS}
+                categories={FORM_FONT_CATEGORIES}
                 onChange={(v) => {
+                  const font = formFontRef(v)
                   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omitted from the rest
-                  if (!v) { const { font: _f, ...rest } = overrides; setOverrides(rest); return }
-                  const [source, ...family] = v.split(':')
-                  setOverrides({ ...overrides, font: { source: source as 'google', family: family.join(':') } })
+                  if (!font) { const { font: _f, ...rest } = overrides; setOverrides(rest); return }
+                  setOverrides({ ...overrides, font })
                 }}
               />
             </div>
             <div>
-              <Label>Heading font</Label>
-              <AutocompleteSelect
-                value={headingFontValue}
-                placeholder="Same as the body"
-                clearable
-                options={FORM_THEME_FONTS}
+              <Label htmlFor={`${idPrefix}-heading-font`}>Heading font</Label>
+              <FontPicker
+                id={`${idPrefix}-heading-font`}
+                aria-label="Heading font"
+                size="sm"
+                value={headingFontValue || undefined}
+                emptyLabel="Same as the body"
+                options={SYSTEM_FONT_OPTIONS}
+                categories={FORM_FONT_CATEGORIES}
+                preferredCategory="serif"
                 onChange={(v) => {
-                  if (!v) { setKey('heading_font', undefined); return }
-                  const [source, ...family] = v.split(':')
-                  setOverrides({ ...overrides, heading_font: { source: source as 'google', family: family.join(':') } })
+                  const font = formFontRef(v)
+                  if (!font) { setKey('heading_font', undefined); return }
+                  setOverrides({ ...overrides, heading_font: font })
                 }}
               />
             </div>

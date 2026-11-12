@@ -22,7 +22,7 @@
 
 import { isDarkColor } from './colors'
 import { derivedTokens, legibleBrandColor, legiblePalette, onColor, onSemantic, sidebarAccentFor } from './legibility'
-import { SLOT_FALLBACK, SYSTEM_FONT_STACKS, findCuratedFont, googleFontsHref, type FontSlot } from './fonts'
+import { SLOT_FALLBACK, SYSTEM_FONT_STACKS, findThemeFont, googleFontsHrefs, type FontSlot } from './fonts'
 import type { FontRef, ThemeMode, ThemePalette, WorkspaceTheme } from './schema'
 import { resolveStorageUrl } from '@/lib/storage/refs'
 
@@ -109,13 +109,13 @@ export const DS_DERIVED_VARS: Vars = {
 /** Font family value for one slot (quoted family + the slot's fallback stack). */
 export function fontFamilyValue(font: FontRef, slot: FontSlot): string {
   if (font.source === 'system') return SYSTEM_FONT_STACKS[font.family]
-  const curated = font.source === 'google' ? findCuratedFont(font.family) : undefined
-  if (curated?.bundledVar) {
+  const google = font.source === 'google' ? findThemeFont(font.family) : undefined
+  if (google?.bundledVar) {
     // Served by next/font; its variable already names the family.
-    const own = `var(${curated.bundledVar})`
+    const own = `var(${google.bundledVar})`
     return SLOT_FALLBACK[slot].startsWith(own) ? SLOT_FALLBACK[slot] : `${own}, ${SLOT_FALLBACK[slot]}`
   }
-  return `'${font.family}', ${SLOT_FALLBACK[slot]}`
+  return `'${google?.family ?? font.family}', ${SLOT_FALLBACK[slot]}`
 }
 
 function gradientCss(g: Gradient): string {
@@ -390,10 +390,12 @@ export function themeStylesheet(theme: WorkspaceTheme, opts: StylesheetOptions =
   return parts.join('\n').replace(/</g, '\\3c ')
 }
 
-/** Google Fonts stylesheet URL for the theme's non-bundled families, or null. */
-export function themeFontsHref(theme: WorkspaceTheme): string | null {
+/**
+ * Stylesheets for the theme's non-bundled Google families (our own
+ * /fonts/g/… route, one per family: every weight is in it and the browser
+ * downloads only the faces it uses), or none.
+ */
+export function themeFontHrefs(theme: WorkspaceTheme): string[] {
   const t = theme.typography
-  const weights = [t.weights.normal, t.weights.medium, t.weights.semibold, t.weights.bold, ...(t.weights.heading ? [t.weights.heading] : [])]
-  const fonts = [t.sans, t.display, t.mono].filter((f) => f.source === 'google').map((f) => ({ family: f.family, weights }))
-  return googleFontsHref(fonts)
+  return googleFontsHrefs([t.sans, t.display, t.mono].filter((f) => f.source === 'google'))
 }

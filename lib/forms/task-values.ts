@@ -22,6 +22,7 @@ import { serverControlEntries } from './rule-variables'
 import { readsTableRows } from './label-field'
 import { loadRuleUser } from '@/lib/services/form-rule-user'
 import { innerFieldsDeep } from '@/lib/forms/repeating-section'
+import { holdsNestedSignatures } from '@/lib/forms/signature-cells'
 
 /** Whether a form's rules, sections or List validations read the user (`user.*`): the server then loads its own view of the submitter. */
 export function readsRuleUser(metadata: Record<string, unknown> | null | undefined): boolean {
@@ -214,7 +215,8 @@ async function checkedValues(
   // uploads): the files are re-read from the upload records (this task's,
   // or this submitter's uploads to this form); `<key>_count` added.
   // …and repeating sections with file controls inside their items (lib/forms/repeating-section.ts).
-  const attachments = fields.filter((f) => (usesFileUploads(f) || (f.type === 'repeating_section' && innerFieldsDeep([f]).some((x) => usesFileUploads(x.field)))) && !f.read_only)
+  // …and Lists with signature columns (each row's signature; lib/forms/signature-cells.ts).
+  const attachments = fields.filter((f) => (usesFileUploads(f) || (f.type === 'repeating_section' && innerFieldsDeep([f]).some((x) => usesFileUploads(x.field))) || holdsNestedSignatures(f)) && !f.read_only)
   const attachmentKeys = options.partial
     ? attachments.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key)
     : attachments.map((f) => f.key)
@@ -223,13 +225,16 @@ async function checkedValues(
     const { createServiceClient } = await import('@/lib/cron-auth')
     const context: FileValueContext | null = options.files
       ?? (options.taskId && UUID_RE.test(options.taskId) ? { kind: 'task', taskId: options.taskId } : null)
-    const resolved = await resolveAttachmentValues(createServiceClient(), tenantId, fields, templateValues, context, attachmentKeys)
+    // A task's saved values: files it already holds for a control (a signature carried over from an earlier task) stay valid.
+    const stored = context?.kind === 'task' && isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : null
+    const resolved = await resolveAttachmentValues(createServiceClient(), tenantId, fields, templateValues, context, attachmentKeys, stored)
     Object.assign(errors, resolved.errors)
     templateValues = { ...templateValues, ...resolved.values }
   }
   // Signatures (lib/services/form-signatures.ts): who signed, when, and (capture_audit) from where — the server's facts only.
-  const signatureKeys = attachmentKeys.filter((key) => fields.some((f) => f.key === key && f.type === 'signature'))
-  if (signatureKeys.length && !Object.keys(errors).some((key) => signatureKeys.includes(key))) {
+  // …in repeating sections' items and List rows too (each one stamped like a field).
+  const signatureKeys = attachmentKeys.filter((key) => fields.some((f) => f.key === key && (f.type === 'signature' || holdsNestedSignatures(f))))
+  if (signatureKeys.length && !Object.keys(errors).some((key) => signatureKeys.includes(key) || signatureKeys.some((k) => key.startsWith(`${k}[`)))) {
     const { stampSignatureValues } = await import('@/lib/services/form-signatures')
     const { createServiceClient } = await import('@/lib/cron-auth')
     const existing = isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : {}
