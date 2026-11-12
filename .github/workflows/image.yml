@@ -1,0 +1,184 @@
+name: Container image
+
+# Builds the UserTasks image (the repository's Dockerfile) for linux/amd64 and
+# linux/arm64 and pushes it to GitHub Container Registry as
+# ghcr.io/homepresso/usertasks, so `npm run stack -- up` can download it
+# instead of building locally (the build needs ~10 GB of memory:
+# docs/deployment-profiles.md#memory).
+#
+#   - push a tag v<version> (must match package.json's version): tags
+#     <version>, <major>.<minor> and latest;
+#   - or run it by hand: tags <package.json version> and sha-<commit>, plus
+#     latest when asked.
+#
+# Each architecture builds natively on its own runner (arm64 under QEMU takes
+# hours); the per-platform images are pushed by digest and joined into one
+# multi-arch tag at the end. Standard runners for public repositories have
+# 4 vCPUs and 16 GB: enough for the type check (up to 4 GB) and the Turbopack
+# compile (~10–11 GB peak), which run one after the other.
+#
+# Only GITHUB_TOKEN is used. A new GHCR package is private: make it public once
+# (Package settings → Change visibility) so the stack can pull it anonymously.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      latest:
+        description: Also tag the image as latest
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/homepresso/usertasks
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    # Never from a fork (it would push to the fork's own namespace under our name).
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { platform: linux/amd64, runner: ubuntu-24.04 }
+          - { platform: linux/arm64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" != "v${version}" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+          {
+            echo "version=${version}"
+            echo "build_time=$(date -u +%FT%TZ)"
+            echo "pair=${PLATFORM//\//-}"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          labels: |
+            org.opencontainers.image.title=UserTasks
+            org.opencontainers.image.description=The open source process platform
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generic image: no app URL baked in (the server reads APP_URL at
+      # runtime), self-hosted mode, the Dockerfile's default optional packages.
+      # The tag is added when the platforms are joined (merge job).
+      - uses: docker/build-push-action@v7
+        id: build
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            TYPECHECK=true
+            DEPLOYMENT_MODE=self_hosted
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ steps.version.outputs.build_time }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=image-${{ steps.version.outputs.pair }}
+          cache-to: type=gha,scope=image-${{ steps.version.outputs.pair }},mode=max
+          # Build provenance and an SBOM, attached to the image as attestations.
+          provenance: mode=max
+          sbom: true
+
+      - name: Record the digest
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: digest-${{ steps.version.outputs.pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Tag the multi-arch image
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha,prefix=sha-,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' || inputs.latest == true }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the multi-arch tags
+        working-directory: ${{ runner.temp }}/digests
+        shell: bash
+        run: |
+          tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          # shellcheck disable=SC2086,SC2046
+          docker buildx imagetools create $tags $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect
+        run: docker buildx imagetools inspect "${IMAGE}:${{ steps.meta.outputs.version }}"

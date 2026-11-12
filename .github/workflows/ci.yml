@@ -19,9 +19,9 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -117,18 +117,21 @@ jobs:
       LDAP_TEST_BIND_PASSWORD: admin-pass
       LDAP_TEST_BASE_DN: dc=acme,dc=test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
 
-      - uses: supabase/setup-cli@v1
+      # Pinned: a new CLI major can change config.toml keys and the stack's
+      # images under us (CLI 3 renamed [inbucket] to [local_smtp]). Raise it
+      # deliberately, together with supabase/config.toml.
+      - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 3.1.0
 
       # Applies supabase/migrations. Only the services the tests use.
       - name: Start the local Supabase stack
@@ -141,12 +144,12 @@ jobs:
           docker run -d --name azurite -p 10010:10000 mcr.microsoft.com/azure-storage/azurite azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --loose
           docker run -d --name fake-gcs -p 4443:4443 fsouza/fake-gcs-server -scheme http -port 4443 -public-host 127.0.0.1:4443 -external-url http://127.0.0.1:4443
           docker run -d --name valkey -p 6390:6379 valkey/valkey:8-alpine
-          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9010/minio/health/live && break; sleep 1; done
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:9010/minio/health/live && break; sleep 1; done
 
       - name: Start a directory server (OpenLDAP)
         run: |
           docker run -d --name openldap -p 3890:389 -e LDAP_DOMAIN=acme.test -e LDAP_ADMIN_PASSWORD=admin-pass -e LDAP_TLS=false osixia/openldap:1.5.0
-          for i in $(seq 1 30); do docker exec openldap ldapsearch -x -H ldap://localhost -b dc=acme,dc=test -D cn=admin,dc=acme,dc=test -w admin-pass -s base >/dev/null 2>&1 && break; sleep 1; done
+          for _ in $(seq 1 30); do docker exec openldap ldapsearch -x -H ldap://localhost -b dc=acme,dc=test -D cn=admin,dc=acme,dc=test -w admin-pass -s base >/dev/null 2>&1 && break; sleep 1; done
 
       - name: Full test suite
         run: npx vitest run
@@ -201,9 +204,9 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
       ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm

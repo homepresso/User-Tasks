@@ -214,7 +214,11 @@ export async function createScratchWorkspace(db: any, label = 'Gallery Verify'):
   const { PERMISSION_KEYS } = await import('@/lib/permissions')
   const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
   const email = `gallery-verify+${stamp}@gallery-verify.example`
-  const provisioned = await provisionTenant(db, { fullName: label, email, password: `gv-${stamp}-${Math.random().toString(36).slice(2)}`, company: `Gallery Verify ${stamp}`, onboardingCompleted: true })
+  // The active auth provider's admin (Supabase Auth, or built-in auth on a
+  // Supabase-free install), as first-run setup and the instance admin API use.
+  const { getAuthProvider } = await import('@/lib/providers/auth')
+  const { admin } = await getAuthProvider()
+  const provisioned = await provisionTenant(db, { fullName: label, email, password: `gv-${stamp}-${Math.random().toString(36).slice(2)}`, company: `Gallery Verify ${stamp}`, onboardingCompleted: true }, admin)
   if (!provisioned.ok) throw new Error(`provisionTenant: ${JSON.stringify(provisioned)}`)
   const ctx: any = { supabase: db, db, tenantId: provisioned.tenantId, actorId: provisioned.userId, permissions: new Set(PERMISSION_KEYS), authKind: 'session', source: 'api' }
   return { tenantId: provisioned.tenantId, ownerId: provisioned.userId, email, slug: provisioned.slug, ctx }

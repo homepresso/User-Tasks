@@ -39,9 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -90,6 +90,7 @@ jobs:
           [[ "${{ steps.select.outputs.dry_run }}" == "true" ]] && flags="$flags --dry-run"
           for pkg in ${{ steps.select.outputs.packages }}; do
             echo "::group::npm publish @user-tasks/${pkg}"
+            # shellcheck disable=SC2086 # $flags is a word list on purpose
             npm publish -w "@user-tasks/${pkg}" $flags
             echo "::endgroup::"
           done

@@ -65,3 +65,59 @@ export function setupHint(appUrl: string, setupCode: string | undefined): string
       ].join('\n')
     : `Create your admin account: open ${appUrl}/setup with the setup code from \`docker compose logs app\` (or \`docker compose exec app node admin.cjs setup-code\`), or run: npm run stack -- up --email you@example.com --org "Your org"`
 }
+
+/**
+ * The published multi-arch image (.github/workflows/image.yml) and the tag a
+ * local build gets. A local build is never tagged with the published name.
+ */
+export const PUBLISHED_IMAGE_REPO = 'ghcr.io/homepresso/usertasks'
+export const LOCAL_IMAGE = 'usertasks:local'
+
+/** The published image for this checkout: tagged with package.json's version. */
+export function publishedImage(version: string): string {
+  return `${PUBLISHED_IMAGE_REPO}:${version}`
+}
+
+/**
+ * Which app image `npm run stack -- up` runs:
+ *   --build              build locally (tagged USERTASKS_IMAGE, else usertasks:local);
+ *   USERTASKS_IMAGE set  run that image (pulled if missing), never build;
+ *   --no-build           run usertasks:local, built earlier (release gates, bundles);
+ *   otherwise            the published image for this version when it can be
+ *                        pulled, else build locally (with the memory check).
+ */
+export type AppImagePlan =
+  | { kind: 'build'; image: string }
+  | { kind: 'use'; image: string }
+  | { kind: 'published-or-build'; image: string; fallback: string }
+
+export function planAppImage(opts: { build?: boolean; noBuild?: boolean; image?: string; version: string }): AppImagePlan {
+  if (opts.build && opts.noBuild) throw new Error('--build and --no-build contradict each other: pick one')
+  const image = opts.image?.trim()
+  if (opts.build) return { kind: 'build', image: image || LOCAL_IMAGE }
+  if (image) return { kind: 'use', image }
+  if (opts.noBuild) return { kind: 'use', image: LOCAL_IMAGE }
+  return { kind: 'published-or-build', image: publishedImage(opts.version), fallback: LOCAL_IMAGE }
+}
+
+/**
+ * The plan made concrete: `available(image)` says whether the image is
+ * present locally or could be pulled (scripts/stack.ts: docker image inspect,
+ * then docker pull). `build` means `docker compose up --build` (after the
+ * memory check); otherwise `--no-build`.
+ */
+export function resolveAppImage(plan: AppImagePlan, available: (image: string) => boolean): { image: string; build: boolean; note?: string } {
+  switch (plan.kind) {
+    case 'build':
+      return { image: plan.image, build: true }
+    case 'use':
+      return { image: plan.image, build: false }
+    case 'published-or-build':
+      if (available(plan.image)) return { image: plan.image, build: false, note: `Using the published image ${plan.image} (no local build needed).` }
+      return {
+        image: plan.fallback,
+        build: true,
+        note: `No published image ${plan.image} could be pulled (not published yet, or no network): building ${plan.fallback} locally instead.`,
+      }
+  }
+}

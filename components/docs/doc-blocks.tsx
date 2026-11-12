@@ -1,11 +1,12 @@
 import Image from 'next/image'
-import { Link2 } from 'lucide-react'
+import { FileCode2, Info, Lightbulb, OctagonAlert, Terminal, TriangleAlert } from 'lucide-react'
 import type { DocBlock, DocListItem } from '@/lib/docs/markdown'
+import { stripInline } from '@/lib/docs/markdown'
+import { highlight, isShellLanguage, languageLabel } from '@/lib/docs/highlight'
 import { SCREENSHOTS } from '@/lib/docs/screenshots'
 import { getTopology } from '@/lib/topologies'
 import { TopologyDiagram } from '@/components/topology/topology-diagram'
 import type { ScreenshotName } from '@/lib/docs/screenshot-names'
-import { InlineNotice } from '@/components/ui/inline-notice'
 import { ScreenshotFrame } from '@/components/marketing/screenshot-frame'
 import { CopyButton, LanguageTag } from './copy-button'
 import { Inline } from './inline'
@@ -17,83 +18,79 @@ export function DocBlocks({ blocks }: { blocks: DocBlock[] }) {
 
 function Block({ block }: { block: DocBlock }) {
   switch (block.kind) {
-    case 'heading': {
-      const Tag = `h${block.level}` as 'h2' | 'h3' | 'h4'
-      const size = block.level === 2
-        ? 'mt-12 border-t border-(color:--mkt-ink)/[0.07] pt-8 text-2xl'
-        : block.level === 3 ? 'mt-8 text-lg' : 'mt-6 text-base'
-      return (
-        <Tag id={block.id} className={`group scroll-mt-24 font-semibold tracking-tight text-(color:--mkt-ink) ${block.level === 2 ? 'font-display' : ''} ${size}`}>
-          <Inline text={block.text} />
-          <a href={`#${block.id}`} aria-label="Link to this section" className="ml-2 inline-block align-middle text-(color:--mkt-bronze) opacity-0 transition group-hover:opacity-100">
-            <Link2 size={14} aria-hidden="true" />
-          </a>
-        </Tag>
-      )
-    }
+    case 'heading':
+      return <Heading level={block.level} id={block.id} text={block.text} />
     case 'paragraph':
-      return <p className="mt-4 leading-7 text-(color:--mkt-prose)"><Inline text={block.text} /></p>
-    case 'list': {
-      const Tag = block.ordered ? 'ol' : 'ul'
-      return (
-        <Tag start={block.start} className={`mt-4 space-y-2 pl-6 leading-7 text-(color:--mkt-prose) ${block.ordered ? 'list-decimal' : 'list-disc'} marker:text-(color:--mkt-gold)`}>
-          {block.items.map((item, index) => <ListItem key={index} item={item} />)}
-        </Tag>
-      )
-    }
+      return <p className="mt-5 text-[1.0625rem] leading-[1.8] text-(color:--mkt-prose)"><Inline text={block.text} /></p>
+    case 'list':
+      return <List block={block} />
     case 'code':
       return <CodeBlock code={block.code} lang={block.lang} title={block.title} />
     case 'table':
-      return (
-        <div className="mt-5 overflow-x-auto rounded-xl border border-(color:--mkt-ink)/[0.09]">
-          <table className="w-full border-collapse text-left text-sm">
-            {block.head.some(Boolean) && (
-              <thead className="bg-(color:--mkt-sand)">
-                <tr>{block.head.map((cell, index) => <th key={index} scope="col" className="whitespace-nowrap px-3 py-2 font-semibold text-(color:--mkt-ink)"><Inline text={cell} /></th>)}</tr>
-              </thead>
-            )}
-            <tbody>
-              {block.rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-t border-(color:--mkt-ink)/[0.06] align-top odd:bg-(color:--mkt-white)/70 even:bg-(color:--mkt-paper)">
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className={`px-3 py-2 leading-6 text-(color:--mkt-prose) ${cellIndex === 0 && !block.head[0] ? 'whitespace-nowrap font-medium text-(color:--mkt-ink)' : ''}`}><Inline text={cell} /></td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )
-    case 'callout': {
-      // Callouts use the InlineNotice tones: note = info, tip = success, warning = warning.
-      const tone = ({ note: 'info', tip: 'success', warning: 'warning' } as const)[block.tone]
-      const label = ({ note: 'Note', tip: 'Tip', warning: 'Warning' } as const)[block.tone]
-      return (
-        <InlineNotice tone={tone} className="mt-5 px-4 py-3 text-sm leading-6">
-          <div className="space-y-2">
-            {block.text.split('\n\n').map((para, index) => (
-              <p key={index}>{index === 0 && <span className="sr-only">{label}: </span>}<Inline text={para} /></p>
-            ))}
-          </div>
-        </InlineNotice>
-      )
-    }
+      return <Table head={block.head} rows={block.rows} />
+    case 'callout':
+      return <Callout tone={block.tone} text={block.text} />
     case 'directive':
       if (block.name === 'image') return <Screenshot name={block.args[0] as ScreenshotName} alt={block.args[1] ?? ''} caption={block.args[2]} />
       if (block.name === 'topology') {
         const topology = getTopology(block.args[0])
-        return topology ? <TopologyDiagram topology={topology} className="mt-6 block" /> : null
+        return topology ? <TopologyDiagram topology={topology} className="mt-8 block" /> : null
       }
       return null
   }
 }
 
+const HEADING_STYLE: Record<2 | 3 | 4, string> = {
+  2: 'mt-14 border-t border-(color:--mkt-ink)/[0.07] pt-10 font-display text-[1.65rem] font-semibold leading-tight tracking-[-0.01em]',
+  3: 'mt-10 text-[1.2rem] font-semibold leading-snug tracking-[-0.01em]',
+  4: 'mt-8 text-base font-semibold',
+}
+
+/** Section heading with a "#" anchor (hover or focus); the article enhancer copies its link on click. */
+export function Heading({ level, id, text }: { level: 2 | 3 | 4; id: string; text: string }) {
+  const Tag = `h${level}` as 'h2' | 'h3' | 'h4'
+  return (
+    <Tag id={id} className={`group relative scroll-mt-24 text-(color:--mkt-ink) ${HEADING_STYLE[level]}`}>
+      <Inline text={text} />
+      <a
+        href={`#${id}`}
+        data-docs-anchor=""
+        aria-label={`Link to section: ${stripInline(text)}`}
+        title="Copy link to this section"
+        className="ml-2 inline-block rounded px-1 align-baseline font-sans text-[0.8em] font-medium text-(color:--mkt-bronze) no-underline opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 sm:absolute sm:-left-7 sm:ml-0"
+      >
+        #
+      </a>
+    </Tag>
+  )
+}
+
+function List({ block }: { block: Extract<DocBlock, { kind: 'list' }> }) {
+  // Ordered lists are steps: numbered circles joined by a line (docs.css .docs-steps).
+  if (block.ordered) {
+    return (
+      <ol
+        start={block.start}
+        className="docs-steps mt-6 space-y-4 leading-[1.75] text-(color:--mkt-prose)"
+        style={block.start ? ({ '--docs-step-start': block.start - 1 } as React.CSSProperties) : undefined}
+      >
+        {block.items.map((item, index) => <ListItem key={index} item={item} />)}
+      </ol>
+    )
+  }
+  return (
+    <ul className="mt-5 space-y-2.5 pl-6 leading-[1.75] text-(color:--mkt-prose) marker:text-(color:--mkt-gold) list-disc">
+      {block.items.map((item, index) => <ListItem key={index} item={item} />)}
+    </ul>
+  )
+}
+
 function ListItem({ item }: { item: DocListItem }) {
   return (
-    <li>
+    <li className="pl-1">
       <Inline text={item.text} />
       {item.items && (
-        <ul className="mt-2 list-[circle] space-y-1 pl-6">
+        <ul className="mt-2 list-[circle] space-y-1.5 pl-6 marker:text-(color:--mkt-subtle)">
           {item.items.map((child, index) => <ListItem key={index} item={child} />)}
         </ul>
       )}
@@ -101,26 +98,95 @@ function ListItem({ item }: { item: DocListItem }) {
   )
 }
 
-export function CodeBlock({ code, lang, title }: { code: string; lang: string; title?: string }) {
+function Table({ head, rows }: { head: string[]; rows: string[][] }) {
+  const label = head.some(Boolean) ? `Table: ${head.map(stripInline).filter(Boolean).join(', ')}` : 'Table'
   return (
-    <div className="mt-5 overflow-hidden rounded-lg border border-(color:--mkt-ink)/20 bg-(color:--mkt-code-bg)">
-      <div className="flex items-center justify-between gap-3 border-b border-(color:--mkt-white)/[0.08] py-1.5 pl-4 pr-2">
-        <span className="truncate font-mono text-xs text-(color:--mkt-faint)">{title ?? ''}</span>
-        <div className="flex shrink-0 items-center gap-1"><LanguageTag lang={lang} /><CopyButton text={code} /></div>
-      </div>
-      <pre className="overflow-x-auto p-4 font-mono text-ui leading-6 text-(color:--mkt-code-text)"><code className="font-mono">{code}</code></pre>
+    <div role="region" aria-label={label} tabIndex={0} className="docs-scroll mt-6 overflow-x-auto rounded-xl border border-(color:--mkt-ink)/[0.09] bg-(color:--mkt-white) shadow-[0_1px_2px_rgba(27,25,22,0.04)]">
+      <table className="w-full border-collapse text-left text-sm">
+        {head.some(Boolean) && (
+          <thead className="bg-(color:--mkt-sand)">
+            <tr>{head.map((cell, index) => <th key={index} scope="col" className="whitespace-nowrap border-b border-(color:--mkt-ink)/[0.08] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.06em] text-(color:--mkt-ink-soft)"><Inline text={cell} /></th>)}</tr>
+          </thead>
+        )}
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={rowIndex} className="border-t border-(color:--mkt-ink)/[0.06] align-top transition-colors first:border-t-0 even:bg-(color:--mkt-ink)/[0.025] hover:bg-(color:--mkt-bronze)/[0.05]">
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex} className={`px-4 py-2.5 leading-6 text-(color:--mkt-prose) ${cellIndex === 0 && !head[0] ? 'whitespace-nowrap font-medium text-(color:--mkt-ink)' : ''}`}><Inline text={cell} /></td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
+  )
+}
+
+const CALLOUTS = {
+  note: { label: 'Note', icon: Info },
+  tip: { label: 'Tip', icon: Lightbulb },
+  warning: { label: 'Warning', icon: TriangleAlert },
+  danger: { label: 'Danger', icon: OctagonAlert },
+} as const
+
+/** Note / tip / warning / danger callout with an icon and a visible label. */
+export function Callout({ tone, text }: { tone: keyof typeof CALLOUTS; text: string }) {
+  const { label, icon: Icon } = CALLOUTS[tone]
+  return (
+    <aside
+      aria-label={label}
+      data-callout={tone}
+      className="mt-6 flex gap-3 rounded-xl border border-l-[3px] px-4 py-3.5 text-[0.95rem] leading-7"
+      style={{ borderColor: `color-mix(in srgb, var(--docs-callout-${tone}) 28%, transparent)`, borderLeftColor: `var(--docs-callout-${tone})`, background: `var(--docs-callout-${tone}-bg)` }}
+    >
+      <Icon size={18} aria-hidden="true" className="mt-1 shrink-0" style={{ color: `var(--docs-callout-${tone})` }} />
+      <div className="min-w-0 space-y-2 text-(color:--mkt-prose)">
+        {text.split('\n\n').map((para, index) => (
+          <p key={index}>
+            {index === 0 && <strong className="mr-1.5 font-semibold" style={{ color: `var(--docs-callout-${tone})` }}>{label}.</strong>}
+            <Inline text={para} />
+          </p>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
+/** Code well: title or language, copy, build-time highlighting, wrapping on small screens. */
+export function CodeBlock({ code, lang, title }: { code: string; lang: string; title?: string }) {
+  const tokens = highlight(code, lang)
+  const shell = isShellLanguage(lang)
+  const HeaderIcon = title ? FileCode2 : shell ? Terminal : null
+  const label = title ?? (lang && lang !== 'text' ? languageLabel(lang) : '')
+  return (
+    <figure data-code-lang={lang} className="docs-code group/code mt-6 overflow-hidden rounded-xl border border-black/30 bg-(color:--mkt-code-bg) shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_10px_30px_-18px_rgba(16,14,11,0.6)]">
+      <figcaption className="flex min-h-10 items-center justify-between gap-3 border-b border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.025)] py-1.5 pl-4 pr-2">
+        <span className="flex min-w-0 items-center gap-2 font-mono text-xs text-[#C9BFAE]">
+          {HeaderIcon && <HeaderIcon size={13} aria-hidden="true" className="shrink-0 text-[#E8B266]" />}
+          <span className="truncate">{label}</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1">
+          {title && <LanguageTag lang={lang === 'text' ? undefined : languageLabel(lang)} />}
+          <CopyButton text={code} />
+        </span>
+      </figcaption>
+      <pre className="docs-scroll overflow-x-auto px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-(color:--mkt-code-text) max-sm:whitespace-pre-wrap max-sm:[overflow-wrap:anywhere]">
+        <code className="font-mono">
+          {tokens.map((token, index) => (token.kind ? <span key={index} className={`docs-tok-${token.kind}`}>{token.text}</span> : token.text))}
+        </code>
+      </pre>
+    </figure>
   )
 }
 
 export function Screenshot({ name, alt, caption, priority = false }: { name: ScreenshotName; alt: string; caption?: string; priority?: boolean }) {
   const image = SCREENSHOTS[name]
   return (
-    <figure className="mt-6">
+    <figure className="mt-8">
       <ScreenshotFrame>
-        <Image src={image} alt={alt} sizes="(min-width: 1280px) 720px, (min-width: 1024px) 60vw, 100vw" placeholder="blur" priority={priority} className="h-auto w-full" />
+        <Image src={image} alt={alt} sizes="(min-width: 1280px) 760px, (min-width: 1024px) 60vw, 100vw" placeholder="blur" priority={priority} className="h-auto w-full" />
       </ScreenshotFrame>
-      {caption && <figcaption className="mt-2 text-center text-sm text-(color:--mkt-muted)"><Inline text={caption} /></figcaption>}
+      {caption && <figcaption className="mt-3 text-center text-sm text-(color:--mkt-muted)"><Inline text={caption} /></figcaption>}
     </figure>
   )
 }

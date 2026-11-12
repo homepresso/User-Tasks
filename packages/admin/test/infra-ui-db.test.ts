@@ -293,7 +293,7 @@ describe.skipIf(!ADMIN_URL)('Settings → Infrastructure switching (plain Postgr
     process.env.DEPLOYMENT_MODE = 'cloud'
     try {
       expect(await uiSwitchingGateFor(db)).toMatchObject({ enabled: false })
-      expect(await applySwitchAs(ADMIN, { area: 'realtime', to: 'sse', values: {} }, deps)).toMatchObject({ ok: false, error: expect.stringMatching(/Cloud edition/) })
+      expect(await applySwitchAs(ADMIN, { area: 'realtime', to: 'sse', values: {} }, deps)).toMatchObject({ ok: false, error: expect.stringMatching(/Locked on this cloud deployment/) })
       const out: string[] = []
       const io = { out: (l: string) => out.push(l), err: (l: string) => out.push(l), env: { ...process.env } }
       expect(await run(['ui-switching', 'on', '--db-url', url], io)).toBe(0)

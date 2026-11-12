@@ -21,7 +21,7 @@ export const SITE_NAME = 'UserTasks'
  */
 export const SITE_CONTENT_UPDATED = '2026-11-13'
 /** Same, for the generated docs under /docs. */
-export const DOCS_UPDATED = '2026-11-13'
+export const DOCS_UPDATED = '2026-11-14'
 
 /** The one-sentence definition used across the site, llms.txt and structured data. */
 export const PRODUCT_DEFINITION = 'UserTasks is an open-source (Apache-2.0) workflow, forms and tasks platform: a visual workflow designer, a grid form designer, one task list for approvals, data tables and reports, integrations with any system and an optional AI Agent, driven by a REST API, an MCP server and a CLI. It runs in the UserTasks cloud, on Docker, on Kubernetes or air-gapped on your own servers.'

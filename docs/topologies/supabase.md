@@ -36,7 +36,7 @@ ENCRYPTION_KEY=…         # openssl rand -base64 32
 RESEND_API_KEY=…         # without it, sending email fails with "not configured"
 ```
 
-Then apply the migrations (`npx supabase db push`), store the two Vault
+Then apply the migrations (`npx supabase db push --linked`), store the two Vault
 secrets for pg_cron, and create the first workspace
 (`npm run bootstrap`). The [self-host quickstart](/docs/quickstart/self-host)
 and [Self-hosting](../self-hosting.md) cover every step.

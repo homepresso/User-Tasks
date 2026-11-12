@@ -15,8 +15,11 @@ import { Client } from 'pg'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from './helpers/db-test-client'
 import type { ServiceContext } from '@/lib/services/context'
+import { dbCapabilities } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// Real Supabase Storage at the stack URL: plain PostgreSQL has none.
+const CAPS = await dbCapabilities()
 const API_URL = process.env.ENGINE_SMOKE_SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const SERVICE_KEY = process.env.ENGINE_SMOKE_SERVICE_ROLE_KEY
   ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
@@ -60,7 +63,7 @@ const ctx = (who: keyof typeof U, tenantId = who === 'other' ? T2 : T): ServiceC
   supabase: supabase as any, db: supabase as any, tenantId, actorId: U[who], permissions: new Set(PERMS[who]), authKind: 'api_key', source: 'api',
 })
 
-describe.skipIf(!DB_URL)('task attachments service', () => {
+describe.skipIf(!DB_URL || !CAPS?.supabase)('task attachments service', () => {
   const db = new Client({ connectionString: DB_URL })
   let svc: typeof import('@/lib/services/task-attachments')
 

@@ -246,7 +246,7 @@ export function OpenSourcePage() {
                 <p className="mt-2 text-sm leading-6 text-(color:--mkt-text)">The standalone stack: PostgreSQL, S3-compatible storage, the scheduler, a mail catcher and the app, all in Docker with no Supabase, and fresh secrets written for you. It creates the first workspace too.</p>
                 <div className="mt-4 min-w-0"><Snippet code={STANDALONE(repo)} /></div>
                 <p className="mt-3 text-sm leading-6 text-(color:--mkt-text)">When it finishes, open <InlineCode>http://localhost:3000</InlineCode> and sign in with that email. The generated password is saved in <InlineCode>.usertasks-first-login</InlineCode> in the folder.</p>
-                <p className="mt-3 rounded-lg border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 px-3 py-2 text-sm leading-6 text-(color:--mkt-text)"><strong>Before you start:</strong> it builds the app image on your machine, which needs about {DOCKER_BUILD_MEMORY_GB} GB of memory for Docker (Docker Desktop → Settings → Resources → Memory) and takes a while the first time (10 to 20 minutes). On a laptop, From source is lighter.</p>
+                <p className="mt-3 rounded-lg border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 px-3 py-2 text-sm leading-6 text-(color:--mkt-text)"><strong>Before you start:</strong> it uses the ready-made app image for this version when one has been published, a download with no build and no extra memory needed. Otherwise it builds the image on your machine, which needs about {DOCKER_BUILD_MEMORY_GB} GB of memory for Docker (Docker Desktop → Settings → Resources → Memory) and takes a while the first time (10 to 20 minutes). On a laptop without a published image, From source is lighter.</p>
               </article>
             </div>
 
@@ -291,6 +291,8 @@ export function OpenSourcePage() {
             <DocLinks links={[
               { href: "/docs/self-hosting/admin-account", label: "Create your admin account" },
               { href: "/docs/self-hosting/invite-people", label: "Invite people and connect SSO" },
+              { href: "/docs/self-hosting/local-to-supabase-cloud", label: "Move to Supabase Cloud" },
+              { href: "/docs/self-hosting/friendly-address", label: "Give it a friendly address" },
             ]} />
           </div>
         </section>

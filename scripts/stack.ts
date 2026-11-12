@@ -3,8 +3,8 @@
  * (docs/deployment-profiles.md).
  *
  *   npm run stack -- init  [--profile <p>] [--port 3000] [--email you@example.com] [--force]
- *   npm run stack -- up    [--profile <p>] [--email … --org … [--password …]] [--no-build] [--pgbouncer] [--keycloak]
- *                          [--skip-memory-check]
+ *   npm run stack -- up    [--profile <p>] [--email … --org … [--password …]] [--build | --no-build] [--pgbouncer]
+ *                          [--keycloak] [--skip-memory-check]
  *                          [--kms env|vault_transit|aws_kms|azure_key_vault|gcp_kms]
  *   npm run stack -- smoke [--profile <p>]
  *   npm run stack -- down  [--profile <p>] [--volumes]
@@ -39,9 +39,17 @@
  * .usertasks-first-login (owner-only) and the console names the file, never
  * the password.
  *
+ * The app image (scripts/stack-helpers.ts planAppImage): by default the
+ * published image for this version (ghcr.io/homepresso/usertasks:<package.json
+ * version>, built by .github/workflows/image.yml) when it is available,
+ * otherwise a local build tagged usertasks:local. --build always builds
+ * locally; USERTASKS_IMAGE (environment or env file) runs that image and
+ * never builds; --no-build runs a usertasks:local built earlier.
+ *
  * Before building the image, `up` checks the memory Docker has (docker info):
  * below BUILD_MEMORY_GB the build is killed part-way, so it stops with how to
  * raise it (--skip-memory-check, or USERTASKS_SKIP_MEMORY_CHECK=1, skips it).
+ * Running a published image needs no such check.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
@@ -49,7 +57,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'n
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { generateSetupCode } from '../lib/setup/code'
-import { firstLoginText, loginHint, memoryCheckMessage, setupHint } from './stack-helpers'
+import { firstLoginText, loginHint, memoryCheckMessage, planAppImage, resolveAppImage, setupHint } from './stack-helpers'
 
 const ROOT = path.resolve(__dirname, '..')
 /** Where `up --email --org` leaves a generated password (git- and docker-ignored). */
@@ -258,6 +266,7 @@ const { values, positionals } = parseArgs({
     password: { type: 'string' },
     org: { type: 'string' },
     force: { type: 'boolean' },
+    build: { type: 'boolean' },
     'no-build': { type: 'boolean' },
     'skip-memory-check': { type: 'boolean' },
     pgbouncer: { type: 'boolean' },
@@ -364,7 +373,16 @@ function composeArgs(extraProfiles: string[] = []): string[] {
   return args
 }
 
-const composeEnv = () => ({ ...process.env, USERTASKS_ENV_FILE: envFile, USERTASKS_STATE_DIR: STATE })
+/**
+ * The app image `up` chose, kept in deploy/compose/.state/ (git-ignored) so
+ * later commands (smoke, compose, down) run Compose with the same image and
+ * never recreate the app from another one. USERTASKS_IMAGE in the
+ * environment wins.
+ */
+const imageStateFile = path.join(STATE, `${project ?? 'usertasks'}.${name}.image`)
+let appImage: string | undefined = process.env.USERTASKS_IMAGE || (existsSync(imageStateFile) ? readFileSync(imageStateFile, 'utf8').trim() || undefined : undefined)
+
+const composeEnv = () => ({ ...process.env, USERTASKS_ENV_FILE: envFile, USERTASKS_STATE_DIR: STATE, ...(appImage ? { USERTASKS_IMAGE: appImage } : {}) })
 
 function compose(args: string[], opts: { capture?: boolean; extraProfiles?: string[]; allowFail?: boolean; input?: string } = {}): { status: number; stdout: string } {
   const res = spawnSync('docker', [...composeArgs(opts.extraProfiles), ...args], {
@@ -419,11 +437,30 @@ function checkDockerMemory(): void {
   }
 }
 
+/** Present locally, or pulled now. */
+function imageAvailable(image: string): boolean {
+  if (spawnSync('docker', ['image', 'inspect', image], { stdio: 'ignore' }).status === 0) return true
+  console.log(`Pulling ${image}…`)
+  return spawnSync('docker', ['pull', image], { stdio: ['ignore', 'inherit', 'inherit'] }).status === 0
+}
+
 function up(): void {
-  if (!values['no-build']) checkDockerMemory()
   if (!existsSync(envFile)) init()
   if (profile.certs) ensureCerts()
-  compose(['up', '-d', '--wait', ...(values['no-build'] ? [] : ['--build'])])
+  const version = String(JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version)
+  let plan
+  try {
+    plan = planAppImage({ build: values.build, noBuild: values['no-build'], image: process.env.USERTASKS_IMAGE || readEnvFile(envFile).USERTASKS_IMAGE, version })
+  } catch (error) {
+    fail((error as Error).message)
+  }
+  const chosen = resolveAppImage(plan, imageAvailable)
+  if (chosen.note) console.log(chosen.note)
+  if (chosen.build) checkDockerMemory()
+  appImage = chosen.image
+  mkdirSync(STATE, { recursive: true })
+  writeFileSync(imageStateFile, `${appImage}\n`)
+  compose(['up', '-d', '--wait', chosen.build ? '--build' : '--no-build'])
   ensureDataKey()
   const env = readEnvFile(envFile)
   console.log(name === 'onprem'

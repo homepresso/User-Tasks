@@ -14,7 +14,6 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge, Tag } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { SearchInput } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -24,7 +23,10 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { formatBytes } from '@/lib/format/number'
 import type { GalleryIndex, GalleryIndexEntry } from '@/lib/gallery/types'
-import { FORM_CONTROLS_CATEGORY, GALLERY_CATEGORIES, GALLERY_NEEDS, GALLERY_ORIGINS, GALLERY_TRIGGERS, NATIVE_BADGE } from '@/lib/gallery/types'
+import { FORM_CONTROLS_CATEGORY, GALLERY_CATEGORIES, GALLERY_NEEDS, GALLERY_ORIGINS, NATIVE_BADGE } from '@/lib/gallery/types'
+import { browse, BROWSE_SORTS, DEFAULT_BROWSE_STATE, indexEntryToBrowseItem, isNew, newestRelease, type BrowseKind, type BrowseSort } from '@/lib/gallery/browse'
+import { appCardFrame, CardBody } from '@/components/gallery/gallery-card'
+import { categoryIcon } from '@/components/gallery/gallery-icons'
 import { Modal } from './requirements-form'
 
 /** The public gallery pages live on usertasks.com (self-hosted instances serve the files, not the marketing pages). */
@@ -46,13 +48,11 @@ function isAction(entry: GalleryIndexEntry): boolean {
   return entry.kind === 'workflow_action'
 }
 
-function tabOf(entry: GalleryIndexEntry): GalleryPickerTab {
-  return isControl(entry) ? 'controls' : isAction(entry) ? 'actions' : 'packages'
-}
-
 const CAPABILITY_LABEL: Record<string, string> = { lookup: 'lookups', files: 'files', network: 'network', reports: 'reports' }
 
 export type GalleryPickerTab = 'packages' | 'controls' | 'actions'
+
+const TAB_KIND: Record<GalleryPickerTab, BrowseKind> = { packages: 'solution', controls: 'control', actions: 'action' }
 
 export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initialTab = 'packages' }: {
   open: boolean
@@ -73,6 +73,7 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
   const [category, setCategory] = useState<string>('all')
   const [source, setSource] = useState<'all' | 'official' | 'community'>('all')
   const [nativeOnly, setNativeOnly] = useState(false)
+  const [sort, setSort] = useState<BrowseSort>('featured')
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const index = useQuery({
@@ -93,14 +94,21 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
   const all = index.data?.index.packages ?? []
   const controlCount = all.filter(isControl).length
   const actionCount = all.filter(isAction).length
-  const packages = useMemo(() => {
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-    return (index.data?.index.packages ?? []).filter((p) => tabOf(p) === tab
-      && (tab !== 'packages' || category === 'all' || p.category === category)
-      && (source === 'all' || (p.source ?? 'official') === source)
-      && (!nativeOnly || p.native)
-      && words.every((w) => `${p.title} ${p.summary} ${p.tags.join(' ')} ${(p.systems ?? []).join(' ')} ${p.author?.name ?? ''} ${(p.control?.tags ?? []).join(' ')} ${(p.action?.operations ?? []).map((o) => `${o.id} ${o.label}`).join(' ')}`.toLowerCase().includes(w)))
-  }, [index.data, query, category, source, nativeOnly, tab])
+  // The shared gallery search, filters and sort (lib/gallery/browse), over this instance's index entries.
+  const entries = useMemo(() => {
+    const list = index.data?.index.packages ?? []
+    return { items: list.map(indexEntryToBrowseItem), byKey: new Map(list.map((e) => [indexEntryToBrowseItem(e).key, e])) }
+  }, [index.data])
+  const reference = useMemo(() => newestRelease(entries.items.filter((i) => i.source === 'official')), [entries])
+  const packages = useMemo(() => browse(entries.items, {
+    ...DEFAULT_BROWSE_STATE,
+    q: query,
+    kind: TAB_KIND[tab],
+    category: tab === 'packages' ? category : 'all',
+    source,
+    native: nativeOnly,
+    sort,
+  }).map((item) => ({ item, entry: entries.byKey.get(item.key)! })), [entries, query, category, source, nativeOnly, tab, sort])
 
   const pick = async (entry: GalleryIndexEntry) => {
     setError(null)
@@ -118,11 +126,6 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
       setLoading(null)
     }
   }
-
-  const kindLabel = (p: GalleryIndexEntry) => isAction(p)
-    ? `${p.action?.operations.length ?? 0} functions`
-    : isControl(p) ? (p.kind === 'control_bundle' ? `${p.control?.tags.length ?? 0} controls` : p.control?.kind === 'display' ? 'Display control' : 'Input control')
-    : (p.trigger ? GALLERY_TRIGGERS[p.trigger]?.badge ?? p.trigger : '')
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Package gallery" size="xl"
@@ -152,6 +155,8 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
             <Select wrapperClassName="w-auto" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category"
               options={[{ value: 'all', label: 'All categories' }, ...GALLERY_CATEGORIES.filter((c) => c.id !== FORM_CONTROLS_CATEGORY && c.id !== 'workflow-actions').map((c) => ({ value: c.id, label: c.title }))]} />
           )}
+          <Select wrapperClassName="w-auto" value={sort} onChange={(e) => setSort(e.target.value as BrowseSort)} aria-label="Sort" data-testid="gallery-sort"
+            options={(Object.keys(BROWSE_SORTS) as BrowseSort[]).filter((key) => key !== 'updated').map((key) => ({ value: key, label: BROWSE_SORTS[key] }))} />
           <span data-testid="gallery-source">
             <SegmentedControl aria-label="Source" value={source} onValueChange={setSource}
               options={[{ value: 'all', text: 'All' }, { value: 'official', text: 'Official' }, { value: 'community', text: 'Community' }]} />
@@ -169,24 +174,20 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
         {index.isLoading && <p className="text-ui text-fg-muted" role="status">Loading the gallery…</p>}
         {index.error && <InlineNotice tone="error" message={(index.error as Error).message} />}
         {error && <InlineNotice tone="error" message={error} />}
+        {index.data && packages.length > 0 && (
+          <p className="num text-xs text-fg-muted" aria-live="polite" data-testid="gallery-count">{packages.length} {packages.length === 1 ? 'result' : 'results'}</p>
+        )}
         <ul className="grid gap-3 sm:grid-cols-2">
-          {packages.map((p, index) => {
+          {packages.map(({ item, entry: p }, index) => {
             const origin = p.source ?? 'official'
             const installed = installedUids.has(p.id)
+            const Icon = categoryIcon(p.category)
             return (
-              <li key={`${origin}-${p.slug}`} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4 transition-colors duration-[var(--ds-dur-fast)] hover:border-border-strong" data-testid={`gallery-item-${p.slug}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg"><span className="truncate">{p.title}</span> <Tag mono>v{p.version}</Tag></p>
-                  {kindLabel(p) && <Tag>{kindLabel(p)}</Tag>}
-                </div>
-                <p className="flex flex-wrap gap-1">
-                  <Badge tone={origin === 'community' ? 'brand' : 'neutral'} title={GALLERY_ORIGINS[origin].description} data-testid={`gallery-origin-${origin}`}>{GALLERY_ORIGINS[origin].label}</Badge>
-                  {p.native && <Badge tone="success" title={NATIVE_BADGE.description}>{NATIVE_BADGE.label}</Badge>}
-                  {(p.systems ?? []).map((system) => <Tag key={system}>{system}</Tag>)}
-                </p>
-                <p className="line-clamp-2 text-ui text-fg-muted">{p.summary}</p>
+              <li key={item.key} className={appCardFrame} data-testid={`gallery-item-${p.slug}`} data-origin={origin}>
+                <span className="sr-only" data-testid={`gallery-origin-${origin}`}>{GALLERY_ORIGINS[origin].label}</span>
+                <CardBody item={item} tone="app" isNew={isNew(item, reference)} icon={<Icon size={20} aria-hidden />} maxTags={3} />
                 {isControl(p) && p.control && (
-                  <p className="text-xs text-fg-muted" data-testid={`gallery-control-${p.slug}`}>
+                  <p className="mt-2 text-xs text-fg-muted" data-testid={`gallery-control-${p.slug}`}>
                     <span className="font-mono">{p.control.tags.map((t) => `<${t}>`).join(' ')}</span>
                     {' · '}value {p.control.value_types.join(' / ')}
                     {p.control.capabilities.length ? ` · uses ${p.control.capabilities.map((c) => CAPABILITY_LABEL[c] ?? c).join(', ')}` : ' · no host services'}
@@ -194,24 +195,24 @@ export function GalleryPicker({ open, onOpenChange, onPick, installedUids, initi
                   </p>
                 )}
                 {isAction(p) && p.action && (
-                  <p className="text-xs text-fg-muted" data-testid={`gallery-action-${p.slug}`}>
+                  <p className="mt-2 text-xs text-fg-muted" data-testid={`gallery-action-${p.slug}`}>
                     <span className="font-mono">{p.action.key}</span>
                     {' · '}{p.action.operations.slice(0, 6).map((o) => o.label).join(', ')}{p.action.operations.length > 6 ? '…' : ''}
                     {' · '}{p.action.capabilities.length ? `uses ${p.action.capabilities.join(', ')}${p.action.secrets.length ? ` (secrets: ${p.action.secrets.join(', ')})` : ''}` : 'pure computation'}
                   </p>
                 )}
-                <p className="num text-xs text-fg-muted">
+                <p className="num mt-2 text-xs text-fg-muted">
                   {isAction(p)
                     ? `Sandboxed · includes a sample workflow · ${formatBytes(Math.max(1024, p.action?.module_bytes ?? 0))}`
                     : isControl(p)
                       ? `${p.requirement_count ? `Asks for ${p.requirement_count} setting${p.requirement_count === 1 ? '' : 's'} on install (e.g. an API key, stored on the server)` : 'Nothing to configure on install'} · ${formatBytes(p.control?.module_bytes ?? 0)}`
                       : p.source === 'community'
-                        ? `By ${p.author?.name ?? 'a community member'}${typeof p.downloads === 'number' ? ` · ${p.downloads} downloads` : ''} · ${p.licence ?? ''}`
+                        ? `${p.licence ?? ''}`
                         : `Needs: ${p.needs.map((n) => GALLERY_NEEDS[n]?.label ?? n).join(', ') || 'nothing'} · ~${p.setup_minutes} min setup`}
                 </p>
-                <div className="mt-auto flex items-center justify-end gap-2 pt-1">
-                  <Button asChild size="sm" variant="ghost"><a href={/^https?:\/\//.test(p.page) ? p.page : `${SITE}${p.page}`} target="_blank" rel="noreferrer">Details</a></Button>
-                  <Button size="sm" variant={installed ? 'secondary' : 'primary'} leadingIcon={<Download />} disabled={loading !== null} loading={loading === p.slug} onClick={() => void pick(p)} data-testid={`gallery-install-${p.slug}`} data-tour={index === 0 ? 'gallery-install' : undefined}>
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <Button asChild size="sm" variant="ghost"><a href={/^https?:\/\//.test(p.page) ? p.page : `${SITE}${p.page}`} target="_blank" rel="noreferrer" aria-label={`Details of ${p.title} on the website`}>Details <ExternalLink size={12} aria-hidden /></a></Button>
+                  <Button size="sm" variant={installed ? 'secondary' : 'primary'} leadingIcon={<Download />} disabled={loading !== null} loading={loading === p.slug} onClick={() => void pick(p)} data-testid={`gallery-install-${p.slug}`} data-tour={index === 0 ? 'gallery-install' : undefined} aria-label={`${installed ? 'Reinstall or upgrade' : 'Install'} ${p.title}`}>
                     {installed ? 'Reinstall / upgrade' : 'Install'}
                   </Button>
                 </div>

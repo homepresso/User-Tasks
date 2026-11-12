@@ -431,8 +431,10 @@ function readPath(values: Record<string, unknown>, path: string): unknown {
   return cursor
 }
 
+/** The local calendar day (a form's {{today}} is the person's date, as in form rules and item defaults — not UTC's). */
 function isoDay(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 /** A variable's initial expression: {{param.x}}, {{var.x}}, {{form.x}} / {{field}}, {{today}}, {{now}}; one placeholder keeps its raw value. */

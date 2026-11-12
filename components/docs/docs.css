@@ -1,0 +1,198 @@
+/*
+ * Docs theme: the marketing palette (marketing-tokens.css) plus a dark
+ * variant, the code-well syntax colours and the article typography details.
+ *
+ * Dark mode follows the system unless the reader picked one with the header
+ * toggle: <html data-docs-theme="light|dark"> is set before first paint by
+ * the root layout's bootstrap script (localStorage `docs-theme`), so there is
+ * no flash, and without JavaScript the media query alone applies.
+ * Components keep using the --mkt-* tokens; only the values change here.
+ */
+
+.docs-root {
+  --docs-header-h: 3.5rem;
+  --docs-accent: var(--mkt-bronze);
+  --docs-ring: rgba(138, 109, 69, 0.55);
+  --docs-hl: rgba(232, 178, 102, 0.32);
+  --docs-callout-note: #3E6A8A;
+  --docs-callout-note-bg: rgba(62, 106, 138, 0.07);
+  --docs-callout-tip: #3F6E4C;
+  --docs-callout-tip-bg: rgba(79, 122, 91, 0.08);
+  --docs-callout-warning: #8A5A12;
+  --docs-callout-warning-bg: rgba(208, 142, 50, 0.10);
+  --docs-callout-danger: #A3352A;
+  --docs-callout-danger-bg: rgba(178, 58, 46, 0.07);
+  --docs-btn-bg: linear-gradient(180deg, #2A251E, #14110D);
+  --docs-btn-fg: #FAF8F3;
+  color-scheme: light;
+}
+
+/* Dark tokens: warm night surfaces, cream ink, a lighter bronze for AA text. */
+:root[data-docs-theme="dark"] .docs-root {
+  --mkt-ink: #F4EFE4;
+  --mkt-ink-soft: #E9E2D4;
+  --mkt-prose: #DCD4C5;
+  --mkt-text: #D2C9B8;
+  --mkt-muted-strong: #C3B9A6;
+  --mkt-muted: #ADA390;
+  --mkt-subtle: #9A907D;
+  --mkt-subtle-2: #857C6B;
+  --mkt-faint: #6E6657;
+  --mkt-primary: #F4EFE4;
+  --mkt-primary-hover: #FFFFFF;
+  --mkt-bronze: #DDB77F;
+  --mkt-gold: #D2A866;
+  --mkt-gold-deep: #C49A5C;
+  --mkt-gold-light: #5C4A2E;
+  --mkt-green: #8CC39B;
+  --mkt-red: #F08A7C;
+  --mkt-white: #1D1A16;
+  --mkt-paper: #13110E;
+  --mkt-canvas: #181511;
+  --mkt-sand: #221E19;
+  --mkt-line: #2F2A23;
+  --mkt-line-strong: #3D362D;
+  --mkt-code-bg: #0C0B09;
+  --docs-ring: rgba(221, 183, 127, 0.6);
+  --docs-hl: rgba(232, 178, 102, 0.28);
+  --docs-callout-note: #9CC4E4;
+  --docs-callout-note-bg: rgba(110, 160, 200, 0.10);
+  --docs-callout-tip: #9BD0A9;
+  --docs-callout-tip-bg: rgba(127, 169, 138, 0.11);
+  --docs-callout-warning: #F0C27B;
+  --docs-callout-warning-bg: rgba(232, 178, 102, 0.11);
+  --docs-callout-danger: #F4A396;
+  --docs-callout-danger-bg: rgba(240, 120, 100, 0.11);
+  --theme-primary-light: rgba(244, 239, 228, 0.14);
+  --docs-btn-bg: linear-gradient(180deg, #FBF7EF, #E4D9C4);
+  --docs-btn-fg: #17150F;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-docs-theme="light"]) .docs-root {
+    --mkt-ink: #F4EFE4;
+    --mkt-ink-soft: #E9E2D4;
+    --mkt-prose: #DCD4C5;
+    --mkt-text: #D2C9B8;
+    --mkt-muted-strong: #C3B9A6;
+    --mkt-muted: #ADA390;
+    --mkt-subtle: #9A907D;
+    --mkt-subtle-2: #857C6B;
+    --mkt-faint: #6E6657;
+    --mkt-primary: #F4EFE4;
+    --mkt-primary-hover: #FFFFFF;
+    --mkt-bronze: #DDB77F;
+    --mkt-gold: #D2A866;
+    --mkt-gold-deep: #C49A5C;
+    --mkt-gold-light: #5C4A2E;
+    --mkt-green: #8CC39B;
+    --mkt-red: #F08A7C;
+    --mkt-white: #1D1A16;
+    --mkt-paper: #13110E;
+    --mkt-canvas: #181511;
+    --mkt-sand: #221E19;
+    --mkt-line: #2F2A23;
+    --mkt-line-strong: #3D362D;
+    --mkt-code-bg: #0C0B09;
+    --docs-ring: rgba(221, 183, 127, 0.6);
+    --docs-hl: rgba(232, 178, 102, 0.28);
+    --docs-callout-note: #9CC4E4;
+    --docs-callout-note-bg: rgba(110, 160, 200, 0.10);
+    --docs-callout-tip: #9BD0A9;
+    --docs-callout-tip-bg: rgba(127, 169, 138, 0.11);
+    --docs-callout-warning: #F0C27B;
+    --docs-callout-warning-bg: rgba(232, 178, 102, 0.11);
+    --docs-callout-danger: #F4A396;
+    --docs-callout-danger-bg: rgba(240, 120, 100, 0.11);
+    --theme-primary-light: rgba(244, 239, 228, 0.14);
+    --docs-btn-bg: linear-gradient(180deg, #FBF7EF, #E4D9C4);
+    --docs-btn-fg: #17150F;
+    color-scheme: dark;
+  }
+}
+
+/* The page behind the docs follows the docs surface (overscroll, short pages). */
+:root:has(.docs-root) { background-color: var(--docs-page-bg, #FAF8F3); scroll-padding-top: 5rem; }
+:root[data-docs-theme="dark"]:has(.docs-root) { --docs-page-bg: #13110E; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-docs-theme="light"]):has(.docs-root) { --docs-page-bg: #13110E; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.docs-root) { scroll-behavior: smooth; }
+}
+
+/* The primary button follows the theme (marketing-tokens.css fixes it dark). */
+.docs-root .mkt-btn-primary { background: var(--docs-btn-bg); color: var(--docs-btn-fg); }
+
+/* Focus rings: one visible, on-brand ring for every control. */
+.docs-root :where(a, button, summary, input:not([role="combobox"]), textarea, [tabindex]:not(main)):focus-visible {
+  outline: 2px solid var(--docs-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Code wells stay dark in both themes; the copy button and language tag
+   inside read the light-on-dark values whatever the page theme is. */
+.docs-code {
+  --mkt-white: #FFFFFF;
+  --mkt-faint: #B9B2A3;
+}
+.docs-tok-comment { color: #9A917E; font-style: italic; }
+.docs-tok-string { color: #B5D39E; }
+.docs-tok-number, .docs-tok-literal { color: #F2A97E; }
+.docs-tok-keyword { color: #E8B266; }
+.docs-tok-key { color: #9FC7EA; }
+.docs-tok-variable { color: #D9AEF2; }
+.docs-tok-flag { color: #C9D7B8; }
+.docs-tok-command { color: #F7E3BD; font-weight: 500; }
+.docs-tok-punct { color: #A79F8F; }
+
+/* Step lists: numbered circles joined by a hairline. */
+.docs-steps { counter-reset: docs-step var(--docs-step-start, 0); }
+.docs-steps > li { counter-increment: docs-step; position: relative; padding-left: 2.5rem; }
+.docs-steps > li::before {
+  content: counter(docs-step);
+  position: absolute;
+  left: 0;
+  top: 0.125rem;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 999px;
+  background: var(--mkt-white);
+  border: 1px solid color-mix(in srgb, var(--mkt-bronze) 45%, transparent);
+  color: var(--mkt-bronze);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgba(27, 25, 22, 0.06);
+}
+.docs-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 0.8125rem;
+  top: 2rem;
+  bottom: -0.5rem;
+  width: 1px;
+  background: color-mix(in srgb, var(--mkt-ink) 10%, transparent);
+}
+
+/* The search palette and drawer slide in; reduced motion skips it (marketing-tokens.css). */
+@keyframes docs-pop { from { opacity: 0; transform: translateY(-6px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes docs-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes docs-slide { from { transform: translateX(-100%); } to { transform: none; } }
+.docs-pop { animation: docs-pop 160ms var(--mkt-ease) both; }
+.docs-fade { animation: docs-fade 160ms ease-out both; }
+.docs-slide { animation: docs-slide 220ms var(--mkt-ease) both; }
+
+/* Collapsible sidebar groups: rotate the chevron, hide the default marker. */
+.docs-root summary { list-style: none; }
+.docs-root summary::-webkit-details-marker { display: none; }
+.docs-root details[open] > summary .docs-chevron { transform: rotate(90deg); }
+
+/* Highlighted search matches. */
+.docs-root mark { background: var(--docs-hl); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* Thin scrollbars on the sidebar and table of contents. */
+.docs-scroll { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--mkt-ink) 18%, transparent) transparent; }

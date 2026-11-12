@@ -99,7 +99,11 @@ has a decision guide, a guide per topology (Supabase only, hybrid, AWS, Azure,
 Google Cloud, multi-cloud, on-premises) and
 [the options in each area](docs/services/README.md). To start on other services
 from day one, `npm run stack -- up` runs the standalone profile (PostgreSQL, MinIO,
-the worker); see [Deployment profiles](docs/deployment-profiles.md).
+the worker); see [Deployment profiles](docs/deployment-profiles.md). It uses the
+published image (`ghcr.io/homepresso/usertasks:<version>`, built by
+`.github/workflows/image.yml`) when one is available for this version;
+otherwise it builds the image locally, which needs about 10 GB of memory for
+Docker (`--build` always builds locally).
 
 `supabase/migrations/` builds a fresh database from scratch (a baseline schema
 plus a few follow-up migrations); see [docs/migrations.md](docs/migrations.md).
@@ -138,7 +142,7 @@ By hand, or with a hosted Supabase project:
    or a hosted project:
 
    ```bash
-   npx supabase link --project-ref <ref> && npx supabase db push
+   npx supabase link --project-ref <ref> && npx supabase db push --linked
    ```
 
 2. Configuration: copy `.env.example` and fill in the Supabase URL and keys,
@@ -189,9 +193,16 @@ are statically rendered, so set `DEPLOYMENT_MODE` at build time as well as
 at runtime.
 
 For production, run `npm run build && npm start`, or use the `Dockerfile` and
-`docker-compose.yml` (app only; the database stays in Supabase). The full
+`docker-compose.yml` (app only; the database stays in Supabase; it pulls the
+published image when available and builds otherwise). The full
 guide is [docs/self-hosting.md](docs/self-hosting.md); for other clouds and
 on-premises, see [Choose your topology](docs/topologies/README.md).
+To move from `http://localhost:3000` to your own domain
+(`https://tasks.example.com`: DNS, HTTPS with Caddy or nginx, `APP_URL`,
+optional per-workspace addresses with `APP_BASE_DOMAIN`), follow
+[Give your install a friendly address](https://usertasks.com/docs/self-hosting/friendly-address).
+Started with `npm run setup:local`? [Move from your local Supabase to Supabase Cloud](https://usertasks.com/docs/self-hosting/local-to-supabase-cloud)
+covers the hosted project, copying your data and files, and the Supabase sign-in settings.
 
 ## Scheduled jobs
 

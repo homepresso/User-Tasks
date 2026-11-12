@@ -7,7 +7,7 @@
  * rules, coercion and the derived values, dynamic bindings reading the item.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any -- fixtures */
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   REPEATING_LIMITS, REPEATING_MAX_DEPTH, addItem, addItemLabel, asListField, canAddItem, canRemoveItem, describeRepeatingValue, findFieldDeep, innerFormLayout,
   itemScopeValues, itemTitle, moveItem, newItem, removeItem, repeatingDerivedKeys, repeatingDerivedValues, repeatingListConfig, sectionOfField, singularLabel, startItems,
@@ -114,6 +114,13 @@ describe('normalisation', () => {
 describe('items', () => {
   const [field] = normalizeTaskFields([EXPENSES])
   const config = field.repeating_section!
+  // {{today}} in an item default is the person's LOCAL calendar day, taken
+  // from the clock where the item is made (newItem; the form's resolver only
+  // sees other placeholders). The test used to expect a hard-coded date and
+  // so only passed on the day it was written. Pin the clock instead: midday
+  // local time is 2026-11-11 in every timezone.
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 11, 12, 0, 0)) })
+  afterEach(() => { vi.useRealTimers() })
 
   it('starts with start_items blank items (defaults resolved), adds up to max, removes down to min, never reorders when off', () => {
     const items = startItems(config, (t) => (t === '{{today}}' ? '2026-11-11' : t))
@@ -146,6 +153,14 @@ describe('items', () => {
     expect(describeRepeatingValue([{}, {}, {}], field)).toBe('3 expenses')
     expect(describeRepeatingValue([{}], field)).toBe('1 expense')
     expect(describeRepeatingValue([], field)).toBe('—')
+  })
+
+  it('{{today}} is the local day, not UTC\'s, near midnight', () => {
+    // 00:30 local on 12 November: still 11 November in UTC for any timezone east of UTC.
+    vi.setSystemTime(new Date(2026, 10, 12, 0, 30, 0))
+    expect(newItem(config).spent_on).toBe('2026-11-12')
+    vi.setSystemTime(new Date(2026, 10, 11, 23, 30, 0))
+    expect(newItem(config).spent_on).toBe('2026-11-11')
   })
 
   it('the new form starts with the start items (defaultTaskFieldValues)', () => {

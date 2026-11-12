@@ -122,7 +122,7 @@ describe('form context in values', () => {
     expect(set[FORM_VARS_KEY]).toMatchObject({ who: 'BONAP', selected_order: 7 })
     const { who: _w, ...rest } = set[FORM_VARS_KEY] as Record<string, unknown>
     expect((withFormContext(LAYOUT, { ...set, [FORM_VARS_KEY]: rest })[FORM_VARS_KEY] as Record<string, unknown>).who).toBe('ALFKI')
-    expect(variableInitial({ name: 'd', type: 'date', initial: { kind: 'expression', value: '{{today}}' } }, {}, {}, new Date('2026-03-04T10:00:00Z'))).toBe('2026-03-04')
+    expect(variableInitial({ name: 'd', type: 'date', initial: { kind: 'expression', value: '{{today}}' } }, {}, {}, new Date(2026, 2, 4, 12, 0, 0))).toBe('2026-03-04')
   })
 
   it('placeholders read {{param.x}} / {{var.x}} in rules, button text, lookups and headers', () => {

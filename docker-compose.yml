@@ -21,10 +21,18 @@
 
 # One image for the app, migrate and worker containers. Only the app service
 # builds it (a build on each would make Compose start three identical builds);
-# the others run the image it tags. USERTASKS_IMAGE runs a prebuilt image instead
-# (with `up --no-build`, or `npm run stack -- up --no-build`).
+# the others run the image it tags.
+#
+# The default is the published multi-arch image for this version
+# (.github/workflows/image.yml; keep the tag equal to package.json's version,
+# __tests__/stack-image.test.ts checks it). `docker compose up` pulls it when
+# it isn't present locally and builds it from this directory only if the pull
+# fails (not published yet, or no network). `npm run stack -- up` does the same
+# but names a local build usertasks:local and checks Docker's memory first.
+# USERTASKS_IMAGE runs another image (e.g. usertasks:local, or your registry's
+# copy); `docker compose build` / `up --build` always builds locally.
 x-app-image: &app-image
-  image: ${USERTASKS_IMAGE:-usertasks:local}
+  image: ${USERTASKS_IMAGE:-ghcr.io/homepresso/usertasks:0.1.0}
   env_file:
     # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
     - path: ${USERTASKS_ENV_FILE:-.env}

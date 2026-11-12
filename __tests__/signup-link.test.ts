@@ -26,6 +26,15 @@ vi.mock('@/app/actions/auth', () => ({
   startSsoAction: vi.fn(),
 }))
 vi.mock('@/app/actions/session', () => ({ getMySession: vi.fn() }))
+// First-run setup reads the service database when one is configured (the
+// DB suites set DATABASE_URL); an empty one would send self-hosted sign-in to
+// /setup. That path has its own tests (setup-routes, setup-db): here the
+// install is already set up.
+vi.mock('@/lib/setup/server', () => ({
+  redirectToSetupIfNeeded: async () => {},
+  singleOrganisation: async () => null,
+  setupNeeded: async () => false,
+}))
 
 /** What the authorize route sends an unauthenticated CLI login to (`?redirect=` value). */
 const AUTHORIZE = `/api/oauth/authorize?${new URLSearchParams({

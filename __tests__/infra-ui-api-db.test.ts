@@ -46,8 +46,12 @@ import {
   type InfrastructureSwitchDeps,
 } from '@/lib/admin/infrastructure-switching'
 import { run } from '../packages/admin/src/cli'
+import { dbCapabilities } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// The service-role API path needs the Supabase stack (PostgREST); plain
+// PostgreSQL has none (its switching suite is packages/admin/test/infra-ui-db).
+const CAPS = await dbCapabilities()
 const API_URL = process.env.LOCKDOWN_SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const SERVICE_KEY = process.env.LOCKDOWN_SERVICE_ROLE_KEY
   ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
@@ -56,7 +60,7 @@ const TENANT_OWNER = { id: '00000000-0000-4000-8000-00000000ad02', email: 'owner
 const KEYS = ['providers.email', 'email.from', 'instance.allow_ui_switching']
 const ENV_KEYS = ['DATABASE_URL', 'MIGRATION_DATABASE_URL', 'DEPLOYMENT_MODE', 'INFRA_UI_SWITCHING', 'EMAIL_PROVIDER', 'EMAIL_FROM', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'DB_PROVIDER', 'CACHE_PROVIDER', 'KMS_PROVIDER']
 
-describe.skipIf(!DB_URL)('Settings → Infrastructure over the service-role API (local stack, no DATABASE_URL)', { timeout: 60_000 }, () => {
+describe.skipIf(!DB_URL || !CAPS?.supabase)('Settings → Infrastructure over the service-role API (local stack, no DATABASE_URL)', { timeout: 60_000 }, () => {
   const sql = new Client({ connectionString: DB_URL })
   const savedEnv: Record<string, string | undefined> = {}
   let savedRows: Array<{ key: string; value: unknown; secret: boolean }> = []

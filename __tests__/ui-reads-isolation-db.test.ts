@@ -16,7 +16,7 @@
  *   EVENT_STREAM_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npx vitest run __tests__/ui-reads-isolation-db.test.ts
  */
 import { createHash } from 'node:crypto'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Client, type Pool } from 'pg'
 import type { z } from 'zod'
 import { createPgQuery } from '@user-tasks/pg-query'
@@ -26,6 +26,9 @@ import type { ServiceContext } from '@/lib/services/context'
 /* eslint-disable @typescript-eslint/no-explicit-any -- fixture rows and zod shapes */
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+const API_URL = process.env.LOCKDOWN_SUPABASE_URL ?? 'http://127.0.0.1:54321'
+const SERVICE_KEY = process.env.LOCKDOWN_SERVICE_ROLE_KEY
+  ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 /** Reads whose answer repeats their text input (see the leak check). */
 const ECHO_READS = new Set(['forms.systemNameCheck', 'forms.systemNameSuggest', 'settings.workspaceAddressCheck'])
 
@@ -125,6 +128,13 @@ describe.skipIf(!DB_URL)('dashboard reads: tenant isolation (local DB)', () => {
   const aIds = new Set<string>()
 
   beforeAll(async () => {
+    // A few reads also use the service client for service-role-only tables
+    // (e.g. forms.list → form_design_drafts for "Draft changes"); it reads
+    // its URL and key from the environment, so set them for the local stack
+    // instead of depending on what an earlier file in this worker left there.
+    // (With DATABASE_URL set, the postgres provider serves it instead.)
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', API_URL)
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', SERVICE_KEY)
     await db.connect()
     await db.query('BEGIN')
     for (const k of ['A', 'B'] as const) {
@@ -162,6 +172,7 @@ describe.skipIf(!DB_URL)('dashboard reads: tenant isolation (local DB)', () => {
   }, 60_000)
 
   afterAll(async () => {
+    vi.unstubAllEnvs()
     await db.query('ROLLBACK').catch(() => {})
     await db.end()
   })

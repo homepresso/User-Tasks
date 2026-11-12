@@ -32,7 +32,11 @@ export function formatCount(n: number | null | undefined, opts: { locale?: strin
 /** Compact count for tight spaces: `950`, `1.2K`, `3.4M`. */
 export function formatCompact(n: number | null | undefined, opts: { locale?: string } = {}): string {
   if (!isNum(n)) return '—'
-  return nf(opts.locale, { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  const out = nf(opts.locale, { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  // CLDR 46+ (Node 22.12+, current browsers) switched en-GB's thousands
+  // suffix to a lowercase `k`; older ICU builds still print `K`. Keep the
+  // documented `1.2K` everywhere so server and client renders agree.
+  return /^en(-|$)/i.test(opts.locale ?? DEFAULT_LOCALE) ? out.replace(/(\d)k$/, '$1K') : out
 }
 
 /**

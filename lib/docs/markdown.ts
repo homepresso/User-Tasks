@@ -3,7 +3,7 @@
  * strings (lib/docs/content) and some are included from repository files
  * (docs/*.md, docs/changes/*.md), so the subset covers what those files use:
  * headings, paragraphs, nested lists, fenced code, pipe tables, blockquotes
- * (rendered as callouts) and `::directive` lines for generated references,
+ * (rendered as callouts; `[!CAUTION]` is the danger tone) and `::directive` lines for generated references,
  * screenshots and file includes. Inline markup (code, bold, italic, links)
  * stays in the text and is rendered by components/docs/inline.tsx.
  *
@@ -21,7 +21,7 @@ export type DocBlock =
   | { kind: 'list'; ordered: boolean; start?: number; items: DocListItem[] }
   | { kind: 'code'; lang: string; code: string; title?: string }
   | { kind: 'table'; head: string[]; rows: string[][] }
-  | { kind: 'callout'; tone: 'note' | 'tip' | 'warning'; text: string }
+  | { kind: 'callout'; tone: 'note' | 'tip' | 'warning' | 'danger'; text: string }
   | { kind: 'directive'; name: string; args: string[] }
 
 export interface ParseOptions {
@@ -46,6 +46,7 @@ export function slugify(text: string): string {
 /** Plain text of an inline-Markdown string (for ids, search and titles). */
 export function stripInline(text: string): string {
   return text
+    .replace(/<kbd>([^<]*)<\/kbd>/g, '$1')
     .replace(/`([^`]*)`/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
@@ -170,12 +171,12 @@ export function parseMarkdown(source: string, options: ParseOptions = {}): DocBl
         quoted.push(lines[i].trimStart().replace(/^>\s?/, ''))
         i++
       }
-      let tone: 'note' | 'tip' | 'warning' = 'note'
+      let tone: 'note' | 'tip' | 'warning' | 'danger' = 'note'
       const marker = /^\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]\s*$/i.exec(quoted[0] ?? '')
       if (marker) {
         quoted.shift()
         const kind = marker[1].toUpperCase()
-        tone = kind === 'TIP' ? 'tip' : kind === 'NOTE' ? 'note' : 'warning'
+        tone = kind === 'TIP' ? 'tip' : kind === 'NOTE' ? 'note' : kind === 'CAUTION' ? 'danger' : 'warning'
       }
       const text = quoted.join('\n').split(/\n\s*\n/).map((para) => inline(para.replace(/\s*\n\s*/g, ' ').trim())).filter(Boolean).join('\n\n')
       blocks.push({ kind: 'callout', tone, text })

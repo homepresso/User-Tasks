@@ -26,6 +26,8 @@ const SERVICE_KEY = process.env.LOCKDOWN_SERVICE_ROLE_KEY
 const id = (n: number) => `e7c0f200-0000-4000-8000-${n.toString(16).padStart(12, '0')}`
 const A = id(0xa)
 const B = id(0xb)
+/** The owner of every 10th workflow: this file's own user (another file's user would block its cleanup). */
+const OWNER = id(0x401)
 const IDS = { erp: id(0x301), erpRef: id(0x302), connectorIntegration: id(0x303), objects: id(0x304), connector: id(0x305), role: id(0x306), agent: id(0x307) }
 const SPECIAL = ['Discount 50% off', 'snake_case_flow', 'back\\slash flow', 'say "hi" flow', 'a,b(c) flow', "O'Brien flow", 'Café órders']
 const opts = { auth: { persistSession: false, autoRefreshToken: false } }
@@ -35,13 +37,14 @@ describe.skipIf(!DB_URL)('package asset search (local stack)', () => {
   const admin = createClient(API_URL, SERVICE_KEY, opts)
   const ctx = (tenantId: string, permissions: string[] | null = null, actorId: string | null = null): ServiceContext => ({ supabase: admin, tenantId, actorId, permissions: permissions ? new Set(permissions) : null, authKind: 'api_key', source: 'api' })
   const prev = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY }
-  let userId: string | null = null
+  const userId = OWNER
 
   async function cleanup() {
     for (const t of [A, B]) {
       for (const table of ['packages', 'integration_references', 'tenant_connectors', 'agents', 'integrations', 'workflows', 'custom_tables', 'decision_tables', 'email_templates', 'reports', 'mcp_servers', 'retention_policies', 'log_destinations', 'roles', 'tag_definitions', 'object_audit_log', 'github_sync_asset_map']) {
         await db.query(`DELETE FROM public.${table} WHERE tenant_id = $1`, [t]).catch(() => undefined)
       }
+      await db.query('DELETE FROM public.users WHERE id = $1', [OWNER])
       await db.query('DELETE FROM public.tenants WHERE id = $1', [t])
     }
   }
@@ -82,8 +85,8 @@ describe.skipIf(!DB_URL)('package asset search (local stack)', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY
     await db.connect()
     await cleanup()
-    userId = (await db.query('SELECT id FROM public.users ORDER BY created_at LIMIT 1')).rows[0]?.id ?? null
     await db.query(`INSERT INTO public.tenants (id, name, slug) VALUES ($1, 'Asset search A', 'asset-search-a-test'), ($2, 'Asset search B', 'asset-search-b-test')`, [A, B])
+    await db.query(`INSERT INTO public.users (id, tenant_id, email, display_name) VALUES ($1, $2, 'owner@asset-search.test', 'Asset owner')`, [OWNER, A])
     // 130 workflows with spread-out updated_at (some share a timestamp), every 3rd tagged.
     await db.query(`
       INSERT INTO public.workflows (tenant_id, name, description, trigger_type, trigger_config, nodes, edges, tags, created_by, updated_at)
@@ -130,6 +133,11 @@ describe.skipIf(!DB_URL)('package asset search (local stack)', () => {
     expect(page.facets?.tags).toEqual(['finance'])
   })
 
+  // A walk is ~10 searches (each up to 13 typed queries); vitest's default
+  // 5 s was close to the edge on a busy runner or Docker Desktop (measured
+  // 4–6 s there), so a correctness test isn't failed by a slow host.
+  const WALK_TIMEOUT = 30_000
+
   it('walks every page A–Z without repeats or gaps, each type in database order', async () => {
     const all = await walk({ limit: 17 })
     const keys = all.map((hit) => `${hit.type}:${hit.id}`)
@@ -137,7 +145,7 @@ describe.skipIf(!DB_URL)('package asset search (local stack)', () => {
     expect(new Set(keys)).toEqual(await expectedKeys())
     const flows = all.filter((hit) => hit.type === 'workflow' && hit.name.startsWith('Flow ')).map((hit) => hit.name)
     expect(flows).toEqual([...flows].sort())
-  })
+  }, WALK_TIMEOUT)
 
   it('walks every page newest first, rows without updated_at last', async () => {
     const all = await walk({ limit: 23, sort: 'updated' })
@@ -150,7 +158,7 @@ describe.skipIf(!DB_URL)('package asset search (local stack)', () => {
     expect(firstUndated).toBeGreaterThan(0)
     expect(all.slice(firstUndated).every((hit) => !hit.updated_at)).toBe(true)
     expect(all.slice(firstUndated).map((hit) => hit.id)).toEqual(expect.arrayContaining([IDS.agent, IDS.role]))
-  })
+  }, WALK_TIMEOUT)
 
   it('matches special characters literally', async () => {
     for (const name of SPECIAL) {

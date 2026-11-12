@@ -14,8 +14,12 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
+import { dbCapabilities, setRoleSql } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// Managed PostgreSQL may not give service_role BYPASSRLS: the app then runs
+// service-role requests as the schema owner, and so does this test.
+const CAPS = await dbCapabilities()
 
 const TENANT = '0e000000-0000-4000-8000-00000000000a'
 const OTHER = '0e000000-0000-4000-8000-00000000000b'
@@ -59,7 +63,7 @@ describe.skipIf(!DB_URL)('manager tasks migration (local DB)', () => {
   async function as(role: 'authenticated' | 'service_role', user: string | null, sql: string, params: unknown[] = []) {
     await db.query('SAVEPOINT caller')
     try {
-      await db.query(`SET LOCAL ROLE ${role}`)
+      await db.query(setRoleSql(role, CAPS))
       await db.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify(user ? { sub: user, role } : { role })])
       const { rows } = await db.query(sql, params)
       await db.query('RELEASE SAVEPOINT caller')

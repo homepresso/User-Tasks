@@ -39,11 +39,12 @@ inviting people, the CLI, updates, backups and troubleshooting:
    `supabase init`; `npm run setup:local` does this and the steps below).
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
    The cron migration also runs `create extension if not exists` for both.
-3. Apply the migrations. Hosted project:
+3. Apply the migrations. Hosted project (moving from a local stack with data? See
+   [Move from your local Supabase to Supabase Cloud](https://usertasks.com/docs/self-hosting/local-to-supabase-cloud)):
 
    ```bash
    npx supabase link --project-ref <your-project-ref>
-   npx supabase db push
+   npx supabase db push --linked
    ```
 
    Local stack: `npx supabase start` applies `supabase/migrations/` to a new
@@ -87,6 +88,32 @@ the getting-started welcome ("thank you for joining the beta"). Unset, they
 show in cloud mode only. In-app **Send feedback** is offered only when the
 contact pipeline (`CHIRPME_API_KEY`, `CHIRPME_CHANNEL_ID`) is configured.
 
+### Your own address (https://tasks.example.com)
+
+Moving from `http://localhost:3000` to a domain name takes four steps; the
+beginner's walkthrough, with Caddy, nginx + certbot, Helm and Compose
+examples, is [Give your install a friendly address](https://usertasks.com/docs/self-hosting/friendly-address).
+
+1. **DNS**: an `A` / `AAAA` record (or a `CNAME` to your load balancer) for
+   `tasks.example.com` pointing at the server.
+2. **HTTPS**: a reverse proxy in front of port 3000 that holds the
+   certificate, passes the original `Host` header, sets `X-Forwarded-Proto` /
+   `X-Forwarded-For`, doesn't buffer Server-Sent Events (nginx:
+   `proxy_buffering off;` and a long `proxy_read_timeout`) and accepts the
+   upload size below. With Docker Compose, `APP_PORT=127.0.0.1:3000` keeps
+   the app's port off the network so only the proxy reaches it.
+3. **`APP_URL` and `NEXT_PUBLIC_APP_URL`** set to `https://tasks.example.com`.
+   The server reads `APP_URL` at runtime (restart); `NEXT_PUBLIC_APP_URL` is
+   also read at build time (a Docker build arg), so rebuild as well.
+4. **Things that remember the old address**: OIDC redirect URIs
+   (`<APP_URL>/auth/sso/<id>/callback`), SAML ACS and the default SP entity
+   ID (`<APP_URL>/auth/saml/<id>/…`), the Supabase Auth Site URL and Redirect
+   URLs (`<APP_URL>/auth/callback`), OAuth connector redirect URIs
+   (`<APP_URL>/api/connectors/oauth/callback`), `usertasks login --url`,
+   inbound webhooks, and the pg_cron `app_base_url` Vault secret
+   (`npm run scheduler -- install-pg-cron --base-url <APP_URL>`). The app
+   doesn't redirect other host names to `APP_URL`.
+
 ### Workspace addresses (optional)
 
 Each workspace can have its own address, `acme.example.com`, and every
@@ -95,7 +122,7 @@ They are off on a self-hosted install until you set a base domain:
 
 | Variable | Notes |
 |----------|-------|
-| `APP_BASE_DOMAIN` | The domain workspace addresses live under, e.g. `example.com` (then `acme.example.com`). The cloud edition defaults to the `APP_URL` host (`www.` / `app.` stripped). `off` turns addresses off. |
+| `APP_BASE_DOMAIN` | The domain workspace addresses live under, e.g. `example.com` (then `acme.example.com`). The cloud edition defaults to the `APP_URL` host (`www.` / `app.` stripped). `off` turns addresses off. Use the `APP_URL` host (or its parent when `APP_URL` is `www.` / `app.`): any other name one level under the base domain, `tasks` in `tasks.example.com` included, is read as a workspace address. |
 
 What it needs (instance admins: **Settings → Workspace DNS** shows the
 records for your base domain and checks DNS, the certificate and whether the

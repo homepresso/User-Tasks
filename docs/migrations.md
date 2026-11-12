@@ -79,7 +79,7 @@ npx supabase db reset          # applies supabase/migrations/
 
 # hosted project
 npx supabase link --project-ref <ref>
-npx supabase db push
+npx supabase db push --linked
 ```
 
 Then create the Vault secrets `cron_secret` and `app_base_url`

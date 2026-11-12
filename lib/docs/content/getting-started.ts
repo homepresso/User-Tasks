@@ -103,7 +103,7 @@ npm run setup:local
 
 ## 2. Configuration by hand (optional)
 
-Using a hosted Supabase project, or prefer to do it yourself? Apply the migrations (\`npx supabase link --project-ref <ref> && npx supabase db push\`, or \`npx supabase start\` for a local stack) and:
+Using a hosted Supabase project, or prefer to do it yourself? Apply the migrations (\`npx supabase link --project-ref <ref> && npx supabase db push --linked\`, or \`npx supabase start\` for a local stack) and:
 
 \`\`\`bash
 cp .env.example .env.local

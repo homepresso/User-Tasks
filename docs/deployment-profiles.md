@@ -51,8 +51,8 @@ No Supabase. These containers start:
 | `app` | The web server, with a healthcheck on `/api/config/public`. |
 
 One command writes `.env` from `deploy/compose/standalone.env.example` with
-fresh secrets, builds and starts the stack, waits until it is healthy, and
-creates the first workspace:
+fresh secrets, gets the app image (below), starts the stack, waits until it
+is healthy, and creates the first workspace:
 
 ```bash
 npm run stack -- up --email admin@example.com --org "Acme Inc"
@@ -62,8 +62,32 @@ The generated password goes to `.usertasks-first-login` (readable only by
 you; git- and docker-ignored), and the console names the file without
 printing the password. Without `--email`/`--org`, `up` ends by printing the
 `/setup` address and the setup code: `init` writes a generated
-`USERTASKS_SETUP_CODE` to `.env`. Building the image needs about 10 GB of
-memory for Docker; see [Memory](#memory).
+`USERTASKS_SETUP_CODE` to `.env`.
+
+**The app image.** `up` uses the published multi-arch image for this version,
+`ghcr.io/homepresso/usertasks:<package.json version>`
+(`.github/workflows/image.yml`), when it is available: present locally or
+pulled now. Otherwise (none published for this version yet, or no network)
+it builds the image locally, tagged `usertasks:local`, which needs about
+10 GB of memory for Docker; see [Memory](#memory).
+
+| `up` with | Image |
+|---|---|
+| nothing | the published image if it can be pulled, else a local build (memory check first) |
+| `--build` | always a local build (`usertasks:local`, or the `USERTASKS_IMAGE` tag) |
+| `USERTASKS_IMAGE=…` (environment or `.env`) | that image, pulled if missing; never builds |
+| `--no-build` | `usertasks:local` from an earlier build (the release gates use this) |
+
+The published image is generic: `DEPLOYMENT_MODE=self_hosted`, no
+`NEXT_PUBLIC_APP_URL` baked in (the server reads `APP_URL` at runtime; only
+robots.txt, the sitemap and Open Graph URLs are rendered at build time, so
+build locally if those must carry your address), the default optional
+packages, type-checked (`TYPECHECK=true`), with build provenance and an
+SBOM attached. `docker-compose.yml` defaults to the same tag, so a plain
+`docker compose up` also pulls it and builds only when the pull fails (that
+local build is then tagged with the published name). Keep the tag in
+`docker-compose.yml` equal to `package.json`'s version
+(`__tests__/stack-image.test.ts` checks it).
 
 By hand, the same steps are (replace every `<generate>` in `.env` first):
 
@@ -82,12 +106,14 @@ The standalone profile has some options:
   `REALTIME_DATABASE_URL` and `SCHEDULER_DATABASE_URL` keep pointing at
   `postgres:5432`.
 - **Host ports:** use `APP_PORT`, `MAILPIT_PORT` and `MINIO_CONSOLE_PORT`.
-- **Prebuilt image:** set `USERTASKS_IMAGE=registry.example.com/usertasks:1.2.3`
-  and pass `--no-build`. No build means no memory check and minutes saved.
+- **Another prebuilt image:** set `USERTASKS_IMAGE=registry.example.com/usertasks:1.2.3`
+  (a mirror of the published image, or your own build). No build means no
+  memory check and minutes saved.
 
 ### Memory
 
-Building the image (`npm run stack -- up`, `docker compose up --build`,
+Building the image (`npm run stack -- up` when no published image can be
+pulled, `npm run stack -- up --build`, `docker compose up --build`,
 `docker build`) needs about **10 GB of memory for Docker**
 (`lib/docker-build-memory.ts`, which the stack's check and the docs use).
 Nearly all of it is `next build`'s compile ("Creating an optimized
@@ -101,10 +127,11 @@ Turbopack aliases for optional drivers and ran out of a 2.5 GB heap. The
 static-page phase after it is small (two workers of ~0.9 GB). Running the
 finished stack needs about 2 GB.
 
-The way round the build is a prebuilt image (`USERTASKS_IMAGE=… npm run stack
--- up --no-build`): no compile, no memory check. No image is published yet.
+The way round the build is a prebuilt image: the published one, which `up`
+uses by default when it is available, or any other with `USERTASKS_IMAGE=…`.
+No compile, no memory check.
 
-- `npm run stack -- up` reads `docker info --format '{{.MemTotal}}'` first and
+- Before a local build, `npm run stack -- up` reads `docker info --format '{{.MemTotal}}'` and
   stops with the Docker Desktop steps (Settings → Resources → Memory) when
   it's lower. `--skip-memory-check` (or `USERTASKS_SKIP_MEMORY_CHECK=1`)
   builds anyway.

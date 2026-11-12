@@ -153,6 +153,12 @@
  * `select *` is refused) and assistant_usage (own rows, or assistants.manage);
  * neither has client write grants.
  *
+ * 20270110000000_form_design_drafts.sql added form_design_drafts (a form's
+ * unpublished designer draft) and form_design_draft_reviewers (who may
+ * preview it): RLS on with no client grants at all — the service role reads
+ * and writes them after its own checks — so every caller gets 42501 for
+ * every statement.
+ *
  * Runs only against a LOCAL Supabase stack — set EVENT_STREAM_DB_URL, e.g.
  *   EVENT_STREAM_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npx vitest run __tests__/rls-semantics-db.test.ts
  * End users are simulated the way PostgREST does it: SET ROLE + request.jwt.claims.
@@ -463,6 +469,13 @@ const SPECS: Spec[] = [
   { table: 'form_favorites', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k) }), touch: 'created_at' },
   // Form drafts (20261218000000): a person's own saved answers; INSERT / UPDATE only for a form they can open.
   { table: 'form_drafts', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k), values: '{}' }), touch: 'version' },
+  // Form designer drafts (20270110000000): no client grants; one draft per form (form_id is the key).
+  { table: 'form_design_drafts', insertVariant: 'row', make: (k) => ({ form_id: id('forms', k), tenant_id: TENANT[k], base_version: 1 }), touch: 'updated_at' },
+  {
+    table: 'form_design_draft_reviewers',
+    make: (k, v) => ({ tenant_id: TENANT[k], form_id: id('forms', k), principal_type: 'user', principal_id: v === 'row' ? OWNER[k] : U.ab_unified }),
+    touch: 'created_at',
+  },
   { table: 'api_keys', make: (k, v) => ({ tenant_id: TENANT[k], name: `key ${v}`, key_prefix: 'p', key_hash: `rls-${k}-${v}` }) },
   // Form wizard projects (20261229000000): a person reads their own rows in member workspaces; no end-user writes.
   { table: 'form_wizard_projects', make: (k, v) => ({ tenant_id: TENANT[k], owner_id: v === 'row' ? OWNER[k] : U.ab_unified, name: `wizard ${v}` }), touch: 'name' },

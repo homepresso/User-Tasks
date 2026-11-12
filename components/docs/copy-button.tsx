@@ -16,16 +16,18 @@ export function CopyButton({ text, className = '' }: { text: string; className?:
     <button
       type="button"
       aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+      data-copy-button=""
       onClick={() => {
         void navigator.clipboard?.writeText(text).then(() => {
           setCopied(true)
-          setTimeout(() => setCopied(false), 1500)
-        })
+          setTimeout(() => setCopied(false), 1800)
+        }).catch(() => { /* clipboard blocked: nothing to confirm */ })
       }}
       className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-(color:--mkt-faint) transition hover:bg-(color:--mkt-white)/10 hover:text-(color:--mkt-white) ${className}`}
     >
-      {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? <Check size={13} aria-hidden="true" className="text-[#9BD0A9]" /> : <Copy size={13} aria-hidden="true" />}
+      <span aria-hidden="true">{copied ? 'Copied' : 'Copy'}</span>
+      <span className="sr-only" aria-live="polite">{copied ? 'Copied to clipboard' : ''}</span>
     </button>
   )
 }

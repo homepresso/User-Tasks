@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveInstanceConfig } from '@/lib/config'
 import { resolveSecretRef, SECRET_REF_PREFIX } from '@/lib/config/secret-refs'
+import { STORAGE_OPTION_ENV } from '@/lib/providers/storage/options'
 
 /**
  * Provider settings are trimmed wherever they come from (production's anon key
@@ -12,6 +13,10 @@ describe('config values are trimmed on every path', () => {
   afterEach(() => vi.unstubAllEnvs())
 
   it('instance_settings provider options (Infrastructure page, admin CLI, API)', () => {
+    // Option env vars win over instance_settings (the S3 / local-storage CI
+    // jobs set S3_ENDPOINT, STORAGE_LOCAL_ROOT, ...): blank them so the
+    // settings path is what's under test.
+    for (const name of Object.values(STORAGE_OPTION_ENV)) vi.stubEnv(name, '')
     const config = resolveInstanceConfig(new Map<string, unknown>([
       ['storage.bucket', '  uploads\n'],
       ['storage.endpoint', 'https://s3.example.com\r\n'],

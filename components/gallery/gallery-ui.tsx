@@ -15,6 +15,7 @@ import {
 import { createElement, type ReactNode } from "react"
 import type { GalleryCategoryId, GalleryNeed, GalleryOrigin, GalleryTrigger } from "@/lib/gallery/types"
 import { GALLERY_NEEDS, GALLERY_ORIGINS, GALLERY_TRIGGERS, NATIVE_BADGE } from "@/lib/gallery/types"
+import { CATEGORY_ICONS, TRIGGER_ICONS } from "./gallery-icons"
 
 /** Card icons by gallery.json `icon` (kebab-case lucide names); unknown names fall back to the category icon. */
 const ICONS: Record<string, LucideIcon> = {
@@ -47,19 +48,6 @@ const ICONS: Record<string, LucideIcon> = {
 /** Icon names a gallery.json may use. */
 export const GALLERY_ICON_NAMES = Object.keys(ICONS)
 
-const CATEGORY_ICONS: Record<GalleryCategoryId, LucideIcon> = {
-  "hr-people": Users,
-  finance: Receipt,
-  "it-security": ShieldCheck,
-  "customer-sales": Handshake,
-  "operations-compliance": ClipboardCheck,
-  workplace: Building2,
-  "headless-integration": Code2,
-  "surveys-assessments": ClipboardList,
-  "media-evidence": Clapperboard,
-  "form-controls": Puzzle,
-  "workflow-actions": Workflow,
-}
 
 export function packageIcon(icon: string | null | undefined, category: GalleryCategoryId): LucideIcon {
   return (icon && ICONS[icon]) || CATEGORY_ICONS[category] || Package
@@ -70,12 +58,12 @@ export function PackageIcon({ icon, category, size }: { icon: string | null | un
   return createElement(packageIcon(icon, category), { size, "aria-hidden": true })
 }
 
-export const TRIGGER_ICONS: Record<GalleryTrigger, LucideIcon> = { form: FormInput, api: Webhook, schedule: CalendarClock, event: Radio }
+export { TRIGGER_ICONS, CATEGORY_ICONS }
 
 const TRIGGER_STYLE: Record<GalleryTrigger, string> = {
-  form: "bg-[#B08A54]/[0.14] text-[#6F522B] ring-[#B08A54]/30",
-  api: "bg-[#17150F] text-[#FAF8F3] ring-[#17150F]",
-  schedule: "bg-[#4F7A5B]/[0.12] text-[#355A40] ring-[#4F7A5B]/30",
+  form: "bg-(color:--mkt-gold)/[0.14] text-[#6F522B] ring-(color:--mkt-gold)/30",
+  api: "bg-(color:--mkt-primary) text-(color:--mkt-paper) ring-(color:--mkt-primary)",
+  schedule: "bg-(color:--mkt-green)/[0.12] text-[#355A40] ring-(color:--mkt-green)/30",
   event: "bg-[#4E6E8E]/[0.12] text-[#34506B] ring-[#4E6E8E]/30",
 }
 
@@ -90,12 +78,12 @@ export function TriggerBadge({ trigger, size = "sm" }: { trigger: GalleryTrigger
 }
 
 export function NeedsChips({ needs, label = "Needs" }: { needs: GalleryNeed[]; label?: string }) {
-  if (!needs.length) return <p className="text-xs text-[#6E6759]">No external systems needed</p>
+  if (!needs.length) return <p className="text-xs text-(color:--mkt-muted)">No external systems needed</p>
   return (
-    <p className="flex flex-wrap items-center gap-1.5 text-xs text-[#6E6759]">
-      <span className="font-semibold text-[#4A463E]">{label}:</span>
+    <p className="flex flex-wrap items-center gap-1.5 text-xs text-(color:--mkt-muted)">
+      <span className="font-semibold text-(color:--mkt-text)">{label}:</span>
       {needs.map((need) => (
-        <span key={need} title={GALLERY_NEEDS[need]?.description} className="rounded-md border border-[#1B1916]/[0.1] bg-[#FAF8F3] px-1.5 py-0.5 font-medium text-[#4A463E]">{GALLERY_NEEDS[need]?.label ?? need}</span>
+        <span key={need} title={GALLERY_NEEDS[need]?.description} className="rounded-md border border-(color:--mkt-ink)/[0.1] bg-(color:--mkt-paper) px-1.5 py-0.5 font-medium text-(color:--mkt-text)">{GALLERY_NEEDS[need]?.label ?? need}</span>
       ))}
     </p>
   )
@@ -107,7 +95,7 @@ export const DIFFICULTY_LABEL: Record<string, string> = { starter: "Starter", in
 export function OriginBadge({ source, size = "sm" }: { source: GalleryOrigin; size?: "sm" | "md" }) {
   const community = source === "community"
   return (
-    <span title={GALLERY_ORIGINS[source].description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset ${community ? "bg-[#6B4E8E]/[0.1] text-[#4F3870] ring-[#6B4E8E]/30" : "bg-[#17150F]/[0.06] text-[#33302A] ring-[#17150F]/15"} ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-2xs"}`} data-testid={`origin-${source}`}>
+    <span title={GALLERY_ORIGINS[source].description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset ${community ? "bg-[#6B4E8E]/[0.1] text-[#4F3870] ring-[#6B4E8E]/30" : "bg-(color:--mkt-primary)/[0.06] text-(color:--mkt-ink-soft) ring-(color:--mkt-primary)/15"} ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-2xs"}`} data-testid={`origin-${source}`}>
       {createElement(community ? UsersRound : BadgeCheck, { size: size === "md" ? 14 : 11, "aria-hidden": true })}
       {GALLERY_ORIGINS[source].label}
     </span>
@@ -117,7 +105,7 @@ export function OriginBadge({ source, size = "sm" }: { source: GalleryOrigin; si
 /** "No integrations needed": built-in features only, installs complete with nothing to configure. */
 export function NativeBadge({ size = "sm" }: { size?: "sm" | "md" }) {
   return (
-    <span title={NATIVE_BADGE.description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset bg-[#4F7A5B]/[0.12] text-[#2F5A3B] ring-[#4F7A5B]/30 ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-2xs"}`} data-testid="native-badge">
+    <span title={NATIVE_BADGE.description} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset bg-(color:--mkt-green)/[0.12] text-[#2F5A3B] ring-(color:--mkt-green)/30 ${size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-2xs"}`} data-testid="native-badge">
       {createElement(Package, { size: size === "md" ? 14 : 11, "aria-hidden": true })}
       {NATIVE_BADGE.label}
     </span>
@@ -145,13 +133,13 @@ export function SystemChips({ systems }: { systems: string[] }) {
  */
 export function CardPreview({ icon, steps, badge, tone = "gold" }: { icon: ReactNode; steps?: number; badge?: ReactNode; tone?: "gold" | "ink" }) {
   return (
-    <div className={`relative flex aspect-[16/10] flex-col items-center justify-center gap-3 overflow-hidden rounded-t-lg border-b border-[#1B1916]/[0.07] ${tone === "ink" ? "bg-[#17150F]/[0.04]" : "bg-[radial-gradient(circle_at_50%_30%,rgba(176,138,84,0.16),rgba(176,138,84,0.05)_70%)]"}`}>
+    <div className={`relative flex aspect-[16/10] flex-col items-center justify-center gap-3 overflow-hidden rounded-t-lg border-b border-(color:--mkt-ink)/[0.07] ${tone === "ink" ? "bg-(color:--mkt-primary)/[0.04]" : "bg-[radial-gradient(circle_at_50%_30%,rgba(176,138,84,0.16),rgba(176,138,84,0.05)_70%)]"}`}>
       {badge && <span className="absolute right-3 top-3">{badge}</span>}
-      <span aria-hidden="true" className="inline-flex size-14 items-center justify-center rounded-xl bg-[#FFFFFF] text-[#8A6D45] shadow-elev-1 transition-transform duration-[var(--ds-dur-base)] group-hover:scale-105">{icon}</span>
-      {steps ? <span className="num text-xs font-medium text-[#857D6D]">{steps} steps</span> : null}
+      <span aria-hidden="true" className="inline-flex size-14 items-center justify-center rounded-xl bg-(color:--mkt-white) text-(color:--mkt-bronze) shadow-elev-1 transition-transform duration-[var(--ds-dur-base)] group-hover:scale-105">{icon}</span>
+      {steps ? <span className="num text-xs font-medium text-(color:--mkt-subtle)">{steps} steps</span> : null}
     </div>
   )
 }
 
 /** Card frame shared by the gallery grids: flat, hairline, elev-1 and a stronger border on hover. */
-export const galleryCardClass = "group flex h-full flex-col overflow-hidden rounded-lg border border-[#1B1916]/[0.09] bg-[#FFFFFF] transition-[border-color,box-shadow] duration-[var(--ds-dur-fast)] hover:border-[#8A6D45]/45 hover:shadow-elev-1"
+export const galleryCardClass = "group flex h-full flex-col overflow-hidden rounded-lg border border-(color:--mkt-ink)/[0.09] bg-(color:--mkt-white) transition-[border-color,box-shadow] duration-[var(--ds-dur-fast)] hover:border-(color:--mkt-bronze)/45 hover:shadow-elev-1"

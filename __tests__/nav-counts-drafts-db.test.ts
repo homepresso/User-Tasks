@@ -98,6 +98,12 @@ describe.skipIf(!DB_URL)('nav counts and form drafts (local stack)', () => {
     [tid, o.tenant ?? A, `Task ${tid.slice(-4)}`, o.status ?? 'todo', o.assignee ?? null, o.assigner ?? null, o.team ?? null, o.acceptance ?? 'accepted', o.parent ?? null, o.team ? 'team' : 'individual'])
 
   beforeAll(async () => {
+    // Submitting a form with an attachments field re-reads the uploads through
+    // the service client (lib/forms/task-values → createServiceClient), which
+    // reads these from the environment. Set them here rather than relying on
+    // another file in the same worker having set them first.
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', API_URL)
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', SERVICE_KEY)
     await db.connect()
     await cleanup()
     await q(`INSERT INTO public.tenants (id, name, slug) VALUES ($1, 'Nav A', 'nav-a-test'), ($2, 'Nav B', 'nav-b-test')`, [A, B])
@@ -137,6 +143,7 @@ describe.skipIf(!DB_URL)('nav counts and form drafts (local stack)', () => {
   }, 60_000)
 
   afterAll(async () => {
+    vi.unstubAllEnvs()
     await cleanup().catch(() => undefined)
     await db.end()
   })

@@ -1,14 +1,16 @@
 import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
-import { DocsSearch } from '@/components/docs/docs-search'
-import { DocsSidebar, type SidebarSection } from '@/components/docs/docs-sidebar'
-import { DOC_SECTIONS, docHref } from '@/lib/docs/registry'
-import { isCloud, publicCta } from '@/lib/deployment'
-import { Wordmark } from '@/components/brand/logo'
+import { DocsHeader } from '@/components/docs/docs-header'
+import { DocsNavProvider, DocsSidebar } from '@/components/docs/docs-nav'
+import { docsNavLinks, docsNavTabs, docsSearchSuggestions } from '@/lib/docs/chrome'
+import { LogoMark } from '@/components/brand/logo'
+import { GitHubMark } from '@/components/docs/icons'
 import '@/components/marketing/marketing-tokens.css'
+import '@/components/docs/docs.css'
 
 /**
- * Docs chrome: header with search, sidebar navigation, content. Served in both
+ * Docs chrome: skip link, sticky header with area tabs and search, the
+ * sidebar for the current area, content and a slim footer. Served in both
  * deployment modes (self-hosters need the docs too); every page below is
  * statically generated.
  *
@@ -27,39 +29,38 @@ const THEME = {
   '--theme-accent': 'var(--mkt-primary)',
 } as CSSProperties
 
-const SECTIONS: SidebarSection[] = DOC_SECTIONS.map((section) => ({
-  title: section.title,
-  items: [
-    ...section.pages.map((page) => ({ title: page.title, href: docHref(page.slug) })),
-    ...(section.links ?? []),
-  ],
-}))
-
 export default function DocsLayout({ children }: { children: ReactNode }) {
-  const cloud = isCloud()
-  const cta = publicCta()
+  const links = docsNavLinks()
   return (
-    <div className="mkt docs-abyss min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
-      <header className="sticky top-0 z-40 border-b border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-paper)/90 backdrop-blur">
-        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Link href={cloud ? '/' : '/docs'} aria-label="UserTasks home">
-              <Wordmark size={30} />
-            </Link>
-            <Link href="/docs" className="rounded-md bg-(color:--mkt-primary)/[0.06] px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-muted-strong)">Docs</Link>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <DocsSearch />
-            <Link href="/docs/api-explorer" className="hidden text-sm text-(color:--mkt-muted-strong) hover:text-(color:--mkt-ink) md:inline">API Explorer</Link>
-            {cloud && <Link href="/contact" className="hidden text-sm text-(color:--mkt-muted-strong) hover:text-(color:--mkt-ink) md:inline">Contact</Link>}
-            <Link href={cta.href} className="rounded-lg bg-(color:--mkt-primary) px-3 py-2 text-sm font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover) sm:px-4">{cta.label}</Link>
-          </div>
+    <div className="mkt docs-root docs-abyss min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
+      <a href="#docs-main" className="sr-only z-[90] rounded-lg bg-(color:--mkt-primary) px-4 py-2 text-sm font-semibold text-(color:--mkt-paper) focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
+        Skip to content
+      </a>
+      <DocsNavProvider tabs={docsNavTabs()} links={links} suggestions={docsSearchSuggestions()}>
+        <DocsHeader links={links} />
+        <div className="mx-auto flex max-w-[1440px] gap-6 px-4 sm:px-6 xl:gap-10">
+          <DocsSidebar />
+          <main id="docs-main" tabIndex={-1} className="min-w-0 flex-1 outline-none">{children}</main>
         </div>
-      </header>
-      <div className="mx-auto flex max-w-[1440px] gap-8 px-4 sm:px-6">
-        <DocsSidebar sections={SECTIONS} />
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
+      </DocsNavProvider>
+      <footer className="border-t border-(color:--mkt-ink)/[0.08]">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-8 text-ui text-(color:--mkt-muted) sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <LogoMark size={22} />
+            <span>UserTasks documentation · Apache-2.0</span>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href="/docs" className="hover:text-(color:--mkt-ink)">Docs home</Link>
+            <Link href="/docs/api-explorer" className="hover:text-(color:--mkt-ink)">API Explorer</Link>
+            {links.website && <Link href={links.website} className="hover:text-(color:--mkt-ink)">Website</Link>}
+            {links.contact && <Link href={links.contact} className="hover:text-(color:--mkt-ink)">Contact</Link>}
+            {links.repository && (
+              <a href={links.repository} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-(color:--mkt-ink)"><GitHubMark size={13} /> GitHub</a>
+            )}
+            <Link href={links.signIn.href} className="hover:text-(color:--mkt-ink)">{links.signIn.label}</Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   )
 }
