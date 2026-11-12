@@ -321,6 +321,19 @@ function servedKey(taskId: string, fieldKey: string, value: string): string {
   return `lookup:served:${createHash('sha256').update(`${taskId}\u0000${fieldKey}\u0000${value}`).digest('hex')}`
 }
 
+const pendingServedWrites = new Set<Promise<void>>()
+
+/** Remember served items in the background; completion re-queries if the write has not landed. */
+function rememberServedInBackground(taskId: string, fieldKey: string, items: LookupItem[]) {
+  const write = rememberServed(taskId, fieldKey, items).finally(() => { pendingServedWrites.delete(write) })
+  pendingServedWrites.add(write)
+}
+
+/** Test hook: wait for background served-item writes (slower cache stores, e.g. postgres, finish later). */
+export async function settleServedWrites(): Promise<void> {
+  while (pendingServedWrites.size) await Promise.all([...pendingServedWrites])
+}
+
 async function rememberServed(taskId: string, fieldKey: string, items: LookupItem[]) {
   try {
     const store = await (await import('@/lib/providers/cache')).getCacheStore()
@@ -440,7 +453,7 @@ export async function lookupTaskField(ctx: ServiceContext, taskId: string, input
   const resolve = resolveRequestValues(input.resolve)
   if (resolve) return resolveItems(db, ctx.tenantId, field, field.lookup, resolve, values, { taskId: task.id, task: taskScope(task) })
   const result = await runLookup(db, ctx.tenantId, field.lookup, { search: lookupSearchTerm(input.query), values, task: taskScope(task) }, task.id)
-  if (field.lookup.source === 'reference' && result.items.length) void rememberServed(task.id, field.key, result.items)
+  if (field.lookup.source === 'reference' && result.items.length) rememberServedInBackground(task.id, field.key, result.items)
   return result
 }
 
@@ -474,7 +487,7 @@ export async function lookupFormField(ctx: ServiceContext, formId: string, input
   const resolve = resolveRequestValues(input.resolve)
   if (resolve) return resolveItems(db, ctx.tenantId, field, lookup, resolve.slice(0, isAnonymous(ctx) ? 20 : resolve.length), values, { taskId: scope, task: null })
   const result = await runLookup(db, ctx.tenantId, lookup, { search: lookupSearchTerm(input.query), values, task: null }, scope)
-  if (field.lookup.source === 'reference' && result.items.length) void rememberServed(scope, field.key, result.items)
+  if (field.lookup.source === 'reference' && result.items.length) rememberServedInBackground(scope, field.key, result.items)
   return result
 }
 

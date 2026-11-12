@@ -91,14 +91,11 @@ describe.skipIf(!DB_URL)('built-in auth (local stack)', () => {
     })
     delete process.env.AUTH_ALLOW_SIGNUP
     await pg.connect()
-    const { rows: inviter } = await pg.query<{ id: string }>('SELECT id FROM public.users ORDER BY created_at LIMIT 1')
-    inviterId = inviter[0]?.id
-    if (!inviterId) {
-      // A fresh database (plain Postgres): provision an inviter the app's way.
-      inviterId = randomUUID()
-      createdUsers.push(inviterId)
-      await pg.query('SELECT public.provision_auth_user($1, $2, NULL, $3)', [inviterId, emailFor('inviter'), 'email'])
-    }
+    // Our own inviter, provisioned the app's way: borrowing an existing user
+    // races other DB test files that delete their users while this one runs.
+    inviterId = randomUUID()
+    createdUsers.push(inviterId)
+    await pg.query('SELECT public.provision_auth_user($1, $2, NULL, $3)', [inviterId, emailFor('inviter'), 'email'])
     const { rows } = await pg.query<{ id: string }>(`INSERT INTO public.tenants (name, slug) VALUES ($1, $2) RETURNING id`, [`Auth ${RUN}`, SLUG])
     tenantId = rows[0].id
     auth = await import('@/lib/providers/auth')
@@ -108,6 +105,7 @@ describe.skipIf(!DB_URL)('built-in auth (local stack)', () => {
   afterAll(async () => {
     if (pg) {
       const ids = createdUsers
+      await pg.query(`DELETE FROM public.invitations WHERE tenant_id = $1`, [tenantId]).catch(() => undefined)
       if (ids.length) {
         await pg.query(`DELETE FROM public.user_roles WHERE user_id = ANY($1)`, [ids])
         await pg.query(`DELETE FROM public.user_memberships WHERE user_id = ANY($1)`, [ids])

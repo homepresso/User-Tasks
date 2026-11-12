@@ -20,7 +20,7 @@ import {
 } from '@/lib/task-field-schema'
 import {
   buildTableQueryPlan, clearLookupCache, lookupDeps, lookupScopeValues, lookupSearchTerm, lookupTaskField, previewLookup,
-  referenceLookupInputs, resolveLookupSelections,
+  referenceLookupInputs, resolveLookupSelections, settleServedWrites,
 } from '@/lib/services/form-lookup'
 import { remapKnownIds, createEmptyAssetIdMaps } from '@/lib/portability/id-maps'
 import { scanAssetReferences } from '@/lib/portability/dependencies'
@@ -258,6 +258,13 @@ function seed(overrides: { task?: Partial<Row>; fields?: unknown[] } = {}) {
 let db: ReturnType<typeof fakeDb>
 vi.mock('@/lib/services/_shared', async (orig) => ({ ...(await orig() as object), serviceRoleClient: async () => db }))
 vi.mock('@/lib/cron-auth', () => ({ createServiceClient: () => db }))
+// Served-item memory runs on a fake DB here: pin the in-memory cache so the
+// CI jobs that select a postgres/redis cache don't change this unit test.
+vi.mock('@/lib/providers/cache', async (orig) => {
+  const mod = await orig() as typeof import('@/lib/providers/cache')
+  const store = mod.resolveCacheStore('memory')
+  return { ...mod, getCacheStore: async () => store }
+})
 
 const ctx = (over: Partial<ServiceContext> = {}): ServiceContext => ({
   supabase: db as any, tenantId: TENANT, actorId: ASSIGNEE, permissions: new Set(['tasks.complete']), authKind: 'session', source: 'ui', ...over,
@@ -375,6 +382,7 @@ describe('reference lookups', () => {
 
   it('completion confirms a served value without calling the API again, and stores the item', async () => {
     await lookupTaskField(ctx(), TASK, { field_key: 'vendor', query: 'lit', values: { country: 'NZ' } })
+    await settleServedWrites()
     const before = calls.length
     const res = await resolveLookupSelections(db as any, TENANT, normalizeTaskFields(fields), { vendor: 'V2', country: 'NZ' }, { strict: true, taskId: TASK })
     expect(res).toEqual({ errors: {}, items: { vendor_item: { name: 'Litware', city: 'Wellington', code: 'V2' }, vendor_label: 'Litware' }, fills: { city: 'Wellington' } })
